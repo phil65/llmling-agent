@@ -5,8 +5,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
+from llmling.prompts import PromptMessage
 from pydantic_ai import messages
 
+from llmling_agent.chat_session.commands import CommandRegistry
 from llmling_agent.chat_session.exceptions import ChatSessionConfigError
 from llmling_agent.chat_session.models import ChatMessage, ChatSessionMetadata
 from llmling_agent.log import get_logger
@@ -28,6 +30,7 @@ class AgentChatSession:
     1. Manages agent configuration (tools, model)
     2. Handles conversation flow
     3. Tracks session state and metadata
+    4. Processes slash commands
     """
 
     def __init__(
@@ -50,6 +53,9 @@ class AgentChatSession:
         self._tool_states = agent.list_tools()
         self._model = model_override
 
+        # Initialize command registry
+        self._command_registry = CommandRegistry(self)
+
         logger.debug(
             "Created chat session %s for agent %s",
             self.id,
@@ -66,16 +72,53 @@ class AgentChatSession:
             tool_states=self._tool_states,
         )
 
-    async def send_message(
+    @property
+    def runtime(self):
+        """Get the runtime configuration."""
+        return self._agent.runtime
+
+    @property
+    def capabilities(self):
+        """Get agent capabilities."""
+        return self._agent._context.capabilities
+
+    async def process_message(
         self,
         content: str,
+        *,
+        stream: bool = False,
+    ) -> ChatMessage | AsyncIterator[ChatMessage]:
+        """Process a message, handling commands or normal messages.
+
+        Args:
+            content: Message content
+            stream: Whether to stream the response
+
+        Returns:
+            Response message or stream of message chunks
+        """
+        # Handle slash commands
+        if content.startswith("/"):
+            result = await self._command_registry.execute(content[1:])
+            return ChatMessage(
+                content=result["content"],
+                role="system",
+                metadata=result["metadata"],
+            )
+
+        # Normal message handling
+        return await self.send_message(content, stream=stream)
+
+    async def send_message(
+        self,
+        content: str | PromptMessage,
         *,
         stream: bool = False,
     ) -> ChatMessage | AsyncIterator[ChatMessage]:
         """Send a message and get response(s).
 
         Args:
-            content: Message content to send
+            content: Message content or PromptMessage
             stream: Whether to stream the response
 
         Returns:
@@ -84,6 +127,10 @@ class AgentChatSession:
         Raises:
             ChatSessionConfigError: If message processing fails
         """
+        # Convert content to string if it's a PromptMessage
+        if isinstance(content, PromptMessage):
+            content = content.get_text_content()
+
         self._history.append(messages.UserPrompt(content=content))
 
         try:
