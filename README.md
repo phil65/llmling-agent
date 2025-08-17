@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/phil65-llmling-agent-badge.png)](https://mseep.ai/app/phil65-llmling-agent)
+
 # LLMling-Agent
 
 [![PyPI License](https://img.shields.io/pypi/l/llmling-agent.svg)](https://pypi.org/project/llmling-agent/)
