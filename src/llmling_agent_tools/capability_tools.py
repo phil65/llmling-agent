@@ -20,7 +20,6 @@ from llmling_agent.utils.now import get_now
 
 if TYPE_CHECKING:
     from llmling_agent.agent import AnyAgent
-    from llmling_agent.common_types import StrPath
     from llmling_agent_config.mcp_server import MCPServerConfig
 
 logger = get_logger(__name__)
@@ -553,7 +552,7 @@ async def read_file(  # noqa: D417
 
 
 async def list_directory(
-    path: StrPath,
+    path: str,
     *,
     pattern: str | None = None,
     recursive: bool = True,

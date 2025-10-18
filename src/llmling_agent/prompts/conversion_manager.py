@@ -14,7 +14,8 @@ from llmling_agent_config.converters import (
 
 
 if TYPE_CHECKING:
-    from llmling_agent.common_types import StrPath
+    from upath.types import JoinablePathLike
+
     from llmling_agent_converters.base import DocumentConverter
 
 
@@ -37,7 +38,7 @@ class ConversionManager:
     def __del__(self):
         self._executor.shutdown(wait=False)
 
-    def supports_file(self, path: StrPath) -> bool:
+    def supports_file(self, path: JoinablePathLike) -> bool:
         """Check if any converter supports the file."""
         return any(c.supports_file(path) for c in self._converters)
 
@@ -60,7 +61,7 @@ class ConversionManager:
         converters.append(PlainConverter())
         return converters
 
-    async def convert_file(self, path: StrPath) -> str:
+    async def convert_file(self, path: JoinablePathLike) -> str:
         """Convert file using first supporting converter."""
         loop = asyncio.get_running_loop()
         content = await read_path(path, "rb")
@@ -103,7 +104,7 @@ class ConversionManager:
 
         return str(content)  # Fallback for unsupported content
 
-    def convert_file_sync(self, path: StrPath) -> str:
+    def convert_file_sync(self, path: JoinablePathLike) -> str:
         """Sync wrapper for convert_file."""
         try:
             loop = asyncio.get_running_loop()

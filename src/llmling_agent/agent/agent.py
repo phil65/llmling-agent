@@ -15,6 +15,7 @@ from anyenv import method_spawner
 from llmling import Config, RuntimeConfig, ToolError
 import logfire
 from psygnal import Signal
+from upath import UPath
 
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messagenode import MessageNode
@@ -47,6 +48,7 @@ if TYPE_CHECKING:
     from pydantic_ai.agent import EventStreamHandler
     from pydantic_ai.messages import AgentStreamEvent
     from toprompt import AnyPromptType
+    from upath.types import JoinablePathLike
 
     from llmling_agent.agent import AgentContext, AnyAgent
     from llmling_agent.agent.conversation import ConversationManager
@@ -57,7 +59,6 @@ if TYPE_CHECKING:
         EndStrategy,
         ModelType,
         SessionIdType,
-        StrPath,
         ToolType,
     )
     from llmling_agent.config.capabilities import Capabilities
@@ -104,7 +105,7 @@ class AgentKwargs(TypedDict, total=False):
     # model_settings: dict[str, Any]
 
     # Runtime Environment
-    runtime: RuntimeConfig | Config | StrPath | None
+    runtime: RuntimeConfig | Config | JoinablePathLike | None
     tools: Sequence[ToolType | Tool] | None
     capabilities: Capabilities | None
     mcp_servers: Sequence[str | MCPServerConfig] | None
@@ -164,7 +165,7 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
         provider: AgentType = "pydantic_ai",
         *,
         model: ModelType = None,
-        runtime: RuntimeConfig | Config | StrPath | None = None,
+        runtime: RuntimeConfig | Config | JoinablePathLike | None = None,
         context: AgentContext[TDeps] | None = None,
         session: SessionIdType | SessionQuery | MemoryConfig | bool | int = None,
         system_prompt: AnyPromptType | Sequence[AnyPromptType] = (),
@@ -249,7 +250,7 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
         match runtime:
             case None:
                 ctx.runtime = RuntimeConfig.from_config(Config())
-            case Config() | str() | PathLike():
+            case Config() | str() | PathLike() | UPath():
                 ctx.runtime = RuntimeConfig.from_config(runtime)
             case RuntimeConfig():
                 ctx.runtime = runtime

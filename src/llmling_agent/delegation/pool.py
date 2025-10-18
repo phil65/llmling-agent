@@ -8,6 +8,7 @@ import os
 from typing import TYPE_CHECKING, Any, Self, TypeVar, Unpack, cast, overload
 
 from llmling import BaseRegistry, LLMLingError
+from upath import UPath
 
 from llmling_agent.agent import Agent, StructuredAgent
 from llmling_agent.common_types import NodeName
@@ -33,10 +34,11 @@ if TYPE_CHECKING:
     from types import TracebackType
 
     from psygnal.containers._evented_dict import DictEvents
+    from upath.types import JoinablePathLike
 
     from llmling_agent.agent import AnyAgent
     from llmling_agent.agent.agent import AgentKwargs
-    from llmling_agent.common_types import AgentName, SessionIdType, StrPath
+    from llmling_agent.common_types import AgentName, SessionIdType
     from llmling_agent.delegation.base_team import BaseTeam
     from llmling_agent.messaging.context import ProgressCallback
     from llmling_agent.messaging.eventnode import EventNode
@@ -71,7 +73,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
 
     def __init__(
         self,
-        manifest: StrPath | AgentsManifest | None = None,
+        manifest: JoinablePathLike | AgentsManifest | None = None,
         *,
         shared_deps: TPoolDeps | None = None,
         connect_nodes: bool = True,
@@ -101,7 +103,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
         match manifest:
             case None:
                 self.manifest = AgentsManifest()
-            case str() | os.PathLike():
+            case str() | os.PathLike() | UPath():
                 self.manifest = AgentsManifest.from_file(manifest)
             case AgentsManifest():
                 self.manifest = manifest

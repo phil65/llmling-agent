@@ -12,7 +12,7 @@ from llmling_agent_converters.base import DocumentConverter
 
 
 if TYPE_CHECKING:
-    from llmling_agent.common_types import StrPath
+    from upath.types import JoinablePathLike
 
 
 logger = get_logger(__name__)
@@ -30,7 +30,7 @@ class MarkItDownConverter(DocumentConverter):
 
         return MarkItDown()
 
-    def supports_file(self, path: StrPath) -> bool:
+    def supports_file(self, path: JoinablePathLike) -> bool:
         """Accept any file - MarkItDown is good at detecting formats."""
         return True
 
@@ -67,7 +67,7 @@ class MarkItDownConverter(DocumentConverter):
             logger.exception(msg)
             raise ValueError(msg) from e
 
-    def convert_file(self, path: StrPath) -> str:
+    def convert_file(self, path: JoinablePathLike) -> str:
         """Convert using MarkItDown's file-based interface."""
         try:
             from upathtools import to_upath

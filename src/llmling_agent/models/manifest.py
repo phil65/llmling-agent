@@ -38,8 +38,9 @@ from llmling_agent_config.workers import (
 
 
 if TYPE_CHECKING:
+    from upath.types import JoinablePathLike
+
     from llmling_agent import AgentPool, AnyAgent
-    from llmling_agent.common_types import StrPath
     from llmling_agent.prompts.manager import PromptManager
 
 
@@ -450,7 +451,7 @@ class AgentsManifest(Schema):
         return providers
 
     @classmethod
-    def from_file(cls, path: StrPath) -> Self:
+    def from_file(cls, path: JoinablePathLike) -> Self:
         """Load agent configuration from YAML file.
 
         Args:

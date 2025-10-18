@@ -19,7 +19,8 @@ from llmling_agent_converters.base import DocumentConverter
 
 
 if TYPE_CHECKING:
-    from llmling_agent.common_types import StrPath
+    from upath.types import JoinablePathLike
+
 
 logger = get_logger(__name__)
 
@@ -75,7 +76,7 @@ class YouTubeTranscriptConverter(DocumentConverter):
                 return match.group(1) if len(match.groups()) else match.group(0)
         return None
 
-    def supports_file(self, path: StrPath) -> bool:
+    def supports_file(self, path: JoinablePathLike) -> bool:
         """Check if path looks like a YouTube URL/ID."""
         return bool(self.extract_video_id(str(path)))
 
@@ -88,7 +89,7 @@ class YouTubeTranscriptConverter(DocumentConverter):
         msg = "Raw content conversion not supported"
         raise NotImplementedError(msg)
 
-    def convert_file(self, path: StrPath) -> str:
+    def convert_file(self, path: JoinablePathLike) -> str:
         """Convert YouTube transcript to text.
 
         Args:

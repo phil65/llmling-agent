@@ -9,12 +9,13 @@ from llmling_agent_running.executor import discover_functions, execute_functions
 
 
 if TYPE_CHECKING:
-    from llmling_agent.common_types import StrPath
+    from upath.types import JoinablePathLike
+
     from llmling_agent.models.manifest import AgentsManifest
 
 
 async def run_nodes_async(
-    config: StrPath | AgentsManifest,
+    config: JoinablePathLike | AgentsManifest,
     *,
     module: str | None = None,
     functions: list[str] | None = None,
@@ -75,7 +76,7 @@ async def run_nodes_async(
         )
 
 
-def run_nodes(config: StrPath | AgentsManifest, **kwargs: Any) -> dict[str, Any]:
+def run_nodes(config: JoinablePathLike | AgentsManifest, **kwargs: Any) -> dict[str, Any]:
     """Run node functions synchronously.
 
     Convenience wrapper around run_nodes_async for sync contexts.

@@ -29,9 +29,10 @@ if TYPE_CHECKING:
     from llmling.config.models import Resource
     from llmling.prompts import PromptType
     from toprompt import AnyPromptType
+    from upath.types import JoinablePathLike
 
     from llmling_agent.agent.agent import Agent
-    from llmling_agent.common_types import MessageRole, SessionIdType, StrPath
+    from llmling_agent.common_types import MessageRole, SessionIdType
     from llmling_agent_config.session import MemoryConfig
 
 logger = get_logger(__name__)
@@ -441,7 +442,7 @@ class ConversationManager:
 
     async def add_context_from_path(
         self,
-        path: StrPath,
+        path: JoinablePathLike,
         *,
         convert_to_md: bool = False,
         **metadata: Any,

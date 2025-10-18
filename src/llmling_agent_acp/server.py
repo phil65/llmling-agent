@@ -21,10 +21,9 @@ from llmling_agent_acp.acp_agent import LLMlingACPAgent
 
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
     from tokonomics.model_discovery import ProviderType
     from tokonomics.model_discovery.model_info import ModelInfo
+    from upath.types import JoinablePathLike
 
     from llmling_agent import Agent, AgentPool
     from llmling_agent_providers.base import UsageLimits
@@ -83,7 +82,7 @@ class ACPServer:
     @classmethod
     async def from_config(
         cls,
-        config_path: str | Path,
+        config_path: JoinablePathLike,
         *,
         usage_limits: UsageLimits | None = None,
         session_support: bool = True,

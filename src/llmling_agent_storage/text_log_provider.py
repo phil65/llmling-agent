@@ -16,8 +16,9 @@ if TYPE_CHECKING:
     from datetime import datetime
 
     from jinja2 import Template
+    from upath.types import JoinablePathLike
 
-    from llmling_agent.common_types import JsonValue, StrPath
+    from llmling_agent.common_types import JsonValue
     from llmling_agent.tools import ToolCallInfo
     from llmling_agent_config.storage import LogFormat, TextLogConfig
 
@@ -137,7 +138,7 @@ class TextLogProvider(StorageProvider):
 
     def _load_template(
         self,
-        template: LogFormat | StrPath | None,
+        template: LogFormat | JoinablePathLike | None,
     ) -> Template:
         """Load template from predefined or file."""
         from jinja2 import Template

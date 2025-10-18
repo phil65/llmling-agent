@@ -13,7 +13,8 @@ from llmling_agent_converters.base import DocumentConverter
 
 
 if TYPE_CHECKING:
-    from llmling_agent.common_types import StrPath
+    from upath.types import JoinablePathLike
+
     from llmling_agent_config.converters import WhisperAPIConfig
 
 
@@ -39,7 +40,7 @@ class WhisperAPIConverter(DocumentConverter):
         """Initialize converter with config."""
         self.config = config
 
-    def supports_file(self, path: StrPath) -> bool:
+    def supports_file(self, path: JoinablePathLike) -> bool:
         """Check if file type is supported."""
         import mimetypes
 

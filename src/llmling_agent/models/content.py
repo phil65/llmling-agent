@@ -13,8 +13,7 @@ from upathtools import read_path
 
 if TYPE_CHECKING:
     import PIL.Image
-
-    from llmling_agent.common_types import StrPath
+    from upath.types import JoinablePathLike
 
 
 DetailLevel = Literal["high", "low", "auto"]
@@ -49,7 +48,7 @@ class BaseImageContent(BaseContent):
     @classmethod
     async def from_path(
         cls,
-        path: StrPath,
+        path: JoinablePathLike,
         *,
         detail: DetailLevel | None = None,
         description: str | None = None,
@@ -152,7 +151,7 @@ class BasePDFContent(BaseContent):
     @classmethod
     async def from_path(
         cls,
-        path: StrPath,
+        path: JoinablePathLike,
         *,
         detail: DetailLevel | None = None,
         description: str | None = None,
@@ -272,7 +271,7 @@ class AudioBase64Content(AudioContent):
         return cls(data=base64.b64encode(data).decode(), format=audio_format)
 
     @classmethod
-    def from_path(cls, path: StrPath) -> Self:
+    def from_path(cls, path: JoinablePathLike) -> Self:
         """Create from file path with auto format detection."""
         import mimetypes
 

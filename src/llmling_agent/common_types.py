@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
-import os
 from typing import (
     Any,
     ClassVar,
@@ -17,7 +16,6 @@ from uuid import UUID
 
 from llmling import LLMCallableTool
 from pydantic import BaseModel, ConfigDict, field_validator
-from upath.types import JoinablePathLike
 
 
 @runtime_checkable
@@ -38,7 +36,6 @@ type JsonArray = list[JsonValue]
 SimpleJsonType = dict[
     str, bool | int | float | str | list[str] | dict[str, bool | int | float | str]
 ]
-type StrPath = JoinablePathLike | os.PathLike
 type SessionIdType = str | UUID | None
 
 

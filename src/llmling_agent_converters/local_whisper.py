@@ -10,7 +10,7 @@ from llmling_agent_converters.base import DocumentConverter
 
 
 if TYPE_CHECKING:
-    from llmling_agent.common_types import StrPath
+    from upath.types import JoinablePathLike
 
 
 class LocalWhisperConverter(DocumentConverter):
@@ -47,7 +47,7 @@ class LocalWhisperConverter(DocumentConverter):
             device=device,
         )
 
-    def supports_file(self, path: StrPath) -> bool:
+    def supports_file(self, path: JoinablePathLike) -> bool:
         """Check if file type is supported."""
         import mimetypes
 

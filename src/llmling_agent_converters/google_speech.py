@@ -10,7 +10,8 @@ from llmling_agent_converters.base import DocumentConverter
 
 
 if TYPE_CHECKING:
-    from llmling_agent.common_types import StrPath
+    from upath.types import JoinablePathLike
+
     from llmling_agent_config.converters import GoogleSpeechConfig
 
 logger = get_logger(__name__)
@@ -35,7 +36,7 @@ class GoogleSpeechConverter(DocumentConverter):
 
         self._client = speech.SpeechClient()
 
-    def supports_file(self, path: StrPath) -> bool:
+    def supports_file(self, path: JoinablePathLike) -> bool:
         """Check if file type is supported."""
         mime_type, _ = mimetypes.guess_type(str(path))
         return mime_type in self.SUPPORTED_MIME_TYPES
