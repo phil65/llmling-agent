@@ -5,10 +5,10 @@ from __future__ import annotations
 from llmling_agent import Agent
 
 
-async def test_mcp_tool_call():
+async def test_mcp_tool_call(default_model: str):
     """Test basic MCP tool functionality with context7 server."""
     sys_prompt = "Look up pydantic docs"
-    model = "openai:gpt-5-nano"
+    model = default_model
 
     # Track tool usage
     tool_calls = []

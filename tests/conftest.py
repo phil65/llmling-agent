@@ -15,6 +15,18 @@ from llmling_agent import Agent, AgentConfig, AgentPool, AgentsManifest
 TEST_RESPONSE = "I am a test response"
 
 
+@pytest.fixture
+def default_model() -> str:
+    """Default model for testing."""
+    return "openai:gpt-5-nano"
+
+
+@pytest.fixture
+def vision_model() -> str:
+    """Vision-capable model for testing."""
+    return "openai:gpt-5-nano"
+
+
 @pytest.fixture(scope="session", autouse=True)
 def disable_logfire():
     """Disable logfire for all tests."""
@@ -62,14 +74,14 @@ responses:
 agents:
   support:
     name: Support Agent
-    model: openai:gpt-5-nano
+    model: {default_model}
     result_type: SupportResult
     system_prompts:
       - You are a support agent
-      - "Context: {data}"
+      - "Context: {{data}}"
   researcher:
     name: Research Agent
-    model: openai:gpt-5-nano
+    model: {default_model}
     result_type: ResearchResult
     system_prompts:
       - You are a researcher
@@ -77,9 +89,9 @@ agents:
 
 
 @pytest.fixture
-def valid_config() -> dict[str, Any]:
+def valid_config(default_model: str) -> dict[str, Any]:
     """Fixture providing valid agent configuration."""
-    return yamling.load_yaml(VALID_CONFIG)
+    return yamling.load_yaml(VALID_CONFIG.format(default_model=default_model))
 
 
 @pytest.fixture

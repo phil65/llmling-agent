@@ -9,9 +9,6 @@ from llmling_agent import Agent, AgentContext, AgentPool
 from llmling_agent.config.capabilities import Capabilities
 
 
-MODEL = "openai:gpt-5-nano"
-
-
 async def run_ctx_tool(ctx: RunContext[AgentContext], arg: str) -> str:
     """Tool expecting RunContext."""
     assert isinstance(ctx, RunContext)
@@ -40,7 +37,7 @@ async def no_ctx_tool(arg: str) -> str:
     return f"No context tool got: {arg}"
 
 
-async def test_tool_context_injection():
+async def test_tool_context_injection(default_model: str):
     """Test that tools receive correct context."""
     context_received = None
     deps_received = None
@@ -57,7 +54,7 @@ async def test_tool_context_injection():
     test_deps = {"key": "value"}
     context = AgentContext[Any].create_default("test")
     context.data = test_deps
-    async with Agent(model=MODEL) as agent:
+    async with Agent(model=default_model) as agent:
         agent.context = context
         # Register our test tool
         agent.tools.register_tool(test_tool, enabled=True)
@@ -76,7 +73,7 @@ async def test_tool_context_injection():
         assert deps_received.node_name == "test"
 
 
-async def test_plain_tool_no_context():
+async def test_plain_tool_no_context(default_model: str):
     """Test that plain tools work without context."""
     count = 0
 
@@ -87,7 +84,7 @@ async def test_plain_tool_no_context():
         count += 1
         return f"Got arg: {arg}"
 
-    async with Agent(model=MODEL) as agent:
+    async with Agent(model=default_model) as agent:
         agent.context = AgentContext.create_default("test")
         agent.tools.register_tool(plain_tool, enabled=True)
         # Should work without error
@@ -96,28 +93,34 @@ async def test_plain_tool_no_context():
 
 
 @pytest.mark.integration
-async def test_capability_tools():
+async def test_capability_tools(default_model: str):
     """Test that capability tools work with AgentContext."""
     async with AgentPool[None]() as pool:
         caps = Capabilities(can_list_agents=True)
-        agent = await pool.add_agent(name="test", model=MODEL, capabilities=caps)
+        agent = await pool.add_agent(name="test", model=default_model, capabilities=caps)
         prompt = "Get available agents using the list_agents tool and return all names."
         result = await agent.run(prompt)
         assert agent.name in str(result.content)
         caps = Capabilities(can_delegate_tasks=True)
-        agent_2 = await pool.add_agent(name="test_2", model=MODEL, capabilities=caps)
-        await pool.add_agent("helper", system_prompt="You help with tasks", model=MODEL)
+        agent_2 = await pool.add_agent(
+            name="test_2", model=default_model, capabilities=caps
+        )
+        await pool.add_agent(
+            "helper", system_prompt="You help with tasks", model=default_model
+        )
         result = await agent_2.run("Delegate 'say hello' to agent with name `helper`")
         assert result.tool_calls
         assert result.tool_calls[0].tool_name == "delegate_to"
 
 
-async def test_team_creation():
+async def test_team_creation(default_model: str):
     """Test that an agent can create other agents and form them into a team."""
     async with AgentPool[None]() as pool:
         # Create creator agent with needed capabilities
         caps = Capabilities(can_add_agents=True, can_add_teams=True)
-        creator = await pool.add_agent(name="creator", model=MODEL, capabilities=caps)
+        creator = await pool.add_agent(
+            name="creator", model=default_model, capabilities=caps
+        )
         # Ask it to create a content team
         result = await creator.run("""
             Create two agents:
@@ -135,9 +138,9 @@ async def test_team_creation():
         assert "bob" in str(result.content.lower())
 
 
-async def test_context_compatibility():
+async def test_context_compatibility(default_model: str):
     """Test that both context types work in tools."""
-    async with Agent(model=MODEL) as agent:
+    async with Agent(model=default_model) as agent:
         agent.tools.register_tool(run_ctx_tool, name_override="run_ctx_tool")
         agent.tools.register_tool(agent_ctx_tool, name_override="agent_ctx_tool")
         agent.tools.register_tool(no_ctx_tool, name_override="no_ctx_tool")
@@ -159,11 +162,11 @@ async def test_context_compatibility():
         )
 
 
-async def test_context_sharing():
+async def test_context_sharing(default_model: str):
     """Test that both context types access same data."""
     shared_data = {"key": "value"}
 
-    agent = Agent[dict](name="test", model=MODEL)
+    agent = Agent[dict](name="test", model=default_model)
     agent.context.data = shared_data
 
     agent.tools.register_tool(data_with_run_ctx)

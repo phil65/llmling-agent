@@ -3,9 +3,9 @@ from __future__ import annotations
 from llmling_agent import Agent
 
 
-async def test_conversation_history_management():
+async def test_conversation_history_management(default_model: str):
     """Test that conversation history is maintained correctly."""
-    async with Agent(model="openai:gpt-5-nano") as agent:
+    async with Agent(model=default_model) as agent:
         # Send first message and check basic history
         await agent.run("First message")
         history1 = agent.conversation.get_history()
