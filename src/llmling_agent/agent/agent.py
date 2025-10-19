@@ -79,7 +79,7 @@ logger = get_logger(__name__)
 TResult = TypeVar("TResult", default=str)
 
 
-@dataclass(repr=False, kw_only=True)
+@dataclass(kw_only=True)
 class StreamCompleteEvent:
     """Event indicating streaming is complete with final message."""
 
