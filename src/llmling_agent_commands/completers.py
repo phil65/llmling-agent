@@ -66,7 +66,6 @@ def get_model_names(ctx: CompletionContext[AgentContext[Any]]) -> list[str]:
     # Combine both sources, keeping order (known models first)
     all_models = known_models[:]
     all_models.extend(model for model in config_models if model not in all_models)
-
     return all_models
 
 

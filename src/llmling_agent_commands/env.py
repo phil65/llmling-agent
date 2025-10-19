@@ -57,10 +57,8 @@ async def set_env(
             raise CommandError(msg)  # noqa: TRY301
 
         # Manually remove runtime tools
-        runtime_tools = [
-            name for name, info in agent.tools.items() if info.source == "runtime"
-        ]
-        for name in runtime_tools:
+        tools = [name for name, info in agent.tools.items() if info.source == "runtime"]
+        for name in tools:
             del agent.tools[name]
 
         # Clean up old runtime if we own it
@@ -78,7 +76,7 @@ async def set_env(
 
         await ctx.output.print(
             f"✅ **Environment changed to:** `{env_path}`\n"
-            f"🔧 **Replaced runtime tools:** `{', '.join(runtime_tools)}`"
+            f"🔧 **Replaced runtime tools:** `{', '.join(tools)}`"
         )
 
     except Exception as e:

@@ -10,7 +10,7 @@ real-time code editing and location resolution.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import Enum
+from typing import Literal
 
 
 REPLACEMENT_COST = 1
@@ -29,12 +29,7 @@ class Range:
     end: int
 
 
-class SearchDirection(Enum):
-    """Direction for backtracking in the search matrix."""
-
-    UP = "up"
-    LEFT = "left"
-    DIAGONAL = "diagonal"
+SearchDirection = Literal["up", "left", "diagonal"]
 
 
 @dataclass(slots=True)
@@ -65,15 +60,13 @@ class SearchMatrix:
         new_size = new_rows * self.cols
 
         # Extend data array
-        self.data.extend([
-            SearchState(0, SearchDirection.DIAGONAL) for _ in range(new_size - old_size)
-        ])
+        self.data.extend([SearchState(0, "diagonal") for _ in range(new_size - old_size)])
         self.rows = new_rows
 
     def get(self, row: int, col: int) -> SearchState:
         """Get state at matrix position."""
         if row >= self.rows or col >= self.cols or row < 0 or col < 0:
-            return SearchState(999999, SearchDirection.DIAGONAL)
+            return SearchState(999999, "diagonal")
         return self.data[row * self.cols + col]
 
     def set(self, row: int, col: int, state: SearchState) -> None:
@@ -216,9 +209,7 @@ class StreamingFuzzyMatcher:
             leading_deletion_cost = (row + 1) * DELETION_COST
 
             # Initialize first column
-            self.matrix.set(
-                row + 1, 0, SearchState(leading_deletion_cost, SearchDirection.UP)
-            )
+            self.matrix.set(row + 1, 0, SearchState(leading_deletion_cost, "up"))
 
             # Process each source line
             for col, source_line in enumerate(self.source_lines):
@@ -235,11 +226,11 @@ class StreamingFuzzyMatcher:
 
                 # Choose minimum cost direction
                 if diagonal_cost <= up_cost and diagonal_cost <= left_cost:
-                    best_state = SearchState(diagonal_cost, SearchDirection.DIAGONAL)
+                    best_state = SearchState(diagonal_cost, "diagonal")
                 elif up_cost <= left_cost:
-                    best_state = SearchState(up_cost, SearchDirection.UP)
+                    best_state = SearchState(up_cost, "up")
                 else:
-                    best_state = SearchState(left_cost, SearchDirection.LEFT)
+                    best_state = SearchState(left_cost, "left")
 
                 self.matrix.set(row + 1, col + 1, best_state)
 
@@ -298,12 +289,12 @@ class StreamingFuzzyMatcher:
         # Backtrack to collect matched source lines
         while row > 0 and col > 0:
             state = self.matrix.get(row, col)
-            if state.direction == SearchDirection.DIAGONAL:
+            if state.direction == "diagonal":
                 # represents a match between query line (row-1) and source line (col-1)
                 matched_lines.add(col - 1)
                 row -= 1
                 col -= 1
-            elif state.direction == SearchDirection.UP:
+            elif state.direction == "up":
                 row -= 1
             else:  # LEFT
                 col -= 1

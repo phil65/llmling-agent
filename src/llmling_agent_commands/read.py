@@ -57,7 +57,7 @@ async def read_command(
         agent = ctx.context.agent
         await agent.conversation.add_context_from_path(path, convert_to_md=convert_to_md)
         await ctx.output.print(
-            f"📄 **Added content from** `{path}` **to next message as context**"
+            f"📄 **Added content from** {path!r} **to next message as context**"
         )
     except Exception as e:
         msg = f"Unexpected error reading {path}: {e}"
