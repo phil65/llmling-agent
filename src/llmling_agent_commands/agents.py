@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from slashed import Command, CommandContext, CommandError  # noqa: TC002
+from slashed import CommandContext, CommandError, SlashedCommand  # noqa: TC002
 from slashed.completers import CallbackCompleter
 
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
@@ -64,155 +64,206 @@ Example: /switch-agent url_opener
 """
 
 
-async def create_agent_command(
-    ctx: CommandContext[AgentContext],
-    args: list[str],
-    kwargs: dict[str, str],
-):
-    """Create a new agent in the current session."""
-    if not args:
-        await ctx.output.print(
-            "**Usage:** `/create-agent <name> "
-            "--system-prompt 'prompt' [--tools 'tool1|tool2']`"
-        )
-        return
+class CreateAgentCommand(SlashedCommand):
+    """Create a new agent in the current session.
 
-    name = args[0]
-    try:
+    Creates a temporary agent that inherits the current agent's model.
+    The new agent will exist only for this session.
+
+    Options:
+      --system-prompt "prompt"   System instructions for the agent (required)
+      --model model_name        Override model (default: same as current agent)
+      --role role_name         Agent role (assistant/specialist/overseer)
+      --description "text"     Optional description of the agent
+      --tools "import_path1|import_path2"   Optional list tools (by import path)
+
+    Examples:
+      # Create poet using same model as current agent
+      /create-agent poet --system-prompt "Create poems from any text"
+
+      # Create analyzer with different model
+      /create-agent analyzer --system-prompt "Analyze in detail" --model gpt-5
+
+      # Create specialized helper
+      /create-agent helper --system-prompt "Debug code" --role specialist
+    """
+
+    name = "create-agent"
+    category = "agents"
+
+    async def execute_command(
+        self,
+        ctx: CommandContext[AgentContext],
+        agent_name: str,
+        *,
+        system_prompt: str,
+        model: str | None = None,
+        role: str | None = None,
+        description: str | None = None,
+        tools: str | None = None,
+    ):
+        """Create a new agent in the current session.
+
+        Args:
+            ctx: Command context
+            agent_name: Name for the new agent
+            system_prompt: System instructions for the agent
+            model: Override model (default: same as current agent)
+            role: Agent role (assistant/specialist/overseer)
+            description: Optional description of the agent
+            tools: Optional pipe-separated list of tools (by import path)
+        """
+        try:
+            if not ctx.context.pool:
+                msg = "No agent pool available"
+                raise CommandError(msg)
+
+            # Get model from args or current agent
+            current_agent = ctx.context.agent
+
+            # Parse tools if provided
+            tool_list = None
+            if tools:
+                tool_list = [t.strip() for t in tools.split("|")]
+
+            # Create and register the new agent
+            await ctx.context.pool.add_agent(
+                name=agent_name,
+                model=model or current_agent.model_name,
+                system_prompt=system_prompt or (),
+                description=description,
+                tools=tool_list,
+            )
+
+            msg = f"✅ **Created agent** `{agent_name}`"
+            if tool_list:
+                msg += f" with tools: `{', '.join(tool_list)}`"
+            await ctx.output.print(
+                f"{msg}\n\n💡 Use `/connect {agent_name}` to forward messages"
+            )
+
+        except ValueError as e:
+            msg = f"Failed to create agent: {e}"
+            raise CommandError(msg) from e
+
+
+class ShowAgentCommand(SlashedCommand):
+    """Display the complete configuration of the current agent as YAML.
+
+    Shows:
+    - Basic agent settings
+    - Model configuration (with override indicators)
+    - Environment settings (including inline environments)
+    - System prompts
+    - Response type configuration
+    - Other settings
+
+    Fields that have been overridden at runtime are marked with comments.
+    """
+
+    name = "show-agent"
+    category = "agents"
+
+    async def execute_command(self, ctx: CommandContext[NodeContext]):
+        """Show current agent's configuration.
+
+        Args:
+            ctx: Command context
+        """
+        import yamling
+
+        if not ctx.context.node.context:
+            await ctx.output.print("❌ **No node context available**")
+            return
+
+        # Get the agent's config with current overrides
+        config = ctx.context.node.context.config
+
+        # Get base config as dict
+        config_dict = config.model_dump(exclude_none=True)
+
+        # Format as annotated YAML
+        yaml_config = yamling.dump_yaml(
+            config_dict,
+            sort_keys=False,
+            indent=2,
+            default_flow_style=False,
+            allow_unicode=True,
+        )
+        # Add header and format for display
+        sections = [
+            "\n[bold]Current Node Configuration:[/]",
+            "```yaml",
+            yaml_config,
+            "```",
+        ]
+
+        await ctx.output.print("\n".join(sections))
+
+
+class ListAgentsCommand(SlashedCommand):
+    """Show all agents defined in the current configuration.
+
+    Displays:
+    - Agent name
+    - Model used (if specified)
+    - Description (if available)
+    """
+
+    name = "list-agents"
+    category = "agents"
+
+    async def execute_command(self, ctx: CommandContext[AgentContext]):
+        """List all available agents.
+
+        Args:
+            ctx: Command context
+        """
         if not ctx.context.pool:
             msg = "No agent pool available"
             raise CommandError(msg)
 
-        # Get model from args or current agent
-        current_agent = ctx.context.agent
+        rows = []
+        for name, agent in ctx.context.pool.agents.items():
+            rows.append({
+                "Name": name,
+                "Model": str(agent.model_name or ""),
+                "Type": (
+                    "dynamic" if name not in ctx.context.definition.agents else "static"
+                ),
+                "Description": agent.description or "",
+            })
 
-        # Parse tools if provided
-        tools = None
-        if tool_str := kwargs.get("tools"):
-            tools = [t.strip() for t in tool_str.split("|")]
-
-        # Create and register the new agent
-        await ctx.context.pool.add_agent(
-            name=name,
-            model=kwargs.get("model") or current_agent.model_name,
-            system_prompt=kwargs.get("system-prompt") or (),
-            description=kwargs.get("description"),
-            tools=tools,
-        )
-
-        msg = f"✅ **Created agent** `{name}`"
-        if tools:
-            msg += f" with tools: `{', '.join(tools)}`"
-        await ctx.output.print(f"{msg}\n\n💡 Use `/connect {name}` to forward messages")
-
-    except ValueError as e:
-        msg = f"Failed to create agent: {e}"
-        raise CommandError(msg) from e
+        headers = ["Name", "Model", "Type", "Description"]
+        table = format_table(headers, rows)
+        await ctx.output.print(f"## 🤖 Available Agents\n\n{table}")
 
 
-async def show_agent(
-    ctx: CommandContext[NodeContext], args: list[str], kwargs: dict[str, str]
-):
-    """Show current agent's configuration."""
-    import yamling
+class SwitchAgentCommand(SlashedCommand):
+    """Switch the current chat session to a different agent.
 
-    if not ctx.context.node.context:
-        await ctx.output.print("❌ **No node context available**")
-        return
+    Use /list-agents to see available agents.
 
-    # Get the agent's config with current overrides
-    config = ctx.context.node.context.config
+    Example: /switch-agent url_opener
+    """
 
-    # Get base config as dict
-    config_dict = config.model_dump(exclude_none=True)
+    name = "switch-agent"
+    category = "agents"
 
-    # Format as annotated YAML
-    yaml_config = yamling.dump_yaml(
-        config_dict,
-        sort_keys=False,
-        indent=2,
-        default_flow_style=False,
-        allow_unicode=True,
-    )
-    # Add header and format for display
-    sections = [
-        "\n[bold]Current Node Configuration:[/]",
-        "```yaml",
-        yaml_config,
-        "```",
-    ]
+    async def execute_command(
+        self,
+        ctx: CommandContext[AgentContext],
+        agent_name: str,
+    ):
+        """Switch to a different agent.
 
-    await ctx.output.print("\n".join(sections))
+        Args:
+            ctx: Command context
+            agent_name: Name of the agent to switch to
+        """
+        msg = "Temporarily disabled"
+        raise RuntimeError(msg)
 
-
-async def list_agents(
-    ctx: CommandContext[AgentContext],
-    args: list[str],
-    kwargs: dict[str, str],
-):
-    """List all available agents."""
-    if not ctx.context.pool:
-        msg = "No agent pool available"
-        raise CommandError(msg)
-
-    rows = []
-    for name, agent in ctx.context.pool.agents.items():
-        rows.append({
-            "Name": name,
-            "Model": str(agent.model_name or ""),
-            "Type": "dynamic" if name not in ctx.context.definition.agents else "static",
-            "Description": agent.description or "",
-        })
-
-    headers = ["Name", "Model", "Type", "Description"]
-    table = format_table(headers, rows)
-    await ctx.output.print(f"## 🤖 Available Agents\n\n{table}")
-
-
-async def switch_agent(
-    ctx: CommandContext[AgentContext],
-    args: list[str],
-    kwargs: dict[str, str],
-):
-    """Switch to a different agent."""
-    msg = "Temporarily disabled"
-    raise RuntimeError(msg)
-    if not args:
-        await ctx.output.print("**Usage:** `/switch-agent <name>`")
-        return
-
-
-create_agent_cmd = Command(
-    name="create-agent",
-    description="Create a new agent in the current session",
-    execute_func=create_agent_command,
-    usage="<name> --system-prompt 'prompt' [--model name] [--role name]",
-    help_text=CREATE_AGENT_HELP,
-    category="agents",
-)
-
-show_agent_cmd = Command(
-    name="show-agent",
-    description="Show current agent's configuration",
-    execute_func=show_agent,
-    help_text=SHOW_AGENT_HELP_TEXT,
-    category="agents",
-)
-
-list_agents_cmd = Command(
-    name="list-agents",
-    description="List available agents",
-    execute_func=list_agents,
-    help_text=LIST_AGENTS_HELP,
-    category="agents",
-)
-
-switch_agent_cmd = Command(
-    name="switch-agent",
-    description="Switch to a different agent",
-    execute_func=switch_agent,
-    usage="<name>",
-    help_text=SWITCH_AGENT_HELP,
-    category="agents",
-    completer=CallbackCompleter(get_available_agents),
-)
+    def get_completer(self):
+        """Get completer for agent names."""
+        return CallbackCompleter(get_available_agents)

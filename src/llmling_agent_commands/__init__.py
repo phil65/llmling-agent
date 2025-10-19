@@ -4,33 +4,34 @@ from __future__ import annotations
 
 
 from llmling_agent_commands.agents import (
-    create_agent_cmd,
-    list_agents_cmd,
-    show_agent_cmd,
-    # switch_agent_cmd,
+    CreateAgentCommand,
+    ListAgentsCommand,
+    ShowAgentCommand,
+    # SwitchAgentCommand,
 )
 from llmling_agent_commands.connections import (
-    connect_cmd,
-    disconnect_cmd,
-    connections_cmd,
-    disconnect_all_cmd,
+    ConnectCommand,
+    DisconnectCommand,
+    ListConnectionsCommand,
+    DisconnectAllCommand,
 )
-from llmling_agent_commands.env import edit_env_cmd, set_env_cmd
-from llmling_agent_commands.models import set_model_cmd
-from llmling_agent_commands.prompts import list_prompts_cmd, prompt_cmd
+from llmling_agent_commands.env import OpenEnvFileCommand, SetEnvCommand
+from llmling_agent_commands.models import SetModelCommand
+from llmling_agent_commands.prompts import ListPromptsCommand, ShowPromptCommand
 from llmling_agent_commands.resources import (
     ListResourcesCommand,
     ShowResourceCommand,
     AddResourceCommand,
 )
 from llmling_agent_commands.session import ClearCommand, ResetCommand
-from llmling_agent_commands.read import read_cmd
+from llmling_agent_commands.read import ReadCommand
 from llmling_agent_commands.tools import (
     DisableToolCommand,
     EnableToolCommand,
     ListToolsCommand,
     RegisterToolCommand,
     ShowToolCommand,
+    WriteToolCommand,
 )
 from llmling_agent_commands.workers import (
     AddWorkerCommand,
@@ -52,32 +53,33 @@ def get_agent_commands() -> list[BaseCommand | type[SlashedCommand]]:
         ResetCommand,
         CopyClipboardCommand,  # operates on current agent's history
         # Model/Environment
-        set_model_cmd,
-        set_env_cmd,
+        SetModelCommand,
+        SetEnvCommand,
         # Tool management
         ListToolsCommand,
         ShowToolCommand,
         EnableToolCommand,
         DisableToolCommand,
         RegisterToolCommand,
+        WriteToolCommand,
         # Resource management
         ListResourcesCommand,
         ShowResourceCommand,
         AddResourceCommand,
         # Prompt management
-        list_prompts_cmd,
-        prompt_cmd,
+        ListPromptsCommand,
+        ShowPromptCommand,
         # Worker management (all from current agent's perspective)
         AddWorkerCommand,
         RemoveWorkerCommand,
         ListWorkersCommand,
         # Connection management (all from current agent's perspective)
-        connect_cmd,  # "Connect THIS agent to another one"
-        disconnect_cmd,  # "Disconnect THIS agent from another"
-        connections_cmd,  # "Show THIS agent's connections"
-        disconnect_all_cmd,  # "Disconnect THIS agent from all others"
+        ConnectCommand,  # "Connect THIS agent to another one"
+        DisconnectCommand,  # "Disconnect THIS agent from another"
+        ListConnectionsCommand,  # "Show THIS agent's connections"
+        DisconnectAllCommand,  # "Disconnect THIS agent from all others"
         # Context/Content
-        read_cmd,
+        ReadCommand,
     ]
 
 
@@ -85,12 +87,12 @@ def get_pool_commands() -> list[BaseCommand | type[SlashedCommand]]:
     """Get commands that operate on multiple agents or the pool itself."""
     return [
         # Pool-level agent management
-        create_agent_cmd,  # Creates new agent in pool
-        list_agents_cmd,  # Shows all agents in pool
-        show_agent_cmd,  # Shows config from pool's manifest
-        # switch_agent_cmd,  # Changes active agent in pool
+        CreateAgentCommand,  # Creates new agent in pool
+        ListAgentsCommand,  # Shows all agents in pool
+        ShowAgentCommand,  # Shows config from pool's manifest
+        # SwitchAgentCommand,  # Changes active agent in pool
         # Pool configuration
-        edit_env_cmd,  # Edits pool's environment config
+        OpenEnvFileCommand,  # Edits pool's environment config
         EditAgentFileCommand,  # Edits pool's manifest
     ]
 
