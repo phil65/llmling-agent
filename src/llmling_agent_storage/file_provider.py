@@ -114,7 +114,7 @@ class FileProvider(StorageProvider):
             self._data = yamling.load_file(
                 self.path,
                 self.format,  # pyright: ignore
-                verify_type=StorageData,  # type: ignore
+                verify_type=StorageData,
             )
         self._save()
 

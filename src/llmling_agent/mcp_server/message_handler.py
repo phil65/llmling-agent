@@ -127,11 +127,11 @@ class MCPMessageHandler:
             # Use stored tool execution context - handle both coroutines and awaitables
             try:
                 # ProgressNotification has params attribute containing the data
-                params = getattr(message, "params", message)
+                params = message.params
                 awaitable = self.client._progress_handler(
-                    getattr(params, "progress", 0.0),
-                    getattr(params, "total", None),
-                    getattr(params, "message", None),
+                    params.progress,
+                    params.total,
+                    params.message,
                 )
                 # Use ensure_future to handle both coroutines and awaitables
                 task = asyncio.ensure_future(awaitable)

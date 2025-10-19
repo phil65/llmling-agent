@@ -26,10 +26,7 @@ from llmling_agent.resource_providers.runtime import RuntimeResourceProvider
 from llmling_agent.talk.stats import MessageStats
 from llmling_agent.tools.base import Tool
 from llmling_agent.tools.manager import ToolManager
-from llmling_agent.utils.inspection import (
-    call_with_context,
-    has_return_type,
-)
+from llmling_agent.utils.inspection import call_with_context, has_return_type
 from llmling_agent.utils.now import get_now
 from llmling_agent.utils.result_utils import to_type
 from llmling_agent.utils.tasks import TaskManager
