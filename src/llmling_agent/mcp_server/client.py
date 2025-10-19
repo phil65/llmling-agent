@@ -7,6 +7,7 @@ import inspect
 import logging
 from typing import TYPE_CHECKING, Any, Self
 
+from pydantic_ai import RunContext  # noqa: TC002
 from schemez.functionschema import FunctionSchema
 
 from llmling_agent.log import get_logger
@@ -311,7 +312,7 @@ class MCPClient:
         fn_schema = FunctionSchema.from_dict(schema)
         sig = fn_schema.to_python_signature()
 
-        async def tool_callable(ctx: Any | None = None, **kwargs: Any) -> str:
+        async def tool_callable(_ctx: RunContext | None = None, **kwargs: Any) -> str:
             """Dynamically generated MCP tool wrapper."""
             # Filter out None values for optional params
             schema_props = tool.inputSchema.get("properties", {})
@@ -322,8 +323,8 @@ class MCPClient:
                 for k, v in kwargs.items()
                 if k in required_props or (k in schema_props and v is not None)
             }
-
-            return await self.call_tool(tool.name, filtered_kwargs)
+            tc_id = _ctx.tool_call_id if _ctx else None
+            return await self.call_tool(tool.name, filtered_kwargs, tool_call_id=tc_id)
 
         # Set proper signature and docstring
         tool_callable.__signature__ = sig  # type: ignore
