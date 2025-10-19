@@ -107,11 +107,7 @@ class TokenCost:
     """Total cost in USD"""
 
     @classmethod
-    async def from_usage(
-        cls,
-        usage: RunUsage | None,
-        model: str,
-    ) -> TokenCost | None:
+    async def from_usage(cls, usage: RunUsage | None, model: str) -> TokenCost | None:
         """Create result from usage data.
 
         Args:

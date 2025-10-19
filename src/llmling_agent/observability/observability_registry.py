@@ -87,12 +87,8 @@ def _setup_otel_environment(config: BaseObservabilityConfig):
     if resource_attrs:
         os.environ["OTEL_RESOURCE_ATTRIBUTES"] = ",".join(resource_attrs)
 
-    logger.debug(
-        "Set OTEL environment: endpoint=%s, protocol=%s, headers=%s",
-        endpoint,
-        config.protocol,
-        bool(headers),
-    )
+    msg = "Set OTEL environment: endpoint=%s, protocol=%s, headers=%s"
+    logger.debug(msg, endpoint, config.protocol, bool(headers))
 
 
 # Global registry instance

@@ -108,7 +108,7 @@ class ConfigGeneratorApp(App):
 
     async def on_mount(self):
         """Load schema and calculate token count."""
-        self.agent = await create_architect_agent(model="copilot:claude-4.1-sonnet")
+        self.agent = await create_architect_agent(model="openai:gpt-5-nano")
         model_name = self.agent.model_name.split(":")[-1]
         context = await self.agent.conversation.format_history()
         self._token_count = count_tokens(context, model_name)
