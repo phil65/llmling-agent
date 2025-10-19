@@ -197,14 +197,9 @@ class ChatMessageContainer(EventedList[ChatMessage[Any]]):
         from bigtree import DAGNode
 
         # Get messages from this conversation
-        conv_messages = [
-            msg for msg in self if msg.conversation_id == message.conversation_id
-        ]
-
-        # First create all nodes
+        conv_messages = [m for m in self if m.conversation_id == message.conversation_id]
         nodes: dict[str, DAGNode] = {}
-
-        for msg in conv_messages:
+        for msg in conv_messages:  # First create all nodes
             if msg.forwarded_from:
                 chain = [*msg.forwarded_from, msg.name or "unknown"]
                 for name in chain:

@@ -169,12 +169,9 @@ class SQLModelProvider(StorageProvider[Message]):
         from llmling_agent_storage.sql_provider.models import Conversation
 
         with Session(self.engine) as session:
-            conversation = Conversation(
-                id=conversation_id,
-                agent_name=node_name,
-                start_time=start_time or get_now(),
-            )
-            session.add(conversation)
+            now = start_time or get_now()
+            convo = Conversation(id=conversation_id, agent_name=node_name, start_time=now)
+            session.add(convo)
             session.commit()
 
     async def log_tool_call(

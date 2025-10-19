@@ -40,12 +40,10 @@ class MCPMessageHandler:
     ) -> None:
         """Main dispatch method called by FastMCP."""
         # Handle all messages
-        await self.on_message(message)
-
-        # Import at runtime to avoid circular imports and lazy load FastMCP
         from mcp.shared.session import RequestResponder
         import mcp.types
 
+        await self.on_message(message)
         match message:
             # requests
             case RequestResponder():
@@ -131,9 +129,6 @@ class MCPMessageHandler:
                 # ProgressNotification has params attribute containing the data
                 params = getattr(message, "params", message)
                 awaitable = self.client._progress_handler(
-                    self.client._current_tool_name or "",
-                    self.client._current_tool_call_id or "",
-                    self.client._current_tool_input or {},
                     getattr(params, "progress", 0.0),
                     getattr(params, "total", None),
                     getattr(params, "message", None),

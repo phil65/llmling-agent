@@ -103,10 +103,8 @@ class MessageCountCondition(ConnectionCondition):
             return context.stats.message_count >= self.max_messages
 
         # Count per agent
-        agent_messages = [
-            m for m in context.stats.messages if m.name == context.message.name
-        ]
-        return len(agent_messages) >= self.max_messages
+        messages = [m for m in context.stats.messages if m.name == context.message.name]
+        return len(messages) >= self.max_messages
 
 
 class TimeCondition(ConnectionCondition):

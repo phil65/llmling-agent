@@ -195,7 +195,7 @@ class MCPManager(ResourceProvider):
             # May need provider-level configuration or runtime model settings
 
             # Create agent with sampling parameters
-            agent: Agent[Any] = Agent(
+            agent = Agent(
                 name="mcp-sampling-agent",
                 model=model,
                 system_prompt=params.systemPrompt or "",

@@ -428,7 +428,7 @@ class ConversationManager:
         header = f"Content from {source}:" if source else "Additional context:"
         formatted = f"{header}{meta_str}\n{content}\n"
 
-        chat_message = ChatMessage[str](
+        chat_message = ChatMessage(
             content=formatted,
             role="user",
             name="user",

@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping
 from typing import TYPE_CHECKING, Any, Literal, cast, overload
 
-from schemez import Schema
+from schemez import Schema, create_constructor_schema
 
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messages import ChatMessage
@@ -401,8 +401,6 @@ List your selections, one per line, followed by your reasoning."""
             prompt: Optional custom prompt
             include_tools: Whether to include other tools (tool_calls mode only)
         """
-        from schemez import create_constructor_schema
-
         # Create model for single instance
         item_model = Schema.for_class_ctor(as_type)
 
@@ -463,8 +461,6 @@ List your selections, one per line, followed by your reasoning."""
             prompt: Optional custom prompt
             include_tools: Whether to include other tools (tool_calls mode only)
         """
-        from schemez import create_constructor_schema
-
         item_model = Schema.for_class_ctor(as_type)
 
         instances: list[T] = []
