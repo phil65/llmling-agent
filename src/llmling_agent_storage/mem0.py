@@ -156,9 +156,9 @@ class Mem0StorageProvider(StorageProvider):
         # Use v2 search with filters
         text = query.contains or ""
         fmt = self.config.output_format
-        results = await self.client.search(text, "v2", filters=filters, output_format=fmt)
+        results = await self.client.search(text, filters=filters, output_format=fmt)
         # Convert to ChatMessage format
-        messages = [self._from_mem0_message(msg) for msg in results]
+        messages = [self._from_mem0_message(msg) for msg in results.values()]
 
         # Apply limit if specified
         if query.limit:
