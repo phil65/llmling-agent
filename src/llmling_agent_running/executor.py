@@ -66,13 +66,7 @@ def discover_functions(path: str | os.PathLike[str]) -> list[NodeFunction]:
     spec.loader.exec_module(module)
 
     # Find decorated functions
-    functions = []
-    for name, obj in inspect.getmembers(module):
-        if hasattr(obj, "_node_function"):
-            functions.append(obj._node_function)
-            logger.debug("Discovered node function: %s", name)
-
-    return functions
+    return [i for name, i in inspect.getmembers(module) if hasattr(i, "_node_function")]
 
 
 def _sort_functions(functions: list[NodeFunction]) -> list[NodeFunction]:

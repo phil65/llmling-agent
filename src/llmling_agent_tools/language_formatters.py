@@ -238,13 +238,8 @@ class TOMLFormatter(LanguageFormatter):
     async def format(self, path: Path) -> FormatResult:
         cmd = ["uv", "run", "tombi", "format", str(path)]
         return_code, stdout, stderr = await self.command_handler(cmd)
-
-        return FormatResult(
-            success=return_code == 0,
-            output=stdout,
-            errors=stderr,
-            formatted=return_code == 0,
-        )
+        ok = return_code == 0
+        return FormatResult(success=ok, output=stdout, errors=stderr, formatted=ok)
 
     async def lint(self, path: Path, fix: bool = False) -> LintResult:
         # tombi lint doesn't seem to have a --fix option, so we ignore the fix parameter
@@ -278,13 +273,8 @@ class TypeScriptFormatter(LanguageFormatter):
     async def format(self, path: Path) -> FormatResult:
         cmd = ["biome", "format", "--write", str(path)]
         return_code, stdout, stderr = await self.command_handler(cmd)
-
-        return FormatResult(
-            success=return_code == 0,
-            output=stdout,
-            errors=stderr,
-            formatted=return_code == 0,
-        )
+        ok = return_code == 0
+        return FormatResult(success=ok, output=stdout, errors=stderr, formatted=ok)
 
     async def lint(self, path: Path, fix: bool = False) -> LintResult:
         cmd = ["biome", "lint"]
@@ -321,13 +311,8 @@ class RustFormatter(LanguageFormatter):
     async def format(self, path: Path) -> FormatResult:
         cmd = ["rustfmt", str(path)]
         return_code, stdout, stderr = await self.command_handler(cmd)
-
-        return FormatResult(
-            success=return_code == 0,
-            output=stdout,
-            errors=stderr,
-            formatted=return_code == 0,
-        )
+        ok = return_code == 0
+        return FormatResult(success=ok, output=stdout, errors=stderr, formatted=ok)
 
     async def lint(self, path: Path, fix: bool = False) -> LintResult:
         cmd = ["cargo", "clippy"]

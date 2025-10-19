@@ -7,6 +7,8 @@ import inspect
 import logging
 from typing import TYPE_CHECKING, Any, Self
 
+from schemez.functionschema import FunctionSchema
+
 from llmling_agent.log import get_logger
 
 
@@ -16,6 +18,7 @@ if TYPE_CHECKING:
 
     import fastmcp
     from fastmcp.client import ClientTransport
+    from fastmcp.client.client import ProgressHandler
     from fastmcp.client.elicitation import ElicitationHandler, ElicitResult
     from fastmcp.client.logging import LogMessage
     from fastmcp.client.messages import MessageHandler, MessageHandlerT
@@ -31,7 +34,6 @@ if TYPE_CHECKING:
         Tool as MCPTool,
     )
 
-    from llmling_agent.mcp_server.progress import ProgressHandler
     from llmling_agent.tools.base import Tool
     from llmling_agent_config.mcp_server import MCPServerConfig
 
@@ -79,11 +81,6 @@ class MCPClient:
         self._available_tools: list[MCPTool] = []
         self._connected = False
 
-        # Track current tool execution context for progress notifications
-        self._current_tool_name: str | None = None
-        self._current_tool_call_id: str | None = None
-        self._current_tool_input: dict | None = None
-
     async def __aenter__(self) -> Self:
         """Enter context manager."""
         return self
@@ -120,14 +117,7 @@ class MCPClient:
     ):
         """Handle progress updates from server."""
         if self._progress_handler:
-            await self._progress_handler(
-                "",  # tool_name
-                "",  # tool_call_id
-                {},  # tool_input
-                progress,
-                total,
-                message,
-            )
+            await self._progress_handler(progress, total, message)
 
     async def _elicitation_handler_impl(
         self,
@@ -315,8 +305,6 @@ class MCPClient:
 
     def convert_tool(self, tool: MCPTool) -> Tool:
         """Create a properly typed callable from MCP tool schema."""
-        from schemez.functionschema import FunctionSchema
-
         from llmling_agent import Tool
 
         schema = mcp_tool_to_fn_schema(tool)
@@ -358,11 +346,6 @@ class MCPClient:
             msg = "Not connected to MCP server"
             raise RuntimeError(msg)
 
-        # Store context for progress tracking
-        self._current_tool_name = name
-        self._current_tool_call_id = tool_call_id
-        self._current_tool_input = arguments or {}
-
         try:
             # Use FastMCP's call_tool method
             result = await self._client.call_tool(name, arguments or {})
@@ -381,11 +364,6 @@ class MCPClient:
             raise RuntimeError(msg) from e
         else:
             return "Tool executed successfully"
-        finally:
-            # Clear context after tool execution
-            self._current_tool_name = None
-            self._current_tool_call_id = None
-            self._current_tool_input = None
 
 
 def _should_try_oauth_fallback(config: MCPServerConfig) -> bool:

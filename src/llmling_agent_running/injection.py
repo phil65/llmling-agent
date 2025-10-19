@@ -91,7 +91,7 @@ def inject_nodes[T, **P](
         # Check for duplicate parameters
         if name in provided_kwargs and provided_kwargs[name] is not None:
             msg = (
-                f"Cannot inject node '{name}': Parameter already provided.\n"
+                f"Cannot inject node {name!r}: Parameter already provided.\n"
                 f"Remove the explicit argument or rename the parameter."
             )
             logger.error(msg)
@@ -101,7 +101,7 @@ def inject_nodes[T, **P](
         if name not in pool.nodes:
             available = ", ".join(sorted(pool.nodes))
             msg = (
-                f"No node named '{name}' found in pool.\n"
+                f"No node named {name!r} found in pool.\n"
                 f"Available nodes: {available}\n"
                 f"Check your YAML configuration or node name."
             )
