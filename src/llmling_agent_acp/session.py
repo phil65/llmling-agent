@@ -23,10 +23,15 @@ from pydantic_ai.messages import (
     ToolReturnPart,
 )
 
-from acp import ReadTextFileRequest
+from acp.filesystem import ACPFileSystem
 from acp.notifications import ACPNotifications
 from acp.requests import ACPRequests
-from acp.schema import AgentMessageChunk, SessionNotification, TextContentBlock
+from acp.schema import (
+    AgentMessageChunk,
+    ReadTextFileRequest,
+    SessionNotification,
+    TextContentBlock,
+)
 from llmling_agent.log import get_logger
 from llmling_agent.mcp_server.manager import MCPManager
 from llmling_agent.resource_providers.aggregating import AggregatingResourceProvider
@@ -125,6 +130,7 @@ class ACPSession:
         self._task_lock = asyncio.Lock()
         self._cancelled = False
         self.mcp_manager: MCPManager | None = None
+        self.fs = ACPFileSystem(self.client, session_id=self.session_id)
         self.capability_provider: AggregatingResourceProvider | None = None
         self.notifications = ACPNotifications(
             client=self.client,
