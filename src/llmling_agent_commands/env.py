@@ -143,7 +143,8 @@ class OpenEnvFileCommand(SlashedCommand):
                 # For inline environments, display the configuration
                 yaml_config = cfg.model_dump_yaml()
                 await ctx.output.print(
-                    f"📝 **Inline environment configuration:**\n\n```yaml\n{yaml_config}\n```"
+                    "📝 **Inline environment configuration:**\n\n"
+                    f"```yaml\n{yaml_config}\n```"
                 )
             case str() as path:
                 # Legacy string path

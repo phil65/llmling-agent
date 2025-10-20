@@ -277,7 +277,7 @@ class AgentConfig(NodeConfig):
                         base_path = Path(self.config_file_path).parent
                         template_path = base_path / path
 
-                    template_content = template_path.read_text()
+                    template_content = template_path.read_text("utf-8")
                     # Create a template-based prompt
                     # (for now as StaticPrompt with placeholder)
                     static_prompt = StaticPrompt(
@@ -366,7 +366,7 @@ class AgentConfig(NodeConfig):
                         base_path = Path(self.config_file_path).parent
                         template_path = base_path / path
 
-                    template_content = template_path.read_text()
+                    template_content = template_path.read_text("utf-8")
                     template_ctx = {"agent": context, **variables}
                     rendered_prompts.append(render_prompt(template_content, template_ctx))
                 case LibraryPromptConfig(reference=reference):

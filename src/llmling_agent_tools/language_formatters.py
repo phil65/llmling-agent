@@ -129,7 +129,7 @@ class LanguageFormatter(ABC):
             result = await self.format(temp_path)
             if result.success:
                 # Read the formatted content back
-                formatted_content = temp_path.read_text()
+                formatted_content = temp_path.read_text("utf-8")
                 result.output = formatted_content
             return result
         finally:
@@ -161,7 +161,7 @@ class LanguageFormatter(ABC):
             result = await self.lint(temp_path, fix=fix)
             if result.success and fix:
                 # Read the potentially modified content back
-                modified_content = temp_path.read_text()
+                modified_content = temp_path.read_text("utf-8")
                 result.output = modified_content
             return result
         finally:

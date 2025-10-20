@@ -397,7 +397,7 @@ class AgentsManifest(Schema):
                     if not template_path.is_absolute() and config.config_file_path:
                         template_path = Path(config.config_file_path).parent / path
 
-                    template_content = template_path.read_text()
+                    template_content = template_path.read_text("utf-8")
                     if variables:  # Apply variables if any
                         from jinja2 import Template
 
