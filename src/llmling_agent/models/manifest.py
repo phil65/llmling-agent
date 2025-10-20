@@ -421,7 +421,7 @@ class AgentsManifest(Schema):
                     content = function(**arguments)  # Call function to get prompt content
                     sys_prompts.append(content)
         # Create agent with runtime and context
-        agent = Agent[Any](
+        agent = Agent(
             runtime=runtime,
             context=context,
             provider=config.get_provider(),
