@@ -28,9 +28,9 @@ from llmling_agent.log import get_logger
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
+    from acp import Client
     from acp.acp_types import ToolCallKind, ToolCallStatus
     from acp.schema import Annotations, AvailableCommand, PlanEntry
-    from llmling_agent_acp.session import ACPSession
 
     ContentType = Sequence[
         ContentToolCallContent | FileEditToolCallContent | TerminalToolCallContent | str
@@ -45,14 +45,15 @@ class ACPNotifications:
     handling both creation and sending in a single call.
     """
 
-    def __init__(self, session: ACPSession) -> None:
+    def __init__(self, client: Client, session_id: str) -> None:
         """Initialize notifications helper.
 
         Args:
-            session: ACP session containing connection and session_id
+            client: ACP client and session_id
+            session_id: Session identifier
         """
-        self.session = session
-        self.id = self.session.session_id
+        self.client = client
+        self.id = session_id
 
     async def tool_call_start(
         self,
@@ -89,7 +90,7 @@ class ACPNotifications:
             raw_input=raw_input,
         )
         notification = SessionNotification(session_id=self.id, update=start)
-        await self.session.client.session_update(notification)
+        await self.client.session_update(notification)
 
     async def tool_call_progress(
         self,
@@ -125,7 +126,7 @@ class ACPNotifications:
             ],
         )
         notification = SessionNotification(session_id=self.id, update=progress)
-        await self.session.client.session_update(notification)
+        await self.client.session_update(notification)
 
     async def file_edit_progress(
         self,
@@ -149,17 +150,11 @@ class ACPNotifications:
             title: Optional title
             changed_lines: List of line numbers where changes occurred (1-based)
         """
-        file_edit_content = FileEditToolCallContent(
-            path=path,
-            old_text=old_text,
-            new_text=new_text,
-        )
+        content = FileEditToolCallContent(path=path, old_text=old_text, new_text=new_text)
 
         # Create locations for changed lines or fallback to file location
         if changed_lines:
-            locations = [
-                ToolCallLocation(path=path, line=line_num) for line_num in changed_lines
-            ]
+            locations = [ToolCallLocation(path=path, line=i) for i in changed_lines]
         else:
             locations = [ToolCallLocation(path=path)]
 
@@ -168,7 +163,7 @@ class ACPNotifications:
             status=status,
             title=title,
             locations=locations,
-            content=[file_edit_content],
+            content=[content],
         )
 
     async def terminal_progress(
@@ -206,7 +201,7 @@ class ACPNotifications:
         """
         plan = AgentPlan(entries=entries)
         notification = SessionNotification(session_id=self.id, update=plan)
-        await self.session.client.session_update(notification)
+        await self.client.session_update(notification)
 
     async def update_commands(self, commands: list[AvailableCommand]) -> None:
         """Send a command update notification.
@@ -216,7 +211,7 @@ class ACPNotifications:
         """
         update = AvailableCommandsUpdate(available_commands=commands)
         notification = SessionNotification(session_id=self.id, update=update)
-        await self.session.client.session_update(notification)
+        await self.client.session_update(notification)
 
     async def send_agent_text(self, message: str) -> None:
         """Send a text message notification.
@@ -226,7 +221,7 @@ class ACPNotifications:
         """
         update = AgentMessageChunk(content=TextContentBlock(text=message))
         notification = SessionNotification(session_id=self.id, update=update)
-        await self.session.client.session_update(notification)
+        await self.client.session_update(notification)
 
     async def send_agent_image(
         self,
@@ -249,7 +244,7 @@ class ACPNotifications:
         )
         update = AgentMessageChunk(content=content)
         notification = SessionNotification(session_id=self.id, update=update)
-        await self.session.client.session_update(notification)
+        await self.client.session_update(notification)
 
     async def send_agent_audio(
         self,
@@ -270,7 +265,7 @@ class ACPNotifications:
         )
         update = AgentMessageChunk(content=content)
         notification = SessionNotification(session_id=self.id, update=update)
-        await self.session.client.session_update(notification)
+        await self.client.session_update(notification)
 
     async def send_agent_resource(
         self,
@@ -305,4 +300,4 @@ class ACPNotifications:
         )
         update = AgentMessageChunk(content=content)
         notification = SessionNotification(session_id=self.id, update=update)
-        await self.session.client.session_update(notification)
+        await self.client.session_update(notification)

@@ -126,8 +126,11 @@ class ACPSession:
         self._cancelled = False
         self.mcp_manager: MCPManager | None = None
         self.capability_provider: AggregatingResourceProvider | None = None
-        self.notifications = ACPNotifications(self)
-        self.requests = ACPRequests(self)
+        self.notifications = ACPNotifications(
+            client=self.client,
+            session_id=self.session_id,
+        )
+        self.requests = ACPRequests(client=self.client, session_id=self.session_id)
 
         if self.client_capabilities:
             providers = [

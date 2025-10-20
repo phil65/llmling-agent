@@ -22,13 +22,13 @@ from llmling_agent.log import get_logger
 
 
 if TYPE_CHECKING:
+    from acp import Client
     from acp.schema import (
         CreateTerminalResponse,
         RequestPermissionResponse,
         TerminalOutputResponse,
         WaitForTerminalExitResponse,
     )
-    from llmling_agent_acp.session import ACPSession
 
 logger = get_logger(__name__)
 
@@ -40,13 +40,15 @@ class ACPRequests:
     handling both creation and sending in a single call.
     """
 
-    def __init__(self, session: ACPSession) -> None:
+    def __init__(self, client: Client, session_id: str) -> None:
         """Initialize requests helper.
 
         Args:
-            session: ACP session containing connection and session_id
+            client: ACP client
+            session_id: Session ID
         """
-        self.session = session
+        self.client = client
+        self.id = session_id
 
     async def read_text_file(
         self,
@@ -66,12 +68,12 @@ class ACPRequests:
             File content as string
         """
         request = ReadTextFileRequest(
-            session_id=self.session.session_id,
+            session_id=self.id,
             path=path,
             limit=limit,
             line=line,
         )
-        response = await self.session.client.read_text_file(request)
+        response = await self.client.read_text_file(request)
         return response.content
 
     async def write_text_file(self, path: str, content: str) -> None:
@@ -81,12 +83,8 @@ class ACPRequests:
             path: File path to write
             content: Text content to write
         """
-        request = WriteTextFileRequest(
-            session_id=self.session.session_id,
-            path=path,
-            content=content,
-        )
-        await self.session.client.write_text_file(request)
+        request = WriteTextFileRequest(session_id=self.id, path=path, content=content)
+        await self.client.write_text_file(request)
 
     async def create_terminal(
         self,
@@ -110,14 +108,14 @@ class ACPRequests:
             Terminal creation response with terminal_id
         """
         request = CreateTerminalRequest(
-            session_id=self.session.session_id,
+            session_id=self.id,
             command=command,
             args=args,
             cwd=cwd,
             env=[EnvVariable(name=k, value=v) for k, v in (env or {}).items()],
             output_byte_limit=output_byte_limit,
         )
-        return await self.session.client.create_terminal(request)
+        return await self.client.create_terminal(request)
 
     async def terminal_output(self, terminal_id: str) -> TerminalOutputResponse:
         """Get output from a terminal session.
@@ -128,11 +126,8 @@ class ACPRequests:
         Returns:
             Terminal output response
         """
-        request = TerminalOutputRequest(
-            session_id=self.session.session_id,
-            terminal_id=terminal_id,
-        )
-        return await self.session.client.terminal_output(request)
+        request = TerminalOutputRequest(session_id=self.id, terminal_id=terminal_id)
+        return await self.client.terminal_output(request)
 
     async def wait_for_terminal_exit(
         self,
@@ -146,11 +141,8 @@ class ACPRequests:
         Returns:
             Terminal exit response with exit_code
         """
-        request = WaitForTerminalExitRequest(
-            session_id=self.session.session_id,
-            terminal_id=terminal_id,
-        )
-        return await self.session.client.wait_for_terminal_exit(request)
+        request = WaitForTerminalExitRequest(session_id=self.id, terminal_id=terminal_id)
+        return await self.client.wait_for_terminal_exit(request)
 
     async def kill_terminal(self, terminal_id: str) -> None:
         """Kill a terminal session.
@@ -158,11 +150,8 @@ class ACPRequests:
         Args:
             terminal_id: Terminal identifier to kill
         """
-        request = KillTerminalCommandRequest(
-            session_id=self.session.session_id,
-            terminal_id=terminal_id,
-        )
-        await self.session.client.kill_terminal(request)
+        request = KillTerminalCommandRequest(session_id=self.id, terminal_id=terminal_id)
+        await self.client.kill_terminal(request)
 
     async def release_terminal(self, terminal_id: str) -> None:
         """Release a terminal session.
@@ -170,11 +159,8 @@ class ACPRequests:
         Args:
             terminal_id: Terminal identifier to release
         """
-        request = ReleaseTerminalRequest(
-            session_id=self.session.session_id,
-            terminal_id=terminal_id,
-        )
-        await self.session.client.release_terminal(request)
+        request = ReleaseTerminalRequest(session_id=self.id, terminal_id=terminal_id)
+        await self.client.release_terminal(request)
 
     async def run_command(
         self,
@@ -264,8 +250,8 @@ class ACPRequests:
 
         tool_call = ToolCallUpdate(tool_call_id=tool_call_id, title=title)
         request = RequestPermissionRequest(
-            session_id=self.session.session_id,
+            session_id=self.id,
             tool_call=tool_call,
             options=options,
         )
-        return await self.session.client.request_permission(request)
+        return await self.client.request_permission(request)
