@@ -878,3 +878,38 @@ if __name__ == "__main__":
             print(result)
 
     asyncio.run(main())
+
+
+async def load_skill(ctx: AgentContext, skill_name: str) -> str:
+    """Load a Claude Code Skill and return its instructions.
+
+    Args:
+        skill_name: Name of the skill to load
+
+    Returns:
+        The full skill instructions for execution
+    """
+    if isinstance(ctx, RunContext):
+        ctx = ctx.deps
+
+    registry = ctx.agent.skills_registry
+    await registry.discover_skills()
+
+    try:
+        skill = registry.get(skill_name)
+        instructions = skill.load_instructions()
+
+        # Format the skill content for Claude to follow
+        return f"""
+<command-message>The "{skill_name}" skill is loading</command-message>
+
+# {skill.name}
+
+{instructions}
+
+---
+Skill loaded from: {skill.source}
+Skill directory: {skill.skill_path}
+"""
+    except Exception as e:
+        return f"Failed to load skill '{skill_name}': {e}"

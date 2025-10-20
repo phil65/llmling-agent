@@ -93,6 +93,9 @@ class Capabilities(EventedModel):
     can_add_mcp_servers: bool = False
     """Whether the agent can add new MCP servers."""
 
+    can_load_skills: bool = False
+    """Whether the agent can discover and load Claude Code Skills."""
+
     model_config = ConfigDict(frozen=True, use_attribute_docstrings=True, extra="forbid")
 
     def __contains__(self, required: Capabilities) -> bool:

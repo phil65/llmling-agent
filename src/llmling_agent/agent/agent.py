@@ -304,7 +304,15 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
             case _:
                 msg = f"Invalid agent type: {type}"
                 raise ValueError(msg)
-        self.tools.add_provider(CapabilitiesResourceProvider(ctx.capabilities))
+
+        # Initialize skills registry
+        from llmling_agent.tools.skills import SkillsRegistry
+
+        self.skills_registry = SkillsRegistry()
+        capabilities_provider = CapabilitiesResourceProvider(
+            ctx.capabilities, skills_registry=self.skills_registry
+        )
+        self.tools.add_provider(capabilities_provider)
 
         if ctx and ctx.definition:
             from llmling_agent.observability import registry

@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     from llmling import RuntimeConfig
 
     from llmling_agent.config.capabilities import Capabilities
+    from llmling_agent.tools.skills import SkillsRegistry
 
 
 class CapabilitiesResourceProvider(ResourceProvider):
@@ -24,10 +25,12 @@ class CapabilitiesResourceProvider(ResourceProvider):
         capabilities: Capabilities,
         runtime: RuntimeConfig | None = None,
         name: str = "capability_tools",
+        skills_registry: SkillsRegistry | None = None,
     ):
         super().__init__(name)
         self.capabilities = capabilities
         self.runtime = runtime
+        self.skills_registry: SkillsRegistry | None = skills_registry
 
     async def get_tools(self) -> list[Tool]:  # noqa: PLR0915
         """Get all tools enabled by current capabilities."""
@@ -253,4 +256,46 @@ class CapabilitiesResourceProvider(ResourceProvider):
             )
             tools.append(tool)
 
+        # Skill management tools
+        if self.capabilities.can_load_skills:
+            tool = await self._create_dynamic_skill_tool()
+            tools.append(tool)
+
         return tools
+
+    async def _create_dynamic_skill_tool(self) -> Tool:
+        """Create skill tool with dynamic description including available skills."""
+        # Use the agent's skills registry
+        registry = self.skills_registry
+        if registry:
+            await registry.discover_skills()
+
+        # Generate dynamic description
+        base_desc = """Load a Claude Code Skill and return its instructions.
+
+This tool provides access to Claude Code Skills - specialized workflows and techniques
+for handling specific types of tasks. When you need to use a skill, call this tool
+with the skill name.
+
+Available skills:"""
+
+        if not registry or registry.is_empty:
+            description = base_desc + "\n(No skills found in configured directories)"
+        else:
+            skills_list = []
+            for skill_name in registry.list_items():
+                skill = registry.get(skill_name)
+                skills_list.append(f"- {skill.name}: {skill.description}")
+            description = base_desc + "\n" + "\n".join(skills_list)
+
+        # Create tool with dynamic description
+        from llmling_agent_tools import capability_tools
+
+        tool = Tool.from_callable(
+            capability_tools.load_skill,
+            source="builtin",
+            requires_capability="can_load_skills",
+            category="read",
+            description_override=description,
+        )
+        return tool
