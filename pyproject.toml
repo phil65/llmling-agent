@@ -68,8 +68,14 @@ Source = "https://github.com/phil65/llmling-agent"
 llmling-agent = "llmling_agent.__main__:cli"
 llmling-agent-db = "llmling_agent_storage.sql_provider.cli:main"
 
+[project.entry-points."fsspec.specs"]
+acp = "acp.filesystem:ACPFileSystem"
+
 [project.entry-points."jinjarope.environment"]
 llmling_agent = "llmling_agent.utils:setup_env"
+
+[project.entry-points."universal_pathlib.implementations"]
+acp = "acp.filesystem:ACPPath"
 
 [project.optional-dependencies]
 braintrust = ["braintrust", "autoevals"]

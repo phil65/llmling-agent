@@ -3,6 +3,7 @@
 from acp.client import DefaultACPClient, ClientSideConnection
 from acp.agent import AgentSideConnection
 from acp.core import create_session_model_state
+from acp.filesystem import ACPFileSystem, ACPFileSystemSync, ACPPath
 from acp.agent.protocol import (
     Agent,
     AgentExtensibilityCapability,
@@ -126,4 +127,8 @@ __all__ = [  # noqa: RUF022
     "create_session_model_state",
     # stdio helper
     "stdio_streams",
+    # filesystem
+    "ACPFileSystem",
+    "ACPFileSystemSync",
+    "ACPPath",
 ]
