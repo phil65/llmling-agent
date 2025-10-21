@@ -386,7 +386,7 @@ llmling-agent watch --config agents.yml
 
 The `AgentPool` allows multiple agents to work together on tasks. Here's a practical example of parallel file downloading:
 
-```python
+```yaml
 # agents.yml
 agents:
   file_getter:
