@@ -41,7 +41,7 @@ from llmling_agent_providers.pydanticai.utils import (
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Awaitable, Callable
 
-    from pydantic_ai import AgentStreamEvent
+    from pydantic_ai import AgentStreamEvent, BuiltinToolCallPart
     from pydantic_ai.agent import AgentRunResult
     from pydantic_ai.run import AgentRunResultEvent
 
@@ -380,7 +380,10 @@ class PydanticAIProvider(AgentProvider[Any]):
                 raise ValueError(msg)
 
     def _create_tool_call_info(
-        self, tool_part: ToolCallPart, tool_dict: dict, message_id: str
+        self,
+        tool_part: ToolCallPart | BuiltinToolCallPart,
+        tool_dict: dict,
+        message_id: str,
     ):
         """Create ToolCallInfo from tool call part."""
         from llmling_agent.tools.tool_call_info import ToolCallInfo
