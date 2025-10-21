@@ -15,6 +15,7 @@ import logfire
 
 from acp import AgentSideConnection
 from acp.stdio import stdio_streams
+from llmling_agent import AgentPool
 from llmling_agent.log import get_logger
 from llmling_agent.models.manifest import AgentsManifest
 from llmling_agent_acp.acp_agent import LLMlingACPAgent
@@ -25,7 +26,7 @@ if TYPE_CHECKING:
     from tokonomics.model_discovery.model_info import ModelInfo
     from upath.types import JoinablePathLike
 
-    from llmling_agent import Agent, AgentPool
+    from llmling_agent import Agent
     from llmling_agent_providers.base import UsageLimits
 
 logger = get_logger(__name__)
@@ -110,8 +111,9 @@ class ACPServer:
             Configured ACP server instance with agent pool from config
         """
         manifest = AgentsManifest.from_file(config_path)
+        pool = AgentPool(manifest=manifest)
         server = cls(
-            agent_pool=manifest.pool,
+            agent_pool=pool,
             usage_limits=usage_limits,
             session_support=session_support,
             file_access=file_access,

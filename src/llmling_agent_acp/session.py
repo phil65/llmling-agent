@@ -418,6 +418,7 @@ with other agents effectively."""
                     return
 
                 event_count += 1
+                msg = "Event %d (%s) for session %s"
                 logger.debug(msg, event_count, type(event).__name__, self.session_id)
 
                 match event:
