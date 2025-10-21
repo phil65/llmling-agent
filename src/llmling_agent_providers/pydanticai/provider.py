@@ -420,18 +420,12 @@ class PydanticAIProvider(AgentProvider[Any]):
         if model:
             self.model_changed.emit(use_model)
 
-        # Convert prompts to pydantic-ai format
         converted_prompts = await convert_prompts_to_user_content(prompts)
-        # Convert all messages to pydantic-ai format
-        model_messages = [to_model_request(m) for m in message_history]
-
         tool_dict = {i.name: i for i in tools or []}
-
-        # Stream events directly from pydantic-ai
         async for event in agent.run_stream_events(
             converted_prompts,
             deps=self._context,
-            message_history=model_messages,
+            message_history=[to_model_request(m) for m in message_history],
             model=model or self.model,  # type: ignore
             output_type=result_type or str,
             model_settings=self.model_settings,  # type: ignore
