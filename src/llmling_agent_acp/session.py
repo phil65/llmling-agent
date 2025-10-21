@@ -404,10 +404,7 @@ with other agents effectively."""
             SessionNotification objects for all agent execution events,
             or StopReason literal
         """
-        from pydantic_ai.messages import (
-            FunctionToolCallEvent,
-            FunctionToolResultEvent,
-        )
+        from pydantic_ai.messages import FunctionToolCallEvent, FunctionToolResultEvent
 
         from llmling_agent.agent.agent import StreamCompleteEvent
 
@@ -642,14 +639,18 @@ with other agents effectively."""
 
     async def handle_acp_progress(
         self,
-        tool_name: str,
-        tool_call_id: str,
-        tool_input: dict,
         progress: float,
-        total: float | None = None,
-        message: str | None = None,
+        total: float | None,
+        message: str | None,
+        tool_name: str | None = None,
+        tool_call_id: str | None = None,
+        tool_input: dict | None = None,
     ) -> None:
         """Handle MCP progress and convert to ACP in_progress update."""
+        # Skip if we don't have the required context
+        if not (tool_name and tool_call_id):
+            return
+
         try:
             from llmling_agent_acp.converters import format_tool_call_for_acp
 
@@ -661,7 +662,7 @@ with other agents effectively."""
             # Create ACP tool call progress notification
             notification = format_tool_call_for_acp(
                 tool_name=tool_name,
-                tool_input=tool_input,
+                tool_input=tool_input or {},
                 tool_output=output,
                 session_id=self.session_id,
                 status="in_progress",

@@ -30,7 +30,7 @@ if TYPE_CHECKING:
     from mcp.client.session import RequestContext
     from mcp.types import Prompt as MCPPrompt, Resource as MCPResource, SamplingMessage
 
-    from llmling_agent.mcp_server.progress import ProgressHandler
+    from llmling_agent.mcp_server.client import ContextualProgressHandler
     from llmling_agent.messaging.context import NodeContext
     from llmling_agent.models.content import BaseContent
     from llmling_agent.tools.base import Tool
@@ -70,7 +70,7 @@ class MCPManager(ResourceProvider):
         owner: str | None = None,
         servers: Sequence[MCPServerConfig | str] | None = None,
         context: NodeContext | None = None,
-        progress_handler: ProgressHandler | None = None,
+        progress_handler: ContextualProgressHandler | None = None,
         accessible_roots: list[str] | None = None,
     ):
         super().__init__(name, owner=owner)

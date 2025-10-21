@@ -1,4 +1,12 @@
-"""FastMCP-based client implementation for LLMling agent."""
+"""FastMCP-based client implementation for LLMling agent.
+
+This module provides a client for communicating with MCP servers using FastMCP.
+It includes support for contextual progress handlers that extend FastMCP's
+standard progress callbacks with tool execution context (tool name, call ID, and input).
+
+The key innovation is the signature injection system that allows MCP tools to work
+seamlessly with PydanticAI's RunContext while providing rich progress information.
+"""
 
 from __future__ import annotations
 
@@ -7,7 +15,7 @@ import inspect
 import logging
 from typing import TYPE_CHECKING, Any, Self
 
-from pydantic_ai import RunContext  # noqa: TC002
+from pydantic_ai import RunContext
 from schemez.functionschema import FunctionSchema
 
 from llmling_agent.log import get_logger
@@ -15,7 +23,7 @@ from llmling_agent.log import get_logger
 
 if TYPE_CHECKING:
     from types import TracebackType
-    from typing import Any
+    from typing import Any, Protocol
 
     import fastmcp
     from fastmcp.client import ClientTransport
@@ -38,7 +46,46 @@ if TYPE_CHECKING:
     from llmling_agent.tools.base import Tool
     from llmling_agent_config.mcp_server import MCPServerConfig
 
+    class ContextualProgressHandler(Protocol):
+        """Progress handler that includes tool execution context."""
+
+        async def __call__(
+            self,
+            progress: float,
+            total: float | None,
+            message: str | None,
+            tool_name: str | None = None,
+            tool_call_id: str | None = None,
+            tool_input: dict[str, Any] | None = None,
+        ) -> None: ...
+
+
 logger = get_logger(__name__)
+
+
+def extract_tool_call_args(messages, target_tool_call_id: str) -> dict[str, Any]:
+    """Extract tool call arguments from message history by tool_call_id.
+
+    Args:
+        messages: List of ModelMessage objects from RunContext
+        target_tool_call_id: The tool call ID to find arguments for
+
+    Returns:
+        Dictionary of tool call arguments, empty dict if not found
+    """
+    # Import here to avoid circular imports
+    from pydantic_ai.messages import ModelResponse, ToolCallPart
+
+    for message in reversed(messages):  # Search from most recent
+        if isinstance(message, ModelResponse):
+            for part in message.parts:
+                if (
+                    isinstance(part, ToolCallPart)
+                    and part.tool_call_id == target_tool_call_id
+                ):
+                    return part.args_as_dict()
+    return {}
+
 
 LEVEL_MAP = {
     "debug": logging.DEBUG,
@@ -50,6 +97,62 @@ LEVEL_MAP = {
     "alert": logging.CRITICAL,
     "emergency": logging.CRITICAL,
 }
+
+
+def _create_tool_signature_with_context(base_signature, tool_name: str) -> Any:
+    """Create a function signature that includes RunContext as first parameter.
+
+    This is crucial for PydanticAI integration - it expects tools that need RunContext
+    to have it as the first parameter with proper annotation. Without this, PydanticAI
+    won't pass the RunContext and we lose access to tool_call_id and other context.
+
+    Args:
+        base_signature: Original signature from MCP tool schema (tool parameters only)
+        tool_name: Name of the tool (used for documentation)
+
+    Returns:
+        New signature: (ctx: RunContext, ...original_params) -> ReturnType
+
+    Example:
+        Original: (message: str) -> str
+        Result:   (ctx: RunContext, message: str) -> str
+    """
+    import inspect
+
+    # Create RunContext parameter
+    ctx_param = inspect.Parameter(
+        "ctx", inspect.Parameter.POSITIONAL_OR_KEYWORD, annotation=RunContext
+    )
+
+    # Combine with tool parameters
+    tool_params = list(base_signature.parameters.values())
+    new_params = [ctx_param, *tool_params]
+
+    return base_signature.replace(parameters=new_params)
+
+
+def _create_tool_annotations_with_context(
+    base_annotations: dict[str, Any],
+) -> dict[str, Any]:
+    """Create function annotations that include RunContext for first parameter.
+
+    Complements _create_tool_signature_with_context by ensuring the annotations
+    match the signature. This is required for proper type checking and PydanticAI's
+    introspection of tool functions.
+
+    Args:
+        base_annotations: Original annotations from MCP tool schema
+
+    Returns:
+        New annotations dict with 'ctx': RunContext added to base annotations
+
+    Example:
+        Original: {'message': str, 'return': str}
+        Result:   {'ctx': RunContext, 'message': str, 'return': str}
+    """
+    new_annotations = base_annotations.copy()
+    new_annotations["ctx"] = RunContext
+    return new_annotations
 
 
 def mcp_tool_to_fn_schema(tool: MCPTool) -> dict[str, Any]:
@@ -68,13 +171,13 @@ class MCPClient:
         self,
         elicitation_callback: ElicitationHandler | None = None,
         sampling_callback: ClientSamplingHandler | None = None,
-        progress_handler: ProgressHandler | None = None,
+        progress_handler: ContextualProgressHandler | None = None,
         message_handler: MessageHandlerT | MessageHandler | None = None,
         accessible_roots: list[str] | None = None,
     ):
         self._elicitation_callback = elicitation_callback
         self._sampling_callback = sampling_callback
-        self._progress_handler = progress_handler
+        self._contextual_progress_handler = progress_handler
         # Store message handler or mark for lazy creation
         self._message_handler = message_handler
         self._accessible_roots = accessible_roots or []
@@ -117,8 +220,8 @@ class MCPClient:
         self, progress: float, total: float | None, message: str | None
     ):
         """Handle progress updates from server."""
-        if self._progress_handler:
-            await self._progress_handler(progress, total, message)
+        # This is the global FastMCP progress handler - we don't have tool context here
+        # Tool-specific progress handlers are created per call in call_tool()
 
     async def _elicitation_handler_impl(
         self,
@@ -312,7 +415,7 @@ class MCPClient:
         fn_schema = FunctionSchema.from_dict(schema)
         sig = fn_schema.to_python_signature()
 
-        async def tool_callable(_ctx: RunContext | None = None, **kwargs: Any) -> str:
+        async def tool_callable(ctx: RunContext, **kwargs: Any) -> str:
             """Dynamically generated MCP tool wrapper."""
             # Filter out None values for optional params
             schema_props = tool.inputSchema.get("properties", {})
@@ -323,22 +426,47 @@ class MCPClient:
                 for k, v in kwargs.items()
                 if k in required_props or (k in schema_props and v is not None)
             }
-            tc_id = _ctx.tool_call_id if _ctx else None
-            return await self.call_tool(tool.name, filtered_kwargs, tool_call_id=tc_id)
+            tc_id = ctx.tool_call_id if ctx else None
 
-        # Set proper signature and docstring
-        tool_callable.__signature__ = sig  # type: ignore
-        tool_callable.__annotations__ = fn_schema.get_annotations()
+            return await self.call_tool(
+                tool.name,
+                filtered_kwargs,
+                tool_call_id=tc_id,
+                run_context=ctx,
+            )
+
+        # Set proper signature and annotations with RunContext support
+        tool_callable.__signature__ = _create_tool_signature_with_context(sig, tool.name)  # type: ignore
+        tool_callable.__annotations__ = _create_tool_annotations_with_context(
+            fn_schema.get_annotations()
+        )
+
         tool_callable.__name__ = tool.name
         tool_callable.__doc__ = tool.description or "No description provided."
         meta = {"mcp_tool": tool.name}
         return Tool.from_callable(tool_callable, source="mcp", metadata=meta)
+
+    def _create_progress_handler_with_context(
+        self, tool_name: str, tool_call_id: str, tool_input: dict[str, Any]
+    ) -> ProgressHandler:
+        """Create a FastMCP-compatible progress handler with baked-in context."""
+
+        async def fastmcp_progress_handler(
+            progress: float, total: float | None, message: str | None
+        ):
+            if self._contextual_progress_handler:
+                await self._contextual_progress_handler(
+                    progress, total, message, tool_name, tool_call_id, tool_input
+                )
+
+        return fastmcp_progress_handler
 
     async def call_tool(
         self,
         name: str,
         arguments: dict | None = None,
         tool_call_id: str | None = None,
+        run_context: RunContext | None = None,
     ) -> str:
         """Call an MCP tool."""
         from mcp.types import TextContent
@@ -348,8 +476,27 @@ class MCPClient:
             raise RuntimeError(msg)
 
         try:
-            # Use FastMCP's call_tool method
-            result = await self._client.call_tool(name, arguments or {})
+            # Create progress handler if we have handler
+            progress_handler = None
+            if self._contextual_progress_handler:
+                if run_context and run_context.tool_call_id and run_context.tool_name:
+                    # Extract tool args from message history
+                    tool_input = extract_tool_call_args(
+                        run_context.messages, run_context.tool_call_id
+                    )
+                    progress_handler = self._create_progress_handler_with_context(
+                        run_context.tool_name, run_context.tool_call_id, tool_input
+                    )
+                else:
+                    # Fallback to using passed arguments (direct tool call)
+                    progress_handler = self._create_progress_handler_with_context(
+                        name, tool_call_id or "", arguments or {}
+                    )
+
+            # Use FastMCP's call_tool method with optional progress handler
+            result = await self._client.call_tool(
+                name, arguments or {}, progress_handler=progress_handler
+            )
 
             # FastMCP returns a CallToolResult with structured data
             # For compatibility, return text content

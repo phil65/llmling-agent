@@ -123,24 +123,8 @@ class MCPMessageHandler:
 
     async def on_progress(self, message: mcp.types.ProgressNotification) -> None:
         """Handle progress notifications with proper context."""
-        if self.client._progress_handler:
-            # Use stored tool execution context - handle both coroutines and awaitables
-            try:
-                # ProgressNotification has params attribute containing the data
-                params = message.params
-                awaitable = self.client._progress_handler(
-                    params.progress,
-                    params.total,
-                    params.message,
-                )
-                # Use ensure_future to handle both coroutines and awaitables
-                task = asyncio.ensure_future(awaitable)
-                # Store reference to avoid warning about unawaited task
-                task.add_done_callback(
-                    lambda t: t.exception() if t.done() and t.exception() else None
-                )
-            except Exception:
-                logger.exception("Failed to handle progress notification")
+        # Note: Progress notifications from MCP servers are now handled per-tool-call
+        # with the contextual progress handler, so global notifications are ignored
 
     async def on_prompt_list_changed(
         self, message: mcp.types.PromptListChangedNotification
