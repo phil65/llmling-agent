@@ -8,11 +8,13 @@ from typing import TYPE_CHECKING, Annotated, Any, Literal
 from pydantic import ConfigDict, Field, ImportString
 from schemez import Schema
 
-from llmling_agent.common_types import EndStrategy, ModelProtocol  # noqa: TC001
+from llmling_agent.common_types import EndStrategy
 from llmling_agent_config.models import AnyModelConfig
 
 
 if TYPE_CHECKING:
+    from pydantic_ai.models import Model
+
     from llmling_agent_providers.base import AgentProvider
     from llmling_agent_providers.callback import CallbackProvider
 
@@ -88,7 +90,7 @@ class PydanticAIProviderConfig(BaseProviderConfig):
         )
         match self.model:
             case str():
-                model: str | ModelProtocol | None = self.model
+                model: str | Model | None = self.model
             case BaseModelConfig():
                 model = self.model.get_model()
             case _:

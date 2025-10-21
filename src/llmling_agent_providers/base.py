@@ -23,9 +23,10 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
     from pydantic_ai import AgentRunResultEvent, AgentStreamEvent
+    from pydantic_ai.models import Model
 
     from llmling_agent.agent.context import AgentContext
-    from llmling_agent.common_types import ModelProtocol, ModelType
+    from llmling_agent.common_types import ModelType
     from llmling_agent.messaging.messages import ChatMessage, TokenCost
     from llmling_agent.models.content import Content
     from llmling_agent.tools.base import Tool
@@ -83,7 +84,7 @@ class AgentProvider[TDeps]:
     ):
         super().__init__()
         self._name = name
-        self._model: str | ModelProtocol | None = None
+        self._model: str | Model | None = None
         self._context = context
         self._debug = debug
 

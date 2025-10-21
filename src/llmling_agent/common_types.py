@@ -7,23 +7,14 @@ from typing import (
     Any,
     ClassVar,
     Literal,
-    Protocol,
     get_args,
     get_origin,
-    runtime_checkable,
 )
 from uuid import UUID
 
 from llmling import LLMCallableTool
 from pydantic import BaseModel, ConfigDict, field_validator
-
-
-@runtime_checkable
-class ModelProtocol(Protocol):
-    """Protocol for model objects."""
-
-    @property
-    def model_name(self) -> str: ...
+from pydantic_ai.models import Model
 
 
 # Define what we consider JSON-serializable
@@ -44,7 +35,7 @@ TeamName = str
 AgentName = str
 MessageRole = Literal["user", "assistant", "system"]
 PartType = Literal["text", "image", "audio", "video"]
-ModelType = ModelProtocol | str | None
+ModelType = Model | str | None
 EnvironmentType = Literal["file", "inline"]
 ToolSource = Literal["runtime", "agent", "builtin", "dynamic", "task", "mcp", "toolset"]
 AnyCallable = Callable[..., Any]

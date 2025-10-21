@@ -17,12 +17,11 @@ from pydantic_ai.messages import (
     TextPartDelta,
     ToolCallPart,
 )
-from pydantic_ai.models import KnownModelName
+from pydantic_ai.models import KnownModelName, Model
 from pydantic_ai.tools import GenerateToolJsonSchema, RunContext
 from pydantic_ai.usage import UsageLimits as PydanticAiUsageLimits
 
 from llmling_agent.agent.context import AgentContext
-from llmling_agent.common_types import ModelProtocol
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messages import TokenCost, TokenUsage
 from llmling_agent.tasks.exceptions import (
@@ -92,7 +91,7 @@ class PydanticAIProvider(AgentProvider[Any]):
     def __init__(
         self,
         *,
-        model: str | ModelProtocol | None = None,
+        model: str | Model | None = None,
         context: AgentContext | None = None,
         name: str = "agent",
         retries: int = 1,
@@ -374,7 +373,7 @@ class PydanticAIProvider(AgentProvider[Any]):
         match model := self._kwargs["model"]:
             case str() | None:
                 return model
-            case ModelProtocol():
+            case Model():
                 return model.model_name
             case _:
                 msg = f"Invalid model type: {model}"
