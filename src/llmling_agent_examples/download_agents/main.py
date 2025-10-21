@@ -65,7 +65,13 @@ async def run_example():
     config_path = get_config_path(None if is_pyodide() else __file__)
     manifest = AgentsManifest.from_file(config_path)
 
-    async with AgentPool[None](manifest) as pool:
+    async def progress_handler(progress, total, message):
+        print(f"Progress: {progress}/{total} - {message}")
+
+    async with AgentPool[None](
+        manifest,
+        progress_handlers=[progress_handler],
+    ) as pool:
         # Get agents from the YAML config
         worker_1 = pool.get_agent("file_getter_1")
         # Create second agent by cloning

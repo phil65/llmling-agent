@@ -9,6 +9,8 @@ from urllib.parse import urlparse
 
 from annotated_types import Ge, Le
 
+from llmling_agent import AgentContext  # noqa: TC001
+
 
 PaperType = Literal[
     "letter", "legal", "tabloid", "ledger", "a0", "a1", "a2", "a3", "a4", "a5", "a6"
@@ -16,6 +18,7 @@ PaperType = Literal[
 
 
 async def download_file(
+    context: AgentContext,
     url: str,
     target_dir: str = "downloads",
     chunk_size: int = 8192,
@@ -54,10 +57,10 @@ async def download_file(
                         progress = size / total * 100
                         speed_mbps = (size / 1_048_576) / (time.time() - start_time)
                         msg = f"\r{filename}: {progress:.1f}% ({speed_mbps:.1f} MB/s)"
-                        print(msg, end="")
+                        if context.report_progress:
+                            await context.report_progress(progress, 100, msg)
                         await asyncio.sleep(0)
 
-        print()  # New line after progress
         duration = time.time() - start_time
         size_mb = size / 1_048_576
 
