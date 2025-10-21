@@ -11,7 +11,7 @@ import time
 from typing import TYPE_CHECKING, Any, Literal, Self, TypedDict, TypeVar, cast, overload
 from uuid import uuid4
 
-from anyenv import method_spawner
+from anyenv import MultiEventHandler, method_spawner
 from llmling import Config, RuntimeConfig, ToolError
 import logfire
 from psygnal import Signal
@@ -258,7 +258,7 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
         runtime_provider = RuntimePromptProvider(ctx.runtime)
         ctx.definition.prompt_manager.providers["runtime"] = runtime_provider
         # Initialize tool manager
-        self._event_handlers = event_handlers or []
+        self._event_handlers = MultiEventHandler(event_handlers or [])
         all_tools = list(tools or [])
         self.tools = ToolManager(all_tools)
         self.tools.add_provider(self.mcp)
