@@ -7,7 +7,7 @@ import pytest
 from slashed import CommandStore, DefaultOutputWriter
 
 from llmling_agent import AgentsManifest
-from llmling_agent_commands.prompts import prompt_cmd
+from llmling_agent_commands.prompts import ShowPromptCommand
 
 
 TEST_CONFIG = """
@@ -75,6 +75,7 @@ async def test_prompt_command():
     # Load test config
     manifest = AgentsManifest.from_yaml(TEST_CONFIG)
     context = store.create_context(manifest, output_writer=TestOutput())
+    prompt_cmd = ShowPromptCommand()
 
     # Test simple prompt
     await prompt_cmd.execute(ctx=context, args=["greet?name=World"], kwargs={})
