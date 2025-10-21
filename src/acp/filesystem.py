@@ -154,7 +154,7 @@ class ACPFileSystem(AsyncFileSystem):
             )
 
             if exit_code != 0:
-                msg = f"Directory not found or inaccessible: {path}"
+                msg = f"Error listing directory {path!r}: {output}"
                 raise FileNotFoundError(msg)  # noqa: TRY301
 
             return self._parse_ls_output(output, path, detail)
