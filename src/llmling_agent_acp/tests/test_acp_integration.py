@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import tempfile
+
 import pytest
 
 
@@ -50,7 +52,7 @@ class TestACPIntegration:
             session_id="file-test",
             agent_pool=agent_pool,
             current_agent_name="test_agent",
-            cwd="/tmp",
+            cwd=tempfile.gettempdir(),
             client=mock_client,
             acp_agent=mock_acp_agent,
             client_capabilities=capabilities,
@@ -105,7 +107,7 @@ class TestACPIntegration:
             session_id="switching-test",
             agent_pool=multi_pool,
             current_agent_name="agent1",
-            cwd="/tmp",
+            cwd=tempfile.gettempdir(),
             client=mock_client,
             acp_agent=mock_acp_agent,
             client_capabilities=capabilities,

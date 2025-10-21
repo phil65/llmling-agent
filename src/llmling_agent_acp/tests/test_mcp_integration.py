@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sys
+import tempfile
 
 import pytest
 from slashed import CommandStore
@@ -74,7 +75,7 @@ async def test_session_with_mcp_servers(mock_acp_agent, client_capabilities):
         session_id="test_session",
         agent_pool=agent_pool,
         current_agent_name="test_agent",
-        cwd="/tmp",
+        cwd=tempfile.gettempdir(),
         client=client,
         mcp_servers=mcp_servers,
         command_bridge=command_bridge,
@@ -116,7 +117,7 @@ async def test_session_manager_with_mcp(mock_acp_agent, client_capabilities):
         session_id = await session_manager.create_session(
             agent_pool=agent_pool,
             default_agent_name="test_agent",
-            cwd="/tmp",
+            cwd=tempfile.gettempdir(),
             client=client,
             mcp_servers=mcp_servers,
             acp_agent=mock_acp_agent,

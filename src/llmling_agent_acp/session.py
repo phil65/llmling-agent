@@ -177,7 +177,8 @@ class ACPSession:
         if self.cwd:
             from pathlib import Path
 
-            accessible_roots.append(Path(self.cwd).as_uri())
+            path = Path(self.cwd).resolve()
+            accessible_roots.append(path.as_uri())
 
         self.mcp_manager = MCPManager(
             name,
