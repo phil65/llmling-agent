@@ -175,7 +175,9 @@ class ACPSession:
         # Define accessible roots for MCP servers
         accessible_roots = []
         if self.cwd:
-            accessible_roots.append(str(self.cwd))
+            from pathlib import Path
+
+            accessible_roots.append(Path(self.cwd).as_uri())
 
         self.mcp_manager = MCPManager(
             name,
