@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from llmling_agent_input.base import InputProvider
 
 
-ProgressCallback = Callable[[float, float | None], Awaitable[None]]
+ProgressCallback = Callable[[float, float | None, str], Awaitable[None]]
 
 
 @dataclass(kw_only=True)

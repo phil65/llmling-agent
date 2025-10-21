@@ -195,8 +195,8 @@ class PydanticAIProvider(AgentProvider[Any]):
 
             async def wrapped(ctx: RunContext[AgentContext], *args, **kwargs):  # pyright: ignore
                 result = await agent_ctx.handle_confirmation(tool, kwargs)
-                if agent_ctx.report_progress:
-                    await agent_ctx.report_progress(ctx.run_step, None)
+                # if agent_ctx.report_progress:
+                #     await agent_ctx.report_progress(ctx.run_step, None)
                 match result:
                     case "allow":
                         return await execute(original_tool, ctx, *args, **kwargs)
