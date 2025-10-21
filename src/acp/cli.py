@@ -9,8 +9,6 @@ import asyncio
 import logging
 import sys
 
-from acp.debug_server import ACPDebugServer
-
 
 def main():
     """Main CLI entry point."""
@@ -52,6 +50,7 @@ Examples:
         default="info",
         help="Logging level (default: info)",
     )
+    from acp.debug_server import ACPDebugServer
 
     args = parser.parse_args()
 

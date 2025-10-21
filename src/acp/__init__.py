@@ -4,7 +4,6 @@ from acp.client import DefaultACPClient, ClientSideConnection
 from acp.agent import AgentSideConnection
 from acp import cli
 from acp.core import create_session_model_state
-from acp.debug_server import ACPDebugServer
 from acp.filesystem import ACPFileSystem, ACPFileSystemSync, ACPPath
 from acp.agent.protocol import (
     Agent,
@@ -133,8 +132,6 @@ __all__ = [  # noqa: RUF022
     "ACPFileSystem",
     "ACPFileSystemSync",
     "ACPPath",
-    # debug
-    "ACPDebugServer",
     # cli
     "cli",
 ]
