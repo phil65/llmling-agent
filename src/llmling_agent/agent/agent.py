@@ -42,7 +42,6 @@ if TYPE_CHECKING:
     from llmling.config.models import Resource
     from llmling.prompts import PromptType
     import PIL.Image
-    from pydantic_ai.agent import EventStreamHandler
     from pydantic_ai.messages import AgentStreamEvent
     from toprompt import AnyPromptType
     from upath.types import JoinablePathLike
@@ -68,6 +67,8 @@ if TYPE_CHECKING:
     from llmling_agent_config.task import Job
     from llmling_agent_input.base import InputProvider
     from llmling_agent_providers.base import UsageLimits
+
+from pydantic_ai.agent import EventStreamHandler
 
 from llmling_agent_providers.base import AgentProvider
 
@@ -258,7 +259,7 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
         runtime_provider = RuntimePromptProvider(ctx.runtime)
         ctx.definition.prompt_manager.providers["runtime"] = runtime_provider
         # Initialize tool manager
-        self._event_handlers = MultiEventHandler(event_handlers or [])
+        self.event_handler = MultiEventHandler[EventStreamHandler](event_handlers)
         all_tools = list(tools or [])
         self.tools = ToolManager(all_tools)
         self.tools.add_provider(self.mcp)
@@ -510,15 +511,6 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
     def name(self, value: str):
         self._provider.name = value
         self._name = value
-
-    @property
-    def event_handler(self) -> EventStreamHandler:
-        async def merged(*args: Any, **kwargs: Any) -> Any:
-            return await asyncio.gather(*[
-                h(*args, **kwargs) for h in self._event_handlers
-            ])
-
-        return merged
 
     @property
     def context(self) -> AgentContext[TDeps]:
