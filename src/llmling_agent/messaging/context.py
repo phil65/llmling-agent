@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from functools import cached_property
@@ -80,12 +79,8 @@ class NodeContext[TDeps]:
     @property
     def report_progress(self) -> ProgressCallback | None:
         """Access progress reporting from pool server if available."""
-
-        async def bundled_progress(current: float, total: float | None = None) -> None:
-            """Bundle multiple progress callbacks into one."""
-            if self.pool and self.pool.progress_handlers:
-                await asyncio.gather(
-                    *(handler(current, total) for handler in self.pool.progress_handlers)
-                )
-
-        return bundled_progress if self.pool and self.pool.progress_handlers else None
+        return (  # pyright: ignore[reportReturnType]
+            self.pool.progress_handlers
+            if self.pool and self.pool.progress_handlers
+            else None
+        )

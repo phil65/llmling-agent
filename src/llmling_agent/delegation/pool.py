@@ -7,6 +7,7 @@ from contextlib import AsyncExitStack, asynccontextmanager, suppress
 import os
 from typing import TYPE_CHECKING, Any, Self, TypeVar, Unpack, cast, overload
 
+from anyenv import MultiEventHandler
 from llmling import BaseRegistry, LLMLingError
 from upath import UPath
 
@@ -16,6 +17,7 @@ from llmling_agent.delegation.message_flow_tracker import MessageFlowTracker
 from llmling_agent.delegation.team import Team
 from llmling_agent.delegation.teamrun import TeamRun
 from llmling_agent.log import get_logger
+from llmling_agent.messaging.context import ProgressCallback
 from llmling_agent.messaging.messageemitter import MessageEmitter
 from llmling_agent.talk import Talk, TeamTalk
 from llmling_agent.talk.registry import ConnectionRegistry
@@ -40,7 +42,6 @@ if TYPE_CHECKING:
     from llmling_agent.agent.agent import AgentKwargs
     from llmling_agent.common_types import AgentName, SessionIdType
     from llmling_agent.delegation.base_team import BaseTeam
-    from llmling_agent.messaging.context import ProgressCallback
     from llmling_agent.messaging.eventnode import EventNode
     from llmling_agent.messaging.messagenode import MessageNode
     from llmling_agent.models.manifest import AgentsManifest
@@ -115,7 +116,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
         self.exit_stack = AsyncExitStack()
         self.parallel_load = parallel_load
         self.storage = StorageManager(self.manifest.storage)
-        self.progress_handlers = progress_handlers or []
+        self.progress_handlers = MultiEventHandler[ProgressCallback](progress_handlers)
         self.connection_registry = ConnectionRegistry()
         servers = self.manifest.get_mcp_servers()
         self.mcp = MCPManager(name="pool_mcp", servers=servers, owner="pool")
@@ -140,7 +141,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
                 provider=provider,
                 config=self.manifest.pool_server,
             )
-            self.progress_handlers.append(self.server.report_progress)
+            self.progress_handlers.add_handler(self.server.report_progress)
         else:
             self.server = None
         # Create requested agents immediately

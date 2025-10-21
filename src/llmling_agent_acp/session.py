@@ -187,17 +187,9 @@ class ACPSession:
         try:
             # Start MCP manager and, fetch and add tools
             await self.mcp_manager.__aenter__()
-            mcp_tools = await self.mcp_manager.get_tools()
-            for tool in mcp_tools:
-                self.agent.tools.register_tool(tool)
-            msg = "Added %d MCP tools to current agent for session %s"
-            logger.info(msg, len(mcp_tools), self.session_id)
-
-            # Log the tool schemas for debugging
-            for tool in mcp_tools:
-                msg = "Registered MCP tool %s with schema: %s"
-                logger.debug(msg, tool.name, tool.schema)
-
+            self.agent.tools.add_provider(self.mcp_manager)
+            msg = "Added %d MCP servers to current agent for session %s"
+            logger.info(msg, len(cfgs), self.session_id)
             # Register MCP prompts as slash commands
             await self._register_mcp_prompts_as_commands()
 
@@ -644,7 +636,7 @@ with other agents effectively."""
         message: str | None,
         tool_name: str | None = None,
         tool_call_id: str | None = None,
-        tool_input: dict | None = None,
+        tool_input: dict[str, Any] | None = None,
     ) -> None:
         """Handle MCP progress and convert to ACP in_progress update."""
         # Skip if we don't have the required context
