@@ -880,7 +880,7 @@ if __name__ == "__main__":
     asyncio.run(main())
 
 
-async def load_skill(ctx: AgentContext, skill_name: str) -> str:
+async def load_skill(ctx: AgentContext, skill_name: str) -> str:  # noqa: D417
     """Load a Claude Code Skill and return its instructions.
 
     Args:
@@ -900,6 +900,9 @@ async def load_skill(ctx: AgentContext, skill_name: str) -> str:
         instructions = skill.load_instructions()
 
         # Format the skill content for Claude to follow
+    except Exception as e:  # noqa: BLE001
+        return f"Failed to load skill '{skill_name}': {e}"
+    else:
         return f"""
 <command-message>The "{skill_name}" skill is loading</command-message>
 
@@ -911,5 +914,3 @@ async def load_skill(ctx: AgentContext, skill_name: str) -> str:
 Skill loaded from: {skill.source}
 Skill directory: {skill.skill_path}
 """
-    except Exception as e:
-        return f"Failed to load skill '{skill_name}': {e}"

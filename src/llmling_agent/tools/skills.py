@@ -5,12 +5,16 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 import re
-from typing import Any
+from typing import Any, ClassVar
 
 from llmling.core.baseregistry import BaseRegistry
 import yaml
 
 from .exceptions import ToolError
+
+
+SKILL_NAME_LIMIT = 64
+SKILL_DESCRIPTION_LIMIT = 1024
 
 
 @dataclass
@@ -31,7 +35,7 @@ class Skill:
                 content = skill_file.read_text(encoding="utf-8")
                 # Split on first --- after frontmatter
                 parts = content.split("---", 2)
-                if len(parts) >= 3:
+                if len(parts) >= 3:  # noqa: PLR2004
                     self.instructions = parts[2].strip()
                 else:
                     self.instructions = ""
@@ -44,7 +48,7 @@ class SkillsRegistry(BaseRegistry[str, Skill]):
     """Registry for Claude Code Skills with auto-discovery."""
 
     # Default skill discovery paths (can be overridden by subclasses)
-    DEFAULT_SKILL_PATHS: list[str] = [
+    DEFAULT_SKILL_PATHS: ClassVar = [
         "~/.claude/skills",  # Global user skills
         ".claude/skills",  # Project-local skills (walks up tree)
     ]
@@ -67,7 +71,7 @@ class SkillsRegistry(BaseRegistry[str, Skill]):
             elif not path_pattern.startswith("/"):
                 # Relative path - walk up directory tree
                 cwd = Path.cwd()
-                for parent in [cwd] + list(cwd.parents):
+                for parent in [cwd, *list(cwd.parents)]:
                     candidate = parent / path_pattern
                     if candidate.exists():
                         dirs.append(candidate)
@@ -97,7 +101,7 @@ class SkillsRegistry(BaseRegistry[str, Skill]):
                 try:
                     skill = self._parse_skill(skill_dir, skills_dir)
                     self.register(skill.name, skill, replace=True)
-                except Exception as e:
+                except Exception as e:  # noqa: BLE001
                     # Log but don't fail discovery for one bad skill
                     print(f"Warning: Failed to parse skill at {skill_dir}: {e}")
 
@@ -109,30 +113,39 @@ class SkillsRegistry(BaseRegistry[str, Skill]):
         # Extract YAML frontmatter
         frontmatter_match = re.match(r"^---\s*\n(.*?)\n---\s*\n", content, re.DOTALL)
         if not frontmatter_match:
-            raise ToolError(f"No YAML frontmatter found in {skill_file}")
+            msg = f"No YAML frontmatter found in {skill_file}"
+            raise ToolError(msg)
 
         try:
             metadata = yaml.safe_load(frontmatter_match.group(1))
         except yaml.YAMLError as e:
-            raise ToolError(f"Invalid YAML frontmatter in {skill_file}: {e}") from e
+            msg = f"Invalid YAML frontmatter in {skill_file}: {e}"
+            raise ToolError(msg) from e
 
         # Validate required fields
         if not isinstance(metadata, dict):
-            raise ToolError(f"YAML frontmatter must be a dictionary in {skill_file}")
+            msg = f"YAML frontmatter must be a dictionary in {skill_file}"
+            raise ToolError(msg)
 
         name = metadata.get("name")
         description = metadata.get("description")
 
         if not name:
-            raise ToolError(f"Missing 'name' field in {skill_file}")
+            msg = f"Missing 'name' field in {skill_file}"
+            raise ToolError(msg)
         if not description:
-            raise ToolError(f"Missing 'description' field in {skill_file}")
+            msg = f"Missing 'description' field in {skill_file}"
+            raise ToolError(msg)
 
         # Validate limits
-        if len(name) > 64:
-            raise ToolError(f"Skill name exceeds 64 characters in {skill_file}")
-        if len(description) > 1024:
-            raise ToolError(f"Skill description exceeds 1024 characters in {skill_file}")
+        if len(name) > SKILL_NAME_LIMIT:
+            msg = f"{skill_file}: Skill name exceeds {SKILL_NAME_LIMIT} chars"
+            raise ToolError(msg)
+        if len(description) > SKILL_DESCRIPTION_LIMIT:
+            msg = (
+                f"{skill_file}: Skill description exceeds {SKILL_DESCRIPTION_LIMIT} chars"
+            )
+            raise ToolError(msg)
 
         return Skill(
             name=name,
@@ -149,7 +162,8 @@ class SkillsRegistry(BaseRegistry[str, Skill]):
     def _validate_item(self, item: Any) -> Skill:
         """Validate and possibly transform item before registration."""
         if not isinstance(item, Skill):
-            raise ToolError(f"Expected Skill instance, got {type(item)}")
+            msg = f"Expected Skill instance, got {type(item)}"
+            raise ToolError(msg)
         return item
 
     def get_skill_instructions(self, skill_name: str) -> str:

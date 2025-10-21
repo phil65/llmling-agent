@@ -291,11 +291,10 @@ Available skills:"""
         # Create tool with dynamic description
         from llmling_agent_tools import capability_tools
 
-        tool = Tool.from_callable(
+        return Tool.from_callable(
             capability_tools.load_skill,
             source="builtin",
             requires_capability="can_load_skills",
             category="read",
             description_override=description,
         )
-        return tool
