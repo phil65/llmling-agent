@@ -214,11 +214,10 @@ async def _agent_handler(  # noqa: PLR0911
             p = AuthenticateRequest.model_validate(params)
             result = await agent.authenticate(p)
             return result.model_dump(by_alias=True, exclude_none=True) if result else {}
-        case _ if method.startswith("_"):
-            ext_name = method[1:]
-            if is_notification:
-                await agent.ext_notification(ext_name, params or {})
-                return None
-            return await agent.ext_method(ext_name, params or {})
+        case str() if method.startswith("_") and is_notification:
+            await agent.ext_notification(method[1:], params or {})
+            return None
+        case str() if method.startswith("_"):
+            return await agent.ext_method(method[1:], params or {})
         case _:
             raise RequestError.method_not_found(method)

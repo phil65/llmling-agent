@@ -192,11 +192,10 @@ async def _handle_client_method(  # noqa: PLR0911
         case "terminal/kill":
             kill_request = KillTerminalCommandRequest.model_validate(params)
             return await client.kill_terminal(kill_request)
-        case _ if method.startswith("_"):
-            ext_name = method[1:]
-            if is_notification:
-                await client.ext_notification(ext_name, params or {})
-                return None
-            return await client.ext_method(ext_name, params or {})
+        case str() if method.startswith("_") and is_notification:
+            await client.ext_notification(method[1:], params or {})
+            return None
+        case str() if method.startswith("_") and is_notification:
+            return await client.ext_method(method[1:], params or {})
         case _:
             raise RequestError.method_not_found(method)
