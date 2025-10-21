@@ -6,7 +6,7 @@ from fastmcp import Context, FastMCP
 from mcp.types import ModelHint, ModelPreferences
 
 
-mcp = FastMCP("Code Fixer Server")
+mcp = FastMCP("Test Server")
 
 
 @mcp.tool
@@ -42,4 +42,4 @@ async def test_progress(ctx: Context, message: str) -> str:
 
 
 if __name__ == "__main__":
-    mcp.run()
+    mcp.run(show_banner=False)
