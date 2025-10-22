@@ -127,17 +127,18 @@ async def test_dynamic_evaluation(agent):
     assert "Count: 3" in result4  # Same as before due to caching
 
 
-async def test_tool_capability_rendering(agent):
-    """Test rendering of tool capabilities."""
+async def test_tool_rendering(agent):
+    """Test rendering of tool information."""
 
     def add_3(a: int, b: int) -> int:
         """Add two numbers."""
         return a + b
 
-    agent.tools.register_tool(add_3, requires_capability="can_add")
+    agent.tools.register_tool(add_3)
     agent.sys_prompts.inject_tools = "all"
     result = await agent.sys_prompts.format_system_prompt(agent)
-    assert "(requires can_add)" in result
+    assert "add_3" in result
+    assert "Add two numbers" in result
 
 
 if __name__ == "__main__":

@@ -50,8 +50,8 @@ agents:
     model: openai:gpt-5-mini
     system_prompts:
       - You are a helpful technical assistant.
-    capabilities:
-      can_read_files: true
+    toolsets:
+      - type: file_access
 ```
 
 Use it in code:

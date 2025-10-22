@@ -6,10 +6,13 @@ import platform
 
 import pytest
 
-from llmling_agent.config.capabilities import Capabilities
 from llmling_agent.delegation.pool import AgentPool
 from llmling_agent.models.agents import AgentConfig
 from llmling_agent.models.manifest import AgentsManifest
+from llmling_agent_config.toolsets import (
+    FileAccessToolsetConfig,
+    ProcessManagementToolsetConfig,
+)
 
 
 def get_echo_command(message: str) -> tuple[str, list[str]]:
@@ -42,14 +45,14 @@ def get_temp_dir() -> str:
 
 @pytest.fixture
 def process_manifest():
-    """Create manifest with process management capabilities."""
+    """Create manifest with process management toolsets."""
     agent_config = AgentConfig(
         name="ProcessAgent",
         model="test",
-        capabilities=Capabilities(
-            can_manage_processes=True,
-            can_read_files=True,
-        ),
+        toolsets=[
+            ProcessManagementToolsetConfig(),
+            FileAccessToolsetConfig(),
+        ],
     )
     return AgentsManifest(agents={"process_agent": agent_config})
 
@@ -130,13 +133,13 @@ async def test_pool_cleanup_kills_processes(process_manifest):
     # but the test passes if no exceptions were raised during cleanup
 
 
-async def test_capability_requirement_enforcement():
-    """Test that tools are not available without proper capabilities."""
-    # Create agent without process management capability
+async def test_toolset_requirement_enforcement():
+    """Test that tools are not available without proper toolsets."""
+    # Create agent without process management toolset
     agent_config = AgentConfig(
         name="LimitedAgent",
         model="test",
-        capabilities=Capabilities(can_manage_processes=False),
+        toolsets=[],  # No toolsets = no tools
     )
     manifest = AgentsManifest(agents={"limited_agent": agent_config})
 

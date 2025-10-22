@@ -6,7 +6,9 @@ from pydantic_ai import RunContext
 import pytest
 
 from llmling_agent import Agent, AgentContext, AgentPool
-from llmling_agent.config.capabilities import Capabilities
+from llmling_agent_config.toolsets import (
+    AgentManagementToolsetConfig,
+)
 
 
 async def run_ctx_tool(ctx: RunContext[AgentContext], arg: str) -> str:
@@ -96,14 +98,16 @@ async def test_plain_tool_no_context(default_model: str):
 async def test_capability_tools(default_model: str):
     """Test that capability tools work with AgentContext."""
     async with AgentPool[None]() as pool:
-        caps = Capabilities(can_list_agents=True)
-        agent = await pool.add_agent(name="test", model=default_model, capabilities=caps)
+        toolsets = [AgentManagementToolsetConfig()]
+        toolset_providers = [config.get_provider() for config in toolsets]
+        agent = await pool.add_agent(
+            name="test", model=default_model, toolsets=toolset_providers
+        )
         prompt = "Get available agents using the list_agents tool and return all names."
         result = await agent.run(prompt)
         assert agent.name in str(result.content)
-        caps = Capabilities(can_delegate_tasks=True)
         agent_2 = await pool.add_agent(
-            name="test_2", model=default_model, capabilities=caps
+            name="test_2", model=default_model, toolsets=toolset_providers
         )
         await pool.add_agent(
             "helper", system_prompt="You help with tasks", model=default_model
@@ -116,10 +120,11 @@ async def test_capability_tools(default_model: str):
 async def test_team_creation(default_model: str):
     """Test that an agent can create other agents and form them into a team."""
     async with AgentPool[None]() as pool:
-        # Create creator agent with needed capabilities
-        caps = Capabilities(can_add_agents=True, can_add_teams=True)
+        # Create creator agent with needed toolsets
+        toolsets = [AgentManagementToolsetConfig()]
+        toolset_providers = [config.get_provider() for config in toolsets]
         creator = await pool.add_agent(
-            name="creator", model=default_model, capabilities=caps
+            name="creator", model=default_model, toolsets=toolset_providers
         )
         # Ask it to create a content team
         result = await creator.run("""

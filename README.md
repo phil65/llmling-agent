@@ -219,10 +219,10 @@ agents:
       since: "1h"  # Only load messages from last hour
       roles: ["user", "assistant"]  # Only specific message types
 
-    # Capabilities (role-based permissions)
-    capabilities:
-      can_delegate_tasks: true
-      can_load_resources: true
+    # Toolsets (available tool groups)
+    toolsets:
+      - type: agent_management  # Enables delegation
+      - type: resource_access   # Enables resource loading
       can_register_tools: true
       history_access: "own"  # "none" | "own" | "all"
 
@@ -400,9 +400,8 @@ agents:
         and report its results. No explanations needed.
 
   overseer:
-    capabilities:
-      can_delegate_tasks: true  # these capabilities are available as tools for the agent
-      can_list_agents: true
+    toolsets:
+      - type: agent_management  # Enables delegation and agent discovery tools
     model: openai:gpt-5-mini
     system_prompts:
       - |
@@ -526,7 +525,7 @@ result = await parallel_team.run("analyze this")  # Will execute:
 async for msg in parallel_team.run_iter("prompt"):
     print(msg.content)
 
-# With full monitoring capabilities:
+# With full monitoring functionality:
 print(f"Total cost: ${parallel_team.stats.total_cost:.2f}")
 
 ```
@@ -650,10 +649,7 @@ agent.capabilities.history_access = "own"  # "none" | "own" | "all"
 ```yaml
 agents:
   restricted_agent:
-    capabilities:
-      can_delegate_tasks: false
-      can_register_tools: false
-      history_access: "none"
+    toolsets: []  # No toolsets = minimal permissions
 ```
 
 ### Event-Driven Automation
@@ -803,7 +799,7 @@ classDiagram
         +name: str
         +model: str | Model
         +environment: AgentEnvironment
-        +capabilities: Capabilities
+        +toolsets: list[ToolsetConfig]
         +system_prompts: list[str]
         +get_config(): Config
     }

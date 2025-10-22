@@ -106,6 +106,123 @@ class UpsonicToolSetConfig(BaseToolsetConfig):
         return UpsonicTools(base_url=self.base_url, api_key=self.api_key)
 
 
+class AgentManagementToolsetConfig(BaseToolsetConfig):
+    """Configuration for agent management toolset."""
+
+    type: Literal["agent_management"] = Field("agent_management", init=False)
+    """Agent management toolset."""
+
+    def get_provider(self) -> ResourceProvider:
+        """Create agent management tools provider."""
+        from llmling_agent_toolsets.builtin import AgentManagementTools
+
+        return AgentManagementTools(name="agent_management")
+
+
+class FileAccessToolsetConfig(BaseToolsetConfig):
+    """Configuration for file access toolset."""
+
+    type: Literal["file_access"] = Field("file_access", init=False)
+    """File access toolset."""
+
+    def get_provider(self) -> ResourceProvider:
+        """Create file access tools provider."""
+        from llmling_agent_toolsets.builtin import FileAccessTools
+
+        return FileAccessTools(name="file_access")
+
+
+class CodeExecutionToolsetConfig(BaseToolsetConfig):
+    """Configuration for code execution toolset."""
+
+    type: Literal["code_execution"] = Field("code_execution", init=False)
+    """Code execution toolset."""
+
+    def get_provider(self) -> ResourceProvider:
+        """Create code execution tools provider."""
+        from llmling_agent_toolsets.builtin import CodeExecutionTools
+
+        return CodeExecutionTools(name="code_execution")
+
+
+class ProcessManagementToolsetConfig(BaseToolsetConfig):
+    """Configuration for process management toolset."""
+
+    type: Literal["process_management"] = Field("process_management", init=False)
+    """Process management toolset."""
+
+    def get_provider(self) -> ResourceProvider:
+        """Create process management tools provider."""
+        from llmling_agent_toolsets.builtin import ProcessManagementTools
+
+        return ProcessManagementTools(name="process_management")
+
+
+class ResourceAccessToolsetConfig(BaseToolsetConfig):
+    """Configuration for resource access toolset."""
+
+    type: Literal["resource_access"] = Field("resource_access", init=False)
+    """Resource access toolset."""
+
+    def get_provider(self) -> ResourceProvider:
+        """Create resource access tools provider."""
+        from llmling_agent_toolsets.builtin import ResourceAccessTools
+
+        return ResourceAccessTools(name="resource_access")
+
+
+class ToolManagementToolsetConfig(BaseToolsetConfig):
+    """Configuration for tool management toolset."""
+
+    type: Literal["tool_management"] = Field("tool_management", init=False)
+    """Tool management toolset."""
+
+    def get_provider(self) -> ResourceProvider:
+        """Create tool management tools provider."""
+        from llmling_agent_toolsets.builtin import ToolManagementTools
+
+        return ToolManagementTools(name="tool_management")
+
+
+class UserInteractionToolsetConfig(BaseToolsetConfig):
+    """Configuration for user interaction toolset."""
+
+    type: Literal["user_interaction"] = Field("user_interaction", init=False)
+    """User interaction toolset."""
+
+    def get_provider(self) -> ResourceProvider:
+        """Create user interaction tools provider."""
+        from llmling_agent_toolsets.builtin import UserInteractionTools
+
+        return UserInteractionTools(name="user_interaction")
+
+
+class HistoryToolsetConfig(BaseToolsetConfig):
+    """Configuration for history toolset."""
+
+    type: Literal["history"] = Field("history", init=False)
+    """History toolset."""
+
+    def get_provider(self) -> ResourceProvider:
+        """Create history tools provider."""
+        from llmling_agent_toolsets.builtin import HistoryTools
+
+        return HistoryTools(name="history")
+
+
+class IntegrationToolsetConfig(BaseToolsetConfig):
+    """Configuration for integration toolset."""
+
+    type: Literal["integrations"] = Field("integrations", init=False)
+    """Integration toolset."""
+
+    def get_provider(self) -> ResourceProvider:
+        """Create integration tools provider."""
+        from llmling_agent_toolsets.builtin import IntegrationTools
+
+        return IntegrationTools(name="integrations")
+
+
 class CustomToolsetConfig(BaseToolsetConfig):
     """Configuration for custom toolsets."""
 
@@ -148,6 +265,15 @@ ToolsetConfig = Annotated[
     | EntryPointToolsetConfig
     | ComposioToolSetConfig
     | UpsonicToolSetConfig
+    | AgentManagementToolsetConfig
+    | FileAccessToolsetConfig
+    | CodeExecutionToolsetConfig
+    | ProcessManagementToolsetConfig
+    | ResourceAccessToolsetConfig
+    | ToolManagementToolsetConfig
+    | UserInteractionToolsetConfig
+    | HistoryToolsetConfig
+    | IntegrationToolsetConfig
     | CustomToolsetConfig,
     Field(discriminator="type"),
 ]

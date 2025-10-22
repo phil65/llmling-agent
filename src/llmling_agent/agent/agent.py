@@ -57,9 +57,9 @@ if TYPE_CHECKING:
         SessionIdType,
         ToolType,
     )
-    from llmling_agent.config.capabilities import Capabilities
     from llmling_agent.delegation.team import Team
     from llmling_agent.delegation.teamrun import TeamRun
+    from llmling_agent.resource_providers.base import ResourceProvider
     from llmling_agent_config.mcp_server import MCPServerConfig
     from llmling_agent_config.providers import ProcessorCallback
     from llmling_agent_config.result_types import StructuredResponseConfig
@@ -105,7 +105,7 @@ class AgentKwargs(TypedDict, total=False):
     # Runtime Environment
     runtime: RuntimeConfig | Config | JoinablePathLike | None
     tools: Sequence[ToolType | Tool] | None
-    capabilities: Capabilities | None
+    toolsets: Sequence[ResourceProvider] | None
     mcp_servers: Sequence[str | MCPServerConfig] | None
 
     # Execution Settings
@@ -169,7 +169,7 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
         system_prompt: AnyPromptType | Sequence[AnyPromptType] = (),
         description: str | None = None,
         tools: Sequence[ToolType | Tool] | None = None,
-        capabilities: Capabilities | None = None,
+        toolsets: Sequence[ResourceProvider] | None = None,
         mcp_servers: Sequence[str | MCPServerConfig] | None = None,
         resources: Sequence[Resource | PromptType | str] = (),
         retries: int = 1,
@@ -184,22 +184,24 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
         """Initialize agent with runtime configuration.
 
         Args:
-            runtime: Runtime configuration providing access to resources/tools
-            context: Agent context with capabilities and configuration
+            name: Name of the agent for logging and identification
             provider: Agent type to use (ai: PydanticAIProvider, human: HumanProvider)
+            model: The default model to use (defaults to GPT-5)
+            runtime: Runtime configuration providing access to resources/tools
+            context: Agent context with configuration
             session: Memory configuration.
                 - None: Default memory config
                 - False: Disable message history (max_messages=0)
                 - int: Max tokens for memory
                 - str/UUID: Session identifier
-                - SessionQuery: Query to recover conversation
-                - MemoryConfig: Complete memory configuration
-            model: The default model to use (defaults to GPT-5)
-            system_prompt: Static system prompts to use for this agent
-            name: Name of the agent for logging
+                - MemoryConfig: Full memory configuration
+                - MemoryProvider: Custom memory provider
+                - SessionQuery: Session query
+
+            system_prompt: System prompts for the agent
             description: Description of the Agent ("what it can do")
             tools: List of tools to register with the agent
-            capabilities: Capabilities for the agent
+            toolsets: List of toolset resource providers for the agent
             mcp_servers: MCP servers to connect to
             resources: Additional resources to load
             retries: Default number of retries for failed operations
@@ -216,9 +218,6 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
         from llmling_agent.agent.conversation import ConversationManager
         from llmling_agent.agent.interactions import Interactions
         from llmling_agent.agent.sys_prompts import SystemPrompts
-        from llmling_agent.resource_providers.capability_provider import (
-            CapabilitiesResourceProvider,
-        )
         from llmling_agent_providers.base import AgentProvider
 
         self.task_manager = TaskManager()
@@ -229,7 +228,6 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
         ctx = context or AgentContext[TDeps].create_default(
             name,
             input_provider=input_provider,
-            capabilities=capabilities,
         )
         self._context = ctx
         memory_cfg = (
@@ -265,6 +263,11 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
         self.tools.add_provider(self.mcp)
         if builtin_tools := ctx.config.get_tool_provider():
             self.tools.add_provider(builtin_tools)
+
+        # Add toolset providers
+        if toolsets:
+            for toolset_provider in toolsets:
+                self.tools.add_provider(toolset_provider)
 
         # Initialize conversation manager
         resources = list(resources)
@@ -310,10 +313,6 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
         from llmling_agent.tools.skills import SkillsRegistry
 
         self.skills_registry = SkillsRegistry()
-        capabilities_provider = CapabilitiesResourceProvider(
-            ctx.capabilities, skills_registry=self.skills_registry
-        )
-        self.tools.add_provider(capabilities_provider)
 
         if ctx and ctx.definition:
             from llmling_agent.observability import registry

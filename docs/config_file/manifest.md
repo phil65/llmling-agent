@@ -44,12 +44,10 @@ agents:
       since: 1h             # Only messages from last hour
     avatar: "path/to/avatar.png"  # Optional UI avatar
 
-    # Capabilities
-    capabilities:
-      can_delegate_tasks: true
-      can_load_resources: true
-      history_access: "own"  # "none" | "own" | "all"
-      # ... other capability settings
+    # Toolsets
+    toolsets:
+      - type: agent_management  # Enables delegation
+      - type: resource_access   # Enables resource loading
 
     # Environment & Resources
     environment:

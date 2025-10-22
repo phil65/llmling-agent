@@ -34,9 +34,8 @@ def test_file_environment_path_resolution(tmp_path: pathlib.Path):
     config_dir.mkdir()
     env_file = config_dir / "env.yml"
 
-    # Create valid YAML content
-    caps = {"load_resource": False, "get_resources": False}
-    env_content = {"global_settings": {"llm_capabilities": caps}}
+    # Create minimal valid YAML content
+    env_content = {}
     env_file.write_text(yamling.dump_yaml(env_content))
 
     # Test relative path resolution
@@ -81,7 +80,7 @@ def test_inline_environment_basic(sample_config: Config):
         (
             {
                 "type": "inline",
-                "config": {"global_settings": {"llm_capabilities": {}}},
+                "config": {},
             },
             InlineEnvironment,
             None,

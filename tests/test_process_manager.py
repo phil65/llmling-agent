@@ -11,10 +11,6 @@ from llmling_agent.agent.process_manager import (
     ProcessOutput,
     RunningProcess,
 )
-from llmling_agent.config.capabilities import Capabilities
-from llmling_agent.resource_providers.capability_provider import (
-    CapabilitiesResourceProvider,
-)
 
 
 @pytest.fixture
@@ -224,11 +220,11 @@ async def test_output_truncation():
     assert len(output.stdout.encode()) < output_limit
 
 
-async def test_capability_provider_tools():
-    """Test that process management tools are registered with capabilities."""
-    capabilities = Capabilities(can_manage_processes=True)
-    provider = CapabilitiesResourceProvider(capabilities)
+async def test_builtin_toolset_tools():
+    """Test that process management tools are available in builtin toolset."""
+    from llmling_agent_toolsets.builtin import ProcessManagementTools
 
+    provider = ProcessManagementTools()
     tools = await provider.get_tools()
     tool_names = [tool.name for tool in tools]
 
@@ -241,31 +237,8 @@ async def test_capability_provider_tools():
         "list_processes",
     ]
 
-    for expected_tool in expected_tools:
-        assert expected_tool in tool_names, f"Tool {expected_tool} not found"
-
-
-async def test_capability_provider_no_tools():
-    """Test that tools are not registered without can_manage_processes capability."""
-    capabilities = Capabilities(can_manage_processes=False)
-    provider = CapabilitiesResourceProvider(capabilities)
-
-    tools = await provider.get_tools()
-    tool_names = [tool.name for tool in tools]
-
-    process_tools = [
-        "start_process",
-        "get_process_output",
-        "wait_for_process",
-        "kill_process",
-        "release_process",
-        "list_processes",
-    ]
-
-    for process_tool in process_tools:
-        assert process_tool not in tool_names, (
-            f"Tool {process_tool} should not be registered"
-        )
+    for tool_name in expected_tools:
+        assert tool_name in tool_names
 
 
 class TestRunningProcess:

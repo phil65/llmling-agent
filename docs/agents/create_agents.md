@@ -93,8 +93,8 @@ Agents with `can_create_delegates` capability can spawn temporary agents:
 ```yaml
 agents:
   orchestrator:
-    capabilities:
-      can_create_delegates: true
+    toolsets:
+      - type: agent_management
     # ...
 
 # In Python

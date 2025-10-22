@@ -7,8 +7,18 @@ from __future__ import annotations
 
 from importlib.metadata import version
 
-from llmling_agent.config import Capabilities
 from llmling_agent.models import AgentsManifest, AgentConfig
+from llmling_agent_toolsets.builtin import (
+    AgentManagementTools,
+    FileAccessTools,
+    CodeExecutionTools,
+    ProcessManagementTools,
+    ResourceAccessTools,
+    ToolManagementTools,
+    UserInteractionTools,
+    HistoryTools,
+    IntegrationTools,
+)
 from llmling_agent.agent import Agent, StructuredAgent, AnyAgent, AgentContext
 from llmling_agent.delegation import AgentPool, Team, TeamRun, BaseTeam
 from dotenv import load_dotenv
@@ -39,24 +49,32 @@ __all__ = [
     "Agent",
     "AgentConfig",
     "AgentContext",
+    "AgentManagementTools",
     "AgentPool",
     "AgentsManifest",
     "AnyAgent",
     "AudioBase64Content",
     "AudioURLContent",
     "BaseTeam",
-    "Capabilities",
     "ChatMessage",
+    "CodeExecutionTools",
+    "FileAccessTools",
+    "HistoryTools",
     "ImageBase64Content",
     "ImageURLContent",
+    "IntegrationTools",
     "MessageNode",
     "PDFBase64Content",
     "PDFURLContent",
+    "ProcessManagementTools",
+    "ResourceAccessTools",
     "StructuredAgent",
     "Team",
     "TeamRun",
     "Tool",
     "ToolCallInfo",
+    "ToolManagementTools",
+    "UserInteractionTools",
     "VideoURLContent",
     "__version__",
 ]

@@ -13,9 +13,8 @@ agents:
     model: openai:gpt-5
     system_prompts:
       - "You are a helpful assistant."
-    capabilities:
-      can_load_resources: true
-      can_list_resources: true
+    toolsets:
+      - type: resource_access
 
   # Specialized agent inheriting base config
   code_assistant:
@@ -23,8 +22,8 @@ agents:
     description: "Specializes in code review"
     system_prompts:  # Extends base prompts
       - "Focus on code quality and best practices."
-    capabilities:  # Extends base capabilities
-      can_execute_code: true
+    toolsets:  # Extends base toolsets
+      - type: code_execution
 
   # Another specialized agent
   docs_assistant:
@@ -49,8 +48,8 @@ Using Yamling's inheritance system, entire YAML files can inherit from other fil
 agents:
   base_agent:
     model: openai:gpt-5
-    capabilities:
-      can_load_resources: true
+    toolsets:
+      - type: resource_access
 
 storage:
   providers:

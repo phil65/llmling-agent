@@ -3,11 +3,7 @@ agents:
   overseer:
     name: "Model Comparison Coordinator"
     model: openai:gpt-5-mini
-    capabilities:
-      can_add_teams: true
-      can_list_teams: true
-      can_delegate_tasks: true
-      can_list_agents: true
-      can_add_agents: true
+    toolsets:
+      - type: agent_management
     system_prompts:
       - You are a model comparison coordinator.

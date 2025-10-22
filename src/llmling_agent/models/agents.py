@@ -24,7 +24,6 @@ from upath import UPath
 
 from llmling_agent import log
 from llmling_agent.common_types import EndStrategy  # noqa: TC001
-from llmling_agent.config import Capabilities
 from llmling_agent.resource_providers.static import StaticResourceProvider
 from llmling_agent_config.environment import (
     AgentEnvironment,  # noqa: TC001
@@ -59,12 +58,11 @@ class AgentConfig(NodeConfig):
     """Configuration for a single agent in the system.
 
     Defines an agent's complete configuration including its model, environment,
-    capabilities, and behavior settings. Each agent can have its own:
+    and behavior settings. Each agent can have its own:
     - Language model configuration
     - Environment setup (tools and resources)
     - Response type definitions
     - System prompts and default user prompts
-    - Role-based capabilities
 
     The configuration can be loaded from YAML or created programmatically.
     """
@@ -87,9 +85,6 @@ class AgentConfig(NodeConfig):
 
     environment: str | AgentEnvironment | None = None
     """Environments configuration (path or object)"""
-
-    capabilities: Capabilities = Field(default_factory=Capabilities)
-    """Current agent's capabilities."""
 
     session: str | SessionQuery | MemoryConfig | None = None
     """Session configuration for conversation recovery."""

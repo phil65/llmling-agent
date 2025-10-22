@@ -369,7 +369,6 @@ class AgentsManifest(Schema):
         context = AgentContext[TAgentDeps](
             node_name=name,
             data=deps,
-            capabilities=config.capabilities,
             definition=self,
             config=config,
             runtime=runtime,
@@ -432,7 +431,6 @@ class AgentsManifest(Schema):
             session=config.get_session_config(),
             output_retries=config.output_retries,
             end_strategy=config.end_strategy,
-            capabilities=config.capabilities,
             debug=config.debug,
             # name=config.name or name,
         )

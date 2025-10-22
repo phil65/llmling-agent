@@ -856,7 +856,7 @@ async def add_remote_mcp_server(  # noqa: D417
 
 if __name__ == "__main__":
     # import logging
-    from llmling_agent import AgentPool, Capabilities
+    from llmling_agent import AgentPool
 
     user_prompt = """Add a stdio MCP server:
 // 	"command": "npx",
@@ -866,10 +866,15 @@ if __name__ == "__main__":
 ."""
 
     async def main():
+        from llmling_agent_config.toolsets import IntegrationToolsetConfig
+
         async with AgentPool() as pool:
-            caps = Capabilities(can_add_mcp_servers=True)
+            toolsets = [IntegrationToolsetConfig()]
+            toolset_providers = [config.get_provider() for config in toolsets]
             agent = await pool.add_agent(
-                "X", capabilities=caps, model="openai:gpt-5-nano"
+                "X",
+                toolsets=toolset_providers,
+                model="openai:gpt-5-nano",
             )
             agent.tool_used.connect(print)
             result = await agent.run(user_prompt)

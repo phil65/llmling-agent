@@ -1,261 +1,232 @@
-# Agent Capabilities
+# Agent Toolsets
 
-## What are Capabilities?
+## What are Toolsets?
 
-Capabilities in LLMling define what "special" operations an agent is allowed to perform.
-While tools provide specific functions an agent can use (like web searches or calculations),
-capabilities control an agent's access to privileged operations that can modify the system itself or access sensitive information.
+Toolsets in LLMling define groups of related tools that agents can access. Rather than configuring individual tool permissions, you enable entire categories of functionality through toolset configurations.
 
-Think of capabilities as "administrative privileges" that determine what an agent is allowed to do beyond regular tool usage.
-When capabilities are enabled, corresponding tools become available to the agent,
-providing a secure and explicit way to control agent permissions.
+Think of toolsets as "skill packages" that give agents specific capabilities - from file operations to process management to agent coordination.
 
-## Defining Capabilities
+## Available Toolsets
 
-Capabilities can be defined in YAML configuration:
+### Agent Management (`agent_management`)
+Enables agents to discover, coordinate with, and manage other agents:
 
 ```yaml
 agents:
-  my_agent:
-    capabilities:
-      # Agent Discovery & Delegation
-      can_list_agents: false        # Whether agent can discover other agents
-      can_delegate_tasks: false     # Whether agent can assign tasks to other agents
-      can_observe_agents: false     # Whether agent can monitor other agents' activities
-      can_ask_agents: false         # Whether agent can ask other agents directly
-      can_ask_user: false           # Whether agent can ask the user clarifying questions
-
-      # History & Statistics Access
-      history_access: none          # Access to conversation history (none|own|all)
-
-      # Resource Management
-      can_load_resources: false    # Whether agent can load resource content
-      can_list_resources: false    # Whether agent can discover available resources
-
-      # Tool Management
-      can_register_tools: false    # Whether agent can register importable functions
-      can_register_code: false     # Whether agent can create new tools from code
-      can_install_packages: false  # Whether agent can install Python packages
-      can_chain_tools: false       # Whether agent can chain multiple tool calls
-
-      # Code Execution
-      can_execute_code: false      # Whether agent can execute Python code (WARNING: No sandbox)
-      can_execute_commands: false  # Whether agent can execute CLI commands
-      can_manage_processes: false  # Whether agent can start and manage background processes
-
-      # Agent / Team Creation
-      can_create_workers: false    # Whether agent can create worker agents (as tools)
-      can_create_delegates: false  # Whether agent can spawn temporary delegate agents
-      can_add_agents: false       # Whether agent can add new agents to the pool
-      can_add_teams: false       # Whether agent can add new teams to the pool
-      can_connect_nodes: false       # Whether agent can connect two nodes
+  coordinator:
+    toolsets:
+      - type: agent_management
 ```
 
-Or in Python:
+**Provides tools:**
+- `list_available_agents` - Discover other agents in the pool
+- `list_available_teams` - Discover available teams
+- `delegate_to` - Assign tasks to other agents
+- `ask_agent` - Ask other agents directly
+- `add_agent` - Add new agents to the pool
+- `add_team` - Create new teams
+- `connect_nodes` - Connect agents/teams in workflows
+- `create_worker_agent` - Create worker agents as tools
+- `spawn_delegate` - Create temporary delegate agents
 
-```python
-from llmling_agent.config import Capabilities
-
-capabilities = Capabilities(
-    can_list_agents=True,
-    can_delegate_tasks=True,
-    history_access="own"
-)
-
-agent = Agent(
-    name="my_agent",
-    capabilities=capabilities,
-    model="gpt-5"
-)
-```
-
-## Available Capabilities
-
-### Agent / Team Interaction
-
-Control how agents can discover and interact with each other:
-```python
-can_list_agents: bool = False
-"""Whether the agent can discover other available agents."""
-
-can_list_teams: bool = False
-"""Whether the agent can discover teams of the pool."""
-
-can_delegate_tasks: bool = False
-"""Whether the agent can delegate tasks to other agents."""
-
-can_observe_agents: bool = False
-"""Whether the agent can monitor other agents' activities."""
-
-can_ask_agents: bool = False
-"""Whether the agent can ask other agents of the pool."""
-
-can_ask_user: bool = False
-"""Whether the agent can ask the user clarifying questions during processing."""
-```
-
-### History Access
-
-Control access to conversation history and usage data:
-```python
-history_access: AccessLevel = "none"
-"""Level of access to conversation history:
-- "none": No access
-- "own": Only own history
-- "all": All agents' history
-"""
-```
-
-### Resource Management
-
-Control access to resources and tools:
-```python
-can_load_resources: bool = False
-"""Whether the agent can load and access resource content."""
-
-can_list_resources: bool = False
-"""Whether the agent can discover available resources."""
-
-can_register_tools: bool = False
-"""Whether the agent can register importable functions as tools."""
-
-can_register_code: bool = False
-"""Whether the agent can create new tools from provided code."""
-
-can_install_packages: bool = False
-"""Whether the agent can install Python packages for tools."""
-
-can_chain_tools: bool = False
-"""Whether the agent can chain multiple tool calls into one."""
-```
-
-### Code Execution
-
-Control ability to execute code (use with caution):
-```python
-can_execute_code: bool = False
-"""Whether the agent can execute Python code (WARNING: No sandbox)."""
-
-can_execute_commands: bool = False
-"""Whether the agent can execute CLI commands (use at own risk)."""
-
-can_manage_processes: bool = False
-"""Whether the agent can start and manage background processes."""
-```
-
-### Process Management
-
-Control ability to manage background processes:
-```python
-can_manage_processes: bool = False
-"""Whether the agent can start and manage background processes.
-
-When enabled, provides access to:
-- start_process: Start commands in background and get process ID
-- get_process_output: Check current output from running processes
-- wait_for_process: Block until process completes
-- kill_process: Terminate running processes
-- release_process: Clean up process resources
-- list_processes: Show all active processes
-
-This capability allows agents to run long-running commands, monitor their
-progress, and manage multiple concurrent processes. Use with caution as
-processes consume system resources.
-"""
-```
-
-### Agent Creation
-
-Control ability to create and manage other agents:
-```python
-can_create_workers: bool = False
-"""Whether the agent can create worker agents (as tools)."""
-
-can_create_delegates: bool = False
-"""Whether the agent can spawn temporary delegate agents."""
-
-can_add_agents: bool = False
-"""Whether the agent can add other agents to the pool."""
-
-can_add_agents: bool = False
-"""Whether the agent can add new teams to the pool."""
-```
-
-## Common Patterns
-
-Here are some common capability configurations for different agent roles:
-
-### Basic Agent
+### File Access (`file_access`)
+Basic file system operations:
 
 ```yaml
 agents:
-  restricted_agent:
-    capabilities:
-      # Minimal capabilities - can only use predefined tools
-      can_load_resources: true    # Can load resources
+  reader:
+    toolsets:
+      - type: file_access
 ```
 
-### Power User Agent
+**Provides tools:**
+- `read_file` - Read local and remote files
+- `list_directory` - List directory contents
+
+### Resource Access (`resource_access`)
+Access to LLMling resources and configurations:
 
 ```yaml
 agents:
-  power_user:
-    capabilities:
-      can_load_resources: true
-      can_list_resources: true
-      can_register_tools: true
-      history_access: own         # Can access own history
+  assistant:
+    toolsets:
+      - type: resource_access
 ```
 
-### Team Lead Agent
+**Provides tools:**
+- `load_resource` - Load resource content
+- `get_resources` - Discover available resources
+
+### Code Execution (`code_execution`)
+Execute Python code and system commands:
 
 ```yaml
 agents:
-  team_lead:
-    capabilities:
-      # Can manage other agents but no code execution
-      can_list_agents: true
-      can_delegate_tasks: true
-      can_observe_agents: true
-      history_access: all
-      can_create_workers: true
-      can_create_delegates: true
+  developer:
+    toolsets:
+      - type: code_execution
 ```
 
-### Admin Agent
+**Provides tools:**
+- `execute_python` - Execute Python code (WARNING: No sandbox)
+- `execute_command` - Execute CLI commands
+
+### Process Management (`process_management`)
+Start and manage background processes:
+
+```yaml
+agents:
+  build_manager:
+    toolsets:
+      - type: process_management
+```
+
+**Provides tools:**
+- `start_process` - Start background processes
+- `get_process_output` - Check process output
+- `wait_for_process` - Wait for process completion
+- `kill_process` - Terminate processes
+- `release_process` - Clean up process resources
+- `list_processes` - Show active processes
+
+### Tool Management (`tool_management`)
+Register and manage tools dynamically:
 
 ```yaml
 agents:
   admin:
-    capabilities:
-      # Full access to everything
-      can_list_agents: true
-      can_delegate_tasks: true
-      can_observe_agents: true
-      history_access: all
-      can_load_resources: true
-      can_list_resources: true
-      can_register_tools: true
-      can_register_code: true
-      can_install_packages: true
-      can_chain_tools: true
-      can_execute_code: true
-      can_execute_commands: true
-      can_manage_processes: true
-      can_create_workers: true
-      can_create_delegates: true
+    toolsets:
+      - type: tool_management
 ```
 
-### Process Manager Agent
+**Provides tools:**
+- `register_tool` - Register importable functions as tools
+- `register_code_tool` - Create tools from code
+- `install_package` - Install Python packages
+
+### User Interaction (`user_interaction`)
+Direct interaction with users:
 
 ```yaml
 agents:
-  process_manager:
-    capabilities:
-      # Can manage background processes and monitor them
-      can_manage_processes: true
-      can_execute_commands: true    # Often used together
-      can_read_files: true         # To check process outputs/logs
-      can_list_directories: true   # To navigate filesystem
-      history_access: own          # Track process history
+  assistant:
+    toolsets:
+      - type: user_interaction
 ```
+
+**Provides tools:**
+- `ask_user` - Ask users clarifying questions
+
+### History (`history`)
+Access conversation history and statistics:
+
+```yaml
+agents:
+  analyst:
+    toolsets:
+      - type: history
+```
+
+**Provides tools:**
+- `search_history` - Search conversation history
+- `show_statistics` - Display usage statistics
+
+### Integrations (`integrations`)
+External service integrations:
+
+```yaml
+agents:
+  integrator:
+    toolsets:
+      - type: integrations
+```
+
+**Provides tools:**
+- `add_local_mcp_server` - Add local MCP servers
+- `add_remote_mcp_server` - Add remote MCP servers
+- `load_skill` - Load Claude Code Skills
+
+## Common Patterns
+
+### Basic Assistant
+```yaml
+agents:
+  assistant:
+    model: openai:gpt-4
+    toolsets:
+      - type: resource_access
+      - type: file_access
+      - type: user_interaction
+```
+
+### Team Coordinator
+```yaml
+agents:
+  coordinator:
+    model: openai:gpt-4
+    toolsets:
+      - type: agent_management
+      - type: history
+    system_prompts:
+      - You coordinate tasks across multiple agents
+```
+
+### Developer Agent
+```yaml
+agents:
+  developer:
+    model: anthropic:claude-3-5-sonnet-20241022
+    toolsets:
+      - type: file_access
+      - type: code_execution
+      - type: process_management
+      - type: tool_management
+    system_prompts:
+      - You are a software developer with full system access
+```
+
+### Restricted Agent
+```yaml
+agents:
+  restricted:
+    model: openai:gpt-4-mini
+    toolsets: []  # No toolsets = only predefined tools
+    tools:
+      - calculator
+      - web_search
+```
+
+## Security Considerations
+
+Toolsets provide different levels of system access:
+
+**Low Risk:**
+- `file_access` - Read-only file operations
+- `resource_access` - Access to configured resources
+- `user_interaction` - User prompts only
+
+**Medium Risk:**
+- `agent_management` - Can create and coordinate agents
+- `history` - Access to conversation data
+- `integrations` - External service access
+
+**High Risk:**
+- `code_execution` - Can execute arbitrary code
+- `process_management` - System process control
+- `tool_management` - Can modify available tools
+
+Always use the principle of least privilege - only enable toolsets that agents actually need.
+
+## Custom Toolsets
+
+You can also create custom toolsets by implementing your own provider:
+
+```yaml
+agents:
+  specialized:
+    toolsets:
+      - type: custom
+        import_path: "mypackage.toolsets.SpecializedTools"
+```
+
+See the [Custom Tools](../tools/custom.md) guide for implementation details.

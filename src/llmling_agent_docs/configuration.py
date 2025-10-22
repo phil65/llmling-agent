@@ -32,10 +32,10 @@ def _(page: mk.MkPage):
     page += mk.MkTemplate("docs/config_file/team_config.md")
 
 
-@nav.route.page("Capabilities", icon="octicon:shield-check-16")
-def _(page: mk.MkPage):
-    """Agent capabilities and permissions."""
-    page += mk.MkTemplate("docs/config_file/capabilities_config.md")
+# @nav.route.page("Capabilities", icon="octicon:shield-check-16")
+# def _(page: mk.MkPage):
+#     """Agent capabilities and permissions."""
+#     page += mk.MkTemplate("docs/config_file/capabilities_config.md")
 
 
 @nav.route.page("Worker Configuration", icon="octicon:people-16")

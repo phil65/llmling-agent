@@ -81,11 +81,11 @@ Example:
 ```yaml
 agents:
   analyzer:
+    name: "Text Analyzer"
     model: openai:gpt-5
     description: "Analyzes text and provides structured output"
-    capabilities:
-      can_execute_code: false
-      can_access_files: true
+    toolsets:
+      - type: file_access
 ```
 
 See the [Configuration Guide](../config/index.md) for detailed information about agent configuration.

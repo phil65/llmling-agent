@@ -16,7 +16,6 @@ if TYPE_CHECKING:
 
     from llmling_agent import AgentPool
     from llmling_agent.agent import AnyAgent
-    from llmling_agent.config.capabilities import Capabilities
     from llmling_agent.models.agents import AgentConfig
     from llmling_agent.tools.base import Tool
     from llmling_agent_input.base import InputProvider
@@ -31,9 +30,6 @@ class AgentContext[TDeps = Any](NodeContext[TDeps]):
 
     Generically typed with AgentContext[Type of Dependencies]
     """
-
-    capabilities: Capabilities
-    """Current agent's capabilities."""
 
     config: AgentConfig
     """Current agent's specific configuration."""
@@ -51,7 +47,6 @@ class AgentContext[TDeps = Any](NodeContext[TDeps]):
     def create_default(
         cls,
         name: str,
-        capabilities: Capabilities | None = None,
         deps: TDeps | None = None,
         pool: AgentPool | None = None,
         input_provider: InputProvider | None = None,
@@ -60,21 +55,18 @@ class AgentContext[TDeps = Any](NodeContext[TDeps]):
 
         Args:
             name: Name of the agent
-            capabilities: Optional custom capabilities (defaults to minimal access)
+
             deps: Optional dependencies for the agent
             pool: Optional pool the agent is part of
             input_provider: Optional input provider for the agent
         """
-        from llmling_agent.config.capabilities import Capabilities
         from llmling_agent.models import AgentConfig, AgentsManifest
 
-        caps = capabilities or Capabilities()
         defn = AgentsManifest()
         cfg = AgentConfig(name=name)
         return cls(
             input_provider=input_provider,
             node_name=name,
-            capabilities=caps,
             definition=defn,
             config=cfg,
             data=deps,

@@ -15,8 +15,8 @@ agents:
     model: openai:gpt-5-nano
     system_prompts:
       - You are a docs writer. Write markdown documentation for the files given to you.
-    capabilities:
-      can_read_files: true
+    toolsets:
+      - type: file_access
 
   error_checker:
     name: "Code Validator"

@@ -21,8 +21,8 @@ agents:
   analyzer:
     name: "Analyzer"
     model: "gpt-5"
-    capabilities:
-      can_load_resources: true
+    toolsets:
+      - type: resource_access
 
 teams:
   analysis_team:
