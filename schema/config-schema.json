@@ -2,7 +2,7 @@
   "$defs": {
     "AgentConfig": {
       "additionalProperties": false,
-      "description": "Configuration for a single agent in the system.\n\nDefines an agent's complete configuration including its model, environment,\ncapabilities, and behavior settings. Each agent can have its own:\n- Language model configuration\n- Environment setup (tools and resources)\n- Response type definitions\n- System prompts and default user prompts\n- Role-based capabilities\n\nThe configuration can be loaded from YAML or created programmatically.",
+      "description": "Configuration for a single agent in the system.\n\nDefines an agent's complete configuration including its model, environment,\nand behavior settings. Each agent can have its own:\n- Language model configuration\n- Environment setup (tools and resources)\n- Response type definitions\n- System prompts and default user prompts\n\nThe configuration can be loaded from YAML or created programmatically.",
       "properties": {
         "name": {
           "anyOf": [
@@ -196,9 +196,9 @@
                   "cost-optimized": "#/$defs/CostOptimizedModelConfig",
                   "delegation": "#/$defs/DelegationModelConfig",
                   "fallback": "#/$defs/FallbackModelConfig",
+                  "function": "#/$defs/FunctionModelConfig",
                   "import": "#/$defs/ImportModelConfig",
                   "input": "#/$defs/InputModelConfig",
-                  "llm": "#/$defs/LLMAdapterConfig",
                   "remote-input": "#/$defs/RemoteInputConfig",
                   "remote-proxy": "#/$defs/RemoteProxyConfig",
                   "string": "#/$defs/StringModelConfig",
@@ -222,13 +222,13 @@
                   "$ref": "#/$defs/FallbackModelConfig"
                 },
                 {
+                  "$ref": "#/$defs/FunctionModelConfig"
+                },
+                {
                   "$ref": "#/$defs/ImportModelConfig"
                 },
                 {
                   "$ref": "#/$defs/InputModelConfig"
-                },
-                {
-                  "$ref": "#/$defs/LLMAdapterConfig"
                 },
                 {
                   "$ref": "#/$defs/RemoteInputConfig"
@@ -296,11 +296,20 @@
           "items": {
             "discriminator": {
               "mapping": {
+                "agent_management": "#/$defs/AgentManagementToolsetConfig",
+                "code_execution": "#/$defs/CodeExecutionToolsetConfig",
                 "composio": "#/$defs/ComposioToolSetConfig",
                 "custom": "#/$defs/llmling_agent_config__toolsets__CustomToolsetConfig",
                 "entry_points": "#/$defs/llmling_agent_config__toolsets__EntryPointToolsetConfig",
+                "file_access": "#/$defs/FileAccessToolsetConfig",
+                "history": "#/$defs/HistoryToolsetConfig",
+                "integrations": "#/$defs/IntegrationToolsetConfig",
                 "openapi": "#/$defs/llmling_agent_config__toolsets__OpenAPIToolsetConfig",
-                "upsonic": "#/$defs/UpsonicToolSetConfig"
+                "process_management": "#/$defs/ProcessManagementToolsetConfig",
+                "resource_access": "#/$defs/ResourceAccessToolsetConfig",
+                "tool_management": "#/$defs/ToolManagementToolsetConfig",
+                "upsonic": "#/$defs/UpsonicToolSetConfig",
+                "user_interaction": "#/$defs/UserInteractionToolsetConfig"
               },
               "propertyName": "type"
             },
@@ -316,6 +325,33 @@
               },
               {
                 "$ref": "#/$defs/UpsonicToolSetConfig"
+              },
+              {
+                "$ref": "#/$defs/AgentManagementToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/FileAccessToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/CodeExecutionToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/ProcessManagementToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/ResourceAccessToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/ToolManagementToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/UserInteractionToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/HistoryToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/IntegrationToolsetConfig"
               },
               {
                 "$ref": "#/$defs/llmling_agent_config__toolsets__CustomToolsetConfig"
@@ -354,10 +390,6 @@
           "default": null,
           "description": "Environments configuration (path or object)",
           "title": "Environment"
-        },
-        "capabilities": {
-          "$ref": "#/$defs/Capabilities",
-          "description": "Current agent's capabilities."
         },
         "session": {
           "anyOf": [
@@ -566,6 +598,34 @@
         }
       },
       "title": "AgentConfig",
+      "type": "object"
+    },
+    "AgentManagementToolsetConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for agent management toolset.",
+      "properties": {
+        "namespace": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional namespace prefix for tool names",
+          "title": "Namespace"
+        },
+        "type": {
+          "const": "agent_management",
+          "default": "agent_management",
+          "description": "Agent management toolset.",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "title": "AgentManagementToolsetConfig",
       "type": "object"
     },
     "AgentOpsObservabilityConfig": {
@@ -1493,161 +1553,32 @@
       "title": "CallbackProviderConfig",
       "type": "object"
     },
-    "Capabilities": {
+    "CodeExecutionToolsetConfig": {
       "additionalProperties": false,
-      "description": "Defines what operations an agent is allowed to perform.",
+      "description": "Configuration for code execution toolset.",
       "properties": {
-        "can_list_agents": {
-          "default": false,
-          "description": "Whether the agent can discover other available agents.",
-          "title": "Can List Agents",
-          "type": "boolean"
-        },
-        "can_delegate_tasks": {
-          "default": false,
-          "description": "Whether the agent can delegate tasks to other agents.",
-          "title": "Can Delegate Tasks",
-          "type": "boolean"
-        },
-        "can_observe_agents": {
-          "default": false,
-          "description": "Whether the agent can monitor other agents' activities.",
-          "title": "Can Observe Agents",
-          "type": "boolean"
-        },
-        "can_list_teams": {
-          "default": false,
-          "description": "Whether the agent can discover available teams.",
-          "title": "Can List Teams",
-          "type": "boolean"
-        },
-        "history_access": {
-          "default": "none",
-          "description": "Level of access to conversation history.",
-          "enum": [
-            "none",
-            "own",
-            "all"
+        "namespace": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
           ],
-          "title": "History Access",
+          "default": null,
+          "description": "Optional namespace prefix for tool names",
+          "title": "Namespace"
+        },
+        "type": {
+          "const": "code_execution",
+          "default": "code_execution",
+          "description": "Code execution toolset.",
+          "title": "Type",
           "type": "string"
-        },
-        "can_load_resources": {
-          "default": false,
-          "description": "Whether the agent can load and access resource content.",
-          "title": "Can Load Resources",
-          "type": "boolean"
-        },
-        "can_list_resources": {
-          "default": false,
-          "description": "Whether the agent can discover available resources.",
-          "title": "Can List Resources",
-          "type": "boolean"
-        },
-        "can_read_files": {
-          "default": false,
-          "description": "Whether the agent can read local and remote files.",
-          "title": "Can Read Files",
-          "type": "boolean"
-        },
-        "can_list_directories": {
-          "default": false,
-          "description": "Whether the agent can list directories and their contents.",
-          "title": "Can List Directories",
-          "type": "boolean"
-        },
-        "can_register_tools": {
-          "default": false,
-          "description": "Whether the agent can register importable functions as tools.",
-          "title": "Can Register Tools",
-          "type": "boolean"
-        },
-        "can_register_code": {
-          "default": false,
-          "description": "Whether the agent can create new tools from provided code.",
-          "title": "Can Register Code",
-          "type": "boolean"
-        },
-        "can_install_packages": {
-          "default": false,
-          "description": "Whether the agent can install Python packages for tools.",
-          "title": "Can Install Packages",
-          "type": "boolean"
-        },
-        "can_chain_tools": {
-          "default": false,
-          "description": "Whether the agent can chain multiple tool calls into one.",
-          "title": "Can Chain Tools",
-          "type": "boolean"
-        },
-        "can_execute_code": {
-          "default": false,
-          "description": "Whether the agent can execute Python code (WARNING: No sandbox).",
-          "title": "Can Execute Code",
-          "type": "boolean"
-        },
-        "can_execute_commands": {
-          "default": false,
-          "description": "Whether the agent can execute CLI commands (use at your own risk).",
-          "title": "Can Execute Commands",
-          "type": "boolean"
-        },
-        "can_manage_processes": {
-          "default": false,
-          "description": "Whether the agent can start and manage background processes.",
-          "title": "Can Manage Processes",
-          "type": "boolean"
-        },
-        "can_create_workers": {
-          "default": false,
-          "description": "Whether the agent can create worker agents (as tools).",
-          "title": "Can Create Workers",
-          "type": "boolean"
-        },
-        "can_create_delegates": {
-          "default": false,
-          "description": "Whether the agent can spawn temporary delegate agents.",
-          "title": "Can Create Delegates",
-          "type": "boolean"
-        },
-        "can_add_agents": {
-          "default": false,
-          "description": "Whether the agent can add aother agents to the pool.",
-          "title": "Can Add Agents",
-          "type": "boolean"
-        },
-        "can_ask_agents": {
-          "default": false,
-          "description": "Whether the agent can ask other agents of the pool.",
-          "title": "Can Ask Agents",
-          "type": "boolean"
-        },
-        "can_add_teams": {
-          "default": false,
-          "description": "Whether the agent can add teams to the pool.",
-          "title": "Can Add Teams",
-          "type": "boolean"
-        },
-        "can_connect_nodes": {
-          "default": false,
-          "description": "Whether the agent can add teams to the pool.",
-          "title": "Can Connect Nodes",
-          "type": "boolean"
-        },
-        "can_ask_user": {
-          "default": false,
-          "description": "Whether the agent can ask the user clarifying questions during processing.",
-          "title": "Can Ask User",
-          "type": "boolean"
-        },
-        "can_add_mcp_servers": {
-          "default": false,
-          "description": "Whether the agent can add new MCP servers.",
-          "title": "Can Add Mcp Servers",
-          "type": "boolean"
         }
       },
-      "title": "Capabilities",
+      "title": "CodeExecutionToolsetConfig",
       "type": "object"
     },
     "ComposioToolSetConfig": {
@@ -1694,6 +1625,14 @@
           "description": "User ID for composio tools.",
           "title": "User Id",
           "type": "string"
+        },
+        "toolsets": {
+          "description": "List of toolsets to load.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Toolsets",
+          "type": "array"
         }
       },
       "title": "ComposioToolSetConfig",
@@ -2556,6 +2495,34 @@
       "title": "FallbackModelConfig",
       "type": "object"
     },
+    "FileAccessToolsetConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for file access toolset.",
+      "properties": {
+        "namespace": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional namespace prefix for tool names",
+          "title": "Namespace"
+        },
+        "type": {
+          "const": "file_access",
+          "default": "file_access",
+          "description": "File access toolset.",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "title": "FileAccessToolsetConfig",
+      "type": "object"
+    },
     "FileConnectionConfig": {
       "additionalProperties": false,
       "description": "Write messages to a file using a template.\n\nThe template receives the full message object for formatting.\nAvailable fields include:\n- timestamp: When the message was created\n- name: Name of the sender\n- content: Message content\n- role: Message role (user/assistant/system)\n- model: Model used (if any)\n- cost_info: Token usage and cost info\n- forwarded_from: Chain of message forwarding",
@@ -3180,6 +3147,29 @@
       "title": "FileWatchConfig",
       "type": "object"
     },
+    "FunctionModelConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for function-based model references.",
+      "properties": {
+        "type": {
+          "const": "function",
+          "default": "function",
+          "description": "Type identifier for function model.",
+          "title": "Type",
+          "type": "string"
+        },
+        "function": {
+          "description": "Function identifier for the model.",
+          "title": "Function",
+          "type": "string"
+        }
+      },
+      "required": [
+        "function"
+      ],
+      "title": "FunctionModelConfig",
+      "type": "object"
+    },
     "FunctionPromptConfig": {
       "additionalProperties": false,
       "description": "Configuration for a function-generated prompt.",
@@ -3353,6 +3343,34 @@
         }
       },
       "title": "GoogleSpeechConfig",
+      "type": "object"
+    },
+    "HistoryToolsetConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for history toolset.",
+      "properties": {
+        "namespace": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional namespace prefix for tool names",
+          "title": "Namespace"
+        },
+        "type": {
+          "const": "history",
+          "default": "history",
+          "description": "History toolset.",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "title": "HistoryToolsetConfig",
       "type": "object"
     },
     "HumanProviderConfig": {
@@ -3816,6 +3834,34 @@
       "title": "InputModelConfig",
       "type": "object"
     },
+    "IntegrationToolsetConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for integration toolset.",
+      "properties": {
+        "namespace": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional namespace prefix for tool names",
+          "title": "Namespace"
+        },
+        "type": {
+          "const": "integrations",
+          "default": "integrations",
+          "description": "Integration toolset.",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "title": "IntegrationToolsetConfig",
+      "type": "object"
+    },
     "Jinja2Condition": {
       "additionalProperties": false,
       "description": "Evaluate condition using Jinja2 template.",
@@ -4187,29 +4233,6 @@
         }
       },
       "title": "Knowledge",
-      "type": "object"
-    },
-    "LLMAdapterConfig": {
-      "additionalProperties": false,
-      "description": "Configuration for LLM library adapter.",
-      "properties": {
-        "type": {
-          "const": "llm",
-          "default": "llm",
-          "description": "Type identifier for LLM adapter.",
-          "title": "Type",
-          "type": "string"
-        },
-        "model_name": {
-          "description": "Name of the model in the LLM library.",
-          "title": "Model Name",
-          "type": "string"
-        }
-      },
-      "required": [
-        "model_name"
-      ],
-      "title": "LLMAdapterConfig",
       "type": "object"
     },
     "LLMCapabilitiesConfig": {
@@ -5593,22 +5616,6 @@
           "default": null,
           "description": "Single observability provider configuration.",
           "title": "Provider"
-        },
-        "instrument_libraries": {
-          "anyOf": [
-            {
-              "items": {
-                "type": "string"
-              },
-              "type": "array"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Which libraries should be imported before initialization.\n\nBy default, all libraries used in the AgentsManifest are instrumented.",
-          "title": "Instrument Libraries"
         }
       },
       "title": "ObservabilityConfig",
@@ -5826,6 +5833,34 @@
         "model"
       ],
       "title": "PrePostPromptConfig",
+      "type": "object"
+    },
+    "ProcessManagementToolsetConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for process management toolset.",
+      "properties": {
+        "namespace": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional namespace prefix for tool names",
+          "title": "Namespace"
+        },
+        "type": {
+          "const": "process_management",
+          "default": "process_management",
+          "description": "Process management toolset.",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "title": "ProcessManagementToolsetConfig",
       "type": "object"
     },
     "ProcessingStep": {
@@ -6209,9 +6244,9 @@
                   "cost-optimized": "#/$defs/CostOptimizedModelConfig",
                   "delegation": "#/$defs/DelegationModelConfig",
                   "fallback": "#/$defs/FallbackModelConfig",
+                  "function": "#/$defs/FunctionModelConfig",
                   "import": "#/$defs/ImportModelConfig",
                   "input": "#/$defs/InputModelConfig",
-                  "llm": "#/$defs/LLMAdapterConfig",
                   "remote-input": "#/$defs/RemoteInputConfig",
                   "remote-proxy": "#/$defs/RemoteProxyConfig",
                   "string": "#/$defs/StringModelConfig",
@@ -6235,13 +6270,13 @@
                   "$ref": "#/$defs/FallbackModelConfig"
                 },
                 {
+                  "$ref": "#/$defs/FunctionModelConfig"
+                },
+                {
                   "$ref": "#/$defs/ImportModelConfig"
                 },
                 {
                   "$ref": "#/$defs/InputModelConfig"
-                },
-                {
-                  "$ref": "#/$defs/LLMAdapterConfig"
                 },
                 {
                   "$ref": "#/$defs/RemoteInputConfig"
@@ -6378,6 +6413,34 @@
       "title": "RemoteProxyConfig",
       "type": "object"
     },
+    "ResourceAccessToolsetConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for resource access toolset.",
+      "properties": {
+        "namespace": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional namespace prefix for tool names",
+          "title": "Namespace"
+        },
+        "type": {
+          "const": "resource_access",
+          "default": "resource_access",
+          "description": "Resource access toolset.",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "title": "ResourceAccessToolsetConfig",
+      "type": "object"
+    },
     "SQLStorageConfig": {
       "additionalProperties": false,
       "description": "SQL database storage configuration.",
@@ -6504,7 +6567,7 @@
           "title": "Env"
         },
         "timeout": {
-          "default": 30.0,
+          "default": 60.0,
           "description": "Timeout for the server process in seconds.",
           "title": "Timeout",
           "type": "number"
@@ -7194,7 +7257,7 @@
           "title": "Env"
         },
         "timeout": {
-          "default": 30.0,
+          "default": 60.0,
           "description": "Timeout for the server process in seconds.",
           "title": "Timeout",
           "type": "number"
@@ -7442,7 +7505,7 @@
           "title": "Env"
         },
         "timeout": {
-          "default": 30.0,
+          "default": 60.0,
           "description": "Timeout for the server process in seconds.",
           "title": "Timeout",
           "type": "number"
@@ -8345,6 +8408,34 @@
       "title": "ToolHints",
       "type": "object"
     },
+    "ToolManagementToolsetConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for tool management toolset.",
+      "properties": {
+        "namespace": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional namespace prefix for tool names",
+          "title": "Namespace"
+        },
+        "type": {
+          "const": "tool_management",
+          "default": "tool_management",
+          "description": "Tool management toolset.",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "title": "ToolManagementToolsetConfig",
+      "type": "object"
+    },
     "TraceloopConfig": {
       "additionalProperties": false,
       "description": "Configuration for Traceloop prompt provider.",
@@ -8531,6 +8622,34 @@
         }
       },
       "title": "UpsonicToolSetConfig",
+      "type": "object"
+    },
+    "UserInteractionToolsetConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for user interaction toolset.",
+      "properties": {
+        "namespace": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional namespace prefix for tool names",
+          "title": "Namespace"
+        },
+        "type": {
+          "const": "user_interaction",
+          "default": "user_interaction",
+          "description": "User interaction toolset.",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "title": "UserInteractionToolsetConfig",
       "type": "object"
     },
     "UserSelectModelConfig": {
