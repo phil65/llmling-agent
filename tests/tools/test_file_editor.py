@@ -6,7 +6,7 @@ import tempfile
 
 import pytest
 
-from llmling_agent_tools.file_editor import (
+from llmling_agent_toolsets.builtin.file_edit import (
     _block_anchor_replacer,
     _context_aware_replacer,
     _escape_normalized_replacer,
