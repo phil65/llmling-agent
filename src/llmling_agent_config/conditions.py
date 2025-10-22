@@ -88,7 +88,7 @@ class MessageCountCondition(ConnectionCondition):
     type: Literal["message_count"] = Field("message_count", init=False)
     """Message-count-based condition."""
 
-    max_messages: int
+    max_messages: int = Field(gt=0)
     """Maximum number of messages before triggering."""
 
     count_mode: Literal["total", "per_agent"] = "total"
@@ -128,7 +128,7 @@ class TokenThresholdCondition(ConnectionCondition):
     type: Literal["token_threshold"] = Field("token_threshold", init=False)
     """Type discriminator."""
 
-    max_tokens: int
+    max_tokens: int = Field(gt=0)
     """Maximum number of tokens allowed."""
 
     count_type: Literal["total", "prompt", "completion"] = "total"
@@ -163,7 +163,7 @@ class CostCondition(ConnectionCondition):
     type: Literal["cost"] = Field("cost", init=False)
     """Cost-based condition."""
 
-    max_cost: float
+    max_cost: float = Field(gt=0.0)
     """Maximum cost in USD."""
 
     async def check(self, context: EventContext) -> bool:
@@ -177,7 +177,7 @@ class CostLimitCondition(ConnectionCondition):
     type: Literal["cost_limit"] = Field("cost_limit", init=False)
     """Cost-limit condition."""
 
-    max_cost: float
+    max_cost: float = Field(gt=0.0)
     """Maximum cost in USD before triggering."""
 
     async def check(self, context: EventContext) -> bool:

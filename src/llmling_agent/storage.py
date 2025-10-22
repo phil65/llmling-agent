@@ -124,7 +124,7 @@ class StorageManager:
 
                 from llmling_agent_storage.sql_provider import SQLModelProvider
 
-                engine = create_engine(url, pool_size=pool_size)
+                engine = create_engine(str(url), pool_size=pool_size)
                 return SQLModelProvider(provider_config, engine)
             case FileStorageConfig():
                 from llmling_agent_storage.file_provider import FileProvider

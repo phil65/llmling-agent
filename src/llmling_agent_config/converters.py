@@ -38,7 +38,7 @@ class MarkItDownConfig(BaseConverterConfig):
     type: Literal["markitdown"] = Field("markitdown", init=False)
     """Type discriminator for MarkItDown converter."""
 
-    max_size: int | None = None
+    max_size: int | None = Field(default=None, gt=0)
     """Optional size limit in bytes."""
 
     def get_converter(self) -> DocumentConverter:
@@ -69,10 +69,10 @@ class YouTubeConverterConfig(BaseConverterConfig):
     https_proxy: str | None = None
     """Optional HTTPS proxy URL (format: https://user:pass@domain:port)."""
 
-    max_retries: int = 3
+    max_retries: int = Field(default=3, ge=0)
     """Maximum number of retries for failed requests."""
 
-    timeout: int = 30
+    timeout: int = Field(default=30, gt=0)
     """Request timeout in seconds."""
 
     def get_converter(self) -> DocumentConverter:

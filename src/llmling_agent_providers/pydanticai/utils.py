@@ -318,7 +318,7 @@ def mcp_config_to_pydantic_ai(config: MCPServerConfig) -> MCPServer:
 
         case "sse":
             return MCPServerSSE(
-                url=config.url,
+                url=str(config.url),
                 headers=config.headers,
                 id=config.name,
                 timeout=config.timeout,
@@ -326,7 +326,7 @@ def mcp_config_to_pydantic_ai(config: MCPServerConfig) -> MCPServer:
 
         case "streamable-http":
             return MCPServerStreamableHTTP(
-                url=config.url,
+                url=str(config.url),
                 headers=config.headers,
                 id=config.name,
                 timeout=config.timeout,

@@ -38,7 +38,7 @@ class MCPPoolServerConfig(Schema):
     host: str = "localhost"
     """Host to bind server to (SSE / Streamable-HTTP only)."""
 
-    port: int = 3001
+    port: int = Field(default=3001, gt=0)
     """Port to listen on (SSE / Streamable-HTTP only)."""
 
     cors_origins: list[str] = Field(default_factory=lambda: ["*"])

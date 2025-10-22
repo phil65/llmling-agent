@@ -75,7 +75,7 @@ class FileWatchConfig(EventSourceConfig):
     recursive: bool = True
     """Whether to watch subdirectories."""
 
-    debounce: int = 1600
+    debounce: int = Field(default=1600, gt=0)
     """Minimum time (ms) between trigger events."""
 
 

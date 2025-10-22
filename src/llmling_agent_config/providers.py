@@ -62,7 +62,7 @@ class PydanticAIProviderConfig(BaseProviderConfig):
     model: str | AnyModelConfig | None = None
     """Optional model name to use. If not specified, uses default model."""
 
-    output_retries: int | None = None
+    output_retries: int | None = Field(default=None, ge=0)
     """Maximum retries for result validation.
     None means use the global retry setting.
     """

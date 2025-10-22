@@ -1978,6 +1978,7 @@
         },
         "max_cost": {
           "description": "Maximum cost in USD before triggering.",
+          "exclusiveMinimum": 0.0,
           "title": "Max Cost",
           "type": "number"
         }
@@ -3169,6 +3170,7 @@
         "debounce": {
           "default": 1600,
           "description": "Minimum time (ms) between trigger events.",
+          "exclusiveMinimum": 0,
           "title": "Debounce",
           "type": "integer"
         }
@@ -4438,26 +4440,32 @@
           "writeOnly": true
         },
         "host": {
-          "default": "https://cloud.langfuse.com",
+          "default": "https://cloud.langfuse.com/",
           "description": "Langfuse host address.",
+          "format": "uri",
+          "maxLength": 2083,
+          "minLength": 1,
           "title": "Host",
           "type": "string"
         },
         "cache_ttl_seconds": {
           "default": 60,
           "description": "Cache TTL for responses in seconds.",
+          "minimum": 0,
           "title": "Cache Ttl Seconds",
           "type": "integer"
         },
         "max_retries": {
           "default": 2,
           "description": "Maximum number of retries for failed requests.",
+          "minimum": 0,
           "title": "Max Retries",
           "type": "integer"
         },
         "fetch_timeout_seconds": {
           "default": 20,
           "description": "Timeout for fetching responses in seconds.",
+          "minimum": 0,
           "title": "Fetch Timeout Seconds",
           "type": "integer"
         }
@@ -4801,6 +4809,7 @@
         "port": {
           "default": 3001,
           "description": "Port to listen on (SSE / Streamable-HTTP only).",
+          "exclusiveMinimum": 0,
           "title": "Port",
           "type": "integer"
         },
@@ -4892,6 +4901,7 @@
         "max_size": {
           "anyOf": [
             {
+              "exclusiveMinimum": 0,
               "type": "integer"
             },
             {
@@ -4982,6 +4992,7 @@
         "page_size": {
           "default": 100,
           "description": "Number of results per page when retrieving paginated data.",
+          "minimum": 1,
           "title": "Page Size",
           "type": "integer"
         },
@@ -5190,6 +5201,7 @@
         },
         "max_messages": {
           "description": "Maximum number of messages before triggering.",
+          "exclusiveMinimum": 0,
           "title": "Max Messages",
           "type": "integer"
         },
@@ -5668,6 +5680,9 @@
         "url": {
           "anyOf": [
             {
+              "format": "uri",
+              "maxLength": 2083,
+              "minLength": 1,
               "type": "string"
             },
             {
@@ -6342,6 +6357,7 @@
         "output_retries": {
           "anyOf": [
             {
+              "minimum": 0,
               "type": "integer"
             },
             {
@@ -6534,12 +6550,15 @@
         },
         "url": {
           "description": "Database URL (e.g. sqlite:///history.db)",
+          "format": "uri",
+          "minLength": 1,
           "title": "Url",
           "type": "string"
         },
         "pool_size": {
           "default": 5,
           "description": "Connection pool size",
+          "minimum": 1,
           "title": "Pool Size",
           "type": "integer"
         },
@@ -6602,11 +6621,15 @@
         "timeout": {
           "default": 60.0,
           "description": "Timeout for the server process in seconds.",
+          "exclusiveMinimum": 0,
           "title": "Timeout",
           "type": "number"
         },
         "url": {
           "description": "URL of the SSE server endpoint.",
+          "format": "uri",
+          "maxLength": 2083,
+          "minLength": 1,
           "title": "Url",
           "type": "string"
         },
@@ -7292,6 +7315,7 @@
         "timeout": {
           "default": 60.0,
           "description": "Timeout for the server process in seconds.",
+          "exclusiveMinimum": 0,
           "title": "Timeout",
           "type": "number"
         },
@@ -7540,11 +7564,15 @@
         "timeout": {
           "default": 60.0,
           "description": "Timeout for the server process in seconds.",
+          "exclusiveMinimum": 0,
           "title": "Timeout",
           "type": "number"
         },
         "url": {
           "description": "URL of the HTTP server endpoint.",
+          "format": "uri",
+          "maxLength": 2083,
+          "minLength": 1,
           "title": "Url",
           "type": "string"
         },
@@ -8308,6 +8336,7 @@
         },
         "max_tokens": {
           "description": "Maximum number of tokens allowed.",
+          "exclusiveMinimum": 0,
           "title": "Max Tokens",
           "type": "integer"
         },
@@ -9050,12 +9079,14 @@
         "max_retries": {
           "default": 3,
           "description": "Maximum number of retries for failed requests.",
+          "minimum": 0,
           "title": "Max Retries",
           "type": "integer"
         },
         "timeout": {
           "default": 30,
           "description": "Request timeout in seconds.",
+          "exclusiveMinimum": 0,
           "title": "Timeout",
           "type": "integer"
         }

@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 from typing import TYPE_CHECKING, Annotated, Literal, Self
 
-from pydantic import Field
+from pydantic import Field, HttpUrl
 from schemez import Schema
 
 
@@ -47,7 +47,7 @@ class BaseMCPServerConfig(Schema):
     env: dict[str, str] | None = None
     """Environment variables to pass to the server process."""
 
-    timeout: float = 60.0
+    timeout: float = Field(default=60.0, gt=0)
     """Timeout for the server process in seconds."""
 
     def get_env_vars(self) -> dict[str, str]:
@@ -108,7 +108,7 @@ class SSEMCPServerConfig(BaseMCPServerConfig):
     type: Literal["sse"] = Field("sse", init=False)
     """SSE server configuration."""
 
-    url: str
+    url: HttpUrl
     """URL of the SSE server endpoint."""
 
     headers: dict[str, str] | None = None
@@ -144,7 +144,7 @@ class StreamableHTTPMCPServerConfig(BaseMCPServerConfig):
     type: Literal["streamable-http"] = Field("streamable-http", init=False)
     """HTTP server configuration."""
 
-    url: str
+    url: HttpUrl
     """URL of the HTTP server endpoint."""
 
     headers: dict[str, str] | None = None

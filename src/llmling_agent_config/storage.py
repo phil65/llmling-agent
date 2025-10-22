@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Annotated, Final, Literal
 
 from platformdirs import user_data_dir
-from pydantic import ConfigDict, Field, SecretStr
+from pydantic import AnyUrl, ConfigDict, Field, SecretStr
 from schemez import Schema
 
 
@@ -20,11 +20,11 @@ DATA_DIR: Final = Path(user_data_dir(APP_NAME, APP_AUTHOR))
 DEFAULT_DB_NAME: Final = "history.db"
 
 
-def get_database_path() -> str:
+def get_database_path() -> AnyUrl:
     """Get the database file path, creating directories if needed."""
     db_path = DATA_DIR / DEFAULT_DB_NAME
     db_path.parent.mkdir(parents=True, exist_ok=True)
-    return f"sqlite:///{db_path}"
+    return AnyUrl(f"sqlite:///{db_path}")
 
 
 class BaseStorageProviderConfig(Schema):
@@ -60,10 +60,10 @@ class SQLStorageConfig(BaseStorageProviderConfig):
     type: Literal["sql"] = Field("sql", init=False)
     """SQLModel storage configuration."""
 
-    url: str = Field(default_factory=get_database_path)
+    url: AnyUrl = Field(default_factory=get_database_path)
     """Database URL (e.g. sqlite:///history.db)"""
 
-    pool_size: int = 5
+    pool_size: int = Field(default=5, ge=1)
     """Connection pool size"""
 
     auto_migration: bool = True
@@ -122,7 +122,7 @@ class Mem0Config(BaseStorageProviderConfig):
     api_key: SecretStr | None = None
     """API key for mem0 service."""
 
-    page_size: int = 100
+    page_size: int = Field(default=100, ge=1)
     """Number of results per page when retrieving paginated data."""
 
     output_format: Literal["v1.0", "v1.1"] = "v1.1"
