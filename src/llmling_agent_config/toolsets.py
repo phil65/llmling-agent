@@ -231,7 +231,7 @@ class CodeToolsetConfig(BaseToolsetConfig):
 
     def get_provider(self) -> ResourceProvider:
         """Create code tools provider."""
-        from llmling_agent_toolsets.code import CodeTools
+        from llmling_agent_toolsets.builtin.code import CodeTools
 
         return CodeTools(name="code")
 
