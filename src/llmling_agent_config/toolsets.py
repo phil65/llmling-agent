@@ -69,6 +69,9 @@ class ComposioToolSetConfig(BaseToolsetConfig):
     user_id: str = "user@example.com"
     """User ID for composio tools."""
 
+    toolsets: list[str] = Field(default_factory=list)
+    """List of toolsets to load."""
+
     def get_provider(self) -> ResourceProvider:
         """Create provider from this config."""
         from llmling_agent_toolsets.composio_toolset import ComposioTools
@@ -78,7 +81,7 @@ class ComposioToolSetConfig(BaseToolsetConfig):
             if self.api_key
             else os.getenv("COMPOSIO_API_KEY")
         )
-        return ComposioTools(user_id=self.user_id, api_key=key)
+        return ComposioTools(user_id=self.user_id, toolsets=self.toolsets, api_key=key)
 
 
 class UpsonicToolSetConfig(BaseToolsetConfig):

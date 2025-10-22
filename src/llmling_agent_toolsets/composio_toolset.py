@@ -17,7 +17,7 @@ logger = get_logger(__name__)
 class ComposioTools(ResourceProvider):
     """Provider for composio tools."""
 
-    def __init__(self, user_id: str, api_key: str | None = None):
+    def __init__(self, user_id: str, toolsets: list[str], api_key: str | None = None):
         from composio import Composio
         from composio.core.provider._openai import OpenAIProvider
 
@@ -29,6 +29,7 @@ class ComposioTools(ResourceProvider):
         else:
             self.composio = Composio[OpenAIProvider]()
         self._tools: list[Tool] | None = None
+        self._toolkits = toolsets
 
     def _create_tool_handler(self, tool_slug: str):
         """Create a handler function for a specific tool."""
@@ -57,7 +58,7 @@ class ComposioTools(ResourceProvider):
 
         try:
             # Get tools for GitHub toolkit using v3 API
-            tools = self.composio.tools.get(self.user_id, toolkits=["github"])
+            tools = self.composio.tools.get(self.user_id, toolkits=self._toolkits)
 
             for tool_def in tools:
                 # In v3 SDK, tools are OpenAI formatted by default
@@ -85,7 +86,7 @@ if __name__ == "__main__":
         from llmling_agent import Agent
 
         tools = ComposioTools("user@example.com")
-        agent = Agent(model="gpt-5-mini")
+        agent = Agent(model="gpt-5-nano")
         agent.tools.add_provider(tools)
         result = await agent.run("tell me the tools at your disposal")
         print(result)
