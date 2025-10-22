@@ -8,7 +8,7 @@ import pytest
 
 from llmling_agent.agent.context import AgentContext
 from llmling_agent.agent.process_manager import ProcessManager, ProcessOutput
-from llmling_agent_tools import capability_tools
+from llmling_agent_toolsets.builtin import process_management
 
 
 @pytest.fixture
@@ -39,7 +39,7 @@ class TestStartProcess:
         """Test successful process start."""
         mock_context.process_manager.start_process.return_value = "proc_123"
 
-        result = await capability_tools.start_process(
+        result = await process_management.start_process(
             mock_context,
             command="echo",
             args=["hello"],
@@ -61,7 +61,7 @@ class TestStartProcess:
         """Test starting process with minimal arguments."""
         mock_context.process_manager.start_process.return_value = "proc_456"
 
-        result = await capability_tools.start_process(mock_context, command="ls")
+        result = await process_management.start_process(mock_context, command="ls")
 
         assert result == "Started process: proc_456"
         mock_context.process_manager.start_process.assert_called_once_with(
@@ -78,7 +78,7 @@ class TestStartProcess:
             "Command not found"
         )
 
-        result = await capability_tools.start_process(mock_context, command="badcmd")
+        result = await process_management.start_process(mock_context, command="badcmd")
 
         assert "Failed to start process" in result
         assert "Command not found" in result
@@ -91,7 +91,7 @@ class TestGetProcessOutput:
         """Test successful output retrieval."""
         mock_context.process_manager.get_output.return_value = mock_process_output
 
-        result = await capability_tools.get_process_output(mock_context, "proc_123")
+        result = await process_management.get_process_output(mock_context, "proc_123")
 
         assert "Process proc_123:" in result
         assert "STDOUT:\nHello World" in result
@@ -110,7 +110,7 @@ class TestGetProcessOutput:
         )
         mock_context.process_manager.get_output.return_value = output
 
-        result = await capability_tools.get_process_output(mock_context, "proc_123")
+        result = await process_management.get_process_output(mock_context, "proc_123")
 
         assert "STDOUT:\nSuccess" in result
         assert "STDERR:\nWarning: something" in result
@@ -128,7 +128,7 @@ class TestGetProcessOutput:
         )
         mock_context.process_manager.get_output.return_value = output
 
-        result = await capability_tools.get_process_output(mock_context, "proc_123")
+        result = await process_management.get_process_output(mock_context, "proc_123")
 
         assert "Note: Output was truncated due to size limits" in result
 
@@ -138,7 +138,7 @@ class TestGetProcessOutput:
             "Process not found"
         )
 
-        result = await capability_tools.get_process_output(mock_context, "nonexistent")
+        result = await process_management.get_process_output(mock_context, "nonexistent")
 
         assert result == "Process not found"
 
@@ -148,7 +148,7 @@ class TestGetProcessOutput:
             "Unexpected error"
         )
 
-        result = await capability_tools.get_process_output(mock_context, "proc_123")
+        result = await process_management.get_process_output(mock_context, "proc_123")
 
         assert "Error getting process output" in result
         assert "Unexpected error" in result
@@ -162,7 +162,7 @@ class TestWaitForProcess:
         mock_context.process_manager.wait_for_exit.return_value = 0
         mock_context.process_manager.get_output.return_value = mock_process_output
 
-        result = await capability_tools.wait_for_process(mock_context, "proc_123")
+        result = await process_management.wait_for_process(mock_context, "proc_123")
 
         assert "Process proc_123 completed with exit code 0" in result
         assert "STDOUT:\nHello World" in result
@@ -182,7 +182,7 @@ class TestWaitForProcess:
         )
         mock_context.process_manager.get_output.return_value = output
 
-        result = await capability_tools.wait_for_process(mock_context, "proc_123")
+        result = await process_management.wait_for_process(mock_context, "proc_123")
 
         assert "completed with exit code 1" in result
         assert "STDERR:\nError occurred" in result
@@ -193,7 +193,7 @@ class TestWaitForProcess:
             "Process not found"
         )
 
-        result = await capability_tools.wait_for_process(mock_context, "nonexistent")
+        result = await process_management.wait_for_process(mock_context, "nonexistent")
 
         assert result == "Process not found"
 
@@ -205,7 +205,7 @@ class TestKillProcess:
         """Test successful process termination."""
         mock_context.process_manager.kill_process.return_value = None
 
-        result = await capability_tools.kill_process(mock_context, "proc_123")
+        result = await process_management.kill_process(mock_context, "proc_123")
 
         assert result == "Process proc_123 has been terminated"
         mock_context.process_manager.kill_process.assert_called_once_with("proc_123")
@@ -216,7 +216,7 @@ class TestKillProcess:
             "Process not found"
         )
 
-        result = await capability_tools.kill_process(mock_context, "nonexistent")
+        result = await process_management.kill_process(mock_context, "nonexistent")
 
         assert result == "Process not found"
 
@@ -224,7 +224,7 @@ class TestKillProcess:
         """Test handling kill errors."""
         mock_context.process_manager.kill_process.side_effect = Exception("Kill failed")
 
-        result = await capability_tools.kill_process(mock_context, "proc_123")
+        result = await process_management.kill_process(mock_context, "proc_123")
 
         assert "Error killing process" in result
         assert "Kill failed" in result
@@ -237,7 +237,7 @@ class TestReleaseProcess:
         """Test successful process resource release."""
         mock_context.process_manager.release_process.return_value = None
 
-        result = await capability_tools.release_process(mock_context, "proc_123")
+        result = await process_management.release_process(mock_context, "proc_123")
 
         assert result == "Process proc_123 resources have been released"
         mock_context.process_manager.release_process.assert_called_once_with("proc_123")
@@ -248,7 +248,7 @@ class TestReleaseProcess:
             "Process not found"
         )
 
-        result = await capability_tools.release_process(mock_context, "nonexistent")
+        result = await process_management.release_process(mock_context, "nonexistent")
 
         assert result == "Process not found"
 
@@ -258,7 +258,7 @@ class TestReleaseProcess:
             "Release failed"
         )
 
-        result = await capability_tools.release_process(mock_context, "proc_123")
+        result = await process_management.release_process(mock_context, "proc_123")
 
         assert "Error releasing process" in result
         assert "Release failed" in result
@@ -271,7 +271,7 @@ class TestListProcesses:
         """Test listing when no processes are active."""
         mock_context.process_manager.list_processes.return_value = []
 
-        result = await capability_tools.list_processes(mock_context)
+        result = await process_management.list_processes(mock_context)
 
         assert result == "No active processes"
 
@@ -296,7 +296,7 @@ class TestListProcesses:
             },
         ]
 
-        result = await capability_tools.list_processes(mock_context)
+        result = await process_management.list_processes(mock_context)
 
         assert "Active processes:" in result
         assert "proc_123: echo hello [running]" in result
@@ -309,7 +309,7 @@ class TestListProcesses:
             "Info error"
         )
 
-        result = await capability_tools.list_processes(mock_context)
+        result = await process_management.list_processes(mock_context)
 
         assert "proc_123: Error getting info - Info error" in result
 
@@ -317,7 +317,7 @@ class TestListProcesses:
         """Test handling general list errors."""
         mock_context.process_manager.list_processes.side_effect = Exception("List failed")
 
-        result = await capability_tools.list_processes(mock_context)
+        result = await process_management.list_processes(mock_context)
 
         assert "Error listing processes" in result
         assert "List failed" in result
@@ -343,6 +343,6 @@ class TestPydanticAICompatibility:
         mock_run_context = MagicMock(spec=RunContext)
         mock_run_context.deps = mock_deps
 
-        result = await capability_tools.start_process(mock_run_context, command="echo")
+        result = await process_management.start_process(mock_run_context, command="echo")
 
         assert result == "Started process: proc_123"
