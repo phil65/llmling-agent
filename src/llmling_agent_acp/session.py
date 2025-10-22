@@ -278,6 +278,10 @@ with other agents effectively."""
 
         msg = "Session %s switched from agent %s to %s"
         logger.info(msg, self.session_id, old_agent_name, agent_name)
+
+        if self.agent.model_name:
+            await self.notifications.update_session_model(self.agent.model_name)
+
         # Update available commands since different agents may have different tools
         await self.send_available_commands_update()
 
