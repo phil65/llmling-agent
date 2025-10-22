@@ -223,6 +223,19 @@ class IntegrationToolsetConfig(BaseToolsetConfig):
         return IntegrationTools(name="integrations")
 
 
+class CodeToolsetConfig(BaseToolsetConfig):
+    """Configuration for code toolset."""
+
+    type: Literal["code"] = Field("code", init=False)
+    """Code toolset."""
+
+    def get_provider(self) -> ResourceProvider:
+        """Create code tools provider."""
+        from llmling_agent_toolsets.code import CodeTools
+
+        return CodeTools(name="code")
+
+
 class CustomToolsetConfig(BaseToolsetConfig):
     """Configuration for custom toolsets."""
 
@@ -274,6 +287,7 @@ ToolsetConfig = Annotated[
     | UserInteractionToolsetConfig
     | HistoryToolsetConfig
     | IntegrationToolsetConfig
+    | CodeToolsetConfig
     | CustomToolsetConfig,
     Field(discriminator="type"),
 ]
