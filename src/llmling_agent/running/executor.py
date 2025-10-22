@@ -10,14 +10,14 @@ import sys
 from typing import TYPE_CHECKING, Any, get_type_hints
 
 from llmling_agent.log import get_logger
-from llmling_agent_running import with_nodes
+from llmling_agent.running import with_nodes
 
 
 if TYPE_CHECKING:
     import os
 
     from llmling_agent import AgentPool
-    from llmling_agent_running.discovery import NodeFunction
+    from llmling_agent.running.discovery import NodeFunction
 
 
 logger = get_logger(__name__)

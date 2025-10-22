@@ -7,7 +7,7 @@ from typing import Any
 import pytest
 
 from llmling_agent.agent import Agent
-from llmling_agent_running import NodeInjectionError, with_nodes
+from llmling_agent.running import NodeInjectionError, with_nodes
 
 
 async def test_basic_injection(pool):

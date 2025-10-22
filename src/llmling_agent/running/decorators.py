@@ -6,7 +6,7 @@ from functools import wraps
 import inspect
 from typing import TYPE_CHECKING, overload
 
-from llmling_agent_running.injection import inject_nodes
+from llmling_agent.running.injection import inject_nodes
 
 
 if TYPE_CHECKING:

@@ -365,7 +365,6 @@ module-name = [
   "llmling_agent_prompts",
   "llmling_agent_mcp",
   "llmling_agent_input",
-  "llmling_agent_running",
   "llmling_agent_server",
   "llmling_textual",
   "acp",

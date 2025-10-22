@@ -111,7 +111,6 @@ src/
 ├── llmling_agent_prompts/      # Prompt hub integrations
 ├── llmling_agent_providers/    # LLM providers (PydanticAI, Human, ...)
 ├── llmling_agent_resources/    # Resource management
-├── llmling_agent_running/      # Execution and runtime
 ├── llmling_agent_server/       # Web server and API
 ├── llmling_agent_storage/      # Storage providers (SQL, file, memory)
 ├── llmling_agent_tools/        # Built-in tools

@@ -5,8 +5,8 @@ from typing import Any
 import pytest
 
 from llmling_agent import Agent  # noqa: TC001
-from llmling_agent_running.discovery import node_function
-from llmling_agent_running.executor import (
+from llmling_agent.running.discovery import node_function
+from llmling_agent.running.executor import (
     ExecutionError,
     _group_parallel,
     _sort_functions,

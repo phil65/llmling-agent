@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING, Any
 
-from llmling_agent_running.executor import discover_functions, execute_functions
+from llmling_agent.running.executor import discover_functions, execute_functions
 
 
 if TYPE_CHECKING:
