@@ -6,7 +6,7 @@ import functools
 import inspect
 from typing import TYPE_CHECKING, Any, overload
 
-from llmling_agent_functional.structure import get_structured
+from llmling_agent.functional.structure import get_structured
 
 
 if TYPE_CHECKING:

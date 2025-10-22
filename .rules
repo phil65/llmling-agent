@@ -106,7 +106,6 @@ src/
 ├── llmling_agent_docs/         # Documentation generation
 ├── llmling_agent_events/       # Event system (file watching, webhooks)
 ├── llmling_agent_examples/     # Usage examples and demos
-├── llmling_agent_functional/   # Functional programming utilities
 ├── llmling_agent_input/        # Input providers (human, textual, etc.)
 ├── llmling_agent_mcp/          # Model Context Protocol integration
 ├── llmling_agent_prompts/      # Prompt hub integrations

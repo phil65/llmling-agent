@@ -16,7 +16,7 @@ def setup_env(env: jinja2.Environment):
         env: The jinjarope environment to extend
     """
     from llmling_agent.agent.agent import Agent
-    from llmling_agent_functional import (
+    from llmling_agent.functional import (
         run_agent,
         run_agent_sync,
         get_structured,

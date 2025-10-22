@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from llmling_agent_functional import run_agent, run_agent_sync
+from llmling_agent.functional import run_agent, run_agent_sync
 
 
 async def test_agent_pipeline():

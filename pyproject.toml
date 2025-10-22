@@ -359,7 +359,6 @@ module-name = [
   "llmling_agent_examples",
   "llmling_agent_providers",
   "llmling_agent_storage",
-  "llmling_agent_functional",
   "llmling_agent_docs",
   "llmling_agent_events",
   "llmling_agent_converters",
