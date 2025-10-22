@@ -12,6 +12,8 @@ from acp.schema import (
     AvailableCommand,
     AvailableCommandsUpdate,
     ContentToolCallContent,
+    CurrentModelUpdate,
+    CurrentModeUpdate,
     FileEditToolCallContent,
     ImageContentBlock,
     ResourceContentBlock,
@@ -243,6 +245,26 @@ class ACPNotifications:
             data=data, mime_type=mime_type, uri=uri, annotations=annotations
         )
         update = AgentMessageChunk(content=content)
+        notification = SessionNotification(session_id=self.id, update=update)
+        await self.client.session_update(notification)
+
+    async def update_session_mode(self, mode_id: str) -> None:
+        """Send a session mode update notification.
+
+        Args:
+            mode_id: Unique identifier for the session mode
+        """
+        update = CurrentModeUpdate(current_mode_id=mode_id)
+        notification = SessionNotification(session_id=self.id, update=update)
+        await self.client.session_update(notification)
+
+    async def update_session_model(self, model_id: str) -> None:
+        """Send a session model update notification.
+
+        Args:
+            model_id: Unique identifier for the model
+        """
+        update = CurrentModelUpdate(current_model_id=model_id)
         notification = SessionNotification(session_id=self.id, update=update)
         await self.client.session_update(notification)
 
