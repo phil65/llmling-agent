@@ -70,6 +70,9 @@ class ACPServer:
     debug_commands: bool = False
     """Whether to enable debug slash commands for testing"""
 
+    agent: str | None = None
+    """Optional specific agent name to use (defaults to first agent)"""
+
     def __post_init__(self) -> None:
         """Initialize server configuration."""
         # Set default providers if None
@@ -93,6 +96,7 @@ class ACPServer:
         debug_messages: bool = False,
         debug_file: str | None = None,
         debug_commands: bool = False,
+        agent: str | None = None,
     ) -> Self:
         """Create ACP server from existing llmling-agent configuration.
 
@@ -106,6 +110,7 @@ class ACPServer:
             debug_messages: Enable saving JSON messages to file
             debug_file: Path to debug file
             debug_commands: Enable debug slash commands for testing
+            agent: Optional specific agent name to use (defaults to first agent)
 
         Returns:
             Configured ACP server instance with agent pool from config
@@ -122,9 +127,18 @@ class ACPServer:
             debug_messages=debug_messages,
             debug_file=debug_file,
             debug_commands=debug_commands,
+            agent=agent,
         )
         agent_names = list(server.agent_pool.agents.keys())
+
+        # Validate specified agent exists if provided
+        if agent and agent not in agent_names:
+            msg = f"Specified agent '{agent}' not found in config. Available agents: {agent_names}"
+            raise ValueError(msg)
+
         logger.info("Created ACP server with agent pool containing: %s", agent_names)
+        if agent:
+            logger.info("Will use agent '%s' for ACP sessions", agent)
         return server
 
     def get_agent(self, name: str) -> Agent[Any]:
@@ -153,6 +167,7 @@ class ACPServer:
                 terminal_access=self.terminal_access,
                 usage_limits=self.usage_limits,
                 debug_commands=self.debug_commands,
+                default_agent=self.agent,
             )
 
             reader, writer = await stdio_streams()

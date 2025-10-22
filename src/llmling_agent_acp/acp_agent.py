@@ -74,6 +74,7 @@ class LLMlingACPAgent(ACPAgent):
         terminal_access: bool = True,
         usage_limits: UsageLimits | None = None,
         debug_commands: bool = False,
+        default_agent: str | None = None,
     ) -> None:
         """Initialize ACP agent implementation.
 
@@ -86,6 +87,7 @@ class LLMlingACPAgent(ACPAgent):
             terminal_access: Whether agent can use terminal
             usage_limits: Optional usage limits for model requests and tokens
             debug_commands: Whether to enable debug slash commands for testing
+            default_agent: Optional specific agent name to use as default
         """
         self.connection = connection
         self.agent_pool = agent_pool
@@ -96,6 +98,7 @@ class LLMlingACPAgent(ACPAgent):
         self.client: Client = connection
         self.usage_limits = usage_limits
         self.debug_commands = debug_commands
+        self.default_agent = default_agent
         self.client_capabilities: ClientCapabilities | None = None
         command_store = CommandStore(enable_system_commands=True)
         command_store._initialize_sync()
@@ -155,7 +158,12 @@ class LLMlingACPAgent(ACPAgent):
                 msg = "No agents available"
                 raise RuntimeError(msg)  # noqa: TRY301
 
-            default_name = agent_names[0]  # Use the first agent as default
+            # Use specified default agent or fall back to first agent
+            if self.default_agent and self.default_agent in agent_names:
+                default_name = self.default_agent
+            else:
+                default_name = agent_names[0]
+
             msg = "Creating new session. Available agents: %s. Default agent: %s"
             logger.info(msg, agent_names, default_name)
             session_id = await self.session_manager.create_session(

@@ -59,6 +59,11 @@ def acp_command(
         "--debug-commands",
         help="Enable debug slash commands for testing ACP notifications",
     ),
+    agent: str | None = t.Option(
+        None,
+        "--agent",
+        help="Name of specific agent to use (defaults to first agent in config)",
+    ),
 ):
     r"""Run agents as an ACP (Agent Client Protocol) server.
 
@@ -75,6 +80,10 @@ def acp_command(
     - Content blocks (text, image, audio, resources)
     - Debug slash commands for testing ACP notifications (optional)
 
+    Agent Selection:
+    Use --agent to specify which agent to use by name. Without this option,
+    the first agent in your config is used as the default.
+
     Agent Mode Switching:
     If your config defines multiple agents, the IDE will show a mode selector
     allowing users to switch between agents mid-conversation. Each agent appears
@@ -83,6 +92,9 @@ def acp_command(
     Examples:
         # Run ACP server with single agent
         llmling-agent acp config.yml
+
+        # Run with specific agent by name
+        llmling-agent acp config.yml --agent my-agent
 
         # Run with multiple agents (enables mode switching)
         llmling-agent acp multi-agent-config.yml
@@ -132,6 +144,7 @@ def acp_command(
                 debug_messages=debug_messages,
                 debug_file=debug_file or "acp-debug.jsonl" if debug_messages else None,
                 debug_commands=debug_commands,
+                agent=agent,
             )
         except Exception as e:
             logger.exception("Failed to create ACP server from config")
