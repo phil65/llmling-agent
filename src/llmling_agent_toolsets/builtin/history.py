@@ -3,8 +3,25 @@
 from __future__ import annotations
 
 from llmling_agent.resource_providers.static import StaticResourceProvider
+from llmling_agent.tools.base import Tool
 
-from .factories import create_history_tools
+
+def create_history_tools() -> list[Tool]:
+    """Create tools for history and statistics access."""
+    from llmling_agent_tools import capability_tools
+
+    return [
+        Tool.from_callable(
+            capability_tools.search_history,
+            source="builtin",
+            category="search",
+        ),
+        Tool.from_callable(
+            capability_tools.show_statistics,
+            source="builtin",
+            category="read",
+        ),
+    ]
 
 
 class HistoryTools(StaticResourceProvider):

@@ -3,8 +3,20 @@
 from __future__ import annotations
 
 from llmling_agent.resource_providers.static import StaticResourceProvider
+from llmling_agent.tools.base import Tool
 
-from .factories import create_user_interaction_tools
+
+def create_user_interaction_tools() -> list[Tool]:
+    """Create tools for user interaction operations."""
+    from llmling_agent_tools import capability_tools
+
+    return [
+        Tool.from_callable(
+            capability_tools.ask_user,
+            source="builtin",
+            category="other",
+        ),
+    ]
 
 
 class UserInteractionTools(StaticResourceProvider):
