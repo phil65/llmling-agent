@@ -297,6 +297,7 @@
             "discriminator": {
               "mapping": {
                 "agent_management": "#/$defs/AgentManagementToolsetConfig",
+                "code": "#/$defs/CodeToolsetConfig",
                 "code_execution": "#/$defs/CodeExecutionToolsetConfig",
                 "composio": "#/$defs/ComposioToolSetConfig",
                 "custom": "#/$defs/llmling_agent_config__toolsets__CustomToolsetConfig",
@@ -352,6 +353,9 @@
               },
               {
                 "$ref": "#/$defs/IntegrationToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/CodeToolsetConfig"
               },
               {
                 "$ref": "#/$defs/llmling_agent_config__toolsets__CustomToolsetConfig"
@@ -1581,6 +1585,34 @@
       "title": "CodeExecutionToolsetConfig",
       "type": "object"
     },
+    "CodeToolsetConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for code toolset.",
+      "properties": {
+        "namespace": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional namespace prefix for tool names",
+          "title": "Namespace"
+        },
+        "type": {
+          "const": "code",
+          "default": "code",
+          "description": "Code toolset.",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "title": "CodeToolsetConfig",
+      "type": "object"
+    },
     "ComposioToolSetConfig": {
       "additionalProperties": false,
       "description": "Configuration for Composio toolsets.",
@@ -1623,6 +1655,7 @@
         "user_id": {
           "default": "user@example.com",
           "description": "User ID for composio tools.",
+          "format": "email",
           "title": "User Id",
           "type": "string"
         },
@@ -8589,6 +8622,9 @@
         "base_url": {
           "anyOf": [
             {
+              "format": "uri",
+              "maxLength": 2083,
+              "minLength": 1,
               "type": "string"
             },
             {
@@ -9206,13 +9242,50 @@
           "type": "string"
         },
         "spec": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "path": {
+                  "title": "Path",
+                  "type": "string"
+                },
+                "protocol": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Protocol"
+                },
+                "storage_options": {
+                  "additionalProperties": true,
+                  "title": "Storage Options",
+                  "type": "object"
+                }
+              },
+              "required": [
+                "path"
+              ],
+              "type": "object"
+            }
+          ],
           "description": "URL or path to the OpenAPI specification document.",
-          "title": "Spec",
-          "type": "string"
+          "title": "Spec"
         },
         "base_url": {
           "anyOf": [
             {
+              "format": "uri",
+              "maxLength": 2083,
+              "minLength": 1,
               "type": "string"
             },
             {
