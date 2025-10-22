@@ -8,7 +8,8 @@ from typing import TYPE_CHECKING, Annotated, Literal
 from llmling import ConfigModel
 from llmling.tools.toolsets import ToolSet
 from llmling.utils.importing import import_class
-from pydantic import Field, SecretStr, field_validator  # noqa: TC002
+from pydantic import EmailStr, Field, HttpUrl, SecretStr, field_validator  # noqa: TC002
+from upath import UPath  # noqa: TC002
 
 
 if TYPE_CHECKING:
@@ -28,17 +29,20 @@ class OpenAPIToolsetConfig(BaseToolsetConfig):
     type: Literal["openapi"] = Field("openapi", init=False)
     """OpenAPI toolset."""
 
-    spec: str = Field(...)
+    spec: UPath = Field(...)
     """URL or path to the OpenAPI specification document."""
 
-    base_url: str | None = None
+    base_url: HttpUrl | None = None
     """Optional base URL for API requests, overrides the one in spec."""
 
     def get_provider(self) -> ResourceProvider:
         """Create OpenAPI tools provider from this config."""
         from llmling_agent_toolsets.openapi import OpenAPITools
 
-        return OpenAPITools(spec=self.spec, base_url=self.base_url or "")
+        return OpenAPITools(
+            spec=self.spec,
+            base_url=str(self.base_url) if self.base_url else "",
+        )
 
 
 class EntryPointToolsetConfig(BaseToolsetConfig):
@@ -66,7 +70,7 @@ class ComposioToolSetConfig(BaseToolsetConfig):
     api_key: SecretStr | None = None
     """Composio API Key."""
 
-    user_id: str = "user@example.com"
+    user_id: EmailStr = "user@example.com"
     """User ID for composio tools."""
 
     toolsets: list[str] = Field(default_factory=list)
@@ -90,7 +94,7 @@ class UpsonicToolSetConfig(BaseToolsetConfig):
     type: Literal["upsonic"] = Field("upsonic", init=False)
     """Upsonic Toolsets."""
 
-    base_url: str | None = None
+    base_url: HttpUrl | None = None
     """Upsonic API URL."""
 
     api_key: SecretStr | None = None
@@ -103,7 +107,9 @@ class UpsonicToolSetConfig(BaseToolsetConfig):
         """Create provider from this config."""
         from llmling_agent_toolsets.upsonic_toolset import UpsonicTools
 
-        return UpsonicTools(base_url=self.base_url, api_key=self.api_key)
+        return UpsonicTools(
+            base_url=str(self.base_url) if self.base_url else None, api_key=self.api_key
+        )
 
 
 class AgentManagementToolsetConfig(BaseToolsetConfig):

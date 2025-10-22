@@ -21,6 +21,7 @@ from llmling_agent.tools.base import Tool
 if TYPE_CHECKING:
     import httpx
     from jsonschema_path.typing import Schema
+    from upath.types import JoinablePathLike
 
 logger = get_logger(__name__)
 
@@ -160,7 +161,7 @@ class OpenAPITools(ResourceProvider):
 
     def __init__(
         self,
-        spec: str,
+        spec: JoinablePathLike,
         base_url: str = "",
         name: str | None = None,
         headers: dict[str, str] | None = None,
@@ -198,8 +199,8 @@ class OpenAPITools(ResourceProvider):
 
         # Load spec
         try:
-            if self.spec_url.startswith(("http://", "https://")):
-                response = await self._client.get(self.spec_url)
+            if str(self.spec_url).startswith(("http://", "https://")):
+                response = await self._client.get(str(self.spec_url))
                 response.raise_for_status()
                 content = response.text
             else:
