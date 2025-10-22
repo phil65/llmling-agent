@@ -85,7 +85,7 @@ if __name__ == "__main__":
     async def main():
         from llmling_agent import Agent
 
-        tools = ComposioTools("user@example.com")
+        tools = ComposioTools("user@example.com", toolsets=["github"])
         agent = Agent(model="gpt-5-nano")
         agent.tools.add_provider(tools)
         result = await agent.run("tell me the tools at your disposal")

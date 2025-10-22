@@ -133,7 +133,10 @@ class ACPServer:
 
         # Validate specified agent exists if provided
         if agent and agent not in agent_names:
-            msg = f"Specified agent '{agent}' not found in config. Available agents: {agent_names}"
+            msg = (
+                f"Specified agent {agent!r} not found in config. "
+                "Available agents: {agent_names}"
+            )
             raise ValueError(msg)
 
         logger.info("Created ACP server with agent pool containing: %s", agent_names)
