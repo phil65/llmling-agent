@@ -3,7 +3,7 @@
 from typing import Literal
 
 
-# This file is generated from https://raw.githubusercontent.com/zed-industries/agent-client-protocol/refs/heads/main/schema/meta.json.
+# This file is generated from https://raw.githubusercontent.com/agentclientprotocol/agent-client-protocol/6b904666187549412bab891ff3d8846a4c8cfd87/schema/meta.json.
 # Do not edit by hand.
 
 AgentMethod = Literal[
