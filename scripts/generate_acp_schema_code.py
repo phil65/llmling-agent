@@ -214,6 +214,7 @@ def _rename_numbered_classes(file_path: Path) -> None:
         "SessionUpdate6": "AgentPlan",
         "SessionUpdate7": "AvailableCommandsUpdate",
         "SessionUpdate8": "CurrentModeUpdate",
+        "SessionUpdate9": "CurrentModelUpdate",
         # ContentBlock variants - use different names to avoid conflicts
         "ContentBlock1": "TextContentBlock",
         "ContentBlock2": "ImageContentBlock",

@@ -310,6 +310,7 @@ runtime-evaluated-base-classes = [
   "pydantic.BaseModel",
   "sqlalchemy.orm.DeclarativeBase",
   "schemez.Schema",
+  "acp.base.Schema",
   "sqlmodel.SQLModel",
 ]
 runtime-evaluated-decorators = [
