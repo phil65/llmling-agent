@@ -391,9 +391,8 @@ The `AgentPool` allows multiple agents to work together on tasks. Here's a pract
 agents:
   file_getter:
     model: openai:gpt-5-mini
-    tools:
-      - type: import
-        import_path: llmling_agent_tools.download_file  # a simple httpx based async callable
+    toolsets:
+      - type: file_access  # includes download_file, read_file, list_directory
     system_prompts:
       - |
         You are a download specialist. Just use the download_file tool

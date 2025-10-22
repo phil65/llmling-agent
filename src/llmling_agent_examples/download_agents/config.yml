@@ -34,8 +34,8 @@ agents:
     model: openai:gpt-5-nano
     system_prompts:
       - "You have ONE job: use the download_file tool to download files."
-    tools:
-      - llmling_agent_tools.download_file
+    toolsets:
+      - type: file_access
 
   overseer:
     name: "Download Coordinator"

@@ -13,5 +13,5 @@ agents:
     model: openai:gpt-5-nano
     system_prompts:
       - "You download files from URLs using the download_file tool."
-    tools:
-      - llmling_agent_tools.download_file
+    toolsets:
+      - type: file_access
