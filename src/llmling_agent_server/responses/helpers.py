@@ -7,7 +7,7 @@ from uuid import uuid4
 
 from fastapi import HTTPException
 
-from llmling_agent_server.responses_models import (
+from llmling_agent_server.responses.models import (
     Response,
     ResponseMessage,
     ResponseOutputText,

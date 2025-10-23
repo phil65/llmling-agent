@@ -7,8 +7,8 @@ from typing import TYPE_CHECKING, Annotated
 from fastapi import Depends, FastAPI, Header, HTTPException
 import logfire
 
-from llmling_agent_server.responses_helpers import handle_request
-from llmling_agent_server.responses_models import Response, ResponseRequest  # noqa: TC001
+from llmling_agent_server.responses.helpers import handle_request
+from llmling_agent_server.responses.models import Response, ResponseRequest  # noqa: TC001
 
 
 if TYPE_CHECKING:
@@ -47,6 +47,12 @@ class ResponsesServer:
         except Exception as e:
             raise HTTPException(500, str(e)) from e
 
+    async def serve(self, host: str = "0.0.0.0", port: int = 8000):
+        """Start the server."""
+        config = uvicorn.Config(self.app, host=host, port=port, log_level="info")
+        server_instance = uvicorn.Server(config)
+        await server_instance.serve()
+
 
 if __name__ == "__main__":
     import asyncio
@@ -79,11 +85,7 @@ if __name__ == "__main__":
         await pool.add_agent("gpt-5", model="openai:gpt-5-nano")
         async with pool:
             server = ResponsesServer(pool)
-            config = uvicorn.Config(
-                server.app, host="0.0.0.0", port=8000, log_level="info"
-            )
-            server_instance = uvicorn.Server(config)
-            server_task = asyncio.create_task(server_instance.serve())
+            server_task = asyncio.create_task(server.serve())
             await asyncio.sleep(1)
             await test_client()
 
