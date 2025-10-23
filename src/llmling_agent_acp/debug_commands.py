@@ -22,6 +22,7 @@ from llmling_agent.log import get_logger
 
 if TYPE_CHECKING:
     from acp.acp_types import SessionUpdate
+    from llmling_agent_acp.acp_commands import ACPCommandContext
 
 
 logger = get_logger(__name__)
@@ -38,7 +39,7 @@ class DebugSendTextCommand(SlashedCommand):
 
     async def execute_command(
         self,
-        ctx: CommandContext,
+        ctx: CommandContext[ACPCommandContext],
         text: str,
         *,
         chunk_type: str = "agent",
@@ -86,7 +87,7 @@ class DebugSendToolCallCommand(SlashedCommand):
 
     async def execute_command(
         self,
-        ctx: CommandContext,
+        ctx: CommandContext[ACPCommandContext],
         title: str,
         *,
         status: str = "pending",
@@ -135,7 +136,7 @@ class DebugUpdateToolCallCommand(SlashedCommand):
 
     async def execute_command(
         self,
-        ctx: CommandContext,
+        ctx: CommandContext[ACPCommandContext],
         tool_call_id: str,
         *,
         status: str = "completed",
@@ -191,7 +192,7 @@ class DebugReplaySequenceCommand(SlashedCommand):
 
     async def execute_command(
         self,
-        ctx: CommandContext,
+        ctx: CommandContext[ACPCommandContext],
         file_path: str,
     ):
         """Replay a sequence of ACP notifications from a JSON file.
@@ -280,7 +281,7 @@ class DebugSessionInfoCommand(SlashedCommand):
     name = "debug-session-info"
     category = "debug"
 
-    async def execute_command(self, ctx: CommandContext):
+    async def execute_command(self, ctx: CommandContext[ACPCommandContext]):
         """Show current ACP session debugging information."""
         session = ctx.context.session
         try:
@@ -320,7 +321,7 @@ class DebugCreateTemplateCommand(SlashedCommand):
 
     async def execute_command(
         self,
-        ctx: CommandContext,
+        ctx: CommandContext[ACPCommandContext],
         *,
         file_path: str = "debug_replay_template.json",
     ):
@@ -401,7 +402,7 @@ class DebugSendRawCommand(SlashedCommand):
 
     async def execute_command(
         self,
-        ctx: CommandContext,
+        ctx: CommandContext[ACPCommandContext],
         notification_json: str,
     ):
         """Send a raw ACP notification from JSON string.
