@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any
 from acp.schema import (
     AgentMessageChunk,
     AgentPlan,
+    AgentThoughtChunk,
     AudioContentBlock,
     AvailableCommand,
     AvailableCommandsUpdate,
@@ -222,6 +223,16 @@ class ACPNotifications:
             message: Text message to send
         """
         update = AgentMessageChunk(content=TextContentBlock(text=message))
+        notification = SessionNotification(session_id=self.id, update=update)
+        await self.client.session_update(notification)
+
+    async def send_agent_thought(self, message: str) -> None:
+        """Send a text message notification.
+
+        Args:
+            message: Text message to send
+        """
+        update = AgentThoughtChunk(content=TextContentBlock(text=message))
         notification = SessionNotification(session_id=self.id, update=update)
         await self.client.session_update(notification)
 
