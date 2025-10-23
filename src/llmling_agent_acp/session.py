@@ -173,7 +173,7 @@ class ACPSession:
         # Initialize MCP manager with converted configs
         name = f"session_{self.session_id}"
         # Define accessible roots for MCP servers
-        accessible_roots = []
+        accessible_roots: list[str] = []
         if self.cwd:
             from pathlib import Path
 
@@ -336,8 +336,8 @@ with other agents effectively."""
                     return
 
                 # Check for slash commands in text content
-                commands = []
-                non_command_content = []
+                commands: list[str] = []
+                non_command_content: list[str | BaseContent] = []
 
                 for item in contents:
                     if isinstance(item, str) and is_slash_command(item):
