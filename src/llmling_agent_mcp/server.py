@@ -7,8 +7,9 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Self
 
 from fastmcp import FastMCP
-from fastmcp.server.middleware.caching import ResponseCachingMiddleware
-from key_value.aio.stores.disk import DiskStore
+
+# from fastmcp.server.middleware.caching import ResponseCachingMiddleware
+# from key_value.aio.stores.disk import DiskStore
 from mcp import CreateMessageResult
 from mcp.types import TextContent
 import platformdirs
@@ -42,8 +43,8 @@ logger = get_logger(__name__)
 
 llmling_dir = platformdirs.user_config_dir("llmling-agent")
 
-store = DiskStore(directory=llmling_dir)
-middleware = ResponseCachingMiddleware(cache_storage=store)
+# store = DiskStore(directory=llmling_dir)
+# middleware = ResponseCachingMiddleware(cache_storage=store)
 
 
 class LLMLingServer:
@@ -85,7 +86,7 @@ class LLMLingServer:
             instructions=instructions,
             lifespan=lifespan,
             version=llmling_agent.__version__,
-            middleware=[middleware],
+            # middleware=[middleware],
             # sampling_handler=self._sampling_handler,
         )
         self.server = self.fastmcp._mcp_server
