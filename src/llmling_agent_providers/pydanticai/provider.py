@@ -272,7 +272,9 @@ class PydanticAIProvider(AgentProvider[Any]):
         # Create event stream handler for real-time tool signals
         tool_dict = {i.name: i for i in tools or []}
 
-        async def event_stream_handler(ctx, events):
+        async def event_stream_handler(
+            ctx: RunContext, events: AsyncIterator[AgentStreamEvent]
+        ):
             async for event in events:
                 if isinstance(event, FunctionToolCallEvent):
                     # Extract tool call info and emit signal immediately
@@ -300,7 +302,7 @@ class PydanticAIProvider(AgentProvider[Any]):
                 converted_prompts,  # Pass converted prompts
                 deps=self._context,  # type: ignore
                 message_history=[to_model_request(m) for m in message_history],
-                model=to_use,  # type: ignore
+                model=to_use,
                 output_type=result_type or str,
                 model_settings=self.model_settings,  # type: ignore
                 usage_limits=PydanticAiUsageLimits(**limits),
