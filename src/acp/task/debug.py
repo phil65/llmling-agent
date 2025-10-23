@@ -7,7 +7,7 @@ from datetime import datetime
 import json
 import logging
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 from .state import InMemoryMessageStateStore
 
@@ -26,8 +26,8 @@ class DebugEntry:
     """Structured debug entry for ACP message tracking."""
 
     timestamp: str
-    direction: str  # "outgoing" or "incoming"
-    event: str  # "register", "resolve", "reject", "begin", "complete", "fail"
+    direction: Literal["outgoing", "incoming"]
+    event: Literal["register", "resolve", "reject", "begin", "complete", "fail"]
     request_id: int | None
     method: str
     params: Any = None
