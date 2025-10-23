@@ -215,6 +215,16 @@ def _rename_numbered_classes(file_path: Path) -> None:
         "SessionUpdate7": "AvailableCommandsUpdate",
         "SessionUpdate8": "CurrentModeUpdate",
         "SessionUpdate9": "CurrentModelUpdate",
+        # JSON-RPC message types - Agent variants
+        "AgentOutgoingMessage1": "AgentRequest",
+        "AgentOutgoingMessage2": "AgentResponse",
+        "AgentOutgoingMessage3": "AgentError",
+        "AgentOutgoingMessage4": "AgentNotification",
+        # JSON-RPC message types - Client variants
+        "ClientOutgoingMessage1": "ClientRequest",
+        "ClientOutgoingMessage2": "ClientResponse",
+        "ClientOutgoingMessage3": "ClientError",
+        "ClientOutgoingMessage4": "ClientNotification",
         # ContentBlock variants - use different names to avoid conflicts
         "ContentBlock1": "TextContentBlock",
         "ContentBlock2": "ImageContentBlock",

@@ -87,6 +87,35 @@ class EnvVariable(Schema):
     ]
 
 
+class Error(Schema):
+    """JSON-RPC error object.
+
+    Represents an error that occurred during method execution, following the
+    JSON-RPC 2.0 error object specification with optional additional data.
+
+    See protocol docs: [JSON-RPC Error Object](https://www.jsonrpc.org/specification#error_object)
+    """
+
+    code: Annotated[
+        int,
+        Field(
+            description="A number indicating the error type that occurred.\nThis must be an integer as defined in the JSON-RPC specification."
+        ),
+    ]
+    data: Annotated[
+        Any | None,
+        Field(
+            description="Optional primitive or structured value that contains additional information about the error.\nThis may include debugging information or context-specific details."
+        ),
+    ] = None
+    message: Annotated[
+        str,
+        Field(
+            description="A string providing a short description of the error.\nThe message should be limited to a concise single sentence."
+        ),
+    ]
+
+
 class FileSystemCapability(Schema):
     """File system capabilities that a client may support.
 
@@ -570,6 +599,23 @@ class AgentCapabilities(Schema):
     ] = {"audio": False, "embeddedContext": False, "image": False}
 
 
+class AgentError(Schema):
+    """A message (request, response, or notification) with `"jsonrpc": "2.0"` specified as
+    [required by JSON-RPC 2.0 Specification][1].
+
+    [1]: https://www.jsonrpc.org/specification#compatibility
+    """
+
+    jsonrpc: Literal["2.0"] = "2.0"
+    id: Annotated[
+        int | str | None,
+        Field(
+            description="JSON RPC Request Id\n\nAn identifier established by the Client that MUST contain a String, Number, or NULL value if included. If it is not included it is assumed to be a notification. The value SHOULD normally not be Null [1] and Numbers SHOULD NOT contain fractional parts [2]\n\nThe Server MUST reply with the same value in the Response object if included. This member is used to correlate the context between the two objects.\n\n[1] The use of Null as a value for the id member in a Request object is discouraged, because this specification uses a value of Null for Responses with an unknown id. Also, because JSON-RPC 1.0 uses an id value of Null for Notifications this could cause confusion in handling.\n\n[2] Fractional parts may be problematic, since many decimal fractions cannot be represented exactly as binary fractions."
+        ),
+    ] = None
+    error: Error
+
+
 class Annotations(Schema):
     """Optional annotations for the client. The client can use annotations to inform how objects are used or displayed."""
 
@@ -667,6 +713,23 @@ class ClientCapabilities(Schema):
         bool | None,
         Field(description="Whether the Client support all `terminal/*` methods."),
     ] = False
+
+
+class ClientError(Schema):
+    """A message (request, response, or notification) with `"jsonrpc": "2.0"` specified as
+    [required by JSON-RPC 2.0 Specification][1].
+
+    [1]: https://www.jsonrpc.org/specification#compatibility
+    """
+
+    jsonrpc: Literal["2.0"] = "2.0"
+    id: Annotated[
+        int | str | None,
+        Field(
+            description="JSON RPC Request Id\n\nAn identifier established by the Client that MUST contain a String, Number, or NULL value if included. If it is not included it is assumed to be a notification. The value SHOULD normally not be Null [1] and Numbers SHOULD NOT contain fractional parts [2]\n\nThe Server MUST reply with the same value in the Response object if included. This member is used to correlate the context between the two objects.\n\n[1] The use of Null as a value for the id member in a Request object is discouraged, because this specification uses a value of Null for Responses with an unknown id. Also, because JSON-RPC 1.0 uses an id value of Null for Notifications this could cause confusion in handling.\n\n[2] Fractional parts may be problematic, since many decimal fractions cannot be represented exactly as binary fractions."
+        ),
+    ] = None
+    error: Error
 
 
 class TextContentBlock(Schema):
