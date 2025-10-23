@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from functools import cached_property
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Self
 
 from pydantic import ConfigDict, Field, model_validator
@@ -129,15 +130,13 @@ class AgentsManifest(Schema):
 
                 for worker in workers:
                     match worker:
-                        case str() as name:
+                        case str() as name if name in teams:
                             # Determine type based on presence in teams/agents
-                            if name in teams:
-                                normalized.append(TeamWorkerConfig(name=name))
-                            elif name in agents:
-                                normalized.append(AgentWorkerConfig(name=name))
-                            else:
-                                # Default to agent if type can't be determined
-                                normalized.append(AgentWorkerConfig(name=name))
+                            normalized.append(TeamWorkerConfig(name=name))
+                        case str() as name if name in agents:
+                            normalized.append(AgentWorkerConfig(name=name))
+                        case str():  # Default to agent if type can't be determined
+                            normalized.append(AgentWorkerConfig(name=name))
 
                         case dict() as config:
                             # If type is explicitly specified, use it
@@ -357,10 +356,8 @@ class AgentsManifest(Schema):
         from llmling_agent import Agent, AgentContext
 
         config = self.agents[name]
-        # Create runtime without async context
         cfg = config.get_config()
-        runtime = RuntimeConfig.from_config(cfg)
-
+        runtime = RuntimeConfig.from_config(cfg)  # Create runtime without async context
         # Create context with config path and capabilities
         context = AgentContext[TAgentDeps](
             node_name=name,
@@ -373,8 +370,6 @@ class AgentsManifest(Schema):
         )
 
         # Resolve system prompts with new PromptConfig types
-        from pathlib import Path
-
         from llmling_agent_config.system_prompts import (
             FilePromptConfig,
             FunctionPromptConfig,
