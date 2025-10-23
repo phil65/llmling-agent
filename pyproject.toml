@@ -33,7 +33,7 @@ dependencies = [
   "aiosqlite>=0.19.0",
   "anyenv>=0.3.0",
   "bigtree>=0.23.1",
-  "fastmcp>=2.3.4",
+  "fastmcp>=2.13.alpha",
   "griffe>=1.5.4",
   "jinjarope",
   "llmling>=1.1.5",
