@@ -26,7 +26,6 @@ if TYPE_CHECKING:
     from tokonomics.model_discovery.model_info import ModelInfo
     from upath.types import JoinablePathLike
 
-    from llmling_agent import Agent
     from llmling_agent_providers.base import UsageLimits
 
 logger = get_logger(__name__)
@@ -135,7 +134,7 @@ class ACPServer:
         if agent and agent not in agent_names:
             msg = (
                 f"Specified agent {agent!r} not found in config. "
-                "Available agents: {agent_names}"
+                f"Available agents: {agent_names}"
             )
             raise ValueError(msg)
 
@@ -144,35 +143,29 @@ class ACPServer:
             logger.info("Will use agent '%s' for ACP sessions", agent)
         return server
 
-    def get_agent(self, name: str) -> Agent[Any]:
-        """Get agent by name from the pool."""
-        return self.agent_pool.get_agent(name)
-
     async def run(self) -> None:
         """Run the ACP server."""
         if self._running:
             msg = "Server is already running"
             raise RuntimeError(msg)
         self._running = True
+        agent_names = list(self.agent_pool.agents.keys())
+        msg = "Starting ACP server with %d agents on stdio: %s"
+        logger.info(msg, len(agent_names), agent_names)
 
+        create_acp_agent = functools.partial(
+            LLMlingACPAgent,
+            agent_pool=self.agent_pool,
+            available_models=self._available_models,
+            session_support=self.session_support,
+            file_access=self.file_access,
+            terminal_access=self.terminal_access,
+            usage_limits=self.usage_limits,
+            debug_commands=self.debug_commands,
+            default_agent=self.agent,
+        )
         try:
             await self._initialize_models()  # Initialize models on first run
-            agent_names = list(self.agent_pool.agents.keys())
-            msg = "Starting ACP server with %d agents on stdio: %s"
-            logger.info(msg, len(agent_names), agent_names)
-
-            create_acp_agent = functools.partial(
-                LLMlingACPAgent,
-                agent_pool=self.agent_pool,
-                available_models=self._available_models,
-                session_support=self.session_support,
-                file_access=self.file_access,
-                terminal_access=self.terminal_access,
-                usage_limits=self.usage_limits,
-                debug_commands=self.debug_commands,
-                default_agent=self.agent,
-            )
-
             reader, writer = await stdio_streams()
             file = self.debug_file if self.debug_messages else None
             conn = AgentSideConnection(create_acp_agent, writer, reader, debug_file=file)

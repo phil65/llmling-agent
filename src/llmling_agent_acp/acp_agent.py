@@ -24,8 +24,8 @@ from acp.schema import (
 )
 from llmling_agent.log import get_logger
 from llmling_agent.utils.tasks import TaskManager
-from llmling_agent_acp.acp_commands import get_acp_commands
 from llmling_agent_acp.command_bridge import ACPCommandBridge
+from llmling_agent_acp.commands.acp_commands import get_acp_commands
 from llmling_agent_acp.converters import to_agent_text_notification
 from llmling_agent_acp.session_manager import ACPSessionManager
 from llmling_agent_commands import get_commands
@@ -105,7 +105,7 @@ class LLMlingACPAgent(ACPAgent):
 
         commands_to_register = [*get_commands(), *get_acp_commands()]
         if debug_commands:
-            from llmling_agent_acp.debug_commands import get_debug_commands
+            from llmling_agent_acp.commands.debug_commands import get_debug_commands
 
             commands_to_register.extend(get_debug_commands())
 

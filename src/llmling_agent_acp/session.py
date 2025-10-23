@@ -9,6 +9,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import AsyncGenerator
 from dataclasses import dataclass
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from pydantic_ai.exceptions import UsageLimitExceeded
@@ -35,7 +36,7 @@ from llmling_agent_acp.acp_tools import (
     ACPPlanProvider,
     ACPTerminalProvider,
 )
-from llmling_agent_acp.command_bridge import is_slash_command
+from llmling_agent_acp.command_bridge import SLASH_PATTERN
 from llmling_agent_acp.converters import (
     convert_acp_mcp_server_to_config,
     from_content_blocks,
@@ -45,6 +46,11 @@ from llmling_agent_acp.converters import (
 # Tools that send their own rich ACP notifications (with ToolCallLocation, etc.)
 # These tools are excluded from generic session-level notifications to prevent duplication
 ACP_SELF_NOTIFYING_TOOLS = {"read_text_file", "write_text_file", "run_command"}
+
+
+def _is_slash_command(text: str) -> bool:
+    """Check if text starts with a slash command."""
+    return bool(SLASH_PATTERN.match(text.strip()))
 
 
 if TYPE_CHECKING:
@@ -167,8 +173,6 @@ class ACPSession:
         # Define accessible roots for MCP servers
         accessible_roots: list[str] = []
         if self.cwd:
-            from pathlib import Path
-
             path = Path(self.cwd).resolve()
             accessible_roots.append(path.as_uri())
 
@@ -327,7 +331,7 @@ with other agents effectively."""
                 non_command_content: list[str | BaseContent] = []
 
                 for item in contents:
-                    if isinstance(item, str) and is_slash_command(item):
+                    if isinstance(item, str) and _is_slash_command(item):
                         # Found a slash command
                         command_text = item.strip()
                         logger.info("Found slash command: %s", command_text)

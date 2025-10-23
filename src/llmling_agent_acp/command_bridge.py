@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 from acp.schema import AvailableCommand, AvailableCommandInput, CommandInputHint
 from llmling_agent.log import get_logger
-from llmling_agent_acp.mcp_commands import MCPPromptCommand
+from llmling_agent_acp.commands.mcp_commands import MCPPromptCommand
 
 
 if TYPE_CHECKING:
@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
     from mcp.types import Prompt as MCPPrompt
-    from slashed import BaseCommand, CommandStore
+    from slashed import BaseCommand, CommandContext, CommandStore
 
     from llmling_agent.agent.context import AgentContext
     from llmling_agent_acp.session import ACPSession
@@ -61,17 +61,10 @@ class ACPCommandBridge:
         Returns:
             List of ACP AvailableCommand objects
         """
-        commands = [  # Add regular slashed commands
-            _convert_command(cmd)
-            for cmd in self.command_store.list_commands()
-            if _convert_command(cmd) is not None
-        ]
-
-        commands.extend([  # Add MCP prompt commands
-            mcp_cmd.to_available_command()
-            for mcp_cmd in self._mcp_prompt_commands.values()
+        commands = [_convert_command(cmd) for cmd in self.command_store.list_commands()]
+        commands.extend([
+            cmd.to_available_command() for cmd in self._mcp_prompt_commands.values()
         ])
-
         return commands
 
     async def execute_slash_command(self, command_text: str, session: ACPSession) -> None:
@@ -103,21 +96,21 @@ class ACPCommandBridge:
             # Use ACP context for ACP commands
             from llmling_agent_acp.acp_commands import ACPCommandContext
 
-            acp_context = ACPCommandContext(session)
-            cmd_context: Any = self.command_store.create_context(
-                data=acp_context,
+            acp_ctx = ACPCommandContext(session)
+            cmd_ctx: CommandContext = self.command_store.create_context(
+                data=acp_ctx,
                 output_writer=output_writer,
             )
         else:
             # Use regular agent context for other commands
-            cmd_context = self.command_store.create_context(
+            cmd_ctx = self.command_store.create_context(
                 data=session.agent.context,
                 output_writer=output_writer,
             )
 
         command_str = f"{command_name} {args}".strip()
         try:
-            await self.command_store.execute_command(command_str, cmd_context)
+            await self.command_store.execute_command(command_str, cmd_ctx)
         except Exception as e:
             logger.exception("Command execution failed")
             await session.notifications.send_agent_text(f"Command error: {e}")
@@ -146,18 +139,6 @@ class ACPCommandBridge:
                 callback()
             except Exception:
                 logger.exception("Command update callback failed")
-
-
-def is_slash_command(text: str) -> bool:
-    """Check if text starts with a slash command.
-
-    Args:
-        text: Text to check
-
-    Returns:
-        True if text is a slash command
-    """
-    return bool(SLASH_PATTERN.match(text.strip()))
 
 
 def _convert_command(command: BaseCommand) -> AvailableCommand:

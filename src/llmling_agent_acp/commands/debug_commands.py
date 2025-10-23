@@ -23,8 +23,8 @@ from llmling_agent.log import get_logger
 
 
 if TYPE_CHECKING:
-    from acp.acp_types import SessionUpdate
-    from llmling_agent_acp.acp_commands import ACPCommandContext
+    from acp.acp_types import SessionUpdate, ToolCallKind, ToolCallStatus
+    from llmling_agent_acp.commands.acp_commands import ACPCommandContext
 
 
 logger = get_logger(__name__)
@@ -92,7 +92,7 @@ class DebugSendToolCallCommand(SlashedCommand):
         ctx: CommandContext[ACPCommandContext],
         title: str,
         *,
-        kind: str = "other",
+        kind: ToolCallKind = "other",
     ):
         """Send a tool call notification.
 
@@ -126,7 +126,7 @@ class DebugUpdateToolCallCommand(SlashedCommand):
         ctx: CommandContext[ACPCommandContext],
         tool_call_id: str,
         *,
-        status: str = "completed",
+        status: ToolCallStatus = "completed",
         content: str = "",
     ):
         """Send a tool call update notification.
@@ -278,8 +278,8 @@ class DebugSessionInfoCommand(SlashedCommand):
                 else 0,
             }
 
-            info = anyenv.dump_json(info, indent=True)
-            await ctx.output.print(f"## 🔍 Session Debug Info\n\n```json\n{info}\n```")
+            text = anyenv.dump_json(info, indent=True)
+            await ctx.output.print(f"## 🔍 Session Debug Info\n\n```json\n{text}\n```")
 
         except Exception as e:
             logger.exception("Failed to get session info")

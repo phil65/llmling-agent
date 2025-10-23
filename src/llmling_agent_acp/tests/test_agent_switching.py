@@ -62,18 +62,6 @@ class TestAgentPoolModeSwitch:
         assert "research-agent" in agent_names
         assert "writing-agent" in agent_names
 
-    def test_server_get_agent(self, agent_pool: AgentPool[Any]):
-        """Test getting agents from pool."""
-        server = ACPServer(agent_pool=agent_pool)
-
-        coding_agent = server.get_agent("coding-agent")
-        research_agent = server.get_agent("research-agent")
-
-        assert coding_agent is not None
-        assert research_agent is not None
-        assert coding_agent.name == "coding-agent"
-        assert research_agent.name == "research-agent"
-
     def test_session_agent_property(
         self,
         agent_pool: AgentPool[Any],
