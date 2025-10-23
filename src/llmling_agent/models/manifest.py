@@ -29,7 +29,6 @@ from llmling_agent_config.storage import StorageConfig
 from llmling_agent_config.system_prompts import PromptLibraryConfig
 from llmling_agent_config.task import Job  # noqa: TC001
 from llmling_agent_config.teams import TeamConfig  # noqa: TC001
-from llmling_agent_config.ui import StdlibUIConfig, UIConfig  # noqa: TC001
 from llmling_agent_config.workers import (
     AgentWorkerConfig,
     BaseWorkerConfig,
@@ -74,9 +73,6 @@ class AgentsManifest(Schema):
             uri: "s3://bucket/data"
             cached: true
     """
-
-    ui: UIConfig = Field(default_factory=StdlibUIConfig)
-    """UI configuration."""
 
     agents: dict[str, AgentConfig] = Field(default_factory=dict)
     """Mapping of agent IDs to their configurations"""

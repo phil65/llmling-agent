@@ -14,7 +14,6 @@ from llmling_agent_cli.serve_acp import acp_command
 from llmling_agent_cli.serve_api import api_command
 from llmling_agent_cli.serve_mcp import serve_command
 from llmling_agent_cli.task import task_command
-from llmling_agent_cli.ui import ui_command
 from llmling_agent_cli.watch import watch_command
 
 
@@ -35,6 +34,5 @@ cli.command(name="serve-acp")(acp_command)
 cli.command(name="serve-mcp")(serve_command)
 cli.command(name="serve-api")(api_command)
 cli.command(name="task")(task_command)
-cli.command(name="ui")(ui_command)
 
 cli.add_typer(history_cli, name="history")
