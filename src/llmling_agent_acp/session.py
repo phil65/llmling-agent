@@ -412,7 +412,7 @@ with other agents effectively."""
 
         event_count = 0
         has_yielded_anything = False
-        # Track tool call inputs by tool_call_id for process_pydantic_event
+        # Track tool call inputs by tool_call_id for process_agent_stream_event
         inputs: dict[str, dict] = {}
 
         try:
@@ -456,9 +456,9 @@ with other agents effectively."""
                         # logger.info(msg, self.session_id)
 
                     case FunctionToolCallEvent() | FunctionToolResultEvent():
-                        # Handle tool events using process_pydantic_event function
+                        # Handle tool events using process_agent_stream_event function
                         logger.info("Processing tool event: %s", type(event).__name__)
-                        async for notification in process_pydantic_event(
+                        async for notification in process_agent_stream_event(
                             event, session_id=self.session_id, inputs=inputs
                         ):
                             has_yielded_anything = True
@@ -675,10 +675,10 @@ with other agents effectively."""
             logger.warning("Failed to convert MCP progress to ACP notification: %s", e)
 
 
-async def process_pydantic_event(
+async def process_agent_stream_event(
     event: AgentStreamEvent, session_id: str, inputs: dict[str, Any]
 ) -> AsyncGenerator[SessionNotification]:
-    """Process Pydantic events.
+    """Process agent stream events.
 
     Args:
         event: The event to process.
