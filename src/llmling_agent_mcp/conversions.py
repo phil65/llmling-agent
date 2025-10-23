@@ -191,18 +191,3 @@ def from_mcp_uri(uri: str) -> str:
             raise
         msg = f"Failed to convert URI {uri!r}"
         raise ValueError(msg) from exc
-
-
-def to_mcp_resource_template(
-    template_uri: str,
-    name: str,
-    description: str | None = None,
-    mime_type: str | None = None,
-) -> types.ResourceTemplate:
-    """Convert internal template information to MCP ResourceTemplate."""
-    return types.ResourceTemplate(
-        uriTemplate=template_uri,
-        name=name,
-        description=description,
-        mimeType=mime_type,
-    )
