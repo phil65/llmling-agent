@@ -6,11 +6,13 @@ import json
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+import anyenv
 from slashed import CommandContext, SlashedCommand  # noqa: TC002
 
 from acp.schema import (
     AgentMessageChunk,
     AgentThoughtChunk,
+    ContentToolCallContent,
     SessionNotification,
     TextContentBlock,
     ToolCallProgress,
@@ -90,7 +92,6 @@ class DebugSendToolCallCommand(SlashedCommand):
         ctx: CommandContext[ACPCommandContext],
         title: str,
         *,
-        status: str = "pending",
         kind: str = "other",
     ):
         """Send a tool call notification.
@@ -98,28 +99,14 @@ class DebugSendToolCallCommand(SlashedCommand):
         Args:
             ctx: Command context
             title: Tool call title/description
-            status: Tool status ('pending', 'in_progress', 'completed', 'failed')
             kind: Tool kind ('read', 'edit', 'delete', 'move', 'search',
                   'execute', 'think', 'fetch', 'other')
         """
         session = ctx.context.session
         try:
-            tool_call = ToolCallStart(
-                tool_call_id=f"debug-{hash(title)}",
-                title=title,
-                status=status,  # type: ignore
-                kind=kind,  # type: ignore
-                content=None,
-                locations=None,
-            )
-
-            notification = SessionNotification(
-                session_id=session.session_id, update=tool_call
-            )
-
-            await session.client.session_update(notification)
-            await ctx.output.print(f"✅ **Sent tool call:** {title} ({status})")
-
+            id_ = f"debug-{hash(title)}"
+            await session.notifications.tool_call_start(id_, title=title, kind=kind)
+            await ctx.output.print(f"✅ **Sent tool call:** {title}")
         except Exception as e:
             logger.exception("Failed to send debug tool call")
             await ctx.output.print(f"❌ **Failed to send tool call:** {e}")
@@ -152,8 +139,6 @@ class DebugUpdateToolCallCommand(SlashedCommand):
         """
         session = ctx.context.session
         try:
-            from acp.schema import ContentToolCallContent
-
             tool_content = None
             if content:
                 tool_content = [
@@ -162,18 +147,11 @@ class DebugUpdateToolCallCommand(SlashedCommand):
                         content=TextContentBlock(type="text", text=content),
                     )
                 ]
-
-            update = ToolCallProgress(
-                tool_call_id=tool_call_id,
-                status=status,  # type: ignore
+            await session.notifications.tool_call_progress(
+                tool_call_id,
+                status,
                 content=tool_content,
-                session_update="tool_call_update",
             )
-
-            notification = SessionNotification(
-                session_id=session.session_id, update=update
-            )
-            await session.client.session_update(notification)
             await ctx.output.print(f"✅ **Updated tool call {tool_call_id}:** {status}")
 
         except Exception as e:
@@ -300,10 +278,8 @@ class DebugSessionInfoCommand(SlashedCommand):
                 else 0,
             }
 
-            formatted_info = json.dumps(info, indent=2)
-            await ctx.output.print(
-                f"## 🔍 Session Debug Info\n\n```json\n{formatted_info}\n```"
-            )
+            info = anyenv.dump_json(info, indent=True)
+            await ctx.output.print(f"## 🔍 Session Debug Info\n\n```json\n{info}\n```")
 
         except Exception as e:
             logger.exception("Failed to get session info")
@@ -380,8 +356,7 @@ class DebugCreateTemplateCommand(SlashedCommand):
                 ],
             }
 
-            path = Path(file_path)
-            with path.open("w") as f:
+            with Path(file_path).open("w") as f:
                 json.dump(template, f, indent=2)
 
             await ctx.output.print(f"✅ **Created replay template:** `{file_path}`")
@@ -413,21 +388,17 @@ class DebugSendRawCommand(SlashedCommand):
         """
         session = ctx.context.session
         try:
-            data = json.loads(notification_json)
+            data = anyenv.load_json(notification_json, return_type=dict)
 
             # Validate it has the expected structure
             if "update" not in data:
-                await ctx.output.print(
-                    "❌ **Notification JSON must contain 'update' field**"
-                )
+                msg = "❌ **Notification JSON must contain 'update' field**"
+                await ctx.output.print(msg)
                 return
 
-            # Override session ID to current session
             notification = SessionNotification(session_id=session.session_id, **data)
-
             await session.client.session_update(notification)
             await ctx.output.print("✅ **Sent raw notification**")
-
         except json.JSONDecodeError as e:
             await ctx.output.print(f"❌ **Invalid JSON:** {e}")
         except Exception as e:
