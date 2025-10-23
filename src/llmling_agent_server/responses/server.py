@@ -70,7 +70,7 @@ if __name__ == "__main__":
                 "http://localhost:8000/v1/responses",
                 headers={"Authorization": "Bearer dummy"},
                 json={
-                    "model": "gpt-5",
+                    "model": "gpt-5-nano",
                     "input": "Tell me a three sentence bedtime story about a unicorn.",
                 },
             )
@@ -82,7 +82,7 @@ if __name__ == "__main__":
     async def main():
         """Run server and test client."""
         pool = AgentPool[None]()
-        await pool.add_agent("gpt-5", model="openai:gpt-5-nano")
+        await pool.add_agent("gpt-5-nano", model="openai:gpt-5-nano")
         async with pool:
             server = ResponsesServer(pool)
             server_task = asyncio.create_task(server.serve())

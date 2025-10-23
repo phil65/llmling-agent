@@ -225,12 +225,11 @@ class ListAgentsCommand(SlashedCommand):
 
         rows = []
         for name, agent in ctx.context.pool.agents.items():
+            typ = "dynamic" if name not in ctx.context.definition.agents else "static"
             rows.append({
                 "Name": name,
                 "Model": str(agent.model_name or ""),
-                "Type": (
-                    "dynamic" if name not in ctx.context.definition.agents else "static"
-                ),
+                "Type": typ,
                 "Description": agent.description or "",
             })
 
