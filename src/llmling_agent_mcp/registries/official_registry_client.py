@@ -6,10 +6,9 @@ registry API for server discovery and configuration.
 
 from __future__ import annotations
 
-from enum import Enum
 import logging
 import time
-from typing import Any
+from typing import Any, Literal
 
 import httpx
 from pydantic import Field, field_validator
@@ -24,13 +23,7 @@ ServiceName = str
 log = logging.getLogger(__name__)
 
 
-class TransportType(Enum):
-    """Supported transport types for MCP servers."""
-
-    STDIO = "stdio"
-    SSE = "sse"
-    WEBSOCKET = "websocket"
-    HTTP = "http"
+TransportType = Literal["stdio", "sse", "websocket", "http"]
 
 
 class UnsupportedTransportError(Exception):
@@ -70,7 +63,7 @@ class RegistryPackage(Schema):
     identifier: str
     """Package identifier."""
 
-    version: str
+    version: str | None = None
     """Package version."""
 
     transport: RegistryTransport
@@ -137,17 +130,17 @@ class RegistryServer(Schema):
         """Select optimal transport method based on availability and performance."""
         # Prefer local packages for better performance/security
         for package in self.packages:
-            if package.registry_type == "docker":  # OCI containers
-                return TransportType.STDIO
+            if package.registry_type in ["docker", "oci"]:  # OCI containers
+                return "stdio"
 
         # Fallback to remote endpoints
         for remote in self.remotes:
             if remote.type == "sse":
-                return TransportType.SSE
+                return "sse"
             if remote.type in ["streamable-http", "http"]:
-                return TransportType.HTTP
+                return "http"
             if remote.type == "websocket":
-                return TransportType.WEBSOCKET
+                return "websocket"
 
         # Provide helpful error message
         available_transports = []
@@ -351,17 +344,12 @@ if __name__ == "__main__":
             servers = await client.list_servers()
             print(f"Found {len(servers)} servers")
 
-            # Test caching - second call should be faster
-            print("\nTesting cache (second call should be faster)...")
-            servers_cached = await client.list_servers()
-            print(f"Cached result: {len(servers_cached)} servers")
-
             # Test transport resolution for first few servers
             for server in servers[:3]:
                 print(f"\n=== {server.name} ===")
                 try:
                     transport = server.get_preferred_transport()
-                    print(f"Preferred transport: {transport.value}")
+                    print(f"Preferred transport: {transport}")
 
                     # Show available transports
                     if server.packages:
@@ -373,9 +361,5 @@ if __name__ == "__main__":
                     print(f"Transport error: {e}")
 
                 devtools.debug(server)
-
-            # Clear cache and test
-            print("\nClearing cache...")
-            client.clear_cache()
 
     asyncio.run(main())
