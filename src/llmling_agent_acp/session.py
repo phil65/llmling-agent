@@ -26,9 +26,7 @@ from pydantic_ai.messages import (
 from acp.filesystem import ACPFileSystem
 from acp.notifications import ACPNotifications
 from acp.requests import ACPRequests
-from acp.schema import (
-    ReadTextFileRequest,
-)
+from acp.schema import ReadTextFileRequest
 from llmling_agent.log import get_logger
 from llmling_agent.mcp_server.manager import MCPManager
 from llmling_agent.resource_providers.aggregating import AggregatingResourceProvider

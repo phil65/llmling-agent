@@ -6,15 +6,11 @@ from typing import TYPE_CHECKING
 
 from acp.schema import AvailableCommand, AvailableCommandInput, CommandInputHint
 from llmling_agent.log import get_logger
-from llmling_agent_acp.converters import to_agent_text_notification
 
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator
-
     from mcp.types import Prompt as MCPPrompt
 
-    from acp.schema import SessionNotification
     from llmling_agent_acp.session import ACPSession
 
 
@@ -49,11 +45,7 @@ class MCPPromptCommand:
         name = f"mcp-{self.name}"  # Prefix to avoid conflicts
         return AvailableCommand(name=name, description=self.description, input=spec)
 
-    async def execute(
-        self,
-        args: str,
-        session: ACPSession,
-    ) -> AsyncIterator[SessionNotification]:
+    async def execute(self, args: str, session: ACPSession) -> None:
         """Execute MCP prompt command.
 
         Args:
@@ -70,17 +62,14 @@ class MCPPromptCommand:
             # Get MCP manager from session
             if not session.mcp_manager:
                 error_msg = "No MCP servers available"
-                if update := to_agent_text_notification(error_msg, session.session_id):
-                    yield update
+                await session.notifications.send_agent_text(error_msg)
                 return
 
             # Find appropriate MCP client (use first available for now)
             if not session.mcp_manager.clients:
                 error_msg = "No MCP clients connected"
-                if update := to_agent_text_notification(error_msg, session.session_id):
-                    yield update
+                await session.notifications.send_agent_text(error_msg)
                 return
-
             # Execute prompt via first available MCP client
             client = next(iter(session.mcp_manager.clients.values()))
 
@@ -90,9 +79,8 @@ class MCPPromptCommand:
                     result = await client.get_prompt(self.mcp_prompt.name, arguments)
                 except Exception as e:
                     if arguments:
-                        logger.warning(
-                            "MCP prompt with arguments failed, trying without: %s", e
-                        )
+                        msg = "MCP prompt with arguments failed, trying without: %s"
+                        logger.warning(msg, e)
                         result = await client.get_prompt(self.mcp_prompt.name)
                     else:
                         raise
@@ -115,21 +103,16 @@ class MCPPromptCommand:
                         f"args ({arg_info}):\n\n{output}"
                     )
 
-                # Stream as session updates
-                if update := to_agent_text_notification(output, session.session_id):
-                    yield update
+                await session.notifications.send_agent_text(output)
 
             except Exception as e:
                 error_msg = f"MCP prompt execution failed: {e}"
                 logger.exception("MCP prompt execution error")
-                if update := to_agent_text_notification(error_msg, session.session_id):
-                    yield update
-
+                await session.notifications.send_agent_text(error_msg)
         except Exception as e:
             error_msg = f"Command error: {e}"
             logger.exception("MCP command execution error")
-            if update := to_agent_text_notification(error_msg, session.session_id):
-                yield update
+            await session.notifications.send_agent_text(error_msg)
 
     def _parse_arguments(self, args_str: str) -> dict[str, str]:
         """Parse argument string to dictionary.

@@ -74,11 +74,7 @@ class ACPCommandBridge:
 
         return commands
 
-    async def execute_slash_command(
-        self,
-        command_text: str,
-        session: ACPSession,
-    ) -> None:
+    async def execute_slash_command(self, command_text: str, session: ACPSession) -> None:
         """Execute slash command and send results immediately as ACP notifications.
 
         Args:
@@ -96,10 +92,7 @@ class ACPCommandBridge:
         # Check if it's an MCP prompt command first
         if command_name in self._mcp_prompt_commands:
             mcp_cmd = self._mcp_prompt_commands[command_name]
-            async for update in mcp_cmd.execute(args, session):
-                await session.client.session_update(update)
-            return
-
+            await mcp_cmd.execute(args, session)
         # Create output writer that sends directly to session
         output_writer = ACPOutputWriter(session)
 
