@@ -56,39 +56,6 @@ class EventData(Schema):
         )
 
 
-class UIEventData(EventData):
-    """Event triggered through UI interaction."""
-
-    type: Literal["command", "message", "agent_command", "agent_message"]
-    """Type of UI interaction that triggered this event."""
-
-    content: str
-    """The actual content (command string, voice command, etc.)."""
-
-    args: list[str] = Field(default_factory=list)
-    """Additional arguments for the interaction."""
-
-    kwargs: dict[str, Any] = Field(default_factory=dict)
-    """Additional options/parameters."""
-
-    agent_name: str | None = None
-    """Target agent for @agent messages/commands."""
-
-    def to_prompt(self) -> str:
-        """Convert event to agent prompt."""
-        match self.type:
-            case "command":
-                args_str = " ".join(self.args)
-                kwargs_str = " ".join(f"--{k}={v}" for k, v in self.kwargs.items())
-                return f"UI Command: /{self.content} {args_str} {kwargs_str}"
-            case "shortcut" | "gesture":
-                return f"UI Action: {self.content}"
-            case "voice":
-                return f"Voice Command: {self.content}"
-            case _:
-                raise ValueError(self.type)
-
-
 class ConnectionEventData[TTransmittedData](EventData):
     """Event from connection activity."""
 

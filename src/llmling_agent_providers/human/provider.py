@@ -111,6 +111,7 @@ class HumanProvider(AgentProvider):
 
         # Emit start event
         from pydantic_ai.messages import PartStartEvent, TextPart
+        from pydantic_ai.run import AgentRunResult
 
         yield PartStartEvent(index=0, part=TextPart(content=""))
 
@@ -156,8 +157,6 @@ class HumanProvider(AgentProvider):
 
             final_content = str(content)
 
-            from pydantic_ai.run import AgentRunResult
-
             result = AgentRunResult(output=final_content)
             yield AgentRunResultEvent(result=result)
 
@@ -167,8 +166,6 @@ class HumanProvider(AgentProvider):
 
     async def handle_input(self, content: str):
         """Handle all human input."""
-        from llmling_agent.messaging.events import UIEventData
-
         if not content.strip():
             return
 
@@ -176,13 +173,7 @@ class HumanProvider(AgentProvider):
             if content.startswith("/"):
                 # Regular command
                 parsed = parse_command(content[1:])
-                _event = UIEventData(
-                    source=self.name,
-                    type="command",
-                    content=parsed.name,
-                    args=parsed.args.args,
-                    kwargs=parsed.args.kwargs,
-                )
+
                 await self.commands.execute_command_with_context(
                     parsed.name,
                     context=self.context,
@@ -200,31 +191,14 @@ class HumanProvider(AgentProvider):
                 if message.startswith("/"):
                     # Command for specific agent
                     parsed = parse_command(message[1:])
-                    _event = UIEventData(
-                        source=self.name,
-                        type="agent_command",
-                        content=parsed.name,
-                        args=parsed.args.args,
-                        kwargs=parsed.args.kwargs,
-                        agent_name=agent_name,
-                    )
+
                     await self.commands.execute_command_with_context(
                         parsed.name,
                         context=agent.context,
                         output_writer=DefaultOutputWriter(),
                     )
                 else:
-                    # Message for specific agent
-                    _event = UIEventData(
-                        source=self.name,
-                        type="agent_message",
-                        content=message,
-                        agent_name=agent_name,
-                    )
                     await agent.run(message)
 
-            else:
-                # Regular message
-                _event = UIEventData(source=self.name, type="message", content=content)
         except Exception:
             logger.exception("Failed to handle input")
