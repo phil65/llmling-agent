@@ -59,10 +59,7 @@ class TestACPIntegration:
         )
 
         # Create filesystem provider
-        provider = ACPFileSystemProvider(
-            session=session,
-            client_capabilities=capabilities,
-        )
+        provider = ACPFileSystemProvider(session=session)
 
         # Test tool creation
         tools = await provider.get_tools()

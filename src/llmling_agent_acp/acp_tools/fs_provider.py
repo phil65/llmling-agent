@@ -19,7 +19,6 @@ from llmling_agent_toolsets.builtin.file_edit import replace_content
 
 
 if TYPE_CHECKING:
-    from acp.schema import ClientCapabilities
     from llmling_agent_acp.session import ACPSession
 
 logger = get_logger(__name__)
@@ -33,25 +32,18 @@ class ACPFileSystemProvider(ResourceProvider):
     eliminating the need for parameter injection.
     """
 
-    def __init__(
-        self,
-        session: ACPSession,
-        client_capabilities: ClientCapabilities,
-        cwd: str | None = None,
-    ):
+    def __init__(self, session: ACPSession):
         """Initialize filesystem provider.
 
         Args:
             session: Session for all tools created by this provider
-            client_capabilities: Client-reported capabilities
-            cwd: Current working directory for relative path resolution
         """
         super().__init__(name=f"acp_filesystem_{session.session_id}")
         self.agent = session.acp_agent
         self.session_id = session.session_id
         self.session = session
-        self.client_capabilities = client_capabilities
-        self.cwd = cwd
+        self.client_capabilities = session.client_capabilities
+        self.cwd = session.cwd
 
     def _resolve_path(self, path: str) -> str:
         """Resolve a potentially relative path to an absolute path.
