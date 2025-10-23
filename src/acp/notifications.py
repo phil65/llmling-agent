@@ -21,11 +21,13 @@ from acp.schema import (
     SessionNotification,
     TerminalToolCallContent,
     TextContentBlock,
+    ToolCall,
     ToolCallLocation,
     ToolCallProgress,
     ToolCallStart,
 )
 from llmling_agent.log import get_logger
+from llmling_agent_acp.converters import infer_tool_kind
 
 
 if TYPE_CHECKING:
@@ -57,6 +59,54 @@ class ACPNotifications:
         """
         self.client = client
         self.id = session_id
+
+    async def tool_call(
+        self,
+        tool_name: str,
+        tool_input: dict[str, Any],
+        tool_output: Any,
+        status: ToolCallStatus = "completed",
+        tool_call_id: str | None = None,
+    ) -> None:
+        """Send tool execution as ACP tool call update.
+
+        Args:
+            tool_name: Name of the tool that was executed
+            tool_input: Input parameters passed to the tool
+            tool_output: Output returned by the tool
+            status: Execution status
+            tool_call_id: Tool call identifier
+
+        Returns:
+            SessionNotification with tool call update
+        """
+        # Create tool call content from output
+        content: list[ContentToolCallContent] = []
+        if tool_output is not None:
+            output_text = str(tool_output)
+            block = TextContentBlock(text=output_text)
+            content.append(ContentToolCallContent(content=block))
+
+        # Extract file locations if present
+        locations = [
+            ToolCallLocation(path=value)
+            for key, value in tool_input.items()
+            if key in {"path", "file_path", "filepath"} and isinstance(value, str)
+        ]
+
+        tool_call = ToolCall(
+            tool_call_id=tool_call_id or f"{tool_name}_{hash(str(tool_input))}",
+            title=f"Execute {tool_name}",
+            status=status,
+            kind=infer_tool_kind(tool_name),
+            locations=locations or None,
+            content=content or None,
+            raw_input=tool_input,
+            raw_output=tool_output,
+        )
+
+        notification = SessionNotification(session_id=self.id, update=tool_call)
+        await self.client.session_update(notification)
 
     async def tool_call_start(
         self,

@@ -27,10 +27,7 @@ from acp.filesystem import ACPFileSystem
 from acp.notifications import ACPNotifications
 from acp.requests import ACPRequests
 from acp.schema import (
-    AgentMessageChunk,
     ReadTextFileRequest,
-    SessionNotification,
-    TextContentBlock,
 )
 from llmling_agent.log import get_logger
 from llmling_agent.mcp_server.manager import MCPManager
@@ -43,10 +40,7 @@ from llmling_agent_acp.acp_tools import (
 from llmling_agent_acp.command_bridge import is_slash_command
 from llmling_agent_acp.converters import (
     convert_acp_mcp_server_to_config,
-    create_thought_chunk,
-    format_tool_call_for_acp,
     from_content_blocks,
-    to_agent_text_notification,
 )
 
 
@@ -298,22 +292,19 @@ with other agents effectively."""
         """Check if the session is cancelled."""
         return self._cancelled
 
-    async def process_prompt(
-        self, content_blocks: Sequence[ContentBlock]
-    ) -> AsyncGenerator[SessionNotification | StopReason]:
+    async def process_prompt(self, content_blocks: Sequence[ContentBlock]) -> StopReason:
         """Process a prompt request and stream responses.
 
         Args:
             content_blocks: List of content blocks from the prompt request
 
-        Yields:
+        Returns:
             SessionNotification objects for streaming to client, or StopReason literal
         """
         if not self._active:
             msg = "Attempted to process prompt on inactive session %s"
             logger.warning(msg, self.session_id)
-            yield "refusal"
-            return
+            return "refusal"
 
         # Reset cancellation flag
         self._cancelled = False
@@ -322,8 +313,7 @@ with other agents effectively."""
             try:
                 # Check for cancellation
                 if self._cancelled:
-                    yield "cancelled"
-                    return
+                    return "cancelled"
 
                 # Convert content blocks to structured content
                 contents = from_content_blocks(content_blocks)
@@ -332,8 +322,7 @@ with other agents effectively."""
                 if not contents:
                     msg = "Empty prompt received for session %s"
                     logger.warning(msg, self.session_id)
-                    yield "refusal"
-                    return
+                    return "refusal"
 
                 # Check for slash commands in text content
                 commands: list[str] = []
@@ -356,51 +345,31 @@ with other agents effectively."""
 
                     # If only commands, end turn
                     if not non_command_content:
-                        yield "end_turn"
-                        return
+                        return "end_turn"
 
                 # Pass structured content to agent for processing
                 msg = "Processing prompt for session %s with %d content items"
                 logger.debug(msg, self.session_id, len(non_command_content))
-                notification_count = 0
-                stop_reason = None
-                async for result in self._process_iter_response(non_command_content):
-                    if isinstance(result, str):
-                        # Stop reason received
-                        stop_reason = result
-                        break
-                    # Session notification
-                    notification_count += 1
-                    msg = "Yielding notification %d for session %s"
-                    logger.info(msg, notification_count, self.session_id)
-                    yield result
-
-                # Yield the final stop reason
-                final_stop_reason = stop_reason or "end_turn"
-                msg = "Finished streaming, sent %d notifications, stop reason: %s"
-                logger.info(msg, notification_count, final_stop_reason)
-                yield final_stop_reason
+                return await self._process_iter_response(non_command_content)
 
             except Exception as e:
                 logger.exception("Error processing prompt in session %s", self.session_id)
                 # Send error as agent message
                 msg = f"I encountered an error while processing your request: {e}"
-                if error_update := to_agent_text_notification(msg, self.session_id):
-                    yield error_update
+                await self.notifications.send_agent_text(msg)
                 # Return refusal for errors
-                yield "refusal"
+                return "refusal"
 
-    async def _process_iter_response(  # noqa: PLR0915
+    async def _process_iter_response(  # noqa: PLR0911
         self, content: list[str | BaseContent]
-    ) -> AsyncGenerator[SessionNotification | StopReason]:
+    ) -> StopReason:
         """Process content using event-based streaming.
 
         Args:
             content: List of content objects (strings and Content objects)
 
-        Yields:
-            SessionNotification objects for all agent execution events,
-            or StopReason literal
+        Returns:
+            StopReason literal
         """
         from pydantic_ai.messages import FunctionToolCallEvent, FunctionToolResultEvent
 
@@ -420,8 +389,7 @@ with other agents effectively."""
                 *content, usage_limits=self.usage_limits
             ):
                 if self._cancelled:
-                    yield "cancelled"
-                    return
+                    return "cancelled"
 
                 event_count += 1
                 msg = "Event %d (%s) for session %s"
@@ -429,26 +397,12 @@ with other agents effectively."""
 
                 match event:
                     case PartDeltaEvent(delta=TextPartDelta(content_delta=delta)):
-                        # Stream text chunks as they arrive
-                        if delta and delta.strip():
-                            content_block = TextContentBlock(text=delta)
-                            update = AgentMessageChunk(content=content_block)
-                            notification = SessionNotification(
-                                session_id=self.session_id, update=update
-                            )
-                            has_yielded_anything = True
-                            yield notification
-
-                    case PartDeltaEvent(
-                        delta=ThinkingPartDelta(content_delta=thinking_content)
-                    ) if thinking_content:
-                        # Handle thinking/reasoning deltas
-                        thought_notification = create_thought_chunk(
-                            thinking_content, self.session_id
-                        )
                         has_yielded_anything = True
-                        yield thought_notification
-
+                        await self.notifications.send_agent_text(delta)
+                    case PartDeltaEvent(delta=ThinkingPartDelta(content_delta=delta)):
+                        if delta is not None:
+                            has_yielded_anything = True
+                            await self.notifications.send_agent_thought(delta)
                     case PartDeltaEvent(delta=ToolCallPartDelta()):
                         # Handle tool call delta updates
                         pass
@@ -458,11 +412,8 @@ with other agents effectively."""
                     case FunctionToolCallEvent() | FunctionToolResultEvent():
                         # Handle tool events using process_agent_stream_event function
                         logger.info("Processing tool event: %s", type(event).__name__)
-                        async for notification in process_agent_stream_event(
-                            event, session_id=self.session_id, inputs=inputs
-                        ):
-                            has_yielded_anything = True
-                            yield notification
+                        await self.process_agent_stream_event(event, inputs=inputs)
+                        has_yielded_anything = True
 
                     case StreamCompleteEvent(message=message):
                         # Handle final completion
@@ -474,13 +425,8 @@ with other agents effectively."""
                             and message.content
                             and str(message.content).strip()
                         ):
-                            content_block = TextContentBlock(text=str(message.content))
-                            update = AgentMessageChunk(content=content_block)
-                            notification = SessionNotification(
-                                session_id=self.session_id, update=update
-                            )
+                            await self.notifications.send_agent_text(str(message.content))
                             has_yielded_anything = True
-                            yield notification
 
                     case _:
                         # Log other events for debugging
@@ -496,27 +442,24 @@ with other agents effectively."""
 
             # Check for request limit (maps to max_turn_requests)
             if "request_limit" in error_msg:
-                yield "max_turn_requests"
+                return "max_turn_requests"
             # Check for any token limits (maps to max_tokens)
-            elif any(limit in error_msg for limit in ["tokens_limit", "token_limit"]):
-                yield "max_tokens"
+            if any(limit in error_msg for limit in ["tokens_limit", "token_limit"]):
+                return "max_tokens"
             # Tool call limits don't have a direct ACP stop reason, treat as refusal
-            elif "tool_calls_limit" in error_msg or "tool call" in error_msg:
-                yield "refusal"
-            else:
-                # Default to max_tokens for other usage limits
-                yield "max_tokens"
+            if "tool_calls_limit" in error_msg or "tool call" in error_msg:
+                return "refusal"
+            # Default to max_tokens for other usage limits
+            return "max_tokens"
         except Exception as e:
             logger.exception("Error in agent streaming for session %s", self.session_id)
             logger.info("Sending error updates for session %s", self.session_id)
-            if error_update := to_agent_text_notification(
-                f"Agent error: {e}", self.session_id
-            ):
-                yield error_update
+            await self.notifications.send_agent_text(f"Agent error: {e}")
+            return "cancelled"
+        else:
+            return "end_turn"
 
-    async def execute_tool(
-        self, tool_name: str, tool_params: dict[str, Any]
-    ) -> AsyncGenerator[SessionNotification]:
+    async def execute_tool(self, tool_name: str, tool_params: dict[str, Any]) -> None:
         """Execute a tool and stream the results.
 
         Args:
@@ -534,30 +477,23 @@ with other agents effectively."""
                 logger.warning(msg, tool_name, self.agent.name)
                 return
             result = await tool.execute(**tool_params)
-
             # Format as ACP tool call notification
-            notification = format_tool_call_for_acp(
+            await self.notifications.tool_call(
                 tool_name=tool_name,
                 tool_input=tool_params,
                 tool_output=result,
-                session_id=self.session_id,
                 status="completed",
             )
-
-            yield notification
 
         except Exception as e:
             msg = "Error executing tool %s in session %s"
             logger.exception(msg, tool_name, self.session_id)
-            error_notification = format_tool_call_for_acp(
+            await self.notifications.tool_call(
                 tool_name=tool_name,
                 tool_input=tool_params,
                 tool_output=f"Error: {e}",
-                session_id=self.session_id,
                 status="failed",
             )
-
-            yield error_notification
 
     async def close(self) -> None:
         """Close the session and cleanup resources."""
@@ -651,125 +587,111 @@ with other agents effectively."""
             return
 
         try:
-            from llmling_agent_acp.converters import format_tool_call_for_acp
-
             # Create content from progress message
             output = message if message else f"Progress: {progress}"
             if total:
                 output += f"/{total}"
 
             # Create ACP tool call progress notification
-            notification = format_tool_call_for_acp(
+            await self.notifications.tool_call(
                 tool_name=tool_name,
                 tool_input=tool_input or {},
                 tool_output=output,
-                session_id=self.session_id,
                 status="in_progress",
                 tool_call_id=tool_call_id,
             )
 
-            # Send notification via ACP session
-            await self.client.session_update(notification)
-
         except Exception as e:  # noqa: BLE001
             logger.warning("Failed to convert MCP progress to ACP notification: %s", e)
 
+    async def process_agent_stream_event(
+        self,
+        event: AgentStreamEvent,
+        inputs: dict[str, Any],
+    ) -> None:
+        """Process agent stream events.
 
-async def process_agent_stream_event(
-    event: AgentStreamEvent, session_id: str, inputs: dict[str, Any]
-) -> AsyncGenerator[SessionNotification]:
-    """Process agent stream events.
+        Args:
+            event: The event to process.
+            session_id: The ID of the session.
+            inputs: The inputs to the session.
 
-    Args:
-        event: The event to process.
-        session_id: The ID of the session.
-        inputs: The inputs to the session.
+        Yields:
+            SessionNotification: The notification to send.
+        """
+        match event:
+            case FunctionToolCallEvent(part=part):
+                # Tool call started - save input for later use
+                tool_call_id = part.tool_call_id
+                inputs[tool_call_id] = part.args_as_dict()
 
-    Yields:
-        SessionNotification: The notification to send.
-    """
-    match event:
-        case FunctionToolCallEvent(part=part):
-            # Tool call started - save input for later use
-            tool_call_id = part.tool_call_id
-            inputs[tool_call_id] = part.args_as_dict()
+                # Skip generic notifications for self-notifying tools
+                if part.tool_name not in ACP_SELF_NOTIFYING_TOOLS:
+                    await self.notifications.tool_call(
+                        tool_name=part.tool_name,
+                        tool_input=part.args_as_dict(),
+                        tool_output=None,  # Not available yet
+                        status="pending",
+                        tool_call_id=tool_call_id,
+                    )
 
-            # Skip generic notifications for self-notifying tools
-            if part.tool_name not in ACP_SELF_NOTIFYING_TOOLS:
-                tool_notification = format_tool_call_for_acp(
-                    tool_name=part.tool_name,
-                    tool_input=part.args_as_dict(),
-                    tool_output=None,  # Not available yet
-                    session_id=session_id,
-                    status="pending",
-                    tool_call_id=tool_call_id,
-                )
-                yield tool_notification
+            case FunctionToolResultEvent(result=result, tool_call_id=tool_call_id) if (
+                isinstance(result, ToolReturnPart)
+            ):
+                # Tool call completed successfully
+                tool_input = inputs.get(tool_call_id, {})
 
-        case FunctionToolResultEvent(result=result, tool_call_id=tool_call_id) if (
-            isinstance(result, ToolReturnPart)
-        ):
-            # Tool call completed successfully
-            tool_input = inputs.get(tool_call_id, {})
+                # Check if the tool result is a streaming AsyncGenerator
+                if isinstance(result.content, AsyncGenerator):
+                    # Stream the tool output chunks
+                    full_content = ""
+                    async for chunk in result.content:
+                        full_content += str(chunk)
 
-            # Check if the tool result is a streaming AsyncGenerator
-            if isinstance(result.content, AsyncGenerator):
-                # Stream the tool output chunks
-                full_content = ""
-                async for chunk in result.content:
-                    full_content += str(chunk)
+                        # Yield intermediate streaming notification
+                        # Skip generic notifications for self-notifying tools
+                        if result.tool_name not in ACP_SELF_NOTIFYING_TOOLS:
+                            await self.notifications.tool_call(
+                                tool_name=result.tool_name,
+                                tool_input=tool_input,
+                                tool_output=chunk,
+                                status="in_progress",
+                                tool_call_id=tool_call_id,
+                            )
 
-                    # Yield intermediate streaming notification
-                    # Skip generic notifications for self-notifying tools
-                    if result.tool_name not in ACP_SELF_NOTIFYING_TOOLS:
-                        streaming_notification = format_tool_call_for_acp(
-                            tool_name=result.tool_name,
-                            tool_input=tool_input,
-                            tool_output=chunk,
-                            session_id=session_id,
-                            status="in_progress",
-                            tool_call_id=tool_call_id,
-                        )
-                        yield streaming_notification
+                    # Replace the AsyncGenerator with the full content to
+                    # prevent errors
+                    result.content = full_content
+                    final_output = full_content
+                else:
+                    final_output = result.content
 
-                # Replace the AsyncGenerator with the full content to
-                # prevent errors
-                result.content = full_content
-                final_output = full_content
-            else:
-                final_output = result.content
+                # Final completion notification
+                # Skip generic notifications for self-notifying tools
+                if result.tool_name not in ACP_SELF_NOTIFYING_TOOLS:
+                    await self.notifications.tool_call(
+                        tool_name=result.tool_name,
+                        tool_input=tool_input,
+                        tool_output=final_output,
+                        status="completed",
+                        tool_call_id=tool_call_id,
+                    )
+                # Clean up stored input
+                inputs.pop(tool_call_id, None)
 
-            # Final completion notification
-            # Skip generic notifications for self-notifying tools
-            if result.tool_name not in ACP_SELF_NOTIFYING_TOOLS:
-                tool_notification = format_tool_call_for_acp(
-                    tool_name=result.tool_name,
-                    tool_input=tool_input,
-                    tool_output=final_output,
-                    session_id=session_id,
-                    status="completed",
-                    tool_call_id=tool_call_id,
-                )
-                yield tool_notification
-
-            # Clean up stored input
-            inputs.pop(tool_call_id, None)
-
-        case FunctionToolResultEvent(result=result, tool_call_id=tool_call_id) if (
-            isinstance(result, RetryPromptPart)
-        ):
-            # Tool call failed and needs retry
-            tool_name = result.tool_name or "unknown"
-            error_message = result.model_response()
-            # Skip generic notifications for self-notifying tools
-            if tool_name not in ACP_SELF_NOTIFYING_TOOLS:
-                tool_notification = format_tool_call_for_acp(
-                    tool_name=tool_name,
-                    tool_input=inputs.get(tool_call_id, {}),
-                    tool_output=f"Error: {error_message}",
-                    session_id=session_id,
-                    status="failed",
-                    tool_call_id=tool_call_id,
-                )
-                yield tool_notification
-            inputs.pop(tool_call_id, None)  # Clean up stored input
+            case FunctionToolResultEvent(result=result, tool_call_id=tool_call_id) if (
+                isinstance(result, RetryPromptPart)
+            ):
+                # Tool call failed and needs retry
+                tool_name = result.tool_name or "unknown"
+                error_message = result.model_response()
+                # Skip generic notifications for self-notifying tools
+                if tool_name not in ACP_SELF_NOTIFYING_TOOLS:
+                    await self.notifications.tool_call(
+                        tool_name=tool_name,
+                        tool_input=inputs.get(tool_call_id, {}),
+                        tool_output=f"Error: {error_message}",
+                        status="failed",
+                        tool_call_id=tool_call_id,
+                    )
+                inputs.pop(tool_call_id, None)  # Clean up stored input

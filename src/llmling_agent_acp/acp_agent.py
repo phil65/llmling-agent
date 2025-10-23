@@ -253,16 +253,7 @@ class LLMlingACPAgent(ACPAgent):
                 msg = f"Session {params.session_id} not found"
                 raise ValueError(msg)  # noqa: TRY301
 
-            # Process prompt and stream responses
-            stop_reason = "end_turn"  # Default stop reason
-            async for result in session.process_prompt(params.prompt):
-                if isinstance(result, str):
-                    stop_reason = result
-                    break
-                msg = "Sending sessionUpdate notification: %s"
-                logger.info(msg, result.model_dump_json(exclude_none=True, by_alias=True))
-                await self.connection.session_update(result)
-
+            stop_reason = await session.process_prompt(params.prompt)
             # Return the actual stop reason from the session
             response = PromptResponse(stop_reason=stop_reason)
             msg = "Returning PromptResponse: %s"

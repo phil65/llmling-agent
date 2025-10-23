@@ -6,14 +6,12 @@ content blocks, session updates, and other data structures using the external ac
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, overload
+from typing import TYPE_CHECKING, overload
 
 from acp.acp_types import HttpMcpServer, SseMcpServer, StdioMcpServer
 from acp.schema import (
     AgentMessageChunk,
-    AgentThoughtChunk,
     AudioContentBlock,
-    ContentToolCallContent,
     EmbeddedResourceContentBlock,
     ImageContentBlock,
     PermissionOption,
@@ -22,8 +20,6 @@ from acp.schema import (
     SessionNotification,
     TextContentBlock,
     TextResourceContents,
-    ToolCallLocation,
-    ToolCallStart as ToolCall,
 )
 from llmling_agent.log import get_logger
 from llmling_agent_config.mcp_server import (
@@ -36,7 +32,7 @@ from llmling_agent_config.mcp_server import (
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from acp.acp_types import ContentBlock, MCPServer, ToolCallKind, ToolCallStatus
+    from acp.acp_types import ContentBlock, MCPServer, ToolCallKind
     from llmling_agent.models.content import BaseContent
     from llmling_agent_config.mcp_server import MCPServerConfig
 
@@ -223,67 +219,3 @@ def infer_tool_kind(tool_name: str) -> ToolCallKind:  # noqa: PLR0911
     if any(i in name_lower for i in ["fetch", "download", "request"]):
         return "fetch"
     return "other"  # Default to other
-
-
-def format_tool_call_for_acp(
-    tool_name: str,
-    tool_input: dict[str, Any],
-    tool_output: Any,
-    session_id: str,
-    status: ToolCallStatus = "completed",
-    tool_call_id: str | None = None,
-) -> SessionNotification:
-    """Format tool execution as ACP tool call update.
-
-    Args:
-        tool_name: Name of the tool that was executed
-        tool_input: Input parameters passed to the tool
-        tool_output: Output returned by the tool
-        session_id: ACP session identifier
-        status: Execution status
-        tool_call_id: Tool call identifier
-
-    Returns:
-        SessionNotification with tool call update
-    """
-    # Create tool call content from output
-    content: list[ContentToolCallContent] = []
-    if tool_output is not None:
-        output_text = str(tool_output)
-        block = TextContentBlock(text=output_text)
-        content.append(ContentToolCallContent(content=block))
-
-    # Extract file locations if present
-    locations = [
-        ToolCallLocation(path=value)
-        for key, value in tool_input.items()
-        if key in {"path", "file_path", "filepath"} and isinstance(value, str)
-    ]
-
-    tool_call = ToolCall(
-        tool_call_id=tool_call_id or f"{tool_name}_{hash(str(tool_input))}",
-        title=f"Execute {tool_name}",
-        status=status,
-        kind=infer_tool_kind(tool_name),
-        locations=locations or None,
-        content=content or None,
-        raw_input=tool_input,
-        raw_output=tool_output,
-    )
-
-    return SessionNotification(session_id=session_id, update=tool_call)
-
-
-def create_thought_chunk(thought: str, session_id: str) -> SessionNotification:
-    """Create an agent thought chunk for ACP streaming.
-
-    Args:
-        thought: Agent's internal thought/reasoning
-        session_id: ACP session identifier
-
-    Returns:
-        SessionNotification with thought chunk
-    """
-    content = TextContentBlock(text=thought)
-    update = AgentThoughtChunk(content=content)
-    return SessionNotification(session_id=session_id, update=update)
