@@ -10,8 +10,8 @@ from fastapi.responses import StreamingResponse
 import logfire
 
 from llmling_agent.log import get_logger
-from llmling_agent_server.completion_helpers import stream_response
-from llmling_agent_server.models import (
+from llmling_agent_server.completions.helpers import stream_response
+from llmling_agent_server.completions.models import (
     ChatCompletionResponse,
     Choice,
     OpenAIMessage,
@@ -21,7 +21,7 @@ from llmling_agent_server.models import (
 
 if TYPE_CHECKING:
     from llmling_agent import AgentPool
-    from llmling_agent_server.models import ChatCompletionRequest
+    from llmling_agent_server.completions.models import ChatCompletionRequest
 
 logger = get_logger(__name__)
 

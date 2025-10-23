@@ -45,7 +45,7 @@ def api_command(
     import uvicorn
 
     from llmling_agent import AgentPool, AgentsManifest
-    from llmling_agent_server.server import OpenAIServer
+    from llmling_agent_server.completions.server import OpenAIServer
 
     level = getattr(logging, log_level.upper())
     logging.basicConfig(level=level)

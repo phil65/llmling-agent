@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
 
     from llmling_agent import AnyAgent
-    from llmling_agent_server.models import ChatCompletionRequest
+    from llmling_agent_server.completions.models import ChatCompletionRequest
 
 logger = get_logger(__name__)
 
