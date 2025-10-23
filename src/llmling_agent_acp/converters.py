@@ -131,7 +131,6 @@ def from_content_blocks(blocks: Sequence[ContentBlock]) -> Sequence[str | BaseCo
         match block:
             case TextContentBlock(text=text):
                 content.append(text)
-
             case ImageContentBlock(data=data, mime_type=mime_type):
                 content.append(ImageBase64Content(data=data, mime_type=mime_type))
             case AudioContentBlock(data=data, mime_type=mime_type):
@@ -148,17 +147,12 @@ def from_content_blocks(blocks: Sequence[ContentBlock]) -> Sequence[str | BaseCo
                 content.append("\n".join(parts))
 
             case ResourceLink(uri=uri):
-                # Format as markdown-style link
-                formatted_uri = format_uri_as_link(uri)
-                content.append(formatted_uri)
-
+                content.append(format_uri_as_link(uri))  # Format as markdown-style link
             case EmbeddedResourceContentBlock(resource=resource):
                 match resource:
                     case TextResourceContents(uri=uri, text=text):
-                        formatted_uri = format_uri_as_link(uri)
-                        content.append(formatted_uri)
-                        context_block = f'\n<context ref="{uri}">\n{text}\n</context>'
-                        content.append(context_block)
+                        content.append(format_uri_as_link(uri))
+                        content.append(f'\n<context ref="{uri}">\n{text}\n</context>')
                     case _:
                         # Binary resource - just describe it with formatted URI
                         formatted_uri = format_uri_as_link(resource.uri)

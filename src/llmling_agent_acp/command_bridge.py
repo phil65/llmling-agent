@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, Any
 
 from acp.schema import AvailableCommand, AvailableCommandInput, CommandInputHint
 from llmling_agent.log import get_logger
-from llmling_agent_acp.converters import to_agent_text_notification
 from llmling_agent_acp.mcp_commands import MCPPromptCommand
 
 
@@ -37,8 +36,7 @@ class ACPOutputWriter:
 
     async def print(self, message: str = "", **kwargs: Any) -> None:
         """Send message immediately as session updates."""
-        if update := to_agent_text_notification(message, self.session.session_id):
-            await self.session.client.session_update(update)
+        await self.session.notifications.send_agent_text(message)
 
 
 class ACPCommandBridge:
@@ -129,10 +127,7 @@ class ACPCommandBridge:
             await self.command_store.execute_command(command_str, cmd_context)
         except Exception as e:
             logger.exception("Command execution failed")
-            if error_update := to_agent_text_notification(
-                f"Command error: {e}", session.session_id
-            ):
-                await session.client.session_update(error_update)
+            await session.notifications.send_agent_text(f"Command error: {e}")
 
     def register_update_callback(self, callback: Callable[[], None]) -> None:
         """Register callback for command updates.
