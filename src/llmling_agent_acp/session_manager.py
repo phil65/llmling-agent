@@ -141,37 +141,6 @@ class ACPSessionManager:
             else:
                 logger.warning("Attempted to close non-existent session %s", session_id)
 
-    async def list_sessions(self) -> list[str]:
-        """List all active session IDs.
-
-        Returns:
-            List of active session IDs
-        """
-        return list(self._sessions.keys())
-
-    async def get_session_count(self) -> int:
-        """Get the number of active sessions.
-
-        Returns:
-            Number of active sessions
-        """
-        return len(self._sessions)
-
-    async def close_all_sessions(self) -> None:
-        """Close all active sessions."""
-        async with self._lock:
-            sessions = list(self._sessions.values())
-            self._sessions.clear()
-
-        # Close sessions outside of lock to avoid deadlock
-        for session in sessions:
-            try:
-                await session.close()
-            except Exception:
-                logger.exception("Error closing session %s", session.session_id)
-
-        logger.info("Closed all %d sessions", len(sessions))
-
     async def cleanup_inactive_sessions(self) -> None:
         """Remove any inactive sessions."""
         async with self._lock:
@@ -198,7 +167,18 @@ class ACPSessionManager:
 
     async def __aexit__(self, *exc: object):
         """Async context manager exit."""
-        await self.close_all_sessions()
+        async with self._lock:
+            sessions = list(self._sessions.values())
+            self._sessions.clear()
+
+        # Close sessions outside of lock to avoid deadlock
+        for session in sessions:
+            try:
+                await session.close()
+            except Exception:
+                logger.exception("Error closing session %s", session.session_id)
+
+        logger.info("Closed all %d sessions", len(sessions))
 
     def _on_commands_updated(self) -> None:
         """Handle command updates by notifying all active sessions."""
