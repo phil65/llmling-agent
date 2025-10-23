@@ -7,6 +7,8 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Self
 
 from fastmcp import FastMCP
+from mcp import CreateMessageResult
+from mcp.types import TextContent
 
 import llmling_agent
 from llmling_agent.utils.tasks import TaskManager
@@ -18,8 +20,11 @@ if TYPE_CHECKING:
     from collections.abc import Callable
     from contextlib import AbstractAsyncContextManager
 
+    from fastmcp import SamplingMessage, ServerSession
     import mcp
     from mcp.server.lowlevel.server import LifespanResultT
+    from mcp.shared.context import LifespanContextT, RequestContext
+    from mcp.types import CreateMessageRequestParams as SamplingParams
 
     from llmling_agent.resource_providers.base import ResourceProvider
     from llmling_agent_config.pool_server import MCPPoolServerConfig
@@ -71,9 +76,23 @@ class LLMLingServer:
             instructions=instructions,
             lifespan=lifespan,
             version=llmling_agent.__version__,
+            # sampling_handler=self._sampling_handler,
         )
         self.server = self.fastmcp._mcp_server
         register_handlers(self)
+
+    async def _sampling_handler(
+        self,
+        messages: list[SamplingMessage],
+        params: SamplingParams,
+        context: RequestContext[ServerSession, LifespanContextT],
+    ) -> CreateMessageResult:
+        # This is a fallback handler in case the client does not support sampling.
+        return CreateMessageResult(
+            role="user",
+            content=[TextContent(text="test")],
+            model="test",
+        )
 
     async def start(self, *, raise_exceptions: bool = False):
         """Start the server."""
