@@ -40,7 +40,7 @@ def disable_logfire():
         import logfire
 
         original_configure = logfire.configure
-        logfire.configure = lambda *args, **kwargs: None
+        logfire.configure = lambda *args, **kwargs: None  # type: ignore
         yield
         logfire.configure = original_configure
     except ImportError:

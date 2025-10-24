@@ -35,8 +35,7 @@ def test_file_environment_path_resolution(tmp_path: pathlib.Path):
     env_file = config_dir / "env.yml"
 
     # Create minimal valid YAML content
-    env_content = {}
-    env_file.write_text(yamling.dump_yaml(env_content))
+    env_file.write_text(yamling.dump_yaml({}))
 
     # Test relative path resolution
     path = str(config_dir / "agent.yml")

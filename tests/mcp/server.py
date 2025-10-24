@@ -26,7 +26,7 @@ async def sample_test(ctx: Context, message: str) -> str:
 @mcp.tool
 async def test_elicitation(ctx: Context, message: str):
     """Use this to test the elicitation feature!."""
-    return await ctx.elicit(message, response_type=bool)
+    return await ctx.elicit(message, response_type=bool)  # type: ignore
 
 
 @mcp.tool

@@ -89,14 +89,7 @@ class TestClientFilesystemTools:
     @pytest.fixture
     async def fs_provider(self, session):
         """Create filesystem capability provider for testing."""
-        from acp.schema import ClientCapabilities, FileSystemCapability
-
-        fs_cap = FileSystemCapability(read_text_file=True, write_text_file=True)
-        capabilities = ClientCapabilities(fs=fs_cap, terminal=False)
-        return ACPFileSystemProvider(
-            session=session,
-            client_capabilities=capabilities,
-        )
+        return ACPFileSystemProvider(session=session)
 
     async def test_filesystem_tools_registered(
         self,
