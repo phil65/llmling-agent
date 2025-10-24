@@ -39,7 +39,7 @@ from llmling_agent_providers.pydanticai.utils import (
 
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator, Awaitable, Callable
+    from collections.abc import AsyncIterable, AsyncIterator, Awaitable, Callable
 
     from pydantic_ai import AgentStreamEvent, BuiltinToolCallPart
     from pydantic_ai.agent import AgentRunResult
@@ -273,7 +273,7 @@ class PydanticAIProvider(AgentProvider[Any]):
         tool_dict = {i.name: i for i in tools or []}
 
         async def event_stream_handler(
-            ctx: RunContext, events: AsyncIterator[AgentStreamEvent]
+            ctx: RunContext, events: AsyncIterable[AgentStreamEvent]
         ):
             async for event in events:
                 if isinstance(event, FunctionToolCallEvent):
