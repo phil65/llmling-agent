@@ -400,18 +400,18 @@ class PydanticAIProvider(AgentProvider[Any]):
             context_data=self._context.data if self._context else None,
         )
 
-    async def stream_events(
+    async def stream_events[TResult = str](
         self,
         *prompts: str | Content,
         message_history: list[ChatMessage],
         message_id: str,
-        result_type: type[Any] | None = None,
+        result_type: type[TResult] | None = None,
         model: ModelType = None,
         tools: list[Tool] | None = None,
         system_prompt: str | None = None,
         usage_limits: UsageLimits | None = None,
         **kwargs: Any,
-    ) -> AsyncIterator[AgentStreamEvent | AgentRunResultEvent]:
+    ) -> AsyncIterator[AgentStreamEvent | AgentRunResultEvent[TResult]]:
         """Stream events directly from pydantic-ai without wrapper complexity."""
         agent = await self.get_agent(system_prompt or "", tools=tools or [])
         use_model = model or self.model

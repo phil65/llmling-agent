@@ -64,7 +64,7 @@ class ACPFileSystemProvider(ResourceProvider):
     async def get_tools(self) -> list[Tool]:
         """Get filesystem tools based on client capabilities."""
         tools: list[Tool] = []
-        if fs_caps := self.client_capabilities.fs:
+        if self.client_capabilities and (fs_caps := self.client_capabilities.fs):
             if fs_caps.read_text_file:
                 tool = Tool.from_callable(
                     self.read_text_file, source="filesystem", category="read"

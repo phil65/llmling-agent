@@ -43,7 +43,11 @@ class ACPTerminalProvider(ResourceProvider):
 
     async def get_tools(self) -> list[Tool]:
         """Get all terminal tools with session_id baked in."""
-        if self.client_capabilities.terminal and self.agent.terminal_access:
+        if (
+            self.client_capabilities
+            and self.client_capabilities.terminal
+            and self.agent.terminal_access
+        ):
             return [
                 Tool.from_callable(
                     self.run_command, source="terminal", category="execute"

@@ -8,7 +8,7 @@ from contextlib import AsyncExitStack, asynccontextmanager
 from dataclasses import dataclass, field
 from os import PathLike
 import time
-from typing import TYPE_CHECKING, Any, Literal, Self, TypedDict, TypeVar, cast, overload
+from typing import TYPE_CHECKING, Any, Literal, Self, TypedDict, TypeVar, overload
 from uuid import uuid4
 
 from anyenv import MultiEventHandler, method_spawner
@@ -81,10 +81,10 @@ TResult = TypeVar("TResult", default=str)
 
 
 @dataclass(kw_only=True)
-class StreamCompleteEvent:
+class StreamCompleteEvent[TContent]:
     """Event indicating streaming is complete with final message."""
 
-    message: ChatMessage[Any]
+    message: ChatMessage[TContent]
     """The final chat message with all metadata."""
     event_kind: Literal["stream_complete"] = "stream_complete"
     """Event type identifier."""
@@ -778,6 +778,7 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
                 devtools.debug(response_msg)
             return response_msg
 
+    @method_spawner
     async def run_stream(
         self,
         *prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str],
@@ -826,7 +827,7 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
             chunks = []
             usage = None
             model_name = None
-
+            output = None
             # Stream events directly from provider
             async for event in self._provider.stream_events(
                 *prompts,
@@ -850,6 +851,7 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
                     case AgentRunResultEvent(result=result):
                         usage = result.usage()
                         model_name = result.response.model_name
+                        output = result.output
                         # Don't yield AgentRunResultEvent, we'll send our own final event
                     case _:
                         yield event  # Pass through other events
@@ -859,8 +861,8 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
             if model_name and usage and model_name != "test":
                 cost_info = await TokenCost.from_usage(usage, model_name)
 
-            response_msg = ChatMessage[TResult](
-                content=cast(TResult, "".join(chunks)),  # type: ignore
+            response_msg = ChatMessage(
+                content=output,
                 role="assistant",
                 name=self.name,
                 model=model_name,
@@ -1265,11 +1267,7 @@ if __name__ == "__main__":
     logging.basicConfig(handlers=[logfire.LogfireLoggingHandler()])
     sys_prompt = "Open browser with google,"
     _model = "openai:gpt-5-nano"
-
-    async def main():
-        async with Agent(model=_model, tools=["webbrowser.open"]) as agent:
-            agent.tool_used.connect(print)
-            async for chunk in agent.run_stream(sys_prompt):
-                print(chunk)
-
-    asyncio.run(main())
+    agent = Agent(model=_model, tools=["webbrowser.open"])
+    agent.tool_used.connect(print)
+    for chunk in agent.run_stream.sync(sys_prompt):
+        print(chunk)
