@@ -152,20 +152,19 @@ class ACPServer:
         agent_names = list(self.agent_pool.agents.keys())
         msg = "Starting ACP server with %d agents on stdio: %s"
         logger.info(msg, len(agent_names), agent_names)
-
-        create_acp_agent = functools.partial(
-            LLMlingACPAgent,
-            agent_pool=self.agent_pool,
-            available_models=self._available_models,
-            session_support=self.session_support,
-            file_access=self.file_access,
-            terminal_access=self.terminal_access,
-            usage_limits=self.usage_limits,
-            debug_commands=self.debug_commands,
-            default_agent=self.agent,
-        )
         try:
             await self._initialize_models()  # Initialize models on first run
+            create_acp_agent = functools.partial(
+                LLMlingACPAgent,
+                agent_pool=self.agent_pool,
+                available_models=self._available_models,
+                session_support=self.session_support,
+                file_access=self.file_access,
+                terminal_access=self.terminal_access,
+                usage_limits=self.usage_limits,
+                debug_commands=self.debug_commands,
+                default_agent=self.agent,
+            )
             reader, writer = await stdio_streams()
             file = self.debug_file if self.debug_messages else None
             conn = AgentSideConnection(create_acp_agent, writer, reader, debug_file=file)
