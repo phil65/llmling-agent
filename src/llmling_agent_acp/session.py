@@ -411,6 +411,10 @@ with other agents effectively."""
                         if delta is not None:
                             has_yielded_anything = True
                             await self.notifications.send_agent_thought(delta)
+                    case PartStartEvent(delta=delta):
+                        msg = "Received unhandled PartStartEvent %s for session %s"
+                        logger.debug(msg, delta, self.session_id)
+
                     case PartDeltaEvent(delta=ToolCallPartDelta()):
                         # Handle tool call delta updates
                         msg = "Received ToolCallPartDelta for session %s"
