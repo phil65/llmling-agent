@@ -310,35 +310,33 @@ with other agents effectively."""
 
         # Reset cancellation flag
         self._cancelled = False
+        # Check for cancellation
+        if self._cancelled:
+            return "cancelled"
+
+        # Convert content blocks to structured content
+        contents = from_content_blocks(content_blocks)
+        logger.info("Converted content: %r", contents)
+
+        if not contents:
+            msg = "Empty prompt received for session %s"
+            logger.warning(msg, self.session_id)
+            return "refusal"
+
+        # Check for slash commands in text content
+        commands: list[str] = []
+        non_command_content: list[str | BaseContent] = []
+        for item in contents:
+            if isinstance(item, str) and _is_slash_command(item):
+                # Found a slash command
+                command_text = item.strip()
+                logger.info("Found slash command: %s", command_text)
+                commands.append(command_text)
+            else:
+                non_command_content.append(item)
 
         async with self._task_lock:
             try:
-                # Check for cancellation
-                if self._cancelled:
-                    return "cancelled"
-
-                # Convert content blocks to structured content
-                contents = from_content_blocks(content_blocks)
-                logger.info("Converted content: %r", contents)
-
-                if not contents:
-                    msg = "Empty prompt received for session %s"
-                    logger.warning(msg, self.session_id)
-                    return "refusal"
-
-                # Check for slash commands in text content
-                commands: list[str] = []
-                non_command_content: list[str | BaseContent] = []
-
-                for item in contents:
-                    if isinstance(item, str) and _is_slash_command(item):
-                        # Found a slash command
-                        command_text = item.strip()
-                        logger.info("Found slash command: %s", command_text)
-                        commands.append(command_text)
-                    else:
-                        non_command_content.append(item)
-
                 # Process commands if found
                 if commands and self.command_bridge:
                     for command in commands:
@@ -418,7 +416,6 @@ with other agents effectively."""
                     case StreamCompleteEvent(message=message):
                         # Handle final completion
                         logger.info("Stream completed for session %s", self.session_id)
-
                         # If no chunks were streamed, send the complete content
                         if (
                             not has_yielded_anything
@@ -458,42 +455,6 @@ with other agents effectively."""
             return "cancelled"
         else:
             return "end_turn"
-
-    async def execute_tool(self, tool_name: str, tool_params: dict[str, Any]) -> None:
-        """Execute a tool and stream the results.
-
-        Args:
-            tool_name: Name of the tool to execute
-            tool_params: Parameters to pass to the tool
-
-        Yields:
-            SessionNotification objects for tool execution updates
-        """
-        try:
-            try:
-                tool = self.agent.tools[tool_name]
-            except KeyError:
-                msg = "Tool %s not found in agent %s"
-                logger.warning(msg, tool_name, self.agent.name)
-                return
-            result = await tool.execute(**tool_params)
-            # Format as ACP tool call notification
-            await self.notifications.tool_call(
-                tool_name=tool_name,
-                tool_input=tool_params,
-                tool_output=result,
-                status="completed",
-            )
-
-        except Exception as e:
-            msg = "Error executing tool %s in session %s"
-            logger.exception(msg, tool_name, self.session_id)
-            await self.notifications.tool_call(
-                tool_name=tool_name,
-                tool_input=tool_params,
-                tool_output=f"Error: {e}",
-                status="failed",
-            )
 
     async def close(self) -> None:
         """Close the session and cleanup resources."""
