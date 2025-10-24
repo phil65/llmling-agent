@@ -399,18 +399,18 @@ with other agents effectively."""
 
                 match event:
                     case (
-                        PartStartEvent(part=TextPart(content=content))
-                        | PartDeltaEvent(delta=TextPartDelta(content_delta=content))
+                        PartStartEvent(part=TextPart(content=delta))
+                        | PartDeltaEvent(delta=TextPartDelta(content_delta=delta))
                     ):
                         has_yielded_anything = True
-                        await self.notifications.send_agent_text(content)
+                        await self.notifications.send_agent_text(delta)
                     case (
-                        PartStartEvent(part=ThinkingPart(content=content))
-                        | PartDeltaEvent(delta=ThinkingPartDelta(content_delta=content))
+                        PartStartEvent(part=ThinkingPart(content=delta))
+                        | PartDeltaEvent(delta=ThinkingPartDelta(content_delta=delta))
                     ):
-                        if content is not None:
+                        if delta is not None:
                             has_yielded_anything = True
-                            await self.notifications.send_agent_thought(content)
+                            await self.notifications.send_agent_thought(delta)
                     case PartDeltaEvent(delta=ToolCallPartDelta()):
                         # Handle tool call delta updates
                         msg = "Received ToolCallPartDelta for session %s"
