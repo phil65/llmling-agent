@@ -12,13 +12,17 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from pydantic_ai import FinalResultEvent
 from pydantic_ai.exceptions import UsageLimitExceeded
 from pydantic_ai.messages import (
     FunctionToolCallEvent,
     FunctionToolResultEvent,
     PartDeltaEvent,
+    PartStartEvent,
     RetryPromptPart,
+    TextPart,
     TextPartDelta,
+    ThinkingPart,
     ThinkingPartDelta,
     ToolCallPartDelta,
     ToolReturnPart,
@@ -394,28 +398,35 @@ with other agents effectively."""
                 logger.debug(msg, event_count, type(event).__name__, self.session_id)
 
                 match event:
-                    case PartDeltaEvent(delta=TextPartDelta(content_delta=delta)):
+                    case (
+                        PartStartEvent(part=TextPart(content=content))
+                        | PartDeltaEvent(delta=TextPartDelta(content_delta=content))
+                    ):
                         has_yielded_anything = True
-                        await self.notifications.send_agent_text(delta)
-                    case PartDeltaEvent(delta=ThinkingPartDelta(content_delta=delta)):
-                        if delta is not None:
+                        await self.notifications.send_agent_text(content)
+                    case (
+                        PartStartEvent(part=ThinkingPart(content=content))
+                        | PartDeltaEvent(delta=ThinkingPartDelta(content_delta=content))
+                    ):
+                        if content is not None:
                             has_yielded_anything = True
-                            await self.notifications.send_agent_thought(delta)
+                            await self.notifications.send_agent_thought(content)
                     case PartDeltaEvent(delta=ToolCallPartDelta()):
                         # Handle tool call delta updates
-                        pass
-                        # msg = "Received ToolCallPartDelta for session %s"
-                        # logger.info(msg, self.session_id)
+                        msg = "Received ToolCallPartDelta for session %s"
+                        logger.debug(msg, self.session_id)
 
                     case FunctionToolCallEvent() | FunctionToolResultEvent():
                         # Handle tool events using process_agent_stream_event function
                         logger.info("Processing tool event: %s", type(event).__name__)
                         await self.process_agent_stream_event(event, inputs=inputs)
                         has_yielded_anything = True
-
+                    case FinalResultEvent():
+                        msg = "Final result received for session %s"
+                        logger.debug(msg, self.session_id)
                     case StreamCompleteEvent(message=message):
                         # Handle final completion
-                        logger.info("Stream completed for session %s", self.session_id)
+                        logger.debug("Stream completed for session %s", self.session_id)
                         # If no chunks were streamed, send the complete content
                         if (
                             not has_yielded_anything
