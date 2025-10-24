@@ -373,8 +373,6 @@ with other agents effectively."""
         Returns:
             StopReason literal
         """
-        from pydantic_ai.messages import FunctionToolCallEvent, FunctionToolResultEvent
-
         from llmling_agent.agent.agent import StreamCompleteEvent
 
         msg = "Starting agent.run_stream for session %s with %d content items"
