@@ -150,6 +150,8 @@ class Connection:
                 line = await self._reader.readline()
                 if not line:
                     break
+                if line == b"null\n":
+                    continue
                 try:
                     message = anyenv.load_json(line, return_type=dict)
                 except Exception:
