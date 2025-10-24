@@ -51,8 +51,11 @@ async def delegate_to(  # noqa: D417
         result = await node.run(prompt)
         return result.format(style="detailed", show_costs=True)
 
-    msg = f"No agent or team found with name: {agent_or_team_name}"
-    raise ToolError(msg)
+    msg = (
+        f"No agent or team found with name: {agent_or_team_name}. "
+        f"Available agents: {', '.join(ctx.pool.nodes.keys())}"
+    )
+    raise ModelRetry(msg)
 
 
 async def list_available_agents(  # noqa: D417
@@ -235,14 +238,14 @@ async def add_agent(  # noqa: D417
 
 async def add_team(  # noqa: D417
     ctx: AgentContext,
-    agents: list[str],
+    nodes: list[str],
     mode: Literal["sequential", "parallel"] = "sequential",
     name: str | None = None,
 ) -> str:
     """Create a team from existing agents.
 
     Args:
-        agents: Names of agents to include in team
+        nodes: Names of agents / sub-teams to include in team
         mode: How the team should operate:
             - sequential: Agents process in sequence (pipeline)
             - parallel: Agents process simultaneously
@@ -255,16 +258,19 @@ async def add_team(  # noqa: D417
         raise ToolError(msg)
 
     # Verify all agents exist
-    for agent_name in agents:
-        if agent_name not in ctx.pool.agents:
-            msg = f"Agent not found: {agent_name}"
-            raise ToolError(msg)
+    for node_name in nodes:
+        if node_name not in ctx.pool.nodes:
+            msg = (
+                f"No agent or team found with name: {node_name}. "
+                f"Available nodes: {', '.join(ctx.pool.nodes.keys())}"
+            )
+            raise ModelRetry(msg)
     if mode == "sequential":
-        ctx.pool.create_team_run(agents, name=name)
+        ctx.pool.create_team_run(nodes, name=name)
     else:
-        ctx.pool.create_team(agents, name=name)
+        ctx.pool.create_team(nodes, name=name)
     mode_str = "pipeline" if mode == "sequential" else "parallel"
-    return f"Created {mode_str} team with agents: {', '.join(agents)}"
+    return f"Created {mode_str} team with nodes: {', '.join(nodes)}"
 
 
 async def ask_agent(  # noqa: D417
@@ -289,6 +295,12 @@ async def ask_agent(  # noqa: D417
     if isinstance(ctx, RunContext):
         ctx = ctx.deps
     assert ctx.pool, "No agent pool available"
+    if agent_name not in ctx.pool.nodes:
+        msg = (
+            f"No agent or team found with name: {agent_name}. "
+            f"Available nodes: {', '.join(ctx.pool.nodes.keys())}"
+        )
+        raise ModelRetry(msg)
     agent = ctx.pool.get_agent(agent_name)
     try:
         result = await agent.run(message, model=model, store_history=store_history)
@@ -343,11 +355,17 @@ async def connect_nodes(  # noqa: D417
 
     # Get the nodes
     if source not in ctx.pool.nodes:
-        msg = f"Source node not found: {source}"
-        raise ToolError(msg)
+        msg = (
+            f"No agent or team found with name: {source}. "
+            f"Available nodes: {', '.join(ctx.pool.nodes.keys())}"
+        )
+        raise ModelRetry(msg)
     if target not in ctx.pool.nodes:
-        msg = f"Target node not found: {target}"
-        raise ToolError(msg)
+        msg = (
+            f"No agent or team found with name: {target}. "
+            f"Available nodes: {', '.join(ctx.pool.nodes.keys())}"
+        )
+        raise ModelRetry(msg)
 
     source_node = ctx.pool.nodes[source]
     target_node = ctx.pool.nodes[target]
