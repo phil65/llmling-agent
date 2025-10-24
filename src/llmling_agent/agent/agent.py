@@ -754,6 +754,7 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
                 usage_limits=usage_limits,
                 model=model,
                 system_prompt=sys_prompt,
+                event_stream_handler=self.event_handler,
             )
         except Exception as e:
             logger.exception("Agent run failed")

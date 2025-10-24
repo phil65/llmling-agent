@@ -41,8 +41,9 @@ from llmling_agent_providers.pydanticai.utils import (
 if TYPE_CHECKING:
     from collections.abc import AsyncIterable, AsyncIterator, Awaitable, Callable
 
+    from anyenv import MultiEventHandler
     from pydantic_ai import AgentStreamEvent, BuiltinToolCallPart
-    from pydantic_ai.agent import AgentRunResult
+    from pydantic_ai.agent import AgentRunResult, EventStreamHandler
     from pydantic_ai.run import AgentRunResultEvent
 
     from llmling_agent.common_types import EndStrategy, ModelType
@@ -260,6 +261,7 @@ class PydanticAIProvider(AgentProvider[Any]):
         tools: list[Tool] | None = None,
         system_prompt: str | None = None,
         usage_limits: UsageLimits | None = None,
+        event_stream_handler: MultiEventHandler[EventStreamHandler] | None = None,
         **kwargs: Any,
     ) -> ProviderResponse:
         """Generate response using pydantic-ai."""
@@ -272,7 +274,7 @@ class PydanticAIProvider(AgentProvider[Any]):
         # Create event stream handler for real-time tool signals
         tool_dict = {i.name: i for i in tools or []}
 
-        async def event_stream_handler(
+        async def stream_handler(
             ctx: RunContext, events: AsyncIterable[AgentStreamEvent]
         ):
             async for event in events:
@@ -290,6 +292,12 @@ class PydanticAIProvider(AgentProvider[Any]):
 
                         self.tool_used.emit(tool_call_info)
 
+        if event_stream_handler:
+            event_stream_handler.add_handler(stream_handler)
+            final_handler: EventStreamHandler = event_stream_handler
+        else:
+            final_handler = stream_handler
+
         try:
             # Convert prompts to pydantic-ai format
             converted_prompts = await convert_prompts_to_user_content(prompts)
@@ -306,7 +314,7 @@ class PydanticAIProvider(AgentProvider[Any]):
                 output_type=result_type or str,
                 model_settings=self.model_settings,  # type: ignore
                 usage_limits=PydanticAiUsageLimits(**limits),
-                event_stream_handler=event_stream_handler,
+                event_stream_handler=final_handler,
             )
 
             # Extract tool calls for final response
