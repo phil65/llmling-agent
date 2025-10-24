@@ -26,8 +26,8 @@ from acp.schema import (
     ToolCallProgress,
     ToolCallStart,
 )
+from acp.utils import infer_tool_kind
 from llmling_agent.log import get_logger
-from llmling_agent_acp.converters import infer_tool_kind
 
 
 if TYPE_CHECKING:
