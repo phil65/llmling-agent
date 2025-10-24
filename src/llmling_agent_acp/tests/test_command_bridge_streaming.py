@@ -10,24 +10,23 @@ from slashed import CommandStore
 
 from llmling_agent import Agent, AgentPool
 from llmling_agent_acp.command_bridge import ACPCommandBridge, ACPOutputWriter
-from llmling_agent_acp.converters import to_agent_text_notification
 from llmling_agent_acp.session import ACPSession
 
 
 @pytest.mark.asyncio
 async def test_acp_output_writer():
     """Test that ACPOutputWriter sends updates immediately to session."""
-    # Mock session with client
+    # Mock session with notifications
     mock_session = AsyncMock(spec=ACPSession)
     mock_session.session_id = "test_session"
-    mock_session.client = AsyncMock()
+    mock_session.notifications = AsyncMock()
 
-    received_updates = []
+    received_messages = []
 
-    async def capture_update(update):
-        received_updates.append(update)
+    async def capture_message(message):
+        received_messages.append(message)
 
-    mock_session.client.session_update.side_effect = capture_update
+    mock_session.notifications.send_agent_text.side_effect = capture_message
 
     writer = ACPOutputWriter(mock_session)
 
@@ -35,16 +34,13 @@ async def test_acp_output_writer():
     await writer.print("First message")
     await writer.print("Second message")
 
-    # Verify updates were sent immediately
-    expected_update_count = 2
-    assert len(received_updates) == expected_update_count
+    # Verify messages were sent immediately
+    expected_message_count = 2
+    assert len(received_messages) == expected_message_count
 
-    # Verify content matches expected session updates
-    expected_first = to_agent_text_notification("First message", "test_session")
-    expected_second = to_agent_text_notification("Second message", "test_session")
-
-    assert received_updates[0] == expected_first
-    assert received_updates[1] == expected_second
+    # Verify content was sent correctly
+    assert received_messages[0] == "First message"
+    assert received_messages[1] == "Second message"
 
 
 @pytest.mark.asyncio
@@ -63,27 +59,26 @@ async def test_command_bridge_immediate_execution():
     command_store = CommandStore()
     command_bridge = ACPCommandBridge(command_store)
 
-    # Mock session with client
+    # Mock session with notifications
     mock_session = AsyncMock(spec=ACPSession)
     mock_session.session_id = "test_session"
     mock_session.agent = AsyncMock()
     mock_session.agent.context = None
-    mock_session.client = AsyncMock()
+    mock_session.notifications = AsyncMock()
 
-    # Capture updates sent to client
-    sent_updates = []
+    # Capture messages sent via notifications
+    sent_messages = []
 
-    async def capture_update(update):
-        sent_updates.append(update)
+    async def capture_message(message):
+        sent_messages.append(message)
 
-    mock_session.client.session_update.side_effect = capture_update
+    mock_session.notifications.send_agent_text.side_effect = capture_message
 
-    # Test command execution - now it's not an async generator
+    # Test command execution
     await command_bridge.execute_slash_command("/help", mock_session)
 
-    # Verify updates were sent immediately to client
-    assert len(sent_updates) > 0
-    assert all(update.session_id == "test_session" for update in sent_updates)
+    # Verify messages were sent immediately via notifications
+    assert len(sent_messages) > 0
 
 
 @pytest.mark.asyncio
@@ -106,38 +101,40 @@ async def test_immediate_send_with_slow_command():
 
     command_bridge = ACPCommandBridge(command_store)
 
-    # Mock session with client
+    # Mock session with notifications
     mock_session = AsyncMock(spec=ACPSession)
     mock_session.session_id = "test_session"
     mock_session.agent = AsyncMock()
     mock_session.agent.context = None
-    mock_session.client = AsyncMock()
+    mock_session.notifications = AsyncMock()
 
-    # Collect updates with timestamps to verify immediate sending
-    updates_with_time = []
+    # Collect messages with timestamps to verify immediate sending
+    messages_with_time = []
     start_time = asyncio.get_event_loop().time()
 
-    async def capture_with_time(update):
+    async def capture_with_time(message):
         current_time = asyncio.get_event_loop().time()
-        updates_with_time.append((update, current_time - start_time))
+        messages_with_time.append((message, current_time - start_time))
 
-    mock_session.client.session_update.side_effect = capture_with_time
+    mock_session.notifications.send_agent_text.side_effect = capture_with_time
 
     # Execute command
     await command_bridge.execute_slash_command("/slow", mock_session)
 
-    # Verify we got multiple updates
-    min_expected_updates = 3
-    assert len(updates_with_time) >= min_expected_updates
+    # Verify we got multiple messages
+    min_expected_messages = 3
+    assert len(messages_with_time) >= min_expected_messages
 
-    # Verify updates came at different times (immediate sending behavior)
-    times = [time for _, time in updates_with_time]
-    assert times[1] > times[0]  # Second update came after first
-    assert times[2] > times[1]  # Third update came after second
+    # Verify messages came at different times (immediate sending behavior)
+    times = [time for _, time in messages_with_time]
+    assert times[1] > times[0]  # Second message came after first
+    assert times[2] > times[1]  # Third message came after second
 
-    # Verify session IDs are correct
-    for update, _ in updates_with_time:
-        assert update.session_id == "test_session"
+    # Verify message content is correct
+    expected_messages = ["Starting task...", "Processing...", "Completed!"]
+    actual_messages = [message for message, _ in messages_with_time]
+    for expected in expected_messages:
+        assert expected in actual_messages
 
 
 @pytest.mark.asyncio
@@ -156,36 +153,29 @@ async def test_immediate_send_error_handling():
 
     command_bridge = ACPCommandBridge(command_store)
 
-    # Mock session with client
+    # Mock session with notifications
     mock_session = AsyncMock(spec=ACPSession)
     mock_session.session_id = "test_session"
     mock_session.agent = AsyncMock()
     mock_session.agent.context = None
-    mock_session.client = AsyncMock()
+    mock_session.notifications = AsyncMock()
 
-    # Collect all updates
-    sent_updates = []
+    # Collect all messages
+    sent_messages = []
 
-    async def capture_update(update):
-        sent_updates.append(update)
+    async def capture_message(message):
+        sent_messages.append(message)
 
-    mock_session.client.session_update.side_effect = capture_update
+    mock_session.notifications.send_agent_text.side_effect = capture_message
 
     # Execute failing command
     await command_bridge.execute_slash_command("/fail", mock_session)
 
     # Should get the initial output plus error message
-    min_expected_updates = 2
-    assert len(sent_updates) >= min_expected_updates
+    min_expected_messages = 2
+    assert len(sent_messages) >= min_expected_messages
 
     # Check that we got both normal output and error
-    update_contents = [
-        update.update.content.text
-        for update in sent_updates
-        if hasattr(update.update, "content") and hasattr(update.update.content, "text")
-    ]
-
-    # Should contain both the initial message and error
-    content_text = " ".join(update_contents)
-    assert "Starting..." in content_text
-    assert "Command error:" in content_text
+    message_text = " ".join(sent_messages)
+    assert "Starting..." in message_text
+    assert "Command error:" in message_text
