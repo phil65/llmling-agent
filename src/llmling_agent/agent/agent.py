@@ -68,8 +68,7 @@ if TYPE_CHECKING:
     from llmling_agent_input.base import InputProvider
     from llmling_agent_providers.base import UsageLimits
 
-from pydantic_ai.agent import EventStreamHandler
-
+from llmling_agent.common_types import IndividualEventHandler
 from llmling_agent_providers.base import AgentProvider
 
 
@@ -121,7 +120,7 @@ class AgentKwargs(TypedDict, total=False):
     # Behavior Control
     input_provider: InputProvider | None
     debug: bool
-    event_handlers: Sequence[EventStreamHandler] | None
+    event_handlers: Sequence[IndividualEventHandler] | None
 
 
 class Agent[TDeps = None](MessageNode[TDeps, str]):
@@ -179,7 +178,7 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
         input_provider: InputProvider | None = None,
         parallel_init: bool = True,
         debug: bool = False,
-        event_handlers: Sequence[EventStreamHandler] | None = None,
+        event_handlers: Sequence[IndividualEventHandler] | None = None,
     ):
         """Initialize agent with runtime configuration.
 
@@ -257,7 +256,7 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
         runtime_provider = RuntimePromptProvider(ctx.runtime)
         ctx.definition.prompt_manager.providers["runtime"] = runtime_provider
         # Initialize tool manager
-        self.event_handler = MultiEventHandler[EventStreamHandler](event_handlers)
+        self.event_handler = MultiEventHandler[IndividualEventHandler](event_handlers)
         all_tools = list(tools or [])
         self.tools = ToolManager(all_tools)
         self.tools.add_provider(self.mcp)
@@ -1268,7 +1267,13 @@ if __name__ == "__main__":
     logging.basicConfig(handlers=[logfire.LogfireLoggingHandler()])
     sys_prompt = "Open browser with google,"
     _model = "openai:gpt-5-nano"
-    agent = Agent(model=_model, tools=["webbrowser.open"])
-    agent.tool_used.connect(print)
-    for chunk in agent.run_stream.sync(sys_prompt):
-        print(chunk)
+
+    async def handle_events(ctx, event):
+        print(f"[EVENT] {type(event).__name__}: {event}")
+
+    def handle_tool_used(tc_info):
+        print(f"[SIGNAL] Tool used: {tc_info.tool_name} with args {tc_info.args}")
+
+    agent = Agent(model=_model, tools=["webbrowser.open"], event_handlers=[handle_events])
+    agent.tool_used.connect(handle_tool_used)
+    result = agent.run.sync(sys_prompt)

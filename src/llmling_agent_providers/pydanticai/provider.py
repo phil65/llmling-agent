@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any, get_args, get_origin
 
 from llmling_models import AllModels, infer_model
 import logfire
-from pydantic_ai import Agent as PydanticAgent
+from pydantic_ai import Agent as PydanticAgent, RunContext
 import pydantic_ai._function_schema
 from pydantic_ai.messages import (
     FunctionToolCallEvent,
@@ -18,7 +18,7 @@ from pydantic_ai.messages import (
     ToolCallPart,
 )
 from pydantic_ai.models import KnownModelName, Model
-from pydantic_ai.tools import GenerateToolJsonSchema, RunContext
+from pydantic_ai.tools import GenerateToolJsonSchema
 from pydantic_ai.usage import UsageLimits as PydanticAiUsageLimits
 
 from llmling_agent.agent.context import AgentContext
@@ -46,7 +46,7 @@ if TYPE_CHECKING:
     from pydantic_ai.agent import AgentRunResult, EventStreamHandler
     from pydantic_ai.run import AgentRunResultEvent
 
-    from llmling_agent.common_types import EndStrategy, ModelType
+    from llmling_agent.common_types import EndStrategy, IndividualEventHandler, ModelType
     from llmling_agent.messaging.messages import ChatMessage
     from llmling_agent.models.content import Content
     from llmling_agent.tools.base import Tool
@@ -261,7 +261,7 @@ class PydanticAIProvider(AgentProvider[Any]):
         tools: list[Tool] | None = None,
         system_prompt: str | None = None,
         usage_limits: UsageLimits | None = None,
-        event_stream_handler: MultiEventHandler[EventStreamHandler] | None = None,
+        event_stream_handler: MultiEventHandler[IndividualEventHandler] | None = None,
         **kwargs: Any,
     ) -> ProviderResponse:
         """Generate response using pydantic-ai."""
@@ -274,29 +274,38 @@ class PydanticAIProvider(AgentProvider[Any]):
         # Create event stream handler for real-time tool signals
         tool_dict = {i.name: i for i in tools or []}
 
-        async def stream_handler(
+        async def internal_tool_handler(ctx: RunContext, event: AgentStreamEvent):
+            if isinstance(event, FunctionToolCallEvent):
+                # Extract tool call info and emit signal immediately
+                call = event.part
+                if call.tool_name in tool_dict:
+                    tool_call_info = self._create_tool_call_info(
+                        call, tool_dict, message_id
+                    )
+                    tool_call_info.message_id = message_id
+                    tool_call_info.context_data = (
+                        self._context.data if self._context else None
+                    )
+
+                    self.tool_used.emit(tool_call_info)
+
+        # Event distributor: single consumer, multiple processors
+        async def event_distributor(
             ctx: RunContext, events: AsyncIterable[AgentStreamEvent]
         ):
+            # Collect all handlers
+            all_handlers: list[IndividualEventHandler] = [internal_tool_handler]
+            if event_stream_handler:
+                all_handlers.extend(event_stream_handler._wrapped_handlers)
+
+            # Single consumer distributes events to all handlers
             async for event in events:
-                if isinstance(event, FunctionToolCallEvent):
-                    # Extract tool call info and emit signal immediately
-                    call = event.part
-                    if call.tool_name in tool_dict:
-                        tool_call_info = self._create_tool_call_info(
-                            call, tool_dict, message_id
-                        )
-                        tool_call_info.message_id = message_id
-                        tool_call_info.context_data = (
-                            self._context.data if self._context else None
-                        )
+                # Execute all handlers for this event
+                for handler in all_handlers:
+                    await handler(ctx, event)
 
-                        self.tool_used.emit(tool_call_info)
-
-        if event_stream_handler:
-            event_stream_handler.add_handler(stream_handler)
-            final_handler: EventStreamHandler = event_stream_handler
-        else:
-            final_handler = stream_handler
+        # Always use our event distributor as the final handler
+        final_handler: EventStreamHandler = event_distributor
 
         try:
             # Convert prompts to pydantic-ai format

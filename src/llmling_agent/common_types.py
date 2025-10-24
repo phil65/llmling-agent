@@ -14,6 +14,7 @@ from uuid import UUID
 
 from llmling import LLMCallableTool
 from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic_ai import AgentStreamEvent, RunContext
 from pydantic_ai.models import Model
 
 
@@ -46,6 +47,10 @@ type AnyTransformFn[T] = Callable[[T], T | Awaitable[T]]
 type OptionalAwaitable[T] = T | Awaitable[T]
 
 type ToolType = str | AnyCallable | LLMCallableTool
+
+# Event handler types for composable event processing
+# Individual event handler for composability - takes single events
+IndividualEventHandler = Callable[[RunContext, AgentStreamEvent], Awaitable[None]]
 
 # P = ParamSpec("P")
 # SyncAsync = Callable[P, OptionalAwaitable[T]]
