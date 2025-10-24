@@ -364,7 +364,7 @@ with other agents effectively."""
                 # Return refusal for errors
                 return "refusal"
 
-    async def _process_iter_response(  # noqa: PLR0911
+    async def _process_iter_response(  # noqa: PLR0911, PLR0915
         self, content: list[str | BaseContent]
     ) -> StopReason:
         """Process content using event-based streaming.
