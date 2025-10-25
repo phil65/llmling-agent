@@ -470,20 +470,29 @@ class MCPClient:
                 case TextResourceContents(text=text):
                     pydantic_content.append(text)
                 case ImageContent(data=data, mimeType=mime_type):
-                    # MCP data is base64 encoded string, decode it for PydanticAI
-                    decoded_data = base64.b64decode(data)
+                    # MCP data can be either bytes or base64 encoded string
+                    if isinstance(data, bytes):
+                        decoded_data = data
+                    else:
+                        decoded_data = base64.b64decode(data)
                     pydantic_content.append(
                         BinaryContent(data=decoded_data, media_type=mime_type)
                     )
                 case AudioContent(data=data, mimeType=mime_type):
-                    # MCP data is base64 encoded string, decode it for PydanticAI
-                    decoded_data = base64.b64decode(data)
+                    # MCP data can be either bytes or base64 encoded string
+                    if isinstance(data, bytes):
+                        decoded_data = data
+                    else:
+                        decoded_data = base64.b64decode(data)
                     pydantic_content.append(
                         BinaryContent(data=decoded_data, media_type=mime_type)
                     )
                 case BlobResourceContents(blob=blob):
-                    # MCP blob is base64 encoded string
-                    decoded_data = base64.b64decode(blob)
+                    # MCP blob can be either bytes or base64 encoded string
+                    if isinstance(blob, bytes):
+                        decoded_data = blob
+                    else:
+                        decoded_data = base64.b64decode(blob)
                     pydantic_content.append(
                         BinaryContent(
                             data=decoded_data, media_type="application/octet-stream"
