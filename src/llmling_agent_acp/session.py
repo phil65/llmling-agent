@@ -35,11 +35,7 @@ from acp.schema import ReadTextFileRequest
 from llmling_agent.log import get_logger
 from llmling_agent.mcp_server.manager import MCPManager
 from llmling_agent.resource_providers.aggregating import AggregatingResourceProvider
-from llmling_agent_acp.acp_tools import (
-    ACPFileSystemProvider,
-    ACPPlanProvider,
-    ACPTerminalProvider,
-)
+from llmling_agent_acp.acp_tools import get_acp_provider
 from llmling_agent_acp.command_bridge import SLASH_PATTERN
 from llmling_agent_acp.converters import (
     convert_acp_mcp_server_to_config,
@@ -133,7 +129,7 @@ class ACPSession:
         self._cancelled = False
         self.mcp_manager: MCPManager | None = None
         self.fs = ACPFileSystem(self.client, session_id=self.session_id)
-        self.capability_provider: AggregatingResourceProvider | None = None
+        self._acp_provider: AggregatingResourceProvider | None = None
         self.notifications = ACPNotifications(
             client=self.client,
             session_id=self.session_id,
@@ -141,18 +137,9 @@ class ACPSession:
         self.requests = ACPRequests(client=self.client, session_id=self.session_id)
 
         if self.client_capabilities:
-            providers = [
-                ACPPlanProvider(self),
-                ACPTerminalProvider(self),
-                ACPFileSystemProvider(self),
-            ]
-
-            self.capability_provider = AggregatingResourceProvider(
-                providers=providers, name=f"acp_capabilities_{self.session_id}"
-            )
-            # Add capability provider to current agent
+            self._acp_provider = get_acp_provider(self)
             current_agent = self.agent_pool.get_agent(self.current_agent_name)
-            current_agent.tools.add_provider(self.capability_provider)
+            current_agent.tools.add_provider(self._acp_provider)
 
         # Add cwd context to all agents in the pool
         for agent in self.agent_pool.agents.values():
@@ -269,12 +256,12 @@ with other agents effectively."""
         self.current_agent_name = agent_name
 
         # Move capability provider from old agent to new agent
-        if self.capability_provider:
+        if self._acp_provider:
             old_agent = self.agent_pool.get_agent(old_agent_name)
             new_agent = self.agent_pool.get_agent(agent_name)
 
-            old_agent.tools.remove_provider(self.capability_provider)
-            new_agent.tools.add_provider(self.capability_provider)
+            old_agent.tools.remove_provider(self._acp_provider)
+            new_agent.tools.add_provider(self._acp_provider)
 
         msg = "Session %s switched from agent %s to %s"
         logger.info(msg, self.session_id, old_agent_name, agent_name)
@@ -485,15 +472,15 @@ with other agents effectively."""
                 self.mcp_manager = None
 
             # Clean up capability provider if present
-            if self.capability_provider:
+            if self._acp_provider:
                 current_agent = self.agent_pool.get_agent(self.current_agent_name)
-                current_agent.tools.remove_provider(self.capability_provider)
+                current_agent.tools.remove_provider(self._acp_provider)
 
             # Remove cwd context callable from all agents
             for agent in self.agent_pool.agents.values():
                 if self.get_cwd_context in agent.sys_prompts.prompts:
                     agent.sys_prompts.prompts.remove(self.get_cwd_context)  # pyright: ignore[reportArgumentType]
-                self.capability_provider = None
+                self._acp_provider = None
 
             # Note: Individual agents are managed by the pool's lifecycle
             # The pool will handle agent cleanup when it's closed
