@@ -34,7 +34,6 @@ from acp.requests import ACPRequests
 from acp.schema import ReadTextFileRequest
 from llmling_agent.log import get_logger
 from llmling_agent.mcp_server.manager import MCPManager
-from llmling_agent.resource_providers.aggregating import AggregatingResourceProvider
 from llmling_agent_acp.acp_tools import get_acp_provider
 from llmling_agent_acp.command_bridge import SLASH_PATTERN
 from llmling_agent_acp.converters import (
@@ -64,6 +63,7 @@ if TYPE_CHECKING:
     from acp.schema import ClientCapabilities
     from llmling_agent import Agent, AgentPool
     from llmling_agent.models.content import BaseContent
+    from llmling_agent.resource_providers.aggregating import AggregatingResourceProvider
     from llmling_agent_acp.acp_agent import LLMlingACPAgent
     from llmling_agent_acp.command_bridge import ACPCommandBridge
     from llmling_agent_acp.session_manager import ACPSessionManager
@@ -127,6 +127,7 @@ class ACPSession:
         self._active = True
         self._task_lock = asyncio.Lock()
         self._cancelled = False
+        self._current_tool_inputs: dict[str, dict] = {}
         self.mcp_manager: MCPManager | None = None
         self.fs = ACPFileSystem(self.client, session_id=self.session_id)
         self._acp_provider: AggregatingResourceProvider | None = None
@@ -370,8 +371,7 @@ with other agents effectively."""
 
         event_count = 0
         has_yielded_anything = False
-        # Track tool call inputs by tool_call_id for process_agent_stream_event
-        inputs: dict[str, dict] = {}
+        self._current_tool_inputs.clear()  # Reset tool inputs for new streaming session
 
         try:
             async for event in self.agent.run_stream(
@@ -410,7 +410,7 @@ with other agents effectively."""
                     case FunctionToolCallEvent() | FunctionToolResultEvent():
                         # Handle tool events using process_agent_stream_event function
                         logger.info("Processing tool event: %s", type(event).__name__)
-                        await self.process_agent_stream_event(event, inputs=inputs)
+                        await self.process_agent_stream_event(event)
                         has_yielded_anything = True
                     case FinalResultEvent():
                         msg = "Final result received for session %s"
@@ -464,6 +464,7 @@ with other agents effectively."""
             return
 
         self._active = False
+        self._current_tool_inputs.clear()
 
         try:
             # Clean up MCP manager if present
@@ -567,17 +568,11 @@ with other agents effectively."""
         except Exception as e:  # noqa: BLE001
             logger.warning("Failed to convert MCP progress to ACP notification: %s", e)
 
-    async def process_agent_stream_event(
-        self,
-        event: AgentStreamEvent,
-        inputs: dict[str, Any],
-    ) -> None:
+    async def process_agent_stream_event(self, event: AgentStreamEvent) -> None:
         """Process agent stream events.
 
         Args:
             event: The event to process.
-            session_id: The ID of the session.
-            inputs: The inputs to the session.
 
         Yields:
             SessionNotification: The notification to send.
@@ -586,7 +581,7 @@ with other agents effectively."""
             case FunctionToolCallEvent(part=part):
                 # Tool call started - save input for later use
                 tool_call_id = part.tool_call_id
-                inputs[tool_call_id] = part.args_as_dict()
+                self._current_tool_inputs[tool_call_id] = part.args_as_dict()
 
                 # Skip generic notifications for self-notifying tools
                 if part.tool_name not in ACP_SELF_NOTIFYING_TOOLS:
@@ -602,7 +597,7 @@ with other agents effectively."""
                 isinstance(result, ToolReturnPart)
             ):
                 # Tool call completed successfully
-                tool_input = inputs.get(tool_call_id, {})
+                tool_input = self._current_tool_inputs.get(tool_call_id, {})
 
                 # Check if the tool result is a streaming AsyncGenerator
                 if isinstance(result.content, AsyncGenerator):
