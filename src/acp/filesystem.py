@@ -95,13 +95,15 @@ class ACPFileSystem(AsyncFileSystem):
         try:
             parts = shlex.split(command_str)
             if not parts:
-                raise ValueError("Empty command string")
+                msg = "Empty command string"
+                raise ValueError(msg)  # noqa: TRY301
             return parts[0], parts[1:]
         except ValueError as e:
             # Fallback for problematic shell strings
             parts = command_str.split()
             if not parts:
-                raise ValueError("Empty command string") from e
+                msg = "Empty command string"
+                raise ValueError(msg) from e
             return parts[0], parts[1:]
 
     async def _cat_file(
