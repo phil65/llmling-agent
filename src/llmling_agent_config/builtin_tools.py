@@ -5,6 +5,13 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Annotated, Literal
 
 from pydantic import Field
+from pydantic_ai.builtin_tools import (
+    CodeExecutionTool,
+    ImageGenerationTool,
+    MCPServerTool,
+    UrlContextTool,
+    WebSearchTool,
+)
 
 from llmling_agent_config.tools import BaseToolConfig
 
@@ -12,12 +19,8 @@ from llmling_agent_config.tools import BaseToolConfig
 if TYPE_CHECKING:
     from pydantic_ai.builtin_tools import (
         AbstractBuiltinTool,
-        CodeExecutionTool,
-        ImageGenerationTool,
-        MCPServerTool,
         MemoryTool,
-        UrlContextTool,
-        WebSearchTool,
+        WebSearchUserLocation,
     )
 
 
@@ -38,7 +41,7 @@ class WebSearchToolConfig(BaseBuiltinToolConfig):
     search_context_size: Literal["low", "medium", "high"] = "medium"
     """The search context size parameter controls how much context is retrieved."""
 
-    user_location: dict[str, str] | None = None
+    user_location: WebSearchUserLocation | None = None
     """User location for localizing search results (city, country, region, timezone)."""
 
     blocked_domains: list[str] | None = None
@@ -52,8 +55,6 @@ class WebSearchToolConfig(BaseBuiltinToolConfig):
 
     def get_builtin_tool(self) -> WebSearchTool:
         """Convert config to WebSearchTool instance."""
-        from pydantic_ai.builtin_tools import WebSearchTool
-
         return WebSearchTool(
             search_context_size=self.search_context_size,
             user_location=self.user_location,
@@ -71,8 +72,6 @@ class CodeExecutionToolConfig(BaseBuiltinToolConfig):
 
     def get_builtin_tool(self) -> CodeExecutionTool:
         """Convert config to CodeExecutionTool instance."""
-        from pydantic_ai.builtin_tools import CodeExecutionTool
-
         return CodeExecutionTool()
 
 
@@ -84,8 +83,6 @@ class UrlContextToolConfig(BaseBuiltinToolConfig):
 
     def get_builtin_tool(self) -> UrlContextTool:
         """Convert config to UrlContextTool instance."""
-        from pydantic_ai.builtin_tools import UrlContextTool
-
         return UrlContextTool()
 
 
@@ -121,8 +118,6 @@ class ImageGenerationToolConfig(BaseBuiltinToolConfig):
 
     def get_builtin_tool(self) -> ImageGenerationTool:
         """Convert config to ImageGenerationTool instance."""
-        from pydantic_ai.builtin_tools import ImageGenerationTool
-
         return ImageGenerationTool(
             background=self.background,
             input_fidelity=self.input_fidelity,
@@ -174,8 +169,6 @@ class MCPServerToolConfig(BaseBuiltinToolConfig):
 
     def get_builtin_tool(self) -> MCPServerTool:
         """Convert config to MCPServerTool instance."""
-        from pydantic_ai.builtin_tools import MCPServerTool
-
         return MCPServerTool(
             id=self.server_id,
             url=self.url,

@@ -505,6 +505,7 @@ class MCPClient:
                 case ResourceLink(uri=uri):
                     # ResourceLink should be read like PydanticAI does
                     try:
+                        assert self._client
                         resource_result = await self._client.read_resource_mcp(uri)
                         if len(resource_result.contents) == 1:
                             nested_result = await self._convert_mcp_content_to_pydantic([
