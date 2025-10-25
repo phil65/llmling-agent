@@ -95,30 +95,24 @@ class ACPNotifications:
 
         # Use appropriate notification type based on status
         if status == "pending":
-            tool_call = ToolCallStart(
+            await self.tool_call_start(
                 tool_call_id=tool_call_id or f"{tool_name}_{hash(str(tool_input))}",
                 title=f"Execute {tool_name}",
-                status=status,
                 kind=infer_tool_kind(tool_name),
                 locations=locations or None,
                 content=content or None,
                 raw_input=tool_input,
-                raw_output=tool_output,
             )
         else:
             # For in_progress, completed, and failed statuses
-            tool_call = ToolCallProgress(
+            await self.tool_call_progress(
                 tool_call_id=tool_call_id or f"{tool_name}_{hash(str(tool_input))}",
                 title=f"Execute {tool_name}",
                 status=status,
                 locations=locations or None,
                 content=content or None,
-                raw_input=tool_input,
                 raw_output=tool_output,
             )
-
-        notification = SessionNotification(session_id=self.id, update=tool_call)
-        await self.client.session_update(notification)
 
     async def tool_call_start(
         self,

@@ -440,6 +440,10 @@ class MCPClient:
                 case (False, False):
                     # Fallback to text extraction
                     return extract_text_content(result.content)
+                case _:
+                    # Handle unexpected cases
+                    msg = f"Unexpected MCP content: {result.content}"
+                    raise ValueError(msg)  # noqa: TRY301
         except Exception as e:
             msg = f"MCP tool call failed: {e}"
             raise RuntimeError(msg) from e
@@ -461,7 +465,7 @@ class MCPClient:
         )
         from pydantic_ai.messages import BinaryContent, DocumentUrl
 
-        pydantic_content = []
+        pydantic_content: list[Any] = []
 
         for block in mcp_content:
             match block:
