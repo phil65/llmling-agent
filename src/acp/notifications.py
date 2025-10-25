@@ -21,7 +21,6 @@ from acp.schema import (
     SessionNotification,
     TerminalToolCallContent,
     TextContentBlock,
-    ToolCall,
     ToolCallLocation,
     ToolCallProgress,
     ToolCallStart,
@@ -94,16 +93,29 @@ class ACPNotifications:
             if key in {"path", "file_path", "filepath"} and isinstance(value, str)
         ]
 
-        tool_call = ToolCall(
-            tool_call_id=tool_call_id or f"{tool_name}_{hash(str(tool_input))}",
-            title=f"Execute {tool_name}",
-            status=status,
-            kind=infer_tool_kind(tool_name),
-            locations=locations or None,
-            content=content or None,
-            raw_input=tool_input,
-            raw_output=tool_output,
-        )
+        # Use appropriate notification type based on status
+        if status == "pending":
+            tool_call = ToolCallStart(
+                tool_call_id=tool_call_id or f"{tool_name}_{hash(str(tool_input))}",
+                title=f"Execute {tool_name}",
+                status=status,
+                kind=infer_tool_kind(tool_name),
+                locations=locations or None,
+                content=content or None,
+                raw_input=tool_input,
+                raw_output=tool_output,
+            )
+        else:
+            # For in_progress, completed, and failed statuses
+            tool_call = ToolCallProgress(
+                tool_call_id=tool_call_id or f"{tool_name}_{hash(str(tool_input))}",
+                title=f"Execute {tool_name}",
+                status=status,
+                locations=locations or None,
+                content=content or None,
+                raw_input=tool_input,
+                raw_output=tool_output,
+            )
 
         notification = SessionNotification(session_id=self.id, update=tool_call)
         await self.client.session_update(notification)

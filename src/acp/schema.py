@@ -1557,7 +1557,7 @@ class SessionNotification(Schema):
         | AvailableCommandsUpdate
         | CurrentModeUpdate
         | CurrentModelUpdate,
-        Field(description="The actual update content."),
+        Field(description="The actual update content.", discriminator="session_update"),
     ]
 
 
