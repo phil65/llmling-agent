@@ -90,4 +90,6 @@ def version(
 @duty(capture=False)
 def ui(ctx, *args: str):
     """Launch Textual UI."""
-    ctx.run(r"uv run textual run --dev .\src\llmling_textual\app.py")
+    ctx.run(
+        r'uv run --python 3.13 --project ../toad/ textual run ../toad/src/toad/__main__.py acp "llmling-agent serve-acp --model-provider openai"'  # noqa: E501
+    )
