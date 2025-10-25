@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from pathlib import Path
+import shlex
 from typing import TYPE_CHECKING, Any
 
 from fsspec.asyn import AsyncFileSystem
@@ -82,6 +83,27 @@ class ACPFileSystem(AsyncFileSystem):
         """Create a path object from string."""
         return ACPPath(path, **self.storage_options)
 
+    def _parse_command(self, command_str: str) -> tuple[str, list[str]]:
+        """Parse a shell command string into command and arguments.
+
+        Args:
+            command_str: Shell command string to parse
+
+        Returns:
+            Tuple of (command, args_list)
+        """
+        try:
+            parts = shlex.split(command_str)
+            if not parts:
+                raise ValueError("Empty command string")
+            return parts[0], parts[1:]
+        except ValueError as e:
+            # Fallback for problematic shell strings
+            parts = command_str.split()
+            if not parts:
+                raise ValueError("Empty command string") from e
+            return parts[0], parts[1:]
+
     async def _cat_file(
         self, path: str, start: int | None = None, end: int | None = None, **kwargs: Any
     ) -> bytes:
@@ -149,8 +171,9 @@ class ACPFileSystem(AsyncFileSystem):
             ls_cmd += f' "{path}"'
 
         try:
+            command, args = self._parse_command(ls_cmd)
             output, exit_code = await self.requests.run_command(
-                ls_cmd, timeout_seconds=10
+                command, args=args, timeout_seconds=10
             )
 
             if exit_code != 0:
@@ -236,11 +259,12 @@ class ACPFileSystem(AsyncFileSystem):
             File information dictionary
         """
         # Use stat command to get file information
-        stat_cmd = f'stat -c "%n|%s|%Y|%A|%F" "{path}"'
+        stat_cmd = f'stat -c "%n|%s|%F|%Y" "{path}"'
 
         try:
+            command, args = self._parse_command(stat_cmd)
             output, exit_code = await self.requests.run_command(
-                stat_cmd, timeout_seconds=5
+                command, args=args, timeout_seconds=5
             )
 
             if exit_code != 0:
@@ -324,7 +348,10 @@ class ACPFileSystem(AsyncFileSystem):
         test_cmd = f'test -e "{path}"'
 
         try:
-            _, exit_code = await self.requests.run_command(test_cmd, timeout_seconds=5)
+            command, args = self._parse_command(test_cmd)
+            _, exit_code = await self.requests.run_command(
+                command, args=args, timeout_seconds=5
+            )
         except (OSError, ValueError):
             return False
         else:
@@ -343,7 +370,10 @@ class ACPFileSystem(AsyncFileSystem):
         test_cmd = f'test -d "{path}"'
 
         try:
-            _, exit_code = await self.requests.run_command(test_cmd, timeout_seconds=5)
+            command, args = self._parse_command(test_cmd)
+            _, exit_code = await self.requests.run_command(
+                command, args=args, timeout_seconds=5
+            )
         except (OSError, ValueError):
             return False
         else:
@@ -362,7 +392,10 @@ class ACPFileSystem(AsyncFileSystem):
         test_cmd = f'test -f "{path}"'
 
         try:
-            _, exit_code = await self.requests.run_command(test_cmd, timeout_seconds=5)
+            command, args = self._parse_command(test_cmd)
+            _, exit_code = await self.requests.run_command(
+                command, args=args, timeout_seconds=5
+            )
         except (OSError, ValueError):
             return False
         else:
@@ -379,7 +412,10 @@ class ACPFileSystem(AsyncFileSystem):
         mkdir_cmd = f'mkdir -p "{path}"' if exist_ok else f'mkdir "{path}"'
 
         try:
-            _, exit_code = await self.requests.run_command(mkdir_cmd, timeout_seconds=5)
+            command, args = self._parse_command(mkdir_cmd)
+            _, exit_code = await self.requests.run_command(
+                command, args=args, timeout_seconds=5
+            )
             if exit_code != 0:
                 msg = f"Could not create directory: {path}"
                 raise OSError(msg)  # noqa: TRY301
@@ -398,7 +434,10 @@ class ACPFileSystem(AsyncFileSystem):
         rm_cmd = f'rm -rf "{path}"' if recursive else f'rm "{path}"'
 
         try:
-            _, exit_code = await self.requests.run_command(rm_cmd, timeout_seconds=10)
+            command, args = self._parse_command(rm_cmd)
+            _, exit_code = await self.requests.run_command(
+                command, args=args, timeout_seconds=10
+            )
             if exit_code != 0:
                 msg = f"Could not remove: {path}"
                 raise OSError(msg)  # noqa: TRY301
