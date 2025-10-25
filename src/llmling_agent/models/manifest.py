@@ -14,9 +14,10 @@ from llmling_agent.models.agents import AgentConfig  # noqa: TC001
 from llmling_agent.resource_registry import ResourceRegistry
 from llmling_agent_config.converters import ConversionConfig
 from llmling_agent_config.mcp_server import (
-    BaseMCPServerConfig,
     MCPServerConfig,  # noqa: TC001
+    SSEMCPServerConfig,
     StdioMCPServerConfig,
+    StreamableHTTPMCPServerConfig,
 )
 from llmling_agent_config.observability import ObservabilityConfig
 from llmling_agent_config.pool_server import MCPPoolServerConfig
@@ -303,8 +304,10 @@ class AgentsManifest(Schema):
     def get_mcp_servers(self) -> list[MCPServerConfig]:
         """Get processed MCP server configurations.
 
-        Converts string entries to StdioMCPServerConfig configs by splitting
-        into command and arguments.
+        Converts string entries to appropriate MCP server configs based on heuristics:
+        - URLs ending with "/sse" -> SSE server
+        - URLs starting with http(s):// -> HTTP server
+        - Everything else -> stdio command
 
         Returns:
             List of MCPServerConfig instances
@@ -316,14 +319,19 @@ class AgentsManifest(Schema):
 
         for server in self.mcp_servers:
             match server:
+                case str() if server.strip().startswith((
+                    "http://",
+                    "https://",
+                )) and server.strip().endswith("/sse"):
+                    configs.append(SSEMCPServerConfig(url=server.strip()))
+                case str() if server.strip().startswith(("http://", "https://")):
+                    configs.append(StreamableHTTPMCPServerConfig(url=server.strip()))
+                case str() if server.strip():
+                    configs.append(StdioMCPServerConfig.from_string(server.strip()))
                 case str():
-                    parts = server.split()
-                    if not parts:
-                        msg = "Empty MCP server command"
-                        raise ValueError(msg)
-
-                    configs.append(StdioMCPServerConfig(command=parts[0], args=parts[1:]))
-                case BaseMCPServerConfig():
+                    msg = "Empty MCP server command"
+                    raise ValueError(msg)
+                case _:
                     configs.append(server)
 
         return configs
