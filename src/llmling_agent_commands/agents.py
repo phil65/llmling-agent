@@ -192,7 +192,7 @@ class ShowAgentCommand(SlashedCommand):
         )
         # Add header and format for display
         sections = [
-            "\n[bold]Current Node Configuration:[/]",
+            "\n**Current Node Configuration:**",
             "```yaml",
             yaml_config,
             "```",
