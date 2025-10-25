@@ -23,7 +23,9 @@ def convert_mcp_content_to_pydantic(mcp_content: list[Any]) -> list[str | Any]:
     from mcp.types import (
         AudioContent,
         BlobResourceContents,
+        EmbeddedResource,
         ImageContent,
+        ResourceLink,
         TextContent,
         TextResourceContents,
     )
@@ -57,6 +59,19 @@ def convert_mcp_content_to_pydantic(mcp_content: list[Any]) -> list[str | Any]:
                         data=decoded_data, media_type="application/octet-stream"
                     )
                 )
+            case ResourceLink(uri=uri, name=name):
+                # ResourceLink should be converted to DocumentUrl for PydanticAI
+                from pydantic_ai.messages import DocumentUrl
+
+                pydantic_content.append(DocumentUrl(url=str(uri)))
+            case EmbeddedResource(resource=resource):
+                # EmbeddedResource contains another resource, process recursively
+                if hasattr(resource, "contents"):
+                    for content in resource.contents:
+                        nested_result = convert_mcp_content_to_pydantic([content])
+                        pydantic_content.extend(nested_result)
+                else:
+                    pydantic_content.append(str(resource))
             case _:
                 # Convert anything else to string
                 pydantic_content.append(str(block))
