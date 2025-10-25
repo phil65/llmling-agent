@@ -82,8 +82,10 @@ class StdioMCPServerConfig(BaseMCPServerConfig):
     @classmethod
     def from_string(cls, command: str) -> Self:
         """Create a MCP server from a command string."""
-        cmd, args = command.split(maxsplit=1)
-        return cls(command=cmd, args=args.split())
+        parts = command.split(maxsplit=1)
+        cmd = parts[0]
+        args = parts[1].split() if len(parts) > 1 else []
+        return cls(command=cmd, args=args)
 
     @property
     def client_id(self) -> str:
