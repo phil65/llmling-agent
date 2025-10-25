@@ -1,6 +1,7 @@
 """Compact FastMCP server demonstrating sampling and elicitation in one workflow."""
 
 import asyncio
+from pathlib import Path
 from typing import Literal
 
 from fastmcp import Context, FastMCP
@@ -104,19 +105,32 @@ async def test_rich_content(  # noqa: D417
 
     if content_type == "image":
         # Return FastMCP Image - should convert to PydanticAI ImageUrl/BinaryContent
-        return Image(data=b"fake_image_data", format="png")
+        # Use real PNG file from the test directory
+        png_path = Path(__file__).parent / "test_image.png"
+        png_data = png_path.read_bytes()
+        return Image(data=png_data, format="png")
     if content_type == "audio":
         # Return FastMCP Audio - should convert to PydanticAI AudioUrl/BinaryContent
-        return Audio(data=b"fake_audio_data", format="wav")
+        # Generate minimal valid WAV header (empty audio)
+        wav_data = (
+            b"RIFF$\x00\x00\x00WAVEfmt \x10\x00\x00\x00\x01\x00"
+            b"\x01\x00D\xac\x00\x00\x88X\x01\x00\x02\x00\x10\x00"
+            b"data\x00\x00\x00\x00"
+        )
+        return Audio(data=wav_data, format="wav")
     if content_type == "file":
         # Return FastMCP File - should convert to PydanticAI DocumentUrl/BinaryContent
-        return File(data=b"fake_file_data", format="pdf", name="test.pdf")
+        # Generate minimal valid PDF
+        pdf_data = b"%PDF-1.4\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] >>\nendobj\nxref\n0 4\n0000000000 65535 f \n0000000009 00000 n \n0000000058 00000 n \n0000000115 00000 n \ntrailer\n<< /Size 4 /Root 1 0 R >>\nstartxref\n178\n%%EOF"
+        return File(data=pdf_data, format="pdf", name="test.pdf")
     if content_type == "mixed":
         # Return mixed content with both structured data and rich content
+        png_path = Path(__file__).parent / "test_image.png"
+        png_data = png_path.read_bytes()
         return ToolResult(
             content=[
                 TextContent(type="text", text="Text description"),
-                Image(data=b"fake_image", format="png").to_image_content(),
+                Image(data=png_data, format="png").to_image_content(),
             ],
             structured_content={"structured_data": "additional info", "count": 42},
         )
