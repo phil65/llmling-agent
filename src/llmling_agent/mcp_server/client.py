@@ -19,11 +19,16 @@ from pydantic_ai import RunContext
 from schemez.functionschema import FunctionSchema
 
 from llmling_agent.log import get_logger
+from llmling_agent.mcp_server.helpers import (
+    convert_mcp_content_to_pydantic,
+    extract_text_content,
+    extract_tool_call_args,
+)
 
 
 if TYPE_CHECKING:
     from types import TracebackType
-    from typing import Any, Protocol
+    from typing import Protocol
 
     import fastmcp
     from fastmcp.client import ClientTransport
@@ -61,30 +66,6 @@ if TYPE_CHECKING:
 
 
 logger = get_logger(__name__)
-
-
-def extract_tool_call_args(messages, target_tool_call_id: str) -> dict[str, Any]:
-    """Extract tool call arguments from message history by tool_call_id.
-
-    Args:
-        messages: List of ModelMessage objects from RunContext
-        target_tool_call_id: The tool call ID to find arguments for
-
-    Returns:
-        Dictionary of tool call arguments, empty dict if not found
-    """
-    # Import here to avoid circular imports
-    from pydantic_ai.messages import ModelResponse, ToolCallPart
-
-    for message in reversed(messages):  # Search from most recent
-        if isinstance(message, ModelResponse):
-            for part in message.parts:
-                if (
-                    isinstance(part, ToolCallPart)
-                    and part.tool_call_id == target_tool_call_id
-                ):
-                    return part.args_as_dict()
-    return {}
 
 
 LEVEL_MAP = {
@@ -409,13 +390,15 @@ class MCPClient:
 
     def convert_tool(self, tool: MCPTool) -> Tool:
         """Create a properly typed callable from MCP tool schema."""
+        from pydantic_ai import ToolReturn
+
         from llmling_agent import Tool
 
         schema = mcp_tool_to_fn_schema(tool)
         fn_schema = FunctionSchema.from_dict(schema)
         sig = fn_schema.to_python_signature()
 
-        async def tool_callable(ctx: RunContext, **kwargs: Any) -> str:
+        async def tool_callable(ctx: RunContext, **kwargs: Any) -> str | Any | ToolReturn:
             """Dynamically generated MCP tool wrapper."""
             # Filter out None values for optional params
             schema_props = tool.inputSchema.get("properties", {})
@@ -437,9 +420,10 @@ class MCPClient:
 
         # Set proper signature and annotations with RunContext support
         tool_callable.__signature__ = _create_tool_signature_with_context(sig, tool.name)  # type: ignore
-        tool_callable.__annotations__ = _create_tool_annotations_with_context(
-            fn_schema.get_annotations()
-        )
+        annotations = _create_tool_annotations_with_context(fn_schema.get_annotations())
+        # Update return annotation to support multiple types
+        annotations["return"] = str | Any | ToolReturn
+        tool_callable.__annotations__ = annotations
 
         tool_callable.__name__ = tool.name
         tool_callable.__doc__ = tool.description or "No description provided."
@@ -467,9 +451,9 @@ class MCPClient:
         arguments: dict | None = None,
         tool_call_id: str | None = None,
         run_context: RunContext | None = None,
-    ) -> str:
-        """Call an MCP tool."""
-        from mcp.types import TextContent
+    ) -> str | Any:
+        """Call an MCP tool with full PydanticAI return type support."""
+        from pydantic_ai import ToolReturn
 
         if not self._client or not self._connected:
             msg = "Not connected to MCP server"
@@ -498,20 +482,29 @@ class MCPClient:
                 name, arguments or {}, progress_handler=progress_handler
             )
 
-            # FastMCP returns a CallToolResult with structured data
-            # For compatibility, return text content
-            if result.content:
-                if isinstance(result.content[0], TextContent):
-                    return result.content[0].text
-                # TODO: proper support.
-                return str(result.content)
-            if result.data is not None:
-                return str(result.data)
+            # Convert MCP content to PydanticAI content
+            pydantic_content = convert_mcp_content_to_pydantic(result.content)
+
+            # Decision logic for return type
+            match (result.data is not None, bool(pydantic_content)):
+                case (True, True):
+                    # Both structured data and rich content -> ToolReturn
+                    return ToolReturn(return_value=result.data, content=pydantic_content)
+                case (True, False):
+                    # Only structured data -> return directly
+                    return result.data
+                case (False, True):
+                    # Only content -> ToolReturn with content
+                    return ToolReturn(
+                        return_value="Tool executed successfully",
+                        content=pydantic_content,
+                    )
+                case (False, False):
+                    # Fallback to text extraction
+                    return extract_text_content(result.content)
         except Exception as e:
             msg = f"MCP tool call failed: {e}"
             raise RuntimeError(msg) from e
-        else:
-            return "Tool executed successfully"
 
 
 def _should_try_oauth_fallback(config: MCPServerConfig) -> bool:
