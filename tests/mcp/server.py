@@ -1,6 +1,7 @@
 """Compact FastMCP server demonstrating sampling and elicitation in one workflow."""
 
 import asyncio
+from typing import Literal
 
 from fastmcp import Context, FastMCP
 from mcp.types import ModelHint, ModelPreferences
@@ -59,7 +60,7 @@ class StructuredResponse(BaseModel):
 
 @mcp.tool
 async def test_return_types(  # noqa: D417
-    ctx: Context, return_type: str
+    ctx: Context, return_type: Literal["text", "structured", "mixed"]
 ) -> str | StructuredResponse | list:
     """Test different PydanticAI return types based on the return_type parameter.
 
@@ -88,7 +89,10 @@ async def test_return_types(  # noqa: D417
 
 
 @mcp.tool
-async def test_rich_content(ctx: Context, content_type: str):  # noqa: D417
+async def test_rich_content(  # noqa: D417
+    ctx: Context,
+    content_type: Literal["image", "audio", "file", "mixed"],
+):
     """Test FastMCP rich content types that should be converted to PydanticAI types.
 
     Args:
