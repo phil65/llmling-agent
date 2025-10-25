@@ -15,24 +15,6 @@ if TYPE_CHECKING:
     from llmling_agent.agent.structured import StructuredAgent
 
 
-EXAMPLE = """
-# Example agent with team
-agents:
-  analyzer:
-    name: "Analyzer"
-    model: "gpt-5"
-    toolsets:
-      - type: resource_access
-
-teams:
-  analysis_team:
-    mode: "sequential"
-    members: ["analyzer"]
-    connections:
-      - target: "output_handler"
-        type: "forward"
-"""
-
 SYS_PROMPT = """
 You are an expert at creating LLMling-agent configurations.
 Generate complete, valid YAML that CAN include:
@@ -59,7 +41,7 @@ async def create_architect_agent(
     code = await read_folder_as_text(CONFIG_PATH, pattern="**/*.py")
     core_code = await read_folder_as_text(CORE_CONFIG_PATH, pattern="**/*.py")
     readme = await read_path(README_URL)
-    context = f"Code:\n{core_code}\n{code}\n\nExample:\n{EXAMPLE}\n\\Readme:\n{readme}"
+    context = f"Code:\n{core_code}\n{code}\nReadme:\n{readme}"
     agent = Agent(
         name,
         model=model,

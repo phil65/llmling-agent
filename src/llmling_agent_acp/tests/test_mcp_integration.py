@@ -8,7 +8,6 @@ import tempfile
 import pytest
 from slashed import CommandStore
 
-from acp import DefaultACPClient
 from acp.schema import EnvVariable, StdioMcpServer
 from llmling_agent import Agent
 from llmling_agent.delegation import AgentPool
@@ -42,7 +41,7 @@ async def test_mcp_server_conversion():
 
 
 @pytest.mark.skipif(sys.platform == "darwin", reason="macOS subprocess handling differs")
-async def test_session_with_mcp_servers(mock_acp_agent, client_capabilities):
+async def test_session_with_mcp_servers(test_client, mock_acp_agent, client_capabilities):
     """Test creating an ACP session with MCP servers."""
 
     def simple_callback(message: str) -> str:
@@ -51,7 +50,6 @@ async def test_session_with_mcp_servers(mock_acp_agent, client_capabilities):
     agent = Agent(name="test_agent", provider=simple_callback)
     agent_pool = AgentPool[None]()
     agent_pool.register("test_agent", agent)
-    client = DefaultACPClient(allow_file_operations=True)
     command_store = CommandStore()
     command_bridge = ACPCommandBridge(command_store)
 
@@ -76,7 +74,7 @@ async def test_session_with_mcp_servers(mock_acp_agent, client_capabilities):
         agent_pool=agent_pool,
         current_agent_name="test_agent",
         cwd=tempfile.gettempdir(),
-        client=client,
+        client=test_client,
         mcp_servers=mcp_servers,
         command_bridge=command_bridge,
         acp_agent=mock_acp_agent,
@@ -98,7 +96,7 @@ async def test_session_with_mcp_servers(mock_acp_agent, client_capabilities):
 
 
 @pytest.mark.skipif(sys.platform == "darwin", reason="macOS subprocess handling differs")
-async def test_session_manager_with_mcp(mock_acp_agent, client_capabilities):
+async def test_session_manager_with_mcp(test_client, mock_acp_agent, client_capabilities):
     """Test session manager creating sessions with MCP servers."""
     command_store = CommandStore()
     command_bridge = ACPCommandBridge(command_store)
@@ -110,7 +108,6 @@ async def test_session_manager_with_mcp(mock_acp_agent, client_capabilities):
     agent = Agent(name="test_agent", provider=simple_callback)
     agent_pool = AgentPool[None]()  # Create empty pool and register the agent
     agent_pool.register("test_agent", agent)
-    client = DefaultACPClient()
     mcp_servers = [StdioMcpServer(name="tools", command="echo", args=["tools"], env=[])]
 
     try:
@@ -118,7 +115,7 @@ async def test_session_manager_with_mcp(mock_acp_agent, client_capabilities):
             agent_pool=agent_pool,
             default_agent_name="test_agent",
             cwd=tempfile.gettempdir(),
-            client=client,
+            client=test_client,
             mcp_servers=mcp_servers,
             acp_agent=mock_acp_agent,
             client_capabilities=client_capabilities,
