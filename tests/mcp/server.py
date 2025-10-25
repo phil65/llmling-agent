@@ -4,6 +4,7 @@ import asyncio
 
 from fastmcp import Context, FastMCP
 from mcp.types import ModelHint, ModelPreferences
+from pydantic import BaseModel
 
 
 mcp = FastMCP("Test Server")
@@ -41,28 +42,29 @@ async def test_progress(ctx: Context, message: str) -> str:
     return f"Progress test completed with message: {message}"
 
 
-from pydantic import BaseModel
-
-
 class WeatherData(BaseModel):
+    """Weather data model for PydanticAI."""
+
     temperature: float
     humidity: int
 
 
 class StructuredResponse(BaseModel):
+    """Structured response model for PydanticAI."""
+
     result: str
     data: WeatherData
     timestamp: str
 
 
 @mcp.tool
-async def test_return_types(
+async def test_return_types(  # noqa: D417
     ctx: Context, return_type: str
 ) -> str | StructuredResponse | list:
     """Test different PydanticAI return types based on the return_type parameter.
 
     Args:
-        return_type: One of 'text', 'structured', 'mixed' to test different return scenarios
+        return_type: One of 'text', 'structured', 'mixed' to test different scenarios
     """
     if return_type == "text":
         # Simple text return
@@ -86,7 +88,7 @@ async def test_return_types(
 
 
 @mcp.tool
-async def test_rich_content(ctx: Context, content_type: str):
+async def test_rich_content(ctx: Context, content_type: str):  # noqa: D417
     """Test FastMCP rich content types that should be converted to PydanticAI types.
 
     Args:

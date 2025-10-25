@@ -15,13 +15,16 @@ import inspect
 import logging
 from typing import TYPE_CHECKING, Any, Self
 
-from pydantic_ai import RunContext
+from pydantic_ai import RunContext  # noqa: TC002
 from schemez.functionschema import FunctionSchema
 
 from llmling_agent.log import get_logger
 from llmling_agent.mcp_server.helpers import (
+    _create_tool_annotations_with_context,
+    _create_tool_signature_with_context,
     extract_text_content,
     extract_tool_call_args,
+    mcp_tool_to_fn_schema,
 )
 
 
@@ -77,71 +80,6 @@ LEVEL_MAP = {
     "alert": logging.CRITICAL,
     "emergency": logging.CRITICAL,
 }
-
-
-def _create_tool_signature_with_context(base_signature, tool_name: str) -> Any:
-    """Create a function signature that includes RunContext as first parameter.
-
-    This is crucial for PydanticAI integration - it expects tools that need RunContext
-    to have it as the first parameter with proper annotation. Without this, PydanticAI
-    won't pass the RunContext and we lose access to tool_call_id and other context.
-
-    Args:
-        base_signature: Original signature from MCP tool schema (tool parameters only)
-        tool_name: Name of the tool (used for documentation)
-
-    Returns:
-        New signature: (ctx: RunContext, ...original_params) -> ReturnType
-
-    Example:
-        Original: (message: str) -> str
-        Result:   (ctx: RunContext, message: str) -> str
-    """
-    import inspect
-
-    # Create RunContext parameter
-    ctx_param = inspect.Parameter(
-        "ctx", inspect.Parameter.POSITIONAL_OR_KEYWORD, annotation=RunContext
-    )
-
-    # Combine with tool parameters
-    tool_params = list(base_signature.parameters.values())
-    new_params = [ctx_param, *tool_params]
-
-    return base_signature.replace(parameters=new_params)
-
-
-def _create_tool_annotations_with_context(
-    base_annotations: dict[str, Any],
-) -> dict[str, Any]:
-    """Create function annotations that include RunContext for first parameter.
-
-    Complements _create_tool_signature_with_context by ensuring the annotations
-    match the signature. This is required for proper type checking and PydanticAI's
-    introspection of tool functions.
-
-    Args:
-        base_annotations: Original annotations from MCP tool schema
-
-    Returns:
-        New annotations dict with 'ctx': RunContext added to base annotations
-
-    Example:
-        Original: {'message': str, 'return': str}
-        Result:   {'ctx': RunContext, 'message': str, 'return': str}
-    """
-    new_annotations = base_annotations.copy()
-    new_annotations["ctx"] = RunContext
-    return new_annotations
-
-
-def mcp_tool_to_fn_schema(tool: MCPTool) -> dict[str, Any]:
-    """Convert MCP tool to OpenAI function schema format."""
-    return {
-        "name": tool.name,
-        "description": tool.description or "",
-        "parameters": tool.inputSchema or {"type": "object", "properties": {}},
-    }
 
 
 class MCPClient:
@@ -550,7 +488,7 @@ class MCPClient:
                             data=decoded_data, media_type="application/octet-stream"
                         )
                     )
-                case ResourceLink(uri=uri, name=name):
+                case ResourceLink(uri=uri):
                     # ResourceLink should be read like PydanticAI does
                     try:
                         resource_result = await self._client.read_resource_mcp(uri)
@@ -564,7 +502,7 @@ class MCPClient:
                                 resource_result.contents
                             )
                             pydantic_content.extend(nested_result)
-                    except Exception:
+                    except Exception:  # noqa: BLE001
                         # Fallback to DocumentUrl if reading fails
                         pydantic_content.append(DocumentUrl(url=str(uri)))
                 case EmbeddedResource(resource=resource):
