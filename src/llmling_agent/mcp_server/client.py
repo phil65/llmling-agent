@@ -20,7 +20,6 @@ from schemez.functionschema import FunctionSchema
 
 from llmling_agent.log import get_logger
 from llmling_agent.mcp_server.helpers import (
-    convert_mcp_content_to_pydantic,
     extract_text_content,
     extract_tool_call_args,
 )
@@ -483,7 +482,7 @@ class MCPClient:
             )
 
             # Convert MCP content to PydanticAI content
-            pydantic_content = convert_mcp_content_to_pydantic(result.content)
+            pydantic_content = await self._convert_mcp_content_to_pydantic(result.content)
 
             # Decision logic for return type
             match (result.data is not None, bool(pydantic_content)):
@@ -505,6 +504,84 @@ class MCPClient:
         except Exception as e:
             msg = f"MCP tool call failed: {e}"
             raise RuntimeError(msg) from e
+
+    async def _convert_mcp_content_to_pydantic(
+        self, mcp_content: list[Any]
+    ) -> list[str | Any]:
+        """Convert MCP content blocks to PydanticAI content types."""
+        import base64
+
+        from mcp.types import (
+            AudioContent,
+            BlobResourceContents,
+            EmbeddedResource,
+            ImageContent,
+            ResourceLink,
+            TextContent,
+            TextResourceContents,
+        )
+        from pydantic_ai.messages import BinaryContent, DocumentUrl
+
+        pydantic_content = []
+
+        for block in mcp_content:
+            match block:
+                case TextContent(text=text):
+                    pydantic_content.append(text)
+                case TextResourceContents(text=text):
+                    pydantic_content.append(text)
+                case ImageContent(data=data, mimeType=mime_type):
+                    # MCP data is base64 encoded string, decode it for PydanticAI
+                    decoded_data = base64.b64decode(data)
+                    pydantic_content.append(
+                        BinaryContent(data=decoded_data, media_type=mime_type)
+                    )
+                case AudioContent(data=data, mimeType=mime_type):
+                    # MCP data is base64 encoded string, decode it for PydanticAI
+                    decoded_data = base64.b64decode(data)
+                    pydantic_content.append(
+                        BinaryContent(data=decoded_data, media_type=mime_type)
+                    )
+                case BlobResourceContents(blob=blob):
+                    # MCP blob is base64 encoded string
+                    decoded_data = base64.b64decode(blob)
+                    pydantic_content.append(
+                        BinaryContent(
+                            data=decoded_data, media_type="application/octet-stream"
+                        )
+                    )
+                case ResourceLink(uri=uri, name=name):
+                    # ResourceLink should be read like PydanticAI does
+                    try:
+                        resource_result = await self._client.read_resource_mcp(uri)
+                        if len(resource_result.contents) == 1:
+                            nested_result = await self._convert_mcp_content_to_pydantic([
+                                resource_result.contents[0]
+                            ])
+                            pydantic_content.extend(nested_result)
+                        else:
+                            nested_result = await self._convert_mcp_content_to_pydantic(
+                                resource_result.contents
+                            )
+                            pydantic_content.extend(nested_result)
+                    except Exception:
+                        # Fallback to DocumentUrl if reading fails
+                        pydantic_content.append(DocumentUrl(url=str(uri)))
+                case EmbeddedResource(resource=resource):
+                    # EmbeddedResource contains another resource, process recursively
+                    if hasattr(resource, "contents"):
+                        for content in resource.contents:
+                            nested_result = await self._convert_mcp_content_to_pydantic([
+                                content
+                            ])
+                            pydantic_content.extend(nested_result)
+                    else:
+                        pydantic_content.append(str(resource))
+                case _:
+                    # Convert anything else to string
+                    pydantic_content.append(str(block))
+
+        return pydantic_content
 
 
 def _should_try_oauth_fallback(config: MCPServerConfig) -> bool:
