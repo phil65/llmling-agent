@@ -635,7 +635,7 @@ with other agents effectively."""
                         tool_call_id=tool_call_id,
                     )
                 # Clean up stored input
-                inputs.pop(tool_call_id, None)
+                self._current_tool_inputs.pop(tool_call_id, None)
 
             case FunctionToolResultEvent(result=result, tool_call_id=tool_call_id) if (
                 isinstance(result, RetryPromptPart)
@@ -647,9 +647,9 @@ with other agents effectively."""
                 if tool_name not in ACP_SELF_NOTIFYING_TOOLS:
                     await self.notifications.tool_call(
                         tool_name=tool_name,
-                        tool_input=inputs.get(tool_call_id, {}),
+                        tool_input=self._current_tool_inputs.get(tool_call_id, {}),
                         tool_output=f"Error: {error_message}",
                         status="failed",
                         tool_call_id=tool_call_id,
                     )
-                inputs.pop(tool_call_id, None)  # Clean up stored input
+                self._current_tool_inputs.pop(tool_call_id, None)  # Clean up stored input
