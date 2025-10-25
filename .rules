@@ -19,7 +19,6 @@
 ### CLI & UI
 - `typer`: CLI framework with rich help and completion
 - `prompt-toolkit`: Interactive command-line interfaces
-- `textual`: Terminal-based UI framework
 - `slashed`: Slash command system for interactive sessions
 
 ### Optional Integrations
@@ -113,9 +112,7 @@ src/
 ├── llmling_agent_resources/    # Resource management
 ├── llmling_agent_server/       # Web server and API
 ├── llmling_agent_storage/      # Storage providers (SQL, file, memory)
-├── llmling_agent_tools/        # Built-in tools
-├── llmling_agent_toolsets/     # Tool collections (Composio, MCP, etc.)
-└── llmling_textual/           # Textual-based monitoring UI
+└── llmling_agent_toolsets/     # Tool collections (Composio, MCP, etc.)
 ```
 
 ## Key Architectural Patterns

@@ -27,14 +27,10 @@ LLMling-agent provides several optional features that can be installed with extr
   pip install llmling-agent[markdown]
   ```
 
-- **Terminal UI** (Textual interface):
-  ```bash
-  pip install llmling-agent[textual]
-  ```
 
 Multiple extras can be combined:
 ```bash
-pip install llmling-agent[ui,markdown,textual]
+pip install llmling-agent[ui,markdown]
 ```
 
 ## Requirements
@@ -61,11 +57,3 @@ This includes:
 - Linting tools (ruff, mypy)
 - Documentation tools (mkdocs)
 ```
-
-Would you like me to add anything else, like:
-- Version compatibility notes
-- Troubleshooting section
-- Platform-specific instructions
-- Development setup details
-
-Also, I noticed there's a textual UI - should we mention that more prominently or link to its documentation?

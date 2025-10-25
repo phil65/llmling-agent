@@ -90,7 +90,6 @@ Flexible team operations and execution patterns:
 - Background execution with monitoring
 """
 
-
 [step_7]
 label = "MCP server integration"
 content = """
@@ -164,7 +163,6 @@ Rich patterns for agent interaction and collaboration:
 - Connection monitoring
 """
 
-
 [step_12]
 label = "Multi-modal support"
 content = """
@@ -178,7 +176,6 @@ content = """
 Multiple ways to interact:
 
 - Rich CLI interface using prompt-toolkit with expansive command system
-- Terminal UI with Textual (WIP)
 - Python API
 - Consistent experience
 - Cross-interface features

@@ -27,61 +27,26 @@
 
 LLMling Agent is a framework for creating and managing LLM-powered agents. It integrates with LLMling's resource system and provides structured interactions with language models.
 
-## ✨ Unique Features
-- 🔄 Modern python written from ground up with Python 3.12
+## ✨ Features
+- 🔄 Modern python written from ground up with Python 3.13
 - 📝 Easy consistent APIs
-- 💻 Pyodide-"compatible"
-- 🛡️ Complete agent defintion via YAML files including extensive JSON schema to help with creating configurations.
-- 🔒 Leveraging the complete pydantic-based type-safe stack and bringing it to the multi-agent world
-- 🔌 Agent MCP server support, initialized when entering the async context.
-- 👁️ Multi-modal support (currently Images and PDFs if model support is given)
+- 🛡️ Complete (multi-)agent pool setup via YAML files including extensive JSON schema to help with creating configurations.
+- 🔌 Extensive MCP support including elicitation, sampling, progress reporting, multi-modality.
 - 💾 Storage providers to allow writing to local files, databases, etc. with many customizable backends. Log to SQL databases and pretty-print to a file according to your own wishes.
+- 💬 Object-oriented async messaging and routing system using Connection ("Talk") objects which allow all kind of new patterns for async agent communication
 - 🧩 Support for creating "description prompts" for many common python type(s / instances). Your agent understands common datatypes.
 - 🎮 Complete integrated command sytem to control agents from prompt-based interfaces
 - 🔗 Unique powerful connection-based messaging approach for object-oriented routing and observation.
 - 🎯 Integration of Meta-Model system based on [LLMling-models](https://github.com/phil65/llmling-models), also configurable via YAML.
-- 🔐 Deep integration of structured responses into workflows and (generic) typing system.
-- 📋 Response type definition via YAML. Structured response Agents can be defined in the agent config.
 - 🛡️ Capabilites system allowing runtime modifications and "special" commands (on-the-fly agent generation, history lookups)
-- 📊 Complete database logging of Agent interactions including easy recovery based on query parameters.
-- ⚙️ pytest-inspired way to create agents from YAML in a type-safe manner. "Auto-populated signatures."
-- 🛜 Comletely UPath backed. Any file operations under our control is routed through fsspec to allow referencing remote sourcces.
+- 🛜 Comletely UPath backed. Any file operations are handled by fsspec to allow referencing remote sourcces.
 - 📕 Integrated prompt management system.
 - 🔧 Tasks, tools, and what else you can expect from an Agent framework.
 - 🖥️ ACP (Agent Client Protocol) integration for seamless IDE connectivity via JSON-RPC 2.0
-- 🏎️ No fixed dependencies on all the super-heavy LLM libraries. Way faster startup than most other frameworks, and all IO in our control is async.
-- 👥 Easy human-in-the-loop interactions on multiple levels (complete "providers" or model-based, see llmling-models)
+- 👥 Easy human-in-the-loop interactions
 - 💻 A CLI application with extensive slash command support to build agent flows interactively. Set up message connections via commands.
 - ℹ️ The most easy way available to generate static websites in combination with [MkNodes](https://github.com/phil/mknodes) and  [the corresponding MkDocs plugin](https://github.com/phil65/mkdocs_mknodes)
 
-## 🔜 Coming Soon
-- 🎯 Built-in event system for reactive agent behaviors (file changes, webhooks, timed events)
-- 🖥️ Real-time-monitoring via Textual app in truly async manner. Talk to your agents while they are working and monitor the progress!
-
-
-
-
-### Why LLMling-agent? 🤔
-
-Why another framework you may ask? The framework stands out through three core principles:
-
-
-#### 🛡️ Type Safety and Structure
-Unlike other frameworks that rely on free-form text exchanges, LLMling-agent enforces type safety throughout the entire agent interaction chain.
-From input validation to structured outputs, every data flow is typed and validated, making it significantly more reliable for production systems.
-
-#### 💬 Object-oriented async messaging and routing system
-A powerful approach to messaging using Connection ("Talk") objects which allow all kind of new patterns for async agent communication
-
-#### ⚙️ Rich Configuration System
-While other frameworks require extensive Python code for setup, LLMling-agent introduces a comprehensive YAML configuration system.
-This allows defining complex agent behaviors, capabilities, and interactions declaratively.
-The configuration supports inheritance, composition, and strong validation, making it easier to manage large-scale agent deployments.
-
-#### 🤝 Human-AI Collaboration
-Instead of choosing between fully autonomous or human-controlled operations, LLMling-agent offers flexible human-in-the-loop integration.
-From full human control to selective oversight of critical actions, or hooking in remotely via Network,
-the framework makes it natural to build systems that combine AI capabilities with human supervision and interaction.
 
 
 ## Quick Start
