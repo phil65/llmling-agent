@@ -29,7 +29,11 @@ class MockClient:
         """Mock create_terminal."""
         terminal_id = f"mock_terminal_{self._terminal_counter}"
         self._terminal_counter += 1
-        self._terminal_commands[terminal_id] = request.command
+        # Store full command with args for proper parsing
+        full_command = request.command
+        if request.args:
+            full_command += " " + " ".join(request.args)
+        self._terminal_commands[terminal_id] = full_command
         return type("Response", (), {"terminal_id": terminal_id})()
 
     async def wait_for_terminal_exit(self, request):
@@ -59,7 +63,7 @@ class MockClient:
             output = "test.txt|12|1704110400|-rw-r--r--|regular file"
         else:
             output = ""
-        return type("Response", (), {"output": output})()
+        return type("Response", (), {"output": output, "truncated": False})()
 
     async def release_terminal(self, request):
         """Mock release_terminal."""
