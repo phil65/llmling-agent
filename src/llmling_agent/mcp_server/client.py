@@ -15,7 +15,10 @@ import inspect
 import logging
 from typing import TYPE_CHECKING, Any, Self
 
-from pydantic_ai import RunContext  # noqa: TC002
+from pydantic_ai import (
+    RunContext,  # noqa: TC002
+    ToolReturn,
+)
 from schemez.functionschema import FunctionSchema
 
 from llmling_agent.log import get_logger
@@ -388,10 +391,8 @@ class MCPClient:
         arguments: dict | None = None,
         tool_call_id: str | None = None,
         run_context: RunContext | None = None,
-    ) -> str | Any:
+    ) -> ToolReturn | str | Any:
         """Call an MCP tool with full PydanticAI return type support."""
-        from pydantic_ai import ToolReturn
-
         if not self._client or not self._connected:
             msg = "Not connected to MCP server"
             raise RuntimeError(msg)
@@ -416,7 +417,7 @@ class MCPClient:
 
             # Use FastMCP's call_tool method with optional progress handler
             result = await self._client.call_tool(
-                name, arguments or {}, progress_handler=progress_handler
+                name, arguments, progress_handler=progress_handler
             )
 
             # Convert MCP content to PydanticAI content
