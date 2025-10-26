@@ -5,19 +5,15 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, overload
 from uuid import uuid4
 
+import anyenv
 from pydantic_ai import messages as _messages
 from pydantic_ai.messages import (
     ModelRequest,
-    ModelResponse,
-    RetryPromptPart,
     SystemPromptPart,
-    TextPart,
-    ToolCallPart,
     ToolReturnPart,
     UserPromptPart,
 )
 
-from llmling_agent.messaging.messages import ChatMessage
 from llmling_agent.models.content import BaseContent
 from llmling_agent.tools import ToolCallInfo
 
@@ -31,14 +27,9 @@ if TYPE_CHECKING:
         MCPServerStdio,
         MCPServerStreamableHTTP,
     )
-    from pydantic_ai.messages import (
-        ModelMessage,
-        ModelRequestPart,
-        ModelResponsePart,
-        UserContent as PydanticUserContent,
-    )
+    from pydantic_ai.messages import ModelMessage, ToolCallPart, UserContent
 
-    from llmling_agent.common_types import MessageRole
+    from llmling_agent.messaging.messages import ChatMessage
     from llmling_agent.models.content import Content
     from llmling_agent.tools.base import Tool
     from llmling_agent_config.mcp_server import (
@@ -128,100 +119,8 @@ def parts_to_tool_call_info(
     )
 
 
-def convert_model_message(  # noqa: PLR0911
-    message: ModelMessage | ModelRequestPart | ModelResponsePart,
-    tools: dict[str, Tool],
-    agent_name: str,
-    filter_system_prompts: bool = False,
-) -> ChatMessage:
-    """Convert a pydantic-ai message to our ChatMessage format.
-
-    Also supports converting parts of a message (with limitations then of course)
-
-    Args:
-        message: Message to convert (ModelMessage or its parts)
-        tools: Original Tool set to enrich ToolCallInfos with additional info
-        agent_name: Name of the agent of this message
-        filter_system_prompts: Whether to filter out system prompt parts from
-                               ModelRequests
-
-    Returns:
-        Converted ChatMessage
-
-    Raises:
-        ValueError: If message type is not supported
-    """
-    match message:
-        case ModelRequest():
-            # Collect content from all parts
-            content_parts = []
-            role: MessageRole = "system"
-            for part in message.parts:
-                match part:
-                    case UserPromptPart():
-                        content_parts.append(str(part.content))
-                        role = "user"
-                    case SystemPromptPart() if not filter_system_prompts:
-                        content_parts.append(str(part.content))
-            return ChatMessage(content="\n".join(content_parts), role=role)
-
-        case ModelResponse():
-            # Collect content and tool calls from all parts
-            tool_calls = get_tool_calls([message], tools, None)
-            parts = [format_part(p) for p in message.parts if isinstance(p, TextPart)]
-            content = "\n".join(parts)
-            return ChatMessage(content=content, role="assistant", tool_calls=tool_calls)
-
-        case TextPart() as part:
-            return ChatMessage(content=format_part(part), role="assistant")
-
-        case UserPromptPart() as part:
-            return ChatMessage(content=format_part(part), role="user")
-
-        case SystemPromptPart() as part:
-            return ChatMessage(content=format_part(part), role="system")
-
-        case ToolCallPart():
-            args = message.args_as_dict()
-            info = ToolCallInfo(
-                tool_name=message.tool_name,
-                args=args,
-                agent_name=agent_name,
-                result=None,  # Not available yet
-                tool_call_id=message.tool_call_id or str(uuid4()),
-            )
-            content = f"Tool call: {message.tool_name}\nArgs: {args}"
-            return ChatMessage(content=content, role="assistant", tool_calls=[info])
-
-        case ToolReturnPart():
-            info = ToolCallInfo(
-                tool_name=message.tool_name,
-                agent_name=agent_name,
-                args={},  # No args in return part
-                result=message.content,
-                tool_call_id=message.tool_call_id or str(uuid4()),
-                timestamp=message.timestamp,
-            )
-            content = f"Tool {message.tool_name} returned: {message.content}"
-            return ChatMessage(content=content, role="assistant", tool_calls=[info])
-
-        case RetryPromptPart():
-            error_content = (
-                message.content
-                if isinstance(message.content, str)
-                else "\n".join(f"- {err['loc']}: {err['msg']}" for err in message.content)
-            )
-            return ChatMessage(content=f"Retry needed: {error_content}", role="assistant")
-
-        case _:
-            msg = f"Unsupported message type: {type(message)}"
-            raise ValueError(msg)
-
-
 def to_model_request(message: ChatMessage[str | Content]) -> ModelRequest:
     """Convert ChatMessage to pydantic-ai ModelMessage."""
-    import anyenv
-
     match message.content:
         case BaseContent():
             content = [message.content.to_openai_format()]
@@ -241,7 +140,7 @@ def to_model_request(message: ChatMessage[str | Content]) -> ModelRequest:
 
 async def convert_prompts_to_user_content(
     prompts: Sequence[str | Content],
-) -> list[str | PydanticUserContent]:
+) -> list[str | UserContent]:
     """Convert our prompts to pydantic-ai compatible format.
 
     Args:
@@ -259,7 +158,7 @@ async def convert_prompts_to_user_content(
     #     return [formatted]
 
     # Otherwise, process each item individually in order
-    result: list[str | PydanticUserContent] = []
+    result: list[str | UserContent] = []
     for p in prompts:
         if isinstance(p, str):
             formatted = await format_prompts([p])
