@@ -6,10 +6,10 @@ import asyncio
 import logging
 from pathlib import Path
 import shlex
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal, overload
 
 from anyenv import get_os_command_provider
-from fsspec.asyn import AsyncFileSystem
+from fsspec.asyn import AsyncFileSystem, sync_wrapper
 from fsspec.spec import AbstractBufferedFile
 from upath import UPath
 
@@ -137,6 +137,8 @@ class ACPFileSystem(AsyncFileSystem):
             msg = f"Could not read file {path}: {e}"
             raise FileNotFoundError(msg) from e
 
+    cat_file = sync_wrapper(_cat_file)
+
     async def _put_file(self, path: str, content: str | bytes, **kwargs: Any) -> None:
         """Write file content via ACP session.
 
@@ -153,6 +155,18 @@ class ACPFileSystem(AsyncFileSystem):
         except Exception as e:
             msg = f"Could not write file {path}: {e}"
             raise OSError(msg) from e
+
+    put_file = sync_wrapper(_put_file)
+
+    @overload
+    async def _ls(
+        self, path: str = "", detail: Literal[True] = True, **kwargs: Any
+    ) -> list[dict[str, Any]]: ...
+
+    @overload
+    async def _ls(
+        self, path: str = "", detail: Literal[False] = False, **kwargs: Any
+    ) -> list[str]: ...
 
     async def _ls(
         self, path: str = "", detail: bool = True, **kwargs: Any
@@ -171,7 +185,7 @@ class ACPFileSystem(AsyncFileSystem):
         """
         # Use OS-specific command to list directory contents
         list_cmd = self.command_provider.get_command("list_directory")
-        ls_cmd = list_cmd.create_command(path, detailed=detail)
+        ls_cmd = list_cmd.create_command(path)
 
         try:
             command, args = self._parse_command(ls_cmd)
@@ -183,30 +197,30 @@ class ACPFileSystem(AsyncFileSystem):
                 msg = f"Error listing directory {path!r}: {output}"
                 raise FileNotFoundError(msg)  # noqa: TRY301
 
-            result = list_cmd.parse_command(output, path, detailed=detail)
+            result = list_cmd.parse_command(output, path)
 
-            # Convert DirectoryEntry objects to dict format
-            if detail and result:
-                converted_result = []
-                for item in result:
-                    if hasattr(item, "name"):  # DirectoryEntry object
-                        converted_result.append({
-                            "name": item.name,
-                            "path": item.path,
-                            "type": item.type,
-                            "size": item.size,
-                            "timestamp": item.timestamp,
-                            "permissions": item.permissions,
-                        })
-                    else:
-                        converted_result.append(item)
-                return converted_result
+            # Convert DirectoryEntry objects to dict format or simple names
+            if detail:
+                return [
+                    {
+                        "name": item.name,
+                        "path": item.path,
+                        "type": item.type,
+                        "size": item.size,
+                        "timestamp": item.timestamp,
+                        "permissions": item.permissions,
+                    }
+                    for item in result
+                ]
+            return [item.name for item in result]
 
         except Exception as e:
             msg = f"Could not list directory {path}: {e}"
             raise FileNotFoundError(msg) from e
         else:
             return result
+
+    ls = sync_wrapper(_ls)
 
     async def _info(self, path: str, **kwargs: Any) -> dict[str, Any]:
         """Get file information via stat command.
@@ -248,7 +262,7 @@ class ACPFileSystem(AsyncFileSystem):
                 filename = Path(path).name
 
                 for item in ls_result:
-                    if item.get("name") == filename:
+                    if item["name"] == filename:
                         return {
                             "name": item["name"],
                             "path": path,
@@ -263,6 +277,8 @@ class ACPFileSystem(AsyncFileSystem):
             except (OSError, ValueError):
                 msg = f"Could not get file info for {path}: {e}"
                 raise FileNotFoundError(msg) from e
+
+    info = sync_wrapper(_info)
 
     async def _exists(self, path: str, **kwargs: Any) -> bool:
         """Check if file exists via test command.
@@ -289,6 +305,8 @@ class ACPFileSystem(AsyncFileSystem):
                 output, exit_code if exit_code is not None else 1
             )
 
+    exists = sync_wrapper(_exists)
+
     async def _isdir(self, path: str, **kwargs: Any) -> bool:
         """Check if path is a directory via test command.
 
@@ -314,6 +332,8 @@ class ACPFileSystem(AsyncFileSystem):
                 output, exit_code if exit_code is not None else 1
             )
 
+    isdir = sync_wrapper(_isdir)
+
     async def _isfile(self, path: str, **kwargs: Any) -> bool:
         """Check if path is a file via test command.
 
@@ -338,6 +358,8 @@ class ACPFileSystem(AsyncFileSystem):
             return isfile_cmd.parse_command(
                 output, exit_code if exit_code is not None else 1
             )
+
+    isfile = sync_wrapper(_isfile)
 
     async def _makedirs(self, path: str, exist_ok: bool = False, **kwargs: Any) -> None:
         """Create directories via mkdir command.
@@ -366,6 +388,8 @@ class ACPFileSystem(AsyncFileSystem):
             msg = f"Could not create directory {path}: {e}"
             raise OSError(msg) from e
 
+    makedirs = sync_wrapper(_makedirs)
+
     async def _rm(self, path: str, recursive: bool = False, **kwargs: Any) -> None:
         """Remove file or directory via rm command.
 
@@ -393,6 +417,8 @@ class ACPFileSystem(AsyncFileSystem):
             msg = f"Could not remove {path}: {e}"
             raise OSError(msg) from e
 
+    rm = sync_wrapper(_rm)
+
     def open(self, path: str, mode: str = "rb", **kwargs: Any) -> ACPFile:
         """Open file for reading or writing.
 
@@ -415,69 +441,3 @@ class ACPFileSystem(AsyncFileSystem):
             mode = "xb"
 
         return ACPFile(self, path, mode, **kwargs)
-
-
-# Sync wrapper filesystem for easier integration
-class ACPFileSystemSync(ACPFileSystem):
-    """Synchronous wrapper around ACPFileSystem."""
-
-    def __init__(
-        self,
-        client: Client,
-        session_id: str,
-        loop: asyncio.AbstractEventLoop | None = None,
-        **kwargs: Any,
-    ):
-        """Initialize sync ACP filesystem.
-
-        Args:
-            client: ACP client for operations
-            session_id: Session identifier
-            loop: Event loop to use for async operations
-            **kwargs: Additional filesystem options
-        """
-        super().__init__(client, session_id, **kwargs)
-        self._loop = loop or asyncio.new_event_loop()
-
-    def _run_async(self, coro):
-        """Run async coroutine in the event loop."""
-        if self._loop.is_running():
-            # If loop is already running, we need to use a different approach
-            # This is a simplified version - in production, you'd want better handling
-            future = asyncio.run_coroutine_threadsafe(coro, self._loop)
-            return future.result()
-        return self._loop.run_until_complete(coro)
-
-    def ls(
-        self, path: str = "", detail: bool = True, **kwargs: Any
-    ) -> list[dict[str, Any]] | list[str]:
-        """Sync wrapper for ls operation."""
-        return self._run_async(self._ls(path, detail, **kwargs))
-
-    def cat(self, path: str, **kwargs: Any) -> bytes:
-        """Sync wrapper for cat operation."""
-        return self._run_async(self._cat_file(path, **kwargs))
-
-    def info(self, path: str, **kwargs: Any) -> dict[str, Any]:
-        """Sync wrapper for info operation."""
-        return self._run_async(self._info(path, **kwargs))
-
-    def exists(self, path: str, **kwargs: Any) -> bool:
-        """Sync wrapper for exists operation."""
-        return self._run_async(self._exists(path, **kwargs))
-
-    def isdir(self, path: str, **kwargs: Any) -> bool:
-        """Sync wrapper for isdir operation."""
-        return self._run_async(self._isdir(path, **kwargs))
-
-    def isfile(self, path: str, **kwargs: Any) -> bool:
-        """Sync wrapper for isfile operation."""
-        return self._run_async(self._isfile(path, **kwargs))
-
-    def makedirs(self, path: str, exist_ok: bool = False, **kwargs: Any) -> None:
-        """Sync wrapper for makedirs operation."""
-        return self._run_async(self._makedirs(path, exist_ok, **kwargs))
-
-    def rm(self, path: str, recursive: bool = False, **kwargs: Any) -> None:
-        """Sync wrapper for rm operation."""
-        return self._run_async(self._rm(path, recursive, **kwargs))
