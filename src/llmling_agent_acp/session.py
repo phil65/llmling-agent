@@ -39,6 +39,7 @@ from llmling_agent_acp.command_bridge import SLASH_PATTERN
 from llmling_agent_acp.converters import (
     convert_acp_mcp_server_to_config,
     from_content_blocks,
+    to_acp_content_blocks,
 )
 
 
@@ -627,10 +628,11 @@ with other agents effectively."""
                 # Final completion notification
                 # Skip generic notifications for self-notifying tools
                 if result.tool_name not in ACP_SELF_NOTIFYING_TOOLS:
+                    converted_blocks = to_acp_content_blocks(final_output)
                     await self.notifications.tool_call(
                         tool_name=result.tool_name,
                         tool_input=tool_input,
-                        tool_output=final_output,
+                        tool_output=converted_blocks,
                         status="completed",
                         tool_call_id=tool_call_id,
                     )
