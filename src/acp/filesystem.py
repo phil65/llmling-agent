@@ -184,13 +184,32 @@ class ACPFileSystem(AsyncFileSystem):
                 msg = f"Error listing directory {path!r}: {output}"
                 raise FileNotFoundError(msg)  # noqa: TRY301
 
-            return self.command_provider.get_command("list_directory").parse_command(
+            result = self.command_provider.get_command("list_directory").parse_command(
                 output, path, detailed=detail
             )
+
+            # Convert DirectoryEntry objects to dict format
+            if detail and result:
+                converted_result = []
+                for item in result:
+                    if hasattr(item, "name"):  # DirectoryEntry object
+                        converted_result.append({
+                            "name": item.name,
+                            "path": item.path,
+                            "type": item.type,
+                            "size": item.size,
+                            "timestamp": item.timestamp,
+                            "permissions": item.permissions,
+                        })
+                    else:
+                        converted_result.append(item)
+                return converted_result
 
         except Exception as e:
             msg = f"Could not list directory {path}: {e}"
             raise FileNotFoundError(msg) from e
+        else:
+            return result
 
     async def _info(self, path: str, **kwargs: Any) -> dict[str, Any]:
         """Get file information via stat command.
@@ -233,14 +252,14 @@ class ACPFileSystem(AsyncFileSystem):
                 filename = Path(path).name
 
                 for item in ls_result:
-                    if hasattr(item, "name") and item.name == filename:
+                    if item.get("name") == filename:
                         return {
-                            "name": item.name,
+                            "name": item["name"],
                             "path": path,
-                            "type": item.type,
-                            "size": item.size,
-                            "timestamp": item.timestamp,
-                            "permissions": item.permissions,
+                            "type": item["type"],
+                            "size": item["size"],
+                            "timestamp": item.get("timestamp"),
+                            "permissions": item.get("permissions"),
                         }
 
                 msg = f"File not found: {path}"
@@ -270,7 +289,7 @@ class ACPFileSystem(AsyncFileSystem):
             return False
         else:
             return self.command_provider.get_command("exists").parse_command(
-                output, exit_code
+                output, exit_code if exit_code is not None else 1
             )
 
     async def _isdir(self, path: str, **kwargs: Any) -> bool:
@@ -294,7 +313,7 @@ class ACPFileSystem(AsyncFileSystem):
             return False
         else:
             return self.command_provider.get_command("is_directory").parse_command(
-                output, exit_code
+                output, exit_code if exit_code is not None else 1
             )
 
     async def _isfile(self, path: str, **kwargs: Any) -> bool:
@@ -318,7 +337,7 @@ class ACPFileSystem(AsyncFileSystem):
             return False
         else:
             return self.command_provider.get_command("is_file").parse_command(
-                output, exit_code
+                output, exit_code if exit_code is not None else 1
             )
 
     async def _makedirs(self, path: str, exist_ok: bool = False, **kwargs: Any) -> None:
@@ -340,7 +359,7 @@ class ACPFileSystem(AsyncFileSystem):
             )
 
             success = self.command_provider.get_command("create_directory").parse_command(
-                output, exit_code
+                output, exit_code if exit_code is not None else 1
             )
             if not success:
                 msg = f"Error creating directory {path}: {output}"
@@ -368,7 +387,7 @@ class ACPFileSystem(AsyncFileSystem):
             )
 
             success = self.command_provider.get_command("remove_path").parse_command(
-                output, exit_code
+                output, exit_code if exit_code is not None else 1
             )
             if not success:
                 msg = f"Error removing {path}: {output}"
