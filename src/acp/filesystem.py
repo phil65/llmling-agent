@@ -8,6 +8,7 @@ from pathlib import Path
 import shlex
 from typing import TYPE_CHECKING, Any
 
+from anyenv import get_os_command_provider
 from fsspec.asyn import AsyncFileSystem
 from fsspec.spec import AbstractBufferedFile
 from upath import UPath
@@ -78,6 +79,7 @@ class ACPFileSystem(AsyncFileSystem):
         self.session_id = session_id
         self.requests = ACPRequests(client, session_id)
         self.notifications = ACPNotifications(client, session_id)
+        self.command_provider = get_os_command_provider()
 
     def _make_path(self, path: str) -> UPath:
         """Create a path object from string."""
@@ -167,10 +169,10 @@ class ACPFileSystem(AsyncFileSystem):
         Returns:
             List of file information dictionaries or file names
         """
-        # Use ls command to list directory contents
-        ls_cmd = "ls" if not detail else "ls -la --time-style=+%Y-%m-%d-%H:%M:%S"
-        if path:
-            ls_cmd += f' "{path}"'
+        # Use OS-specific command to list directory contents
+        ls_cmd = self.command_provider.get_command("list_directory").create_command(
+            path, detailed=detail
+        )
 
         try:
             command, args = self._parse_command(ls_cmd)
@@ -182,73 +184,13 @@ class ACPFileSystem(AsyncFileSystem):
                 msg = f"Error listing directory {path!r}: {output}"
                 raise FileNotFoundError(msg)  # noqa: TRY301
 
-            return self._parse_ls_output(output, path, detail)
+            return self.command_provider.get_command("list_directory").parse_command(
+                output, path, detailed=detail
+            )
 
         except Exception as e:
             msg = f"Could not list directory {path}: {e}"
             raise FileNotFoundError(msg) from e
-
-    def _parse_ls_output(
-        self, output: str, base_path: str, detail: bool
-    ) -> list[dict[str, Any]] | list[str]:
-        """Parse ls command output into file information.
-
-        Args:
-            output: Raw ls command output
-            base_path: Base directory path
-            detail: Whether to return detailed information
-
-        Returns:
-            Parsed file information
-        """
-        lines = output.strip().split("\n")
-        if not lines:
-            return []
-
-        # Filter out total line and empty lines
-        file_lines = [line for line in lines if line and not line.startswith("total ")]
-
-        files: list[Any] = []
-        for line in file_lines:
-            if not line.strip():
-                continue
-
-            if detail:
-                # Parse detailed ls -la output
-                parts = line.split()
-                min_ls_parts = 7
-                if len(parts) < min_ls_parts:
-                    continue
-
-                permissions = parts[0]
-                size = int(parts[4]) if parts[4].isdigit() else 0
-                timestamp = parts[5]  # Single timestamp field
-                name = " ".join(parts[6:])  # Handle names with spaces
-
-                # Determine file type
-                file_type = "directory" if permissions.startswith("d") else "file"
-                if permissions.startswith("l"):
-                    file_type = "link"
-
-                # Build full path
-                full_path = f"{base_path.rstrip('/')}/{name}" if base_path else name
-
-                files.append({
-                    "name": name,
-                    "path": full_path,
-                    "type": file_type,
-                    "size": size,
-                    "permissions": permissions,
-                    "timestamp": timestamp,
-                })
-            else:
-                # Simple name extraction - get filename from detailed output
-                parts = line.split()
-                if len(parts) >= 7:  # Valid ls -la line  # noqa: PLR2004
-                    name = " ".join(parts[6:])  # Name starts at column 6
-                    files.append(name)
-
-        return files
 
     async def _info(self, path: str, **kwargs: Any) -> dict[str, Any]:
         """Get file information via stat command.
@@ -260,8 +202,8 @@ class ACPFileSystem(AsyncFileSystem):
         Returns:
             File information dictionary
         """
-        # Use stat command to get file information
-        stat_cmd = f'stat -c "%n|%s|%F|%Y" "{path}"'
+        # Use OS-specific command to get file information
+        stat_cmd = self.command_provider.get_command("file_info").create_command(path)
 
         try:
             command, args = self._parse_command(stat_cmd)
@@ -272,8 +214,17 @@ class ACPFileSystem(AsyncFileSystem):
             if exit_code != 0:
                 msg = f"File not found: {path}"
                 raise FileNotFoundError(msg)
-
-            return self._parse_stat_output(output.strip(), path)
+            file_info = self.command_provider.get_command("file_info").parse_command(
+                output.strip(), path
+            )
+            return {  # noqa: TRY300
+                "name": file_info.name,
+                "path": file_info.path,
+                "type": file_info.type,
+                "size": file_info.size,
+                "timestamp": file_info.timestamp,
+                "permissions": file_info.permissions,
+            }
 
         except (OSError, ValueError) as e:
             # Fallback: try to get basic info from ls
@@ -282,13 +233,14 @@ class ACPFileSystem(AsyncFileSystem):
                 filename = Path(path).name
 
                 for item in ls_result:
-                    if isinstance(item, dict) and item.get("name") == filename:
+                    if hasattr(item, "name") and item.name == filename:
                         return {
-                            "name": item["name"],
+                            "name": item.name,
                             "path": path,
-                            "type": item["type"],
-                            "size": item["size"],
-                            "permissions": item.get("permissions", ""),
+                            "type": item.type,
+                            "size": item.size,
+                            "timestamp": item.timestamp,
+                            "permissions": item.permissions,
                         }
 
                 msg = f"File not found: {path}"
@@ -296,46 +248,6 @@ class ACPFileSystem(AsyncFileSystem):
             except (OSError, ValueError):
                 msg = f"Could not get file info for {path}: {e}"
                 raise FileNotFoundError(msg) from e
-
-    def _parse_stat_output(self, output: str, path: str) -> dict[str, Any]:
-        """Parse stat command output.
-
-        Args:
-            output: Raw stat command output
-            path: Original file path
-
-        Returns:
-            Parsed file information
-        """
-        # stat output format: name|size|mtime|permissions|file_type
-        parts = output.split("|")
-        min_stat_parts = 5
-        if len(parts) < min_stat_parts:
-            msg = f"Unexpected stat output format: {output}"
-            raise ValueError(msg)
-
-        name = Path(path).name
-        size = int(parts[1]) if parts[1].isdigit() else 0
-        mtime = int(parts[2]) if parts[2].isdigit() else 0
-        permissions = parts[3]
-        file_type_str = parts[4].lower()
-
-        # Map stat file types to our types
-        if "directory" in file_type_str:
-            file_type = "directory"
-        elif "symbolic link" in file_type_str:
-            file_type = "link"
-        else:
-            file_type = "file"
-
-        return {
-            "name": name,
-            "path": path,
-            "type": file_type,
-            "size": size,
-            "permissions": permissions,
-            "mtime": mtime,
-        }
 
     async def _exists(self, path: str, **kwargs: Any) -> bool:
         """Check if file exists via test command.
@@ -347,17 +259,19 @@ class ACPFileSystem(AsyncFileSystem):
         Returns:
             True if file exists, False otherwise
         """
-        test_cmd = f'test -e "{path}"'
+        test_cmd = self.command_provider.get_command("exists").create_command(path)
 
         try:
             command, args = self._parse_command(test_cmd)
-            _, exit_code = await self.requests.run_command(
+            output, exit_code = await self.requests.run_command(
                 command, args=args, timeout_seconds=5
             )
         except (OSError, ValueError):
             return False
         else:
-            return exit_code == 0
+            return self.command_provider.get_command("exists").parse_command(
+                output, exit_code
+            )
 
     async def _isdir(self, path: str, **kwargs: Any) -> bool:
         """Check if path is a directory via test command.
@@ -369,17 +283,19 @@ class ACPFileSystem(AsyncFileSystem):
         Returns:
             True if path is a directory, False otherwise
         """
-        test_cmd = f'test -d "{path}"'
+        test_cmd = self.command_provider.get_command("is_directory").create_command(path)
 
         try:
             command, args = self._parse_command(test_cmd)
-            _, exit_code = await self.requests.run_command(
+            output, exit_code = await self.requests.run_command(
                 command, args=args, timeout_seconds=5
             )
         except (OSError, ValueError):
             return False
         else:
-            return exit_code == 0
+            return self.command_provider.get_command("is_directory").parse_command(
+                output, exit_code
+            )
 
     async def _isfile(self, path: str, **kwargs: Any) -> bool:
         """Check if path is a file via test command.
@@ -391,17 +307,19 @@ class ACPFileSystem(AsyncFileSystem):
         Returns:
             True if path is a file, False otherwise
         """
-        test_cmd = f'test -f "{path}"'
+        test_cmd = self.command_provider.get_command("is_file").create_command(path)
 
         try:
             command, args = self._parse_command(test_cmd)
-            _, exit_code = await self.requests.run_command(
+            output, exit_code = await self.requests.run_command(
                 command, args=args, timeout_seconds=5
             )
         except (OSError, ValueError):
             return False
         else:
-            return exit_code == 0
+            return self.command_provider.get_command("is_file").parse_command(
+                output, exit_code
+            )
 
     async def _makedirs(self, path: str, exist_ok: bool = False, **kwargs: Any) -> None:
         """Create directories via mkdir command.
@@ -411,15 +329,21 @@ class ACPFileSystem(AsyncFileSystem):
             exist_ok: Don't raise error if directory already exists
             **kwargs: Additional options
         """
-        mkdir_cmd = f'mkdir -p "{path}"' if exist_ok else f'mkdir "{path}"'
+        mkdir_cmd = self.command_provider.get_command("create_directory").create_command(
+            path, parents=exist_ok
+        )
 
         try:
             command, args = self._parse_command(mkdir_cmd)
-            _, exit_code = await self.requests.run_command(
+            output, exit_code = await self.requests.run_command(
                 command, args=args, timeout_seconds=5
             )
-            if exit_code != 0:
-                msg = f"Could not create directory: {path}"
+
+            success = self.command_provider.get_command("create_directory").parse_command(
+                output, exit_code
+            )
+            if not success:
+                msg = f"Error creating directory {path}: {output}"
                 raise OSError(msg)  # noqa: TRY301
         except Exception as e:
             msg = f"Could not create directory {path}: {e}"
@@ -433,15 +357,21 @@ class ACPFileSystem(AsyncFileSystem):
             recursive: Remove directories recursively
             **kwargs: Additional options
         """
-        rm_cmd = f'rm -rf "{path}"' if recursive else f'rm "{path}"'
+        rm_cmd = self.command_provider.get_command("remove_path").create_command(
+            path, recursive=recursive
+        )
 
         try:
             command, args = self._parse_command(rm_cmd)
-            _, exit_code = await self.requests.run_command(
+            output, exit_code = await self.requests.run_command(
                 command, args=args, timeout_seconds=10
             )
-            if exit_code != 0:
-                msg = f"Could not remove: {path}"
+
+            success = self.command_provider.get_command("remove_path").parse_command(
+                output, exit_code
+            )
+            if not success:
+                msg = f"Error removing {path}: {output}"
                 raise OSError(msg)  # noqa: TRY301
         except Exception as e:
             msg = f"Could not remove {path}: {e}"
