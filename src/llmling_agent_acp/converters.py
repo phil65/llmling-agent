@@ -6,12 +6,14 @@ content blocks, session updates, and other data structures using the external ac
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, overload
+import base64
+from typing import TYPE_CHECKING, Any, overload
 
 from acp.acp_types import HttpMcpServer, SseMcpServer, StdioMcpServer
 from acp.schema import (
     AgentMessageChunk,
     AudioContentBlock,
+    ContentToolCallContent,
     EmbeddedResourceContentBlock,
     ImageContentBlock,
     PermissionOption,
@@ -159,6 +161,126 @@ def from_content_blocks(blocks: Sequence[ContentBlock]) -> Sequence[str | BaseCo
                         content.append(f"Binary Resource: {formatted_uri}")
 
     return content
+
+
+def to_acp_content_blocks(  # noqa: PLR0911
+    tool_output: Any,
+) -> list[TextContentBlock | ImageContentBlock | AudioContentBlock]:
+    """Convert pydantic-ai tool output to raw ACP content blocks.
+
+    Returns unwrapped content blocks that can be used directly or wrapped
+    in ContentToolCallContent as needed.
+
+    Args:
+        tool_output: Output from pydantic-ai tool execution
+
+    Returns:
+        List of content blocks (TextContentBlock, ImageContentBlock, AudioContentBlock)
+    """
+    try:
+        # Import pydantic-ai types only when needed to avoid dependency issues
+        from pydantic_ai.messages import (
+            AudioUrl,
+            BinaryContent,
+            DocumentUrl,
+            ImageUrl,
+            ToolReturn,
+            VideoUrl,
+        )
+    except ImportError:
+        # Fallback if pydantic-ai not available - convert to text
+        if tool_output is not None:
+            return [TextContentBlock(text=str(tool_output))]
+        return []
+
+    if tool_output is None:
+        return []
+
+    # Handle ToolReturn objects with separate content field
+    if isinstance(tool_output, ToolReturn):
+        blocks: list[TextContentBlock | ImageContentBlock | AudioContentBlock] = []
+
+        # Add the return value as text
+        if tool_output.return_value is not None:
+            blocks.append(TextContentBlock(text=str(tool_output.return_value)))
+
+        # Add any multimodal content
+        if tool_output.content:
+            content_list = (
+                tool_output.content
+                if isinstance(tool_output.content, list)
+                else [tool_output.content]
+            )
+            for content_item in content_list:
+                blocks.extend(to_acp_content_blocks(content_item))
+
+        return blocks
+
+    # Handle lists of content
+    if isinstance(tool_output, list):
+        blocks = []
+        for item in tool_output:
+            blocks.extend(to_acp_content_blocks(item))
+        return blocks
+
+    # Handle multimodal content types
+    match tool_output:
+        case BinaryContent(data=data, media_type=media_type) if media_type.startswith(
+            "image/"
+        ):
+            # Image content - convert binary data to base64
+            image_data = base64.b64encode(data).decode("utf-8")
+            return [ImageContentBlock(data=image_data, mime_type=media_type)]
+
+        case BinaryContent(data=data, media_type=media_type) if media_type.startswith(
+            "audio/"
+        ):
+            # Audio content - convert binary data to base64
+            audio_data = base64.b64encode(data).decode("utf-8")
+            return [AudioContentBlock(data=audio_data, mime_type=media_type)]
+
+        case BinaryContent(data=data, media_type=media_type):
+            # Other binary content - describe as text for now
+            size_mb = len(data) / (1024 * 1024)
+            return [
+                TextContentBlock(text=f"Binary content ({media_type}): {size_mb:.2f} MB")
+            ]
+
+        case ImageUrl(url=url):
+            # Image URL - create markdown image link
+            return [TextContentBlock(text=f"![Image]({url})")]
+
+        case AudioUrl(url=url):
+            # Audio URL - create markdown link
+            return [TextContentBlock(text=f"[Audio]({url})")]
+
+        case DocumentUrl(url=url):
+            # Document URL - create markdown link
+            return [TextContentBlock(text=f"[Document]({url})")]
+
+        case VideoUrl(url=url):
+            # Video URL - create markdown link
+            return [TextContentBlock(text=f"[Video]({url})")]
+
+        case _:
+            # Everything else - convert to string
+            return [TextContentBlock(text=str(tool_output))]
+
+
+def to_tool_call_contents(tool_output: Any) -> list[ContentToolCallContent]:
+    """Convert pydantic-ai tool output to ACP content blocks.
+
+    Handles multimodal content from pydantic-ai including images, audio, binary content,
+    URLs, and ToolReturn objects with separate content fields.
+
+    Args:
+        tool_output: Output from pydantic-ai tool execution
+
+    Returns:
+        List of ContentToolCallContent blocks for ACP
+    """
+    raw_blocks = to_acp_content_blocks(tool_output)
+    return [ContentToolCallContent(content=block) for block in raw_blocks]
 
 
 def to_agent_text_notification(
