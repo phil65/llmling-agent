@@ -62,6 +62,7 @@ class ACPNotifications:
     async def tool_call(
         self,
         tool_name: str,
+        *,
         tool_input: dict[str, Any],
         tool_output: Any,
         status: ToolCallStatus = "completed",
@@ -82,9 +83,18 @@ class ACPNotifications:
         # Create tool call content from output
         content: list[ContentToolCallContent] = []
         if tool_output is not None:
-            output_text = str(tool_output)
-            block = TextContentBlock(text=output_text)
-            content.append(ContentToolCallContent(content=block))
+            # Handle pre-converted raw content blocks
+            if isinstance(tool_output, list) and all(
+                isinstance(item, (TextContentBlock, ImageContentBlock, AudioContentBlock))
+                for item in tool_output
+            ):
+                # Wrap raw blocks in ContentToolCallContent
+                content = [ContentToolCallContent(content=block) for block in tool_output]
+            else:
+                # Fallback to string conversion
+                output_text = str(tool_output)
+                block = TextContentBlock(text=output_text)
+                content.append(ContentToolCallContent(content=block))
 
         # Extract file locations if present
         locations = [
