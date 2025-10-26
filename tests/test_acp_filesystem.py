@@ -1,8 +1,14 @@
 """Tests for ACP filesystem."""
 
+import sys
+
 import pytest
 
 from acp.filesystem import ACPFileSystem, ACPPath
+
+
+if sys.platform == "win32":
+    pytest.skip(allow_module_level=True)
 
 
 class MockClient:
