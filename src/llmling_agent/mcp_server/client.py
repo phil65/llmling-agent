@@ -463,7 +463,7 @@ class MCPClient:
             TextContent,
             TextResourceContents,
         )
-        from pydantic_ai.messages import BinaryContent, DocumentUrl
+        from pydantic_ai.messages import BinaryContent, BinaryImage, DocumentUrl
 
         pydantic_content: list[Any] = []
 
@@ -480,7 +480,7 @@ class MCPClient:
                     else:
                         decoded_data = base64.b64decode(data)
                     pydantic_content.append(
-                        BinaryContent(data=decoded_data, media_type=mime_type)
+                        BinaryImage(data=decoded_data, media_type=mime_type)
                     )
                 case AudioContent(data=data, mimeType=mime_type):
                     # MCP data can be either bytes or base64 encoded string
