@@ -57,11 +57,7 @@ async def format_code(code: str, language: str | None = None) -> str:
 def create_code_tools() -> list[Tool]:
     """Create tools for code formatting and linting."""
     return [
-        Tool.from_callable(
-            format_code,
-            source="builtin",
-            category="execute",
-        ),
+        Tool.from_callable(format_code, source="builtin", category="execute"),
     ]
 
 
