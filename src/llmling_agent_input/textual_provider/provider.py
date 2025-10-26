@@ -68,12 +68,8 @@ class ConfirmationApp(BaseInputApp):
 class TextualInputProvider(InputProvider):
     """Input provider using Textual modals or standalone app."""
 
-    def __init__(
-        self,
-        app: App | None = None,
-        real_streaming: bool = False,
-    ):
-        super().__init__(real_streaming=real_streaming)
+    def __init__(self, app: App | None = None):
+        super().__init__()
         self.app = app
 
     async def get_input(
@@ -96,79 +92,6 @@ class TextualInputProvider(InputProvider):
             msg = "Input cancelled"
             raise UserCancelledError(msg)
         return app_result
-
-    # async def _get_streaming_input(
-    #     self,
-    #     context: AgentContext,
-    #     prompt: str,
-    #     result_type: type | None = None,
-    #     message_history: list[ChatMessage] | None = None,
-    # ) -> AsyncIterator[str]:
-    #     """Real-time streaming input using Textual."""
-    #     from textual.app import App
-    #     from textual.binding import Binding
-    #     from textual.widgets import TextArea
-
-    #     class StreamingInputModal(ModalScreen[str]):
-    #         BINDINGS: ClassVar = [
-    #             Binding("ctrl+enter", "submit", "Submit"),
-    #             Binding("escape", "cancel", "Cancel"),
-    #         ]
-
-    #         def __init__(self, prompt: str, chunk_callback: Callable[[str], None]):
-    #             super().__init__()
-    #             self.prompt = prompt
-    #             self._chunk_callback = chunk_callback
-
-    #         def compose(self) -> ComposeResult:
-    #             with Vertical(classes="modal-container"):
-    #                 yield Label(self.prompt)
-    #                 yield TextArea(id="input")
-
-    #         def on_text_area_changed(self, event: TextArea.Changed):
-    #             """Handle live updates."""
-    #             self._chunk_callback(event.value)
-
-    #         def action_submit(self):
-    #             text = self.query_one(TextArea).text
-    #             self.dismiss(text)
-
-    #         def action_cancel(self):
-    #             self.dismiss(None)
-
-    #     chunk_queue: asyncio.Queue[str] = asyncio.Queue()
-
-    #     async def handle_chunk(chunk: str):
-    #         await chunk_queue.put(chunk)
-
-    #     # Create modal or standalone app based on context
-    #     if self.app:
-    #         modal = StreamingInputModal(prompt, handle_chunk)
-    #         content = await self.app.push_screen_wait(modal)
-    #     else:
-
-    #         class StreamingApp(App[str]):
-    #             def __init__(self, prompt: str, callback: Callable[[str], None]):
-    #                 super().__init__()
-    #                 self._modal = StreamingInputModal(prompt, callback)
-    #                 self._result: str | None = None
-
-    #             async def on_mount(self):
-    #                 self._result = await self.push_screen_wait(self._modal)
-    #                 self.exit()
-
-    #         app = StreamingApp(prompt, handle_chunk)
-    #         content = await app.run_async()
-
-    #     if content is None:
-    #         msg = "Streaming input cancelled"
-    #         raise UserCancelledError(msg)
-
-    #     # Handle structured responses if needed
-    #     if result_type and content:
-    #         content = result_type.model_validate_json(content)  # type: ignore
-
-    #     yield str(content)
 
     async def get_code_input(
         self,

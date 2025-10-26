@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterator
 from typing import TYPE_CHECKING, Any
 
 from llmling_agent.utils.inspection import execute
@@ -10,7 +9,7 @@ from llmling_agent_input.base import InputProvider
 
 
 if TYPE_CHECKING:
-    from collections.abc import Awaitable, Callable, Iterator
+    from collections.abc import Awaitable, Callable
 
     from mcp import types
 
@@ -25,8 +24,6 @@ class CallbackInputProvider(InputProvider):
     def __init__(
         self,
         get_input: Callable[..., str | Awaitable[str]] | None = None,
-        get_streaming_input: Callable[..., AsyncIterator[str] | Iterator[str]]
-        | None = None,
         get_tool_confirmation: Callable[
             ..., ConfirmationResult | Awaitable[ConfirmationResult]
         ]
@@ -41,7 +38,6 @@ class CallbackInputProvider(InputProvider):
         | None = None,
     ):
         self._get_input = get_input
-        self._get_streaming = get_streaming_input
         self._get_confirmation = get_tool_confirmation
         self._get_code = get_code_input
         self._get_elicitation = get_elicitation
@@ -62,35 +58,6 @@ class CallbackInputProvider(InputProvider):
             result_type=result_type,
             message_history=message_history,
         )
-
-    async def _get_streaming_input(  # type: ignore
-        self,
-        context: AgentContext,
-        prompt: str,
-        result_type: type | None = None,
-        message_history: list[ChatMessage] | None = None,
-    ) -> AsyncIterator[str]:
-        if not self._get_streaming:
-            # Use parent class fallback
-            return await super().get_streaming_input(  # type: ignore
-                context, prompt, result_type, message_history
-            )
-
-        iterator = self._get_streaming(
-            context=context,
-            prompt=prompt,
-            result_type=result_type,
-            message_history=message_history,
-        )
-
-        if isinstance(iterator, AsyncIterator):
-            return iterator
-
-        async def wrap_sync():  # wrap sync iterator
-            for item in iterator:
-                yield item
-
-        return wrap_sync()
 
     async def get_tool_confirmation(
         self,

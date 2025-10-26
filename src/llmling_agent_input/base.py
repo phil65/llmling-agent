@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator, Coroutine
+    from collections.abc import Coroutine
 
     from mcp import types
     from pydantic import BaseModel
@@ -19,9 +19,6 @@ if TYPE_CHECKING:
 
 class InputProvider(ABC):
     """Base class for handling all UI interactions."""
-
-    def __init__(self, real_streaming: bool = False):
-        self.real_streaming = real_streaming
 
     async def get_input(
         self,
@@ -62,34 +59,6 @@ class InputProvider(ABC):
     ) -> BaseModel:
         """Get structured input, with promptantic and fallback handling."""
         raise NotImplementedError
-
-    async def get_streaming_input(
-        self,
-        context: AgentContext[Any],
-        prompt: str,
-        result_type: type | None = None,
-        message_history: list[ChatMessage] | None = None,
-    ) -> AsyncIterator[str]:
-        """Public interface that handles streaming decision."""
-        if self.real_streaming:
-            async for chunk in self._get_streaming_input(
-                context, prompt, result_type, message_history
-            ):
-                yield chunk
-        else:
-            response = await self.get_input(context, prompt, result_type, message_history)
-            yield response
-
-    async def _get_streaming_input(
-        self,
-        context: AgentContext[Any],
-        prompt: str,
-        result_type: type | None = None,
-        message_history: list[ChatMessage] | None = None,
-    ) -> AsyncIterator[str]:
-        """Default implementation for real streaming."""
-        response = await self.get_input(context, prompt, result_type, message_history)
-        yield response
 
     @abstractmethod
     def get_tool_confirmation(
