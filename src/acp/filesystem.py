@@ -170,9 +170,8 @@ class ACPFileSystem(AsyncFileSystem):
             List of file information dictionaries or file names
         """
         # Use OS-specific command to list directory contents
-        ls_cmd = self.command_provider.get_command("list_directory").create_command(
-            path, detailed=detail
-        )
+        list_cmd = self.command_provider.get_command("list_directory")
+        ls_cmd = list_cmd.create_command(path, detailed=detail)
 
         try:
             command, args = self._parse_command(ls_cmd)
@@ -184,9 +183,7 @@ class ACPFileSystem(AsyncFileSystem):
                 msg = f"Error listing directory {path!r}: {output}"
                 raise FileNotFoundError(msg)  # noqa: TRY301
 
-            result = self.command_provider.get_command("list_directory").parse_command(
-                output, path, detailed=detail
-            )
+            result = list_cmd.parse_command(output, path, detailed=detail)
 
             # Convert DirectoryEntry objects to dict format
             if detail and result:
@@ -222,7 +219,8 @@ class ACPFileSystem(AsyncFileSystem):
             File information dictionary
         """
         # Use OS-specific command to get file information
-        stat_cmd = self.command_provider.get_command("file_info").create_command(path)
+        info_cmd = self.command_provider.get_command("file_info")
+        stat_cmd = info_cmd.create_command(path)
 
         try:
             command, args = self._parse_command(stat_cmd)
@@ -233,9 +231,7 @@ class ACPFileSystem(AsyncFileSystem):
             if exit_code != 0:
                 msg = f"File not found: {path}"
                 raise FileNotFoundError(msg)
-            file_info = self.command_provider.get_command("file_info").parse_command(
-                output.strip(), path
-            )
+            file_info = info_cmd.parse_command(output.strip(), path)
             return {  # noqa: TRY300
                 "name": file_info.name,
                 "path": file_info.path,
@@ -278,7 +274,8 @@ class ACPFileSystem(AsyncFileSystem):
         Returns:
             True if file exists, False otherwise
         """
-        test_cmd = self.command_provider.get_command("exists").create_command(path)
+        exists_cmd = self.command_provider.get_command("exists")
+        test_cmd = exists_cmd.create_command(path)
 
         try:
             command, args = self._parse_command(test_cmd)
@@ -288,7 +285,7 @@ class ACPFileSystem(AsyncFileSystem):
         except (OSError, ValueError):
             return False
         else:
-            return self.command_provider.get_command("exists").parse_command(
+            return exists_cmd.parse_command(
                 output, exit_code if exit_code is not None else 1
             )
 
@@ -302,7 +299,8 @@ class ACPFileSystem(AsyncFileSystem):
         Returns:
             True if path is a directory, False otherwise
         """
-        test_cmd = self.command_provider.get_command("is_directory").create_command(path)
+        isdir_cmd = self.command_provider.get_command("is_directory")
+        test_cmd = isdir_cmd.create_command(path)
 
         try:
             command, args = self._parse_command(test_cmd)
@@ -312,7 +310,7 @@ class ACPFileSystem(AsyncFileSystem):
         except (OSError, ValueError):
             return False
         else:
-            return self.command_provider.get_command("is_directory").parse_command(
+            return isdir_cmd.parse_command(
                 output, exit_code if exit_code is not None else 1
             )
 
@@ -326,7 +324,8 @@ class ACPFileSystem(AsyncFileSystem):
         Returns:
             True if path is a file, False otherwise
         """
-        test_cmd = self.command_provider.get_command("is_file").create_command(path)
+        isfile_cmd = self.command_provider.get_command("is_file")
+        test_cmd = isfile_cmd.create_command(path)
 
         try:
             command, args = self._parse_command(test_cmd)
@@ -336,7 +335,7 @@ class ACPFileSystem(AsyncFileSystem):
         except (OSError, ValueError):
             return False
         else:
-            return self.command_provider.get_command("is_file").parse_command(
+            return isfile_cmd.parse_command(
                 output, exit_code if exit_code is not None else 1
             )
 
@@ -348,9 +347,8 @@ class ACPFileSystem(AsyncFileSystem):
             exist_ok: Don't raise error if directory already exists
             **kwargs: Additional options
         """
-        mkdir_cmd = self.command_provider.get_command("create_directory").create_command(
-            path, parents=exist_ok
-        )
+        create_cmd = self.command_provider.get_command("create_directory")
+        mkdir_cmd = create_cmd.create_command(path, parents=exist_ok)
 
         try:
             command, args = self._parse_command(mkdir_cmd)
@@ -358,7 +356,7 @@ class ACPFileSystem(AsyncFileSystem):
                 command, args=args, timeout_seconds=5
             )
 
-            success = self.command_provider.get_command("create_directory").parse_command(
+            success = create_cmd.parse_command(
                 output, exit_code if exit_code is not None else 1
             )
             if not success:
@@ -376,9 +374,8 @@ class ACPFileSystem(AsyncFileSystem):
             recursive: Remove directories recursively
             **kwargs: Additional options
         """
-        rm_cmd = self.command_provider.get_command("remove_path").create_command(
-            path, recursive=recursive
-        )
+        remove_cmd = self.command_provider.get_command("remove_path")
+        rm_cmd = remove_cmd.create_command(path, recursive=recursive)
 
         try:
             command, args = self._parse_command(rm_cmd)
@@ -386,7 +383,7 @@ class ACPFileSystem(AsyncFileSystem):
                 command, args=args, timeout_seconds=10
             )
 
-            success = self.command_provider.get_command("remove_path").parse_command(
+            success = remove_cmd.parse_command(
                 output, exit_code if exit_code is not None else 1
             )
             if not success:
