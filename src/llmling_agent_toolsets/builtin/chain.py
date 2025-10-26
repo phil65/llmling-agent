@@ -8,6 +8,7 @@ from enum import StrEnum
 from typing import Any, Literal
 
 from pydantic import Field
+from pydantic_ai import ModelRetry
 from schemez import Schema
 
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
@@ -280,17 +281,25 @@ async def chain_tools(
             ]
         )
     """
-    pipeline = Pipeline(
-        input=input_data,
-        steps=[PipelineStep.model_validate(step) for step in steps],
-        mode=mode,
-        max_parallel=max_parallel,
-        collect_metrics=collect_metrics,
-    )
+    try:
+        pipeline = Pipeline(
+            input=input_data,
+            steps=[PipelineStep.model_validate(step) for step in steps],
+            mode=mode,
+            max_parallel=max_parallel,
+            collect_metrics=collect_metrics,
+        )
+    except Exception as e:
+        msg = f"Invalid pipeline configuration: {e}"
+        raise ModelRetry(msg) from e
     results: StepResults = {}
 
-    match pipeline.mode:
-        case "sequential":
-            return await _execute_sequential(ctx, pipeline, results)
-        case "parallel":
-            return await _execute_parallel(ctx, pipeline, results)
+    try:
+        match pipeline.mode:
+            case "sequential":
+                return await _execute_sequential(ctx, pipeline, results)
+            case "parallel":
+                return await _execute_parallel(ctx, pipeline, results)
+    except Exception as e:
+        msg = f"Failed to execute pipeline: {e}"
+        raise ModelRetry(msg) from e
