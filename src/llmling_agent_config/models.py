@@ -324,7 +324,7 @@ class FunctionModelConfig(BaseModelConfig):
     def get_model(self) -> FunctionModel:
         from llmling_models import function_to_model
 
-        return function_to_model(self.function, self.function)
+        return function_to_model(self.function)
 
 
 class TestModelConfig(BaseModelConfig):
