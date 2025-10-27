@@ -60,6 +60,9 @@ class BaseContentBlock(AnnotatedObject):
     """Annotations for the content block."""
 
 
+ResourceContents = TextResourceContents | BlobResourceContents
+
+
 class EmbeddedResourceContentBlock[
     TResourceContents: ResourceContents = ResourceContents
 ](BaseContentBlock):
@@ -147,8 +150,6 @@ class ResourceContentBlock(BaseContentBlock):
     uri: str
     """URI of the resource."""
 
-
-ResourceContents = TextResourceContents | BlobResourceContents
 
 ContentBlock = Annotated[
     (
