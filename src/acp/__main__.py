@@ -4,7 +4,7 @@ Allows running the ACP debug server with:
     python -m acp
 """
 
-from acp.cli import main
+from acp.debug_server.cli import main
 
 
 if __name__ == "__main__":
