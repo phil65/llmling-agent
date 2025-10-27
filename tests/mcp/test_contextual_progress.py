@@ -5,6 +5,7 @@ import contextlib
 from pathlib import Path
 from typing import Any
 
+from pydantic_ai.models.test import TestModel
 import pytest
 
 from llmling_agent import Agent
@@ -52,36 +53,19 @@ class ProgressCapture:
 @pytest.mark.asyncio
 async def test_progress_handler_with_agent():
     """Test that progress handlers receive tool context information via Agent."""
-    # Setup progress capture
     progress_capture = ProgressCapture()
-
-    # Get server path
     server_path = Path(__file__).parent / "server.py"
-
-    # Create MCP server config
     mcp_server = StdioMCPServerConfig(
         name="progress_test_server",
         command="uv",
         args=["run", str(server_path)],
     )
-
-    # Create agent with TestModel configured to call only test_progress tool
-    from pydantic_ai.models.test import TestModel
-
-    test_model = TestModel(call_tools=["test_progress"])
-
-    agent = Agent(
+    async with Agent(
         name="progress_test_agent",
-        model=test_model,
+        model=TestModel(call_tools=["test_progress"]),
         system_prompt="You are a test assistant that calls tools.",
         mcp_servers=[mcp_server],
-    )
-
-    async with agent:
-        # Wait for MCP servers to initialize
-        await asyncio.sleep(0.5)
-
-        # Verify MCP tools are available
+    ) as agent:
         tools = await agent.tools.get_tools()
         tool_names = [tool.name for tool in tools]
 
@@ -89,31 +73,18 @@ async def test_progress_handler_with_agent():
             f"test_progress tool not found in {tool_names}"
         )
 
-        # Get the MCP manager and patch the progress handler
-        mcp_manager = agent.mcp
-        assert mcp_manager is not None, "MCP manager should be available"
-
-        # Find the client and set our progress handler
-        client = next(iter(mcp_manager.clients.values()))
-        # Set our contextual progress handler
-        client._progress_handler = progress_capture
-
-        # Run the agent with a request - TestModel will call the test_progress tool
-        # since we configured it with call_tools=["test_progress"]
-        await agent.run("Please help me test progress tracking.")
-
-        # Wait for progress events to complete
-        with contextlib.suppress(TimeoutError):
+        mcp_manager = agent.mcp  # Get the MCP manager and patch the progress handler
+        client = next(iter(mcp_manager.clients.values()))  # Find the client
+        client._progress_handler = progress_capture  # Set our contextual progress handler
+        await agent.run("")  #  TestModel will call the test_progress tool
+        with contextlib.suppress(TimeoutError):  # Wait for progress events to complete
             await asyncio.wait_for(progress_capture.completed.wait(), timeout=15.0)
-
-        # Verify results
 
         # Verify we captured progress events
         assert len(progress_capture.progress_events) >= EXPECTED_PROGRESS_EVENTS, (
             f"Should have captured at least {EXPECTED_PROGRESS_EVENTS} progress events, "
             f"got {len(progress_capture.progress_events)}"
         )
-
         # Check that all events have contextual information
         for event in progress_capture.progress_events:
             # Basic FastMCP fields should be present
@@ -133,9 +104,7 @@ async def test_progress_handler_with_agent():
             assert "message" in tool_input, "Tool input should have message parameter"
 
         # Verify progress sequence
-        progress_values = [
-            event["progress"] for event in progress_capture.progress_events
-        ]
+        progress_values = [e["progress"] for e in progress_capture.progress_events]
         assert progress_values == sorted(progress_values), (
             f"Progress values should be increasing, got {progress_values}"
         )
