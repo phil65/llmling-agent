@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from enum import Enum
 import inspect
 import logging
-from typing import Any, Self
+from typing import TYPE_CHECKING, Any, Self
 
 import anyenv
 from pydantic import BaseModel, ValidationError
@@ -31,6 +31,10 @@ from acp.task import (
     TaskSupervisor,
 )
 from llmling_agent import log
+
+
+if TYPE_CHECKING:
+    from acp.task.sender import SenderFactory
 
 
 JsonValue = Any
