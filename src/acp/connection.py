@@ -3,14 +3,14 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Callable, Coroutine
+from collections.abc import Awaitable, Callable, Coroutine
 import contextlib
 import copy
 from dataclasses import dataclass
 from enum import Enum
 import inspect
 import logging
-from typing import TYPE_CHECKING, Any, Self
+from typing import Any, Self
 
 import anyenv
 from pydantic import BaseModel, ValidationError
@@ -33,19 +33,16 @@ from acp.task import (
 from llmling_agent import log
 
 
-logger = log.get_logger(__name__)
-
-if TYPE_CHECKING:
-    from acp.acp_types import JsonValue, MethodHandler
-    from acp.task import SenderFactory
-
-__all__ = ["Connection"]
-
+JsonValue = Any
+MethodHandler = Callable[[str, JsonValue | None, bool], Awaitable[JsonValue | None]]
 
 DispatcherFactory = Callable[
     [MessageQueue, TaskSupervisor, MessageStateStore, RequestRunner, NotificationRunner],
     MessageDispatcher,
 ]
+
+
+logger = log.get_logger(__name__)
 
 
 class StreamDirection(str, Enum):
@@ -57,6 +54,8 @@ class StreamDirection(str, Enum):
 
 @dataclass(frozen=True, slots=True)
 class StreamEvent:
+    """Stream event."""
+
     direction: StreamDirection
     message: dict[str, Any]
 

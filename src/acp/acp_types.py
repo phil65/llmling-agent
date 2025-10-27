@@ -2,15 +2,10 @@
 
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Any
 
 from acp.schema import McpServer, SessionUpdate  # noqa: TC001
-
-
-JsonValue = Any
-MethodHandler = Callable[[str, JsonValue | None, bool], Awaitable[JsonValue | None]]
 
 
 @dataclass
