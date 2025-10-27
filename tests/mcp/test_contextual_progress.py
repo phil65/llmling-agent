@@ -94,13 +94,7 @@ async def test_contextual_progress_handler_with_agent():
         assert mcp_manager is not None, "MCP manager should be available"
 
         # Find the client and set our progress handler
-        client = None
-        for client_instance in mcp_manager.clients.values():
-            client = client_instance
-            break
-
-        assert client is not None, "Should have found MCP client"
-
+        client = next(iter(mcp_manager.clients.values()))
         # Set our contextual progress handler
         client._contextual_progress_handler = progress_capture
 
