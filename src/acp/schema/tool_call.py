@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence  # noqa: TC003
-from typing import Annotated, Any, Literal
+from typing import Any, Literal
 
 from pydantic import Field
 
@@ -85,13 +85,13 @@ class TerminalToolCallContent(Schema):
     """The ID of the terminal being embedded."""
 
 
-class ContentToolCallContent(Schema):
+class ContentToolCallContent[TContentBlock: ContentBlock = ContentBlock](Schema):
     """Standard content block (text, images, resources)."""
 
     type: Literal["content"] = "content"
     """Standard content block (text, images, resources)."""
 
-    content: ContentBlock
+    content: TContentBlock
     """The actual content block."""
 
 
@@ -106,7 +106,8 @@ class ToolCallLocation(AnnotatedObject):
     line: int | None = Field(default=None, ge=0)
     """Optional line number within the file."""
 
-    path: Annotated[str, Field(description="The file path being accessed or modified.")]
+    path: str
+    """The file path being accessed or modified."""
 
 
 class DeniedOutcome(Schema):

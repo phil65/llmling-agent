@@ -9,7 +9,14 @@ from acp.schema.common import EnvVariable  # noqa: TC001
 from acp.schema.tool_call import PermissionOption, ToolCall  # noqa: TC001
 
 
-class WriteTextFileRequest(Request):
+class BaseAgentRequest(Request):
+    """Base class for all agent requests."""
+
+    session_id: str
+    """The session ID for this request."""
+
+
+class WriteTextFileRequest(BaseAgentRequest):
     """Request to write content to a text file.
 
     Only available if the client supports the `fs.writeTextFile` capability.
@@ -21,11 +28,8 @@ class WriteTextFileRequest(Request):
     path: str
     """Absolute path to the file to write."""
 
-    session_id: str
-    """The session ID for this request."""
 
-
-class ReadTextFileRequest(Request):
+class ReadTextFileRequest(BaseAgentRequest):
     """Request to read content from a text file.
 
     Only available if the client supports the `fs.readTextFile` capability.
@@ -40,31 +44,22 @@ class ReadTextFileRequest(Request):
     path: str
     """Absolute path to the file to read."""
 
-    session_id: str
-    """The session ID for this request."""
 
-
-class TerminalOutputRequest(Request):
+class TerminalOutputRequest(BaseAgentRequest):
     """Request to get the current output and status of a terminal."""
-
-    session_id: str
-    """The session ID for this request."""
 
     terminal_id: str
     """The ID of the terminal to get output from."""
 
 
-class WaitForTerminalExitRequest(Request):
+class WaitForTerminalExitRequest(BaseAgentRequest):
     """Request to wait for a terminal command to exit."""
-
-    session_id: str
-    """The session ID for this request."""
 
     terminal_id: str
     """The ID of the terminal to wait for."""
 
 
-class CreateTerminalRequest(Request):
+class CreateTerminalRequest(BaseAgentRequest):
     """Request to create a new terminal and execute a command."""
 
     args: Sequence[str] | None = None
@@ -89,31 +84,22 @@ class CreateTerminalRequest(Request):
     string output, even if this means the retained output is slightly less than the
     specified limit."""
 
-    session_id: str
-    """The session ID for this request."""
 
-
-class KillTerminalCommandRequest(Request):
+class KillTerminalCommandRequest(BaseAgentRequest):
     """Request to kill a terminal command without releasing the terminal."""
-
-    session_id: str
-    """The session ID for this request."""
 
     terminal_id: str
     """The ID of the terminal to kill."""
 
 
-class ReleaseTerminalRequest(Request):
+class ReleaseTerminalRequest(BaseAgentRequest):
     """Request to release a terminal and free its resources."""
-
-    session_id: str
-    """The session ID for this request."""
 
     terminal_id: str
     """The ID of the terminal to release."""
 
 
-class RequestPermissionRequest(Request):
+class RequestPermissionRequest(BaseAgentRequest):
     """Request for user permission to execute a tool call.
 
     Sent when the agent needs authorization before performing a sensitive operation.
@@ -123,9 +109,6 @@ class RequestPermissionRequest(Request):
 
     options: Sequence[PermissionOption]
     """Available permission options for the user to choose from."""
-
-    session_id: str
-    """The session ID for this request."""
 
     tool_call: ToolCall
     """Details about the tool call requiring permission."""

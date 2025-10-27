@@ -13,30 +13,28 @@ from acp.base import AnnotatedObject
 Audience = Sequence[Literal["assistant", "user"]]
 
 
-class TextResourceContents(AnnotatedObject):
+class BaseResourceContents(AnnotatedObject):
     """Text-based resource contents."""
 
     mime_type: str | None = None
     """MIME type of the resource."""
 
-    text: str
-    """Text content of the resource."""
-
     uri: str
     """URI of the resource."""
 
 
-class BlobResourceContents(AnnotatedObject):
+class TextResourceContents(BaseResourceContents):
+    """Text-based resource contents."""
+
+    text: str
+    """Text content of the resource."""
+
+
+class BlobResourceContents(BaseResourceContents):
     """Binary resource contents."""
 
     blob: str
     """Base64-encoded binary content of the resource."""
-
-    mime_type: str | None = None
-    """MIME type of the resource."""
-
-    uri: str
-    """URI of the resource."""
 
 
 class Annotations(AnnotatedObject):
@@ -62,7 +60,9 @@ class BaseContentBlock(AnnotatedObject):
     """Annotations for the content block."""
 
 
-class EmbeddedResourceContentBlock(BaseContentBlock):
+class EmbeddedResourceContentBlock[
+    TResourceContents: ResourceContents = ResourceContents
+](BaseContentBlock):
     """Complete resource contents embedded directly in the message.
 
     Preferred for including context as it avoids extra round-trips.
@@ -72,7 +72,7 @@ class EmbeddedResourceContentBlock(BaseContentBlock):
 
     type: Literal["resource"] = "resource"
 
-    resource: ResourceContents
+    resource: TResourceContents
     """Resource content that can be embedded in a message."""
 
 
