@@ -178,30 +178,17 @@ async def test_direct_mcp_client_progress():
     """Test contextual progress handler with direct MCP client call (no RunContext)."""
     from llmling_agent.mcp_server.client import MCPClient
 
-    # Setup progress capture
     progress_capture = ProgressCapture()
-
-    # Get server path
-    server_path = Path(__file__).parent / "server.py"
-
-    # Create MCP server config
+    server_path = Path(__file__).parent / "server.py"  # Get server path
     mcp_server = StdioMCPServerConfig(
         name="progress_test_server",
         command="uv",
         args=["run", str(server_path)],
     )
-
-    # Create MCP client directly with our progress handler
     client = MCPClient(progress_handler=progress_capture)
-
     async with client:
-        # Connect to the test server
         await client.connect(mcp_server)
-
-        # Wait a bit for server to be ready
-        await asyncio.sleep(0.5)
-
-        # Get available tools to verify connection
+        await asyncio.sleep(0.5)  # Wait a bit for server to be ready
         tools = client.get_tools()
         tool_names = [t["function"]["name"] for t in tools]
         assert "test_progress" in tool_names, (
@@ -220,24 +207,15 @@ async def test_direct_mcp_client_progress():
         with contextlib.suppress(TimeoutError):
             await asyncio.wait_for(progress_capture.completed.wait(), timeout=5.0)
 
-        # Verify we captured progress events (should work with fallback path)
-        assert len(progress_capture.progress_events) >= 1, (
-            f"Should have captured at least 1 progress event, "
-            f"got {len(progress_capture.progress_events)}"
+        event = progress_capture.progress_events[0]
+        assert event["progress"] is not None, "Progress should be set"
+        assert event["tool_name"] == "test_progress", "Tool name should be test_progress"
+        assert event["tool_call_id"] == "test-call-123", "Tool call ID should match"
+        assert event["tool_input"] is not None, "Tool input should be set"
+        assert event["tool_input"]["message"] == test_message, (
+            "Should contain our test message"
         )
-
-        # Check that events have contextual information from fallback path
-        for event in progress_capture.progress_events:
-            assert event["progress"] is not None, "Progress should be set"
-            assert event["tool_name"] == "test_progress", (
-                "Tool name should be test_progress"
-            )
-            assert event["tool_call_id"] == "test-call-123", "Tool call ID should match"
-            assert event["tool_input"] is not None, "Tool input should be set"
-            assert event["tool_input"]["message"] == test_message, (
-                "Should contain our test message"
-            )
 
 
 if __name__ == "__main__":
-    asyncio.run(test_contextual_progress_handler_with_agent())
+    pytest.main(["-v", __file__])
