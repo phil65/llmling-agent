@@ -18,7 +18,6 @@ from acp.schema.tool_call import (  # noqa: TC001
 )
 
 
-ExecutionStatus = Literal["pending", "in_progress", "completed", "failed"]
 ToolCallStatus = Literal["pending", "in_progress", "completed", "failed"]
 
 
@@ -81,7 +80,7 @@ class ToolCallProgress(AnnotatedObject):
     raw_output: Any | None = None
     """Update the raw output."""
 
-    status: ExecutionStatus | None = None
+    status: ToolCallStatus | None = None
     """Update the execution status."""
 
     title: str | None = None
