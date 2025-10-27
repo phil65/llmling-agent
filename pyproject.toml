@@ -161,7 +161,7 @@ python_version = "3.13"
 disable_error_code = ["misc", "import"]
 pretty = true
 check_untyped_defs = true
-exclude = ["venv/", ".venv/", "tests/", "src/acp/schema.py"]
+exclude = ["venv/", ".venv/", "tests/"]
 plugins = ["pydantic.mypy"]
 
 [tool.pyright]
@@ -183,7 +183,6 @@ reportUnannotatedClassAttribute = false
 reportSelfClsParameterName = false
 reportPrivateImportUsage = false
 reportUnusedExpression = false
-ignore = ["src/acp/schema.py"]
 
 [tool.pytest.ini_options]
 addopts = "-m 'not slow'"
@@ -210,7 +209,7 @@ asyncio_mode = "auto"
 
 [tool.ruff]
 line-length = 90
-extend-exclude = ["docs", "src/acp/schema.py"]
+extend-exclude = ["docs"]
 target-version = "py313"
 
 [tool.ruff.lint]
