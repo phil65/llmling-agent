@@ -25,7 +25,9 @@ ToolCallStatus = Literal["pending", "in_progress", "completed", "failed"]
 class UserMessageChunk(AnnotatedObject):
     """A chunk of the user's message being streamed."""
 
-    session_update: Literal["user_message_chunk"] = "user_message_chunk"
+    session_update: Literal["user_message_chunk"] = Field(
+        default="user_message_chunk", init=False
+    )
     """User message chunk."""
 
     content: ContentBlock
@@ -35,7 +37,9 @@ class UserMessageChunk(AnnotatedObject):
 class AgentMessageChunk(AnnotatedObject):
     """A chunk of the agent's response being streamed."""
 
-    session_update: Literal["agent_message_chunk"] = "agent_message_chunk"
+    session_update: Literal["agent_message_chunk"] = Field(
+        default="agent_message_chunk", init=False
+    )
     """Agent message chunk."""
 
     content: ContentBlock
@@ -45,7 +49,9 @@ class AgentMessageChunk(AnnotatedObject):
 class AgentThoughtChunk(AnnotatedObject):
     """A chunk of the agent's internal reasoning being streamed."""
 
-    session_update: Literal["agent_thought_chunk"] = "agent_thought_chunk"
+    session_update: Literal["agent_thought_chunk"] = Field(
+        default="agent_thought_chunk", init=False
+    )
     """Agent thought chunk."""
 
     content: ContentBlock
@@ -55,7 +61,9 @@ class AgentThoughtChunk(AnnotatedObject):
 class ToolCallProgress(AnnotatedObject):
     """Update on the status or results of a tool call."""
 
-    session_update: Literal["tool_call_update"] = "tool_call_update"
+    session_update: Literal["tool_call_update"] = Field(
+        default="tool_call_update", init=False
+    )
     """Tool call update."""
 
     content: Sequence[ToolCallContent] | None = None
@@ -92,7 +100,9 @@ class CurrentModeUpdate(AnnotatedObject):
     current_mode_id: str
     """The ID of the current mode"""
 
-    session_update: Literal["current_mode_update"] = "current_mode_update"
+    session_update: Literal["current_mode_update"] = Field(
+        default="current_mode_update", init=False
+    )
 
 
 class AgentPlanUpdate(AnnotatedObject):
@@ -101,7 +111,7 @@ class AgentPlanUpdate(AnnotatedObject):
     See protocol docs: [Agent Plan](https://agentclientprotocol.com/protocol/agent-plan).
     """
 
-    session_update: Literal["plan"] = "plan"
+    session_update: Literal["plan"] = Field(default="plan", init=False)
 
     entries: Sequence[PlanEntry]
     """The list of tasks to be accomplished.
@@ -113,7 +123,9 @@ class AgentPlanUpdate(AnnotatedObject):
 class AvailableCommandsUpdate(AnnotatedObject):
     """Available commands are ready or have changed."""
 
-    session_update: Literal["available_commands_update"] = "available_commands_update"
+    session_update: Literal["available_commands_update"] = Field(
+        default="available_commands_update", init=False
+    )
     """Available commands are ready or have changed."""
 
     available_commands: Sequence[AvailableCommand]
@@ -123,7 +135,7 @@ class AvailableCommandsUpdate(AnnotatedObject):
 class ToolCallStart(AnnotatedObject):
     """Notification that a new tool call has been initiated."""
 
-    session_update: Literal["tool_call"] = "tool_call"
+    session_update: Literal["tool_call"] = Field(default="tool_call", init=False)
     """Notification that a new tool call has been initiated."""
 
     content: Sequence[ToolCallContent] | None = None

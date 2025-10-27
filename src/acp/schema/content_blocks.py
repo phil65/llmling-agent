@@ -70,7 +70,7 @@ class EmbeddedResourceContentBlock[
     Requires the `embeddedContext` prompt capability when included in prompts.
     """
 
-    type: Literal["resource"] = "resource"
+    type: Literal["resource"] = Field(default="resource", init=False)
 
     resource: TResourceContents
     """Resource content that can be embedded in a message."""
@@ -82,7 +82,7 @@ class TextContentBlock(BaseContentBlock):
     All agents MUST support text content blocks in prompts.
     """
 
-    type: Literal["text"] = "text"
+    type: Literal["text"] = Field(default="text", init=False)
 
     text: str
     """Text content of the block."""
@@ -94,7 +94,7 @@ class ImageContentBlock(BaseContentBlock):
     Requires the `image` prompt capability when included in prompts.
     """
 
-    type: Literal["image"] = "image"
+    type: Literal["image"] = Field(default="image", init=False)
 
     data: str
     """Base64-encoded image data."""
@@ -112,7 +112,7 @@ class AudioContentBlock(BaseContentBlock):
     Requires the `audio` prompt capability when included in prompts.
     """
 
-    type: Literal["audio"] = "audio"
+    type: Literal["audio"] = Field(default="audio", init=False)
 
     data: str
     """Base64-encoded audio data."""
@@ -127,7 +127,7 @@ class ResourceContentBlock(BaseContentBlock):
     All agents MUST support resource links in prompts.
     """
 
-    type: Literal["resource_link"] = "resource_link"
+    type: Literal["resource_link"] = Field(default="resource_link", init=False)
 
     description: str | None = None
     """Description of the resource."""
