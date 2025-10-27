@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pydantic import Field
 
-from acp.base import AnnotatedObject
+from acp.schema.base import AnnotatedObject
 
 
 class FileSystemCapability(AnnotatedObject):

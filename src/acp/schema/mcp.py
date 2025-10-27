@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Literal
 
-from acp.base import AnnotatedObject, Schema
+from acp.schema.base import AnnotatedObject, Schema
 from acp.schema.common import EnvVariable
 
 

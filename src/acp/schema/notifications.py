@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from acp.base import AnnotatedObject
+from acp.schema.base import AnnotatedObject
 from acp.schema.session_updates import SessionUpdate
 
 

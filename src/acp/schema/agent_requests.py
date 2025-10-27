@@ -4,7 +4,7 @@ from collections.abc import Sequence  # noqa: TC003
 
 from pydantic import Field
 
-from acp.base import Request
+from acp.schema.base import Request
 from acp.schema.common import EnvVariable  # noqa: TC001
 from acp.schema.tool_call import PermissionOption, ToolCall  # noqa: TC001
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pydantic import RootModel
 
-from acp.base import AnnotatedObject, Schema
+from acp.schema.base import AnnotatedObject, Schema
 
 
 class CommandInputHint(Schema):

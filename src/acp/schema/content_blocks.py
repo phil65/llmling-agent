@@ -7,7 +7,7 @@ from typing import Annotated, Literal
 
 from pydantic import Field
 
-from acp.base import AnnotatedObject
+from acp.schema.base import AnnotatedObject
 
 
 Audience = Sequence[Literal["assistant", "user"]]

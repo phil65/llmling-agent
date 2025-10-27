@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence  # noqa: TC003
 
-from acp.base import AnnotatedObject
+from acp.schema.base import AnnotatedObject
 
 
 class ModelInfo(AnnotatedObject):

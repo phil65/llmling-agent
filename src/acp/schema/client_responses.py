@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pydantic import Field
 
-from acp.base import Response
+from acp.schema.base import Response
 from acp.schema.terminal import TerminalExitStatus  # noqa: TC001
 from acp.schema.tool_call import AllowedOutcome, DeniedOutcome  # noqa: TC001
 

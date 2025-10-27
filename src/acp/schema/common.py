@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from acp.base import AnnotatedObject, Schema
+from acp.schema.base import AnnotatedObject, Schema
 
 
 class EnvVariable(AnnotatedObject):

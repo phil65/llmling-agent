@@ -5,7 +5,7 @@ from typing import Literal
 
 from pydantic import Field
 
-from acp.base import Response
+from acp.schema.base import Response
 from acp.schema.capabilities import AgentCapabilities
 from acp.schema.common import AuthMethod, Implementation  # noqa: TC001
 from acp.schema.session_state import SessionModelState, SessionModeState  # noqa: TC001

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from acp.base import AnnotatedObject
+from acp.schema.base import AnnotatedObject
 
 
 PlanEntryPriority = Literal["high", "medium", "low"]

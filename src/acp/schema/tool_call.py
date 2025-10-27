@@ -7,7 +7,7 @@ from typing import Any, Literal
 
 from pydantic import Field
 
-from acp.base import AnnotatedObject, Schema
+from acp.schema.base import AnnotatedObject, Schema
 from acp.schema.content_blocks import ContentBlock
 
 

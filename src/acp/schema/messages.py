@@ -6,13 +6,16 @@ from typing import Any, Literal
 
 from pydantic import Field
 
-from acp.base import Schema
-from acp.schema.agent_requests import AgentRequest
-from acp.schema.agent_responses import AgentResponse
-from acp.schema.client_requests import ClientRequest
-from acp.schema.client_responses import ClientResponse
-from acp.schema.common import Error
-from acp.schema.notifications import CancelNotification, SessionNotification
+from acp.schema.agent_requests import AgentRequest  # noqa: TC001
+from acp.schema.agent_responses import AgentResponse  # noqa: TC001
+from acp.schema.base import Schema
+from acp.schema.client_requests import ClientRequest  # noqa: TC001
+from acp.schema.client_responses import ClientResponse  # noqa: TC001
+from acp.schema.common import Error  # noqa: TC001
+from acp.schema.notifications import (  # noqa: TC001
+    CancelNotification,
+    SessionNotification,
+)
 
 
 AgentMethod = Literal[

@@ -6,7 +6,7 @@ from collections.abc import Sequence  # noqa: TC003
 
 from pydantic import Field
 
-from acp.base import Request
+from acp.schema.base import Request
 from acp.schema.capabilities import ClientCapabilities
 from acp.schema.common import Implementation  # noqa: TC001
 from acp.schema.content_blocks import ContentBlock  # noqa: TC001
