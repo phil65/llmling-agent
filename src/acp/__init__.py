@@ -2,7 +2,7 @@
 
 from acp.client import DefaultACPClient, ClientSideConnection
 from acp.agent import AgentSideConnection
-from acp import cli
+from acp.debug_server import cli
 from acp.filesystem import ACPFileSystem, ACPPath
 from acp.agent.protocol import (
     Agent,
