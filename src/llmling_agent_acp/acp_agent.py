@@ -6,17 +6,19 @@ from typing import TYPE_CHECKING, Any
 
 from slashed import CommandStore
 
-from acp import Agent as ACPAgent, create_session_model_state
+from acp import Agent as ACPAgent
 from acp.schema import (
     AgentCapabilities,
     Implementation,
     InitializeResponse,
     LoadSessionResponse,
     McpCapabilities,
+    ModelInfo as ACPModelInfo,
     NewSessionResponse,
     PromptCapabilities,
     PromptResponse,
     SessionMode,
+    SessionModelState,
     SessionModeState,
     SetSessionModelRequest,
     SetSessionModelResponse,
@@ -35,7 +37,7 @@ from llmling_agent_commands import get_commands
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from tokonomics.model_discovery.model_info import ModelInfo
+    from tokonomics.model_discovery.model_info import ModelInfo as TokoModelInfo
 
     from acp import AgentSideConnection, Client
     from acp.schema import (
@@ -55,6 +57,35 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
+def create_session_model_state(
+    available_models: Sequence[TokoModelInfo], current_model: str | None = None
+) -> SessionModelState | None:
+    """Create a SessionModelState from available models.
+
+    Args:
+        available_models: List of all models the agent can switch between
+        current_model: The currently active model (defaults to first available)
+
+    Returns:
+        SessionModelState with all available models, None if no models provided
+    """
+    if not available_models:
+        return None
+    # Create ModelInfo objects for each available model
+    models = [
+        ACPModelInfo(
+            model_id=model.pydantic_ai_id,
+            name=f"{model.provider}: {model.name}",
+            description=model.format(),
+        )
+        for model in available_models
+    ]
+    # Use first model as current if not specified
+    all_ids = [model.pydantic_ai_id for model in available_models]
+    current_model_id = current_model if current_model in all_ids else all_ids[0]
+    return SessionModelState(available_models=models, current_model_id=current_model_id)
+
+
 class LLMlingACPAgent(ACPAgent):
     """Implementation of ACP Agent protocol interface for llmling agents.
 
@@ -69,7 +100,7 @@ class LLMlingACPAgent(ACPAgent):
         connection: AgentSideConnection,
         agent_pool: AgentPool[Any],
         *,
-        available_models: list[ModelInfo] | None = None,
+        available_models: list[TokoModelInfo] | None = None,
         session_support: bool = True,
         file_access: bool = True,
         terminal_access: bool = True,
@@ -82,7 +113,7 @@ class LLMlingACPAgent(ACPAgent):
         Args:
             connection: ACP connection for client communication
             agent_pool: AgentPool containing available agents
-            available_models: List of available tokonomics ModelInfo objects
+            available_models: List of available tokonomics TokoModelInfo objects
             session_support: Whether agent supports session loading
             file_access: Whether agent can access filesystem
             terminal_access: Whether agent can use terminal
@@ -92,7 +123,7 @@ class LLMlingACPAgent(ACPAgent):
         """
         self.connection = connection
         self.agent_pool = agent_pool
-        self.available_models: Sequence[ModelInfo] = available_models or []
+        self.available_models: Sequence[TokoModelInfo] = available_models or []
         self.session_support = session_support
         self.file_access = file_access
         self.terminal_access = terminal_access

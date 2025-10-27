@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Sequence  # noqa: TC003
 from typing import Literal
 
 from acp.schema.base import AnnotatedObject, Schema
-from acp.schema.common import EnvVariable
+from acp.schema.common import EnvVariable  # noqa: TC001
 
 
 class HttpHeader(AnnotatedObject):
