@@ -360,13 +360,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
         if agents is None:
             agents = list(self.agents.keys())
 
-        # First resolve/configure agents
-        resolved_agents: list[MessageNode[Any, Any]] = []
-        for agent in agents:
-            if isinstance(agent, str):
-                agent = self.get_agent(agent)
-            resolved_agents.append(agent)
-
+        resolved_agents = [self.get_agent(i) if isinstance(i, str) else i for i in agents]
         team = Team(
             name=name,
             description=description,
@@ -497,11 +491,11 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
             source = self[name]
             for target in config.connections or []:
                 match target:
-                    case NodeConnectionConfig():
-                        if target.name not in self:
-                            msg = f"Forward target {target.name} not found for {name}"
+                    case NodeConnectionConfig(name=name_):
+                        if name_ not in self:
+                            msg = f"Forward target {name_} not found for {name}"
                             raise ValueError(msg)
-                        target_node = self[target.name]
+                        target_node = self[name_]
                     case FileConnectionConfig() | CallableConnectionConfig():
                         target_node = Agent(provider=target.get_provider())
                     case _:
