@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 
 if TYPE_CHECKING:
-    from acp.acp_types import ToolCallKind
+    from acp.schema import ToolCallKind
 
 
 def infer_tool_kind(tool_name: str) -> ToolCallKind:  # noqa: PLR0911

@@ -9,16 +9,18 @@ from __future__ import annotations
 import base64
 from typing import TYPE_CHECKING, Any, overload
 
-from acp.acp_types import HttpMcpServer, SseMcpServer, StdioMcpServer
 from acp.schema import (
     AgentMessageChunk,
     AudioContentBlock,
     ContentToolCallContent,
     EmbeddedResourceContentBlock,
+    HttpMcpServer,
     ImageContentBlock,
     PermissionOption,
     ResourceContentBlock,
     SessionNotification,
+    SseMcpServer,
+    StdioMcpServer,
     TextContentBlock,
     TextResourceContents,
 )
@@ -33,7 +35,7 @@ from llmling_agent_config.mcp_server import (
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from acp.acp_types import ContentBlock, MCPServer
+    from acp.schema import ContentBlock, McpServer
     from llmling_agent.models.content import BaseContent
     from llmling_agent_config.mcp_server import MCPServerConfig
 
@@ -68,10 +70,10 @@ def convert_acp_mcp_server_to_config(
 
 
 @overload
-def convert_acp_mcp_server_to_config(acp_server: MCPServer) -> MCPServerConfig: ...
+def convert_acp_mcp_server_to_config(acp_server: McpServer) -> MCPServerConfig: ...
 
 
-def convert_acp_mcp_server_to_config(acp_server: MCPServer) -> MCPServerConfig:
+def convert_acp_mcp_server_to_config(acp_server: McpServer) -> MCPServerConfig:
     """Convert ACP McpServer to llmling MCPServerConfig.
 
     Args:

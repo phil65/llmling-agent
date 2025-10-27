@@ -60,8 +60,7 @@ if TYPE_CHECKING:
     from pydantic_ai import AgentStreamEvent
 
     from acp import Client
-    from acp.acp_types import ContentBlock, MCPServer, StopReason
-    from acp.schema import ClientCapabilities
+    from acp.schema import ClientCapabilities, ContentBlock, McpServer, StopReason
     from llmling_agent import Agent, AgentPool
     from llmling_agent.models.content import BaseContent
     from llmling_agent.resource_providers.aggregating import AggregatingResourceProvider
@@ -106,7 +105,7 @@ class ACPSession:
     acp_agent: LLMlingACPAgent
     """ACP agent instance for capability tools"""
 
-    mcp_servers: Sequence[MCPServer] | None = None
+    mcp_servers: Sequence[McpServer] | None = None
     """Optional MCP server configurations"""
 
     usage_limits: UsageLimits | None = None

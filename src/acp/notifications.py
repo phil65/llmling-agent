@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 from acp.schema import (
     AgentMessageChunk,
-    AgentPlan,
+    AgentPlanUpdate,
     AgentThoughtChunk,
     AudioContentBlock,
     AvailableCommand,
@@ -33,8 +33,13 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from acp import Client
-    from acp.acp_types import ToolCallKind, ToolCallStatus
-    from acp.schema import Annotations, AvailableCommand, PlanEntry
+    from acp.schema import (
+        Annotations,
+        AvailableCommand,
+        PlanEntry,
+        ToolCallKind,
+        ToolCallStatus,
+    )
 
     ContentType = Sequence[
         ContentToolCallContent | FileEditToolCallContent | TerminalToolCallContent | str
@@ -268,7 +273,7 @@ class ACPNotifications:
         Args:
             entries: List of plan entries to send
         """
-        plan = AgentPlan(entries=entries)
+        plan = AgentPlanUpdate(entries=entries)
         notification = SessionNotification(session_id=self.id, update=plan)
         await self.client.session_update(notification)
 

@@ -14,13 +14,10 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from acp import Client
-    from acp.acp_types import MCPServer
-    from acp.schema import ClientCapabilities
+    from acp.schema import ClientCapabilities, McpServer
     from llmling_agent import AgentPool
     from llmling_agent_acp.acp_agent import LLMlingACPAgent
     from llmling_agent_acp.command_bridge import ACPCommandBridge
-
-    # from llmling_agent_acp.permission_server import PermissionMCPServer
     from llmling_agent_providers.base import UsageLimits
 
 
@@ -61,7 +58,7 @@ class ACPSessionManager:
         cwd: str,
         client: Client,  # This is the AgentSideConnection
         acp_agent: LLMlingACPAgent,
-        mcp_servers: Sequence[MCPServer] | None = None,
+        mcp_servers: Sequence[McpServer] | None = None,
         session_id: str | None = None,
         usage_limits: UsageLimits | None = None,
         client_capabilities: ClientCapabilities | None = None,

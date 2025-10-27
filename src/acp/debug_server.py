@@ -29,7 +29,7 @@ from acp.agent.protocol import Agent
 from acp.schema import (
     AgentCapabilities,
     AgentMessageChunk,
-    AgentPlan,
+    AgentPlanUpdate,
     AgentThoughtChunk,
     AuthenticateResponse,
     AvailableCommand,
@@ -538,7 +538,7 @@ async def _create_notification_update(notification_type: str, data: dict[str, An
                     status="in_progress",
                 ),
             ]
-            return AgentPlan(entries=entries)
+            return AgentPlanUpdate(entries=entries)
         case "commands_update":
             commands = [
                 AvailableCommand(

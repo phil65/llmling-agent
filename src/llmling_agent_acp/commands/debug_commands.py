@@ -23,7 +23,7 @@ from llmling_agent.log import get_logger
 
 
 if TYPE_CHECKING:
-    from acp.acp_types import SessionUpdate, ToolCallKind, ToolCallStatus
+    from acp.schema import SessionUpdate, ToolCallKind, ToolCallStatus
     from llmling_agent_acp.commands.acp_commands import ACPCommandContext
 
 
