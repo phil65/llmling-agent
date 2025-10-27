@@ -13,7 +13,7 @@ from pydantic_ai import BuiltinToolCallPart, ModelRequest, RunContext, ToolCallP
 
 
 if TYPE_CHECKING:
-    from mcp.types import Tool as MCPTool
+    from mcp.types import ContentBlock, Tool as MCPTool
     from pydantic_ai import ModelMessage
 
 
@@ -80,7 +80,7 @@ def mcp_tool_to_fn_schema(tool: MCPTool) -> dict[str, Any]:
     }
 
 
-def extract_text_content(mcp_content: list[Any]) -> str:
+def extract_text_content(mcp_content: list[ContentBlock]) -> str:
     """Extract text content from MCP content blocks.
 
     Args:

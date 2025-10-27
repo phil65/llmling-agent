@@ -322,8 +322,6 @@ class MCPClient:
 
     def convert_tool(self, tool: MCPTool) -> Tool:
         """Create a properly typed callable from MCP tool schema."""
-        from pydantic_ai import ToolReturn
-
         from llmling_agent import Tool
 
         schema = mcp_tool_to_fn_schema(tool)
