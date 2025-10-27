@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Sequence  # noqa: TC003
 from typing import Annotated, Any, Literal
 
 from pydantic import Field
 
-from acp.base import Schema
+from acp.base import AnnotatedObject, Schema
 from acp.schema.content_blocks import ContentBlock
 
 
@@ -27,11 +27,8 @@ ToolCallStatus = Literal["pending", "in_progress", "completed", "failed"]
 PermissionKind = Literal["allow_once", "allow_always", "reject_once", "reject_always"]
 
 
-class ToolCall(Schema):
+class ToolCall(AnnotatedObject):
     """Details about the tool call requiring permission."""
-
-    field_meta: Any | None = None
-    """Extension point for implementations."""
 
     content: Sequence[ToolCallContent] | None = None
     """Replace the content collection."""
@@ -58,14 +55,11 @@ class ToolCall(Schema):
     """The ID of the tool call being updated."""
 
 
-class FileEditToolCallContent(Schema):
+class FileEditToolCallContent(AnnotatedObject):
     """File modification shown as a diff."""
 
     type: Literal["diff"] = "diff"
     """File modification shown as a diff."""
-
-    field_meta: Any | None = None
-    """Extension point for implementations."""
 
     new_text: str
     """The new content after modification."""
@@ -101,16 +95,13 @@ class ContentToolCallContent(Schema):
     """The actual content block."""
 
 
-class ToolCallLocation(Schema):
+class ToolCallLocation(AnnotatedObject):
     """A file location being accessed or modified by a tool.
 
     Enables clients to implement "follow-along" features that track
     which files the agent is working with in real-time.
     See protocol docs: [Following the Agent](https://agentclientprotocol.com/protocol/tool-calls#following-the-agent)
     """
-
-    field_meta: Any | None = None
-    """Extension point for implementations."""
 
     line: int | None = Field(default=None, ge=0)
     """Optional line number within the file."""
@@ -139,11 +130,8 @@ class AllowedOutcome(Schema):
     outcome: Literal["selected"] = "selected"
 
 
-class PermissionOption(Schema):
+class PermissionOption(AnnotatedObject):
     """An option presented to the user when requesting permission."""
-
-    field_meta: Any | None = None
-    """Extension point for implementations."""
 
     kind: PermissionKind
     """Hint about the nature of this permission option."""

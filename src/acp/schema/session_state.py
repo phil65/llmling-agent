@@ -2,22 +2,18 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
-from typing import Any
+from collections.abc import Sequence  # noqa: TC003
 
-from acp.base import Schema
+from acp.base import AnnotatedObject
 
 
-class ModelInfo(Schema):
+class ModelInfo(AnnotatedObject):
     """**UNSTABLE**.
 
     This capability is not part of the spec yet.
 
     Information about a selectable model.
     """
-
-    field_meta: Any | None = None
-    """Extension point for implementations."""
 
     description: str | None = None
     """Optional description of the model."""
@@ -29,16 +25,13 @@ class ModelInfo(Schema):
     """Human-readable name of the model."""
 
 
-class SessionModelState(Schema):
+class SessionModelState(AnnotatedObject):
     """**UNSTABLE**.
 
     This capability is not part of the spec yet.
 
     The set of models and the one currently active.
     """
-
-    field_meta: Any | None = None
-    """Extension point for implementations."""
 
     available_models: Sequence[ModelInfo]
     """The set of models that the Agent can use"""
@@ -47,14 +40,11 @@ class SessionModelState(Schema):
     """The current model the Agent is in."""
 
 
-class SessionMode(Schema):
+class SessionMode(AnnotatedObject):
     """A mode the agent can operate in.
 
     See protocol docs: [Session Modes](https://agentclientprotocol.com/protocol/session-modes)
     """
-
-    field_meta: Any | None = None
-    """Extension point for implementations."""
 
     description: str | None = None
     """Optional description of the mode."""
@@ -66,11 +56,8 @@ class SessionMode(Schema):
     """Human-readable name of the mode."""
 
 
-class SessionModeState(Schema):
+class SessionModeState(AnnotatedObject):
     """The set of modes and the one currently active."""
-
-    field_meta: Any | None = None
-    """Extension point for implementations."""
 
     available_modes: Sequence[SessionMode]
     """The set of modes that the Agent can operate in"""

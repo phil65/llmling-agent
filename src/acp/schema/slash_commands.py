@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 from pydantic import RootModel
 
-from acp.base import Schema
+from acp.base import AnnotatedObject, Schema
 
 
 class CommandInputHint(Schema):
@@ -23,11 +21,8 @@ class AvailableCommandInput(RootModel[CommandInputHint]):
     """The input specification for a command."""
 
 
-class AvailableCommand(Schema):
+class AvailableCommand(AnnotatedObject):
     """Information about a command."""
-
-    field_meta: Any | None = None
-    """Extension point for implementations."""
 
     description: str
     """Human-readable description of what the command does."""

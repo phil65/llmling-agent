@@ -2,21 +2,12 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 from pydantic import Field
 
-from acp.base import Schema
+from acp.base import AnnotatedObject
 
 
-class BaseCapability(Schema):
-    """Base capability that a client may support."""
-
-    field_meta: Any | None = None
-    """Extension point for implementations."""
-
-
-class FileSystemCapability(BaseCapability):
+class FileSystemCapability(AnnotatedObject):
     """File system capabilities that a client may support.
 
     See protocol docs: [FileSystem](https://agentclientprotocol.com/protocol/initialization#filesystem)
@@ -29,7 +20,7 @@ class FileSystemCapability(BaseCapability):
     """Whether the Client supports `fs/write_text_file` requests."""
 
 
-class ClientCapabilities(BaseCapability):
+class ClientCapabilities(AnnotatedObject):
     """Capabilities supported by the client.
 
     Advertised during initialization to inform the agent about
@@ -48,7 +39,7 @@ class ClientCapabilities(BaseCapability):
     """Whether the Client support all `terminal/*` methods."""
 
 
-class PromptCapabilities(BaseCapability):
+class PromptCapabilities(AnnotatedObject):
     """Prompt capabilities supported by the agent in `session/prompt` requests.
 
     Baseline agent functionality requires support for [`ContentBlock::Text`]
@@ -77,7 +68,7 @@ class PromptCapabilities(BaseCapability):
     """Agent supports [`ContentBlock::Image`]."""
 
 
-class McpCapabilities(BaseCapability):
+class McpCapabilities(AnnotatedObject):
     """MCP capabilities supported by the agent."""
 
     http: bool | None = False
@@ -87,7 +78,7 @@ class McpCapabilities(BaseCapability):
     """Agent supports [`McpServer::Sse`]."""
 
 
-class AgentCapabilities(BaseCapability):
+class AgentCapabilities(AnnotatedObject):
     """Capabilities supported by the agent.
 
     Advertised during initialization to inform the client about

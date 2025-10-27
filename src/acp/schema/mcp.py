@@ -3,20 +3,18 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Any, Literal
+from typing import Literal
 
-from acp.base import Schema
+from acp.base import AnnotatedObject, Schema
 from acp.schema.common import EnvVariable
 
 
-class HttpHeader(Schema):
+class HttpHeader(AnnotatedObject):
     """An HTTP header to set when making requests to the MCP server."""
-
-    field_meta: Any | None = None
-    """Extension point for implementations."""
 
     name: str
     """The name of the HTTP header."""
+
     value: str
     """The value to set for the HTTP header."""
 

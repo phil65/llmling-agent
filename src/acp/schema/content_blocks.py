@@ -3,21 +3,18 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Annotated, Any, Literal
+from typing import Annotated, Literal
 
 from pydantic import Field
 
-from acp.base import Schema
+from acp.base import AnnotatedObject
 
 
 Audience = Sequence[Literal["assistant", "user"]]
 
 
-class TextResourceContents(Schema):
+class TextResourceContents(AnnotatedObject):
     """Text-based resource contents."""
-
-    field_meta: Any | None = None
-    """Extension point for implementations."""
 
     mime_type: str | None = None
     """MIME type of the resource."""
@@ -29,11 +26,8 @@ class TextResourceContents(Schema):
     """URI of the resource."""
 
 
-class BlobResourceContents(Schema):
+class BlobResourceContents(AnnotatedObject):
     """Binary resource contents."""
-
-    field_meta: Any | None = None
-    """Extension point for implementations."""
 
     blob: str
     """Base64-encoded binary content of the resource."""
@@ -45,14 +39,11 @@ class BlobResourceContents(Schema):
     """URI of the resource."""
 
 
-class Annotations(Schema):
+class Annotations(AnnotatedObject):
     """Optional annotations for the client.
 
     The client can use annotations to inform how objects are used or displayed.
     """
-
-    field_meta: Any | None = None
-    """Extension point for implementations."""
 
     audience: Audience | None = None
     """Audience for the annotated resource."""
@@ -64,11 +55,8 @@ class Annotations(Schema):
     """Priority of the annotated resource."""
 
 
-class BaseContentBlock(Schema):
+class BaseContentBlock(AnnotatedObject):
     """Base content block."""
-
-    field_meta: Any | None = None
-    """Extension point for implementations."""
 
     annotations: Annotations | None = None
     """Annotations for the content block."""

@@ -2,18 +2,13 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 from pydantic import Field
 
-from acp.base import Schema
+from acp.base import AnnotatedObject
 
 
-class TerminalExitStatus(Schema):
+class TerminalExitStatus(AnnotatedObject):
     """Exit status of a terminal command."""
-
-    field_meta: Any | None = None
-    """Extension point for implementations."""
 
     exit_code: int | None = Field(ge=0)
     """The process exit code (may be null if terminated by signal)."""

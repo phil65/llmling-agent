@@ -2,30 +2,27 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Sequence  # noqa: TC003
 from typing import Annotated, Any, Literal
 
 from pydantic import Field
 
-from acp.base import Schema
-from acp.schema.agent_plan import PlanEntry
-from acp.schema.content_blocks import ContentBlock
-from acp.schema.slash_commands import AvailableCommand
-from acp.schema.tool_call import ToolCallContent, ToolCallKind, ToolCallLocation
+from acp.base import AnnotatedObject
+from acp.schema.agent_plan import PlanEntry  # noqa: TC001
+from acp.schema.content_blocks import ContentBlock  # noqa: TC001
+from acp.schema.slash_commands import AvailableCommand  # noqa: TC001
+from acp.schema.tool_call import (  # noqa: TC001
+    ToolCallContent,
+    ToolCallKind,
+    ToolCallLocation,
+)
 
 
 ExecutionStatus = Literal["pending", "in_progress", "completed", "failed"]
 ToolCallStatus = Literal["pending", "in_progress", "completed", "failed"]
 
 
-class BaseSessionUpdate(Schema):
-    """Base chunk class."""
-
-    field_meta: Any | None = None
-    """Extension point for implementations."""
-
-
-class UserMessageChunk(BaseSessionUpdate):
+class UserMessageChunk(AnnotatedObject):
     """A chunk of the user's message being streamed."""
 
     session_update: Literal["user_message_chunk"] = "user_message_chunk"
@@ -35,7 +32,7 @@ class UserMessageChunk(BaseSessionUpdate):
     """A single item of content"""
 
 
-class AgentMessageChunk(BaseSessionUpdate):
+class AgentMessageChunk(AnnotatedObject):
     """A chunk of the agent's response being streamed."""
 
     session_update: Literal["agent_message_chunk"] = "agent_message_chunk"
@@ -45,7 +42,7 @@ class AgentMessageChunk(BaseSessionUpdate):
     """A single item of content"""
 
 
-class AgentThoughtChunk(BaseSessionUpdate):
+class AgentThoughtChunk(AnnotatedObject):
     """A chunk of the agent's internal reasoning being streamed."""
 
     session_update: Literal["agent_thought_chunk"] = "agent_thought_chunk"
@@ -55,7 +52,7 @@ class AgentThoughtChunk(BaseSessionUpdate):
     """A single item of content"""
 
 
-class ToolCallProgress(BaseSessionUpdate):
+class ToolCallProgress(AnnotatedObject):
     """Update on the status or results of a tool call."""
 
     session_update: Literal["tool_call_update"] = "tool_call_update"
@@ -86,7 +83,7 @@ class ToolCallProgress(BaseSessionUpdate):
     """The ID of the tool call being updated."""
 
 
-class CurrentModeUpdate(BaseSessionUpdate):
+class CurrentModeUpdate(AnnotatedObject):
     """The current mode of the session has changed.
 
     See protocol docs: [Session Modes](https://agentclientprotocol.com/protocol/session-modes)
@@ -98,7 +95,7 @@ class CurrentModeUpdate(BaseSessionUpdate):
     session_update: Literal["current_mode_update"] = "current_mode_update"
 
 
-class AgentPlanUpdate(BaseSessionUpdate):
+class AgentPlanUpdate(AnnotatedObject):
     """The agent's execution plan for complex tasks.
 
     See protocol docs: [Agent Plan](https://agentclientprotocol.com/protocol/agent-plan).
@@ -113,7 +110,7 @@ class AgentPlanUpdate(BaseSessionUpdate):
     with their current status. The client replaces the entire plan with each update."""
 
 
-class AvailableCommandsUpdate(BaseSessionUpdate):
+class AvailableCommandsUpdate(AnnotatedObject):
     """Available commands are ready or have changed."""
 
     session_update: Literal["available_commands_update"] = "available_commands_update"
@@ -123,7 +120,7 @@ class AvailableCommandsUpdate(BaseSessionUpdate):
     """Commands the agent can execute"""
 
 
-class ToolCallStart(BaseSessionUpdate):
+class ToolCallStart(AnnotatedObject):
     """Notification that a new tool call has been initiated."""
 
     session_update: Literal["tool_call"] = "tool_call"

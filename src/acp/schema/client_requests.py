@@ -2,16 +2,15 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
-from typing import Any
+from collections.abc import Sequence  # noqa: TC003
 
 from pydantic import Field
 
-from acp.base import Request, Schema
+from acp.base import Request
 from acp.schema.capabilities import ClientCapabilities
-from acp.schema.common import Implementation
-from acp.schema.content_blocks import ContentBlock
-from acp.schema.mcp import McpServer
+from acp.schema.common import Implementation  # noqa: TC001
+from acp.schema.content_blocks import ContentBlock  # noqa: TC001
+from acp.schema.mcp import McpServer  # noqa: TC001
 
 
 class NewSessionRequest(Request):
@@ -27,16 +26,13 @@ class NewSessionRequest(Request):
     """List of MCP (Model Context Protocol) servers the agent should connect to."""
 
 
-class LoadSessionRequest(Schema):
+class LoadSessionRequest(Request):
     """Request parameters for loading an existing session.
 
     Only available if the Agent supports the `loadSession` capability.
 
     See protocol docs: [Loading Sessions](https://agentclientprotocol.com/protocol/session-setup#loading-sessions)
     """
-
-    field_meta: Any | None = None
-    """Extension point for implementations."""
 
     cwd: str
     """The working directory for this session."""
@@ -58,16 +54,13 @@ class SetSessionModeRequest(Request):
     """The ID of the session to set the mode for."""
 
 
-class PromptRequest(Schema):
+class PromptRequest(Request):
     """Request parameters for sending a user prompt to the agent.
 
     Contains the user's message and any additional context.
 
     See protocol docs: [User Message](https://agentclientprotocol.com/protocol/prompt-turn#1-user-message)
     """
-
-    field_meta: Any | None = None
-    """Extension point for implementations."""
 
     prompt: Sequence[ContentBlock]
     """The blocks of content that compose the user's message.
@@ -105,16 +98,13 @@ class SetSessionModelRequest(Request):
     """The ID of the session to set the model for."""
 
 
-class InitializeRequest(Schema):
+class InitializeRequest(Request):
     """Request parameters for the initialize method.
 
     Sent by the client to establish connection and negotiate capabilities.
 
     See protocol docs: [Initialization](https://agentclientprotocol.com/protocol/initialization)
     """
-
-    field_meta: Any | None = None
-    """Extension point for implementations."""
 
     client_capabilities: ClientCapabilities | None = Field(
         default_factory=ClientCapabilities

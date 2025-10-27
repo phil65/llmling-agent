@@ -2,22 +2,17 @@
 
 from __future__ import annotations
 
-from typing import Annotated, Any
-
-from pydantic import Field
-
-from acp.base import Schema
+from acp.base import AnnotatedObject, Schema
 
 
-class EnvVariable(Schema):
+class EnvVariable(AnnotatedObject):
     """An environment variable to set when launching an MCP server."""
 
-    field_meta: Any | None = None
-    """Extension point for implementations."""
-    name: Annotated[str, Field(description="The name of the environment variable.")]
-    value: Annotated[
-        str, Field(description="The value to set for the environment variable.")
-    ]
+    name: str
+    """The name of the environment variable."""
+
+    value: str
+    """The value to set for the environment variable."""
 
 
 class Implementation(Schema):
@@ -43,11 +38,8 @@ class Implementation(Schema):
     Can be displayed to the user or used for debugging or metrics purposes."""
 
 
-class AuthMethod(Schema):
+class AuthMethod(AnnotatedObject):
     """Describes an available authentication method."""
-
-    field_meta: Any | None = None
-    """Extension point for implementations."""
 
     description: str | None = None
     """Optional description providing more details about this authentication method."""
