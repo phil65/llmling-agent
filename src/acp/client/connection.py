@@ -9,10 +9,10 @@ from typing import TYPE_CHECKING, Any, Self
 if TYPE_CHECKING:
     from acp.client.protocol import Client
     from acp.connection import StreamObserver
-    from acp.meta import ClientMethod
     from acp.schema import (
         AuthenticateRequest,
         CancelNotification,
+        ClientMethod,
         CreateTerminalResponse,
         InitializeRequest,
         KillTerminalCommandResponse,

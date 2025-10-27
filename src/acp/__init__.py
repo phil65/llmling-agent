@@ -56,10 +56,12 @@ from acp.schema import (
     WaitForTerminalExitResponse,
     WriteTextFileRequest,
     WriteTextFileResponse,
+    PROTOCOL_VERSION,
+    AgentMethod,
+    ClientMethod,
 )
 from acp.stdio import stdio_streams
 from acp.exceptions import RequestError
-from acp.meta import PROTOCOL_VERSION, AgentMethod, ClientMethod
 
 __version__ = "0.0.1"
 

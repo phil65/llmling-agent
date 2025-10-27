@@ -54,6 +54,7 @@ from acp.schema.mcp import (
     HttpMcpServer,
     McpServer,
 )
+from acp.schema.messages import AgentMethod, ClientMethod
 from acp.schema.notifications import CancelNotification, SessionNotification
 from acp.schema.common import EnvVariable, Implementation, AuthMethod
 from acp.schema.session_state import (
@@ -103,9 +104,13 @@ from acp.schema.content_blocks import (
     ContentBlock,
 )
 
+PROTOCOL_VERSION = 1
+
 __all__ = [
+    "PROTOCOL_VERSION",
     "AgentCapabilities",
     "AgentMessageChunk",
+    "AgentMethod",
     "AgentPlanUpdate",
     "AgentThoughtChunk",
     "AllowedOutcome",
@@ -120,6 +125,7 @@ __all__ = [
     "BlobResourceContents",
     "CancelNotification",
     "ClientCapabilities",
+    "ClientMethod",
     "CommandInputHint",
     "ContentBlock",
     "ContentToolCallContent",

@@ -15,6 +15,30 @@ from acp.schema.common import Error
 from acp.schema.notifications import CancelNotification, SessionNotification
 
 
+AgentMethod = Literal[
+    "authenticate",
+    "initialize",
+    "session/cancel",
+    "session/load",
+    "session/new",
+    "session/prompt",
+    "session/set_mode",
+    "session/set_model",
+]
+
+ClientMethod = Literal[
+    "fs/read_text_file",
+    "fs/write_text_file",
+    "session/request_permission",
+    "session/update",
+    "terminal/create",
+    "terminal/kill",
+    "terminal/output",
+    "terminal/release",
+    "terminal/wait_for_exit",
+]
+
+
 class JsonRPCMessage(Schema):
     """JSON-RPC 2.0 message."""
 
@@ -30,7 +54,7 @@ class ClientNotificationMessage(JsonRPCMessage):
     [1]: https://www.jsonrpc.org/specification#compatibility
     """
 
-    method: str
+    method: ClientMethod | str
     """Method name."""
 
     params: CancelNotification | Any | None = None
@@ -86,7 +110,7 @@ class ClientRequestMessage(JsonRPCMessage):
     id: int | str | None = None
     """JSON RPC Request Id."""
 
-    method: str
+    method: ClientMethod | str
     """Method name."""
 
     params: ClientRequest | Any | None = None
@@ -104,7 +128,7 @@ class AgentRequestMessage(JsonRPCMessage):
     id: int | str | None = None
     """JSON RPC Request Id."""
 
-    method: str
+    method: AgentMethod | str
     """Method name."""
 
     params: AgentRequest | Any | None = None
@@ -119,7 +143,7 @@ class AgentNotificationMessage(JsonRPCMessage):
     [1]: https://www.jsonrpc.org/specification#compatibility
     """
 
-    method: str
+    method: AgentMethod | str
     """Method name."""
 
     params: SessionNotification | Any | None = None
