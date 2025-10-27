@@ -33,7 +33,7 @@ class TestACPIntegration:
         assert server.agent_pool is agent_pool
         assert len(server.agent_pool.agents) > 0
 
-    async def test_filesystem_provider_tool_creation(self, agent_pool):
+    async def test_filesystem_provider_tool_creation(self, agent_pool, mock_acp_agent):
         """Test that filesystem provider creates tools correctly."""
         from unittest.mock import Mock
 
@@ -43,7 +43,6 @@ class TestACPIntegration:
 
         # Set up session with file capabilities
         mock_client = Mock()
-        mock_acp_agent = Mock()
 
         fs_cap = FileSystemCapability(read_text_file=True, write_text_file=True)
         capabilities = ClientCapabilities(fs=fs_cap, terminal=False)
@@ -73,7 +72,7 @@ class TestACPIntegration:
         assert provider.session_id == "file-test"
         assert provider.agent is mock_acp_agent
 
-    async def test_agent_switching_workflow(self, agent_pool):
+    async def test_agent_switching_workflow(self, agent_pool, mock_acp_agent):
         """Test the complete agent switching workflow."""
         from unittest.mock import Mock
 
@@ -97,7 +96,6 @@ class TestACPIntegration:
         multi_pool.register("agent1", agent1)
         multi_pool.register("agent2", agent2)
         mock_client = Mock()
-        mock_acp_agent = Mock()
         capabilities = ClientCapabilities(fs=None, terminal=False)
 
         session = ACPSession(
@@ -122,3 +120,7 @@ class TestACPIntegration:
         # Switching to non-existent agent should fail
         with pytest.raises(ValueError, match="Agent 'nonexistent' not found"):
             await session.switch_active_agent("nonexistent")
+
+
+if __name__ == "__main__":
+    pytest.main(["-v", __file__])

@@ -10,13 +10,12 @@ import pytest
 from acp import (
     Agent,
     DefaultACPClient,
-    Implementation,
     InitializeResponse,
     LoadSessionResponse,
     NewSessionResponse,
     PromptResponse,
 )
-from acp.schema import ClientCapabilities, FileSystemCapability
+from acp.schema import ClientCapabilities, FileSystemCapability, Implementation
 from llmling_agent_acp.acp_agent import LLMlingACPAgent
 
 
