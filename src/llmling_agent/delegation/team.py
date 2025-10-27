@@ -123,7 +123,7 @@ class Team[TDeps](BaseTeam[TDeps, Any]):
         """Format team info for prompts."""
         members = ", ".join(a.name for a in self.agents)
         desc = f" - {self.description}" if self.description else ""
-        return f"Parallel Team '{self.name}'{desc}\nMembers: {members}"
+        return f"Parallel Team {self.name!r}{desc}\nMembers: {members}"
 
     async def run_iter(
         self,

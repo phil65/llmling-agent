@@ -99,7 +99,7 @@ class MCPPromptCommand:
                 if arguments:
                     arg_info = ", ".join(f"{k}={v}" for k, v in arguments.items())
                     output = (
-                        f"Prompt '{self.mcp_prompt.name}' with "
+                        f"Prompt {self.mcp_prompt.name!r} with "
                         f"args ({arg_info}):\n\n{output}"
                     )
 

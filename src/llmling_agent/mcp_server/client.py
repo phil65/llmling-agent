@@ -317,7 +317,7 @@ class MCPClient:
         try:
             return await self._client.get_prompt_mcp(name, arguments)
         except Exception as e:
-            msg = f"Failed to get prompt '{name}': {e}"
+            msg = f"Failed to get prompt {name!r}: {e}"
             raise RuntimeError(msg) from e
 
     def convert_tool(self, tool: MCPTool) -> Tool:

@@ -43,7 +43,7 @@ class FabricPromptHub(BasePromptProvider):
             if response.status_code == 200:  # noqa: PLR2004
                 return response.text
 
-            msg = f"Template '{name}' not found in Fabric repository"
+            msg = f"Template {name!r} not found in Fabric repository"
             raise ValueError(msg)
 
     async def list_prompts(self) -> list[str]:

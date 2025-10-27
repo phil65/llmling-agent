@@ -73,7 +73,7 @@ class ConnectionEventData[TTransmittedData](EventData):
 
     def to_prompt(self) -> str:
         """Convert event to agent prompt."""
-        base = f"Connection '{self.connection_name}' event: {self.event_type}"
+        base = f"Connection {self.connection_name!r} event: {self.event_type}"
         if self.message:
             return f"{base}\nMessage content: {self.message.content}"
         return base

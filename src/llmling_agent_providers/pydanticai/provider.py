@@ -497,10 +497,10 @@ if __name__ == "__main__":
             match event:
                 case PartDeltaEvent(delta=TextPartDelta(content_delta=delta)):
                     chunks.append(delta)
-                    print(f"Text chunk: '{delta}'")
+                    print(f"Text chunk: {delta!r}")
                 case PartDeltaEvent(delta=ToolCallPartDelta(content_delta=delta)):
                     chunks.append(delta)
-                    print(f"Tool call chunk: '{delta}'")
+                    print(f"Tool call chunk: {delta!r}")
                 case AgentRunResultEvent(result=result):
                     final_result = result
                     print(f"Final result: {result}")

@@ -250,7 +250,7 @@ with other agents effectively."""
         """
         if agent_name not in self.agent_pool.agents:
             available = list(self.agent_pool.agents.keys())
-            msg = f"Agent '{agent_name}' not found. Available: {available}"
+            msg = f"Agent {agent_name!r} not found. Available: {available}"
             raise ValueError(msg)
 
         old_agent_name = self.current_agent_name

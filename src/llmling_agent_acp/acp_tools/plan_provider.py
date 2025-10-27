@@ -76,9 +76,7 @@ class ACPPlanProvider(ResourceProvider):
 
         await self._send_plan_update()
 
-        return (
-            f"Added plan entry at index {entry_index}: '{content}' (priority: {priority})"
-        )
+        return f"Added plan entry at index {entry_index}: {content!r} ({priority=!r})"
 
     async def update_plan_entry(
         self,
@@ -106,15 +104,15 @@ class ACPPlanProvider(ResourceProvider):
 
         if content is not None:
             entry.content = content
-            updates.append(f"content to '{content}'")
+            updates.append(f"content to {content!r}")
 
         if status is not None:
             entry.status = status
-            updates.append(f"status to '{status}'")
+            updates.append(f"status to {status!r}")
 
         if priority is not None:
             entry.priority = priority
-            updates.append(f"priority to '{priority}'")
+            updates.append(f"priority to {priority!r}")
 
         if not updates:
             return "No changes specified"
@@ -137,10 +135,10 @@ class ACPPlanProvider(ResourceProvider):
         await self._send_plan_update()
         if self._current_plan:
             return (
-                f"Removed entry {index}: '{removed_entry.content}', "
+                f"Removed entry {index}: {removed_entry.content!r}, "
                 f"remaining entries reindexed"
             )
-        return f"Removed entry {index}: '{removed_entry.content}', plan is now empty"
+        return f"Removed entry {index}: {removed_entry.content!r}, plan is now empty"
 
     async def _send_plan_update(self):
         """Send current plan state via session update."""

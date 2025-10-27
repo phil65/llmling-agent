@@ -131,7 +131,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
         """Format team info for prompts."""
         members = " -> ".join(a.name for a in self.agents)
         desc = f" - {self.description}" if self.description else ""
-        return f"Sequential Team '{self.name}'{desc}\nPipeline: {members}"
+        return f"Sequential Team {self.name!r}{desc}\nPipeline: {members}"
 
     async def _run(
         self,

@@ -30,7 +30,7 @@ def run_command(cmd: list[str], cwd: Path | None = None) -> int:
     result = subprocess.run(cmd, cwd=cwd, check=False)
     if result.returncode != 0 and cmd[0] == "alembic":
         console.print(
-            f"[bold red]Error:[/bold red] Command '{cmd[0]}' not found. "
+            f"[bold red]Error:[/bold red] Command {cmd[0]!r} not found. "
             "Make sure alembic is installed."
         )
     return result.returncode

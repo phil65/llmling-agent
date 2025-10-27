@@ -80,7 +80,7 @@ async def add_remote_mcp_server(  # noqa: D417
     ctx.agent.mcp.add_server_config(config)
     await ctx.agent.mcp.setup_server(config)
 
-    return f"Added remote MCP server '{name}' at {url} using {transport} transport"
+    return f"Added remote MCP server {name!r} at {url} using {transport} transport"
 
 
 async def load_skill(ctx: AgentContext, skill_name: str) -> str:  # noqa: D417
@@ -104,7 +104,7 @@ async def load_skill(ctx: AgentContext, skill_name: str) -> str:  # noqa: D417
 
         # Format the skill content for Claude to follow
     except Exception as e:  # noqa: BLE001
-        return f"Failed to load skill '{skill_name}': {e}"
+        return f"Failed to load skill {skill_name!r}: {e}"
     else:
         return f"""
 <command-message>The "{skill_name}" skill is loading</command-message>

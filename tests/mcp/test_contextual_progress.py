@@ -114,7 +114,7 @@ async def test_progress_handler_with_agent():
         expected_messages = ["first step", "second step", "third step"]
         for expected_msg in expected_messages:
             assert any(expected_msg in str(msg) for msg in messages if msg), (
-                f"Should contain '{expected_msg}' in messages: {messages}"
+                f"Should contain {expected_msg!r} in messages: {messages}"
             )
 
 

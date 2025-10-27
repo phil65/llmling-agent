@@ -222,7 +222,7 @@ def _validate_dependency_types(functions: list[NodeFunction]):
                 if expected_type != provided_type:
                     msg = (
                         f"Type mismatch in {func.name}: "
-                        f"dependency '{dep}' is typed as {expected_type}, "
+                        f"dependency {dep!r} is typed as {expected_type}, "
                         f"but {dep} returns {provided_type}"
                     )
                     raise TypeError(msg)
@@ -234,7 +234,7 @@ def _validate_value_type(
     """Validate that a value matches its expected type."""
     if not isinstance(value, expected_type):
         msg = (
-            f"Type error in {func_name}: parameter '{param_name}' "
+            f"Type error in {func_name}: parameter {param_name!r} "
             f"expected {expected_type.__name__}, got {type(value).__name__}"
         )
         raise TypeError(msg)

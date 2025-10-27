@@ -51,7 +51,7 @@ def init_agent_config(
     agent_store.add_config(config_name, output)
     agent_store.set_active(config_name)
 
-    print(f"\nCreated and activated agent configuration '{config_name}': {output}")
+    print(f"\nCreated and activated agent configuration {config_name!r}: {output}")
     print("\nTry these commands:")
     print("  llmling-agent list")
     print("  llmling-agent chat simple_agent")
@@ -66,7 +66,7 @@ def add_agent_file(
     """Add a new agent configuration file."""
     try:
         agent_store.add_config(name, path)
-        t.echo(f"Added agent configuration '{name}' -> {path}")
+        t.echo(f"Added agent configuration {name!r} -> {path}")
     except Exception as e:
         t.echo(f"Error adding configuration: {e}", err=True)
         raise t.Exit(1) from e
@@ -80,7 +80,7 @@ def set_active_file(
     """Set the active agent configuration file."""
     try:
         agent_store.set_active(name)
-        t.echo(f"Set '{name}' as active agent configuration")
+        t.echo(f"Set {name!r} as active agent configuration")
     except Exception as e:
         t.echo(f"Error setting active configuration: {e}", err=True)
         raise t.Exit(1) from e

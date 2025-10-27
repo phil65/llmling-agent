@@ -108,7 +108,7 @@ class InteractiveSession:
     def _on_tool_changed(self, name: str, tool: Tool):
         """Handle tool state changes."""
         state = "enabled" if tool.enabled else "disabled"
-        self.console.print(f"\nTool '{name}' {state}")
+        self.console.print(f"\nTool {name!r} {state}")
 
     def _on_history_cleared(self, event: ConversationManager.HistoryCleared):
         """Handle history cleared event."""
