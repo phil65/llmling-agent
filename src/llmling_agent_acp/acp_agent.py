@@ -9,6 +9,7 @@ from slashed import CommandStore
 from acp import Agent as ACPAgent, create_session_model_state
 from acp.schema import (
     AgentCapabilities,
+    Implementation,
     InitializeResponse,
     LoadSessionResponse,
     McpCapabilities,
@@ -141,7 +142,13 @@ class LLMlingACPAgent(ACPAgent):
         )
 
         self._initialized = True
-        response = InitializeResponse(protocol_version=version, agent_capabilities=caps)
+        response = InitializeResponse(
+            protocol_version=version,
+            agent_capabilities=caps,
+            agent_info=Implementation(
+                name="llmling-agent", title="LLMLing-Agent", version="1.0"
+            ),
+        )
         logger.info("ACP agent implementation initialized successfully: %s", response)
         return response
 

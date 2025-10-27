@@ -38,6 +38,7 @@ from acp.schema import (
     CreateTerminalResponse,
     # CurrentModelUpdate,
     CurrentModeUpdate,
+    Implementation,
     InitializeResponse,
     LoadSessionResponse,
     NewSessionResponse,
@@ -109,10 +110,9 @@ class MockAgent(Agent):
     async def initialize(self, params: InitializeRequest) -> InitializeResponse:
         """Handle initialize request with mock capabilities."""
         return InitializeResponse(
-            agent_capabilities=AgentCapabilities(
-                load_session=True,
-            ),
+            agent_capabilities=AgentCapabilities(load_session=True),
             protocol_version=1,
+            agent_info=Implementation(name="MockAgent", version="1.0"),
         )
 
     async def new_session(self, params: NewSessionRequest) -> NewSessionResponse:

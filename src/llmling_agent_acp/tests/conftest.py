@@ -10,6 +10,7 @@ import pytest
 from acp import (
     Agent,
     DefaultACPClient,
+    Implementation,
     InitializeResponse,
     LoadSessionResponse,
     NewSessionResponse,
@@ -42,6 +43,7 @@ class TestAgent(Agent):
         return InitializeResponse(
             protocol_version=params.protocol_version,
             agent_capabilities=None,
+            agent_info=Implementation(name="test-agent", version="1.0"),
         )
 
     async def new_session(self, params: NewSessionRequest) -> NewSessionResponse:
