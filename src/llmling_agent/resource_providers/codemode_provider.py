@@ -28,7 +28,7 @@ TYPE_MAP = {
 }
 
 
-async def _extract_basic_signature(tool: Tool, return_type: str = "Any") -> str:
+def _extract_basic_signature(tool: Tool, return_type: str = "Any") -> str:
     """Fallback signature extraction from tool schema."""
     schema = tool.schema["function"]
     params = schema.get("parameters", {}).get("properties", {})
@@ -37,7 +37,7 @@ async def _extract_basic_signature(tool: Tool, return_type: str = "Any") -> str:
     param_strs = []
     for name, param_info in params.items():
         # Use improved type inference
-        type_hint = await _infer_parameter_type(tool, name, param_info)
+        type_hint = _infer_parameter_type(tool, name, param_info)
 
         if name not in required:
             param_strs.append(f"{name}: {type_hint} = None")
@@ -47,7 +47,7 @@ async def _extract_basic_signature(tool: Tool, return_type: str = "Any") -> str:
     return f"{tool.name}({', '.join(param_strs)}) -> {return_type}"
 
 
-async def _infer_parameter_type(tool: Tool, param_name: str, param_info: Property) -> str:
+def _infer_parameter_type(tool: Tool, param_name: str, param_info: Property) -> str:
     """Infer parameter type from schema and function inspection."""
     schema_type = param_info.get("type", "Any")
 
@@ -89,7 +89,7 @@ async def _infer_parameter_type(tool: Tool, param_name: str, param_info: Propert
     return "Any"
 
 
-async def _get_return_model_name(tool: Tool) -> str:
+def _get_return_model_name(tool: Tool) -> str:
     """Get the return model name for a tool."""
     try:
         callable_func = tool.callable.callable
@@ -108,13 +108,13 @@ async def _get_return_model_name(tool: Tool) -> str:
 async def _get_function_signature(tool: Tool) -> str:
     """Extract function signature using schemez."""
     try:
-        return_model_name = await _get_return_model_name(tool)
-        return await _extract_basic_signature(tool, return_model_name)
+        return_model_name = _get_return_model_name(tool)
+        return _extract_basic_signature(tool, return_model_name)
     except Exception:  # noqa: BLE001
-        return await _extract_basic_signature(tool, "Any")
+        return _extract_basic_signature(tool, "Any")
 
 
-async def _generate_return_models(all_tools: list[Tool]) -> str:
+def _generate_return_models(all_tools: list[Tool]) -> str:
     """Generate Pydantic models for tool return types using schemez."""
     model_parts = []
 
@@ -219,7 +219,7 @@ class CodeModeResourceProvider(ResourceProvider):
             return "Execute Python code (no tools available)"
 
         # Generate return type models if available
-        return_models = await _generate_return_models(all_tools)
+        return_models = _generate_return_models(all_tools)
 
         parts = [
             "Execute Python code with the following tools available as async functions:",
@@ -285,7 +285,7 @@ class CodeModeResourceProvider(ResourceProvider):
 
         # Add generated model classes to namespace
         if self._models_code_cache is None:
-            self._models_code_cache = await _generate_return_models(
+            self._models_code_cache = _generate_return_models(
                 await self._collect_all_tools()
             )
 
