@@ -50,7 +50,7 @@ class ProgressCapture:
 
 
 @pytest.mark.asyncio
-async def test_contextual_progress_handler_with_agent():
+async def test_progress_handler_with_agent():
     """Test that progress handlers receive tool context information via Agent."""
     # Setup progress capture
     progress_capture = ProgressCapture()
@@ -96,7 +96,7 @@ async def test_contextual_progress_handler_with_agent():
         # Find the client and set our progress handler
         client = next(iter(mcp_manager.clients.values()))
         # Set our contextual progress handler
-        client._contextual_progress_handler = progress_capture
+        client._progress_handler = progress_capture
 
         # Run the agent with a request - TestModel will call the test_progress tool
         # since we configured it with call_tools=["test_progress"]

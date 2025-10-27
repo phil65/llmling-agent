@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from mcp.types import Tool as MCPTool
 
 
-def _create_tool_signature_with_context(base_signature, tool_name: str) -> Any:
+def _create_tool_signature_with_context(base_signature) -> Any:
     """Create a function signature that includes RunContext as first parameter.
 
     This is crucial for PydanticAI integration - it expects tools that need RunContext
@@ -25,7 +25,6 @@ def _create_tool_signature_with_context(base_signature, tool_name: str) -> Any:
 
     Args:
         base_signature: Original signature from MCP tool schema (tool parameters only)
-        tool_name: Name of the tool (used for documentation)
 
     Returns:
         New signature: (ctx: RunContext, ...original_params) -> ReturnType
@@ -38,7 +37,6 @@ def _create_tool_signature_with_context(base_signature, tool_name: str) -> Any:
     ctx_param = inspect.Parameter(
         "ctx", inspect.Parameter.POSITIONAL_OR_KEYWORD, annotation=RunContext
     )
-
     # Combine with tool parameters
     tool_params = list(base_signature.parameters.values())
     new_params = [ctx_param, *tool_params]

@@ -13,7 +13,7 @@ from __future__ import annotations
 import contextlib
 import inspect
 import logging
-from typing import TYPE_CHECKING, Any, Self
+from typing import TYPE_CHECKING, Any, Protocol, Self
 
 from pydantic_ai import (
     RunContext,  # noqa: TC002
@@ -31,9 +31,22 @@ from llmling_agent.mcp_server.helpers import (
 )
 
 
+class ContextualProgressHandler(Protocol):
+    """Progress handler that includes tool execution context."""
+
+    async def __call__(
+        self,
+        progress: float,
+        total: float | None,
+        message: str | None,
+        tool_name: str | None = None,
+        tool_call_id: str | None = None,
+        tool_input: dict[str, Any] | None = None,
+    ) -> None: ...
+
+
 if TYPE_CHECKING:
     from types import TracebackType
-    from typing import Protocol
 
     import fastmcp
     from fastmcp.client import ClientTransport
@@ -55,19 +68,6 @@ if TYPE_CHECKING:
 
     from llmling_agent.tools.base import Tool
     from llmling_agent_config.mcp_server import MCPServerConfig
-
-    class ContextualProgressHandler(Protocol):
-        """Progress handler that includes tool execution context."""
-
-        async def __call__(
-            self,
-            progress: float,
-            total: float | None,
-            message: str | None,
-            tool_name: str | None = None,
-            tool_call_id: str | None = None,
-            tool_input: dict[str, Any] | None = None,
-        ) -> None: ...
 
 
 logger = get_logger(__name__)
@@ -98,7 +98,7 @@ class MCPClient:
     ):
         self._elicitation_callback = elicitation_callback
         self._sampling_callback = sampling_callback
-        self._contextual_progress_handler = progress_handler
+        self._progress_handler = progress_handler
         # Store message handler or mark for lazy creation
         self._message_handler = message_handler
         self._accessible_roots = accessible_roots or []
@@ -136,13 +136,6 @@ class MCPClient:
         msg = message.data.get("msg", "")
         level = LEVEL_MAP.get(message.level.lower(), logging.INFO)
         logger.log(level, "MCP Server: %s", msg)
-
-    async def _progress_handler_impl(
-        self, progress: float, total: float | None, message: str | None
-    ):
-        """Handle progress updates from server."""
-        # This is the global FastMCP progress handler - we don't have tool context here
-        # Tool-specific progress handlers are created per call in call_tool()
 
     async def _elicitation_handler_impl(
         self,
@@ -263,7 +256,6 @@ class MCPClient:
             log_handler=self._log_handler,
             roots=self._accessible_roots,
             timeout=config.timeout,
-            progress_handler=self._progress_handler_impl,
             elicitation_handler=self._elicitation_handler_impl,
             sampling_handler=self._sampling_handler_impl,
             message_handler=msg_handler,
@@ -359,7 +351,7 @@ class MCPClient:
             )
 
         # Set proper signature and annotations with RunContext support
-        tool_callable.__signature__ = _create_tool_signature_with_context(sig, tool.name)  # type: ignore
+        tool_callable.__signature__ = _create_tool_signature_with_context(sig)  # type: ignore
         annotations = _create_tool_annotations_with_context(fn_schema.get_annotations())
         # Update return annotation to support multiple types
         annotations["return"] = str | Any | ToolReturn
@@ -378,8 +370,8 @@ class MCPClient:
         async def fastmcp_progress_handler(
             progress: float, total: float | None, message: str | None
         ):
-            if self._contextual_progress_handler:
-                await self._contextual_progress_handler(
+            if self._progress_handler:
+                await self._progress_handler(
                     progress, total, message, tool_name, tool_call_id, tool_input
                 )
 
@@ -400,7 +392,7 @@ class MCPClient:
         try:
             # Create progress handler if we have handler
             progress_handler = None
-            if self._contextual_progress_handler:
+            if self._progress_handler:
                 if run_context and run_context.tool_call_id and run_context.tool_name:
                     # Extract tool args from message history
                     tool_input = extract_tool_call_args(
