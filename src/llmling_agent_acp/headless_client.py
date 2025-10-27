@@ -11,6 +11,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 import uuid
 
+from anyenv import ProcessManager
+
 from acp.client import Client
 from acp.schema import (
     AllowedOutcome,
@@ -24,7 +26,6 @@ from acp.schema import (
     WaitForTerminalExitResponse,
     WriteTextFileResponse,
 )
-from llmling_agent.agent.process_manager import ProcessManager
 from llmling_agent.log import get_logger
 
 

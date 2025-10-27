@@ -126,7 +126,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
             self._tasks.register(name, task)
 
         # Initialize process manager for background processes
-        from llmling_agent.agent.process_manager import ProcessManager
+        from anyenv import ProcessManager
 
         self.process_manager = ProcessManager()
         self.pool_talk = TeamTalk[Any].from_nodes(list(self.nodes.values()))
