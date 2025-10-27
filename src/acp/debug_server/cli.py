@@ -50,7 +50,7 @@ Examples:
         default="info",
         help="Logging level (default: info)",
     )
-    from acp.debug_server import ACPDebugServer
+    from acp.debug_server.debug_server import ACPDebugServer
 
     args = parser.parse_args()
 
