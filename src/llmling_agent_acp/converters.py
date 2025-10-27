@@ -18,7 +18,6 @@ from acp.schema import (
     ImageContentBlock,
     PermissionOption,
     ResourceContentBlock,
-    ResourceLink,
     SessionNotification,
     TextContentBlock,
     TextResourceContents,
@@ -145,11 +144,8 @@ def from_content_blocks(blocks: Sequence[ContentBlock]) -> Sequence[str | BaseCo
                 parts = [f"Resource: {name}"]
                 if description:
                     parts.append(f"Description: {description}")
-                parts.append(f"URI: {uri}")
+                parts.append(f"URI: {format_uri_as_link(uri)}")
                 content.append("\n".join(parts))
-
-            case ResourceLink(uri=uri):
-                content.append(format_uri_as_link(uri))  # Format as markdown-style link
             case EmbeddedResourceContentBlock(resource=resource):
                 match resource:
                     case TextResourceContents(uri=uri, text=text):

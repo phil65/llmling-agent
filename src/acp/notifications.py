@@ -13,7 +13,7 @@ from acp.schema import (
     AvailableCommand,
     AvailableCommandsUpdate,
     ContentToolCallContent,
-    CurrentModelUpdate,
+    # CurrentModelUpdate,
     CurrentModeUpdate,
     FileEditToolCallContent,
     ImageContentBlock,
@@ -335,15 +335,15 @@ class ACPNotifications:
         notification = SessionNotification(session_id=self.id, update=update)
         await self.client.session_update(notification)
 
-    async def update_session_model(self, model_id: str) -> None:
-        """Send a session model update notification.
+    # async def update_session_model(self, model_id: str) -> None:
+    #     """Send a session model update notification.
 
-        Args:
-            model_id: Unique identifier for the model
-        """
-        update = CurrentModelUpdate(current_model_id=model_id)
-        notification = SessionNotification(session_id=self.id, update=update)
-        await self.client.session_update(notification)
+    #     Args:
+    #         model_id: Unique identifier for the model
+    #     """
+    #     update = CurrentModelUpdate(current_model_id=model_id)
+    #     notification = SessionNotification(session_id=self.id, update=update)
+    #     await self.client.session_update(notification)
 
     async def send_agent_audio(
         self,

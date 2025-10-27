@@ -10,6 +10,7 @@ from pydantic_ai import messages as _messages
 from pydantic_ai.messages import (
     ModelRequest,
     SystemPromptPart,
+    ToolCallPart,
     ToolReturnPart,
     UserPromptPart,
 )
@@ -27,7 +28,7 @@ if TYPE_CHECKING:
         MCPServerStdio,
         MCPServerStreamableHTTP,
     )
-    from pydantic_ai.messages import ModelMessage, ToolCallPart, UserContent
+    from pydantic_ai.messages import ModelMessage, UserContent
 
     from llmling_agent.messaging.messages import ChatMessage
     from llmling_agent.models.content import Content
@@ -84,8 +85,12 @@ def get_tool_calls(
         context_data: Optional context data to attach to tool calls
     """
     tools = tools or {}
-    parts = [part for message in messages for part in message.tool_calls]
-    call_parts = {part.tool_call_id: part for part in parts if part.tool_call_id}
+    parts = [part for message in messages for part in message.parts]
+    call_parts = {
+        part.tool_call_id: part
+        for part in parts
+        if isinstance(part, ToolCallPart) and part.tool_call_id
+    }
     return [
         parts_to_tool_call_info(
             call_parts[part.tool_call_id],

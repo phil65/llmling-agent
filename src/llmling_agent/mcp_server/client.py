@@ -503,7 +503,7 @@ class MCPClient:
                         )
                     )
                 case ResourceLink(uri=uri):
-                    # ResourceLink should be read like PydanticAI does
+                    # ResourceContentBlock should be read like PydanticAI does
                     try:
                         assert self._client
                         resource_result = await self._client.read_resource_mcp(uri)

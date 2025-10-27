@@ -14,7 +14,7 @@ from acp.schema import (
     ReleaseTerminalRequest,
     RequestPermissionRequest,
     TerminalOutputRequest,
-    ToolCallUpdate,
+    ToolCall,
     WaitForTerminalExitRequest,
     WriteTextFileRequest,
 )
@@ -248,7 +248,7 @@ class ACPRequests:
                 ),
             ]
 
-        tool_call = ToolCallUpdate(tool_call_id=tool_call_id, title=title)
+        tool_call = ToolCall(tool_call_id=tool_call_id, title=title)
         request = RequestPermissionRequest(
             session_id=self.id,
             tool_call=tool_call,

@@ -45,7 +45,7 @@ ImageContent(type="image", data="base64...", mimeType="image/png")
 AudioContent(type="audio", data="base64...", mimeType="audio/wav")
 
 # Resource links
-ResourceLink(type="resource_link", uri="file:///path/to/file", name="document.pdf")
+ResourceContentBlock(type="resource_link", uri="file:///path/to/file", name="document.pdf")
 
 # Embedded resources
 EmbeddedResource(type="resource", resource=TextResourceContents(uri="...", text="..."))

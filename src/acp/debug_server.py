@@ -36,7 +36,7 @@ from acp.schema import (
     AvailableCommandsUpdate,
     ContentToolCallContent,
     CreateTerminalResponse,
-    CurrentModelUpdate,
+    # CurrentModelUpdate,
     CurrentModeUpdate,
     InitializeResponse,
     LoadSessionResponse,
@@ -549,8 +549,8 @@ async def _create_notification_update(notification_type: str, data: dict[str, An
             return AvailableCommandsUpdate(available_commands=commands)
         case "mode_update":
             return CurrentModeUpdate(current_mode_id=data.get("mode_id", "debug"))
-        case "model_update":
-            return CurrentModelUpdate(current_model_id=data.get("model_id", "some-model"))
+        # case "model_update":
+        #     return CurrentModelUpdate(current_model_id=data.get("model_id", "None"))
         case _:
             msg = f"Unknown notification type: {notification_type}"
             raise ValueError(msg)

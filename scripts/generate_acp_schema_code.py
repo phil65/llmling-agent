@@ -205,7 +205,25 @@ async def _format_with_ruff(path: Path, method: Literal["format", "check"]) -> N
 def _rename_numbered_classes(file_path: Path) -> None:
     """Rename numbered classes to more meaningful names."""
     rename_map = {
-        # Rename the numbered ones that don't have proper names
+        "AgentOutgoingMessage1": "AgentRequestMessage",
+        "AgentOutgoingMessage2": "AgentResponseMessage",
+        "AgentOutgoingMessage3": "AgentErrorMessage",
+        "AgentOutgoingMessage4": "AgentNotificationMessage",
+        "AvailableCommandInput1": "CommandInputHint",
+        "ClientOutgoingMessage1": "ClientRequestMessage",
+        "ClientOutgoingMessage2": "ClientResponseMessage",
+        "ClientOutgoingMessage3": "ClientErrorMessage",
+        "ClientOutgoingMessage4": "ClientNotificationMessage",
+        "ContentBlock1": "TextContentBlock",
+        "ContentBlock2": "ImageContentBlock",
+        "ContentBlock3": "AudioContentBlock",
+        "ContentBlock4": "ResourceContentBlock",
+        "ContentBlock5": "EmbeddedResourceContentBlock",
+        "McpServer1": "HttpMcpServer",
+        "McpServer2": "SseMcpServer",
+        "McpServer3": "StdioMcpServer",
+        "RequestPermissionOutcome1": "DeniedOutcome",
+        "RequestPermissionOutcome2": "AllowedOutcome",
         "SessionUpdate1": "UserMessageChunk",
         "SessionUpdate2": "AgentMessageChunk",
         "SessionUpdate3": "AgentThoughtChunk",
@@ -214,36 +232,9 @@ def _rename_numbered_classes(file_path: Path) -> None:
         "SessionUpdate6": "AgentPlan",
         "SessionUpdate7": "AvailableCommandsUpdate",
         "SessionUpdate8": "CurrentModeUpdate",
-        "SessionUpdate9": "CurrentModelUpdate",
-        # JSON-RPC message types - Agent variants
-        "AgentOutgoingMessage1": "AgentRequest",
-        "AgentOutgoingMessage2": "AgentResponse",
-        "AgentOutgoingMessage3": "AgentError",
-        "AgentOutgoingMessage4": "AgentNotification",
-        # JSON-RPC message types - Client variants
-        "ClientOutgoingMessage1": "ClientRequest",
-        "ClientOutgoingMessage2": "ClientResponse",
-        "ClientOutgoingMessage3": "ClientError",
-        "ClientOutgoingMessage4": "ClientNotification",
-        # ContentBlock variants - use different names to avoid conflicts
-        "ContentBlock1": "TextContentBlock",
-        "ContentBlock2": "ImageContentBlock",
-        "ContentBlock3": "AudioContentBlock",
-        "ContentBlock4": "ResourceContentBlock",
-        "ContentBlock5": "EmbeddedResourceContentBlock",
-        # ToolCallContent variants - use different names to avoid conflicts
         "ToolCallContent1": "ContentToolCallContent",
         "ToolCallContent2": "FileEditToolCallContent",
         "ToolCallContent3": "TerminalToolCallContent",
-        # RequestPermissionOutcome variants
-        "RequestPermissionOutcome1": "DeniedOutcome",
-        "RequestPermissionOutcome2": "AllowedOutcome",
-        # McpServer variants
-        "McpServer1": "HttpMcpServer",
-        "McpServer2": "SseMcpServer",
-        "McpServer3": "StdioMcpServer",
-        # Other numbered classes
-        "AvailableCommandInput1": "CommandInputHint",
     }
 
     content = file_path.read_text(encoding="utf-8")
