@@ -11,6 +11,7 @@ from acp.schema.agent_requests import AgentRequest
 from acp.schema.agent_responses import AgentResponse
 from acp.schema.client_requests import ClientRequest
 from acp.schema.client_responses import ClientResponse
+from acp.schema.common import Error
 from acp.schema.notifications import CancelNotification, SessionNotification
 
 
@@ -123,3 +124,18 @@ class AgentNotificationMessage(JsonRPCMessage):
 
     params: SessionNotification | Any | None = None
     """Agent notification parameters."""
+
+
+class ErrorMessage(JsonRPCMessage):
+    """A message (request, response, or notification) with `"jsonrpc": "2.0"`.
+
+    Specified as
+    [required by JSON-RPC 2.0 Specification][1].
+
+    [1]: https://www.jsonrpc.org/specification#compatibility
+    """
+
+    id: int | str | None = None
+    """JSON RPC Request Id."""
+
+    error: Error

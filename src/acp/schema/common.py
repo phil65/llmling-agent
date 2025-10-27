@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from acp.base import AnnotatedObject, Schema
 
 
@@ -49,3 +51,31 @@ class AuthMethod(AnnotatedObject):
 
     name: str
     """Human-readable name of the authentication method."""
+
+
+class Error(Schema):
+    """JSON-RPC error object.
+
+    Represents an error that occurred during method execution, following the
+    JSON-RPC 2.0 error object specification with optional additional data.
+
+    See protocol docs: [JSON-RPC Error Object](https://www.jsonrpc.org/specification#error_object)
+    """
+
+    code: int
+    """A number indicating the error type that occurred.
+
+    This must be an integer as defined in the JSON-RPC specification.
+    """
+
+    data: Any | None = None
+    """Optional primitive or structured value that contains additional errorinformation.
+
+    This may include debugging information or context-specific details.
+    """
+
+    message: str
+    """A string providing a short description of the error.
+
+    The message should be limited to a concise single sentence.
+    """
