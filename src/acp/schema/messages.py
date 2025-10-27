@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
+from pydantic import Field
+
 from acp.base import Schema
 from acp.schema.agent_requests import AgentRequest
 from acp.schema.agent_responses import AgentResponse
@@ -12,7 +14,14 @@ from acp.schema.client_responses import ClientResponse
 from acp.schema.notifications import CancelNotification, SessionNotification
 
 
-class ClientNotificationMessage(Schema):
+class JsonRPCMessage(Schema):
+    """JSON-RPC 2.0 message."""
+
+    jsonrpc: Literal["2.0"] = Field(default="2.0", init=False)
+    """JSON RPC Messsage."""
+
+
+class ClientNotificationMessage(JsonRPCMessage):
     """A message (request, response, or notification) with `"jsonrpc": "2.0"`.
 
     Specified as [required by JSON-RPC 2.0 Specification][1].
@@ -20,20 +29,20 @@ class ClientNotificationMessage(Schema):
     [1]: https://www.jsonrpc.org/specification#compatibility
     """
 
-    jsonrpc: Literal["2.0"] = "2.0"
     method: str
+    """Method name."""
+
     params: CancelNotification | Any | None = None
+    """Agent notification parameters."""
 
 
-class ClientResponseMessage(Schema):
+class ClientResponseMessage(JsonRPCMessage):
     """A message (request, response, or notification) with `"jsonrpc": "2.0"`.
 
     Specified as [required by JSON-RPC 2.0 Specification][1].
 
     [1]: https://www.jsonrpc.org/specification#compatibility
     """
-
-    jsonrpc: Literal["2.0"] = "2.0"
 
     id: int | str | None = None
     """JSON RPC Request Id."""
@@ -46,15 +55,13 @@ class ClientResponseMessage(Schema):
     These are responses to the corresponding `AgentRequest` variants."""
 
 
-class AgentResponseMessage(Schema):
+class AgentResponseMessage(JsonRPCMessage):
     """A message (request, response, or notification) with `"jsonrpc": "2.0"`.
 
     Specified as [required by JSON-RPC 2.0 Specification][1].
 
     [1]: https://www.jsonrpc.org/specification#compatibility
     """
-
-    jsonrpc: Literal["2.0"] = "2.0"
 
     id: int | str | None = None
     """JSON RPC Request Id."""
@@ -67,7 +74,7 @@ class AgentResponseMessage(Schema):
     These are responses to the corresponding `ClientRequest` variants."""
 
 
-class ClientRequestMessage(Schema):
+class ClientRequestMessage(JsonRPCMessage):
     """A message (request, response, or notification) with `"jsonrpc": "2.0"`.
 
     Specified as [required by JSON-RPC 2.0 Specification][1].
@@ -75,33 +82,35 @@ class ClientRequestMessage(Schema):
     [1]: https://www.jsonrpc.org/specification#compatibility
     """
 
-    jsonrpc: Literal["2.0"] = "2.0"
-
     id: int | str | None = None
     """JSON RPC Request Id."""
 
     method: str
+    """Method name."""
+
     params: ClientRequest | Any | None = None
+    """Client request parameters."""
 
 
-class AgentRequestMessage(Schema):
+class AgentRequestMessage(JsonRPCMessage):
     """A message (request, response, or notification) with `"jsonrpc": "2.0"`.
 
     Specified as [required by JSON-RPC 2.0 Specification][1].
 
     [1]: https://www.jsonrpc.org/specification#compatibility
     """
-
-    jsonrpc: Literal["2.0"] = "2.0"
 
     id: int | str | None = None
     """JSON RPC Request Id."""
 
     method: str
+    """Method name."""
+
     params: AgentRequest | Any | None = None
+    """Agent request parameters."""
 
 
-class AgentNotificationMessage(Schema):
+class AgentNotificationMessage(JsonRPCMessage):
     """A message (request, response, or notification) with `"jsonrpc": "2.0"`.
 
     Specified as [required by JSON-RPC 2.0 Specification][1].
@@ -109,6 +118,8 @@ class AgentNotificationMessage(Schema):
     [1]: https://www.jsonrpc.org/specification#compatibility
     """
 
-    jsonrpc: Literal["2.0"] = "2.0"
     method: str
+    """Method name."""
+
     params: SessionNotification | Any | None = None
+    """Agent notification parameters."""
