@@ -40,7 +40,6 @@ pip install llmling-agent[ui,markdown]
   - llmling-models
   - llmling
   - pydantic-ai
-  - prompt-toolkit
   - promptantic
   - pydantic
   - Other utilities (slashed, watchfiles, tiktoken, etc.)

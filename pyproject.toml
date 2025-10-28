@@ -41,7 +41,6 @@ dependencies = [
   "logfire",
   "mcp>=1.2.0",
   "mcp-interviewer>=0.0.12",
-  "prompt-toolkit>=3.0.48",
   "promptantic>=0.4.5",
   "psygnal>=0.11.1",
   "pydantic>=2.12.0",
@@ -102,7 +101,6 @@ tiktoken = ["tiktoken"]
 upsonic = ["upsonic"]
 # acp = ["agent-client-protocol>=0.0.1"]
 # tools = ["crewai-tools>=0.33.0", "langchain-community>=0.3.17"]
-# chat = ["prompt-toolkit>=3.0.48", "promptantic>=0.4.5"]
 
 [dependency-groups]
 dev = [

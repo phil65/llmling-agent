@@ -31,7 +31,6 @@ from llmling_agent_commands.tools import (
     ListToolsCommand,
     RegisterToolCommand,
     ShowToolCommand,
-    WriteToolCommand,
 )
 from llmling_agent_commands.workers import (
     AddWorkerCommand,
@@ -61,7 +60,6 @@ def get_agent_commands() -> list[BaseCommand | type[SlashedCommand]]:
         EnableToolCommand,
         DisableToolCommand,
         RegisterToolCommand,
-        WriteToolCommand,
         # Resource management
         ListResourcesCommand,
         ShowResourceCommand,

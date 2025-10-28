@@ -2,14 +2,6 @@
 
 ## CLI Usage
 
-Start an interactive session:
-```bash
-# Quick chat with GPT-5
-uvx llmling-agent[default] quickstart openai:gpt-5-mini
-
-# Enable streaming mode
-uvx llmling-agent[default] quickstart openai:gpt-5-mini --stream
-```
 
 Initialize and manage configurations:
 ```bash
@@ -23,20 +15,7 @@ llmling-agent add agents.yml
 llmling-agent chat assistant
 ```
 
-Launch the web interface:
-```bash
-# Install UI dependencies
-pip install "llmling-agent[ui]"
 
-# Launch the web interface
-llmling-agent launch
-```
-
-!!! tip
-    Set `OPENAI_API_KEY` in your environment before running:
-    ```bash
-    export OPENAI_API_KEY='your-api-key-here'
-    ```
 
 ## Configured Agents
 
@@ -69,16 +48,6 @@ if __name__ == "__main__":
     import asyncio
     asyncio.run(main())
 ```
-
-!!! note "Web Interface Features"
-    The web interface provides:
-    - Interactive chat with your agents
-    - Tool management
-    - Command execution
-    - Message history
-    - Cost tracking
-
-    Visit [http://localhost:7860](http://localhost:7860) after launching.
 
 ## Functional Interface
 

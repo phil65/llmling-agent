@@ -16,10 +16,8 @@
 - `sqlmodel`: Type-safe SQL database interactions
 - `psygnal`: Signal-based messaging system
 
-### CLI & UI
+### CLI
 - `typer`: CLI framework with rich help and completion
-- `prompt-toolkit`: Interactive command-line interfaces
-- `slashed`: Slash command system for interactive sessions
 
 ### Optional Integrations
 - `fastapi` + `uvicorn`: Web server capabilities

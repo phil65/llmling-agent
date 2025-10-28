@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 from llmling.utils.importing import import_callable
 from slashed import (  # noqa: TC002
     CommandContext,
@@ -300,77 +298,6 @@ class RegisterToolCommand(SlashedCommand):
 
         except Exception as e:
             msg = f"Failed to register tool: {e}"
-            raise CommandError(msg) from e
-
-
-class WriteToolCommand(SlashedCommand):
-    """Opens an interactive Python editor to create new tools.
-
-    - ESC + Enter or Alt + Enter to save and exit
-    - Functions will be available as tools immediately
-
-    Example template:
-    def my_tool(text: str) -> str:
-        '''A new tool'''
-        return f'You said: {text}'
-    """
-
-    name = "write-tool"
-    category = "tools"
-
-    async def execute_command(self, ctx: CommandContext[AgentContext]):
-        """Write and register a new tool interactively.
-
-        Args:
-            ctx: Command context
-        """
-        from prompt_toolkit import PromptSession
-        from prompt_toolkit.lexers import PygmentsLexer
-        from prompt_toolkit.styles import style_from_pygments_cls
-        from pygments.lexers.python import PythonLexer
-        from pygments.styles import get_style_by_name
-
-        # Create editing session with syntax highlighting
-        session: PromptSession[str] = PromptSession(
-            lexer=PygmentsLexer(PythonLexer),
-            multiline=True,
-            style=style_from_pygments_cls(get_style_by_name("monokai")),
-            include_default_pygments_style=False,
-            mouse_support=True,
-        )
-        msg = "\nEnter tool code (ESC + Enter or Alt + Enter to save):\n\n"
-        code = await session.prompt_async(msg, default=CODE_TEMPLATE)
-        try:
-            # Execute code in a namespace
-            namespace: dict[str, Any] = {}
-            exec(code, namespace)
-
-            # Find all callable non-private functions
-            tools = [
-                v
-                for v in namespace.values()
-                if callable(v)
-                and not v.__name__.startswith("_")
-                and v.__code__.co_filename == "<string>"
-            ]
-
-            if not tools:
-                await ctx.output.print("⚠️ **No tools found in code**")
-                return
-
-            # Register all tools with ctx parameter added
-            for func in tools:
-                tool_info = ctx.context.agent.tools.register_tool(
-                    func, source="dynamic", metadata={"created_by": "write-tool"}
-                )
-                tool_info.format_info()
-                await ctx.output.print(
-                    f"🎉 **Tool** `{tool_info.name}` **registered!**"
-                    f"\n{tool_info.description or '*No description*'}"
-                )
-
-        except Exception as e:
-            msg = f"Error creating tools: {e}"
             raise CommandError(msg) from e
 
 

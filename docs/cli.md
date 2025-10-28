@@ -41,9 +41,6 @@ Most commands will use the currently active agent file by default, but can be ov
 - `launch` - Start the web interface
 - `web` - Web interface related commands (requires `llmling-agent[ui]`)
 
-### Setup
-- `quickstart` - Create a new agent configuration with guided setup
-
 ## Working with Agent Files
 
 A typical workflow might look like:

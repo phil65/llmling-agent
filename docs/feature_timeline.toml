@@ -171,18 +171,6 @@ Additional content types will be integrated soon!
 """
 
 [step_13]
-label = "Multiple Interfaces"
-content = """
-Multiple ways to interact:
-
-- Rich CLI interface using prompt-toolkit with expansive command system
-- Python API
-- Consistent experience
-- Cross-interface features
-- Unified command system
-"""
-
-[step_14]
 label = "Task System"
 content = """
 Independent work definitions with type safety:
@@ -196,20 +184,7 @@ Independent work definitions with type safety:
 - YAML-based task configuration
 """
 
-[step_15]
-label = "Capability System"
-content = """
-Fine-grained permission control for agents:
-
-- Automatic tool availability based on capabilities
-- Granular access level management
-- Resource access control
-- Tool usage permissions
-- History and stats access levels
-- Agent interaction capabilites
-"""
-
-[step_16]
+[step_14]
 label = "Knowledge Management"
 content = """
 Comprehensive knowledge integration:

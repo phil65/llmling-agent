@@ -77,18 +77,18 @@ class MessageEmitter[TDeps, TResult](ABC):
         self.enable_db_logging = enable_logging
         self.conversation_id = str(uuid4())
         # Initialize conversation record if enabled
-        if enable_logging:
-            self.context.storage.log_conversation.sync(
-                conversation_id=self.conversation_id,
-                node_name=self.name,
-            )
 
-            # Connect to the combined signal to capture all messages
-            # TODO: need to check this
-            # node.message_received.connect(self.log_message)
+        # Connect to the combined signal to capture all messages
+        # TODO: need to check this
+        # node.message_received.connect(self.log_message)
 
     async def __aenter__(self) -> Self:
         """Initialize base message node."""
+        if self.enable_db_logging:
+            await self.context.storage.log_conversation(
+                conversation_id=self.conversation_id,
+                node_name=self.name,
+            )
         try:
             await self._events.__aenter__()
             await self.mcp.__aenter__()

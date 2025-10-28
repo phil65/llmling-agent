@@ -51,21 +51,26 @@ LLMling Agent is a framework for creating and managing LLM-powered agents. It in
 
 ## Quick Start
 
+### Agent Client Protocol (ACP)
+
 The fastest way to start chatting with an AI:
+
+llmling-agent supports the Agent Client Protocol for seamless integration with desktop applications and IDEs. Run your agents as ACP servers to enable bidirectional communication, session management, and file operations through JSON-RPC 2.0 over stdio.
+
 ```bash
-# Start an ephemeral chat session (requires uv)
-uvx llmling-agent[default] quickstart openai:gpt-5-nano
+# Start ACP server
+llmling-agent acp config.yml --file-access --terminal-access
 ```
 
-This creates a temporary agent ready for chat - no configuration needed!
-The according API keys need to be set as environment variables.
+Compatible with ACP-enabled Clients like Zed. See the [ACP Integration documentation](https://phil65.github.io/llmling-agent/advanced/acp_integration/) for setup instructions.
 
-Use `help` to see what commands are at your disposal.
+
+Use `/help` to see what commands are at your disposal.
 
 
 ## 🚀 Quick Examples
 
-Three ways to create a simple agent flow:
+Ways to create a simple agent flow:
 
 
 ### Python Version
@@ -119,18 +124,6 @@ llmling-agent run assistant --config agents.yml "whats your favourite holiday de
 > What's your favorite holiday destination?
 ```
 
-
-### CLI Version (Interactive using slash command system)
-```bash
-# Start session
-llmling-agent quickstart openai:gpt-5-nano
-# Create browser assistant
-/create-agent browser --system-prompt "Open Wikipedia pages matching the topics you receive." --tools webbrowser.open
-# Connect the agents
-/connect browser
-# Speak to the main agent, which will auto-forward.
-> What's your favorite holiday destination?
-```
 
 ### YAML configuration
 
@@ -818,20 +811,5 @@ classDiagram
         +add_context_from_resource()
     }
 ```
-
-
-
-## Integrations
-
-### Agent Client Protocol (ACP)
-
-llmling-agent supports the Agent Client Protocol for seamless integration with desktop applications and IDEs. Run your agents as ACP servers to enable bidirectional communication, session management, and file operations through JSON-RPC 2.0 over stdio.
-
-```bash
-# Start ACP server
-llmling-agent acp config.yml --file-access --terminal-access
-```
-
-Compatible with ACP-enabled editors like Zed. See the [ACP Integration documentation](https://phil65.github.io/llmling-agent/advanced/acp_integration/) for setup instructions.
 
 ### [Read the documentation for further info!](https://phil65.github.io/llmling-agent/)

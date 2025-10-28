@@ -80,10 +80,7 @@ Agents can be created dynamically in several ways:
 ### CLI Creation
 The CLI can create agents on-the-fly:
 ```bash
-# Create and run agent from template
-llmling-agent quickstart code-reviewer
-
-# Add agent from file
+# Add agent file
 llmling-agent add reviewer.yml
 ```
 
