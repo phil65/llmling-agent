@@ -55,3 +55,72 @@ class StaticResourceProvider(ResourceProvider):
     async def get_resources(self) -> list[ResourceInfo]:
         """Get pre-configured resources."""
         return self._resources
+
+    def add_tool(self, tool: Tool) -> None:
+        """Add a tool to this provider.
+
+        Args:
+            tool: Tool to add
+        """
+        self._tools.append(tool)
+
+    def remove_tool(self, name: str) -> bool:
+        """Remove a tool by name.
+
+        Args:
+            name: Name of tool to remove
+
+        Returns:
+            True if tool was found and removed, False otherwise
+        """
+        for i, tool in enumerate(self._tools):
+            if tool.name == name:
+                self._tools.pop(i)
+                return True
+        return False
+
+    def add_prompt(self, prompt: BasePrompt) -> None:
+        """Add a prompt to this provider.
+
+        Args:
+            prompt: Prompt to add
+        """
+        self._prompts.append(prompt)
+
+    def remove_prompt(self, name: str) -> bool:
+        """Remove a prompt by name.
+
+        Args:
+            name: Name of prompt to remove
+
+        Returns:
+            True if prompt was found and removed, False otherwise
+        """
+        for i, prompt in enumerate(self._prompts):
+            if prompt.name == name:
+                self._prompts.pop(i)
+                return True
+        return False
+
+    def add_resource(self, resource: ResourceInfo) -> None:
+        """Add a resource to this provider.
+
+        Args:
+            resource: Resource to add
+        """
+        self._resources.append(resource)
+
+    def remove_resource(self, name: str) -> bool:
+        """Remove a resource by name.
+
+        Args:
+            name: Name of resource to remove
+
+        Returns:
+            True if resource was found and removed, False otherwise
+        """
+        for i, resource in enumerate(self._resources):
+            if resource.name == name:
+                self._resources.pop(i)
+                return True
+        return False
