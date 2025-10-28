@@ -15,7 +15,6 @@ import tokonomics
 
 from llmling_agent.common_types import MessageRole, SimpleJsonType  # noqa: TC001
 from llmling_agent.log import get_logger
-from llmling_agent.tools import ToolCallInfo
 from llmling_agent.utils.now import get_now
 
 
@@ -24,6 +23,8 @@ if TYPE_CHECKING:
     from datetime import datetime
 
     from pydantic_ai import FinishReason, ModelResponsePart, RunUsage
+
+    from llmling_agent.tools import ToolCallInfo
 
 
 TContent = TypeVar("TContent", str, BaseModel)
