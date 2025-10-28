@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
-from llmling_agent.messaging.messages import ChatMessage
+from llmling_agent.messaging.messages import ChatMessage  # noqa: TC001
 
 
 @dataclass(kw_only=True)
