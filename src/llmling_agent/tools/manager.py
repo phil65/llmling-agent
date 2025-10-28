@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     from collections.abc import Iterator
     from datetime import datetime
 
-    from llmling_agent import AnyAgent, MessageNode
+    from llmling_agent import Agent, MessageNode
     from llmling_agent.common_types import AnyCallable, ToolSource, ToolType
     from llmling_agent.resource_providers.base import ResourceProvider
     from llmling_agent.resource_providers.callable_provider import (
@@ -316,7 +316,7 @@ class ToolManager(BaseRegistry[str, Tool]):
         name: str | None = None,
         reset_history_on_run: bool = True,
         pass_message_history: bool = False,
-        parent: AnyAgent[Any, Any] | None = None,
+        parent: Agent[Any, Any] | None = None,
     ) -> Tool:
         """Register an agent as a worker tool.
 

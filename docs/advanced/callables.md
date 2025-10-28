@@ -11,13 +11,13 @@ You can create agents directly from callables, preserving their type information
 def process(message: str) -> str:
     return message.upper()
 
-agent = Agent(provider=process)
+agent = Agent.from_callback(process)
 
-# Typed function becomes StructuredAgent[None, ResultType]
+# Typed function becomes Agent[None, ResultType]
 def analyze(message: str) -> AnalysisResult:
     return AnalysisResult(sentiment=0.8, topics=["AI"])
 
-agent = StructuredAgent(analyze, result_type=AnalysisResult)
+agent = Agent.from_callback(analyze)
 ```
 
 ## Automatic Conversion in Workflows
@@ -60,12 +60,10 @@ class AnalysisResult(BaseModel):
 def analyze(text: str) -> AnalysisResult:
     return AnalysisResult(sentiment=0.5, topics=["tech"])
 
-# These are equivalent:
-agent1 = StructuredAgent(analyze, result_type=AnalysisResult)
-agent2 = Agent(provider=analyze).to_structured(AnalysisResult)
+agent1 = Agent(analyze, result_type=AnalysisResult)
 
 # Type is preserved in teams/pipelines
-team = base_agent & analyze  # analyze becomes StructuredAgent[None, AnalysisResult]
+team = base_agent & analyze  # analyze becomes Agent[None, AnalysisResult]
 ```
 
 ## Context Awareness

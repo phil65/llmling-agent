@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from mcp import types
 
     from llmling_agent import AgentPool
-    from llmling_agent.agent import AnyAgent
+    from llmling_agent.agent import Agent
     from llmling_agent.models.agents import AgentConfig
     from llmling_agent.tools.base import Tool
     from llmling_agent_input.base import InputProvider
@@ -80,7 +80,7 @@ class AgentContext[TDeps = Any](NodeContext[TDeps]):
 
     # TODO: perhaps add agent directly to context?
     @property
-    def agent(self) -> AnyAgent[TDeps, Any]:
+    def agent(self) -> Agent[TDeps, Any]:
         """Get the agent instance from the pool."""
         assert self.pool, "No agent pool available"
         assert self.node_name, "No agent name available"

@@ -17,7 +17,7 @@ from llmling_agent.tools.base import Tool
 
 
 if TYPE_CHECKING:
-    from llmling_agent.agent import AnyAgent
+    from llmling_agent.agent import Agent
 
 logger = get_logger(__name__)
 
@@ -222,7 +222,7 @@ async def add_agent(  # noqa: D417
         ctx = ctx.deps
     assert ctx.pool, "No agent pool available"
     try:
-        agent: AnyAgent[Any, Any] = await ctx.pool.add_agent(
+        agent: Agent[Any, Any] = await ctx.pool.add_agent(
             name=name,
             system_prompt=system_prompt,
             model=model,

@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from toprompt import AnyPromptType
 
     from llmling_agent import AgentPool, MessageNode
-    from llmling_agent.agent import AnyAgent
+    from llmling_agent.agent import Agent
     from llmling_agent.delegation.base_team import BaseTeam
 
 
@@ -87,7 +87,7 @@ def get_label(item: Any) -> str:
 class Interactions[TDeps, TResult]:
     """Manages agent communication patterns."""
 
-    def __init__(self, agent: AnyAgent[TDeps, TResult]):
+    def __init__(self, agent: Agent[TDeps, TResult]):
         self.agent = agent
 
     async def conversation(
@@ -167,7 +167,7 @@ class Interactions[TDeps, TResult]:
         selections: AgentPool,
         task: str,
         prompt: AnyPromptType | None = None,
-    ) -> Pick[AnyAgent[Any, Any]]: ...
+    ) -> Pick[Agent[Any, Any]]: ...
 
     @overload
     async def pick(
@@ -292,7 +292,7 @@ Select ONE option by its exact label."""
         min_picks: int = 1,
         max_picks: int | None = None,
         prompt: AnyPromptType | None = None,
-    ) -> MultiPick[AnyAgent[Any, Any]]: ...
+    ) -> MultiPick[Agent[Any, Any]]: ...
 
     async def pick_multiple[T](
         self,

@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     from toprompt import AnyPromptType
 
     from llmling_agent import MessageNode
-    from llmling_agent.agent import AnyAgent
+    from llmling_agent.agent import Agent
     from llmling_agent.agent.agent import StreamCompleteEvent
 
 
@@ -69,7 +69,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
         description: str | None = None,
         shared_prompt: str | None = None,
         validator: MessageNode[Any, TResult],
-        picker: AnyAgent[Any, Any] | None = None,
+        picker: Agent[Any, Any] | None = None,
         num_picks: int | None = None,
         pick_prompt: str | None = None,
     ): ...
@@ -83,7 +83,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
         description: str | None = None,
         shared_prompt: str | None = None,
         validator: None = None,
-        picker: AnyAgent[Any, Any] | None = None,
+        picker: Agent[Any, Any] | None = None,
         num_picks: int | None = None,
         pick_prompt: str | None = None,
     ): ...
@@ -97,7 +97,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
         description: str | None = None,
         shared_prompt: str | None = None,
         validator: MessageNode[Any, TResult] | None = None,
-        picker: AnyAgent[Any, Any] | None = None,
+        picker: Agent[Any, Any] | None = None,
         num_picks: int | None = None,
         pick_prompt: str | None = None,
     ): ...
@@ -110,7 +110,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
         description: str | None = None,
         shared_prompt: str | None = None,
         validator: MessageNode[Any, TResult] | None = None,
-        picker: AnyAgent[Any, Any] | None = None,
+        picker: Agent[Any, Any] | None = None,
         num_picks: int | None = None,
         pick_prompt: str | None = None,
         # result_mode: ResultMode = "last",

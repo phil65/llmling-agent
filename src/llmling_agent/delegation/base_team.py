@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     from psygnal.containers._evented_list import ListEvents
     from toprompt import AnyPromptType
 
-    from llmling_agent import AgentPool, AnyAgent, Team
+    from llmling_agent import Agent, AgentPool, Team
     from llmling_agent.common_types import ModelType, ToolType
     from llmling_agent.delegation.teamrun import ExtendedTeamTalk, TeamRun
     from llmling_agent.messaging.messages import ChatMessage, TeamResponse
@@ -83,7 +83,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
         description: str | None = None,
         shared_prompt: str | None = None,
         mcp_servers: list[str | MCPServerConfig] | None = None,
-        picker: AnyAgent[Any, Any] | None = None,
+        picker: Agent[Any, Any] | None = None,
         num_picks: int | None = None,
         pick_prompt: str | None = None,
     ):
@@ -198,7 +198,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
 
     def __or__(
         self,
-        other: AnyAgent[Any, Any] | ProcessorCallback[Any] | BaseTeam[Any, Any],
+        other: Agent[Any, Any] | ProcessorCallback[Any] | BaseTeam[Any, Any],
     ) -> TeamRun[Any, Any]:
         """Create a sequential pipeline."""
         from llmling_agent.agent import Agent, StructuredAgent
@@ -232,13 +232,13 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
     def __and__(self, other: Team[Any]) -> Team[Any]: ...
 
     @overload
-    def __and__(self, other: AnyAgent[TDeps, Any]) -> Team[TDeps]: ...
+    def __and__(self, other: Agent[TDeps, Any]) -> Team[TDeps]: ...
 
     @overload
-    def __and__(self, other: AnyAgent[Any, Any]) -> Team[Any]: ...
+    def __and__(self, other: Agent[Any, Any]) -> Team[Any]: ...
 
     def __and__(
-        self, other: Team[Any] | AnyAgent[Any, Any] | ProcessorCallback[Any]
+        self, other: Team[Any] | Agent[Any, Any] | ProcessorCallback[Any]
     ) -> Team[Any]:
         """Combine teams, preserving type safety for same types."""
         from llmling_agent.agent import Agent, StructuredAgent
@@ -380,7 +380,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
 
         return "\n".join(lines)
 
-    def iter_agents(self) -> Iterator[AnyAgent[Any, Any]]:
+    def iter_agents(self) -> Iterator[Agent[Any, Any]]:
         """Recursively iterate over all child agents."""
         from llmling_agent.agent import Agent, StructuredAgent
 

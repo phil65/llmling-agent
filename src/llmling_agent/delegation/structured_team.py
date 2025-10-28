@@ -8,7 +8,7 @@ from llmling_agent.delegation.teamrun import TeamRun
 
 
 if TYPE_CHECKING:
-    from llmling_agent import AnyAgent, MessageNode
+    from llmling_agent import Agent, MessageNode
 
 
 class StructuredTeam[TResult](TeamRun[Any, TResult]):
@@ -17,7 +17,7 @@ class StructuredTeam[TResult](TeamRun[Any, TResult]):
     def __init__(
         self,
         worker: MessageNode[Any, Any],
-        processor: AnyAgent[Any, TResult],
+        processor: Agent[Any, TResult],
         *,
         name: str | None = None,
         description: str | None = None,
@@ -47,11 +47,11 @@ class StructuredTeam[TResult](TeamRun[Any, TResult]):
         self.agents[0] = value
 
     @property
-    def processor(self) -> AnyAgent[Any, TResult]:
+    def processor(self) -> Agent[Any, TResult]:
         """Get the processor node."""
         return self.agents[1]  # type: ignore
 
     @processor.setter
-    def processor(self, value: AnyAgent[Any, TResult]):
+    def processor(self, value: Agent[Any, TResult]):
         """Set the processor node."""
         self.agents[1] = value

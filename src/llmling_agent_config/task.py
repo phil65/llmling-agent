@@ -14,7 +14,7 @@ from llmling_agent_config.knowledge import Knowledge
 
 
 if TYPE_CHECKING:
-    from llmling_agent.agent import AnyAgent
+    from llmling_agent.agent import Agent
 
 
 class Job[TDeps, TResult = str](Schema):
@@ -66,7 +66,7 @@ class Job[TDeps, TResult = str](Schema):
 
     model_config = ConfigDict(frozen=True)
 
-    async def can_be_executed_by(self, agent: AnyAgent[Any, Any]) -> bool:
+    async def can_be_executed_by(self, agent: Agent[Any, Any]) -> bool:
         """Check if agent meets all requirements for this task."""
         from llmling_agent.agent.structured import StructuredAgent
 

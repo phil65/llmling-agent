@@ -17,11 +17,11 @@ from llmling_agent_server.responses.models import (
 
 
 if TYPE_CHECKING:
-    from llmling_agent.agent import AnyAgent
+    from llmling_agent.agent import Agent
     from llmling_agent_server.responses_models import ResponseRequest
 
 
-async def handle_request(request: ResponseRequest, agent: AnyAgent[Any, Any]):
+async def handle_request(request: ResponseRequest, agent: Agent[Any, Any]):
     match request.input:
         case str():
             content = request.input

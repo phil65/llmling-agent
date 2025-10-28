@@ -8,7 +8,6 @@ LLMling adds typing support for agent pools, teams, and inter-agent communicatio
 
 Key differences from PydanticAI:
 
-- Separation of Agent and StructuredAgent into distinct types
 - Pool-level dependency typing
 - Team-level type preservation
 - Generic typing for agent communication
@@ -24,11 +23,9 @@ For detailed understanding of the dependency system, refer to PydanticAI's docum
 ### Agent Types
 
 ```python
-class Agent[TDeps]:
+class Agent[TDeps, TResult]:
     """Base agent with typed dependencies."""
 
-class StructuredAgent[TDeps, TResult]:
-    """Agent with both typed dependencies and response type."""
 
 # Base agent creation and access
 agent1 = pool.get_agent("name1")  # Agent[GlobalDeps]

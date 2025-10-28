@@ -48,7 +48,7 @@ if TYPE_CHECKING:
     from toprompt import AnyPromptType
     from upath.types import JoinablePathLike
 
-    from llmling_agent.agent import AgentContext, AnyAgent
+    from llmling_agent.agent import Agent, AgentContext
     from llmling_agent.agent.interactions import Interactions
     from llmling_agent.agent.structured import StructuredAgent
     from llmling_agent.common_types import (
@@ -114,7 +114,7 @@ class AgentKwargs(TypedDict, total=False):
     event_handlers: Sequence[IndividualEventHandler] | None
 
 
-class Agent[TDeps = None](MessageNode[TDeps, str]):
+class Agent[TDeps = None, TResult = str](MessageNode[TDeps, str]):
     """Agent for AI-powered interaction with LLMling resources and tools.
 
     Generically typed with: LLMLingAgent[Type of Dependencies, Type of Result]
@@ -631,7 +631,7 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
         name: str | None = None,
         reset_history_on_run: bool = True,
         pass_message_history: bool = False,
-        parent: AnyAgent[Any, Any] | None = None,
+        parent: Agent[Any, Any] | None = None,
     ) -> Tool:
         """Create a tool from this agent.
 
@@ -1060,7 +1060,7 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
 
     async def share(
         self,
-        target: AnyAgent[TDeps, Any],
+        target: Agent[TDeps, Any],
         *,
         tools: list[str] | None = None,
         resources: list[str] | None = None,

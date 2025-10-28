@@ -22,7 +22,6 @@ if TYPE_CHECKING:
     import PIL.Image
     from toprompt import AnyPromptType
 
-    from llmling_agent.agent import AnyAgent
     from llmling_agent.agent.agent import Agent
     from llmling_agent.agent.context import AgentContext
     from llmling_agent.agent.conversation import ConversationManager
@@ -123,11 +122,11 @@ class StructuredAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         await self._agent.__aexit__(exc_type, exc_val, exc_tb)
 
     def __and__(
-        self, other: AnyAgent[Any, Any] | Team[Any] | ProcessorCallback[TResult]
+        self, other: Agent[Any, Any] | Team[Any] | ProcessorCallback[TResult]
     ) -> Team[TDeps]:
         return self._agent.__and__(other)
 
-    def __or__(self, other: AnyAgent[Any, Any] | ProcessorCallback | BaseTeam) -> TeamRun:
+    def __or__(self, other: Agent[Any, Any] | ProcessorCallback | BaseTeam) -> TeamRun:
         return self._agent.__or__(other)
 
     async def _run(

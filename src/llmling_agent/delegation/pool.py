@@ -38,7 +38,6 @@ if TYPE_CHECKING:
     from psygnal.containers._evented_dict import DictEvents
     from upath.types import JoinablePathLike
 
-    from llmling_agent.agent import AnyAgent
     from llmling_agent.agent.agent import AgentKwargs
     from llmling_agent.common_types import AgentName, SessionIdType
     from llmling_agent.delegation.base_team import BaseTeam
@@ -222,7 +221,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
         name: str | None = None,
         description: str | None = None,
         shared_prompt: str | None = None,
-        picker: AnyAgent[Any, Any] | None = None,
+        picker: Agent[Any, Any] | None = None,
         num_picks: int | None = None,
         pick_prompt: str | None = None,
     ) -> TeamRun[TPoolDeps, TResult]: ...
@@ -236,7 +235,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
         name: str | None = None,
         description: str | None = None,
         shared_prompt: str | None = None,
-        picker: AnyAgent[Any, Any] | None = None,
+        picker: Agent[Any, Any] | None = None,
         num_picks: int | None = None,
         pick_prompt: str | None = None,
     ) -> TeamRun[TDeps, TResult]: ...
@@ -250,7 +249,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
         name: str | None = None,
         description: str | None = None,
         shared_prompt: str | None = None,
-        picker: AnyAgent[Any, Any] | None = None,
+        picker: Agent[Any, Any] | None = None,
         num_picks: int | None = None,
         pick_prompt: str | None = None,
     ) -> TeamRun[Any, TResult]: ...
@@ -263,7 +262,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
         name: str | None = None,
         description: str | None = None,
         shared_prompt: str | None = None,
-        picker: AnyAgent[Any, Any] | None = None,
+        picker: Agent[Any, Any] | None = None,
         num_picks: int | None = None,
         pick_prompt: str | None = None,
     ) -> TeamRun[Any, TResult]:
@@ -315,7 +314,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
         name: str | None = None,
         description: str | None = None,
         shared_prompt: str | None = None,
-        picker: AnyAgent[Any, Any] | None = None,
+        picker: Agent[Any, Any] | None = None,
         num_picks: int | None = None,
         pick_prompt: str | None = None,
     ) -> Team[TDeps]: ...
@@ -328,7 +327,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
         name: str | None = None,
         description: str | None = None,
         shared_prompt: str | None = None,
-        picker: AnyAgent[Any, Any] | None = None,
+        picker: Agent[Any, Any] | None = None,
         num_picks: int | None = None,
         pick_prompt: str | None = None,
     ) -> Team[Any]: ...
@@ -340,7 +339,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
         name: str | None = None,
         description: str | None = None,
         shared_prompt: str | None = None,
-        picker: AnyAgent[Any, Any] | None = None,
+        picker: Agent[Any, Any] | None = None,
         num_picks: int | None = None,
         pick_prompt: str | None = None,
     ) -> Team[Any]:
@@ -395,7 +394,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
                 await asyncio.sleep(1)
 
     @property
-    def agents(self) -> dict[str, AnyAgent[Any, Any]]:
+    def agents(self) -> dict[str, Agent[Any, Any]]:
         """Get agents dict (backward compatibility)."""
         return {
             i.name: i
@@ -548,12 +547,12 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
 
     async def clone_agent[TDeps, TAgentResult](
         self,
-        agent: AgentName | AnyAgent[TDeps, TAgentResult],
+        agent: AgentName | Agent[TDeps, TAgentResult],
         new_name: AgentName | None = None,
         *,
         system_prompts: list[str] | None = None,
         template_context: dict[str, Any] | None = None,
-    ) -> AnyAgent[TDeps, TAgentResult]:
+    ) -> Agent[TDeps, TAgentResult]:
         """Create a copy of an agent.
 
         Args:
@@ -573,7 +572,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
                 msg = f"Agent {agent} not found"
                 raise KeyError(msg)
             config = self.manifest.agents[agent]
-            original_agent: AnyAgent[Any, Any] = self.get_agent(agent)
+            original_agent: Agent[Any, Any] = self.get_agent(agent)
         else:
             config = agent.context.config  # type: ignore
             original_agent = agent
@@ -655,7 +654,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
         return_type: Any | None = None,
         session: SessionIdType | SessionQuery = None,
         name_override: str | None = None,
-    ) -> AnyAgent[Any, Any]:
+    ) -> Agent[Any, Any]:
         """Create a new agent instance from configuration.
 
         Args:
@@ -699,7 +698,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
 
         return agent
 
-    def setup_agent_workers(self, agent: AnyAgent[Any, Any]):
+    def setup_agent_workers(self, agent: Agent[Any, Any]):
         """Set up workers for an agent from configuration."""
         for worker_config in agent.context.config.workers:
             try:
@@ -765,7 +764,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
         return_type: Any | None = None,
         model_override: str | None = None,
         session: SessionIdType | SessionQuery = None,
-    ) -> AnyAgent[Any, Any]:
+    ) -> Agent[Any, Any]:
         """Get or configure an agent from the pool.
 
         This method provides flexible agent configuration with dependency injection:
@@ -868,7 +867,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
         """
         from llmling_agent.agent import Agent
 
-        agent: AnyAgent[Any, Any] = Agent(name=name, **kwargs)
+        agent: Agent[Any, Any] = Agent(name=name, **kwargs)
         agent.tools.add_provider(self.mcp)
         agent = await self.exit_stack.enter_async_context(agent)
         # Convert to structured if needed

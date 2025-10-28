@@ -11,7 +11,7 @@ from llmling_agent.models import AgentsManifest, AgentConfig
 
 # Builtin toolsets imports removed to avoid circular dependency
 # Import them directly from llmling_agent_toolsets.builtin when needed
-from llmling_agent.agent import Agent, StructuredAgent, AnyAgent, AgentContext
+from llmling_agent.agent import Agent, StructuredAgent, AgentContext
 from llmling_agent.delegation import AgentPool, Team, TeamRun, BaseTeam
 from dotenv import load_dotenv
 from llmling_agent.messaging.messages import ChatMessage
@@ -43,7 +43,6 @@ __all__ = [
     "AgentContext",
     "AgentPool",
     "AgentsManifest",
-    "AnyAgent",
     "AudioBase64Content",
     "AudioURLContent",
     "BaseTeam",

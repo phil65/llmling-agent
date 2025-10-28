@@ -14,14 +14,14 @@ from llmling_agent.log import get_logger
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
 
-    from llmling_agent import AnyAgent
+    from llmling_agent import Agent
     from llmling_agent_server.completions.models import ChatCompletionRequest
 
 logger = get_logger(__name__)
 
 
 async def stream_response(
-    agent: AnyAgent[Any, Any],
+    agent: Agent[Any, Any],
     content: str,
     request: ChatCompletionRequest,
 ) -> AsyncGenerator[str]:

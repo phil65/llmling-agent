@@ -41,7 +41,7 @@ from llmling_agent_config.workers import (
 if TYPE_CHECKING:
     from upath.types import JoinablePathLike
 
-    from llmling_agent import AgentPool, AnyAgent
+    from llmling_agent import Agent, AgentPool
     from llmling_agent.prompts.manager import PromptManager
 
 
@@ -357,7 +357,7 @@ class AgentsManifest(Schema):
 
     def get_agent[TAgentDeps](
         self, name: str, deps: TAgentDeps | None = None
-    ) -> AnyAgent[TAgentDeps, Any]:
+    ) -> Agent[TAgentDeps, Any]:
         # TODO: Make this method async to support async function prompts
         from llmling import RuntimeConfig
 
