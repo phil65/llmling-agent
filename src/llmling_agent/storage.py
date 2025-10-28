@@ -59,7 +59,7 @@ def deserialize_parts(parts_json: str | None) -> Sequence[ModelResponsePart]:
     try:
         # Deserialize using pydantic's JSON deserialization
         return parts_adapter.validate_json(parts_json.encode())
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         logger.warning("Failed to deserialize message parts: %s", e)
         return []  # Return empty list on failure
 
@@ -159,7 +159,7 @@ class StorageManager:
         # Extract common settings from BaseStorageProviderConfig
         match self.config.filter_mode:
             case "and" if self.config.agents and config.agents:
-                logged_agents = self.config.agents & config.agents
+                logged_agents: set[str] | None = self.config.agents & config.agents
             case "and":
                 # If either is None, use the other; if both None, use None (log all)
                 if self.config.agents is None and config.agents is None:

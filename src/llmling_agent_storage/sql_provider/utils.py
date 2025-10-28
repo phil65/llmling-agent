@@ -72,7 +72,7 @@ def to_chat_message(db_message: Message) -> ChatMessage[str]:
         provider_name=db_message.provider_name,
         provider_response_id=db_message.provider_response_id,
         parts=deserialize_parts(db_message.parts),
-        finish_reason=db_message.finish_reason,
+        finish_reason=db_message.finish_reason,  # type: ignore
     )
 
 

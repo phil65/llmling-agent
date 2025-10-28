@@ -15,6 +15,8 @@ if TYPE_CHECKING:
     from datetime import datetime
     from types import TracebackType
 
+    from pydantic_ai import FinishReason
+
     from llmling_agent.common_types import JsonValue
     from llmling_agent.messaging.messages import ChatMessage, TokenCost
     from llmling_agent_config.session import SessionQuery
@@ -103,7 +105,7 @@ class StorageProvider[T]:
         provider_name: str | None = None,
         provider_response_id: str | None = None,
         parts: str | None = None,
-        finish_reason: str | None = None,
+        finish_reason: FinishReason | None = None,
     ):
         """Log a message (if supported)."""
 

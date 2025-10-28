@@ -6,7 +6,6 @@ from datetime import datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING, TypedDict, cast
 
-from pydantic_ai import FinishReason
 from upath import UPath
 
 from llmling_agent.common_types import JsonValue, MessageRole  # noqa: TC001
@@ -18,6 +17,7 @@ from llmling_agent_storage.base import StorageProvider
 
 
 if TYPE_CHECKING:
+    from pydantic_ai import FinishReason
     from tokonomics.toko_types import TokenUsage
 
     from llmling_agent_config.session import SessionQuery
@@ -197,7 +197,7 @@ class FileProvider(StorageProvider):
         provider_name: str | None = None,
         provider_response_id: str | None = None,
         parts: str | None = None,
-        finish_reason: str | None = None,
+        finish_reason: FinishReason | None = None,
     ):
         """Log a new message."""
         self._data["messages"].append({

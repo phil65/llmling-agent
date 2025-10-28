@@ -5,7 +5,8 @@ from decimal import Decimal
 from uuid import uuid4
 
 import pytest
-from sqlmodel import Session, SQLModel, create_engine, delete, select
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlmodel import SQLModel, delete, select
 
 from llmling_agent.messaging.messages import TokenCost
 from llmling_agent.utils.now import get_now
@@ -18,32 +19,41 @@ from llmling_agent_storage.sql_provider import Conversation, Message, SQLModelPr
 # Reference time for all tests
 BASE_TIME = datetime(2024, 1, 1, 12, 0)  # noon on Jan 1, 2024
 
-# Create in-memory database for testing
-engine = create_engine(
-    "sqlite:///:memory:",
+# Create async engine for testing
+async_engine = create_async_engine(
+    "sqlite+aiosqlite:///:memory:",
     connect_args={"check_same_thread": False},
 )
 
 
-# Create all tables
-SQLModel.metadata.create_all(engine)
+async def create_async_tables():
+    """Create tables for async engine."""
+    from sqlalchemy.ext.asyncio import create_async_engine
+
+    temp_engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+    async with temp_engine.begin() as conn:
+        await conn.run_sync(SQLModel.metadata.create_all)
+    await temp_engine.dispose()
 
 
 @pytest.fixture(autouse=True)
-def cleanup_database():
+async def cleanup_database():
     """Clean up the database before each test."""
-    SQLModel.metadata.create_all(engine)  # Ensure tables exist
-    with Session(engine) as session:
-        # Delete all messages first (due to foreign key)
-        session.exec(delete(Message))
-        session.exec(delete(Conversation))
-        session.commit()
+    # Create tables for async engine
+    async with async_engine.begin() as conn:
+        await conn.run_sync(SQLModel.metadata.create_all)
+
+    # Clean database
+    async with AsyncSession(async_engine) as session:
+        await session.execute(delete(Message))
+        await session.execute(delete(Conversation))
+        await session.commit()
 
 
 @pytest.fixture
 async def sample_data(cleanup_database: None):
     """Create sample conversation data."""
-    with Session(engine) as session:
+    async with AsyncSession(async_engine) as session:
         # Create two conversations
         start = BASE_TIME - timedelta(hours=1)  # 11:00
         conv1 = Conversation(id="conv1", agent_name="test_agent", start_time=start)
@@ -51,11 +61,11 @@ async def sample_data(cleanup_database: None):
         conv2 = Conversation(id="conv2", agent_name="other_agent", start_time=start)
         session.add(conv1)
         session.add(conv2)
-        session.commit()
+        await session.commit()
 
         # Create provider for async operations
-        config = SQLStorageConfig(url="sqlite:///:memory:")
-        provider = SQLModelProvider(config, engine)
+        config = SQLStorageConfig(url="sqlite+aiosqlite:///:memory:")
+        provider = SQLModelProvider(config, async_engine)
 
         # Add messages
         test_data = [
@@ -112,8 +122,8 @@ async def sample_data(cleanup_database: None):
 @pytest.fixture
 async def provider():
     """Create SQLModelProvider instance."""
-    config = SQLStorageConfig(url="sqlite:///:memory:")
-    return SQLModelProvider(config, engine)
+    config = SQLStorageConfig(url="sqlite+aiosqlite:///:memory:")
+    return SQLModelProvider(config, async_engine)
 
 
 def test_parse_time_period():
@@ -198,10 +208,11 @@ async def test_basic_filters(provider: SQLModelProvider, sample_data: None):
 async def test_time_filters(provider: SQLModelProvider, sample_data: None):
     """Test time-based filtering."""
     # First find conversation start times
-    with Session(engine) as session:
-        conv = session.exec(
-            select(Conversation).order_by(Conversation.start_time.desc())  # type: ignore
-        ).first()
+    async with AsyncSession(async_engine) as session:
+        result = await session.execute(
+            select(Conversation).order_by(Conversation.start_time.desc())
+        )
+        conv = result.scalars().first()
         latest_conv_time = conv.start_time  # type:ignore
 
     # Get all conversations (no time filter)
@@ -247,8 +258,9 @@ async def test_period_filtering(provider: SQLModelProvider, sample_data: None):
     print(f"\nGot {len(results)} conversations with since={since}")
 
     # Print all conversations and their times
-    with Session(engine) as session:
-        convs = session.exec(select(Conversation)).all()
+    async with AsyncSession(async_engine) as session:
+        result = await session.execute(select(Conversation))
+        convs = result.scalars().all()
         for conv in convs:
             print(f"Conv {conv.id}: start_time={conv.start_time}, since={since}")
             print(
