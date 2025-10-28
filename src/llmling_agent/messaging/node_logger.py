@@ -45,11 +45,6 @@ class NodeLogger:
         """Clear node state."""
         self.message_history.clear()
 
-    @property
-    def last_message(self) -> ChatMessage[Any] | None:
-        """Get last message in history."""
-        return self.message_history.last_message
-
     def init_conversation(self):
         """Create initial conversation record."""
         self.node.context.storage.log_conversation_sync(
