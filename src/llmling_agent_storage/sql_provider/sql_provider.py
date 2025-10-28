@@ -5,7 +5,8 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import TYPE_CHECKING, Any
 
-from sqlmodel import Session, SQLModel, desc, select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import SQLModel, desc, select
 
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messages import TokenCost
@@ -31,7 +32,7 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
     from datetime import datetime
 
-    from sqlalchemy import Engine
+    from sqlalchemy.ext.asyncio import AsyncEngine
 
     from llmling_agent.common_types import JsonValue
     from llmling_agent.messaging.messages import ChatMessage
@@ -55,22 +56,19 @@ class SQLModelProvider(StorageProvider[Message]):
     def __init__(
         self,
         config: SQLStorageConfig,
-        engine: Engine,
+        engine: AsyncEngine,
     ):
-        """Initialize provider with database engine.
+        """Initialize provider with async database engine.
 
         Args:
             config: Configuration for provider
-            engine: SQLModel engine instance
+            engine: Async SQLModel engine instance
         """
-        from llmling_agent_storage.sql_provider.models import SQLModel
-
         super().__init__(config)
         self.engine = engine
-        SQLModel.metadata.create_all(self.engine)
-        self._init_database(auto_migrate=config.auto_migration)
+        self.auto_migrate = config.auto_migration
 
-    def _init_database(self, auto_migrate: bool = True):
+    async def _init_database(self, auto_migrate: bool = True):
         """Initialize database tables and optionally migrate columns.
 
         Args:
@@ -82,38 +80,54 @@ class SQLModelProvider(StorageProvider[Message]):
         from llmling_agent_storage.sql_provider.models import SQLModel
 
         # Create tables if they don't exist
-        SQLModel.metadata.create_all(self.engine)
+        async with self.engine.begin() as conn:
+            await conn.run_sync(SQLModel.metadata.create_all)
 
         # Optionally add missing columns
         if auto_migrate:
-            with self.engine.connect() as conn:
-                inspector = inspect(self.engine)
+            async with self.engine.begin() as conn:
 
-                # For each table in our models
-                for table_name, table in SQLModel.metadata.tables.items():
-                    existing = {col["name"] for col in inspector.get_columns(table_name)}
+                def sync_migrate(sync_conn):
+                    inspector = inspect(sync_conn)
 
-                    # For each column in model that doesn't exist in DB
-                    for col in table.columns:
-                        if col.name not in existing:
-                            # Create ALTER TABLE statement based on column type
-                            type_sql = col.type.compile(self.engine.dialect)
-                            nullable = "" if col.nullable else " NOT NULL"
-                            default = get_column_default(col)
-                            sql = f"ALTER TABLE {table_name} ADD COLUMN {col.name} {type_sql}{nullable}{default}"  # noqa: E501
-                            conn.execute(text(sql))
+                    # For each table in our models
+                    for table_name, table in SQLModel.metadata.tables.items():
+                        existing = {
+                            col["name"] for col in inspector.get_columns(table_name)
+                        }
 
-                conn.commit()
+                        # For each column in model that doesn't exist in DB
+                        for col in table.columns:
+                            if col.name not in existing:
+                                # Create ALTER TABLE statement based on column type
+                                type_sql = col.type.compile(self.engine.dialect)
+                                nullable = "" if col.nullable else " NOT NULL"
+                                default = get_column_default(col)
+                                sql = f"ALTER TABLE {table_name} ADD COLUMN {col.name} {type_sql}{nullable}{default}"  # noqa: E501
+                                sync_conn.execute(text(sql))
+
+                await conn.run_sync(sync_migrate)
+
+    async def __aenter__(self):
+        """Initialize async database resources."""
+        await self._init_database(auto_migrate=self.auto_migrate)
+        return await super().__aenter__()
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """Clean up async database resources properly."""
+        await self.engine.dispose()
+        return await super().__aexit__(exc_type, exc_val, exc_tb)
 
     def cleanup(self):
         """Clean up database resources."""
-        self.engine.dispose()
+        # For sync cleanup, just pass - proper cleanup happens in __aexit__
 
     async def filter_messages(self, query: SessionQuery) -> list[ChatMessage[str]]:
         """Filter messages using SQL queries."""
-        with Session(self.engine) as session:
+        async with AsyncSession(self.engine) as session:
             stmt = build_message_query(query)
-            messages = session.exec(stmt).all()
+            result = await session.execute(stmt)
+            messages = result.scalars().all()
             return [to_chat_message(msg) for msg in messages]
 
     async def log_message(
@@ -138,7 +152,7 @@ class SQLModelProvider(StorageProvider[Message]):
 
         provider, model_name = parse_model_info(model)
 
-        with Session(self.engine) as session:
+        async with AsyncSession(self.engine) as session:
             msg = Message(
                 conversation_id=conversation_id,
                 id=message_id,
@@ -163,7 +177,7 @@ class SQLModelProvider(StorageProvider[Message]):
                 timestamp=get_now(),
             )
             session.add(msg)
-            session.commit()
+            await session.commit()
 
     async def log_conversation(
         self,
@@ -175,11 +189,11 @@ class SQLModelProvider(StorageProvider[Message]):
         """Log conversation to database."""
         from llmling_agent_storage.sql_provider.models import Conversation
 
-        with Session(self.engine) as session:
+        async with AsyncSession(self.engine) as session:
             now = start_time or get_now()
             convo = Conversation(id=conversation_id, agent_name=node_name, start_time=now)
             session.add(convo)
-            session.commit()
+            await session.commit()
 
     async def log_command(
         self,
@@ -191,7 +205,7 @@ class SQLModelProvider(StorageProvider[Message]):
         metadata: dict[str, JsonValue] | None = None,
     ):
         """Log command to database."""
-        with Session(self.engine) as session:
+        async with AsyncSession(self.engine) as session:
             history = CommandHistory(
                 session_id=session_id,
                 agent_name=agent_name,
@@ -200,7 +214,7 @@ class SQLModelProvider(StorageProvider[Message]):
                 context_metadata=metadata or {},
             )
             session.add(history)
-            session.commit()
+            await session.commit()
 
     async def get_filtered_conversations(
         self,
@@ -246,7 +260,7 @@ class SQLModelProvider(StorageProvider[Message]):
         current_session_only: bool = False,
     ) -> list[str]:
         """Get command history from database."""
-        with Session(self.engine) as session:
+        async with AsyncSession(self.engine) as session:
             query = select(CommandHistory)
             if current_session_only:
                 query = query.where(CommandHistory.session_id == str(session_id))
@@ -257,14 +271,15 @@ class SQLModelProvider(StorageProvider[Message]):
             if limit:
                 query = query.limit(limit)
 
-            return [h.command for h in session.exec(query)]
+            result = await session.execute(query)
+            return [h.command for h in result.scalars()]
 
     async def get_conversations(
         self,
         filters: QueryFilters,
     ) -> list[tuple[ConversationData, Sequence[ChatMessage[str]]]]:
         """Get filtered conversations using SQL queries."""
-        with Session(self.engine) as session:
+        async with AsyncSession(self.engine) as session:
             results: list[tuple[ConversationData, Sequence[ChatMessage[str]]]] = []
 
             # Base conversation query
@@ -275,17 +290,18 @@ class SQLModelProvider(StorageProvider[Message]):
                     Conversation.agent_name == filters.agent_name
                 )
 
+            # Apply time filters if provided
             if filters.since:
-                # Changed: Gets conversations that STARTED after the cutoff time
                 conv_query = conv_query.where(Conversation.start_time >= filters.since)
 
-            conv_query = conv_query.order_by(desc(Conversation.start_time))  # type: ignore
             if filters.limit:
                 conv_query = conv_query.limit(filters.limit)
 
-            conversations = session.exec(conv_query).all()
+            conv_result = await session.execute(conv_query)
+            conversations = conv_result.scalars().all()
 
             for conv in conversations:
+                # Get messages for this conversation
                 msg_query = select(Message).where(Message.conversation_id == conv.id)
 
                 if filters.query:
@@ -294,7 +310,8 @@ class SQLModelProvider(StorageProvider[Message]):
                     msg_query = msg_query.where(Message.model_name == filters.model)
 
                 msg_query = msg_query.order_by(Message.timestamp.asc())  # type: ignore
-                messages = session.exec(msg_query).all()
+                msg_result = await session.execute(msg_query)
+                messages = msg_result.scalars().all()
 
                 if not messages:
                     continue
@@ -312,7 +329,7 @@ class SQLModelProvider(StorageProvider[Message]):
         """Get statistics using SQL aggregations."""
         from llmling_agent_storage.sql_provider.models import Conversation, Message
 
-        with Session(self.engine) as session:
+        async with AsyncSession(self.engine) as session:
             # Base query for stats
             query = (
                 select(  # type: ignore[call-overload]
@@ -347,9 +364,9 @@ class SQLModelProvider(StorageProvider[Message]):
                     if total or prompt or completion
                     else None,
                 )
-                for model, agent, timestamp, total, prompt, completion in session.exec(
-                    query
-                )
+                for model, agent, timestamp, total, prompt, completion in (
+                    await session.execute(query)
+                ).all()
             ]
 
             # Use base class aggregation
@@ -371,16 +388,17 @@ class SQLModelProvider(StorageProvider[Message]):
             DELETE_ALL_MESSAGES,
         )
 
-        with Session(self.engine) as session:
+        async with AsyncSession(self.engine) as session:
             if hard:
                 if agent_name:
                     msg = "Hard reset cannot be used with agent_name"
                     raise ValueError(msg)
                 # Drop and recreate all tables
-                SQLModel.metadata.drop_all(self.engine)
-                session.commit()
+                async with self.engine.begin() as conn:
+                    await conn.run_sync(SQLModel.metadata.drop_all)
+                await session.commit()
                 # Recreate schema
-                self._init_database()
+                await self._init_database()
                 return 0, 0
 
             # Get counts first
@@ -390,13 +408,15 @@ class SQLModelProvider(StorageProvider[Message]):
 
             # Delete data
             if agent_name:
-                session.execute(text(DELETE_AGENT_MESSAGES), {"agent": agent_name})
-                session.execute(text(DELETE_AGENT_CONVERSATIONS), {"agent": agent_name})
+                await session.execute(text(DELETE_AGENT_MESSAGES), {"agent": agent_name})
+                await session.execute(
+                    text(DELETE_AGENT_CONVERSATIONS), {"agent": agent_name}
+                )
             else:
-                session.execute(text(DELETE_ALL_MESSAGES))
-                session.execute(text(DELETE_ALL_CONVERSATIONS))
+                await session.execute(text(DELETE_ALL_MESSAGES))
+                await session.execute(text(DELETE_ALL_CONVERSATIONS))
 
-            session.commit()
+            await session.commit()
             return conv_count, msg_count
 
     async def get_conversation_counts(
@@ -407,7 +427,7 @@ class SQLModelProvider(StorageProvider[Message]):
         """Get conversation and message counts."""
         from llmling_agent_storage.sql_provider import Conversation, Message
 
-        with Session(self.engine) as session:
+        async with AsyncSession(self.engine) as session:
             if agent_name:
                 conv_query = select(Conversation).where(
                     Conversation.agent_name == agent_name
@@ -421,7 +441,9 @@ class SQLModelProvider(StorageProvider[Message]):
                 conv_query = select(Conversation)
                 msg_query = select(Message)
 
-            conv_count = len(session.exec(conv_query).all())
-            msg_count = len(session.exec(msg_query).all())
+            conv_result = await session.execute(conv_query)
+            msg_result = await session.execute(msg_query)
+            conv_count = len(conv_result.scalars().all())
+            msg_count = len(msg_result.scalars().all())
 
             return conv_count, msg_count

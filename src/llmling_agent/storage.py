@@ -184,11 +184,20 @@ class StorageManager:
 
         match provider_config:
             case SQLStorageConfig(url=url, pool_size=pool_size):
-                from sqlmodel import create_engine
+                from sqlalchemy.ext.asyncio import create_async_engine
 
                 from llmling_agent_storage.sql_provider import SQLModelProvider
 
-                engine = create_engine(str(url), pool_size=pool_size)
+                # Convert URL to async format
+                url_str = str(url)
+                if url_str.startswith("sqlite://"):
+                    url_str = url_str.replace("sqlite://", "sqlite+aiosqlite://", 1)
+                elif url_str.startswith("postgresql://"):
+                    url_str = url_str.replace("postgresql://", "postgresql+asyncpg://", 1)
+                elif url_str.startswith("mysql://"):
+                    url_str = url_str.replace("mysql://", "mysql+aiomysql://", 1)
+
+                engine = create_async_engine(url_str, pool_size=pool_size)
                 return SQLModelProvider(provider_config, engine)
             case FileStorageConfig():
                 from llmling_agent_storage.file_provider import FileProvider
