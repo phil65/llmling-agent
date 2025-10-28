@@ -6,6 +6,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING, TypedDict, cast
 
+from pydantic_ai import FinishReason
 from upath import UPath
 
 from llmling_agent.common_types import JsonValue, MessageRole  # noqa: TC001
@@ -42,7 +43,7 @@ class MessageData(TypedDict):
     provider_name: str | None
     provider_response_id: str | None
     parts: str | None
-    finish_reason: str | None
+    finish_reason: FinishReason | None
 
 
 class ConversationData(TypedDict):
