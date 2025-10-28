@@ -10,6 +10,7 @@ seamlessly with PydanticAI's RunContext while providing rich progress informatio
 
 from __future__ import annotations
 
+import base64
 from collections.abc import Callable
 import contextlib
 import inspect
@@ -18,6 +19,9 @@ from typing import TYPE_CHECKING, Any, Self
 
 from anyenv import MultiEventHandler
 from pydantic_ai import (
+    BinaryContent,
+    BinaryImage,
+    DocumentUrl,
     RunContext,  # noqa: TC002
     ToolReturn,
 )
@@ -443,8 +447,6 @@ class MCPClient:
         self, mcp_content: list[Any]
     ) -> list[str | Any]:
         """Convert MCP content blocks to PydanticAI content types."""
-        import base64
-
         from mcp.types import (
             AudioContent,
             BlobResourceContents,
@@ -454,7 +456,6 @@ class MCPClient:
             TextContent,
             TextResourceContents,
         )
-        from pydantic_ai.messages import BinaryContent, BinaryImage, DocumentUrl
 
         pydantic_content: list[Any] = []
 

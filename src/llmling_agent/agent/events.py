@@ -19,7 +19,7 @@ class StreamCompleteEvent[TContent]:
 
 
 @dataclass(kw_only=True)
-class ToolCallProgress:
+class ToolCallProgressEvent:
     """Event indicating the tool call progress."""
 
     progress: int
