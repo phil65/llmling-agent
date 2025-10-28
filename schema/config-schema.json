@@ -726,12 +726,6 @@
           "description": "Whether to pass parent agent's message history to worker.\nTrue: Worker sees parent's conversation context\nFalse (default): Worker only sees current request",
           "title": "Pass Message History",
           "type": "boolean"
-        },
-        "share_context": {
-          "default": false,
-          "description": "Whether to share parent agent's context/dependencies with worker.\nTrue: Worker has access to parent's context data\nFalse (default): Worker uses own isolated context",
-          "title": "Share Context",
-          "type": "boolean"
         }
       },
       "required": [

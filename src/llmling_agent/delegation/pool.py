@@ -712,7 +712,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
                             worker,
                             reset_history_on_run=worker_config.reset_history_on_run,
                             pass_message_history=worker_config.pass_message_history,
-                            share_context=worker_config.share_context,
                         )
             except KeyError as e:
                 msg = f"Worker agent {worker_config.name!r} not found"

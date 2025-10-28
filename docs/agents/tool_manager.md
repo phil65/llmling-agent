@@ -85,7 +85,6 @@ tool_info = manager.register_worker(
     name="worker_tool",                  # Optional name override
     reset_history_on_run=True,           # Clear history between runs
     pass_message_history=False,          # Share conversation history
-    share_context=False                  # Share agent context
 )
 ```
 

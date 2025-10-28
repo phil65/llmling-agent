@@ -77,7 +77,6 @@ agents:
         name: "formatter"
         reset_history_on_run: true
         pass_message_history: false
-        share_context: false
       - "linter"  # shorthand syntax
 
     # Message routing

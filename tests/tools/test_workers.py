@@ -47,7 +47,6 @@ agents:
       - name: worker
         pass_message_history: true
       - name: specialist
-        share_context: true
 
   worker:
     model: test

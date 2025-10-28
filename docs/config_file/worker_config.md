@@ -22,13 +22,11 @@ agents:
         name: "code_reviewer"
         reset_history_on_run: true    # Fresh conversation each time
         pass_message_history: false   # Don't share parent's history
-        share_context: false          # Don't share parent's context/deps
 
       - type: agent
         name: "bug_analyzer"
         reset_history_on_run: false   # Maintain conversation between runs
         pass_message_history: true    # See parent's conversation
-        share_context: true           # Access parent's context data
 ```
 
 ## Configuration Options
@@ -41,9 +39,6 @@ agents:
 - `true`: Worker sees parent's conversation history
 - `false` (default): Worker only sees current request
 
-### `share_context`
-- `true`: Worker has access to parent's context/dependencies
-- `false` (default): Worker uses own isolated context
 
 ## Usage Examples
 
@@ -57,7 +52,6 @@ agents:
         name: "linter"
         reset_history_on_run: true     # Fresh start each time
         pass_message_history: false    # Independent operation
-        share_context: false           # Own context
 ```
 
 ### Context-Aware Workers
@@ -70,7 +64,6 @@ agents:
         name: "code_reviewer"
         reset_history_on_run: false    # Remember previous reviews
         pass_message_history: true     # See full discussion
-        share_context: true            # Access shared context
 ```
 
 ### Mixed Team

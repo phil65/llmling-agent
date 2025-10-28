@@ -53,12 +53,6 @@ class AgentWorkerConfig(BaseWorkerConfig):
     False (default): Worker only sees current request
     """
 
-    share_context: bool = False
-    """Whether to share parent agent's context/dependencies with worker.
-    True: Worker has access to parent's context data
-    False (default): Worker uses own isolated context
-    """
-
 
 WorkerConfig = Annotated[
     TeamWorkerConfig | AgentWorkerConfig,

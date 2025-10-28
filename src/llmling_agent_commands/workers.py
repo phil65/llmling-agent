@@ -74,7 +74,6 @@ class AddWorkerCommand(SlashedCommand):
         *,
         reset_history: str = "true",
         share_history: str = "false",
-        share_context: str = "false",
     ):
         """Add another agent as a worker tool.
 
@@ -83,7 +82,6 @@ class AddWorkerCommand(SlashedCommand):
             worker_name: Name of the agent to add as worker
             reset_history: Clear worker's history before each run
             share_history: Pass current agent's message history
-            share_context: Share context data between agents
         """
         try:
             if not ctx.context.pool:
@@ -96,14 +94,12 @@ class AddWorkerCommand(SlashedCommand):
             # Parse boolean flags with defaults
             reset_history_bool = reset_history.lower() != "false"
             share_history_bool = share_history.lower() == "true"
-            share_context_bool = share_context.lower() == "true"
 
             # Register worker
             tool_info = ctx.context.agent.tools.register_worker(
                 worker,
                 reset_history_on_run=reset_history_bool,
                 pass_message_history=share_history_bool,
-                share_context=share_context_bool,
                 parent=ctx.context.agent,
             )
 

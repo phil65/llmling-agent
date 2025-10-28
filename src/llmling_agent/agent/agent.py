@@ -642,7 +642,6 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
         name: str | None = None,
         reset_history_on_run: bool = True,
         pass_message_history: bool = False,
-        share_context: bool = False,
         parent: AnyAgent[Any, Any] | None = None,
     ) -> Tool:
         """Create a tool from this agent.
@@ -651,7 +650,6 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
             name: Optional tool name override
             reset_history_on_run: Clear agent's history before each run
             pass_message_history: Pass parent's message history to agent
-            share_context: Whether to pass parent's context/deps
             parent: Optional parent agent for history/context sharing
         """
         tool_name = name or f"ask_{self.name}"
@@ -1116,7 +1114,6 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
         name: str | None = None,
         reset_history_on_run: bool = True,
         pass_message_history: bool = False,
-        share_context: bool = False,
     ) -> Tool:
         """Register another agent as a worker tool."""
         return self.tools.register_worker(
@@ -1124,8 +1121,7 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
             name=name,
             reset_history_on_run=reset_history_on_run,
             pass_message_history=pass_message_history,
-            share_context=share_context,
-            parent=self if (pass_message_history or share_context) else None,
+            parent=self if pass_message_history else None,
         )
 
     def set_model(self, model: ModelType):

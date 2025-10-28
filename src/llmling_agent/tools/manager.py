@@ -316,7 +316,6 @@ class ToolManager(BaseRegistry[str, Tool]):
         name: str | None = None,
         reset_history_on_run: bool = True,
         pass_message_history: bool = False,
-        share_context: bool = False,
         parent: AnyAgent[Any, Any] | None = None,
     ) -> Tool:
         """Register an agent as a worker tool.
@@ -326,7 +325,6 @@ class ToolManager(BaseRegistry[str, Tool]):
             name: Optional name override for the worker tool
             reset_history_on_run: Whether to clear history before each run
             pass_message_history: Whether to pass parent's message history
-            share_context: Whether to pass parent's context/deps
             parent: Optional parent agent for history/context sharing
         """
         from llmling_agent import Agent, BaseTeam, StructuredAgent
@@ -340,7 +338,6 @@ class ToolManager(BaseRegistry[str, Tool]):
                     name=name,
                     reset_history_on_run=reset_history_on_run,
                     pass_message_history=pass_message_history,
-                    share_context=share_context,
                 )
             case _:
                 msg = f"Unsupported worker type: {type(worker)}"
