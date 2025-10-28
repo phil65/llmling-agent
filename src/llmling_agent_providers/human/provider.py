@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 from llmling import ToolError
 import logfire
+from pydantic_ai import ModelResponse, TextPart
 from slashed import CommandStore, DefaultOutputWriter, parse_command
 
 from llmling_agent.log import get_logger
@@ -82,7 +83,9 @@ class HumanProvider(AgentProvider):
             result_type=result_type,
             message_history=message_history,
         )
-        return ProviderResponse(content=content)
+        return ProviderResponse(
+            content=content, response=ModelResponse(parts=[TextPart(content)])
+        )
 
     async def stream_events(
         self,

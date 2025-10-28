@@ -343,9 +343,9 @@ class PydanticAIProvider(AgentProvider[Any]):
             cost_info = TokenCost(token_usage=token_usage, total_cost=total)
             return ProviderResponse(
                 content=result.output,
+                response=result.response,
                 tool_calls=tool_calls,
                 cost_and_usage=cost_info,
-                model_name=resolved_model,
             )
         finally:
             # Restore original model in signal if we had an override

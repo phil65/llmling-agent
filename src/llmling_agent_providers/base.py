@@ -11,7 +11,7 @@ from typing import (
 )
 
 from psygnal import Signal
-from pydantic_ai import _agent_graph
+from pydantic_ai import ModelResponse, _agent_graph
 from pydantic_ai.result import FinalResult
 from pydantic_graph import End
 
@@ -43,7 +43,7 @@ class ProviderResponse:
 
     content: Any
     tool_calls: list[ToolCallInfo] = field(default_factory=list)
-    model_name: str = ""
+    response: ModelResponse = field(default_factory=lambda: ModelResponse(parts=[]))
     cost_and_usage: TokenCost | None = None
     provider_details: dict[str, Any] | None = None
 
