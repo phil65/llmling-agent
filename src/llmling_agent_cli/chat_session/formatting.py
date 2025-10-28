@@ -52,8 +52,8 @@ class MessageFormatter:
             parts = []
 
             # Model info
-            if message.model:
-                parts.append(f"Model: {message.model}")
+            if message.model_name:
+                parts.append(f"Model: {message.model_name}")
 
             # Token and cost info from cost_info
             if message.cost_info:

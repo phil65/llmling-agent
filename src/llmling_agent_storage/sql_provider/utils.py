@@ -63,7 +63,7 @@ def to_chat_message(db_message: Message) -> ChatMessage[str]:
         content=db_message.content,
         role=db_message.role,  # type: ignore
         name=db_message.name,
-        model=db_message.model,
+        model_name=db_message.model,
         cost_info=cost_info,
         response_time=db_message.response_time,
         forwarded_from=db_message.forwarded_from or [],
@@ -193,7 +193,7 @@ def format_conversation(
                 "role": msg.role,
                 "content": msg.content,
                 "timestamp": msg.timestamp.isoformat(),
-                "model": msg.model,
+                "model": msg.model_name,
                 "name": msg.name,
                 "token_usage": msg.cost_info.token_usage if msg.cost_info else None,
                 "cost": float(msg.cost_info.total_cost) if msg.cost_info else None,

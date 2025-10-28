@@ -88,7 +88,7 @@ class MemoryStorageProvider(StorageProvider):
                 content=msg["content"],
                 role=msg["role"],
                 name=msg["name"],
-                model=msg["model"],
+                model_name=msg["model"],
                 cost_info=cost_info,
                 response_time=msg["response_time"],
                 forwarded_from=msg["forwarded_from"] or [],
@@ -227,7 +227,7 @@ class MemoryStorageProvider(StorageProvider):
                     content=msg["content"],
                     role=msg["role"],
                     name=msg["name"],
-                    model=msg["model"],
+                    model_name=msg["model"],
                     cost_info=cost_info,
                     response_time=msg["response_time"],
                     forwarded_from=msg["forwarded_from"],
@@ -247,7 +247,7 @@ class MemoryStorageProvider(StorageProvider):
                         "role": msg.role,
                         "content": msg.content,
                         "timestamp": msg.timestamp.isoformat(),
-                        "model": msg.model,
+                        "model": msg.model_name,
                         "name": msg.name,
                         "token_usage": msg.cost_info.token_usage
                         if msg.cost_info

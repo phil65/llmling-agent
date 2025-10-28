@@ -170,9 +170,6 @@ class ChatMessage[TContent]:
     role: MessageRole
     """Role of the message sender (user/assistant/system)."""
 
-    model: str | None = None
-    """Name of the model that generated this message."""
-
     metadata: SimpleJsonType = field(default_factory=dict)
     """Additional metadata about the message."""
 

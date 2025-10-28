@@ -418,7 +418,7 @@ class MessageEmitter[TDeps, TResult](ABC):
             role=message.role,
             name=message.name,
             cost_info=message.cost_info,
-            model=message.model,
+            model=message.model_name,
             response_time=message.response_time,
             forwarded_from=message.forwarded_from,
         )

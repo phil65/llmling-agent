@@ -751,7 +751,7 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
                 content=result.content,
                 role="assistant",
                 name=self.name,
-                model=result.response.model_name,
+                model_name=result.response.model_name,
                 finish_reason=result.response.finish_reason,
                 parts=result.response.parts,
                 provider_response_id=result.response.provider_response_id,
@@ -820,6 +820,10 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
             usage = None
             model_name = None
             output = None
+            finish_reason = None
+            parts: Sequence[Any] = []
+            provider_name = None
+            provider_response_id = None
             # Stream events directly from provider
             async for event in self._provider.stream_events(
                 *prompts,
@@ -840,6 +844,11 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
                     case AgentRunResultEvent(result=result):
                         usage = result.usage()
                         model_name = result.response.model_name
+                        finish_reason = result.response.finish_reason
+                        provider_name = result.response.provider_name
+                        provider_response_id = result.response.provider_response_id
+                        parts = result.response.parts
+
                         output = result.output
                         # Don't yield AgentRunResultEvent, we'll send our own final event
                     case _:
@@ -854,11 +863,15 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
                 content=output,
                 role="assistant",
                 name=self.name,
-                model=model_name,
+                model_name=model_name,
                 message_id=message_id,
                 conversation_id=user_msg.conversation_id,
                 cost_info=cost_info,
                 response_time=time.perf_counter() - start_time,
+                provider_response_id=provider_response_id,
+                parts=parts,
+                provider_name=provider_name,
+                finish_reason=finish_reason,
             )
 
             # Yield final event with embedded message

@@ -330,7 +330,7 @@ class Talk[TTransmittedData]:
                 meta = {
                     "type": "forwarded_message",
                     "role": message.role,
-                    "model": message.model,
+                    "model": message.model_name,
                     "cost_info": message.cost_info,
                     "timestamp": message.timestamp.isoformat(),
                     "prompt": prompt,

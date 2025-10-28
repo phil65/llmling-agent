@@ -169,7 +169,7 @@ async def test_complex_filtering(provider: SQLModelProvider, sample_data: None):
     conv, msgs = results[0]
     assert conv["agent"] == "test_agent"
     assert any(msg.content == "Hello" for msg in msgs)
-    assert all(msg.model == "gpt-5" for msg in msgs)
+    assert all(msg.model_name == "gpt-5" for msg in msgs)
 
 
 async def test_basic_filters(provider: SQLModelProvider, sample_data: None):
@@ -192,7 +192,7 @@ async def test_basic_filters(provider: SQLModelProvider, sample_data: None):
     results = await provider.get_conversations(filters)
     assert len(results) == 1
     conv, msgs = results[0]
-    assert all(msg.model == "gpt-5" for msg in msgs)
+    assert all(msg.model_name == "gpt-5" for msg in msgs)
 
 
 async def test_time_filters(provider: SQLModelProvider, sample_data: None):

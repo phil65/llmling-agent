@@ -49,7 +49,7 @@ class ChatMessageContainer(EventedList[ChatMessage[Any]]):
         """
         if message.cost_info:
             return message.cost_info.token_usage["total"]
-        return count_tokens(str(message.content), message.model)
+        return count_tokens(str(message.content), message.model_name)
 
     def get_history_tokens(self, fallback_model: str | None = None) -> int:
         """Get total token count for all messages.
@@ -68,7 +68,9 @@ class ChatMessageContainer(EventedList[ChatMessage[Any]]):
             if fallback_model:
                 model_name = fallback_model
             else:
-                model_name = next((m.model for m in self if m.model), DEFAULT_TOKEN_MODEL)
+                model_name = next(
+                    (m.model_name for m in self if m.model_name), DEFAULT_TOKEN_MODEL
+                )
             contents = [str(msg.content) for msg in msgs]
             total += sum(batch_count_tokens(contents, model_name))
 

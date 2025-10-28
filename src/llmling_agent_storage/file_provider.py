@@ -156,7 +156,7 @@ class FileProvider(StorageProvider):
                 conversation_id=msg["conversation_id"],
                 role=cast(MessageRole, msg["role"]),
                 name=msg["name"],
-                model=msg["model"],
+                model_name=msg["model"],
                 cost_info=cost_info,
                 response_time=msg["response_time"],
                 forwarded_from=msg["forwarded_from"] or [],
