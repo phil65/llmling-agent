@@ -466,33 +466,20 @@ class MCPClient:
                     pydantic_content.append(text)
                 case ImageContent(data=data, mimeType=mime_type):
                     # MCP data can be either bytes or base64 encoded string
-                    if isinstance(data, bytes):
-                        decoded_data = data
-                    else:
-                        decoded_data = base64.b64decode(data)
-                    pydantic_content.append(
-                        BinaryImage(data=decoded_data, media_type=mime_type)
-                    )
+                    decoded_data = base64.b64decode(data)
+                    img = BinaryImage(data=decoded_data, media_type=mime_type)
+                    pydantic_content.append(img)
                 case AudioContent(data=data, mimeType=mime_type):
                     # MCP data can be either bytes or base64 encoded string
-                    if isinstance(data, bytes):
-                        decoded_data = data
-                    else:
-                        decoded_data = base64.b64decode(data)
-                    pydantic_content.append(
-                        BinaryContent(data=decoded_data, media_type=mime_type)
-                    )
+                    decoded_data = base64.b64decode(data)
+                    content = BinaryContent(data=decoded_data, media_type=mime_type)
+                    pydantic_content.append(content)
                 case BlobResourceContents(blob=blob):
                     # MCP blob can be either bytes or base64 encoded string
-                    if isinstance(blob, bytes):
-                        decoded_data = blob
-                    else:
-                        decoded_data = base64.b64decode(blob)
-                    pydantic_content.append(
-                        BinaryContent(
-                            data=decoded_data, media_type="application/octet-stream"
-                        )
-                    )
+                    decoded_data = base64.b64decode(blob)
+                    mime = "application/octet-stream"
+                    content = BinaryContent(data=decoded_data, media_type=mime)
+                    pydantic_content.append(content)
                 case ResourceLink(uri=uri):
                     # ResourceContentBlock should be read like PydanticAI does
                     try:
@@ -511,16 +498,10 @@ class MCPClient:
                     except Exception:  # noqa: BLE001
                         # Fallback to DocumentUrl if reading fails
                         pydantic_content.append(DocumentUrl(url=str(uri)))
-                case EmbeddedResource(resource=resource):
-                    # EmbeddedResource contains another resource, process recursively
-                    if hasattr(resource, "contents"):
-                        for content in resource.contents:
-                            nested_result = await self._convert_mcp_content_to_pydantic([
-                                content
-                            ])
-                            pydantic_content.extend(nested_result)
-                    else:
-                        pydantic_content.append(str(resource))
+                case EmbeddedResource(resource=TextResourceContents(text=text)):
+                    pydantic_content.append(text)
+                case EmbeddedResource(resource=BlobResourceContents() as blob_resource):
+                    pydantic_content.append(f"[Binary data: {blob_resource.mimeType}]")
                 case _:
                     # Convert anything else to string
                     pydantic_content.append(str(block))
