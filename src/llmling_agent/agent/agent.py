@@ -335,8 +335,7 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
 
     def __repr__(self) -> str:
         desc = f", {self.description!r}" if self.description else ""
-        tools = f", tools={len(self.tools)}" if self.tools else ""
-        return f"Agent({self.name!r}, provider={self._provider.NAME!r}{desc}{tools})"
+        return f"Agent({self.name!r}, provider={self._provider.NAME!r}{desc})"
 
     def __prompt__(self) -> str:
         typ = self._provider.__class__.__name__
