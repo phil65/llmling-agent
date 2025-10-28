@@ -55,6 +55,8 @@ class Mem0StorageProvider(StorageProvider):
 
     def _from_mem0_message(self, msg: dict[str, Any]) -> ChatMessage[str]:
         """Convert from mem0 message format."""
+        from llmling_agent.storage import deserialize_parts
+
         metadata = msg.get("metadata", {})
         ts = datetime.fromisoformat(metadata.get("timestamp", get_now().isoformat()))
         return ChatMessage(
@@ -63,6 +65,10 @@ class Mem0StorageProvider(StorageProvider):
             name=metadata.get("name"),
             timestamp=ts,
             metadata=metadata,
+            provider_name=metadata.get("provider_name"),
+            provider_response_id=metadata.get("provider_response_id"),
+            parts=deserialize_parts(metadata.get("parts")),
+            finish_reason=metadata.get("finish_reason"),
         )
 
     async def log_message(

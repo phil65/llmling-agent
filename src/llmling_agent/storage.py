@@ -44,6 +44,26 @@ parts_adapter: TypeAdapter = TypeAdapter(
 )
 
 
+def deserialize_parts(parts_json: str | None) -> Sequence[ModelResponsePart]:
+    """Deserialize pydantic-ai message parts from JSON string.
+
+    Args:
+        parts_json: JSON string representation of parts or None if empty
+
+    Returns:
+        Sequence of ModelResponsePart objects, empty if deserialization fails
+    """
+    if not parts_json:
+        return []
+
+    try:
+        # Deserialize using pydantic's JSON deserialization
+        return parts_adapter.validate_json(parts_json.encode())
+    except Exception as e:
+        logger.warning("Failed to deserialize message parts: %s", e)
+        return []  # Return empty list on failure
+
+
 def serialize_parts(parts: Sequence[ModelResponsePart]) -> str | None:
     """Serialize pydantic-ai message parts from ChatMessage.
 
@@ -141,12 +161,14 @@ class StorageManager:
             case "and" if self.config.agents and config.agents:
                 logged_agents = self.config.agents & config.agents
             case "and":
-                logged_agents = self.config.agents or config.agents or set()
+                # If either is None, use the other; if both None, use None (log all)
+                if self.config.agents is None and config.agents is None:
+                    logged_agents = None
+                else:
+                    logged_agents = self.config.agents or config.agents or set()
             case "override":
                 logged_agents = (
-                    config.agents
-                    if config.agents is not None
-                    else self.config.agents or set()
+                    config.agents if config.agents is not None else self.config.agents
                 )
 
         provider_config = config.model_copy(

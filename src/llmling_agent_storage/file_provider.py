@@ -6,17 +6,19 @@ from datetime import datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING, TypedDict, cast
 
-from tokonomics.toko_types import TokenUsage
 from upath import UPath
 
 from llmling_agent.common_types import JsonValue, MessageRole  # noqa: TC001
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messages import ChatMessage, TokenCost
+from llmling_agent.storage import deserialize_parts
 from llmling_agent.utils.now import get_now
 from llmling_agent_storage.base import StorageProvider
 
 
 if TYPE_CHECKING:
+    from tokonomics.toko_types import TokenUsage
+
     from llmling_agent_config.session import SessionQuery
     from llmling_agent_config.storage import FileStorageConfig
 
@@ -151,6 +153,8 @@ class FileProvider(StorageProvider):
             # Convert to ChatMessage
             cost_info = None
             if msg["token_usage"]:
+                from llmling_agent.messaging.messages import TokenUsage
+
                 usage = cast(TokenUsage, msg["token_usage"])
                 cost = Decimal(msg["cost"] or 0.0)
                 cost_info = TokenCost(token_usage=usage, total_cost=cost)
@@ -165,6 +169,10 @@ class FileProvider(StorageProvider):
                 response_time=msg["response_time"],
                 forwarded_from=msg["forwarded_from"] or [],
                 timestamp=datetime.fromisoformat(msg["timestamp"]),
+                provider_name=msg["provider_name"],
+                provider_response_id=msg["provider_response_id"],
+                parts=deserialize_parts(msg["parts"]),
+                finish_reason=msg["finish_reason"],
             )
             messages.append(chat_message)
 

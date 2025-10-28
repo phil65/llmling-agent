@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any, cast
 
 from llmling_agent.messaging.messages import ChatMessage, TokenCost
+from llmling_agent.storage import deserialize_parts
 from llmling_agent.utils.now import get_now
 from llmling_agent_storage.base import StorageProvider
 from llmling_agent_storage.models import ConversationData
@@ -93,6 +94,10 @@ class MemoryStorageProvider(StorageProvider):
                 response_time=msg["response_time"],
                 forwarded_from=msg["forwarded_from"] or [],
                 timestamp=msg["timestamp"],
+                provider_name=msg["provider_name"],
+                provider_response_id=msg["provider_response_id"],
+                parts=deserialize_parts(msg["parts"]),
+                finish_reason=msg["finish_reason"],
             )
             filtered.append(chat_message)
 
