@@ -19,7 +19,6 @@ if TYPE_CHECKING:
     from upath.types import JoinablePathLike
 
     from llmling_agent.common_types import JsonValue
-    from llmling_agent.tools import ToolCallInfo
     from llmling_agent_config.storage import LogFormat, TextLogConfig
 
 
@@ -233,28 +232,6 @@ class TextLogProvider(StorageProvider):
         self._entries.append(entry)
 
         path = await self._get_path("conversation", **entry)
-        self._write(path)
-
-    async def log_tool_call(
-        self,
-        *,
-        conversation_id: str,
-        message_id: str,
-        tool_call: ToolCallInfo,
-    ):
-        """Store tool call."""
-        entry = {
-            "type": "tool_call",
-            "timestamp": tool_call.timestamp,
-            "conversation_id": conversation_id,
-            "message_id": message_id,
-            "tool_name": tool_call.tool_name,
-            "args": tool_call.args,
-            "result": tool_call.result,
-        }
-        self._entries.append(entry)
-
-        path = await self._get_path("tool_call", **entry)
         self._write(path)
 
     async def log_command(

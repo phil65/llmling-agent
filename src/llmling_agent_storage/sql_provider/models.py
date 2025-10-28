@@ -167,38 +167,6 @@ class Message(AsyncAttrs, SQLModel, table=True):  # type: ignore[call-arg]
     model_config = SQLModelConfig(use_attribute_docstrings=True)  # pyright: ignore[reportCallIssue]
 
 
-class ToolCall(AsyncAttrs, SQLModel, table=True):  # type: ignore[call-arg]
-    """Record of a tool being called during a conversation."""
-
-    id: str = Field(default_factory=lambda: str(uuid4()), primary_key=True)
-    """Unique identifier for the tool call"""
-
-    conversation_id: str = Field(index=True)
-    """ID of the conversation where the tool was called"""
-
-    message_id: str = Field(index=True)
-    """ID of the message that triggered this tool call"""
-
-    timestamp: datetime = Field(
-        sa_column=Column(UTCDateTime, default=get_now), default_factory=get_now
-    )
-    """When the tool was called"""
-
-    tool_call_id: str | None = None
-    """ID provided by the LLM for this tool call"""
-
-    tool_name: str
-    """Name of the tool that was called"""
-
-    args: dict = Field(sa_column=Column(JSON))
-    """Arguments passed to the tool"""
-
-    result: str = Field(...)
-    """Result returned by the tool"""
-
-    model_config = SQLModelConfig(use_attribute_docstrings=True)  # pyright: ignore[reportCallIssue]
-
-
 class Conversation(AsyncAttrs, SQLModel, table=True):  # type: ignore[call-arg]
     """Database model for conversations."""
 

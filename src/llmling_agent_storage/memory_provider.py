@@ -17,7 +17,6 @@ if TYPE_CHECKING:
     from tokonomics.toko_types import TokenUsage
 
     from llmling_agent.common_types import JsonValue
-    from llmling_agent.tools import ToolCallInfo
     from llmling_agent_config.session import SessionQuery
     from llmling_agent_config.storage import MemoryStorageConfig
     from llmling_agent_storage.models import MessageData, QueryFilters, StatsFilters
@@ -32,14 +31,12 @@ class MemoryStorageProvider(StorageProvider):
         super().__init__(config)
         self.messages: list[dict] = []
         self.conversations: list[dict] = []
-        self.tool_calls: list[dict] = []
         self.commands: list[dict] = []
 
     def cleanup(self):
         """Clear all stored data."""
         self.messages.clear()
         self.conversations.clear()
-        self.tool_calls.clear()
         self.commands.clear()
 
     async def filter_messages(self, query: SessionQuery) -> list[ChatMessage[str]]:
@@ -153,26 +150,6 @@ class MemoryStorageProvider(StorageProvider):
             "id": conversation_id,
             "agent_name": node_name,
             "start_time": start_time or get_now(),
-        })
-
-    async def log_tool_call(
-        self,
-        *,
-        conversation_id: str,
-        message_id: str,
-        tool_call: ToolCallInfo,
-    ):
-        """Store tool call in memory."""
-        if next((i for i in self.messages if i["message_id"] == message_id), None):
-            msg = f"Duplicate message ID: {message_id}"
-            raise ValueError(msg)
-        self.tool_calls.append({
-            "conversation_id": conversation_id,
-            "message_id": message_id,
-            "tool_name": tool_call.tool_name,
-            "args": tool_call.args,
-            "result": tool_call.result,
-            "timestamp": tool_call.timestamp,
         })
 
     async def log_command(
@@ -366,7 +343,6 @@ class MemoryStorageProvider(StorageProvider):
             # Clear all
             self.messages.clear()
             self.conversations.clear()
-            self.tool_calls.clear()
             self.commands.clear()
 
         return conv_count, msg_count

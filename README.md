@@ -300,7 +300,6 @@ storage:
       format: "chronological"
   log_messages: true
   log_conversations: true
-  log_tool_calls: true
   log_commands: true
 
 # Pre-defined jobs

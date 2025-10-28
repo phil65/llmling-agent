@@ -17,7 +17,6 @@ if TYPE_CHECKING:
 
     from llmling_agent.common_types import JsonValue
     from llmling_agent.messaging.messages import ChatMessage, TokenCost
-    from llmling_agent.tools import ToolCallInfo
     from llmling_agent_config.session import SessionQuery
     from llmling_agent_config.storage import BaseStorageProviderConfig
     from llmling_agent_storage.models import ConversationData, QueryFilters, StatsFilters
@@ -61,7 +60,6 @@ class StorageProvider[T]:
         self.task_manager = TaskManager()
         self.log_messages = config.log_messages
         self.log_conversations = config.log_conversations
-        self.log_tool_calls = config.log_tool_calls
         self.log_commands = config.log_commands
         self.log_context = config.log_context
 
@@ -113,15 +111,6 @@ class StorageProvider[T]:
         start_time: datetime | None = None,
     ):
         """Log a conversation (if supported)."""
-
-    async def log_tool_call(
-        self,
-        *,
-        conversation_id: str,
-        message_id: str,
-        tool_call: ToolCallInfo,
-    ):
-        """Log a tool call (if supported)."""
 
     async def log_command(
         self,
@@ -318,10 +307,6 @@ class StorageProvider[T]:
     def log_conversation_sync(self, **kwargs):
         """Sync wrapper for log_conversation."""
         self.task_manager.fire_and_forget(self.log_conversation(**kwargs))
-
-    def log_tool_call_sync(self, **kwargs):
-        """Sync wrapper for log_tool_call."""
-        self.task_manager.fire_and_forget(self.log_tool_call(**kwargs))
 
     def log_command_sync(self, **kwargs):
         """Sync wrapper for log_command."""

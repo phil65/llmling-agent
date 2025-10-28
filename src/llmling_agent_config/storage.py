@@ -42,9 +42,6 @@ class BaseStorageProviderConfig(Schema):
     log_conversations: bool = True
     """Whether to log conversations"""
 
-    log_tool_calls: bool = True
-    """Whether to log tool calls"""
-
     log_commands: bool = True
     """Whether to log command executions"""
 
@@ -163,9 +160,6 @@ class StorageConfig(Schema):
 
     log_conversations: bool = True
     """Whether to log conversations."""
-
-    log_tool_calls: bool = True
-    """Whether to log tool calls."""
 
     log_commands: bool = True
     """Whether to log command executions."""

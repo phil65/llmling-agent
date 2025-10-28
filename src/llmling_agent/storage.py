@@ -22,7 +22,6 @@ if TYPE_CHECKING:
 
     from llmling_agent.common_types import JsonValue
     from llmling_agent.messaging.messages import ChatMessage, TokenCost
-    from llmling_agent.tools import ToolCallInfo
     from llmling_agent_config.session import SessionQuery
     from llmling_agent_config.storage import (
         BaseStorageProviderConfig,
@@ -111,7 +110,6 @@ class StorageManager:
                 "log_messages": config.log_messages and self.config.log_messages,
                 "log_conversations": config.log_conversations
                 and self.config.log_conversations,
-                "log_tool_calls": config.log_tool_calls and self.config.log_tool_calls,
                 "log_commands": config.log_commands and self.config.log_commands,
                 "log_context": config.log_context and self.config.log_context,
                 "agents": logged_agents,
@@ -259,26 +257,6 @@ class StorageManager:
                 )
             )
 
-    async def log_tool_call(
-        self,
-        *,
-        conversation_id: str,
-        message_id: str,
-        tool_call: ToolCallInfo,
-    ):
-        """Log tool call to all providers."""
-        if not self.config.log_tool_calls:
-            return
-
-        for provider in self.providers:
-            self.task_manager.create_task(
-                provider.log_tool_call(
-                    conversation_id=conversation_id,
-                    message_id=message_id,
-                    tool_call=tool_call,
-                )
-            )
-
     async def log_command(
         self,
         *,
@@ -396,11 +374,6 @@ class StorageManager:
         """Sync wrapper for log_message."""
         for provider in self.providers:
             provider.log_message_sync(*args, **kwargs)
-
-    def log_tool_call_sync(self, *args, **kwargs):
-        """Sync wrapper for log_tool_call."""
-        for provider in self.providers:
-            provider.log_tool_call_sync(*args, **kwargs)
 
     def log_command_sync(self, *args, **kwargs):
         """Sync wrapper for log_command."""

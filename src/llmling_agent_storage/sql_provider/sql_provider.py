@@ -35,7 +35,6 @@ if TYPE_CHECKING:
 
     from llmling_agent.common_types import JsonValue
     from llmling_agent.messaging.messages import ChatMessage
-    from llmling_agent.tools import ToolCallInfo
     from llmling_agent_config.session import SessionQuery
     from llmling_agent_config.storage import SQLStorageConfig
     from llmling_agent_storage.models import ConversationData, StatsFilters
@@ -172,29 +171,6 @@ class SQLModelProvider(StorageProvider[Message]):
             now = start_time or get_now()
             convo = Conversation(id=conversation_id, agent_name=node_name, start_time=now)
             session.add(convo)
-            session.commit()
-
-    async def log_tool_call(
-        self,
-        *,
-        conversation_id: str,
-        message_id: str,
-        tool_call: ToolCallInfo,
-    ):
-        """Log tool call to database."""
-        from llmling_agent_storage.sql_provider.models import ToolCall
-
-        with Session(self.engine) as session:
-            call = ToolCall(
-                conversation_id=conversation_id,
-                message_id=message_id,
-                tool_call_id=tool_call.tool_call_id,
-                timestamp=tool_call.timestamp,
-                tool_name=tool_call.tool_name,
-                args=tool_call.args,
-                result=str(tool_call.result),
-            )
-            session.add(call)
             session.commit()
 
     async def log_command(

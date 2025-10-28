@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from decimal import Decimal
-from typing import TYPE_CHECKING, Any, TypedDict, cast
+from typing import TYPE_CHECKING, TypedDict, cast
 
 from tokonomics.toko_types import TokenUsage
 from upath import UPath
@@ -17,7 +17,6 @@ from llmling_agent_storage.base import StorageProvider
 
 
 if TYPE_CHECKING:
-    from llmling_agent.tools import ToolCallInfo
     from llmling_agent_config.session import SessionQuery
     from llmling_agent_config.storage import FileStorageConfig
 
@@ -48,17 +47,6 @@ class ConversationData(TypedDict):
     start_time: str
 
 
-class ToolCallData(TypedDict):
-    """Data structure for storing tool call information."""
-
-    conversation_id: str
-    message_id: str
-    tool_name: str
-    args: dict[str, Any]
-    result: str
-    timestamp: str
-
-
 class CommandData(TypedDict):
     """Data structure for storing command information."""
 
@@ -75,7 +63,6 @@ class StorageData(TypedDict):
 
     messages: list[MessageData]
     conversations: list[ConversationData]
-    tool_calls: list[ToolCallData]
     commands: list[CommandData]
 
 
@@ -101,7 +88,6 @@ class FileProvider(StorageProvider):
         self._data: StorageData = {
             "messages": [],
             "conversations": [],
-            "tool_calls": [],
             "commands": [],
         }
         self._load()
@@ -228,25 +214,6 @@ class FileProvider(StorageProvider):
         self._data["conversations"].append(conversation)
         self._save()
 
-    async def log_tool_call(
-        self,
-        *,
-        conversation_id: str,
-        message_id: str,
-        tool_call: ToolCallInfo,
-    ):
-        """Log a tool call."""
-        call: ToolCallData = {
-            "conversation_id": conversation_id,
-            "message_id": message_id,
-            "tool_name": tool_call.tool_name,
-            "args": tool_call.args,
-            "result": str(tool_call.result),
-            "timestamp": tool_call.timestamp.isoformat(),
-        }
-        self._data["tool_calls"].append(call)
-        self._save()
-
     async def log_command(
         self,
         *,
@@ -306,7 +273,6 @@ class FileProvider(StorageProvider):
             self._data = {
                 "messages": [],
                 "conversations": [],
-                "tool_calls": [],
                 "commands": [],
             }
             self._save()
@@ -331,7 +297,6 @@ class FileProvider(StorageProvider):
             # Clear all
             self._data["messages"].clear()
             self._data["conversations"].clear()
-            self._data["tool_calls"].clear()
             self._data["commands"].clear()
 
         self._save()

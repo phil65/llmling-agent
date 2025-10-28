@@ -7,7 +7,6 @@ from uuid import uuid4
 
 from llmling_agent import log
 from llmling_agent.messaging.message_container import ChatMessageContainer
-from llmling_agent.tools import ToolCallInfo
 
 
 if TYPE_CHECKING:
@@ -41,7 +40,6 @@ class NodeLogger:
             # TODO: need to check this
             # node.message_received.connect(self.log_message)
             node.message_sent.connect(self.log_message)
-            node.tool_used.connect(self.log_tool_call)
 
     def clear_state(self):
         """Clear node state."""
@@ -73,14 +71,4 @@ class NodeLogger:
             model=message.model,
             response_time=message.response_time,
             forwarded_from=message.forwarded_from,
-        )
-
-    def log_tool_call(self, tool_call: ToolCallInfo):
-        """Handle tool usage signal."""
-        if not self.enable_db_logging:
-            return
-        self.node.context.storage.log_tool_call_sync(
-            conversation_id=self.conversation_id,
-            message_id=tool_call.message_id or "",
-            tool_call=tool_call,
         )

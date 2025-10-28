@@ -15,7 +15,6 @@ storage:
       agents: ["planner", "executor"]  # Only log these agents
       log_messages: true
       log_conversations: true
-      log_tool_calls: true
       log_commands: true
       log_context: true
 
@@ -29,7 +28,6 @@ storage:
   # Global logging flags (apply to all providers)
   log_messages: true      # Log all messages
   log_conversations: true # Log conversation metadata
-  log_tool_calls: true   # Log tool executions
   log_commands: true     # Log command executions
   log_context: true      # Log context additions
 ```
@@ -81,7 +79,6 @@ storage:
       # Logging flags (override global)
       log_messages: true
       log_conversations: true
-      log_tool_calls: true
       log_commands: true
       log_context: true
 ```
@@ -183,7 +180,6 @@ storage:
       # Logging flags
       log_messages: true
       log_conversations: true
-      log_tool_calls: true
       log_commands: true
       log_context: true
 ```
@@ -211,7 +207,6 @@ storage:
       # Logging flags
       log_messages: true
       log_conversations: true
-      log_tool_calls: true
       log_commands: true
       log_context: true
 ```
@@ -264,7 +259,6 @@ All logging flags can be set both globally and per provider:
 
 - `log_messages`: Log all messages exchanged
 - `log_conversations`: Log conversation metadata
-- `log_tool_calls`: Log tool executions and results
 - `log_commands`: Log command executions
 - `log_context`: Log context additions and changes
 

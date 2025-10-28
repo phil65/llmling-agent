@@ -15,7 +15,6 @@ from llmling_agent_storage.base import StorageProvider
 
 
 if TYPE_CHECKING:
-    from llmling_agent.tools import ToolCallInfo
     from llmling_agent_config.session import SessionQuery
     from llmling_agent_config.storage import Mem0Config
 
@@ -108,27 +107,6 @@ class Mem0StorageProvider(StorageProvider):
         t = (start_time or get_now()).isoformat()
         meta = {"type": "conversation_start", "agent_name": node_name, "start_time": t}
         message = self._to_mem0_message("Conversation started", "system", metadata=meta)
-        fmt = self.config.output_format
-        await self.client.add([message], user_id=conversation_id, output_format=fmt)
-
-    async def log_tool_call(
-        self,
-        conversation_id: str,
-        message_id: str,
-        tool_call: ToolCallInfo,
-    ):
-        """Log tool usage."""
-        metadata = {
-            "type": "tool_call",
-            "tool_name": tool_call.tool_name,
-            "args": tool_call.args,
-            "result": tool_call.result,
-            "error": tool_call.error,
-            "timing": tool_call.timing,
-            "message_id": message_id,
-        }
-        content = f"Tool call: {tool_call.tool_name}"
-        message = self._to_mem0_message(content=content, role="system", metadata=metadata)
         fmt = self.config.output_format
         await self.client.add([message], user_id=conversation_id, output_format=fmt)
 

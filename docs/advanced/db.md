@@ -156,7 +156,6 @@ storage:
   default_provider: sql    # Provider for history queries
   log_messages: true      # Whether to log messages
   log_conversations: true # Whether to log conversations
-  log_tool_calls: true   # Whether to log tool calls
   log_commands: true     # Whether to log commands
   log_context: true      # Whether to log context additions
 ```
