@@ -266,14 +266,9 @@ class PydanticAIProvider(AgentProvider[Any]):
     ) -> ProviderResponse:
         """Generate response using pydantic-ai."""
         agent = await self.get_agent(system_prompt or "", tools=tools or [])
-        use_model = model or self.model
-        if isinstance(use_model, str):
-            use_model = infer_model(use_model)
-            self.model_changed.emit(use_model)
-
-        # Create event stream handler for real-time tool signals
         tool_dict = {i.name: i for i in tools or []}
 
+        # Create event stream handler for real-time tool signals
         async def internal_tool_handler(ctx: RunContext, event: AgentStreamEvent):
             if isinstance(event, FunctionToolCallEvent):
                 # Extract tool call info and emit signal immediately
@@ -304,56 +299,48 @@ class PydanticAIProvider(AgentProvider[Any]):
         # Always use our event distributor as the final handler
         final_handler: EventStreamHandler = event_distributor
 
-        try:
-            # Convert prompts to pydantic-ai format
-            converted_prompts = await convert_prompts_to_user_content(prompts)
+        # Convert prompts to pydantic-ai format
+        converted_prompts = await convert_prompts_to_user_content(prompts)
 
-            # Run with complete history and event handler
-            to_use = model or self.model
-            to_use = infer_model(to_use) if isinstance(to_use, str) else to_use
-            limits = asdict(usage_limits) if usage_limits else {}
-            result: AgentRunResult = await agent.run(
-                converted_prompts,  # Pass converted prompts
-                deps=self._context,  # type: ignore
-                message_history=[to_model_request(m) for m in message_history],
-                model=to_use,
-                output_type=result_type or str,
-                model_settings=self.model_settings,  # type: ignore
-                usage_limits=PydanticAiUsageLimits(**limits),
-                event_stream_handler=final_handler,
-            )
+        # Run with complete history and event handler
+        to_use = model or self.model
+        to_use = infer_model(to_use) if isinstance(to_use, str) else to_use
+        limits = asdict(usage_limits) if usage_limits else {}
+        result: AgentRunResult = await agent.run(
+            converted_prompts,  # Pass converted prompts
+            deps=self._context,  # type: ignore
+            message_history=[to_model_request(m) for m in message_history],
+            model=to_use,
+            output_type=result_type or str,
+            model_settings=self.model_settings,  # type: ignore
+            usage_limits=PydanticAiUsageLimits(**limits),
+            event_stream_handler=final_handler,
+        )
 
-            # Extract tool calls for final response
-            # (signals already emitted via event handler)
-            new_msgs = result.new_messages()
-            tool_calls = get_tool_calls(new_msgs, tool_dict, agent_name=self.name)
-            for call in tool_calls:
-                call.message_id = message_id
+        # Extract tool calls for final response
+        # (signals already emitted via event handler)
+        new_msgs = result.new_messages()
+        tool_calls = get_tool_calls(new_msgs, tool_dict, agent_name=self.name)
+        for call in tool_calls:
+            call.message_id = message_id
 
-            # Get the actual model name from pydantic-ai response
-            resolved_model = result.response.model_name or ""
-            usage = result.usage()
-            cost = await TokenCost.from_usage(model=resolved_model, usage=usage)
-            total = cost.total_cost if cost else Decimal(0)
-            token_usage = TokenUsage(
-                total=usage.total_tokens,
-                prompt=usage.input_tokens,
-                completion=usage.output_tokens,
-            )
-            cost_info = TokenCost(token_usage=token_usage, total_cost=total)
-            return ProviderResponse(
-                content=result.output,
-                response=result.response,
-                tool_calls=tool_calls,
-                cost_and_usage=cost_info,
-            )
-        finally:
-            # Restore original model in signal if we had an override
-            if model:
-                original = self.model
-                if isinstance(original, str):
-                    original = infer_model(original)
-                self.model_changed.emit(original)
+        # Get the actual model name from pydantic-ai response
+        resolved_model = result.response.model_name or ""
+        usage = result.usage()
+        cost = await TokenCost.from_usage(model=resolved_model, usage=usage)
+        total = cost.total_cost if cost else Decimal(0)
+        token_usage = TokenUsage(
+            total=usage.total_tokens,
+            prompt=usage.input_tokens,
+            completion=usage.output_tokens,
+        )
+        cost_info = TokenCost(token_usage=token_usage, total_cost=total)
+        return ProviderResponse(
+            content=result.output,
+            response=result.response,
+            tool_calls=tool_calls,
+            cost_and_usage=cost_info,
+        )
 
     @property
     def name(self) -> str:
@@ -370,16 +357,12 @@ class PydanticAIProvider(AgentProvider[Any]):
 
         Args:
             model: New model to use (name or instance)
-
-        Emits:
-            model_changed signal with the new model
         """
         old_name = self.model_name
         if isinstance(model, str):
             model = infer_model(model)
         self._model = model
         self._kwargs["model"] = model
-        self.model_changed.emit(model)
         logger.debug("Changed model from %s to %s", old_name, self.model_name)
 
     @property
@@ -431,9 +414,6 @@ class PydanticAIProvider(AgentProvider[Any]):
         if isinstance(use_model, str):
             use_model = infer_model(use_model)
 
-        if model:
-            self.model_changed.emit(use_model)
-
         converted_prompts = await convert_prompts_to_user_content(prompts)
         tool_dict = {i.name: i for i in tools or []}
         async for event in agent.run_stream_events(
@@ -456,13 +436,6 @@ class PydanticAIProvider(AgentProvider[Any]):
                     )
                     self.tool_used.emit(call_info)
             yield event
-
-        # Reset model signal if needed
-        if model:
-            original = self.model
-            if isinstance(original, str):
-                original = infer_model(original)
-            self.model_changed.emit(original)
 
 
 if __name__ == "__main__":

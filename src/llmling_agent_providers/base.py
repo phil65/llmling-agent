@@ -72,7 +72,6 @@ class AgentProvider[TDeps]:
     """Base class for agent providers."""
 
     tool_used = Signal(ToolCallInfo)
-    model_changed = Signal(object)  # Model | None
     NAME: str
 
     def __init__(

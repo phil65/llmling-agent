@@ -140,7 +140,6 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
 
     # this fixes weird mypy issue
     talk: Interactions
-    model_changed = Signal(object)  # Model | None
     chunk_streamed = Signal(str, str)  # (chunk, message_id)
     run_failed = Signal(str, Exception)
     agent_reset = Signal(AgentReset)
@@ -316,10 +315,7 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
         self._background_task: asyncio.Task[Any] | None = None
 
         # Forward provider signals
-        self._provider.model_changed.connect(self.model_changed)
         self._provider.tool_used.connect(self.tool_used)
-        self._provider.model_changed.connect(self.model_changed)
-
         self.talk = Interactions(self)
 
         # Set up system prompts
@@ -544,9 +540,7 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
 
         name = self.name
         debug = self._debug
-        self._provider.model_changed.disconnect(self.model_changed)
         self._provider.tool_used.disconnect(self.tool_used)
-        self._provider.model_changed.disconnect(self.model_changed)
         match value:
             case AgentProvider():
                 self._provider = value
@@ -565,9 +559,7 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
             case _:
                 msg = f"Invalid agent type: {type}"
                 raise ValueError(msg)
-        self._provider.model_changed.connect(self.model_changed)
         self._provider.tool_used.connect(self.tool_used)
-        self._provider.model_changed.connect(self.model_changed)
         self._provider.context = self._context  # pyright: ignore[reportAttributeAccessIssue]
 
     @overload
@@ -1147,8 +1139,6 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
         Args:
             model: New model to use (name or instance)
 
-        Emits:
-            model_changed signal with the new model
         """
         self._provider.set_model(model)
 

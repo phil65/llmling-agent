@@ -56,7 +56,6 @@ Base provider signals:
 ```python
 tool_used = Signal(ToolCallInfo)        # Tool execution
 chunk_streamed = Signal(str, str)       # Streaming response chunk
-model_changed = Signal(object)          # Model was changed
 ```
 
 ## Conversation Manager Signals
@@ -112,5 +111,4 @@ def on_model_change(new_model):
     # Update provider-specific settings for new model
     update_configuration(new_model)
 
-provider.model_changed.connect(on_model_change)
 ```
