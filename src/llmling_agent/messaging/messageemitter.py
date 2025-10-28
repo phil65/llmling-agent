@@ -409,16 +409,5 @@ class MessageEmitter[TDeps, TResult](ABC):
 
     async def log_message(self, message: ChatMessage):
         """Handle message from chat signal."""
-        if not self.enable_db_logging:
-            return
-        await self.context.storage.log_message(
-            message_id=message.message_id,
-            conversation_id=message.conversation_id or "",
-            content=str(message.content),
-            role=message.role,
-            name=message.name,
-            cost_info=message.cost_info,
-            model=message.model_name,
-            response_time=message.response_time,
-            forwarded_from=message.forwarded_from,
-        )
+        if self.enable_db_logging:
+            await self.context.storage.log_message(message)  # pyright: ignore

@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     from types import TracebackType
 
     from llmling_agent.common_types import JsonValue
-    from llmling_agent.messaging.messages import ChatMessage, TokenCost
+    from llmling_agent.messaging.messages import ChatMessage
     from llmling_agent_config.session import SessionQuery
     from llmling_agent_config.storage import (
         BaseStorageProviderConfig,
@@ -208,36 +208,24 @@ class StorageManager:
         return await provider.filter_messages(query)
 
     @method_spawner
-    async def log_message(
-        self,
-        *,
-        conversation_id: str,
-        message_id: str,
-        content: str,
-        role: str,
-        name: str | None = None,
-        cost_info: TokenCost | None = None,
-        model: str | None = None,
-        response_time: float | None = None,
-        forwarded_from: list[str] | None = None,
-    ):
+    async def log_message(self, message: ChatMessage):
         """Log message to all providers."""
         if not self.config.log_messages:
             return
 
         for provider in self.providers:
-            if provider.should_log_agent(name or "no name"):
+            if provider.should_log_agent(message.name or "no name"):
                 self.task_manager.create_task(
                     provider.log_message(
-                        conversation_id=conversation_id,
-                        message_id=message_id,
-                        content=content,
-                        role=role,
-                        name=name,
-                        cost_info=cost_info,
-                        model=model,
-                        response_time=response_time,
-                        forwarded_from=forwarded_from,
+                        conversation_id=message.conversation_id or "",
+                        message_id=message.message_id,
+                        content=str(message.content),
+                        role=message.role,
+                        name=message.name,
+                        cost_info=message.cost_info,
+                        model=message.model_name,
+                        response_time=message.response_time,
+                        forwarded_from=message.forwarded_from,
                     )
                 )
 
