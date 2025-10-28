@@ -124,6 +124,13 @@ class AudioContentBlock(BaseContentBlock):
     """MIME type of the audio."""
 
 
+# Resource links:
+# [@index.js](file:///Users/.../projects/reqwest/examples/wasm_github_fetch/index.js)
+# [@wasm](file:///Users/.../projects/reqwest/src/wasm)
+# [@error](file:///Users/.../projects/reqwest/src/async_impl/client.rs?symbol=Error#L2661:2661)
+# [@error.rs (23:27)](file:///Users/.../projects/reqwest/src/error.rs#L23:27)
+
+
 class ResourceContentBlock(BaseContentBlock):
     """References to resources that the agent can access.
 
