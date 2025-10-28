@@ -31,7 +31,11 @@ class NodeLogger:
         self.conversation_id = str(uuid4())
         # Initialize conversation record if enabled
         if enable_db_logging:
-            self.init_conversation()
+            self.node.context.storage.log_conversation.sync(
+                conversation_id=self.conversation_id,
+                node_name=self.node.name,
+            )
+
             # Connect to the combined signal to capture all messages
             # TODO: need to check this
             # node.message_received.connect(self.log_message)
@@ -46,13 +50,6 @@ class NodeLogger:
 
         return await self.node.context.storage.filter_messages(
             SessionQuery(name=self.conversation_id, limit=limit)
-        )
-
-    def init_conversation(self):
-        """Create initial conversation record."""
-        self.node.context.storage.log_conversation.sync(
-            conversation_id=self.conversation_id,
-            node_name=self.node.name,
         )
 
     def log_message(self, message: ChatMessage):
