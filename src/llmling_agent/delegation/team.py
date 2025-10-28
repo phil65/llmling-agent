@@ -248,7 +248,7 @@ class Team[TDeps](BaseTeam[TDeps, Any]):
             JobError: If job execution fails for any agent
             ValueError: If job configuration is invalid
         """
-        from llmling_agent.agent import Agent, StructuredAgent
+        from llmling_agent.agent import Agent
         from llmling_agent.tasks import JobError
 
         responses: list[AgentResponse[TJobResult]] = []
@@ -279,7 +279,7 @@ class Team[TDeps](BaseTeam[TDeps, Any]):
             prompt = await job.get_prompt()
 
             async def _run(agent: MessageNode[TDeps, TJobResult]):
-                assert isinstance(agent, Agent | StructuredAgent)
+                assert isinstance(agent, Agent)
                 try:
                     with agent.tools.temporary_tools(
                         job.get_tools(), exclusive=not include_agent_tools

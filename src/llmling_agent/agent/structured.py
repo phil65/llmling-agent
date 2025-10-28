@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
-from typing import TYPE_CHECKING, Any, Self, get_type_hints, overload
+from typing import TYPE_CHECKING, Any, get_type_hints, overload
 
 from pydantic import ValidationError
 
@@ -14,24 +14,14 @@ from llmling_agent_config.result_types import StructuredResponseConfig
 
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator, Sequence
-    import os
-    from types import TracebackType
-
     from llmling.config.models import Resource
-    import PIL.Image
-    from toprompt import AnyPromptType
 
     from llmling_agent.agent.agent import Agent
-    from llmling_agent.agent.context import AgentContext
-    from llmling_agent.agent.conversation import ConversationManager
-    from llmling_agent.common_types import ModelType
     from llmling_agent.delegation.base_team import BaseTeam
     from llmling_agent.delegation.team import Team
     from llmling_agent.delegation.teamrun import TeamRun
     from llmling_agent.messaging.messages import ChatMessage
     from llmling_agent.talk.stats import MessageStats
-    from llmling_agent.tools.manager import ToolManager
     from llmling_agent_config.task import Job
     from llmling_agent_providers.callback import ProcessorCallback
 
@@ -103,24 +93,6 @@ class StructuredAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
                 # (overrides don't apply to complete definitions)
                 self._agent.set_result_type(result_type)
 
-    async def __aenter__(self) -> Self:
-        """Enter async context and set up MCP servers.
-
-        Called when agent enters its async context. Sets up any configured
-        MCP servers and their tools.
-        """
-        await self._agent.__aenter__()
-        return self
-
-    async def __aexit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_val: BaseException | None,
-        exc_tb: TracebackType | None,
-    ):
-        """Exit async context."""
-        await self._agent.__aexit__(exc_type, exc_val, exc_tb)
-
     def __and__(
         self, other: Agent[Any, Any] | Team[Any] | ProcessorCallback[TResult]
     ) -> Team[TDeps]:
@@ -128,46 +100,6 @@ class StructuredAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
 
     def __or__(self, other: Agent[Any, Any] | ProcessorCallback | BaseTeam) -> TeamRun:
         return self._agent.__or__(other)
-
-    async def _run(
-        self,
-        *prompt: AnyPromptType | TResult,
-        result_type: type[TResult] | None = None,
-        model: ModelType = None,
-        tool_choice: str | list[str] | None = None,
-        store_history: bool = True,
-        message_id: str | None = None,
-        conversation_id: str | None = None,
-        wait_for_connections: bool | None = None,
-    ) -> ChatMessage[TResult]:
-        """Run with fixed result type.
-
-        Args:
-            prompt: Any prompt-compatible object or structured objects of type TResult
-            result_type: Expected result type:
-                - BaseModel / dataclasses
-                - Name of response definition in manifest
-                - Complete response definition instance
-            model: Optional model override
-            tool_choice: Filter available tools by name
-            store_history: Whether the message exchange should be added to the
-                           context window
-            message_id: Optional message id for the returned message.
-                        Automatically generated if not provided.
-            conversation_id: Optional conversation id for the returned message.
-            wait_for_connections: Whether to wait for all connections to complete
-        """
-        typ = result_type or self._result_type
-        return await self._agent._run(
-            *prompt,
-            result_type=typ,  # type: ignore
-            model=model,
-            store_history=store_history,
-            tool_choice=tool_choice,
-            message_id=message_id,
-            conversation_id=conversation_id,
-            wait_for_connections=wait_for_connections,
-        )
 
     async def validate_against(
         self,
@@ -184,41 +116,8 @@ class StructuredAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         else:
             return True
 
-    def __repr__(self) -> str:
-        type_name = getattr(self._result_type, "__name__", str(self._result_type))
-        return f"StructuredAgent({self._agent!r}, result_type={type_name})"
-
-    def __prompt__(self) -> str:
-        type_name = getattr(self._result_type, "__name__", str(self._result_type))
-        base_info = self._agent.__prompt__()
-        return f"{base_info}\nStructured output type: {type_name}"
-
     def __getattr__(self, name: str) -> Any:
         return getattr(self._agent, name)
-
-    @property
-    def context(self) -> AgentContext[TDeps]:
-        return self._agent.context
-
-    @context.setter
-    def context(self, value: Any):
-        self._agent.context = value
-
-    @property
-    def name(self) -> str:
-        return self._agent.name
-
-    @name.setter
-    def name(self, value: str):
-        self._agent.name = value
-
-    @property
-    def tools(self) -> ToolManager:
-        return self._agent.tools
-
-    @property
-    def conversation(self) -> ConversationManager:
-        return self._agent.conversation
 
     @overload
     def to_structured(
@@ -257,15 +156,6 @@ class StructuredAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
 
     async def get_stats(self) -> MessageStats:
         return await self._agent.get_stats()
-
-    async def run_iter(
-        self,
-        *prompt_groups: Sequence[AnyPromptType | PIL.Image.Image | os.PathLike[str]],
-        **kwargs: Any,
-    ) -> AsyncIterator[ChatMessage[Any]]:
-        """Forward run_iter to wrapped agent."""
-        async for message in self._agent.run_iter(*prompt_groups, **kwargs):
-            yield message
 
     async def run_job(
         self,

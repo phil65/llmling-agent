@@ -9,7 +9,7 @@ from textual.containers import Horizontal, ScrollableContainer
 from textual.message import Message
 from textual.widgets import Static
 
-from llmling_agent import Agent, StructuredAgent
+from llmling_agent import Agent
 from llmling_agent.delegation.base_team import BaseTeam
 
 
@@ -84,7 +84,7 @@ class NodeEntry(Static, can_focus=True):  # type: ignore
             )
             yield Static(self.node.name, classes="name")
             match self.node:
-                case Agent() | StructuredAgent():
+                case Agent():
                     exra = self.node.name
                 case BaseTeam():
                     exra = " | ".join(node.name for node in self.node.agents)

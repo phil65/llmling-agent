@@ -327,12 +327,12 @@ class ToolManager(BaseRegistry[str, Tool]):
             pass_message_history: Whether to pass parent's message history
             parent: Optional parent agent for history/context sharing
         """
-        from llmling_agent import Agent, BaseTeam, StructuredAgent
+        from llmling_agent import Agent, BaseTeam
 
         match worker:
             case BaseTeam():
                 tool = worker.to_tool(name=name)
-            case Agent() | StructuredAgent():
+            case Agent():
                 tool = worker.to_tool(
                     parent=parent,
                     name=name,

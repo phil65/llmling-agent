@@ -12,7 +12,7 @@ from textual.containers import Vertical
 from textual.screen import ModalScreen
 from textual.widgets import Footer, Header
 
-from llmling_agent import Agent, ChatMessage, StructuredAgent
+from llmling_agent import Agent, ChatMessage
 from llmling_agent_commands import get_commands
 from llmling_textual.widgets.agent_is_typing import ResponseStatus
 from llmling_textual.widgets.chat_view import ChatView
@@ -111,7 +111,7 @@ class ChatScreen(ModalScreen[None]):
         """Load conversation history when mounted."""
         chat_view = self.query_one(ChatView)
         # Load existing messages
-        if isinstance(self.node, Agent | StructuredAgent):
+        if isinstance(self.node, Agent):
             for msg in self.node.conversation.chat_messages:
                 await chat_view.append_chat_message(msg)
         else:

@@ -314,7 +314,7 @@ class Talk[TTransmittedData]:
         prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str] | None = None,
     ) -> ChatMessage[Any] | None:
         """Process message for a single target."""
-        from llmling_agent.agent import Agent, StructuredAgent
+        from llmling_agent.agent import Agent
         from llmling_agent.delegation.base_team import BaseTeam
 
         match self.connection_type:
@@ -341,7 +341,7 @@ class Talk[TTransmittedData]:
                         case BaseTeam():
                             # Use distribute for teams
                             await target.distribute(str(message.content), metadata=meta)
-                        case Agent() | StructuredAgent():  # Agent case
+                        case Agent():  # Agent case
                             # Use existing context message approach
                             target.conversation.add_context_message(
                                 str(message.content),

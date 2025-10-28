@@ -368,7 +368,7 @@ class MessageEmitter[TDeps, TResult](ABC):
             store_history: Whether to store in conversation history
             **kwargs: Additional arguments for _run
         """
-        from llmling_agent import Agent, StructuredAgent
+        from llmling_agent import Agent
 
         user_msg, prompts = await self.pre_run(*prompt)
         message = await self._run(
@@ -382,7 +382,7 @@ class MessageEmitter[TDeps, TResult](ABC):
         if len(prompt) == 1 and isinstance(prompt[0], ChatMessage):
             message = message.forwarded(prompt[0])
 
-        if store_history and isinstance(self, Agent | StructuredAgent):
+        if store_history and isinstance(self, Agent):
             self.conversation.add_chat_messages([user_msg, message])
         self.message_sent.emit(message)
         await self.log_message(message)

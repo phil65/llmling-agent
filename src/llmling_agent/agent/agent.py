@@ -607,9 +607,9 @@ class Agent[TDeps = None, TResult = str](MessageNode[TDeps, str]):
         if result_type is None:
             return self
 
-        from llmling_agent.agent import StructuredAgent
+        from llmling_agent.agent import Agent
 
-        return StructuredAgent(
+        return Agent(
             self,
             result_type=result_type,
             tool_name=tool_name,

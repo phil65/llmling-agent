@@ -159,9 +159,9 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
 
     def _on_node_added(self, index: int, node: MessageNode[Any, Any]):
         """Handler for adding nodes to the team."""
-        from llmling_agent.agent import Agent, StructuredAgent
+        from llmling_agent.agent import Agent
 
-        if isinstance(node, Agent | StructuredAgent):
+        if isinstance(node, Agent):
             node.tools.add_provider(self.mcp)
         # TODO: Right now connecting here is not desired since emission means db logging
         # ideally db logging would not rely on the "public" agent signal.
@@ -170,9 +170,9 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
 
     def _on_node_removed(self, index: int, node: MessageNode[Any, Any]):
         """Handler for removing nodes from the team."""
-        from llmling_agent.agent import Agent, StructuredAgent
+        from llmling_agent.agent import Agent
 
-        if isinstance(node, Agent | StructuredAgent):
+        if isinstance(node, Agent):
             node.tools.remove_provider(self.mcp)
         # node.tool_used.disconnect(self.tool_used)
 
@@ -382,13 +382,13 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
 
     def iter_agents(self) -> Iterator[Agent[Any, Any]]:
         """Recursively iterate over all child agents."""
-        from llmling_agent.agent import Agent, StructuredAgent
+        from llmling_agent.agent import Agent
 
         for node in self.agents:
             match node:
                 case BaseTeam():
                     yield from node.iter_agents()
-                case Agent() | StructuredAgent():
+                case Agent():
                     yield node
                 case _:
                     msg = f"Invalid node type: {type(node)}"

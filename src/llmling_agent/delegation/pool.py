@@ -396,11 +396,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
     @property
     def agents(self) -> dict[str, Agent[Any, Any]]:
         """Get agents dict (backward compatibility)."""
-        return {
-            i.name: i
-            for i in self._items.values()
-            if isinstance(i, Agent | StructuredAgent)
-        }
+        return {i.name: i for i in self._items.values() if isinstance(i, Agent)}
 
     @property
     def teams(self) -> dict[str, BaseTeam[Any, Any]]:
