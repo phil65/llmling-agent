@@ -5,8 +5,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
-from psygnal.containers import EventedList
-
 from llmling_agent import log
 from llmling_agent.messaging.message_container import ChatMessageContainer
 from llmling_agent.tools import ToolCallInfo
@@ -34,7 +32,6 @@ class NodeLogger:
         self.enable_db_logging = enable_db_logging
         self.conversation_id = str(uuid4())
         self.message_history = ChatMessageContainer()
-        self.toolcall_history = EventedList[ToolCallInfo]()
         node.message_received.connect(self.message_history.append)
         node.message_sent.connect(self.message_history.append)
         # Initialize conversation record if enabled
@@ -49,17 +46,11 @@ class NodeLogger:
     def clear_state(self):
         """Clear node state."""
         self.message_history.clear()
-        self.toolcall_history.clear()
 
     @property
     def last_message(self) -> ChatMessage[Any] | None:
         """Get last message in history."""
         return self.message_history.last_message
-
-    @property
-    def last_tool_call(self) -> ToolCallInfo | None:
-        """Get last tool call in history."""
-        return self.toolcall_history[-1] if self.toolcall_history else None
 
     def init_conversation(self):
         """Create initial conversation record."""
@@ -86,8 +77,6 @@ class NodeLogger:
 
     def log_tool_call(self, tool_call: ToolCallInfo):
         """Handle tool usage signal."""
-        self.toolcall_history.append(tool_call)
-
         if not self.enable_db_logging:
             return
         self.node.context.storage.log_tool_call_sync(

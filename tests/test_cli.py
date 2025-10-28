@@ -82,7 +82,6 @@ def test_set_agent_command(mock_store: mock.MagicMock, config_file: Path):
     """Test that set command runs."""
     # Configure mock to simulate existing config
     mock_store.get_config.return_value = str(config_file)
-
     result = runner.invoke(agent_cli, ["set", "test"])
     assert result.exit_code == 0
     assert "Set 'test' as active" in result.stdout
