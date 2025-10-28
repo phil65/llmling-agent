@@ -176,7 +176,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
             # Add MCP server if configured
             if self.server:
                 components.append(self.server)
-
+            components.append(self.storage)
             # Initialize all components
             if self.parallel_load:
                 await asyncio.gather(
