@@ -16,6 +16,7 @@ import inspect
 import logging
 from typing import TYPE_CHECKING, Any, Self
 
+from anyenv import MultiEventHandler
 from pydantic_ai import (
     RunContext,  # noqa: TC002
     ToolReturn,
@@ -97,7 +98,9 @@ class MCPClient:
     ):
         self._elicitation_callback = elicitation_callback
         self._sampling_callback = sampling_callback
-        self._progress_handler = progress_handler
+        self._progress_handler = MultiEventHandler[ContextualProgressHandler](
+            handlers=[progress_handler] if progress_handler else []
+        )
         # Store message handler or mark for lazy creation
         self._message_handler = message_handler
         self._accessible_roots = accessible_roots or []
@@ -367,10 +370,9 @@ class MCPClient:
         async def fastmcp_progress_handler(
             progress: float, total: float | None, message: str | None
         ):
-            if self._progress_handler:
-                await self._progress_handler(
-                    progress, total, message, tool_name, tool_call_id, tool_input
-                )
+            await self._progress_handler(
+                progress, total, message, tool_name, tool_call_id, tool_input
+            )
 
         return fastmcp_progress_handler
 
