@@ -1080,7 +1080,7 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
         """
         # Share tools if requested
         for name in tools or []:
-            if tool := self.tools.get(name):
+            if tool := await self.tools.get_tool(name):
                 meta = {"shared_from": self.name}
                 target.tools.register_tool(tool.callable, metadata=meta)
             else:

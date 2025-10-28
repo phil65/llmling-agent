@@ -36,8 +36,6 @@ async def main():
     )
 
     async with agent:
-        print(f"📋 Agent created with tools: {list(agent.tools.keys())}")
-
         # Code with actual bugs
         buggy_code = 'prin("hello world"'
 
