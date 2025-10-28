@@ -10,10 +10,11 @@ seamlessly with PydanticAI's RunContext while providing rich progress informatio
 
 from __future__ import annotations
 
+from collections.abc import Callable
 import contextlib
 import inspect
 import logging
-from typing import TYPE_CHECKING, Any, Protocol, Self
+from typing import TYPE_CHECKING, Any, Self
 
 from pydantic_ai import (
     RunContext,  # noqa: TC002
@@ -31,19 +32,17 @@ from llmling_agent.mcp_server.helpers import (
 )
 
 
-class ContextualProgressHandler(Protocol):
-    """Progress handler that includes tool execution context."""
-
-    async def __call__(
-        self,
-        progress: float,
-        total: float | None,
-        message: str | None,
-        tool_name: str | None = None,
-        tool_call_id: str | None = None,
-        tool_input: dict[str, Any] | None = None,
-    ) -> None: ...
-
+type ContextualProgressHandler = Callable[
+    [
+        float,  # progress
+        float | None,  # total
+        str | None,  # message
+        str | None,  # tool_name
+        str | None,  # tool_call_id
+        dict[str, Any] | None,  # tool_input
+    ],
+    Any,  # Supports both sync (None) and async (Awaitable[None]) returns
+]
 
 if TYPE_CHECKING:
     from types import TracebackType
