@@ -1119,6 +1119,7 @@
         "timeout": {
           "anyOf": [
             {
+              "minimum": 0,
               "type": "number"
             },
             {
@@ -2901,6 +2902,36 @@
             {
               "format": "path",
               "type": "string"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "path": {
+                  "title": "Path",
+                  "type": "string"
+                },
+                "protocol": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Protocol"
+                },
+                "storage_options": {
+                  "additionalProperties": true,
+                  "title": "Storage Options",
+                  "type": "object"
+                }
+              },
+              "required": [
+                "path"
+              ],
+              "type": "object"
             }
           ],
           "description": "Path to the file containing the prompt content.",
@@ -3023,12 +3054,6 @@
           "default": true,
           "description": "Whether to log conversations",
           "title": "Log Conversations",
-          "type": "boolean"
-        },
-        "log_tool_calls": {
-          "default": true,
-          "description": "Whether to log tool calls",
-          "title": "Log Tool Calls",
           "type": "boolean"
         },
         "log_commands": {
@@ -3259,12 +3284,14 @@
         "timeout": {
           "default": 30,
           "description": "Maximum time in seconds to wait for operations",
+          "minimum": 0,
           "title": "Timeout",
           "type": "integer"
         },
         "max_retries": {
           "default": 3,
           "description": "Maximum number of retries for failed operations",
+          "minimum": 0,
           "title": "Max Retries",
           "type": "integer"
         },
@@ -3279,6 +3306,9 @@
         "pip_index_url": {
           "anyOf": [
             {
+              "format": "uri",
+              "maxLength": 2083,
+              "minLength": 1,
               "type": "string"
             },
             {
@@ -4956,12 +4986,6 @@
           "title": "Log Conversations",
           "type": "boolean"
         },
-        "log_tool_calls": {
-          "default": true,
-          "description": "Whether to log tool calls",
-          "title": "Log Tool Calls",
-          "type": "boolean"
-        },
         "log_commands": {
           "default": true,
           "description": "Whether to log command executions",
@@ -5113,12 +5137,6 @@
           "default": true,
           "description": "Whether to log conversations",
           "title": "Log Conversations",
-          "type": "boolean"
-        },
-        "log_tool_calls": {
-          "default": true,
-          "description": "Whether to log tool calls",
-          "title": "Log Tool Calls",
           "type": "boolean"
         },
         "log_commands": {
@@ -6201,39 +6219,6 @@
       "title": "PromptParameter",
       "type": "object"
     },
-    "PromptToolkitUIConfig": {
-      "additionalProperties": false,
-      "description": "Configuration for prompt-toolkit interface.",
-      "properties": {
-        "type": {
-          "const": "prompt",
-          "default": "prompt",
-          "description": "Prompt-toolkit interface.",
-          "title": "Type",
-          "type": "string"
-        },
-        "trigger": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/TriggerConfig"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Optional trigger configuration to run on startup."
-        },
-        "stream": {
-          "default": true,
-          "description": "Enable response streaming.",
-          "title": "Stream",
-          "type": "boolean"
-        }
-      },
-      "title": "PromptToolkitUIConfig",
-      "type": "object"
-    },
     "PydanticAIProviderConfig": {
       "additionalProperties": false,
       "description": "Configuration for PydanticAI-based provider.\n\nThis provider uses PydanticAI for handling model interactions, tool calls,\nand structured outputs. It provides fine-grained control over model behavior\nand validation.",
@@ -6528,12 +6513,6 @@
           "default": true,
           "description": "Whether to log conversations",
           "title": "Log Conversations",
-          "type": "boolean"
-        },
-        "log_tool_calls": {
-          "default": true,
-          "description": "Whether to log tool calls",
-          "title": "Log Tool Calls",
           "type": "boolean"
         },
         "log_commands": {
@@ -7339,62 +7318,6 @@
       "title": "StdioMCPServerConfig",
       "type": "object"
     },
-    "StdlibUIConfig": {
-      "additionalProperties": false,
-      "description": "Configuration for basic CLI interface.",
-      "properties": {
-        "type": {
-          "const": "cli",
-          "default": "cli",
-          "description": "Basic CLI interface.",
-          "title": "Type",
-          "type": "string"
-        },
-        "trigger": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/TriggerConfig"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Optional trigger configuration to run on startup."
-        },
-        "show_messages": {
-          "default": true,
-          "description": "Show all messages or just final responses.",
-          "title": "Show Messages",
-          "type": "boolean"
-        },
-        "detail_level": {
-          "default": "simple",
-          "description": "Output detail level.",
-          "enum": [
-            "simple",
-            "detailed",
-            "markdown"
-          ],
-          "title": "Detail Level",
-          "type": "string"
-        },
-        "show_metadata": {
-          "default": false,
-          "description": "Show message metadata.",
-          "title": "Show Metadata",
-          "type": "boolean"
-        },
-        "show_costs": {
-          "default": false,
-          "description": "Show token usage and costs.",
-          "title": "Show Costs",
-          "type": "boolean"
-        }
-      },
-      "title": "StdlibUIConfig",
-      "type": "object"
-    },
     "StorageConfig": {
       "additionalProperties": false,
       "description": "Global storage configuration.",
@@ -7491,12 +7414,6 @@
           "default": true,
           "description": "Whether to log conversations.",
           "title": "Log Conversations",
-          "type": "boolean"
-        },
-        "log_tool_calls": {
-          "default": true,
-          "description": "Whether to log tool calls.",
-          "title": "Log Tool Calls",
           "type": "boolean"
         },
         "log_commands": {
@@ -7983,12 +7900,6 @@
           "title": "Log Conversations",
           "type": "boolean"
         },
-        "log_tool_calls": {
-          "default": true,
-          "description": "Whether to log tool calls",
-          "title": "Log Tool Calls",
-          "type": "boolean"
-        },
         "log_commands": {
           "default": true,
           "description": "Whether to log command executions",
@@ -8122,33 +8033,6 @@
         "content"
       ],
       "title": "TextResource",
-      "type": "object"
-    },
-    "TextualUIConfig": {
-      "additionalProperties": false,
-      "description": "Configuration for Textual TUI interface.",
-      "properties": {
-        "type": {
-          "const": "textual",
-          "default": "textual",
-          "description": "Textual terminal UI.",
-          "title": "Type",
-          "type": "string"
-        },
-        "trigger": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/TriggerConfig"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Optional trigger configuration to run on startup."
-        }
-      },
-      "title": "TextualUIConfig",
       "type": "object"
     },
     "TimeCondition": {
@@ -8526,37 +8410,6 @@
         }
       },
       "title": "TraceloopConfig",
-      "type": "object"
-    },
-    "TriggerConfig": {
-      "additionalProperties": false,
-      "description": "Configuration for initial trigger on UI startup.",
-      "properties": {
-        "node_name": {
-          "description": "Name of the node (agent/team) to trigger.",
-          "title": "Node Name",
-          "type": "string"
-        },
-        "prompts": {
-          "description": "Prompts to send.",
-          "items": {
-            "type": "string"
-          },
-          "title": "Prompts",
-          "type": "array"
-        },
-        "exit_after": {
-          "default": false,
-          "description": "Whether to exit after trigger completes.",
-          "title": "Exit After",
-          "type": "boolean"
-        }
-      },
-      "required": [
-        "node_name",
-        "prompts"
-      ],
-      "title": "TriggerConfig",
       "type": "object"
     },
     "UnionResourceConfig": {
@@ -9385,29 +9238,6 @@
       "description": "Resource configurations defining available filesystems.\n\nSupports both full config and URI shorthand:\n    resources:\n      docs: \"file://./docs\"  # shorthand\n      data:  # full config\n        type: \"source\"\n        uri: \"s3://bucket/data\"\n        cached: true",
       "title": "Resources",
       "type": "object"
-    },
-    "ui": {
-      "description": "UI configuration.",
-      "discriminator": {
-        "mapping": {
-          "cli": "#/$defs/StdlibUIConfig",
-          "prompt": "#/$defs/PromptToolkitUIConfig",
-          "textual": "#/$defs/TextualUIConfig"
-        },
-        "propertyName": "type"
-      },
-      "oneOf": [
-        {
-          "$ref": "#/$defs/StdlibUIConfig"
-        },
-        {
-          "$ref": "#/$defs/PromptToolkitUIConfig"
-        },
-        {
-          "$ref": "#/$defs/TextualUIConfig"
-        }
-      ],
-      "title": "Ui"
     },
     "agents": {
       "additionalProperties": {
