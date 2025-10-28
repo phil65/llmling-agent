@@ -7,7 +7,6 @@ from llmling_agent.messaging.messages import (
     AgentResponse,
     TeamResponse,
 )
-from llmling_agent.messaging.node_logger import NodeLogger
 from llmling_agent.messaging.message_container import ChatMessageContainer
 from llmling_agent.messaging.event_manager import EventManager
 from llmling_agent.messaging.messagenode import MessageNode
@@ -18,7 +17,6 @@ __all__ = [
     "ChatMessageContainer",
     "EventManager",
     "MessageNode",
-    "NodeLogger",
     "TeamResponse",
     "TokenCost",
     "TokenUsage",

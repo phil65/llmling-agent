@@ -115,7 +115,7 @@ class ChatScreen(ModalScreen[None]):
             for msg in self.node.conversation.chat_messages:
                 await chat_view.append_chat_message(msg)
         else:
-            messages = await self.node._logger.get_message_history()
+            messages = await self.node.get_message_history()
             for msg in messages:
                 await chat_view.append_chat_message(msg)
         # Focus input

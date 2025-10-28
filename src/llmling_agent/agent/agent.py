@@ -1162,7 +1162,7 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
 
     async def get_stats(self) -> MessageStats:
         """Get message statistics (async version)."""
-        messages = await self._logger.get_message_history()
+        messages = await self.get_message_history()
         return MessageStats(messages=messages)
 
     @asynccontextmanager

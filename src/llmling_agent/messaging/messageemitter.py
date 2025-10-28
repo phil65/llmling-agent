@@ -65,7 +65,6 @@ class MessageEmitter[TDeps, TResult](ABC):
         from llmling_agent.mcp_server.manager import MCPManager
         from llmling_agent.messaging.connection_manager import ConnectionManager
         from llmling_agent.messaging.event_manager import EventManager
-        from llmling_agent.messaging.node_logger import NodeLogger
 
         self.task_manager = TaskManager()
         self._name = name or self.__class__.__name__
@@ -75,7 +74,19 @@ class MessageEmitter[TDeps, TResult](ABC):
         servers = mcp_servers or []
         name = f"node_{self._name}"
         self.mcp = MCPManager(name, servers=servers, context=context, owner=self.name)
-        self._logger = NodeLogger(self, enable_db_logging=enable_logging)
+        self.enable_db_logging = enable_logging
+        self.conversation_id = str(uuid4())
+        # Initialize conversation record if enabled
+        if enable_logging:
+            self.context.storage.log_conversation.sync(
+                conversation_id=self.conversation_id,
+                node_name=self.name,
+            )
+
+            # Connect to the combined signal to capture all messages
+            # TODO: need to check this
+            # node.message_received.connect(self.log_message)
+            self.message_sent.connect(self.log_message)
 
     async def __aenter__(self) -> Self:
         """Initialize base message node."""
@@ -385,3 +396,29 @@ class MessageEmitter[TDeps, TResult](ABC):
         **kwargs: Any,
     ) -> Coroutine[None, None, ChatMessage[TResult]]:
         """Implementation-specific run logic."""
+
+    async def get_message_history(self, limit: int | None = None) -> list[ChatMessage]:
+        """Get message history from storage."""
+        if not self.enable_db_logging:
+            return []  # No history if not logging
+
+        from llmling_agent_config.session import SessionQuery
+
+        query = SessionQuery(name=self.conversation_id, limit=limit)
+        return await self.context.storage.filter_messages(query)
+
+    def log_message(self, message: ChatMessage):
+        """Handle message from chat signal."""
+        if not self.enable_db_logging:
+            return
+        self.context.storage.log_message.sync(
+            message_id=message.message_id,
+            conversation_id=message.conversation_id or "",
+            content=str(message.content),
+            role=message.role,
+            name=message.name,
+            cost_info=message.cost_info,
+            model=message.model,
+            response_time=message.response_time,
+            forwarded_from=message.forwarded_from,
+        )

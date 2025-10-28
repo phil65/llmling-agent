@@ -130,7 +130,7 @@ class EventNode[TEventData](MessageEmitter[None, TEventData]):
 
     async def get_stats(self) -> MessageStats:
         """Get message statistics (async version)."""
-        messages = await self._logger.get_message_history()
+        messages = await self.get_message_history()
         return MessageStats(messages=messages)
 
     async def _run(self, *content: Any, **kwargs: Any) -> ChatMessage[TEventData]:
