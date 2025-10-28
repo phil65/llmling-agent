@@ -30,7 +30,6 @@ classifiers = [
 ]
 dependencies = [
   "aioitertools>=0.12.0",
-  "aiosqlite",
   "anyenv[httpx]>=0.3.0",
   "bigtree>=0.23.1",
   "fastmcp>=2.12.4",
@@ -49,8 +48,7 @@ dependencies = [
   "python-dotenv>=1.0.1",
   "schemez>=0.0.1",
   "slashed>=0.1.0",
-  # "aiosqlite>=0.19.0",
-  "sqlalchemy[asyncio]",
+  "sqlalchemy[aiosqlite]",
   "sqlmodel>=0.0.22",
   "tokonomics>=0.1.2",
   "toprompt>=0.0.1",
