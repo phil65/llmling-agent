@@ -259,10 +259,10 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
                 # Everything else just becomes a member
                 return Team([*self.agents, other])
 
-    @property
-    def stats(self) -> AggregatedMessageStats:
+    async def get_stats(self) -> AggregatedMessageStats:
         """Get aggregated stats from all team members."""
-        return AggregatedMessageStats(stats=[agent.stats for agent in self.agents])
+        stats = [await agent.get_stats() for agent in self.agents]
+        return AggregatedMessageStats(stats=stats)
 
     @property
     def is_running(self) -> bool:

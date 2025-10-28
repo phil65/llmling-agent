@@ -58,7 +58,7 @@ The AggregatedTalkStats object provides execution metrics and history:
 
 ```python
 # Access during or after run
-stats = run.stats
+stats = await run.get_stats()
 
 # Message information
 stats.messages         # All messages exchanged

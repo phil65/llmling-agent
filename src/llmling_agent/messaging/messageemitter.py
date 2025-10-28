@@ -32,7 +32,6 @@ if TYPE_CHECKING:
     from llmling_agent.messaging.messagenode import MessageNode
     from llmling_agent.models.content import Content
     from llmling_agent.talk import Talk, TeamTalk
-    from llmling_agent.talk.stats import AggregatedMessageStats, MessageStats
     from llmling_agent_config.forward_targets import ConnectionType
     from llmling_agent_config.mcp_server import MCPServerConfig
     from llmling_agent_config.providers import ProcessorCallback
@@ -100,12 +99,6 @@ class MessageEmitter[TDeps, TResult](ABC):
         await self._events.cleanup()
         await self.mcp.__aexit__(exc_type, exc_val, exc_tb)
         await self.task_manager.cleanup_tasks()
-
-    @property
-    @abstractmethod
-    def stats(self) -> MessageStats | AggregatedMessageStats:
-        """Get stats for this node."""
-        raise NotImplementedError
 
     @property
     def connection_stats(self) -> AggregatedTalkStats:

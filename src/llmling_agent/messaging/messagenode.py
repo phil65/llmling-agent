@@ -24,6 +24,7 @@ if TYPE_CHECKING:
     from toprompt import AnyPromptType
 
     from llmling_agent.models.content import Content
+    from llmling_agent.talk.stats import AggregatedMessageStats, MessageStats
 
 
 class MessageNode[TDeps, TResult](MessageEmitter[TDeps, TResult]):
@@ -121,6 +122,10 @@ class MessageNode[TDeps, TResult](MessageEmitter[TDeps, TResult]):
         self.message_sent.emit(message)
         await self.connections.route_message(message, wait=wait_for_connections)
         return message
+
+    @abstractmethod
+    async def get_stats(self) -> MessageStats | AggregatedMessageStats:
+        """Get message statistics for this node."""
 
     @abstractmethod
     def run_iter(

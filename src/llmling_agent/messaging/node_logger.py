@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 from llmling_agent import log
-from llmling_agent.messaging.message_container import ChatMessageContainer
 
 
 if TYPE_CHECKING:
@@ -30,9 +29,6 @@ class NodeLogger:
         self.node = node
         self.enable_db_logging = enable_db_logging
         self.conversation_id = str(uuid4())
-        self.message_history = ChatMessageContainer()
-        node.message_received.connect(self.message_history.append)
-        node.message_sent.connect(self.message_history.append)
         # Initialize conversation record if enabled
         if enable_db_logging:
             self.init_conversation()
@@ -41,9 +37,26 @@ class NodeLogger:
             # node.message_received.connect(self.log_message)
             node.message_sent.connect(self.log_message)
 
-    def clear_state(self):
+    async def clear_state(self):
         """Clear node state."""
-        self.message_history.clear()
+        if self.enable_db_logging:
+            await self.node.context.storage.reset(agent_name=self.node.name, hard=False)
+
+    async def get_message_history(self, limit: int | None = None) -> list[ChatMessage]:
+        """Get message history from storage."""
+        if not self.enable_db_logging:
+            return []  # No history if not logging
+
+        from llmling_agent_config.session import SessionQuery
+
+        return await self.node.context.storage.filter_messages(
+            SessionQuery(name=self.conversation_id, limit=limit)
+        )
+
+    async def get_last_message(self) -> ChatMessage | None:
+        """Get last message from storage."""
+        recent = await self.get_message_history(limit=1)
+        return recent[0] if recent else None
 
     def init_conversation(self):
         """Create initial conversation record."""

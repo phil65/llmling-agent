@@ -256,9 +256,8 @@ class StructuredAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
             tool_description=tool_description,
         )
 
-    @property
-    def stats(self) -> MessageStats:
-        return self._agent.stats
+    async def get_stats(self) -> MessageStats:
+        return await self._agent.get_stats()
 
     async def run_iter(
         self,

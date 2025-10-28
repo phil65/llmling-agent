@@ -144,7 +144,7 @@ run.name    # Team name (defaults to concatenated agent names)
 
 # Check execution state
 run.is_running  # Whether execution is active
-run.stats      # Current execution statistics
+await run.get_stats()  # Current execution statistics
 ```
 
 ## Team Statistics
@@ -152,7 +152,7 @@ run.stats      # Current execution statistics
 The `stats` property provides aggregated information about the execution:
 
 ```python
-stats = run.stats
+stats = await run.get_stats()
 
 # Basic information
 print(f"Team: {stats.source_names} → {stats.target_names}")

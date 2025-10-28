@@ -1171,9 +1171,10 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
         """Set runtime configuration and update context."""
         self.context.runtime = value
 
-    @property
-    def stats(self) -> MessageStats:
-        return MessageStats(messages=self._logger.message_history)
+    async def get_stats(self) -> MessageStats:
+        """Get message statistics (async version)."""
+        messages = await self._logger.get_message_history()
+        return MessageStats(messages=messages)
 
     @asynccontextmanager
     async def temporary_state(
