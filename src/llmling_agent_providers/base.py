@@ -45,7 +45,7 @@ class ProviderResponse:
     tool_calls: list[ToolCallInfo] = field(default_factory=list)
     model_name: str = ""
     cost_and_usage: TokenCost | None = None
-    provider_extra: dict[str, Any] | None = None
+    provider_details: dict[str, Any] | None = None
 
 
 @dataclass

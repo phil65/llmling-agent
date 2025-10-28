@@ -757,7 +757,7 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
                 tool_calls=result.tool_calls,
                 cost_info=result.cost_and_usage,
                 response_time=time.perf_counter() - start_time,
-                provider_extra=result.provider_extra or {},
+                provider_details=result.provider_details or {},
             )
             if self._debug:
                 import devtools

@@ -201,7 +201,7 @@ class ChatMessage[TContent]:
     forwarded_from: list[str] = field(default_factory=list)
     """List of agent names (the chain) that forwarded this message to the sender."""
 
-    provider_extra: dict[str, Any] = field(default_factory=dict)
+    provider_details: dict[str, Any] = field(default_factory=dict)
     """Provider specific metadata / extra information."""
 
     @classmethod
