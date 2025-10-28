@@ -68,7 +68,6 @@ agent.message_received.connect(handle_message)
 
 # Tool and model signals
 agent.tool_used.connect(handle_tool)
-agent.chunk_streamed.connect(handle_chunk)  # For streaming
 ```
 
 ## Continuous Operation

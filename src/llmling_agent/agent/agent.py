@@ -140,7 +140,6 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
 
     # this fixes weird mypy issue
     talk: Interactions
-    chunk_streamed = Signal(str, str)  # (chunk, message_id)
     run_failed = Signal(str, Exception)
     agent_reset = Signal(AgentReset)
 
@@ -831,7 +830,6 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
                 match event:
                     case PartDeltaEvent(delta=TextPartDelta(content_delta=delta)):
                         chunks.append(delta)
-                        self.chunk_streamed.emit(delta, message_id)
                         yield event  # Pass through original event
                     case AgentRunResultEvent(result=result):
                         usage = result.usage()

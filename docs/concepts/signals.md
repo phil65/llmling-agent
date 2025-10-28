@@ -44,7 +44,6 @@ The main Agent class provides signals for monitoring core agent activities:
 message_received = Signal(ChatMessage[str])  # New message received
 message_sent = Signal(ChatMessage)           # Agent sent a message
 tool_used = Signal(ToolCallInfo)            # Tool was called
-chunk_streamed = Signal(str, str)           # Streaming chunk was emitted (chunk, message_id)
 run_failed = Signal(str, Exception)         # Run operation failed
 agent_reset = Signal(AgentReset)            # Agent state was reset
 ```
@@ -55,7 +54,6 @@ Base provider signals:
 
 ```python
 tool_used = Signal(ToolCallInfo)        # Tool execution
-chunk_streamed = Signal(str, str)       # Streaming response chunk
 ```
 
 ## Conversation Manager Signals
@@ -86,7 +84,6 @@ class ConsoleUI:
         # Core agent activity
         agent.message_sent.connect(self.display_message)
         agent.tool_used.connect(self.display_tool_usage)
-        agent.chunk_streamed.connect(self.display_chunk)
 
         # Tool management
         agent.tools.events.added.connect(self.update_tool_display)
