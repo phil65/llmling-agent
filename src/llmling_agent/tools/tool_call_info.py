@@ -92,9 +92,6 @@ class ToolCallInfo(Schema):
     message_id: str | None = None
     """ID of the message that triggered this tool call."""
 
-    context_data: Any | None = None
-    """Optional context data that was passed to the agent's run() method."""
-
     error: str | None = None
     """Error message if the tool call failed."""
 

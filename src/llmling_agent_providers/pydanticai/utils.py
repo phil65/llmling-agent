@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, overload
+from typing import TYPE_CHECKING, overload
 from uuid import uuid4
 
 import anyenv
@@ -74,7 +74,6 @@ def get_tool_calls(
     messages: list[ModelMessage],
     tools: dict[str, Tool] | None = None,
     agent_name: str | None = None,
-    context_data: Any | None = None,
 ) -> list[ToolCallInfo]:
     """Extract tool call information from messages.
 
@@ -82,7 +81,6 @@ def get_tool_calls(
         messages: Messages from captured run
         tools: Original Tool set to enrich ToolCallInfos with additional info
         agent_name: Name of the caller
-        context_data: Optional context data to attach to tool calls
     """
     tools = tools or {}
     parts = [part for message in messages for part in message.parts]
@@ -97,7 +95,6 @@ def get_tool_calls(
             part,
             tools.get(part.tool_name),
             agent_name=agent_name,
-            context_data=context_data,
         )
         for part in parts
         if isinstance(part, ToolReturnPart) and part.tool_call_id in call_parts
@@ -109,7 +106,6 @@ def parts_to_tool_call_info(
     return_part: ToolReturnPart,
     tool_info: Tool | None,
     agent_name: str | None = None,
-    context_data: Any | None = None,
 ) -> ToolCallInfo:
     """Convert matching tool call and return parts into a ToolCallInfo."""
     return ToolCallInfo(
@@ -119,7 +115,6 @@ def parts_to_tool_call_info(
         result=return_part.content,
         tool_call_id=call_part.tool_call_id or str(uuid4()),
         timestamp=return_part.timestamp,
-        context_data=context_data,
         agent_tool_name=tool_info.agent_name if tool_info else None,
     )
 

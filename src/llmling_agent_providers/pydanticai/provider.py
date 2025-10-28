@@ -283,9 +283,6 @@ class PydanticAIProvider(AgentProvider[Any]):
                         call, tool_dict, message_id
                     )
                     tool_call_info.message_id = message_id
-                    tool_call_info.context_data = (
-                        self._context.data if self._context else None
-                    )
 
                     self.tool_used.emit(tool_call_info)
 
@@ -332,7 +329,6 @@ class PydanticAIProvider(AgentProvider[Any]):
             tool_calls = get_tool_calls(new_msgs, tool_dict, agent_name=self.name)
             for call in tool_calls:
                 call.message_id = message_id
-                call.context_data = self._context.data if self._context else None
 
             # Get the actual model name from pydantic-ai response
             resolved_model = result.response.model_name or ""
@@ -414,7 +410,6 @@ class PydanticAIProvider(AgentProvider[Any]):
             agent_name=self.name,
             tool_call_id=tool_part.tool_call_id,
             message_id=message_id,
-            context_data=self._context.data if self._context else None,
         )
 
     async def stream_events[TResult = str](
