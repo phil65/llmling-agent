@@ -61,7 +61,7 @@ class NodeLogger:
             return
         self.node.context.storage.log_message.sync(
             message_id=message.message_id,
-            conversation_id=message.conversation_id,
+            conversation_id=message.conversation_id or "",
             content=str(message.content),
             role=message.role,
             name=message.name,

@@ -406,7 +406,7 @@ class AgentsManifest(Schema):
                     sys_prompts.append(content)
                 case LibraryPromptConfig(reference=reference):
                     try:  # Load from library
-                        content = self.prompt_manager.get_sync(reference)
+                        content = self.prompt_manager.get.sync(reference)
                         sys_prompts.append(content)
                     except Exception as e:
                         msg = (

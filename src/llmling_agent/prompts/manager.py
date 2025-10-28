@@ -5,6 +5,8 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING, Any
 
+from anyenv import method_spawner
+
 from llmling_agent.log import get_logger
 from llmling_agent.prompts.builtin_provider import BuiltinPromptProvider
 from llmling_agent.utils.tasks import TaskManager
@@ -147,6 +149,7 @@ class PromptManager:
             msg = f"Failed to get prompt {identifier!r} from {provider_name}"
             raise RuntimeError(msg) from e
 
+    @method_spawner
     async def get(self, reference: str) -> str:
         """Get a prompt using identifier syntax.
 
@@ -162,19 +165,6 @@ class PromptManager:
         provider_name, id_, version, vars_ = parse_prompt_reference(reference)
         prov = provider_name if provider_name != "builtin" else None
         return await self.get_from(id_, provider=prov, version=version, variables=vars_)
-
-    def get_sync(self, reference: str) -> str:
-        """Synchronous wrapper for get().
-
-        Note: This is a temporary solution for initialization contexts.
-        Should be used only when async operation is not possible.
-        """
-        try:
-            loop = asyncio.get_running_loop()
-            return loop.run_until_complete(self.get(reference))
-        except RuntimeError:
-            # No running loop - create new one
-            return asyncio.run(self.get(reference))
 
     async def list_prompts(self, provider: str | None = None) -> dict[str, list[str]]:
         """List available prompts.
