@@ -5,6 +5,7 @@ from __future__ import annotations
 from unittest.mock import MagicMock
 
 from anyenv.process_manager import ProcessManager, ProcessOutput
+from pydantic_ai import RunContext
 import pytest
 
 from llmling_agent.agent.context import AgentContext
@@ -312,8 +313,6 @@ async def test_list_general_error(mock_context):
 
 async def test_runcontext_handling():
     """Test that tools handle PydanticAI RunContext correctly."""
-    from pydantic_ai.tools import RunContext
-
     # Create mock RunContext
     mock_deps = MagicMock()
     mock_deps.process_manager = MagicMock()

@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from llmling_agent_config.providers import ProcessorCallback
     from llmling_agent_providers.base import UsageLimits
 
-from pydantic_ai.messages import PartDeltaEvent, TextPartDelta
+from pydantic_ai import PartDeltaEvent, TextPartDelta
 
 from llmling_agent.agent.agent import StreamCompleteEvent
 
@@ -99,8 +99,12 @@ class CallbackProvider(AgentProvider[None]):
         **kwargs: Any,
     ) -> AsyncIterator[Any]:
         """Stream response events - simulate streaming by yielding complete result."""
-        from pydantic_ai.messages import PartStartEvent, TextPart
-        from pydantic_ai.run import AgentRunResult, AgentRunResultEvent
+        from pydantic_ai import (
+            AgentRunResult,
+            AgentRunResultEvent,
+            PartStartEvent,
+            TextPart,
+        )
 
         try:
             # Emit start event

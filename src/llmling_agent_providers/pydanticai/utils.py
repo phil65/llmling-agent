@@ -6,13 +6,13 @@ from typing import TYPE_CHECKING, Any, overload
 from uuid import uuid4
 
 import anyenv
-from pydantic_ai import messages as _messages
-from pydantic_ai.messages import (
+from pydantic_ai import (
     ModelRequest,
     SystemPromptPart,
     ToolCallPart,
     ToolReturnPart,
     UserPromptPart,
+    messages as _messages,
 )
 
 from llmling_agent.models.content import BaseContent
@@ -22,13 +22,13 @@ from llmling_agent.tools import ToolCallInfo
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
+    from pydantic_ai import ModelMessage, UserContent
     from pydantic_ai.mcp import (
         MCPServer,
         MCPServerSSE,
         MCPServerStdio,
         MCPServerStreamableHTTP,
     )
-    from pydantic_ai.messages import ModelMessage, UserContent
 
     from llmling_agent.messaging.messages import ChatMessage
     from llmling_agent.models.content import Content

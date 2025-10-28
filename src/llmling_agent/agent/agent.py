@@ -15,6 +15,7 @@ from anyenv import MultiEventHandler, method_spawner
 from llmling import Config, RuntimeConfig, ToolError
 import logfire
 from psygnal import Signal
+from pydantic_ai import AgentRunResultEvent, PartDeltaEvent, TextPartDelta
 from upath import UPath
 
 from llmling_agent.agent.events import StreamCompleteEvent
@@ -43,7 +44,7 @@ if TYPE_CHECKING:
     from llmling.config.models import Resource
     from llmling.prompts import PromptType
     import PIL.Image
-    from pydantic_ai.messages import AgentStreamEvent
+    from pydantic_ai import AgentStreamEvent
     from toprompt import AnyPromptType
     from upath.types import JoinablePathLike
 
@@ -830,9 +831,6 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
                 usage_limits=usage_limits,
                 system_prompt=sys_prompt,
             ):
-                from pydantic_ai.messages import PartDeltaEvent, TextPartDelta
-                from pydantic_ai.run import AgentRunResultEvent
-
                 # Pass through PydanticAI events and collect chunks
                 match event:
                     case PartDeltaEvent(delta=TextPartDelta(content_delta=delta)):

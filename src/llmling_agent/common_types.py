@@ -3,13 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
-from typing import (
-    Any,
-    ClassVar,
-    Literal,
-    get_args,
-    get_origin,
-)
+from typing import Any, ClassVar, Literal, get_args, get_origin
 from uuid import UUID
 
 from llmling import LLMCallableTool

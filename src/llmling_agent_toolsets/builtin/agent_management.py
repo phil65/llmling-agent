@@ -8,8 +8,7 @@ from typing import TYPE_CHECKING, Any, Literal
 from uuid import uuid4
 
 from llmling import ToolError
-from pydantic_ai.exceptions import ModelRetry
-from pydantic_ai.tools import RunContext
+from pydantic_ai import ModelRetry, RunContext
 
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.log import get_logger

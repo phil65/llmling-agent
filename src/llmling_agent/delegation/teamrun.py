@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     import os
 
     import PIL.Image
-    from pydantic_ai.messages import AgentStreamEvent
+    from pydantic_ai import AgentStreamEvent
     from toprompt import AnyPromptType
 
     from llmling_agent import MessageNode
@@ -278,7 +278,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
             Tuples of (agent, event) where agent is the Agent instance
             and event is the streaming event.
         """
-        from pydantic_ai.messages import PartDeltaEvent, TextPartDelta
+        from pydantic_ai import PartDeltaEvent, TextPartDelta
 
         from llmling_agent.agent.agent import StreamCompleteEvent
 

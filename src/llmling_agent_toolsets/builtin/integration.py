@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Literal
 
-from pydantic_ai.tools import RunContext
+from pydantic_ai import RunContext
 
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.resource_providers.base import ResourceProvider

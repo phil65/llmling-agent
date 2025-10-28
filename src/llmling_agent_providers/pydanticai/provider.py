@@ -9,17 +9,18 @@ from typing import TYPE_CHECKING, Any, get_args, get_origin
 
 from llmling_models import AllModels, infer_model
 import logfire
-from pydantic_ai import Agent as PydanticAgent, RunContext
-import pydantic_ai._function_schema
-from pydantic_ai.messages import (
+from pydantic_ai import (
+    Agent as PydanticAgent,
     FunctionToolCallEvent,
     PartStartEvent,
+    RunContext,
     TextPartDelta,
     ToolCallPart,
+    UsageLimits as PydanticAiUsageLimits,
 )
+import pydantic_ai._function_schema
 from pydantic_ai.models import KnownModelName, Model
 from pydantic_ai.tools import GenerateToolJsonSchema
-from pydantic_ai.usage import UsageLimits as PydanticAiUsageLimits
 
 from llmling_agent.agent.context import AgentContext
 from llmling_agent.log import get_logger
@@ -42,9 +43,8 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterable, AsyncIterator, Awaitable, Callable
 
     from anyenv import MultiEventHandler
-    from pydantic_ai import AgentStreamEvent, BuiltinToolCallPart
+    from pydantic_ai import AgentRunResultEvent, AgentStreamEvent, BuiltinToolCallPart
     from pydantic_ai.agent import AgentRunResult, EventStreamHandler
-    from pydantic_ai.run import AgentRunResultEvent
 
     from llmling_agent.common_types import EndStrategy, IndividualEventHandler, ModelType
     from llmling_agent.messaging.messages import ChatMessage

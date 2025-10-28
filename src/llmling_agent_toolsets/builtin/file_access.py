@@ -7,7 +7,7 @@ import time
 from urllib.parse import urlparse
 
 from llmling import ToolError
-from pydantic_ai.tools import RunContext
+from pydantic_ai import RunContext
 
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.log import get_logger

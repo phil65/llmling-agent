@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     import os
 
     import PIL.Image
-    from pydantic_ai.messages import AgentStreamEvent
+    from pydantic_ai import AgentStreamEvent
     from toprompt import AnyPromptType
 
     from llmling_agent import MessageNode

@@ -96,8 +96,7 @@ class HumanProvider(AgentProvider):
         **kwargs: Any,
     ) -> AsyncIterator[Any]:
         """Stream response events keystroke by keystroke."""
-        from pydantic_ai.messages import PartDeltaEvent, TextPartDelta
-        from pydantic_ai.run import AgentRunResultEvent
+        from pydantic_ai import AgentRunResultEvent, PartDeltaEvent, TextPartDelta
 
         prompt = await format_prompts(prompts)
         print(f"\n{prompt}")
@@ -110,8 +109,7 @@ class HumanProvider(AgentProvider):
             await chunk_queue.put(chunk)
 
         # Emit start event
-        from pydantic_ai.messages import PartStartEvent, TextPart
-        from pydantic_ai.run import AgentRunResult
+        from pydantic_ai import AgentRunResult, PartStartEvent, TextPart
 
         yield PartStartEvent(index=0, part=TextPart(content=""))
 

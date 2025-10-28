@@ -177,7 +177,7 @@ def to_acp_content_blocks(  # noqa: PLR0911
     """
     try:
         # Import pydantic-ai types only when needed to avoid dependency issues
-        from pydantic_ai.messages import (
+        from pydantic_ai import (
             AudioUrl,
             BinaryContent,
             DocumentUrl,

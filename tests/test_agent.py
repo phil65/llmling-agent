@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import asyncio
 
+from pydantic_ai import PartDeltaEvent, TextPartDelta
 from pydantic_ai.models.test import TestModel
 import pytest
 
 from llmling_agent import Agent, AgentPool, ChatMessage
+from llmling_agent.agent.agent import StreamCompleteEvent
 
 
 SIMPLE_PROMPT = "Hello, how are you?"
@@ -37,10 +39,6 @@ async def test_agent_message_history(test_agent: Agent[None]):
 
 async def test_agent_streaming(test_agent: Agent[None]):
     """Test agent streaming response."""
-    from pydantic_ai.messages import PartDeltaEvent, TextPartDelta
-
-    from llmling_agent.agent.agent import StreamCompleteEvent
-
     collected_chunks = []
     final_message = None
 
@@ -58,10 +56,6 @@ async def test_agent_streaming(test_agent: Agent[None]):
 
 async def test_agent_streaming_pydanticai_history(test_agent: Agent[None]):
     """Test streaming pydantic-ai history."""
-    from pydantic_ai.messages import PartDeltaEvent, TextPartDelta
-
-    from llmling_agent.agent.agent import StreamCompleteEvent
-
     history = [
         ChatMessage(role="user", content="Previous message"),
         ChatMessage(role="assistant", content="Previous response"),

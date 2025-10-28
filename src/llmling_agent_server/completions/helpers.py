@@ -6,7 +6,7 @@ import time
 from typing import TYPE_CHECKING, Any
 
 import anyenv
-from pydantic_ai.messages import PartDeltaEvent, TextPartDelta
+from pydantic_ai import PartDeltaEvent, TextPartDelta
 
 from llmling_agent.log import get_logger
 

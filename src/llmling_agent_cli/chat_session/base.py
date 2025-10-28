@@ -217,7 +217,7 @@ class AgentPoolView:
 
     async def _stream_message(self, content: str) -> AsyncIterator[ChatMessage[str]]:
         """Send message and stream responses."""
-        from pydantic_ai.messages import PartDeltaEvent, TextPartDelta
+        from pydantic_ai import PartDeltaEvent, TextPartDelta
 
         from llmling_agent.agent.agent import StreamCompleteEvent
 
