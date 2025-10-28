@@ -10,6 +10,7 @@ from uuid import uuid4
 
 from genai_prices import calc_price
 from pydantic import BaseModel
+from pydantic_ai import RequestUsage
 import tokonomics
 
 from llmling_agent.common_types import MessageRole, SimpleJsonType  # noqa: TC001
@@ -19,9 +20,10 @@ from llmling_agent.utils.now import get_now
 
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from datetime import datetime
 
-    from pydantic_ai import RunUsage
+    from pydantic_ai import FinishReason, ModelResponsePart, RunUsage
 
 
 TContent = TypeVar("TContent", str, BaseModel)
@@ -204,58 +206,34 @@ class ChatMessage[TContent]:
     provider_details: dict[str, Any] = field(default_factory=dict)
     """Provider specific metadata / extra information."""
 
-    @classmethod
-    def from_openai_format(
-        cls,
-        message: dict[str, Any],
-        conversation_id: str | None = None,
-    ) -> ChatMessage[str]:
-        """Create ChatMessage from OpenAI message format.
+    parts: Sequence[ModelResponsePart] = field(default_factory=list)
+    """The parts of the model message."""
 
-        Args:
-            message: OpenAI format message dict with role, content etc.
-            conversation_id: Optional conversation ID to assign
+    usage: RequestUsage = field(default_factory=RequestUsage)
+    """Usage information for the request.
 
-        Returns:
-            Converted ChatMessage
+    This has a default to make tests easier,
+    and to support loading old messages where usage will be missing.
+    """
 
-        Example:
-            >>> msg = ChatMessage.from_openai_format({
-            ...     "role": "user",
-            ...     "content": "Hello!",
-            ...     "name": "john"
-            ... })
-        """
-        # Handle multimodal content lists (OpenAI vision format)
-        if isinstance(message["content"], list):
-            # Combine text parts
-            content = "\n".join(
-                part["text"] for part in message["content"] if part["type"] == "text"
-            )
-        else:
-            content = message["content"] or ""
+    model_name: str | None = None
+    """The name of the model that generated the response."""
 
-        return ChatMessage[str](
-            content=str(content),
-            role=message["role"],
-            name=message.get("name"),
-            conversation_id=conversation_id,
-            tool_calls=[
-                ToolCallInfo(
-                    agent_name=message.get("name") or "",
-                    tool_call_id=tc["id"],
-                    tool_name=tc["function"]["name"],
-                    args=tc["function"]["arguments"],
-                    result=None,  # OpenAI format doesn't include results
-                )
-                for tc in message.get("tool_calls", [])
-            ]
-            if message.get("tool_calls")
-            else [],
-            metadata={"function_call": message["function_call"]}
-            if "function_call" in message
-            else {},
-        )
+    kind: Literal["response"] = "response"
+    """Message type identifier, this is available on all parts as a discriminator."""
+
+    provider_name: str | None = None
+    """The name of the LLM provider that generated the response."""
+
+    provider_response_id: str | None = None
+    """request ID as specified by the model provider.
+
+    This can be used to track the specific request to the model."""
+
+    finish_reason: FinishReason | None = None
+    """Reason the model finished generating the response.
+
+    Normalized to OpenTelemetry values."""
 
     def forwarded(self, previous_message: ChatMessage[Any]) -> Self:
         """Create new message showing it was forwarded from another message.
@@ -272,17 +250,6 @@ class ChatMessage[TContent]:
     def to_text_message(self) -> ChatMessage[str]:
         """Convert this message to a text-only version."""
         return dataclasses.replace(self, content=str(self.content))  # type: ignore
-
-    def _get_content_str(self) -> str:
-        """Get string representation of content."""
-        match self.content:
-            case str():
-                return self.content
-            case BaseModel():
-                return self.content.model_dump_json(indent=2)
-            case _:
-                msg = f"Unexpected content type: {type(self.content)}"
-                raise ValueError(msg)
 
     @property
     def data(self) -> TContent:
