@@ -7,6 +7,7 @@ from typing import Any
 from uuid import uuid4
 
 from pydantic import ConfigDict
+from pydantic_ai import FinishReason
 from schemez import Schema
 from sqlalchemy import Column, DateTime
 from sqlalchemy.ext.asyncio import AsyncAttrs
@@ -170,7 +171,7 @@ class Message(AsyncAttrs, SQLModel, table=True):  # type: ignore[call-arg]
     parts: str | None = None
     """Serialized pydantic-ai message parts"""
 
-    finish_reason: str | None = None
+    finish_reason: FinishReason | None = None
     """Reason the model finished generating the response"""
 
     checkpoint_data: dict[str, Any] | None = Field(default=None, sa_column=Column(JSON))
