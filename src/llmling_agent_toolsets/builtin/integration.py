@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Literal
 
+from pydantic import HttpUrl
 from pydantic_ai import RunContext
 
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
@@ -73,9 +74,9 @@ async def add_remote_mcp_server(  # noqa: D417
 
     match transport:
         case "sse":
-            config: MCPServerConfig = SSEMCPServerConfig(name=name, url=url)
+            config: MCPServerConfig = SSEMCPServerConfig(name=name, url=HttpUrl(url))
         case "streamable-http":
-            config = StreamableHTTPMCPServerConfig(name=name, url=url)
+            config = StreamableHTTPMCPServerConfig(name=name, url=HttpUrl(url))
 
     ctx.agent.mcp.add_server_config(config)
     await ctx.agent.mcp.setup_server(config)

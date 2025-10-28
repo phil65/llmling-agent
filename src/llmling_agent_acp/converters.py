@@ -9,6 +9,8 @@ from __future__ import annotations
 import base64
 from typing import TYPE_CHECKING, Any, overload
 
+from pydantic import HttpUrl
+
 from acp.schema import (
     AgentMessageChunk,
     AudioContentBlock,
@@ -88,10 +90,10 @@ def convert_acp_mcp_server_to_config(acp_server: McpServer) -> MCPServerConfig:
             return StdioMCPServerConfig(name=name, command=cmd, args=list(args), env=env)
         case SseMcpServer(name=name, url=url, headers=headers):
             h = {h.name: h.value for h in headers}
-            return SSEMCPServerConfig(name=name, url=url, headers=h)
+            return SSEMCPServerConfig(name=name, url=HttpUrl(url), headers=h)
         case HttpMcpServer(name=name, url=url, headers=headers):
             h = {h.name: h.value for h in acp_server.headers}
-            return StreamableHTTPMCPServerConfig(name=name, url=url, headers=h)
+            return StreamableHTTPMCPServerConfig(name=name, url=HttpUrl(url), headers=h)
         case _:
             msg = f"Unsupported MCP server type: {type(acp_server)}"
             raise ValueError(msg)
