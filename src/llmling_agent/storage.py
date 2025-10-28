@@ -6,6 +6,7 @@ import asyncio
 from typing import TYPE_CHECKING, Self
 
 from anyenv import method_spawner
+from pydantic import ConfigDict, TypeAdapter
 
 from llmling_agent.log import get_logger
 from llmling_agent.utils.tasks import TaskManager
@@ -19,8 +20,11 @@ from llmling_agent_config.storage import (
 
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from datetime import datetime
     from types import TracebackType
+
+    from pydantic_ai import ModelResponsePart
 
     from llmling_agent.common_types import JsonValue
     from llmling_agent.messaging.messages import ChatMessage
@@ -32,6 +36,44 @@ if TYPE_CHECKING:
     from llmling_agent_storage.base import StorageProvider
 
 logger = get_logger(__name__)
+
+# Type adapter for serializing ModelResponsePart sequences
+parts_adapter: TypeAdapter = TypeAdapter(
+    list,
+    config=ConfigDict(ser_json_bytes="base64", val_json_bytes="base64"),
+)
+
+
+def serialize_parts(parts: Sequence[ModelResponsePart]) -> str | None:
+    """Serialize pydantic-ai message parts from ChatMessage.
+
+    Args:
+        parts: Sequence of ModelResponsePart from ChatMessage.parts
+
+    Returns:
+        JSON string representation of parts or None if empty
+    """
+    if not parts:
+        return None
+
+    try:
+        # Convert parts to serializable format
+        serializable_parts = []
+        for part in parts:
+            # Handle RetryPromptPart context serialization issues
+            from pydantic_ai.messages import RetryPromptPart
+
+            if isinstance(part, RetryPromptPart) and isinstance(part.content, list):
+                for content in part.content:
+                    if isinstance(content, dict) and "ctx" in content:
+                        content["ctx"] = {k: str(v) for k, v in content["ctx"].items()}
+            serializable_parts.append(part)
+
+        # Serialize using pydantic's JSON serialization
+        return parts_adapter.dump_json(serializable_parts).decode()
+    except Exception as e:  # noqa: BLE001
+        logger.warning("Failed to serialize message parts: %s", e)
+        return str(parts)  # Fallback to string representation
 
 
 class StorageManager:
@@ -226,6 +268,10 @@ class StorageManager:
                         model=message.model_name,
                         response_time=message.response_time,
                         forwarded_from=message.forwarded_from,
+                        provider_name=message.provider_name,
+                        provider_response_id=message.provider_response_id,
+                        parts=serialize_parts(message.parts),
+                        finish_reason=message.finish_reason,
                     )
                 )
 

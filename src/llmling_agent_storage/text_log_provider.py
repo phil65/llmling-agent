@@ -195,6 +195,10 @@ class TextLogProvider(StorageProvider):
         model: str | None = None,
         response_time: float | None = None,
         forwarded_from: list[str] | None = None,
+        provider_name: str | None = None,
+        provider_response_id: str | None = None,
+        parts: str | None = None,
+        finish_reason: str | None = None,
     ):
         """Store message and update log."""
         entry = {
@@ -209,6 +213,10 @@ class TextLogProvider(StorageProvider):
             "cost_info": cost_info,
             "response_time": response_time,
             "forwarded_from": forwarded_from,
+            "provider_name": provider_name,
+            "provider_response_id": provider_response_id,
+            "parts": parts,
+            "finish_reason": finish_reason,
         }
         self._entries.append(entry)
 

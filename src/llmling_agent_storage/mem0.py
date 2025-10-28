@@ -76,6 +76,10 @@ class Mem0StorageProvider(StorageProvider):
         model: str | None = None,
         response_time: float | None = None,
         forwarded_from: list[str] | None = None,
+        provider_name: str | None = None,
+        provider_response_id: str | None = None,
+        parts: str | None = None,
+        finish_reason: str | None = None,
     ):
         """Log a message to mem0."""
         metadata = {
@@ -83,6 +87,10 @@ class Mem0StorageProvider(StorageProvider):
             "response_time": response_time,
             "forwarded_from": forwarded_from,
             "message_id": message_id,
+            "provider_name": provider_name,
+            "provider_response_id": provider_response_id,
+            "parts": parts,
+            "finish_reason": finish_reason,
         }
         if cost_info:
             total = float(cost_info.total_cost)

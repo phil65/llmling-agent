@@ -37,6 +37,10 @@ class MessageData(TypedDict):
     token_usage: TokenUsage | None
     response_time: float | None
     forwarded_from: list[str] | None
+    provider_name: str | None
+    provider_response_id: str | None
+    parts: str | None
+    finish_reason: str | None
 
 
 class ConversationData(TypedDict):
@@ -181,6 +185,10 @@ class FileProvider(StorageProvider):
         model: str | None = None,
         response_time: float | None = None,
         forwarded_from: list[str] | None = None,
+        provider_name: str | None = None,
+        provider_response_id: str | None = None,
+        parts: str | None = None,
+        finish_reason: str | None = None,
     ):
         """Log a new message."""
         self._data["messages"].append({
@@ -195,6 +203,10 @@ class FileProvider(StorageProvider):
             "token_usage": cost_info.token_usage.copy() if cost_info else None,
             "response_time": response_time,
             "forwarded_from": forwarded_from,
+            "provider_name": provider_name,
+            "provider_response_id": provider_response_id,
+            "parts": parts,
+            "finish_reason": finish_reason,
         })
         self._save()
 

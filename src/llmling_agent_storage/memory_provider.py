@@ -114,6 +114,10 @@ class MemoryStorageProvider(StorageProvider):
         model: str | None = None,
         response_time: float | None = None,
         forwarded_from: list[str] | None = None,
+        provider_name: str | None = None,
+        provider_response_id: str | None = None,
+        parts: str | None = None,
+        finish_reason: str | None = None,
     ):
         """Store message in memory."""
         if next((i for i in self.messages if i["message_id"] == message_id), None):
@@ -130,6 +134,10 @@ class MemoryStorageProvider(StorageProvider):
             "model": model,
             "response_time": response_time,
             "forwarded_from": forwarded_from,
+            "provider_name": provider_name,
+            "provider_response_id": provider_response_id,
+            "parts": parts,
+            "finish_reason": finish_reason,
             "timestamp": get_now(),
         })
 

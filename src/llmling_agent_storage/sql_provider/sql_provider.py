@@ -128,6 +128,10 @@ class SQLModelProvider(StorageProvider[Message]):
         model: str | None = None,
         response_time: float | None = None,
         forwarded_from: list[str] | None = None,
+        provider_name: str | None = None,
+        provider_response_id: str | None = None,
+        parts: str | None = None,
+        finish_reason: str | None = None,
     ):
         """Log message to database."""
         from llmling_agent_storage.sql_provider.models import Message
@@ -152,6 +156,10 @@ class SQLModelProvider(StorageProvider[Message]):
                 else None,
                 cost=float(cost_info.total_cost) if cost_info else None,
                 forwarded_from=forwarded_from,
+                provider_name=provider_name,
+                provider_response_id=provider_response_id,
+                parts=parts,
+                finish_reason=finish_reason,
                 timestamp=get_now(),
             )
             session.add(msg)

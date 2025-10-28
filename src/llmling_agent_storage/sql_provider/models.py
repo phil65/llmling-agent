@@ -161,6 +161,18 @@ class Message(AsyncAttrs, SQLModel, table=True):  # type: ignore[call-arg]
     response_time: float | None = None
     """Time taken to generate the response in seconds"""
 
+    provider_name: str | None = Field(default=None, index=True)
+    """Name of the LLM provider that generated the response"""
+
+    provider_response_id: str | None = None
+    """Request ID as specified by the model provider"""
+
+    parts: str | None = None
+    """Serialized pydantic-ai message parts"""
+
+    finish_reason: str | None = None
+    """Reason the model finished generating the response"""
+
     checkpoint_data: dict[str, Any] | None = Field(default=None, sa_column=Column(JSON))
     """A dictionary of checkpoints (name -> metadata)."""
 

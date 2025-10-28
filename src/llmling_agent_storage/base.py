@@ -100,6 +100,10 @@ class StorageProvider[T]:
         model: str | None = None,
         response_time: float | None = None,
         forwarded_from: list[str] | None = None,
+        provider_name: str | None = None,
+        provider_response_id: str | None = None,
+        parts: str | None = None,
+        finish_reason: str | None = None,
     ):
         """Log a message (if supported)."""
 
@@ -157,6 +161,10 @@ class StorageProvider[T]:
             role=role,
             name=name,
             model=model,
+            provider_name=None,
+            provider_response_id=None,
+            parts=None,
+            finish_reason=None,
         )
 
     async def get_conversations(
