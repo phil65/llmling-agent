@@ -1054,12 +1054,6 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
         finally:
             self._background_task = None
 
-    def clear_history(self):
-        """Clear both internal and pydantic-ai history."""
-        self._logger.clear_state()
-        self.conversation.clear()
-        logger.debug("Cleared history and reset tool state")
-
     async def share(
         self,
         target: AnyAgent[TDeps, Any],
