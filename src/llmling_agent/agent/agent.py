@@ -49,7 +49,6 @@ if TYPE_CHECKING:
     from upath.types import JoinablePathLike
 
     from llmling_agent.agent import AgentContext, AnyAgent
-    from llmling_agent.agent.conversation import ConversationManager
     from llmling_agent.agent.interactions import Interactions
     from llmling_agent.agent.structured import StructuredAgent
     from llmling_agent.common_types import (
@@ -140,7 +139,6 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
         timestamp: datetime = field(default_factory=get_now)
 
     # this fixes weird mypy issue
-    conversation: ConversationManager
     talk: Interactions
     model_changed = Signal(object)  # Model | None
     chunk_streamed = Signal(str, str)  # (chunk, message_id)
