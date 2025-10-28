@@ -86,7 +86,6 @@ class MessageEmitter[TDeps, TResult](ABC):
             # Connect to the combined signal to capture all messages
             # TODO: need to check this
             # node.message_received.connect(self.log_message)
-            self.message_sent.connect(self.log_message)
 
     async def __aenter__(self) -> Self:
         """Initialize base message node."""
@@ -386,6 +385,7 @@ class MessageEmitter[TDeps, TResult](ABC):
         if store_history and isinstance(self, Agent | StructuredAgent):
             self.conversation.add_chat_messages([user_msg, message])
         self.message_sent.emit(message)
+        await self.log_message(message)
         await self.connections.route_message(message, wait=wait_for_connections)
         return message
 
@@ -407,11 +407,11 @@ class MessageEmitter[TDeps, TResult](ABC):
         query = SessionQuery(name=self.conversation_id, limit=limit)
         return await self.context.storage.filter_messages(query)
 
-    def log_message(self, message: ChatMessage):
+    async def log_message(self, message: ChatMessage):
         """Handle message from chat signal."""
         if not self.enable_db_logging:
             return
-        self.context.storage.log_message.sync(
+        await self.context.storage.log_message(
             message_id=message.message_id,
             conversation_id=message.conversation_id or "",
             content=str(message.content),

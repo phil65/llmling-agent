@@ -879,6 +879,7 @@ class Agent[TDeps = None](MessageNode[TDeps, str]):
 
             # Post-processing
             self.message_sent.emit(response_msg)
+            await self.log_message(response_msg)
             if store_history:
                 self.conversation.add_chat_messages([user_msg, response_msg])
             await self.connections.route_message(

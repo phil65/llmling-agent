@@ -84,6 +84,7 @@ class MessageNode[TDeps, TResult](MessageEmitter[TDeps, TResult]):
     #     # Set conversation_id on response message
     #     message = replace(message, conversation_id=conversation_id)
     #     self.message_sent.emit(message)
+    #     await self.log_message(response_msg)
     #     await self.connections.route_message(message, wait=wait_for_connections)
     #     return message
 
