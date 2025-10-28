@@ -88,7 +88,7 @@ class ConversationManager:
 
         if session_config is not None and session_config.session is not None:
             storage = self._agent.context.storage
-            self._current_history = storage.filter_messages_sync(session_config.session)
+            self._current_history = storage.filter_messages.sync(session_config.session)
             if session_config.session.name:
                 self.id = session_config.session.name
 
@@ -154,7 +154,7 @@ class ConversationManager:
                 return list(self.chat_messages[key])
             case str():
                 query = SessionQuery(name=key)
-                return self._agent.context.storage.filter_messages_sync(query=query)
+                return self._agent.context.storage.filter_messages.sync(query=query)
             case _:
                 msg = f"Invalid key type: {type(key)}"
                 raise TypeError(msg)
@@ -293,7 +293,7 @@ class ConversationManager:
                 msg = f"Invalid type for session: {type(session)}"
                 raise ValueError(msg)
         self.chat_messages.clear()
-        self.chat_messages.extend(storage.filter_messages_sync(query))
+        self.chat_messages.extend(storage.filter_messages.sync(query))
 
     def get_history(
         self,

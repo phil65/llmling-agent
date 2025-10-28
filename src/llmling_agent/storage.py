@@ -5,6 +5,8 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING, Self
 
+from anyenv import method_spawner
+
 from llmling_agent.log import get_logger
 from llmling_agent.utils.tasks import TaskManager
 from llmling_agent_config.storage import (
@@ -190,6 +192,7 @@ class StorageManager:
         msg = "No capable provider found for loading history"
         raise RuntimeError(msg)
 
+    @method_spawner
     async def filter_messages(
         self,
         query: SessionQuery,
@@ -204,6 +207,7 @@ class StorageManager:
         provider = self.get_history_provider(preferred_provider)
         return await provider.filter_messages(query)
 
+    @method_spawner
     async def log_message(
         self,
         *,
@@ -237,6 +241,7 @@ class StorageManager:
                     )
                 )
 
+    @method_spawner
     async def log_conversation(
         self,
         *,
@@ -257,6 +262,7 @@ class StorageManager:
                 )
             )
 
+    @method_spawner
     async def log_command(
         self,
         *,
@@ -281,6 +287,7 @@ class StorageManager:
                 )
             )
 
+    @method_spawner
     async def log_context_message(
         self,
         *,
@@ -302,6 +309,7 @@ class StorageManager:
                 )
             )
 
+    @method_spawner
     async def reset(
         self,
         *,
@@ -324,6 +332,7 @@ class StorageManager:
         # Return the counts from the last provider (maintaining existing behavior)
         return results[-1] if results else (0, 0)
 
+    @method_spawner
     async def get_conversation_counts(
         self,
         *,
@@ -333,6 +342,7 @@ class StorageManager:
         provider = self.get_history_provider()
         return await provider.get_conversation_counts(agent_name=agent_name)
 
+    @method_spawner
     async def get_commands(
         self,
         agent_name: str,
@@ -353,44 +363,3 @@ class StorageManager:
             limit=limit,
             current_session_only=current_session_only,
         )
-
-    # Sync wrappers
-    def reset_sync(self, *args, **kwargs) -> tuple[int, int]:
-        """Sync wrapper for reset."""
-        return self.task_manager.run_task_sync(self.reset(*args, **kwargs))
-
-    def get_conversation_counts_sync(self, *args, **kwargs) -> tuple[int, int]:
-        """Sync wrapper for get_conversation_counts."""
-        return self.task_manager.run_task_sync(
-            self.get_conversation_counts(*args, **kwargs)
-        )
-
-    def log_conversation_sync(self, *args, **kwargs):
-        """Sync wrapper for log_conversation."""
-        for provider in self.providers:
-            provider.log_conversation_sync(*args, **kwargs)
-
-    def log_message_sync(self, *args, **kwargs):
-        """Sync wrapper for log_message."""
-        for provider in self.providers:
-            provider.log_message_sync(*args, **kwargs)
-
-    def log_command_sync(self, *args, **kwargs):
-        """Sync wrapper for log_command."""
-        for provider in self.providers:
-            provider.log_command_sync(*args, **kwargs)
-
-    def get_commands_sync(self, *args, **kwargs) -> list[str]:
-        """Sync wrapper for get_commands."""
-        provider = self.get_history_provider()
-        return provider.get_commands_sync(*args, **kwargs)
-
-    def filter_messages_sync(self, *args, **kwargs) -> list[ChatMessage[str]]:
-        """Sync wrapper for filter_messages."""
-        provider = self.get_history_provider()
-        return provider.filter_messages_sync(*args, **kwargs)
-
-    def log_context_message_sync(self, *args, **kwargs):
-        """Sync wrapper for log_context_message."""
-        for provider in self.providers:
-            provider.log_context_message_sync(*args, **kwargs)

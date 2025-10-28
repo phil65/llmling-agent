@@ -50,7 +50,7 @@ class NodeLogger:
 
     def init_conversation(self):
         """Create initial conversation record."""
-        self.node.context.storage.log_conversation_sync(
+        self.node.context.storage.log_conversation.sync(
             conversation_id=self.conversation_id,
             node_name=self.node.name,
         )
@@ -59,7 +59,7 @@ class NodeLogger:
         """Handle message from chat signal."""
         if not self.enable_db_logging:
             return
-        self.node.context.storage.log_message_sync(
+        self.node.context.storage.log_message.sync(
             message_id=message.message_id,
             conversation_id=message.conversation_id,
             content=str(message.content),

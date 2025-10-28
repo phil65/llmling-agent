@@ -95,7 +95,7 @@ class AgentPoolView:
             return
 
         id_ = str(self._agent.conversation.id)
-        self._agent.context.storage.log_command_sync(
+        self._agent.context.storage.log_command.sync(
             agent_name=self._agent.name, session_id=id_, command=command
         )
 
@@ -103,7 +103,7 @@ class AgentPoolView:
         self, limit: int | None = None, current_session_only: bool = False
     ) -> list[str]:
         """Get command history ordered by newest first."""
-        return self._agent.context.storage.get_commands_sync(
+        return self._agent.context.storage.get_commands.sync(
             agent_name=self._agent.name,
             session_id=str(self._agent.conversation.id),
             limit=limit,

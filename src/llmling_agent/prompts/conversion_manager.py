@@ -99,24 +99,6 @@ class ConversionManager:
 
         return str(content)  # Fallback for unsupported content
 
-    def convert_file_sync(self, path: JoinablePathLike) -> str:
-        """Sync wrapper for convert_file."""
-        try:
-            loop = asyncio.get_running_loop()
-            return loop.run_until_complete(self.convert_file(path))
-        except RuntimeError:
-            # No running loop - create new one
-            return asyncio.run(self.convert_file(path))
-
-    def convert_content_sync(self, content: Any, mime_type: str | None = None) -> str:
-        """Sync wrapper for convert_content."""
-        try:
-            loop = asyncio.get_running_loop()
-            return loop.run_until_complete(self.convert_content(content, mime_type))
-        except RuntimeError:
-            # No running loop - create new one
-            return asyncio.run(self.convert_content(content, mime_type))
-
 
 if __name__ == "__main__":
     from llmling_agent_config.converters import ConversionConfig
@@ -128,4 +110,3 @@ if __name__ == "__main__":
         ]
     )
     manager = ConversionManager(config)
-    print(manager.convert_file_sync("pyproject.toml"))
