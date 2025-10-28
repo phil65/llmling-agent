@@ -17,6 +17,7 @@ import logfire
 from psygnal import Signal
 from upath import UPath
 
+from llmling_agent.agent.events import StreamCompleteEvent
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messagenode import MessageNode
 from llmling_agent.messaging.messages import ChatMessage, TokenCost
@@ -77,16 +78,6 @@ AgentType = Literal["pydantic_ai", "human"] | AgentProvider | Callable[..., Any]
 logger = get_logger(__name__)
 
 TResult = TypeVar("TResult", default=str)
-
-
-@dataclass(kw_only=True)
-class StreamCompleteEvent[TContent]:
-    """Event indicating streaming is complete with final message."""
-
-    message: ChatMessage[TContent]
-    """The final chat message with all metadata."""
-    event_kind: Literal["stream_complete"] = "stream_complete"
-    """Event type identifier."""
 
 
 class AgentKwargs(TypedDict, total=False):
