@@ -14,7 +14,6 @@ from llmling_agent.messaging.messages import ChatMessage
 from llmling_agent.prompts.convert import convert_prompts
 from llmling_agent.talk.stats import AggregatedTalkStats
 from llmling_agent.tools import ToolCallInfo
-from llmling_agent.utils.inspection import has_return_type
 from llmling_agent.utils.tasks import TaskManager
 
 
@@ -244,14 +243,11 @@ class MessageEmitter[TDeps, TResult](ABC):
         """Create connection(s) to target(s)."""
         # Handle callable case
         from llmling_agent import MessageNode
-        from llmling_agent.agent import Agent, StructuredAgent
+        from llmling_agent.agent import Agent
         from llmling_agent.delegation.base_team import BaseTeam
 
         if callable(target):
-            if has_return_type(target, str):
-                target = Agent.from_callback(target)
-            else:
-                target = StructuredAgent.from_callback(target)
+            target = Agent.from_callback(target)
             if pool := self.context.pool:
                 pool.register(target.name, target)
         # we are explicit here just to make disctinction clear, we only want sequences
@@ -261,10 +257,7 @@ class MessageEmitter[TDeps, TResult](ABC):
             for t in target:
                 match t:
                     case _ if callable(t):
-                        if has_return_type(t, str):
-                            other: MessageNode = Agent.from_callback(t)
-                        else:
-                            other = StructuredAgent.from_callback(t)
+                        other: MessageNode = Agent.from_callback(t)
                         if pool := self.context.pool:
                             pool.register(other.name, other)
                         targets.append(other)

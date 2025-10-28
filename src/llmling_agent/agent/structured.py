@@ -259,7 +259,7 @@ class StructuredAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
 
         name = name or callback.__name__ or "processor"
         provider = CallbackProvider(callback, name=name)
-        agent = Agent[None](provider=provider, name=name, **kwargs)
+        agent = Agent[None, Any](provider=provider, name=name, **kwargs)
         # Get return type from signature for validation
         hints = get_type_hints(callback)
         return_type = hints.get("return")

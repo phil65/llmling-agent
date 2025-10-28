@@ -34,7 +34,7 @@ async def run_example():
 
     async with AgentPool[None](manifest) as pool:
         # Get the boss agent
-        boss: Agent[Any] = pool.get_agent("overseer")
+        boss: Agent[Any, str] = pool.get_agent("overseer")
 
         # Create second downloader by cloning the first
         worker_1 = pool.get_agent("file_getter_1")

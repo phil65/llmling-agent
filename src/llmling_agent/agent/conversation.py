@@ -65,7 +65,7 @@ class ConversationManager:
 
     def __init__(
         self,
-        agent: Agent[Any],
+        agent: Agent[Any, Any],
         session_config: MemoryConfig | None = None,
         *,
         resources: Sequence[Resource | PromptType | str] = (),

@@ -231,7 +231,7 @@ with other agents effectively."""
             logger.debug(msg, self.session_id, e)
 
     @property
-    def agent(self) -> Agent[Any]:
+    def agent(self) -> Agent[Any, str]:
         """Get the currently active agent."""
         return self.agent_pool.get_agent(self.current_agent_name)
 

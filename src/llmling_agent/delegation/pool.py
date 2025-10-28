@@ -11,7 +11,7 @@ from anyenv import MultiEventHandler
 from llmling import BaseRegistry, LLMLingError
 from upath import UPath
 
-from llmling_agent.agent import Agent, StructuredAgent
+from llmling_agent.agent import Agent
 from llmling_agent.common_types import NodeName
 from llmling_agent.delegation.message_flow_tracker import MessageFlowTracker
 from llmling_agent.delegation.team import Team
@@ -521,26 +521,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
                     wait=target.wait_for_completion,
                 )
 
-    @overload
-    async def clone_agent[TDeps](
-        self,
-        agent: AgentName | Agent[TDeps],
-        new_name: AgentName | None = None,
-        *,
-        system_prompts: list[str] | None = None,
-        template_context: dict[str, Any] | None = None,
-    ) -> Agent[TDeps]: ...
-
-    @overload
-    async def clone_agent[TDeps, TResult](
-        self,
-        agent: StructuredAgent[TDeps, TResult],
-        new_name: AgentName | None = None,
-        *,
-        system_prompts: list[str] | None = None,
-        template_context: dict[str, Any] | None = None,
-    ) -> StructuredAgent[TDeps, TResult]: ...
-
     async def clone_agent[TDeps, TAgentResult](
         self,
         agent: AgentName | Agent[TDeps, TAgentResult],
@@ -560,7 +540,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
         Returns:
             The new agent instance
         """
-        from llmling_agent.agent import Agent, StructuredAgent
+        from llmling_agent.agent import Agent
 
         # Get original config
         if isinstance(agent, str):
@@ -588,14 +568,12 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
         new_agent = Agent[TDeps](
             runtime=original_agent.runtime,
             context=original_agent.context,
+            output_type=original_agent.actual_type,
             # result_type=original_agent.actual_type,
             provider=new_config.get_provider(),
             system_prompt=new_config.system_prompts,
             name=new_name or f"{config.name}_copy_{len(self.agents)}",
         )
-        if isinstance(original_agent, StructuredAgent):
-            new_agent = new_agent.to_structured(original_agent.actual_type)
-
         # Register in pool
         agent_name = new_agent.name
         self.manifest.agents[agent_name] = new_config
@@ -629,7 +607,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
         return_type: type[TResult],
         session: SessionIdType | SessionQuery = None,
         name_override: str | None = None,
-    ) -> StructuredAgent[TPoolDeps, TResult]: ...
+    ) -> Agent[TPoolDeps, TResult]: ...
 
     @overload
     async def create_agent[TCustomDeps, TResult](
@@ -640,7 +618,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
         return_type: type[TResult],
         session: SessionIdType | SessionQuery = None,
         name_override: str | None = None,
-    ) -> StructuredAgent[TCustomDeps, TResult]: ...
+    ) -> Agent[TCustomDeps, TResult]: ...
 
     async def create_agent(
         self,
@@ -715,7 +693,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
     @overload
     def get_agent(
         self,
-        agent: AgentName | Agent[Any],
+        agent: AgentName | Agent[Any, str],
         *,
         model_override: str | None = None,
         session: SessionIdType | SessionQuery = None,
@@ -724,17 +702,17 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
     @overload
     def get_agent[TResult](
         self,
-        agent: AgentName | Agent[Any],
+        agent: AgentName | Agent[Any, str],
         *,
         return_type: type[TResult],
         model_override: str | None = None,
         session: SessionIdType | SessionQuery = None,
-    ) -> StructuredAgent[TPoolDeps, TResult]: ...
+    ) -> Agent[TPoolDeps, TResult]: ...
 
     @overload
     def get_agent[TCustomDeps](
         self,
-        agent: AgentName | Agent[Any],
+        agent: AgentName | Agent[Any, str],
         *,
         deps: TCustomDeps,
         model_override: str | None = None,
@@ -744,17 +722,17 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
     @overload
     def get_agent[TCustomDeps, TResult](
         self,
-        agent: AgentName | Agent[Any],
+        agent: AgentName | Agent[Any, str],
         *,
         deps: TCustomDeps,
         return_type: type[TResult],
         model_override: str | None = None,
         session: SessionIdType | SessionQuery = None,
-    ) -> StructuredAgent[TCustomDeps, TResult]: ...
+    ) -> Agent[TCustomDeps, TResult]: ...
 
     def get_agent(
         self,
-        agent: AgentName | Agent[Any],
+        agent: AgentName | Agent[Any, str],
         *,
         deps: Any | None = None,
         return_type: Any | None = None,
@@ -829,7 +807,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
         *,
         result_type: None = None,
         **kwargs: Unpack[AgentKwargs],
-    ) -> Agent[Any]: ...
+    ) -> Agent[Any, str]: ...
 
     @overload
     async def add_agent[TResult](
@@ -838,7 +816,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
         *,
         result_type: type[TResult] | str | StructuredResponseConfig,
         **kwargs: Unpack[AgentKwargs],
-    ) -> StructuredAgent[Any, TResult]: ...
+    ) -> Agent[Any, TResult]: ...
 
     async def add_agent(
         self,
@@ -846,7 +824,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
         *,
         result_type: type[Any] | str | StructuredResponseConfig | None = None,
         **kwargs: Unpack[AgentKwargs],
-    ) -> Agent[Any] | StructuredAgent[Any, Any]:
+    ) -> Agent[Any, Any]:
         """Add a new permanent agent to the pool.
 
         Args:
@@ -859,7 +837,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
             **kwargs: Additional agent configuration
 
         Returns:
-            Either a regular Agent or StructuredAgent depending on result_type
+            An agent instance
         """
         from llmling_agent.agent import Agent
 
@@ -919,7 +897,7 @@ if __name__ == "__main__":
     async def main():
         path = "src/llmling_agent/config_resources/agents.yml"
         async with AgentPool[None](path) as pool:
-            agent: Agent[None] = pool.get_agent("overseer")
+            agent: Agent[None, Any] = pool.get_agent("overseer")
             print(agent)
 
     import asyncio

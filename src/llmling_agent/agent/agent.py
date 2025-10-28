@@ -8,7 +8,7 @@ from contextlib import AsyncExitStack, asynccontextmanager
 from dataclasses import dataclass, field
 from os import PathLike
 import time
-from typing import TYPE_CHECKING, Any, Literal, Self, TypedDict, TypeVar, overload
+from typing import TYPE_CHECKING, Any, Literal, Self, TypedDict, overload
 from uuid import uuid4
 
 from anyenv import MultiEventHandler, method_spawner
@@ -45,10 +45,11 @@ if TYPE_CHECKING:
     from llmling.prompts import PromptType
     import PIL.Image
     from pydantic_ai import AgentStreamEvent
+    from pydantic_ai.output import OutputDataT, OutputSpec
     from toprompt import AnyPromptType
     from upath.types import JoinablePathLike
 
-    from llmling_agent.agent import Agent, AgentContext
+    from llmling_agent.agent import AgentContext
     from llmling_agent.agent.interactions import Interactions
     from llmling_agent.agent.structured import StructuredAgent
     from llmling_agent.common_types import (
@@ -76,8 +77,6 @@ from llmling_agent_providers.base import AgentProvider
 AgentType = Literal["pydantic_ai", "human"] | AgentProvider | Callable[..., Any]
 
 logger = get_logger(__name__)
-
-TResult = TypeVar("TResult", default=str)
 
 
 class AgentKwargs(TypedDict, total=False):
@@ -114,7 +113,7 @@ class AgentKwargs(TypedDict, total=False):
     event_handlers: Sequence[IndividualEventHandler] | None
 
 
-class Agent[TDeps = None, TResult = str](MessageNode[TDeps, str]):
+class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
     """Agent for AI-powered interaction with LLMling resources and tools.
 
     Generically typed with: LLMLingAgent[Type of Dependencies, Type of Result]
@@ -150,6 +149,7 @@ class Agent[TDeps = None, TResult = str](MessageNode[TDeps, str]):
         provider: AgentType = "pydantic_ai",
         *,
         model: ModelType = None,
+        output_type: OutputSpec[OutputDataT] = str,
         runtime: RuntimeConfig | Config | JoinablePathLike | None = None,
         context: AgentContext[TDeps] | None = None,
         session: SessionIdType | SessionQuery | MemoryConfig | bool | int = None,
@@ -174,6 +174,7 @@ class Agent[TDeps = None, TResult = str](MessageNode[TDeps, str]):
             name: Name of the agent for logging and identification
             provider: Agent type to use (ai: PydanticAIProvider, human: HumanProvider)
             model: The default model to use (defaults to GPT-5)
+            output_type: The default output type to use (defaults to str)
             runtime: Runtime configuration providing access to resources/tools
             context: Agent context with configuration
             session: Memory configuration.
@@ -211,6 +212,19 @@ class Agent[TDeps = None, TResult = str](MessageNode[TDeps, str]):
         self._infinite = False
         # save some stuff for asnyc init
         self._owns_runtime = False
+        self._result_type = to_type(output_type)
+        # match output_type:
+        #     case type() | str():
+        #         # For types and named definitions, use overrides if provided
+        #         self.set_result_type(
+        #             output_type,
+        #             tool_name=tool_name,
+        #             tool_description=tool_description,
+        #         )
+        #     case StructuredResponseConfig():
+        #         # For response definitions, use as-is
+        #         # (overrides don't apply to complete definitions)
+        #         self.set_result_type(result_type)
         # prepare context
         ctx = context or AgentContext[TDeps].create_default(
             name,
@@ -446,13 +460,10 @@ class Agent[TDeps = None, TResult = str](MessageNode[TDeps, str]):
 
     def __or__(self, other: MessageNode[Any, Any] | ProcessorCallback[Any]) -> TeamRun:
         # Create new execution with sequential mode (for piping)
-        from llmling_agent import StructuredAgent, TeamRun
+        from llmling_agent import TeamRun
 
         if callable(other):
-            if has_return_type(other, str):
-                other = Agent.from_callback(other)
-            else:
-                other = StructuredAgent.from_callback(other)
+            other = Agent.from_callback(other)
             other.context.pool = self.context.pool
 
         return TeamRun([self, other])
@@ -482,7 +493,7 @@ class Agent[TDeps = None, TResult = str](MessageNode[TDeps, str]):
         name = name or getattr(callback, "__name__", "processor")
         name = name or "processor"
         provider = CallbackProvider(callback, name=name)
-        return Agent[None](provider=provider, name=name, debug=debug, **kwargs)
+        return Agent[None, Any](provider=provider, name=name, debug=debug, **kwargs)
 
     @property
     def name(self) -> str:
@@ -508,7 +519,7 @@ class Agent[TDeps = None, TResult = str](MessageNode[TDeps, str]):
 
     def set_result_type(
         self,
-        result_type: type[TResult] | str | StructuredResponseConfig | None,
+        result_type: type[OutputDataT] | str | StructuredResponseConfig | None,
         *,
         tool_name: str | None = None,
         tool_description: str | None = None,
@@ -561,42 +572,20 @@ class Agent[TDeps = None, TResult = str](MessageNode[TDeps, str]):
         self._provider.tool_used.connect(self.tool_used)
         self._provider.context = self._context  # pyright: ignore[reportAttributeAccessIssue]
 
-    @overload
-    def to_structured(
+    def to_structured[NewOutputDataT](
         self,
-        result_type: None,
+        result_type: type[NewOutputDataT] | str | StructuredResponseConfig,
         *,
         tool_name: str | None = None,
         tool_description: str | None = None,
-    ) -> Self: ...
-
-    @overload
-    def to_structured[TResult](
-        self,
-        result_type: type[TResult] | str | StructuredResponseConfig,
-        *,
-        tool_name: str | None = None,
-        tool_description: str | None = None,
-    ) -> StructuredAgent[TDeps, TResult]: ...
-
-    def to_structured[TResult](
-        self,
-        result_type: type[TResult] | str | StructuredResponseConfig | None,
-        *,
-        tool_name: str | None = None,
-        tool_description: str | None = None,
-    ) -> StructuredAgent[TDeps, TResult] | Self:
+    ) -> Agent[TDeps, NewOutputDataT] | Self:
         """Convert this agent to a structured agent.
-
-        If result_type is None, returns self unchanged (no wrapping).
-        Otherwise creates a StructuredAgent wrapper.
 
         Args:
             result_type: Type for structured responses. Can be:
                 - A Python type (Pydantic model)
                 - Name of response definition from context
                 - Complete response definition
-                - None to skip wrapping
             tool_name: Optional override for result tool name
             tool_description: Optional override for result tool description
 
@@ -604,17 +593,8 @@ class Agent[TDeps = None, TResult = str](MessageNode[TDeps, str]):
             Either StructuredAgent wrapper or self unchanged
         from llmling_agent.agent import StructuredAgent
         """
-        if result_type is None:
-            return self
-
-        from llmling_agent.agent import Agent
-
-        return Agent(
-            self,
-            result_type=result_type,
-            tool_name=tool_name,
-            tool_description=tool_description,
-        )
+        self.set_result_type(result_type)  # type: ignore
+        return self
 
     def is_busy(self) -> bool:
         """Check if agent is currently processing tasks."""
@@ -643,7 +623,7 @@ class Agent[TDeps = None, TResult = str](MessageNode[TDeps, str]):
         """
         tool_name = name or f"ask_{self.name}"
 
-        async def wrapped_tool(prompt: str) -> str:
+        async def wrapped_tool(prompt: str) -> OutputDataT:
             if pass_message_history and not parent:
                 msg = "Parent agent required for message history sharing"
                 raise ToolError(msg)
@@ -656,7 +636,7 @@ class Agent[TDeps = None, TResult = str](MessageNode[TDeps, str]):
                 history = parent.conversation.get_history()
                 old = self.conversation.get_history()
                 self.conversation.set_history(history)
-            result = await self.run(prompt, result_type=self._result_type)
+            result = await self.run(prompt)
             if history:
                 self.conversation.set_history(old)
             return result.data
@@ -679,7 +659,7 @@ class Agent[TDeps = None, TResult = str](MessageNode[TDeps, str]):
     async def _run(
         self,
         *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str] | ChatMessage[Any],
-        result_type: type[TResult] | None = None,
+        result_type: type[OutputDataT] | None = None,
         model: ModelType = None,
         store_history: bool = True,
         tool_choice: str | list[str] | None = None,
@@ -688,7 +668,7 @@ class Agent[TDeps = None, TResult = str](MessageNode[TDeps, str]):
         conversation_id: str | None = None,
         messages: list[ChatMessage[Any]] | None = None,
         wait_for_connections: bool | None = None,
-    ) -> ChatMessage[TResult]:
+    ) -> ChatMessage[OutputDataT]:
         """Run agent with prompt and get response.
 
         Args:
@@ -738,7 +718,7 @@ class Agent[TDeps = None, TResult = str](MessageNode[TDeps, str]):
             self.run_failed.emit("Agent run failed", e)
             raise
         else:
-            response_msg = ChatMessage[TResult](
+            response_msg = ChatMessage[OutputDataT](
                 content=result.content,
                 role="assistant",
                 name=self.name,
@@ -765,7 +745,7 @@ class Agent[TDeps = None, TResult = str](MessageNode[TDeps, str]):
     async def run_stream(
         self,
         *prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str],
-        result_type: type[TResult] | None = None,
+        result_type: type[OutputDataT] | None = None,
         model: ModelType = None,
         tool_choice: str | list[str] | None = None,
         store_history: bool = True,
@@ -885,11 +865,11 @@ class Agent[TDeps = None, TResult = str](MessageNode[TDeps, str]):
     async def run_iter(
         self,
         *prompt_groups: Sequence[AnyPromptType | PIL.Image.Image | os.PathLike[str]],
-        result_type: type[TResult] | None = None,
+        result_type: type[OutputDataT] | None = None,
         model: ModelType = None,
         store_history: bool = True,
         wait_for_connections: bool | None = None,
-    ) -> AsyncIterator[ChatMessage[TResult]]:
+    ) -> AsyncIterator[ChatMessage[OutputDataT]]:
         """Run agent sequentially on multiple prompt groups.
 
         Args:
@@ -928,7 +908,7 @@ class Agent[TDeps = None, TResult = str](MessageNode[TDeps, str]):
         *,
         store_history: bool = True,
         include_agent_tools: bool = True,
-    ) -> ChatMessage[str]:
+    ) -> ChatMessage[OutputDataT]:
         """Execute a pre-defined task.
 
         Args:
@@ -982,7 +962,7 @@ class Agent[TDeps = None, TResult = str](MessageNode[TDeps, str]):
         interval: float = 1.0,
         block: bool = False,
         **kwargs: Any,
-    ) -> ChatMessage[TResult] | None:
+    ) -> ChatMessage[OutputDataT] | None:
         """Run agent continuously in background with prompt or dynamic prompt function.
 
         Args:
@@ -1045,7 +1025,7 @@ class Agent[TDeps = None, TResult = str](MessageNode[TDeps, str]):
             await self._background_task
             self._background_task = None
 
-    async def wait(self) -> ChatMessage[TResult]:
+    async def wait(self) -> ChatMessage[OutputDataT]:
         """Wait for background execution to complete."""
         if not self._background_task:
             msg = "No background task running"
