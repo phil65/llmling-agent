@@ -196,23 +196,7 @@ class ACPServer:
             raise RuntimeError(msg)
 
         self._running = False
-        logger.info("Shutting down ACP server")
-
-        try:
-            await self.agent_pool.__aexit__(None, None, None)
-        except Exception as e:  # noqa: BLE001
-            logger.warning("Failed to cleanup agent pool: %s", e)
-
         logger.info("ACP server shutdown complete")
-
-    async def __aenter__(self) -> Self:
-        """Async context manager entry."""
-        await self.agent_pool.__aenter__()
-        return self
-
-    async def __aexit__(self, *exc: object) -> None:
-        """Async context manager exit."""
-        await self.shutdown()
 
     @logfire.instrument("ACP: Initializing models.")
     async def _initialize_models(self) -> None:

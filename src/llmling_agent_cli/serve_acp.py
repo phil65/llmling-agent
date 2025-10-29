@@ -166,8 +166,6 @@ def acp_command(
         except Exception as e:
             logger.exception("ACP server error")
             raise t.Exit(1) from e
-        finally:
-            await acp_server.shutdown()
 
     asyncio.run(run_acp_server())
 
