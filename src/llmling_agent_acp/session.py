@@ -32,6 +32,7 @@ from acp.filesystem import ACPFileSystem
 from acp.notifications import ACPNotifications
 from acp.requests import ACPRequests
 from acp.schema import ReadTextFileRequest
+from llmling_agent.agent.events import ToolCallProgressEvent
 from llmling_agent.log import get_logger
 from llmling_agent.mcp_server.manager import MCPManager
 from llmling_agent_acp.acp_tools import get_acp_provider
@@ -409,11 +410,119 @@ with other agents effectively."""
                         msg = "Received ToolCallPartDelta for session %s"
                         logger.debug(msg, self.session_id)
 
-                    case FunctionToolCallEvent() | FunctionToolResultEvent():
-                        # Handle tool events using process_agent_stream_event function
-                        logger.info("Processing tool event: %s", type(event).__name__)
-                        await self.process_agent_stream_event(event)
-                        has_yielded_anything = True
+                    case FunctionToolCallEvent(part=part):
+                        # Tool call started - save input for later use
+                        tool_call_id = part.tool_call_id
+                        self._current_tool_inputs[tool_call_id] = part.args_as_dict()
+
+                        # Skip generic notifications for self-notifying tools
+                        if part.tool_name not in ACP_SELF_NOTIFYING_TOOLS:
+                            await self.notifications.tool_call(
+                                tool_name=part.tool_name,
+                                tool_input=part.args_as_dict(),
+                                tool_output=None,  # Not available yet
+                                status="pending",
+                                tool_call_id=tool_call_id,
+                            )
+
+                    case FunctionToolResultEvent(
+                        result=result, tool_call_id=tool_call_id
+                    ) if isinstance(result, ToolReturnPart):
+                        # Tool call completed successfully
+                        tool_input = self._current_tool_inputs.get(tool_call_id, {})
+
+                        # Check if the tool result is a streaming AsyncGenerator
+                        if isinstance(result.content, AsyncGenerator):
+                            # Stream the tool output chunks
+                            full_content = ""
+                            async for chunk in result.content:
+                                full_content += str(chunk)
+
+                                # Yield intermediate streaming notification
+                                # Skip generic notifications for self-notifying tools
+                                if result.tool_name not in ACP_SELF_NOTIFYING_TOOLS:
+                                    await self.notifications.tool_call(
+                                        tool_name=result.tool_name,
+                                        tool_input=tool_input,
+                                        tool_output=chunk,
+                                        status="in_progress",
+                                        tool_call_id=tool_call_id,
+                                    )
+
+                            # Replace the AsyncGenerator with the full content to
+                            # prevent errors
+                            result.content = full_content
+                            final_output = full_content
+                        else:
+                            final_output = result.content
+
+                        # Final completion notification
+                        # Skip generic notifications for self-notifying tools
+                        if result.tool_name not in ACP_SELF_NOTIFYING_TOOLS:
+                            converted_blocks = to_acp_content_blocks(final_output)
+                            await self.notifications.tool_call(
+                                tool_name=result.tool_name,
+                                tool_input=tool_input,
+                                tool_output=converted_blocks,
+                                status="completed",
+                                tool_call_id=tool_call_id,
+                            )
+                        # Clean up stored input
+                        self._current_tool_inputs.pop(tool_call_id, None)
+
+                    case FunctionToolResultEvent(
+                        result=result, tool_call_id=tool_call_id
+                    ) if isinstance(result, RetryPromptPart):
+                        # Tool call failed and needs retry
+                        tool_name = result.tool_name or "unknown"
+                        error_message = result.model_response()
+                        # Skip generic notifications for self-notifying tools
+                        if tool_name not in ACP_SELF_NOTIFYING_TOOLS:
+                            await self.notifications.tool_call(
+                                tool_name=tool_name,
+                                tool_input=self._current_tool_inputs.get(
+                                    tool_call_id, {}
+                                ),
+                                tool_output=f"Error: {error_message}",
+                                status="failed",
+                                tool_call_id=tool_call_id,
+                            )
+                        self._current_tool_inputs.pop(
+                            tool_call_id, None
+                        )  # Clean up stored input
+
+                    case ToolCallProgressEvent(
+                        progress=progress,
+                        total=total,
+                        message=message,
+                        tool_name=tool_name,
+                        tool_call_id=tool_call_id,
+                        tool_input=tool_input,
+                    ):
+                        logger.debug(
+                            f"Received progress event for tool {tool_name} with ID {tool_call_id}"
+                        )
+                        try:
+                            # Create content from progress message
+                            output = message if message else f"Progress: {progress}"
+                            if total:
+                                output += f"/{total}"
+
+                            # Create ACP tool call progress notification
+                            await self.notifications.tool_call(
+                                tool_name=tool_name,
+                                tool_input=tool_input or {},
+                                tool_output=output,
+                                status="in_progress",
+                                tool_call_id=tool_call_id,
+                            )
+
+                        except Exception as e:  # noqa: BLE001
+                            logger.warning(
+                                "Failed to convert progress event to ACP notification: %s",
+                                e,
+                            )
+
                     case FinalResultEvent():
                         msg = "Final result received for session %s"
                         logger.debug(msg, self.session_id)
@@ -547,115 +656,3 @@ with other agents effectively."""
         Yields:
             SessionNotification: The notification to send.
         """
-        from llmling_agent.agent.events import ToolCallProgressEvent
-
-        match event:
-            case FunctionToolCallEvent(part=part):
-                # Tool call started - save input for later use
-                tool_call_id = part.tool_call_id
-                self._current_tool_inputs[tool_call_id] = part.args_as_dict()
-
-                # Skip generic notifications for self-notifying tools
-                if part.tool_name not in ACP_SELF_NOTIFYING_TOOLS:
-                    await self.notifications.tool_call(
-                        tool_name=part.tool_name,
-                        tool_input=part.args_as_dict(),
-                        tool_output=None,  # Not available yet
-                        status="pending",
-                        tool_call_id=tool_call_id,
-                    )
-
-            case FunctionToolResultEvent(result=result, tool_call_id=tool_call_id) if (
-                isinstance(result, ToolReturnPart)
-            ):
-                # Tool call completed successfully
-                tool_input = self._current_tool_inputs.get(tool_call_id, {})
-
-                # Check if the tool result is a streaming AsyncGenerator
-                if isinstance(result.content, AsyncGenerator):
-                    # Stream the tool output chunks
-                    full_content = ""
-                    async for chunk in result.content:
-                        full_content += str(chunk)
-
-                        # Yield intermediate streaming notification
-                        # Skip generic notifications for self-notifying tools
-                        if result.tool_name not in ACP_SELF_NOTIFYING_TOOLS:
-                            await self.notifications.tool_call(
-                                tool_name=result.tool_name,
-                                tool_input=tool_input,
-                                tool_output=chunk,
-                                status="in_progress",
-                                tool_call_id=tool_call_id,
-                            )
-
-                    # Replace the AsyncGenerator with the full content to
-                    # prevent errors
-                    result.content = full_content
-                    final_output = full_content
-                else:
-                    final_output = result.content
-
-                # Final completion notification
-                # Skip generic notifications for self-notifying tools
-                if result.tool_name not in ACP_SELF_NOTIFYING_TOOLS:
-                    converted_blocks = to_acp_content_blocks(final_output)
-                    await self.notifications.tool_call(
-                        tool_name=result.tool_name,
-                        tool_input=tool_input,
-                        tool_output=converted_blocks,
-                        status="completed",
-                        tool_call_id=tool_call_id,
-                    )
-                # Clean up stored input
-                self._current_tool_inputs.pop(tool_call_id, None)
-
-            case FunctionToolResultEvent(result=result, tool_call_id=tool_call_id) if (
-                isinstance(result, RetryPromptPart)
-            ):
-                # Tool call failed and needs retry
-                tool_name = result.tool_name or "unknown"
-                error_message = result.model_response()
-                # Skip generic notifications for self-notifying tools
-                if tool_name not in ACP_SELF_NOTIFYING_TOOLS:
-                    await self.notifications.tool_call(
-                        tool_name=tool_name,
-                        tool_input=self._current_tool_inputs.get(tool_call_id, {}),
-                        tool_output=f"Error: {error_message}",
-                        status="failed",
-                        tool_call_id=tool_call_id,
-                    )
-                self._current_tool_inputs.pop(tool_call_id, None)  # Clean up stored input
-
-            case ToolCallProgressEvent(
-                progress=progress,
-                total=total,
-                message=message,
-                tool_name=tool_name,
-                tool_call_id=tool_call_id,
-                tool_input=tool_input,
-            ):
-                # Handle tool progress events from the stream
-                # Skip if we don't have the required context
-                if not (tool_name and tool_call_id):
-                    return
-
-                try:
-                    # Create content from progress message
-                    output = message if message else f"Progress: {progress}"
-                    if total:
-                        output += f"/{total}"
-
-                    # Create ACP tool call progress notification
-                    await self.notifications.tool_call(
-                        tool_name=tool_name,
-                        tool_input=tool_input or {},
-                        tool_output=output,
-                        status="in_progress",
-                        tool_call_id=tool_call_id,
-                    )
-
-                except Exception as e:  # noqa: BLE001
-                    logger.warning(
-                        "Failed to convert progress event to ACP notification: %s", e
-                    )
