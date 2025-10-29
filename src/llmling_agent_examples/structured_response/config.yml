@@ -34,7 +34,7 @@ agents:
         - sentiment (positive/negative/neutral)
         - confidence (0-1)
         - mood (descriptive word)
-    result_type: YamlResult # Use YAML-defined type
+    output_type: YamlResult # Use YAML-defined type
 
   python_analyzer:
     name: "Python-defined Analyzer"

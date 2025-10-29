@@ -78,7 +78,7 @@ class Job[TDeps, TResult = str](Schema):
 
         # Check return type
         if isinstance(agent, StructuredAgent):  # noqa: SIM102
-            if agent._result_type != self.required_return_type:  # type: ignore
+            if agent._output_type != self.required_return_type:  # type: ignore
                 return False
 
         # Check vision capabilities

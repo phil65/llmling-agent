@@ -36,7 +36,7 @@ agents:
     name: Test Agent
     description: A test agent
     model: test
-    result_type: TestResponse
+    output_type: TestResponse
     system_prompts:
       - You are a test agent
 """
@@ -46,7 +46,7 @@ responses: {}
 agent:
   name: Test Agent
   model: test
-  result_type: NonExistentResponse
+  output_type: NonExistentResponse
   system_prompts: []
 """
 
@@ -70,7 +70,7 @@ agents:
     test_agent:
         name: test
         model: test
-        result_type: BasicResult
+        output_type: BasicResult
         environment: env.yml  # Relative path
 """
 

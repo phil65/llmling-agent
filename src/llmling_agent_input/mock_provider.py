@@ -55,10 +55,10 @@ class MockInputProvider(InputProvider):
         self,
         context: AgentContext,
         prompt: str,
-        result_type: type | None = None,
+        output_type: type | None = None,
         message_history: list[ChatMessage] | None = None,
     ) -> Any:
-        kwargs = {"result_type": result_type, "message_history": message_history}
+        kwargs = {"output_type": output_type, "message_history": message_history}
         args_ = (context, prompt)
         call = InputCall("get_input", args_, kwargs, result=self.input_response)
         self.calls.append(call)

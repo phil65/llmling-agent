@@ -26,7 +26,6 @@ from llmling_agent_config.resources import (  # noqa: TC001
     ResourceConfig,
     SourceResourceConfig,
 )
-from llmling_agent_config.result_types import StructuredResponseConfig  # noqa: TC001
 from llmling_agent_config.storage import StorageConfig
 from llmling_agent_config.system_prompts import PromptLibraryConfig
 from llmling_agent_config.task import Job  # noqa: TC001
@@ -43,6 +42,7 @@ if TYPE_CHECKING:
 
     from llmling_agent import Agent, AgentPool
     from llmling_agent.prompts.manager import PromptManager
+    from llmling_agent_config.output_types import StructuredResponseConfig
 
 
 logger = log.get_logger(__name__)
@@ -345,13 +345,13 @@ class AgentsManifest(Schema):
 
     # @model_validator(mode="after")
     # def validate_response_types(self) -> AgentsManifest:
-    #     """Ensure all agent result_types exist in responses or are inline."""
+    #     """Ensure all agent output_types exist in responses or are inline."""
     #     for agent_id, agent in self.agents.items():
     #         if (
-    #             isinstance(agent.result_type, str)
-    #             and agent.result_type not in self.responses
+    #             isinstance(agent.output_type, str)
+    #             and agent.output_type not in self.responses
     #         ):
-    #             msg = f"'{agent.result_type=}' for '{agent_id=}' not found in responses"
+    #             msg = f"'{agent.output_type=}' for '{agent_id=}' not found in responses"
     #             raise ValueError(msg)
     #     return self
 
@@ -431,7 +431,7 @@ class AgentsManifest(Schema):
             output_retries=config.output_retries,
             end_strategy=config.end_strategy,
             debug=config.debug,
-            output_type=self.get_result_type(name) or str,
+            output_type=self.get_output_type(name) or str,
             # name=config.name or name,
         )
 
@@ -484,19 +484,19 @@ class AgentsManifest(Schema):
 
         return AgentPool(manifest=self)
 
-    def get_result_type(self, agent_name: str) -> type[Any] | None:
+    def get_output_type(self, agent_name: str) -> type[Any] | None:
         """Get the resolved result type for an agent.
 
         Returns None if no result type is configured.
         """
         agent_config = self.agents[agent_name]
-        if not agent_config.result_type:
+        if not agent_config.output_type:
             return None
-        logger.debug("Building response model for %r", agent_config.result_type)
-        if isinstance(agent_config.result_type, str):
-            response_def = self.responses[agent_config.result_type]
+        logger.debug("Building response model for %r", agent_config.output_type)
+        if isinstance(agent_config.output_type, str):
+            response_def = self.responses[agent_config.output_type]
             return response_def.response_schema.get_schema()  # type: ignore
-        return agent_config.result_type.response_schema.get_schema()  # type: ignore
+        return agent_config.output_type.response_schema.get_schema()  # type: ignore
 
 
 if __name__ == "__main__":

@@ -38,18 +38,18 @@ class StdlibInputProvider(InputProvider):
         self,
         context: AgentContext,
         prompt: str,
-        result_type: type[BaseModel],
+        output_type: type[BaseModel],
         message_history: list[ChatMessage] | None = None,
     ) -> BaseModel:
         """Get structured input, with promptantic and fallback handling."""
-        if result := await _get_promptantic_result(result_type):
+        if result := await _get_promptantic_result(output_type):
             return result
 
         # Fallback: Get raw input and validate
-        prompt = f"{prompt}\n(Please provide response as {result_type.__name__})"
+        prompt = f"{prompt}\n(Please provide response as {output_type.__name__})"
         raw_input = await self.get_input(context, prompt, message_history=message_history)
         try:
-            return result_type.model_validate_json(raw_input)
+            return output_type.model_validate_json(raw_input)
         except Exception as e:
             msg = f"Invalid response format: {e}"
             raise ToolError(msg) from e
@@ -141,7 +141,7 @@ class StdlibInputProvider(InputProvider):
         raise NotImplementedError(msg)
 
 
-async def _get_promptantic_result(result_type: type[BaseModel]) -> BaseModel | None:
+async def _get_promptantic_result(output_type: type[BaseModel]) -> BaseModel | None:
     """Helper to get structured input via promptantic.
 
     Returns None if promptantic is not available or fails.
@@ -149,7 +149,7 @@ async def _get_promptantic_result(result_type: type[BaseModel]) -> BaseModel | N
     try:
         from promptantic import ModelGenerator
 
-        return await ModelGenerator().apopulate(result_type)
+        return await ModelGenerator().apopulate(output_type)
     except ImportError:
         return None
     except Exception as e:  # noqa: BLE001

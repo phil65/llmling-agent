@@ -26,7 +26,7 @@ async def run_agent[TResult](
     prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str],
     image_url: str | None = None,
     *,
-    result_type: type[TResult],
+    output_type: type[TResult],
     **kwargs: Unpack[AgentKwargs],
 ) -> TResult: ...
 
@@ -43,16 +43,16 @@ async def run_agent(
     prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str],
     image_url: str | None = None,
     *,
-    result_type: type[Any] | None = None,
+    output_type: type[Any] | None = None,
     **kwargs: Unpack[AgentKwargs],
 ) -> Any:
     """Run prompt through agent and return result."""
     async with Agent[Any, str](**kwargs) as agent:
         if image_url:
             image = ImageURLContent(url=image_url)
-            result = await agent.run(prompt, image, result_type=result_type)
+            result = await agent.run(prompt, image, output_type=output_type)
         else:
-            result = await agent.run(prompt, result_type=result_type)
+            result = await agent.run(prompt, output_type=output_type)
         return result.content
 
 
@@ -61,7 +61,7 @@ def run_agent_sync[TResult](
     prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str],
     image_url: str | None = None,
     *,
-    result_type: type[TResult],
+    output_type: type[TResult],
     **kwargs: Unpack[AgentKwargs],
 ) -> TResult: ...
 
@@ -78,9 +78,9 @@ def run_agent_sync(
     prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str],
     image_url: str | None = None,
     *,
-    result_type: type[Any] | None = None,
+    output_type: type[Any] | None = None,
     **kwargs: Unpack[AgentKwargs],
 ) -> Any:
     """Sync wrapper for run_agent."""
-    coro = run_agent(prompt, image_url, result_type=result_type, **kwargs)  # type: ignore
+    coro = run_agent(prompt, image_url, output_type=output_type, **kwargs)  # type: ignore
     return asyncio.run(coro)

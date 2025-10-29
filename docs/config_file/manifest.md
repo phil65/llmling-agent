@@ -23,7 +23,7 @@ agents:
     end_strategy: "early"  # "early" | "complete" | "confirm"
 
     # Structured output
-    result_type:
+    output_type:
       type: "inline"  # or "import" for Python types
       fields:
         success:
@@ -143,7 +143,7 @@ storage:
 jobs:
   analyze_code:
     prompt: "Analyze this code: {code}"
-    result_type: "AnalysisResult"
+    output_type: "AnalysisResult"
     knowledge:
       paths: ["src/**/*.py"]
     tools:

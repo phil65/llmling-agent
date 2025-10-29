@@ -18,7 +18,7 @@ agents:
         description: "Opens URLs in browser"
 
     # Response type for structured output (optional)
-    result_type: WebResult       # Must be defined in 'responses' section
+    output_type: WebResult       # Must be defined in 'responses' section
 
     # Base behavior definition
     system_prompts:
@@ -55,7 +55,7 @@ List of prompts that define the agent's behavior. These are sent to the model be
 - Tool usage instructions
 - Response formatting requirements
 
-**result_type**
+**output_type**
 Optional reference to a response type (defined in responses section) for structured output. Ensures the model returns data in a specific format.
 
 ## Responses Section

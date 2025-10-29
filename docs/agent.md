@@ -46,7 +46,7 @@ async with Agent(
 
     typed_agent = Agent[Any, Analysis](
         runtime,
-        result_type=Analysis,
+        output_type=Analysis,
         model="openai:gpt-5",
         system_prompt=[
             "You are a code analysis assistant.",
@@ -67,7 +67,7 @@ agent = Agent(
     runtime,
     # Model settings
     model="openai:gpt-5",            # Model to use
-    result_type=Analysis,            # Optional result type
+    output_type=Analysis,            # Optional result type
 
     # Prompt configuration
     system_prompt=[                  # Static system prompts

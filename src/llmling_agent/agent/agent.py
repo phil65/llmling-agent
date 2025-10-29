@@ -25,7 +25,6 @@ import logfire
 from psygnal import Signal
 from pydantic import ValidationError
 from pydantic_ai import AgentRunResultEvent, PartDeltaEvent, TextPartDelta
-from pydantic_ai.output import OutputSpec
 from upath import UPath
 
 from llmling_agent.agent.events import StreamCompleteEvent
@@ -55,6 +54,7 @@ if TYPE_CHECKING:
     from llmling.prompts import PromptType
     import PIL.Image
     from pydantic_ai import AgentStreamEvent
+    from pydantic_ai.output import OutputSpec
     from toprompt import AnyPromptType
     from upath.types import JoinablePathLike
 
@@ -71,8 +71,8 @@ if TYPE_CHECKING:
     from llmling_agent.delegation.teamrun import TeamRun
     from llmling_agent.resource_providers.base import ResourceProvider
     from llmling_agent_config.mcp_server import MCPServerConfig
+    from llmling_agent_config.output_types import StructuredResponseConfig
     from llmling_agent_config.providers import ProcessorCallback
-    from llmling_agent_config.result_types import StructuredResponseConfig
     from llmling_agent_config.session import SessionQuery
     from llmling_agent_config.task import Job
     from llmling_agent_input.base import InputProvider
@@ -221,11 +221,11 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         self._infinite = False
         # save some stuff for asnyc init
         self._owns_runtime = False
-        self._result_type = to_type(output_type)
+        self._output_type = to_type(output_type)
         # match output_type:
         #     case type() | str():
         #         # For types and named definitions, use overrides if provided
-        #         self.set_result_type(
+        #         self.set_output_type(
         #             output_type,
         #             tool_name=tool_name,
         #             tool_description=tool_description,
@@ -233,7 +233,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         #     case StructuredResponseConfig():
         #         # For response definitions, use as-is
         #         # (overrides don't apply to complete definitions)
-        #         self.set_result_type(result_type)
+        #         self.set_output_type(output_type)
         # prepare context
         ctx = context or AgentContext[TDeps].create_default(
             name,
@@ -331,7 +331,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
 
         # init variables
         self._debug = debug
-        self._result_type: type | None = None
+        self._output_type: type | None = None
         self.parallel_init = parallel_init
         self.name = name
         self._background_task: asyncio.Task[Any] | None = None
@@ -472,9 +472,9 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         return TeamRun([self, other])
 
     @classmethod
-    def from_callback(
+    def from_callback[TResult](
         cls,
-        callback: ProcessorCallback[str],
+        callback: ProcessorCallback[TResult],
         *,
         name: str | None = None,
         **kwargs: Any,
@@ -506,7 +506,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             and return_type.__origin__ is Awaitable
         ):
             return_type = return_type.__args__[0]
-        return StructuredAgent[None, TResult](agent, return_type or str)  # type: ignore
+        return Agent[None, TResult](agent, output_type=return_type or str)  # type: ignore
 
     @property
     def name(self) -> str:
@@ -530,9 +530,9 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         self.mcp.context = value
         self._context = value
 
-    def set_result_type(
+    def set_output_type(
         self,
-        result_type: type[OutputDataT] | str | StructuredResponseConfig | None,
+        output_type: type[OutputDataT] | str | StructuredResponseConfig | None,
         *,
         tool_name: str | None = None,
         tool_description: str | None = None,
@@ -540,7 +540,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         """Set or update the result type for this agent.
 
         Args:
-            result_type: New result type, can be:
+            output_type: New result type, can be:
                 - A Python type for validation
                 - Name of a response definition
                 - Response definition instance
@@ -548,8 +548,8 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             tool_name: Optional override for tool name
             tool_description: Optional override for tool description
         """
-        logger.debug("Setting result type to: %s for %r", result_type, self.name)
-        self._result_type = to_type(result_type)
+        logger.debug("Setting result type to: %s for %r", output_type, self.name)
+        self._output_type = to_type(output_type)
 
     @property
     def provider(self) -> AgentProvider:
@@ -587,7 +587,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
 
     def to_structured[NewOutputDataT](
         self,
-        result_type: type[NewOutputDataT] | str | StructuredResponseConfig,
+        output_type: type[NewOutputDataT] | str | StructuredResponseConfig,
         *,
         tool_name: str | None = None,
         tool_description: str | None = None,
@@ -595,7 +595,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         """Convert this agent to a structured agent.
 
         Args:
-            result_type: Type for structured responses. Can be:
+            output_type: Type for structured responses. Can be:
                 - A Python type (Pydantic model)
                 - Name of response definition from context
                 - Complete response definition
@@ -606,7 +606,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             Either StructuredAgent wrapper or self unchanged
         from llmling_agent.agent import StructuredAgent
         """
-        self.set_result_type(result_type)  # type: ignore
+        self.set_output_type(output_type)  # type: ignore
         return self
 
     def is_busy(self) -> bool:
@@ -673,7 +673,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
     async def _run(
         self,
         *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str] | ChatMessage[Any],
-        result_type: type[OutputDataT] | None = None,
+        output_type: type[OutputDataT] | None = None,
         model: ModelType = None,
         store_history: bool = True,
         tool_choice: str | list[str] | None = None,
@@ -687,7 +687,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
 
         Args:
             prompts: User query or instruction
-            result_type: Optional type for structured responses
+            output_type: Optional type for structured responses
             model: Optional model override
             store_history: Whether the message exchange should be added to the
                             context window
@@ -708,7 +708,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         """Run agent with prompt and get response."""
         message_id = message_id or str(uuid4())
         tools = await self.tools.get_tools(state="enabled", names=tool_choice)
-        self.set_result_type(result_type)
+        self.set_output_type(output_type)
         start_time = time.perf_counter()
         sys_prompt = await self.sys_prompts.format_system_prompt(self)
 
@@ -721,7 +721,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                 message_id=message_id,
                 message_history=message_history,
                 tools=tools,
-                result_type=result_type,
+                output_type=output_type,
                 usage_limits=usage_limits,
                 model=model,
                 system_prompt=sys_prompt,
@@ -759,7 +759,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
     async def run_stream(
         self,
         *prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str],
-        result_type: type[OutputDataT] | None = None,
+        output_type: type[OutputDataT] | None = None,
         model: ModelType = None,
         tool_choice: str | list[str] | None = None,
         store_history: bool = True,
@@ -773,7 +773,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
 
         Args:
             prompt: User query or instruction
-            result_type: Optional type for structured responses
+            output_type: Optional type for structured responses
             model: Optional model override
             tool_choice: Filter tool choice by name
             store_history: Whether the message exchange should be added to the
@@ -792,7 +792,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         """
         message_id = message_id or str(uuid4())
         user_msg, prompts = await self.pre_run(*prompt)
-        self.set_result_type(result_type)
+        self.set_output_type(output_type)
         start_time = time.perf_counter()
         sys_prompt = await self.sys_prompts.format_system_prompt(self)
         tools = await self.tools.get_tools(state="enabled", names=tool_choice)
@@ -814,7 +814,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                 *prompts,
                 message_id=message_id,
                 message_history=message_history,
-                result_type=result_type,
+                output_type=output_type,
                 model=model,
                 tools=tools,
                 usage_limits=usage_limits,
@@ -879,7 +879,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
     async def run_iter(
         self,
         *prompt_groups: Sequence[AnyPromptType | PIL.Image.Image | os.PathLike[str]],
-        result_type: type[OutputDataT] | None = None,
+        output_type: type[OutputDataT] | None = None,
         model: ModelType = None,
         store_history: bool = True,
         wait_for_connections: bool | None = None,
@@ -888,7 +888,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
 
         Args:
             prompt_groups: Groups of prompts to process sequentially
-            result_type: Optional type for structured responses
+            output_type: Optional type for structured responses
             model: Optional model override
             store_history: Whether to store in conversation history
             wait_for_connections: Whether to wait for connected agents
@@ -908,7 +908,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         for prompts in prompt_groups:
             response = await self.run(
                 *prompts,
-                result_type=result_type,
+                output_type=output_type,
                 model=model,
                 store_history=store_history,
                 wait_for_connections=wait_for_connections,
@@ -1183,6 +1183,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
 
         Args:
             system_prompts: Temporary system prompts to use
+            output_type: Temporary output type to use
             replace_prompts: Whether to replace existing prompts
             tools: Temporary tools to make available
             replace_tools: Whether to replace existing tools
@@ -1195,8 +1196,8 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         old_model = self._provider.model if hasattr(self._provider, "model") else None  # pyright: ignore
         old_provider = self._provider
         if output_type:
-            old_type = self._result_type
-            self.set_result_type(output_type)  # type: ignore
+            old_type = self._output_type
+            self.set_output_type(output_type)  # type: ignore
         async with AsyncExitStack() as stack:
             # System prompts (async)
             if system_prompts is not None:
@@ -1239,7 +1240,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                 elif model is not None and old_model:
                     self._provider.set_model(old_model)
                 if output_type:
-                    self.set_result_type(old_type)
+                    self.set_output_type(old_type)
 
     async def validate_against(
         self,

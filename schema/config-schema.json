@@ -414,7 +414,7 @@
           "description": "Session configuration for conversation recovery.",
           "title": "Session"
         },
-        "result_type": {
+        "output_type": {
           "anyOf": [
             {
               "type": "string"

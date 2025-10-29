@@ -62,13 +62,13 @@ class HumanProvider(AgentProvider):
     def __repr__(self) -> str:
         return f"Human({self.name!r})"
 
-    @logfire.instrument("Human input. result type {result_type}")
+    @logfire.instrument("Human input. result type {output_type}")
     async def generate_response(
         self,
         *prompts: str | Content,
         message_id: str,
         message_history: list[ChatMessage],
-        result_type: type[Any] | None = None,
+        output_type: type[Any] | None = None,
         model: ModelType = None,
         system_prompt: str | None = None,
         usage_limits: UsageLimits | None = None,
@@ -80,7 +80,7 @@ class HumanProvider(AgentProvider):
         content = await self.context.get_input_provider().get_input(
             self.context,
             formatted,
-            result_type=result_type,
+            output_type=output_type,
             message_history=message_history,
         )
         return ProviderResponse(
@@ -92,7 +92,7 @@ class HumanProvider(AgentProvider):
         *prompts: str | Content,
         message_id: str,
         message_history: list[ChatMessage],
-        result_type: type[Any] | None = None,
+        output_type: type[Any] | None = None,
         model: ModelType = None,
         system_prompt: str | None = None,
         usage_limits: UsageLimits | None = None,
@@ -103,8 +103,8 @@ class HumanProvider(AgentProvider):
 
         prompt = await format_prompts(prompts)
         print(f"\n{prompt}")
-        if result_type:
-            print(f"(Please provide response as {result_type.__name__})")
+        if output_type:
+            print(f"(Please provide response as {output_type.__name__})")
 
         chunk_queue: asyncio.Queue[str] = asyncio.Queue()
 
@@ -148,9 +148,9 @@ class HumanProvider(AgentProvider):
                 yield PartDeltaEvent(index=0, delta=TextPartDelta(content_delta=chunk))
 
             # Parse structured response if needed
-            if result_type:
+            if output_type:
                 try:
-                    content = result_type.model_validate_json(content)
+                    content = output_type.model_validate_json(content)
                 except Exception as e:
                     logger.exception("Failed to parse structured response")
                     error_msg = f"Invalid response format: {e}"

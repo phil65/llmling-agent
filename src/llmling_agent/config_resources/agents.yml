@@ -55,7 +55,7 @@ agents:
         import_path: "getpass.getuser"
         description: "Get current system username"
     model: openai:gpt-5-mini
-    result_type: BasicResult
+    output_type: BasicResult
     system_prompts:
       - |
         You help users open websites. Use the open_url tool to open URLs.
@@ -77,7 +77,7 @@ agents:
         import_path: "psutil.virtual_memory"
         description: "Get memory information"
     model: openai:gpt-5-mini
-    result_type: SystemInfoResult
+    output_type: SystemInfoResult
     system_prompts:
       - |
         You provide system information in a clear, formatted way.
@@ -104,7 +104,7 @@ agents:
         name: current_dir
         description: "Get current working directory"
     model: openai:gpt-5-mini
-    result_type: FileInfoResult
+    output_type: FileInfoResult
     system_prompts:
       - |
         You help users explore their file system.

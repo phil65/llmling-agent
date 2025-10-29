@@ -157,7 +157,7 @@ agents:
     retries: 1  # Number of retries for failed operations
 
     # Structured output
-    result_type:
+    output_type:
       type: "inline"  # or "import" for Python types
       fields:
         severity:

@@ -35,7 +35,7 @@ Unlike a traditional inheritance relationship, StructuredAgent acts as a contain
 
 ## YAML Configuration
 
-When defining structured agents in YAML, use the `result_type` field to specify either an inline response definition or reference a shared one:
+When defining structured agents in YAML, use the `output_type` field to specify either an inline response definition or reference a shared one:
 
 ```yaml
 agents:
@@ -43,7 +43,7 @@ agents:
     provider:
        type: pydantic_ai
        model: openai:gpt-5
-    result_type: AnalysisResult  # Reference shared definition
+    output_type: AnalysisResult  # Reference shared definition
     system_prompts:
       - You analyze text and provide structured results.
 
@@ -51,7 +51,7 @@ agents:
     provider:
        type: pydantic_ai
        model: openai:gpt-5
-    result_type:  # Inline definition
+    output_type:  # Inline definition
       type: inline
       fields:
         is_valid:

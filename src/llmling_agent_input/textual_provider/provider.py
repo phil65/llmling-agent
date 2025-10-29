@@ -42,8 +42,8 @@ class BaseInputApp(App[str]):
 class InputApp(BaseInputApp):
     """Standalone app for text input."""
 
-    def __init__(self, prompt: str, result_type: type | None = None):
-        super().__init__(InputModal(prompt, result_type))
+    def __init__(self, prompt: str, output_type: type | None = None):
+        super().__init__(InputModal(prompt, output_type))
 
 
 class CodeInputApp(BaseInputApp):
@@ -76,17 +76,17 @@ class TextualInputProvider(InputProvider):
         self,
         context: AgentContext,
         prompt: str,
-        result_type: type | None = None,
+        output_type: type | None = None,
         message_history: list[ChatMessage] | None = None,
     ) -> Any:
         if self.app:
-            result = await self.app.push_screen_wait(InputModal(prompt, result_type))
+            result = await self.app.push_screen_wait(InputModal(prompt, output_type))
             if result is None:
                 msg = "Input cancelled"
                 raise UserCancelledError(msg)
             return result
         # Standalone mode - create temporary app
-        app = InputApp(prompt, result_type)
+        app = InputApp(prompt, output_type)
         app_result = await app.run_async()
         if app_result is None:
             msg = "Input cancelled"

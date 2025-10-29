@@ -250,13 +250,13 @@ class PydanticAIProvider(AgentProvider[Any]):
         wrapped.__name__ = tool.name
         return wrapped
 
-    @logfire.instrument("Pydantic-AI call. model: {model} result type {result_type}.")
+    @logfire.instrument("Pydantic-AI call. model: {model} result type {output_type}.")
     async def generate_response(
         self,
         *prompts: str | Content,
         message_id: str,
         message_history: list[ChatMessage],
-        result_type: type[Any] | None = None,
+        output_type: type[Any] | None = None,
         model: ModelType = None,
         tools: list[Tool] | None = None,
         system_prompt: str | None = None,
@@ -311,7 +311,7 @@ class PydanticAIProvider(AgentProvider[Any]):
             deps=self._context,  # type: ignore
             message_history=[to_model_request(m) for m in message_history],
             model=to_use,
-            output_type=result_type or str,
+            output_type=output_type or str,
             model_settings=self.model_settings,  # type: ignore
             usage_limits=PydanticAiUsageLimits(**limits),
             event_stream_handler=final_handler,
@@ -400,7 +400,7 @@ class PydanticAIProvider(AgentProvider[Any]):
         *prompts: str | Content,
         message_history: list[ChatMessage],
         message_id: str,
-        result_type: type[TResult] | None = None,
+        output_type: type[TResult] | None = None,
         model: ModelType = None,
         tools: list[Tool] | None = None,
         system_prompt: str | None = None,
@@ -421,7 +421,7 @@ class PydanticAIProvider(AgentProvider[Any]):
             deps=self._context,
             message_history=[to_model_request(m) for m in message_history],
             model=model or self.model,  # type: ignore
-            output_type=result_type or str,
+            output_type=output_type or str,
             model_settings=self.model_settings,  # type: ignore
             usage_limits=PydanticAiUsageLimits(**limits),
         ):

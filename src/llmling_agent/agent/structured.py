@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, Any
 
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messagenode import MessageNode
-from llmling_agent_config.result_types import StructuredResponseConfig
 
 
 if TYPE_CHECKING:
@@ -18,6 +17,7 @@ if TYPE_CHECKING:
     from llmling_agent.delegation.team import Team
     from llmling_agent.delegation.teamrun import TeamRun
     from llmling_agent.messaging.messages import ChatMessage
+    from llmling_agent_config.output_types import StructuredResponseConfig
     from llmling_agent_config.task import Job
     from llmling_agent_providers.callback import ProcessorCallback
 
@@ -38,7 +38,7 @@ class StructuredAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
     def __init__(
         self,
         agent: Agent[TDeps] | StructuredAgent[TDeps, TResult] | Callable[..., TResult],
-        result_type: type[TResult] | str | StructuredResponseConfig,
+        output_type: type[TResult] | str | StructuredResponseConfig,
         *,
         tool_name: str | None = None,
         tool_description: str | None = None,
@@ -47,7 +47,7 @@ class StructuredAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
 
         Args:
             agent: Base agent to wrap
-            result_type: Expected result type:
+            output_type: Expected result type:
                 - BaseModel / dataclasses
                 - Name of response definition in manifest
                 - Complete response definition instance
@@ -59,7 +59,7 @@ class StructuredAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         """
         from llmling_agent.agent.agent import Agent
 
-        logger.debug("StructuredAgent.run result_type = %s", result_type)
+        logger.debug("StructuredAgent.run output_type = %s", output_type)
         match agent:
             case StructuredAgent():
                 self._agent: Agent[TDeps] = agent._agent
@@ -114,9 +114,9 @@ class StructuredAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
                 raise JobError(msg)
 
         # Validate return type requirement
-        if job.required_return_type != self._result_type:
+        if job.required_return_type != self._output_type:
             msg = (
-                f"Agent result type ({self._result_type}) "
+                f"Agent result type ({self._output_type}) "
                 f"doesn't match job requirement ({job.required_return_type})"
             )
             raise JobError(msg)

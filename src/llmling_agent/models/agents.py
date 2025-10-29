@@ -34,7 +34,6 @@ from llmling_agent_config.knowledge import Knowledge  # noqa: TC001
 from llmling_agent_config.models import AnyModelConfig  # noqa: TC001
 from llmling_agent_config.nodes import NodeConfig
 from llmling_agent_config.providers import ProviderConfig  # noqa: TC001
-from llmling_agent_config.result_types import StructuredResponseConfig  # noqa: TC001
 from llmling_agent_config.session import MemoryConfig, SessionQuery
 from llmling_agent_config.system_prompts import PromptConfig  # noqa: TC001
 from llmling_agent_config.tools import BaseToolConfig, ToolConfig  # noqa: TC001
@@ -45,6 +44,7 @@ from llmling_agent_config.workers import WorkerConfig  # noqa: TC001
 if TYPE_CHECKING:
     from llmling_agent.resource_providers.base import ResourceProvider
     from llmling_agent.tools.base import Tool
+    from llmling_agent_config.output_types import StructuredResponseConfig
     from llmling_agent_providers.base import AgentProvider
 
 
@@ -89,7 +89,7 @@ class AgentConfig(NodeConfig):
     session: str | SessionQuery | MemoryConfig | None = None
     """Session configuration for conversation recovery."""
 
-    result_type: str | StructuredResponseConfig | None = None
+    output_type: str | StructuredResponseConfig | None = None
     """Name of the response definition to use"""
 
     retries: int = 1
@@ -140,23 +140,23 @@ class AgentConfig(NodeConfig):
 
     def is_structured(self) -> bool:
         """Check if this config defines a structured agent."""
-        return self.result_type is not None
+        return self.output_type is not None
 
     @model_validator(mode="before")
     @classmethod
-    def validate_result_type(cls, data: dict[str, Any]) -> dict[str, Any]:
+    def validate_output_type(cls, data: dict[str, Any]) -> dict[str, Any]:
         """Convert result type and apply its settings."""
-        result_type = data.get("result_type")
-        if isinstance(result_type, dict):
+        output_type = data.get("output_type")
+        if isinstance(output_type, dict):
             # Extract response-specific settings
-            tool_name = result_type.pop("result_tool_name", None)
-            tool_description = result_type.pop("result_tool_description", None)
-            retries = result_type.pop("output_retries", None)
+            tool_name = output_type.pop("result_tool_name", None)
+            tool_description = output_type.pop("result_tool_description", None)
+            retries = output_type.pop("output_retries", None)
 
             # Convert remaining dict to ResponseDefinition
-            if "type" not in result_type["response_schema"]:
-                result_type["response_schema"]["type"] = "inline"
-            data["result_type"]["response_schema"] = InlineSchemaDef(**result_type)
+            if "type" not in output_type["response_schema"]:
+                output_type["response_schema"]["type"] = "inline"
+            data["output_type"]["response_schema"] = InlineSchemaDef(**output_type)
 
             # Apply extracted settings to agent config
             if tool_name:

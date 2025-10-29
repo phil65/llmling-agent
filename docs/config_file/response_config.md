@@ -119,14 +119,14 @@ responses:
 agents:
   analyzer:
     model: "openai:gpt-5"
-    result_type: "CodeAnalysis"  # Reference response by name
+    output_type: "CodeAnalysis"  # Reference response by name
 ```
 
 ### Inline with Custom Tool Name
 ```yaml
 agents:
   processor:
-    result_type:
+    output_type:
       response_schema:
         type: "inline"  # Direct inline definition
         fields:

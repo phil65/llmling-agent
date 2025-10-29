@@ -24,7 +24,7 @@ Tasks can load context from various sources:
 jobs:
   summarize_docs:
     prompt: "Summarize the documentation changes"
-    result_type: "myapp.types.DocSummary"
+    output_type: "myapp.types.DocSummary"
     knowledge:
       # Simple file paths
       paths:
@@ -51,7 +51,7 @@ Specify tools needed for the task:
 jobs:
   security_audit:
     prompt: "Perform security audit on the codebase"
-    result_type: "myapp.types.AuditReport"
+    output_type: "myapp.types.AuditReport"
     tools:
       - "analyze_dependencies"
       - "check_vulnerabilities"

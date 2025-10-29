@@ -29,7 +29,7 @@ agents:
   test_agent:
     name: test_agent
     model: test
-    result_type: BasicResult
+    output_type: BasicResult
     system_prompts:
       - You are a test agent.
     user_prompts:

@@ -203,7 +203,7 @@ async def add_agent(  # noqa: D417
     model: str | None = None,
     tools: list[str] | None = None,
     session: str | None = None,
-    result_type: str | None = None,
+    output_type: str | None = None,
 ) -> str:
     """Add a new agent to the pool.
 
@@ -213,7 +213,7 @@ async def add_agent(  # noqa: D417
         model: Optional model override (uses default if not specified)
         tools: Imort paths of the tools the agent should have, if any.
         session: Session ID to recover conversation state from
-        result_type: Name of response type from manifest (for structured output)
+        output_type: Name of response type from manifest (for structured output)
 
     Returns:
         Confirmation message about the created agent
@@ -227,7 +227,7 @@ async def add_agent(  # noqa: D417
             system_prompt=system_prompt,
             model=model,
             tools=tools,
-            result_type=result_type,
+            output_type=output_type,
             session=session,
         )
     except ValueError as e:  # for wrong tool imports

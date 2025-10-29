@@ -39,16 +39,16 @@ def resolve_response_type(
             raise ValueError(msg)
 
 
-def to_type(result_type, context: AgentContext | None = None) -> type[BaseModel | str]:
-    match result_type:
+def to_type(output_type, context: AgentContext | None = None) -> type[BaseModel | str]:
+    match output_type:
         case str():
-            return resolve_response_type(result_type, context)
+            return resolve_response_type(output_type, context)
         case InlineSchemaDef():
-            return resolve_response_type(result_type, None)
+            return resolve_response_type(output_type, None)
         case None:
             return str
         case type() as model if issubclass(model, BaseModel | str):
             return model
         case _:
-            msg = f"Invalid result_type: {type(result_type)}"
+            msg = f"Invalid output_type: {type(output_type)}"
             raise TypeError(msg)

@@ -51,16 +51,16 @@ class InputModal(ModalScreen[str]):
         Binding("enter", "submit", "Submit"),
     ]
 
-    def __init__(self, prompt: str, result_type: type | None = None):
+    def __init__(self, prompt: str, output_type: type | None = None):
         super().__init__()
         self.prompt = prompt
-        self.result_type = result_type
+        self.output_type = output_type
 
     def compose(self) -> ComposeResult:
         with Vertical(classes="modal-container"):
             yield Label(self.prompt, id="prompt")
-            if self.result_type:
-                yield Label(f"(Please provide response as {self.result_type.__name__})")
+            if self.output_type:
+                yield Label(f"(Please provide response as {self.output_type.__name__})")
             yield Input(id="input")
             with Horizontal(classes="buttons"):
                 yield Button("Submit", variant="primary", id="submit")

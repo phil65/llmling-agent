@@ -46,7 +46,7 @@ class CallbackInputProvider(InputProvider):
         self,
         context: AgentContext,
         prompt: str,
-        result_type: type | None = None,
+        output_type: type | None = None,
         message_history: list[ChatMessage] | None = None,
     ) -> Any:
         if not self._get_input:
@@ -55,7 +55,7 @@ class CallbackInputProvider(InputProvider):
             self._get_input,
             context=context,
             prompt=prompt,
-            result_type=result_type,
+            output_type=output_type,
             message_history=message_history,
         )
 

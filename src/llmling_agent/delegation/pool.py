@@ -44,7 +44,7 @@ if TYPE_CHECKING:
     from llmling_agent.messaging.eventnode import EventNode
     from llmling_agent.messaging.messagenode import MessageNode
     from llmling_agent.models.manifest import AgentsManifest
-    from llmling_agent_config.result_types import StructuredResponseConfig
+    from llmling_agent_config.output_types import StructuredResponseConfig
     from llmling_agent_config.session import SessionQuery
     from llmling_agent_config.task import Job
     from llmling_agent_input.base import InputProvider
@@ -569,7 +569,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
             runtime=original_agent.runtime,
             context=original_agent.context,
             output_type=original_agent.actual_type,
-            # result_type=original_agent.actual_type,
+            # output_type=original_agent.actual_type,
             provider=new_config.get_provider(),
             system_prompt=new_config.system_prompts,
             name=new_name or f"{config.name}_copy_{len(self.agents)}",
@@ -668,7 +668,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
 
         # Override structured configuration if provided
         if return_type is not None:
-            agent.set_result_type(return_type)
+            agent.set_output_type(return_type)
 
         return agent
 
@@ -786,7 +786,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
 
         # Convert to structured if needed
         if return_type is not None:
-            base.set_result_type(return_type)
+            base.set_output_type(return_type)
 
         return base
 
@@ -805,7 +805,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
         self,
         name: AgentName,
         *,
-        result_type: None = None,
+        output_type: None = None,
         **kwargs: Unpack[AgentKwargs],
     ) -> Agent[Any, str]: ...
 
@@ -814,7 +814,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
         self,
         name: AgentName,
         *,
-        result_type: type[TResult] | str | StructuredResponseConfig,
+        output_type: type[TResult] | str | StructuredResponseConfig,
         **kwargs: Unpack[AgentKwargs],
     ) -> Agent[Any, TResult]: ...
 
@@ -822,14 +822,14 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
         self,
         name: AgentName,
         *,
-        result_type: type[Any] | str | StructuredResponseConfig | None = None,
+        output_type: type[Any] | str | StructuredResponseConfig | None = None,
         **kwargs: Unpack[AgentKwargs],
     ) -> Agent[Any, Any]:
         """Add a new permanent agent to the pool.
 
         Args:
             name: Name for the new agent
-            result_type: Optional type for structured responses:
+            output_type: Optional type for structured responses:
                 - None: Regular unstructured agent
                 - type: Python type for validation
                 - str: Name of response definition
@@ -841,7 +841,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
         """
         from llmling_agent.agent import Agent
 
-        agent: Agent[Any, Any] = Agent(name=name, **kwargs, output_type=result_type)
+        agent: Agent[Any, Any] = Agent(name=name, **kwargs, output_type=output_type)
         agent.tools.add_provider(self.mcp)
         agent = await self.exit_stack.enter_async_context(agent)
         self.register(name, agent)

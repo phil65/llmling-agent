@@ -24,7 +24,7 @@ class InputProvider(ABC):
         self,
         context: AgentContext,
         prompt: str,
-        result_type: type | None = None,
+        output_type: type | None = None,
         message_history: list[ChatMessage] | None = None,
     ) -> Any:
         """Get normal input (used by HumanProvider).
@@ -32,12 +32,12 @@ class InputProvider(ABC):
         Args:
             context: Current agent context
             prompt: The prompt to show to the user
-            result_type: Optional type for structured responses
+            output_type: Optional type for structured responses
             message_history: Optional conversation history
         """
-        if result_type:
+        if output_type:
             return await self.get_structured_input(
-                context, prompt, result_type, message_history
+                context, prompt, output_type, message_history
             )
         return await self.get_text_input(context, prompt, message_history)
 
@@ -54,7 +54,7 @@ class InputProvider(ABC):
         self,
         context: AgentContext[Any],
         prompt: str,
-        result_type: type[BaseModel],
+        output_type: type[BaseModel],
         message_history: list[ChatMessage] | None = None,
     ) -> BaseModel:
         """Get structured input, with promptantic and fallback handling."""

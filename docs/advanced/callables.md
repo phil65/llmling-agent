@@ -60,7 +60,7 @@ class AnalysisResult(BaseModel):
 def analyze(text: str) -> AnalysisResult:
     return AnalysisResult(sentiment=0.5, topics=["tech"])
 
-agent1 = Agent(analyze, result_type=AnalysisResult)
+agent1 = Agent(analyze, output_type=AnalysisResult)
 
 # Type is preserved in teams/pipelines
 team = base_agent & analyze  # analyze becomes Agent[None, AnalysisResult]

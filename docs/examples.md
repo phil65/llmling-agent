@@ -87,7 +87,7 @@ responses:
 agents:
   code_reviewer:
     model: openai:gpt-5
-    result_type: CodeReview  # Use structured response
+    output_type: CodeReview  # Use structured response
     environment: env_code.yml
     system_prompts:
       - "You review Python code and provide structured feedback."

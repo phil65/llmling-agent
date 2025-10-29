@@ -43,7 +43,7 @@ agents:
       type: callback
       callback: {__name__}.make_test_response
     model: test
-    result_type: _TestOutput
+    output_type: _TestOutput
     system_prompts:
       - You are the first agent
 
@@ -54,7 +54,7 @@ agents:
       type: callback
       callback: {__name__}.make_test_response
     model: test
-    result_type: _TestOutput
+    output_type: _TestOutput
     system_prompts:
       - You are the second agent
 """

@@ -23,7 +23,7 @@ The agent provides three main ways to execute queries:
 # Basic async run
 result = await agent.run(
     "What is 2+2?",
-    result_type=int,  # Optional type for structured responses (and a generic type)
+    output_type=int,  # Optional type for structured responses (and a generic type)
     deps=my_deps,     # Optional dependencies
     model="gpt-5-mini"     # Optional model override
 )

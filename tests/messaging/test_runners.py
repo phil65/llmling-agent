@@ -53,7 +53,7 @@ agents:
       type: callback
       callback: {__name__}.make_response
     model: test
-    result_type: ConversationOutput
+    output_type: ConversationOutput
     system_prompts:
       - You are a test agent
 

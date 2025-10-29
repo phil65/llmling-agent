@@ -164,7 +164,7 @@ agent = await pool.add_agent(
 # Structured agent with return type
 planner = await pool.add_agent(
     "planner",
-    result_type=PlanResult,
+    output_type=PlanResult,
     model="openai:gpt-5",
     system_prompt="You create execution plans.",
 )

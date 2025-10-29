@@ -75,7 +75,7 @@ async def main():
     result = await run_with_model(
         "Analyze the sentiment",
         model="openai:gpt-5-mini",
-        result_type=Analysis
+        output_type=Analysis
     )
     print(f"Summary: {result.summary}")
     print(f"Key points: {result.key_points}")
