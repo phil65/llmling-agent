@@ -27,7 +27,11 @@ from pydantic import ValidationError
 from pydantic_ai import AgentRunResultEvent, PartDeltaEvent, TextPartDelta
 from upath import UPath
 
-from llmling_agent.agent.events import StreamCompleteEvent, ToolCallProgressEvent
+from llmling_agent.agent.events import (
+    RichAgentStreamEvent,
+    StreamCompleteEvent,
+    ToolCallProgressEvent,
+)
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messagenode import MessageNode
 from llmling_agent.messaging.messages import ChatMessage, TokenCost
@@ -54,7 +58,6 @@ if TYPE_CHECKING:
     from llmling.config.models import Resource
     from llmling.prompts import PromptType
     import PIL.Image
-    from pydantic_ai import AgentStreamEvent
     from pydantic_ai.output import OutputSpec
     from toprompt import AnyPromptType
     from upath.types import JoinablePathLike
@@ -773,7 +776,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         conversation_id: str | None = None,
         messages: list[ChatMessage[Any]] | None = None,
         wait_for_connections: bool | None = None,
-    ) -> AsyncIterator[AgentStreamEvent | StreamCompleteEvent[OutputDataT]]:
+    ) -> AsyncIterator[RichAgentStreamEvent[OutputDataT]]:
         """Run agent with prompt and get a streaming response.
 
         Args:

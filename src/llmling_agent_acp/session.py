@@ -32,6 +32,7 @@ from acp.filesystem import ACPFileSystem
 from acp.notifications import ACPNotifications
 from acp.requests import ACPRequests
 from acp.schema import ReadTextFileRequest
+from llmling_agent.agent.events import RichAgentStreamEvent
 from llmling_agent.log import get_logger
 from llmling_agent.mcp_server.manager import MCPManager
 from llmling_agent_acp.acp_tools import get_acp_provider
@@ -57,7 +58,6 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from mcp.types import Prompt
-    from pydantic_ai import AgentStreamEvent
 
     from acp import Client
     from acp.schema import ClientCapabilities, ContentBlock, McpServer, StopReason
@@ -538,7 +538,7 @@ with other agents effectively."""
             msg = "Failed to register MCP prompts as commands for session %s"
             logger.exception(msg, self.session_id)
 
-    async def process_agent_stream_event(self, event: AgentStreamEvent) -> None:
+    async def process_agent_stream_event(self, event: RichAgentStreamEvent) -> None:
         """Process agent stream events.
 
         Args:

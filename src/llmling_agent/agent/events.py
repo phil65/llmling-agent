@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Literal
 
+from pydantic_ai import AgentStreamEvent
+
 from llmling_agent.messaging.messages import ChatMessage  # noqa: TC001
 
 
@@ -34,3 +36,8 @@ class ToolCallProgressEvent:
     """The ID of the tool call."""
     tool_input: dict[str, Any] | None
     """The input provided to the tool."""
+
+
+type RichAgentStreamEvent[OutputDataT] = (
+    AgentStreamEvent | StreamCompleteEvent[OutputDataT] | ToolCallProgressEvent
+)
