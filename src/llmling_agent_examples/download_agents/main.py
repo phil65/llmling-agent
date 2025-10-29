@@ -74,8 +74,7 @@ async def run_example():
     ) as pool:
         # Get agents from the YAML config
         worker_1 = pool.get_agent("file_getter_1")
-        # Create second agent by cloning
-        worker_2 = await pool.clone_agent(worker_1, new_name="file_getter_2")
+        worker_2 = pool.get_agent("file_getter_2")
         fan = pool.get_agent("fan")
         progress = CheerProgress()
 

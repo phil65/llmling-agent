@@ -48,3 +48,6 @@ agents:
         You coordinate file downloads using available agents. Your job is to:
         1. Check out the available agents and assign each of them the download task
         2. Report the EXACT download results from the agents including speeds and sizes
+
+  file_getter_2:
+    inherits: file_getter_1

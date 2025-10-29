@@ -177,21 +177,6 @@ researcher = await pool.add_agent(
 )
 ```
 
-### Cloning Agents
-
-`clone_agent()` creates copies of existing agents with possible modifications:
-
-```python
-# Basic clone
-clone = await pool.clone_agent(
-    "analyzer",
-    new_name="analyzer_2"
-)
-
-# Clone with model override
-gpt3_clone = await pool.clone_agent("analyzer")
-
-```
 
 ### Creating Teams
 

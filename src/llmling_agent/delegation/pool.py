@@ -522,64 +522,64 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
                     wait=target.wait_for_completion,
                 )
 
-    async def clone_agent[TDeps, TAgentResult](
-        self,
-        agent: AgentName | Agent[TDeps, TAgentResult],
-        new_name: AgentName | None = None,
-        *,
-        system_prompts: list[str] | None = None,
-        template_context: dict[str, Any] | None = None,
-    ) -> Agent[TDeps, TAgentResult]:
-        """Create a copy of an agent.
+    # async def clone_agent[TDeps, TAgentResult](
+    #     self,
+    #     agent: AgentName | Agent[TDeps, TAgentResult],
+    #     new_name: AgentName | None = None,
+    #     *,
+    #     system_prompts: list[str] | None = None,
+    #     template_context: dict[str, Any] | None = None,
+    # ) -> Agent[TDeps, TAgentResult]:
+    #     """Create a copy of an agent.
 
-        Args:
-            agent: Agent instance or name to clone
-            new_name: Optional name for the clone
-            system_prompts: Optional different prompts
-            template_context: Variables for template rendering
+    #     Args:
+    #         agent: Agent instance or name to clone
+    #         new_name: Optional name for the clone
+    #         system_prompts: Optional different prompts
+    #         template_context: Variables for template rendering
 
-        Returns:
-            The new agent instance
-        """
-        from llmling_agent.agent import Agent
+    #     Returns:
+    #         The new agent instance
+    #     """
+    #     from llmling_agent.agent import Agent
 
-        # Get original config
-        if isinstance(agent, str):
-            if agent not in self.manifest.agents:
-                msg = f"Agent {agent} not found"
-                raise KeyError(msg)
-            config = self.manifest.agents[agent]
-            original_agent: Agent[Any, Any] = self.get_agent(agent)
-        else:
-            config = agent.context.config  # type: ignore
-            original_agent = agent
+    #     # Get original config
+    #     if isinstance(agent, str):
+    #         if agent not in self.manifest.agents:
+    #             msg = f"Agent {agent} not found"
+    #             raise KeyError(msg)
+    #         config = self.manifest.agents[agent]
+    #         original_agent: Agent[Any, Any] = self.get_agent(agent)
+    #     else:
+    #         config = agent.context.config  # type: ignore
+    #         original_agent = agent
 
-        # Create new config
-        new_config = config.model_copy(deep=True)
+    #     # Create new config
+    #     new_cfg = config.model_copy(deep=True)
 
-        # Apply overrides
-        if system_prompts:
-            new_config.system_prompts = system_prompts
+    #     # Apply overrides
+    #     if system_prompts:
+    #         new_cfg.system_prompts = system_prompts
 
-        # Handle template rendering
-        if template_context:
-            new_config.system_prompts = new_config.render_system_prompts(template_context)
+    #     # Handle template rendering
+    #     if template_context:
+    #         new_cfg.system_prompts = new_cfg.render_system_prompts(template_context)
 
-        # Create new agent with same runtime
-        new_agent = Agent[TDeps](
-            runtime=original_agent.runtime,
-            context=original_agent.context,
-            output_type=original_agent._output_type,
-            # output_type=original_agent.actual_type,
-            provider=new_config.get_provider(),
-            system_prompt=new_config.system_prompts,
-            name=new_name or f"{config.name}_copy_{len(self.agents)}",
-        )
-        # Register in pool
-        agent_name = new_agent.name
-        self.manifest.agents[agent_name] = new_config
-        self.register(agent_name, new_agent)
-        return await self.exit_stack.enter_async_context(new_agent)
+    #     # Create new agent with same runtime
+    #     new_agent = Agent[TDeps](
+    #         runtime=original_agent.runtime,
+    #         context=original_agent.context,
+    #         output_type=original_agent._output_type,
+    #         # output_type=original_agent.actual_type,
+    #         provider=new_cfg.get_provider(),
+    #         system_prompt=new_cfg.system_prompts,
+    #         name=new_name or f"{config.name}_copy_{len(self.agents)}",
+    #     )
+    #     # Register in pool
+    #     agent_name = new_agent.name
+    #     self.manifest.agents[agent_name] = new_cfg
+    #     self.register(agent_name, new_agent)
+    #     return await self.exit_stack.enter_async_context(new_agent)
 
     @overload
     async def create_agent(

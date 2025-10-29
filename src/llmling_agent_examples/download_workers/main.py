@@ -38,7 +38,7 @@ async def run_example():
 
         # Create second downloader by cloning the first
         worker_1 = pool.get_agent("file_getter_1")
-        worker_2 = await pool.clone_agent(worker_1, new_name="file_getter_2")
+        worker_2 = pool.get_agent("file_getter_2")
 
         # Register both as worker tools
         boss.register_worker(worker_1)
