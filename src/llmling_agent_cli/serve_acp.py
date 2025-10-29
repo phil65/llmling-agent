@@ -123,43 +123,42 @@ def acp_command(
 
     level = getattr(logging, log_level.upper())
     logging.basicConfig(level=level)
+    try:
+        config_path = resolve_agent_config(config)
+    except ValueError as e:
+        msg = str(e)
+        raise t.BadParameter(msg) from e
+
+    logger.info("Starting ACP server for config: %s", config_path)
+
+    acp_server = ACPServer.from_config(
+        config_path,
+        session_support=session_support,
+        file_access=file_access,
+        terminal_access=terminal_access,
+        providers=providers,  # type: ignore[arg-type] # pyright: ignore[reportArgumentType]
+        debug_messages=debug_messages,
+        debug_file=debug_file or "acp-debug.jsonl" if debug_messages else None,
+        debug_commands=debug_commands,
+        agent=agent,
+    )
+    # Configure agent capabilities
+    agent_count = len(acp_server.agent_pool.agents)
+    if agent_count == 0:
+        logger.error("No agents found in configuration")
+        raise t.Exit(1)
+    logger.info("Configured %d agents for ACP protocol", agent_count)
+    if show_messages:
+        logger.info("Message activity logging enabled")
+    if debug_messages:
+        debug_path = debug_file or "acp-debug.jsonl"
+        logger.info("Raw JSON-RPC message debugging enabled -> %s", debug_path)
+    if debug_commands:
+        logger.info("Debug slash commands enabled")
+    msg = "Starting ACP server (file_access=%s terminal_access=%s session_support=%s)"
+    logger.info(msg, file_access, terminal_access, session_support)
 
     async def run_acp_server():
-        try:
-            config_path = resolve_agent_config(config)
-        except ValueError as e:
-            msg = str(e)
-            raise t.BadParameter(msg) from e
-
-        logger.info("Starting ACP server for config: %s", config_path)
-
-        acp_server = await ACPServer.from_config(
-            config_path,
-            session_support=session_support,
-            file_access=file_access,
-            terminal_access=terminal_access,
-            providers=providers,  # type: ignore[arg-type] # pyright: ignore[reportArgumentType]
-            debug_messages=debug_messages,
-            debug_file=debug_file or "acp-debug.jsonl" if debug_messages else None,
-            debug_commands=debug_commands,
-            agent=agent,
-        )
-        # Configure agent capabilities
-        agent_count = len(acp_server.agent_pool.agents)
-        if agent_count == 0:
-            logger.error("No agents found in configuration")
-            raise t.Exit(1)
-        logger.info("Configured %d agents for ACP protocol", agent_count)
-        if show_messages:
-            logger.info("Message activity logging enabled")
-        if debug_messages:
-            debug_path = debug_file or "acp-debug.jsonl"
-            logger.info("Raw JSON-RPC message debugging enabled -> %s", debug_path)
-        if debug_commands:
-            logger.info("Debug slash commands enabled")
-        msg = "Starting ACP server (file_access=%s terminal_access=%s session_support=%s)"
-        logger.info(msg, file_access, terminal_access, session_support)
-
         try:
             await acp_server.run()
         except KeyboardInterrupt:
@@ -170,13 +169,7 @@ def acp_command(
         finally:
             await acp_server.shutdown()
 
-    try:
-        asyncio.run(run_acp_server())
-    except KeyboardInterrupt:
-        logger.info("Interrupted")
-    except Exception as e:
-        logger.exception("Failed to run ACP server")
-        raise t.Exit(1) from e
+    asyncio.run(run_acp_server())
 
 
 if __name__ == "__main__":

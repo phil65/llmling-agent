@@ -83,7 +83,7 @@ class ACPServer:
         self._models_initialized = False
 
     @classmethod
-    async def from_config(
+    def from_config(
         cls,
         config_path: JoinablePathLike,
         *,
