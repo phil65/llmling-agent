@@ -153,16 +153,12 @@ class Talk[TTransmittedData]:
             connection >> other_agent  # Connect to single agent
             connection >> (agent2 & agent3)  # Connect to group
         """
-        from llmling_agent import Agent, MessageNode, StructuredAgent
+        from llmling_agent import Agent, MessageNode
         from llmling_agent.talk import TeamTalk
-        from llmling_agent.utils.inspection import has_return_type
 
         match other:
             case Callable():
-                if has_return_type(other, str):
-                    other = Agent.from_callback(other)
-                else:
-                    other = StructuredAgent.from_callback(other)
+                other = Agent.from_callback(other)
                 if pool := self.source.context.pool:
                     pool.register(other.name, other)
                 return self.__rshift__(other)
@@ -527,16 +523,12 @@ class TeamTalk[TTransmittedData](list["Talk | TeamTalk"]):
             connection >> other_agent  # Connect to single agent
             connection >> (agent2 & agent3)  # Connect to group
         """
-        from llmling_agent import Agent, MessageNode, StructuredAgent
+        from llmling_agent import Agent, MessageNode
         from llmling_agent.talk import TeamTalk
-        from llmling_agent.utils.inspection import has_return_type
 
         match other:
             case Callable():
-                if has_return_type(other, str):
-                    other = Agent.from_callback(other)
-                else:
-                    other = StructuredAgent.from_callback(other)
+                other = Agent.from_callback(other)
                 for talk_ in self.iter_talks():
                     if pool := talk_.source.context.pool:
                         pool.register(other.name, other)

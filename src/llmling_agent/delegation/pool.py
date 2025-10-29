@@ -36,6 +36,7 @@ if TYPE_CHECKING:
     from types import TracebackType
 
     from psygnal.containers._evented_dict import DictEvents
+    from pydantic_ai.output import OutputSpec
     from upath.types import JoinablePathLike
 
     from llmling_agent.agent.agent import AgentKwargs
@@ -568,7 +569,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
         new_agent = Agent[TDeps](
             runtime=original_agent.runtime,
             context=original_agent.context,
-            output_type=original_agent.actual_type,
+            output_type=original_agent._output_type,
             # output_type=original_agent.actual_type,
             provider=new_config.get_provider(),
             system_prompt=new_config.system_prompts,
@@ -822,9 +823,9 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
         self,
         name: AgentName,
         *,
-        output_type: type[Any] | str | StructuredResponseConfig | None = None,
+        output_type: OutputSpec[TResult] | str | StructuredResponseConfig | None = None,
         **kwargs: Unpack[AgentKwargs],
-    ) -> Agent[Any, Any]:
+    ) -> Agent[Any, TResult]:
         """Add a new permanent agent to the pool.
 
         Args:
@@ -841,7 +842,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
         """
         from llmling_agent.agent import Agent
 
-        agent: Agent[Any, Any] = Agent(name=name, **kwargs, output_type=output_type)
+        agent: Agent[Any, TResult] = Agent(name=name, **kwargs, output_type=output_type)
         agent.tools.add_provider(self.mcp)
         agent = await self.exit_stack.enter_async_context(agent)
         self.register(name, agent)

@@ -16,7 +16,6 @@ from llmling_agent.messaging.messagenode import MessageNode
 from llmling_agent.models.manifest import AgentsManifest
 from llmling_agent.talk.stats import AggregatedMessageStats
 from llmling_agent.tools.base import Tool
-from llmling_agent.utils.inspection import has_return_type
 from llmling_agent_config.teams import TeamConfig
 
 
@@ -142,14 +141,14 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
             if self.num_picks == 1:
                 result = await self.picker.talk.pick(self, task, self.pick_prompt)
                 return [result.selection]
-            result = await self.picker.talk.pick_multiple(
+            multi_result = await self.picker.talk.pick_multiple(
                 self,
                 task,
                 min_picks=self.num_picks or 1,
                 max_picks=self.num_picks,
                 prompt=self.pick_prompt,
             )
-            return result.selections
+            return multi_result.selections
         return list(self.agents)
 
     def _on_node_changed(self, index: int, old: MessageNode, new: MessageNode):
@@ -238,14 +237,11 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
         self, other: Team[Any] | Agent[Any, Any] | ProcessorCallback[Any]
     ) -> Team[Any]:
         """Combine teams, preserving type safety for same types."""
-        from llmling_agent.agent import Agent, StructuredAgent
+        from llmling_agent.agent import Agent
         from llmling_agent.delegation.team import Team
 
         if callable(other):
-            if has_return_type(other, str):
-                other = Agent.from_callback(other)
-            else:
-                other = StructuredAgent.from_callback(other)
+            other = Agent.from_callback(other)
             other.context.pool = self.context.pool
 
         match other:

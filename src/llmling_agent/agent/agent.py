@@ -221,6 +221,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         self._infinite = False
         # save some stuff for asnyc init
         self._owns_runtime = False
+        # self._output_type: type | None = None
         self._output_type = to_type(output_type)
         # match output_type:
         #     case type() | str():
@@ -331,7 +332,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
 
         # init variables
         self._debug = debug
-        self._output_type: type | None = None
         self.parallel_init = parallel_init
         self.name = name
         self._background_task: asyncio.Task[Any] | None = None
@@ -478,7 +478,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         *,
         name: str | None = None,
         **kwargs: Any,
-    ) -> Agent[None]:
+    ) -> Agent[None, TResult]:
         """Create an agent from a processing callback.
 
         Args:
@@ -494,7 +494,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
 
         name = name or callback.__name__ or "processor"
         provider = CallbackProvider(callback, name=name)
-        agent = Agent[None, Any](provider=provider, name=name, **kwargs)
         # Get return type from signature for validation
         hints = get_type_hints(callback)
         return_type = hints.get("return")
@@ -506,7 +505,12 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             and return_type.__origin__ is Awaitable
         ):
             return_type = return_type.__args__[0]
-        return Agent[None, TResult](agent, output_type=return_type or str)  # type: ignore
+        return Agent(
+            provider=provider,
+            name=name,
+            output_type=return_type or str,
+            **kwargs,
+        )  # type: ignore
 
     @property
     def name(self) -> str:
@@ -532,7 +536,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
 
     def set_output_type(
         self,
-        output_type: type[OutputDataT] | str | StructuredResponseConfig | None,
+        output_type: type | str | StructuredResponseConfig | None,
         *,
         tool_name: str | None = None,
         tool_description: str | None = None,
@@ -708,7 +712,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         """Run agent with prompt and get response."""
         message_id = message_id or str(uuid4())
         tools = await self.tools.get_tools(state="enabled", names=tool_choice)
-        self.set_output_type(output_type)
+        final_type = to_type(output_type) if output_type else self._output_type
         start_time = time.perf_counter()
         sys_prompt = await self.sys_prompts.format_system_prompt(self)
 
@@ -721,7 +725,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                 message_id=message_id,
                 message_history=message_history,
                 tools=tools,
-                output_type=output_type,
+                output_type=final_type,
                 usage_limits=usage_limits,
                 model=model,
                 system_prompt=sys_prompt,
@@ -768,7 +772,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         conversation_id: str | None = None,
         messages: list[ChatMessage[Any]] | None = None,
         wait_for_connections: bool | None = None,
-    ) -> AsyncIterator[AgentStreamEvent | StreamCompleteEvent]:
+    ) -> AsyncIterator[AgentStreamEvent | StreamCompleteEvent[OutputDataT]]:
         """Run agent with prompt and get a streaming response.
 
         Args:
@@ -792,7 +796,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         """
         message_id = message_id or str(uuid4())
         user_msg, prompts = await self.pre_run(*prompt)
-        self.set_output_type(output_type)
+        final_type = to_type(output_type) if output_type else self._output_type
         start_time = time.perf_counter()
         sys_prompt = await self.sys_prompts.format_system_prompt(self)
         tools = await self.tools.get_tools(state="enabled", names=tool_choice)
@@ -814,7 +818,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                 *prompts,
                 message_id=message_id,
                 message_history=message_history,
-                output_type=output_type,
+                output_type=final_type,
                 model=model,
                 tools=tools,
                 usage_limits=usage_limits,
@@ -843,8 +847,8 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             if model_name and usage and model_name != "test":
                 cost_info = await TokenCost.from_usage(usage, model_name)
 
-            response_msg = ChatMessage(
-                content=output,
+            response_msg = ChatMessage[OutputDataT](
+                content=output,  # type: ignore
                 role="assistant",
                 name=self.name,
                 model_name=model_name,

@@ -88,20 +88,42 @@ class MessageNode[TDeps, TResult](MessageEmitter[TDeps, TResult]):
     #     await self.connections.route_message(message, wait=wait_for_connections)
     #     return message
 
+    # @overload
+    # async def run(
+    #     self,
+    #     *prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str] | ChatMessage,
+    #     wait_for_connections: bool | None = None,
+    #     store_history: bool = True,
+    #     output_type: None,
+    #     **kwargs: Any,
+    # ) -> ChatMessage[TResult]: ...
+
+    # @overload
+    # async def run[OutputTypeT](
+    #     self,
+    #     *prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str] | ChatMessage,
+    #     wait_for_connections: bool | None = None,
+    #     store_history: bool = True,
+    #     output_type: type[OutputTypeT],
+    #     **kwargs: Any,
+    # ) -> ChatMessage[OutputTypeT]: ...
+
     @method_spawner
-    async def run(
+    async def run[OutputTypeT](
         self,
         *prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str] | ChatMessage,
         wait_for_connections: bool | None = None,
         store_history: bool = True,
+        output_type: type[OutputTypeT] | None = None,
         **kwargs: Any,
-    ) -> ChatMessage[TResult]:
+    ) -> ChatMessage[Any]:
         """Execute node with prompts and handle message routing.
 
         Args:
             prompt: Input prompts
             wait_for_connections: Whether to wait for forwarded messages
             store_history: Whether to store in conversation history
+            output_type: Type of output to expect
             **kwargs: Additional arguments for _run
         """
         from llmling_agent import Agent
@@ -111,6 +133,7 @@ class MessageNode[TDeps, TResult](MessageEmitter[TDeps, TResult]):
             *prompts,
             store_history=store_history,
             conversation_id=user_msg.conversation_id,
+            output_type=output_type,
             **kwargs,
         )
 

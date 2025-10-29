@@ -20,6 +20,7 @@ from llmling_agent_config.mcp_server import (
     StreamableHTTPMCPServerConfig,
 )
 from llmling_agent_config.observability import ObservabilityConfig
+from llmling_agent_config.output_types import StructuredResponseConfig  # noqa: TC001
 from llmling_agent_config.pool_server import MCPPoolServerConfig
 from llmling_agent_config.providers import BaseProviderConfig
 from llmling_agent_config.resources import (  # noqa: TC001
@@ -42,7 +43,6 @@ if TYPE_CHECKING:
 
     from llmling_agent import Agent, AgentPool
     from llmling_agent.prompts.manager import PromptManager
-    from llmling_agent_config.output_types import StructuredResponseConfig
 
 
 logger = log.get_logger(__name__)

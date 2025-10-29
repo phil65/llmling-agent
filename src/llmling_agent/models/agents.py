@@ -33,6 +33,7 @@ from llmling_agent_config.environment import (
 from llmling_agent_config.knowledge import Knowledge  # noqa: TC001
 from llmling_agent_config.models import AnyModelConfig  # noqa: TC001
 from llmling_agent_config.nodes import NodeConfig
+from llmling_agent_config.output_types import StructuredResponseConfig  # noqa: TC001
 from llmling_agent_config.providers import ProviderConfig  # noqa: TC001
 from llmling_agent_config.session import MemoryConfig, SessionQuery
 from llmling_agent_config.system_prompts import PromptConfig  # noqa: TC001
@@ -44,7 +45,6 @@ from llmling_agent_config.workers import WorkerConfig  # noqa: TC001
 if TYPE_CHECKING:
     from llmling_agent.resource_providers.base import ResourceProvider
     from llmling_agent.tools.base import Tool
-    from llmling_agent_config.output_types import StructuredResponseConfig
     from llmling_agent_providers.base import AgentProvider
 
 
