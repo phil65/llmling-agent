@@ -7,7 +7,6 @@
 
 2. Core Concepts
    ├── Agent [/docs/agents/basic_agent.md] ✓
-   ├── StructuredAgent [/docs/agents/structured_agent.md] ✓
    ├── Tools and Tool Management [/docs/agents/tool_manager.md] ✓
    ├── Agent Pool [/docs/concepts/pool.md] ⨯
    ├── Team [/docs/agents/team.md] ✓

@@ -63,18 +63,6 @@ uv run mknodes build
 
 ### Modular Design
 - Separate packages for each major component (`llmling_agent_*`)
-- Clear dependency hierarchy enforced by `tach.toml`
-- Plugin-based architecture for providers and tools
-
-### Type Safety
-- Pydantic models for all data structures
-- Generic types for agent specialization (`Agent[T]`, `StructuredAgent[T]`)
-- Discriminated unions for configuration variants
-
-### Async Patterns
-- Context managers for resource lifecycle (`async with Agent()`)
-- Async iterators for streaming responses
-- Signal-based event handling with `psygnal`
 
 
 # Project Structure & Organization

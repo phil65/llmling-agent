@@ -606,8 +606,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             tool_description: Optional override for result tool description
 
         Returns:
-            Either StructuredAgent wrapper or self unchanged
-        from llmling_agent.agent import StructuredAgent
+            Typed Agent
         """
         self.set_output_type(output_type)  # type: ignore
         return self

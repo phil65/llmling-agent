@@ -1,18 +1,3 @@
-# Base Agent
-
-The basic Agent class is our core implementation of an Agent.
-What sets this agent apart is that it has a concept of pluggable "providers". A provider can either be:
-
-- An LLM ( currently backed by Pydantic-AI)
-- A simple Python Callable which gets the prompt as well as the context object as input
-- A Human! Right now, its simple, but providers will also be the "default" UI layer.
-- A FastAPI server as a provider is also planned
-
-In contrast to pydantic-ai, the Base Agent is only generic over its dependency type. Its only generic over its return type on a method scope. (using return_type=)
-For an agent which is generic over both dependency and result type, see the StructuredAgent documentation.
-
-Theres also much more to discover: Powerful options to manage agent state (like ToolManagers), MCP server support, Agent events, the list goes on!
-
 ## Core Interface
 
 ### Running Queries

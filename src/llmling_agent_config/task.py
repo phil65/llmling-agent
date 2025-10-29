@@ -68,18 +68,14 @@ class Job[TDeps, TResult = str](Schema):
 
     async def can_be_executed_by(self, agent: Agent[Any, Any]) -> bool:
         """Check if agent meets all requirements for this task."""
-        from llmling_agent.agent.structured import StructuredAgent
-
         # Check dependencies
         if self.required_dependency and not isinstance(
             agent.context.data, self.required_dependency
         ):
             return False
 
-        # Check return type
-        if isinstance(agent, StructuredAgent):  # noqa: SIM102
-            if agent._output_type != self.required_return_type:  # type: ignore
-                return False
+        if agent._output_type != self.required_return_type:
+            return False
 
         # Check vision capabilities
         if self.requires_vision:  # noqa: SIM102

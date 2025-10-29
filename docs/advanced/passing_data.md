@@ -100,7 +100,7 @@ Depending on the input, responses may include:
 - Comparisons between different content types
 - Extracted information in structured format
 
-For structured output, use `StructuredAgent`:
+For structured output, use `output_type`:
 
 ```python
 from pydantic import BaseModel
@@ -110,9 +110,10 @@ class ImageAnalysis(BaseModel):
     objects: list[str]
     sentiment: str
 
-agent = StructuredAgent[None, ImageAnalysis](base_agent)
+agent = Agent("my-agent", output_type=ImageAnalysis)
 result = await agent.run(Path("photo.jpg"))
 print(result.content.objects)  # List of detected objects
 ```
 
-This handling of multiple content types, combined with automatic conversion and provider-specific support checks, makes it easy to work with rich input data while maintaining a clean API.
+This handling of multiple content types, combined with automatic conversion and provider-specific support checks,
+makes it easy to work with rich input data while maintaining a clean API.

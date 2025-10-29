@@ -30,11 +30,11 @@ class Agent[TDeps, TResult]:
 # Base agent creation and access
 agent1 = pool.get_agent("name1")  # Agent[GlobalDeps]
 agent2 = pool.get_agent("name2", deps=CustomDeps())  # Agent[CustomDeps]
-structured = pool.get_agent("name3", return_type=AnalysisResult)  # StructuredAgent[GlobalDeps, AnalysisResult]
+structured = pool.get_agent("name3", return_type=AnalysisResult)  # Agent[GlobalDeps, AnalysisResult]
 
 # Team creation through & operator
 team1 = agent1 & agent2  # Team[GlobalDeps] NOT POSSIBLE - falls back to Any
-team2 = agent1 & structured  # Team[Any] - mixed Agent/StructuredAgent
+team2 = agent1 & structured  # Team[Any] - mixed Agents
 
 # Explicit team creation
 team3 = Team([agent1, agent1.clone()])  # Team[GlobalDeps] - same deps preserved

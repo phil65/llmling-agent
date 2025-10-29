@@ -6,7 +6,7 @@ LLMling-agent excels at static YAML-based agent configuration:
 - Define agents in not-seen-yet detail in pure YAML (pydantic-backed)
 - Expansive YAML schema for linters for providing maxium help setting up YAML files
 - Agent "connection" setup via YAML allowing simple workflows without having to use a step-based appraoch
-- Result type definitions via YAML (StructuredAgents)
+- Result type definitions via YAML
 - Configuration inheritance and reuse
 - Environment/tools/resource configuration
 - Extensive schema validation and linting

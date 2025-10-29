@@ -30,7 +30,7 @@ def is_node_type(typ: Any) -> bool:
     if isinstance(typ, type):
         return issubclass(typ, MessageNode)
 
-    # For generic types (Agent[T], StructuredAgent[T], etc)
+    # For generic types (Agent[T], etc)
     origin = getattr(typ, "__origin__", None)
     if origin is not None and isinstance(origin, type):
         return issubclass(origin, MessageNode)
