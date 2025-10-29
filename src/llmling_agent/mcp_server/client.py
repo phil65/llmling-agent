@@ -297,8 +297,8 @@ class MCPClient:
         try:
             return await self._client.list_prompts()
         except Exception as e:
-            msg = f"Failed to list prompts: {e}"
-            raise RuntimeError(msg) from e
+            logger.debug("Failed to list prompts: %s", e)
+            return []
 
     async def list_resources(self) -> list[MCPResource]:
         """Get available resources from the server."""
