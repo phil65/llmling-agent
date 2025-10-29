@@ -227,7 +227,7 @@ async def add_agent(  # noqa: D417
             system_prompt=system_prompt,
             model=model,
             tools=tools,
-            output_type=output_type,
+            output_type=output_type or str,
             session=session,
         )
     except ValueError as e:  # for wrong tool imports

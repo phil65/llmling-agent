@@ -801,29 +801,11 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
     def register_task(self, name: str, task: Job[Any, Any]):
         self._tasks.register(name, task)
 
-    @overload
-    async def add_agent(
+    async def add_agent[TResult = str](
         self,
         name: AgentName,
         *,
-        output_type: None = None,
-        **kwargs: Unpack[AgentKwargs],
-    ) -> Agent[Any, str]: ...
-
-    @overload
-    async def add_agent[TResult](
-        self,
-        name: AgentName,
-        *,
-        output_type: type[TResult] | str | StructuredResponseConfig,
-        **kwargs: Unpack[AgentKwargs],
-    ) -> Agent[Any, TResult]: ...
-
-    async def add_agent(
-        self,
-        name: AgentName,
-        *,
-        output_type: OutputSpec[TResult] | str | StructuredResponseConfig | None = None,
+        output_type: OutputSpec[TResult] | str | StructuredResponseConfig = str,
         **kwargs: Unpack[AgentKwargs],
     ) -> Agent[Any, TResult]:
         """Add a new permanent agent to the pool.
@@ -848,10 +830,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
         self.register(name, agent)
         return agent
 
-    def get_mermaid_diagram(
-        self,
-        include_details: bool = True,
-    ) -> str:
+    def get_mermaid_diagram(self, include_details: bool = True) -> str:
         """Generate mermaid flowchart of all agents and their connections.
 
         Args:

@@ -50,12 +50,12 @@ pool = AgentPool[GlobalDeps]()
 basic = pool.get_agent("name")  # Agent[GlobalDeps]
 basic_2 = pool.get_agent("name")  # Agent[GlobalDeps]
 custom = pool.get_agent("name", deps=CustomDeps())  # Agent[CustomDeps]
-structured = pool.get_agent("name", return_type=AnalysisResult)  # StructuredAgent[GlobalDeps, AnalysisResult]
+structured = pool.get_agent("name", return_type=AnalysisResult)  # Agent[GlobalDeps, AnalysisResult]
 custom_structured = pool.get_agent(
     "name",
     deps=CustomDeps(),
     return_type=AnalysisResult
-)  # StructuredAgent[CustomDeps, AnalysisResult]
+)  # Agent[CustomDeps, AnalysisResult]
 
 # Group creation preserves types when possible
 group1 = pool.create_team([basic, basic_2])  # Team[GlobalDeps]
@@ -71,11 +71,12 @@ The bridge between YAML configuration and code is the `get_agent` method, which 
 ```python
 # Type-safe programmatic usage
 agent = pool.get_agent("name", return_type=MyResponseType)
-# Results in StructuredAgent[MyDeps, MyResponseType]
+# Results in Agent[MyDeps, MyResponseType]
 ```
 
 For type safety, programmatic usage with explicit return_type is preferred over YAML response type definitions.
-You will still get a StructuredAgent when you assign a return_type via YAML, but the linter will only recoginize the return type a as
+You will still get an Agent with a response type when you assign a return_type via YAML,
+but the linter will only recoginize the return type a as
 a BaseModel since the type is generated dynamically.
 
 ## Multi-Agent Type System
