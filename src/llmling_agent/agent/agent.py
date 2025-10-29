@@ -28,7 +28,6 @@ from pydantic_ai import AgentRunResultEvent, PartDeltaEvent, TextPartDelta
 from upath import UPath
 
 from llmling_agent.agent.events import (
-    RichAgentStreamEvent,
     StreamCompleteEvent,
     ToolCallProgressEvent,
 )
@@ -63,6 +62,9 @@ if TYPE_CHECKING:
     from upath.types import JoinablePathLike
 
     from llmling_agent.agent import AgentContext
+    from llmling_agent.agent.events import (
+        RichAgentStreamEvent,
+    )
     from llmling_agent.agent.interactions import Interactions
     from llmling_agent.common_types import (
         AgentName,

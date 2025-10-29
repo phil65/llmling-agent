@@ -32,7 +32,6 @@ from acp.filesystem import ACPFileSystem
 from acp.notifications import ACPNotifications
 from acp.requests import ACPRequests
 from acp.schema import ReadTextFileRequest
-from llmling_agent.agent.events import RichAgentStreamEvent
 from llmling_agent.log import get_logger
 from llmling_agent.mcp_server.manager import MCPManager
 from llmling_agent_acp.acp_tools import get_acp_provider
@@ -62,6 +61,7 @@ if TYPE_CHECKING:
     from acp import Client
     from acp.schema import ClientCapabilities, ContentBlock, McpServer, StopReason
     from llmling_agent import Agent, AgentPool
+    from llmling_agent.agent.events import RichAgentStreamEvent
     from llmling_agent.models.content import BaseContent
     from llmling_agent.resource_providers.aggregating import AggregatingResourceProvider
     from llmling_agent_acp.acp_agent import LLMlingACPAgent
