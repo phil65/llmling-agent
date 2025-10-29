@@ -129,7 +129,7 @@ class SSEMCPServerConfig(BaseMCPServerConfig):
         from mcp_interviewer.models import SseServerParameters
 
         params = SseServerParameters(
-            url=self.url,
+            url=str(self.url),
             timeout=self.timeout,
             headers=self.headers,
         )
@@ -165,7 +165,7 @@ class StreamableHTTPMCPServerConfig(BaseMCPServerConfig):
         from mcp_interviewer.models import StreamableHttpServerParameters
 
         params = StreamableHttpServerParameters(
-            url=self.url,
+            url=str(self.url),
             timeout=self.timeout,
             headers=self.headers,
         )
