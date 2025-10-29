@@ -417,16 +417,17 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             #     self.tools.remove_provider(provider.name)
 
     @overload
-    def __and__(self, other: Agent[TDeps, Any]) -> Team[TDeps]: ...
+    def __and__(  # if other doesnt define deps, we take the agents one
+        self, other: ProcessorCallback[Any] | Team[TDeps] | Agent[TDeps, Any]
+    ) -> Team[TDeps]: ...
 
     @overload
-    def __and__(self, other: Team[TDeps]) -> Team[TDeps]: ...
-
-    @overload
-    def __and__(self, other: ProcessorCallback[Any]) -> Team[TDeps]: ...
+    def __and__(  # otherwise, we dont know and deps is Any
+        self, other: ProcessorCallback[Any] | Team[Any] | Agent[Any, Any]
+    ) -> Team[Any]: ...
 
     def __and__(self, other: MessageNode[Any, Any] | ProcessorCallback[Any]) -> Team[Any]:
-        """Create agent group using | operator.
+        """Create sequential team using & operator.
 
         Example:
             group = analyzer & planner & executor  # Create group of 3
@@ -438,8 +439,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             case Team():
                 return Team([self, *other.agents])
             case Callable():
-                if callable(other):
-                    agent_2 = Agent.from_callback(other)
+                agent_2 = Agent.from_callback(other)
                 agent_2.context.pool = self.context.pool
                 return Team([self, agent_2])
             case MessageNode():
