@@ -133,23 +133,17 @@ def acp_command(
 
         logger.info("Starting ACP server for config: %s", config_path)
 
-        # Create ACP server from config
-        try:
-            acp_server = await ACPServer.from_config(
-                config_path,
-                session_support=session_support,
-                file_access=file_access,
-                terminal_access=terminal_access,
-                providers=providers,  # type: ignore[arg-type] # pyright: ignore[reportArgumentType]
-                debug_messages=debug_messages,
-                debug_file=debug_file or "acp-debug.jsonl" if debug_messages else None,
-                debug_commands=debug_commands,
-                agent=agent,
-            )
-        except Exception as e:
-            logger.exception("Failed to create ACP server from config")
-            raise t.Exit(1) from e
-
+        acp_server = await ACPServer.from_config(
+            config_path,
+            session_support=session_support,
+            file_access=file_access,
+            terminal_access=terminal_access,
+            providers=providers,  # type: ignore[arg-type] # pyright: ignore[reportArgumentType]
+            debug_messages=debug_messages,
+            debug_file=debug_file or "acp-debug.jsonl" if debug_messages else None,
+            debug_commands=debug_commands,
+            agent=agent,
+        )
         # Configure agent capabilities
         agent_count = len(acp_server.agent_pool.agents)
         if agent_count == 0:
