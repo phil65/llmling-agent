@@ -27,7 +27,7 @@ from pydantic import ValidationError
 from pydantic_ai import AgentRunResultEvent, PartDeltaEvent, TextPartDelta
 from upath import UPath
 
-from llmling_agent.agent.events import StreamCompleteEvent
+from llmling_agent.agent.events import StreamCompleteEvent, ToolCallProgressEvent
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messagenode import MessageNode
 from llmling_agent.messaging.messages import ChatMessage, TokenCost
@@ -40,6 +40,7 @@ from llmling_agent.tools.manager import ToolManager
 from llmling_agent.utils.inspection import call_with_context
 from llmling_agent.utils.now import get_now
 from llmling_agent.utils.result_utils import to_type
+from llmling_agent.utils.streams import merge_queue_into_iterator
 from llmling_agent.utils.tasks import TaskManager
 from llmling_agent_config.session import MemoryConfig
 
@@ -251,6 +252,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             description=description,
             enable_logging=memory_cfg.enable,
             mcp_servers=mcp_servers,
+            progress_handler=self._create_progress_handler(),
         )
         # Initialize runtime
         match runtime:
@@ -334,6 +336,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         self.parallel_init = parallel_init
         self.name = name
         self._background_task: asyncio.Task[Any] | None = None
+        self._progress_queue: asyncio.Queue[ToolCallProgressEvent] = asyncio.Queue()
 
         # Forward provider signals
         self._provider.tool_used.connect(self.tool_used)
@@ -811,8 +814,8 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             parts: Sequence[Any] = []
             provider_name = None
             provider_response_id = None
-            # Stream events directly from provider
-            async for event in self._provider.stream_events(
+
+            provider_stream = self._provider.stream_events(
                 *prompts,
                 message_id=message_id,
                 message_history=message_history,
@@ -821,24 +824,30 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                 tools=tools,
                 usage_limits=usage_limits,
                 system_prompt=sys_prompt,
-            ):
-                # Pass through PydanticAI events and collect chunks
-                match event:
-                    case PartDeltaEvent(delta=TextPartDelta(content_delta=delta)):
-                        chunks.append(delta)
-                        yield event  # Pass through original event
-                    case AgentRunResultEvent(result=result):
-                        usage = result.usage()
-                        model_name = result.response.model_name
-                        finish_reason = result.response.finish_reason
-                        provider_name = result.response.provider_name
-                        provider_response_id = result.response.provider_response_id
-                        parts = result.response.parts
+            )
 
-                        output = result.output
-                        # Don't yield AgentRunResultEvent, we'll send our own final event
-                    case _:
-                        yield event  # Pass through other events
+            async with merge_queue_into_iterator(
+                provider_stream, self._progress_queue
+            ) as events:
+                async for event in events:
+                    # Pass through PydanticAI events and collect chunks
+                    match event:
+                        case PartDeltaEvent(delta=TextPartDelta(content_delta=delta)):
+                            chunks.append(delta)
+                            yield event  # Pass through original event
+                        case AgentRunResultEvent(result=result):
+                            usage = result.usage()
+                            model_name = result.response.model_name
+                            finish_reason = result.response.finish_reason
+                            provider_name = result.response.provider_name
+                            provider_response_id = result.response.provider_response_id
+                            parts = result.response.parts
+
+                            output = result.output
+                            # Don't yield AgentRunResultEvent,
+                            # we'll send our own final event
+                        case _:
+                            yield event  # Pass through other events
 
             # Build final chat message
             cost_info = None
@@ -877,6 +886,29 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             logger.exception("Agent stream failed")
             self.run_failed.emit("Agent stream failed", e)
             raise
+
+    def _create_progress_handler(self):
+        """Create progress handler that converts to ToolCallProgressEvent."""
+
+        async def progress_handler(
+            progress: float,
+            total: float | None,
+            message: str | None,
+            tool_name: str | None = None,
+            tool_call_id: str | None = None,
+            tool_input: dict[str, Any] | None = None,
+        ) -> None:
+            event = ToolCallProgressEvent(
+                progress=int(progress) if progress is not None else 0,
+                total=int(total) if total is not None else 100,
+                message=message or "",
+                tool_name=tool_name or "",
+                tool_call_id=tool_call_id or "",
+                tool_input=tool_input,
+            )
+            await self._progress_queue.put(event)
+
+        return progress_handler
 
     async def run_iter(
         self,

@@ -168,11 +168,13 @@ class ACPSession:
             path = Path(self.cwd).resolve()
             accessible_roots.append(path.as_uri())
 
+        # TODO: Investigate better ways of injecting MCP servers into agents/pool
+        # For now, connect ACP MCP manager to agent's progress handler
         self.mcp_manager = MCPManager(
             name,
             servers=cfgs,
             context=self.agent.context,
-            progress_handler=self.handle_acp_progress,
+            progress_handler=self.agent._create_progress_handler(),
             accessible_roots=accessible_roots,
         )
         try:
@@ -536,38 +538,6 @@ with other agents effectively."""
             msg = "Failed to register MCP prompts as commands for session %s"
             logger.exception(msg, self.session_id)
 
-    async def handle_acp_progress(
-        self,
-        progress: float,
-        total: float | None,
-        message: str | None,
-        tool_name: str | None = None,
-        tool_call_id: str | None = None,
-        tool_input: dict[str, Any] | None = None,
-    ) -> None:
-        """Handle MCP progress and convert to ACP in_progress update."""
-        # Skip if we don't have the required context
-        if not (tool_name and tool_call_id):
-            return
-
-        try:
-            # Create content from progress message
-            output = message if message else f"Progress: {progress}"
-            if total:
-                output += f"/{total}"
-
-            # Create ACP tool call progress notification
-            await self.notifications.tool_call(
-                tool_name=tool_name,
-                tool_input=tool_input or {},
-                tool_output=output,
-                status="in_progress",
-                tool_call_id=tool_call_id,
-            )
-
-        except Exception as e:  # noqa: BLE001
-            logger.warning("Failed to convert MCP progress to ACP notification: %s", e)
-
     async def process_agent_stream_event(self, event: AgentStreamEvent) -> None:
         """Process agent stream events.
 
@@ -577,6 +547,8 @@ with other agents effectively."""
         Yields:
             SessionNotification: The notification to send.
         """
+        from llmling_agent.agent.events import ToolCallProgressEvent
+
         match event:
             case FunctionToolCallEvent(part=part):
                 # Tool call started - save input for later use
@@ -654,3 +626,36 @@ with other agents effectively."""
                         tool_call_id=tool_call_id,
                     )
                 self._current_tool_inputs.pop(tool_call_id, None)  # Clean up stored input
+
+            case ToolCallProgressEvent(
+                progress=progress,
+                total=total,
+                message=message,
+                tool_name=tool_name,
+                tool_call_id=tool_call_id,
+                tool_input=tool_input,
+            ):
+                # Handle tool progress events from the stream
+                # Skip if we don't have the required context
+                if not (tool_name and tool_call_id):
+                    return
+
+                try:
+                    # Create content from progress message
+                    output = message if message else f"Progress: {progress}"
+                    if total:
+                        output += f"/{total}"
+
+                    # Create ACP tool call progress notification
+                    await self.notifications.tool_call(
+                        tool_name=tool_name,
+                        tool_input=tool_input or {},
+                        tool_output=output,
+                        status="in_progress",
+                        tool_call_id=tool_call_id,
+                    )
+
+                except Exception as e:  # noqa: BLE001
+                    logger.warning(
+                        "Failed to convert progress event to ACP notification: %s", e
+                    )

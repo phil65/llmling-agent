@@ -186,5 +186,28 @@ async def test_direct_mcp_client_progress():
         )
 
 
+@pytest.mark.asyncio
+async def test_agent_stream_progress_events():
+    """Test that ToolCallProgressEvent appears in agent stream."""
+    from llmling_agent.agent.events import ToolCallProgressEvent
+
+    server_path = Path(__file__).parent / "server.py"
+    mcp_server = StdioMCPServerConfig(
+        name="progress_test_server",
+        command="uv",
+        args=["run", str(server_path)],
+    )
+
+    async with Agent(
+        model=TestModel(call_tools=["test_progress"]),
+        mcp_servers=[mcp_server],
+    ) as agent:
+        events = [event async for event in agent.run_stream("")]
+        progress_events = [e for e in events if isinstance(e, ToolCallProgressEvent)]
+        assert len(progress_events) > 0, (
+            f"No ToolCallProgressEvent found in {[type(e) for e in events]}"
+        )
+
+
 if __name__ == "__main__":
     pytest.main(["-v", __file__])
