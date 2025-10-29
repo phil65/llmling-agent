@@ -79,7 +79,7 @@ await agent.run_in_background(get_prompt)
 ## Agents with output types
 
 ```python
-from llmling_agent import Agent, StructuredAgent
+from llmling_agent import Agent
 from pydantic import BaseModel
 
 class AnalysisResult(BaseModel):
@@ -149,7 +149,7 @@ agent = Agent(..., output_type=AnalysisResult)
 
 ### Declarative Usage (YAML Configuration)
 
-The usage of StructuredAgents in pure-YAML workflows is still in its infancy.
+The usage of Agents with structured outputs in pure-YAML workflows is still in its infancy.
 You can do it, but in the end there is no real "structured communication" happening
 yet. If an Agent gets a BaseModel as its input, its getting formatted in a
 Human/LLM-friendly way and processed as text input.
@@ -168,16 +168,3 @@ task = Task[None, AnalysisResult](...)
 agent = base_agent.to_structured(AnalysisResult)
 result = await task.execute(agent)
 ```
-
-## Type Parameters
-
-- `TDeps`: Type of dependencies (defaults to None)
-- `TResult`: Type of structured output
-
-## Implementation Details
-
-Unlike the base Agent, StructuredAgent:
-
-- Enforces result validation
-- Provides type hints for responses
-- Manages conversion between structured/unstructured data
