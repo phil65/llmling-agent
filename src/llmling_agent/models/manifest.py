@@ -419,7 +419,7 @@ class AgentsManifest(Schema):
                     content = function(**arguments)  # Call function to get prompt content
                     sys_prompts.append(content)
         # Create agent with runtime and context
-        agent = Agent(
+        return Agent(
             runtime=runtime,
             context=context,
             provider=config.get_provider(),
@@ -431,11 +431,9 @@ class AgentsManifest(Schema):
             output_retries=config.output_retries,
             end_strategy=config.end_strategy,
             debug=config.debug,
+            output_type=self.get_result_type(name) or str,
             # name=config.name or name,
         )
-        if result_type := self.get_result_type(name):
-            return agent.to_structured(result_type)
-        return agent
 
     def get_used_providers(self) -> set[str]:
         """Get all providers configured in this manifest."""

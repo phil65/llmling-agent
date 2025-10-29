@@ -668,7 +668,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
 
         # Override structured configuration if provided
         if return_type is not None:
-            return agent.to_structured(return_type)
+            agent.set_result_type(return_type)
 
         return agent
 
@@ -786,7 +786,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
 
         # Convert to structured if needed
         if return_type is not None:
-            return base.to_structured(return_type)
+            base.set_result_type(return_type)
 
         return base
 
@@ -841,12 +841,9 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
         """
         from llmling_agent.agent import Agent
 
-        agent: Agent[Any, Any] = Agent(name=name, **kwargs)
+        agent: Agent[Any, Any] = Agent(name=name, **kwargs, output_type=result_type)
         agent.tools.add_provider(self.mcp)
         agent = await self.exit_stack.enter_async_context(agent)
-        # Convert to structured if needed
-        if result_type is not None:
-            agent = agent.to_structured(result_type)
         self.register(name, agent)
         return agent
 

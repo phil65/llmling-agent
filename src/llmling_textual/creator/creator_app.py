@@ -93,7 +93,7 @@ class ConfigGeneratorApp(App):
         add_to_store: bool = False,
     ):
         super().__init__()
-        agent = Agent().to_structured(YAMLCode)
+        agent = Agent(output_type=YAMLCode)
         self.agent = agent
         self.current_config: str | None = None
         self.output_path = UPath(output_path) if output_path else None
@@ -109,6 +109,7 @@ class ConfigGeneratorApp(App):
     async def on_mount(self):
         """Load schema and calculate token count."""
         self.agent = await create_architect_agent(model="openai:gpt-5-nano")
+        assert self.agent.model_name
         model_name = self.agent.model_name.split(":")[-1]
         context = await self.agent.conversation.format_history()
         self._token_count = count_tokens(context, model_name)

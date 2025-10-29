@@ -25,7 +25,7 @@ run = pool.create_team_run(["analyzer", "planner", "executor"])
 # With validator for structured output
 run = pool.create_team_run(
     ["analyzer", "planner"],
-    validator=conclusion_writer.to_structured(AnalysisReport)
+    validator=conclusion_writer
 )
 ```
 

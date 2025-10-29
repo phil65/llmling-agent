@@ -40,17 +40,15 @@ class RavingReview(MovieReview):
 
 async def main():
     # Create movie critic agent
-    base_agent = Agent(
+    critic = Agent(
         name="movie_critic",
         model="openai:gpt-5",
+        output_type=MovieReview,
         system_prompt=(
             "You are an enthusiastic but honest movie critic. "
             "You love great movies but won't pretend to like bad ones."
         ),
     )
-
-    # Convert to structured agent with MovieReview output
-    critic = base_agent.to_structured(MovieReview)
 
     # Test with different movies
     movies = [

@@ -29,8 +29,9 @@ async def run_example():
     agent = Agent(
         model="openai:gpt-5-mini",
         system_prompt="Summarize text in a structured way.",
+        output_type=PythonResult,
     )
-    async with agent.to_structured(PythonResult) as summarizer:
+    async with agent as summarizer:
         result = await summarizer.run("I love this new feature!")
         summary = result.data
         print("\nPython-defined Response:")

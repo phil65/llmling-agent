@@ -3,19 +3,29 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from contextlib import AsyncExitStack, asynccontextmanager
 from dataclasses import dataclass, field
 from os import PathLike
 import time
-from typing import TYPE_CHECKING, Any, Literal, Self, TypedDict, overload
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Literal,
+    Self,
+    TypedDict,
+    get_type_hints,
+    overload,
+)
 from uuid import uuid4
 
 from anyenv import MultiEventHandler, method_spawner
 from llmling import Config, RuntimeConfig, ToolError
 import logfire
 from psygnal import Signal
+from pydantic import ValidationError
 from pydantic_ai import AgentRunResultEvent, PartDeltaEvent, TextPartDelta
+from pydantic_ai.output import OutputSpec
 from upath import UPath
 
 from llmling_agent.agent.events import StreamCompleteEvent
@@ -28,7 +38,7 @@ from llmling_agent.resource_providers.runtime import RuntimeResourceProvider
 from llmling_agent.talk.stats import MessageStats
 from llmling_agent.tools.base import Tool
 from llmling_agent.tools.manager import ToolManager
-from llmling_agent.utils.inspection import call_with_context, has_return_type
+from llmling_agent.utils.inspection import call_with_context
 from llmling_agent.utils.now import get_now
 from llmling_agent.utils.result_utils import to_type
 from llmling_agent.utils.tasks import TaskManager
@@ -45,13 +55,11 @@ if TYPE_CHECKING:
     from llmling.prompts import PromptType
     import PIL.Image
     from pydantic_ai import AgentStreamEvent
-    from pydantic_ai.output import OutputDataT, OutputSpec
     from toprompt import AnyPromptType
     from upath.types import JoinablePathLike
 
     from llmling_agent.agent import AgentContext
     from llmling_agent.agent.interactions import Interactions
-    from llmling_agent.agent.structured import StructuredAgent
     from llmling_agent.common_types import (
         AgentName,
         EndStrategy,
@@ -77,6 +85,7 @@ from llmling_agent_providers.base import AgentProvider
 AgentType = Literal["pydantic_ai", "human"] | AgentProvider | Callable[..., Any]
 
 logger = get_logger(__name__)
+# OutputDataT = TypeVar('OutputDataT', default=str, covariant=True)
 
 
 class AgentKwargs(TypedDict, total=False):
@@ -149,7 +158,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         provider: AgentType = "pydantic_ai",
         *,
         model: ModelType = None,
-        output_type: OutputSpec[OutputDataT] = str,
+        output_type: OutputSpec[OutputDataT] | StructuredResponseConfig | str = str,
         runtime: RuntimeConfig | Config | JoinablePathLike | None = None,
         context: AgentContext[TDeps] | None = None,
         session: SessionIdType | SessionQuery | MemoryConfig | bool | int = None,
@@ -409,9 +418,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             #     self.tools.remove_provider(provider.name)
 
     @overload
-    def __and__(
-        self, other: Agent[TDeps] | StructuredAgent[TDeps, Any]
-    ) -> Team[TDeps]: ...
+    def __and__(self, other: Agent[TDeps, Any]) -> Team[TDeps]: ...
 
     @overload
     def __and__(self, other: Team[TDeps]) -> Team[TDeps]: ...
@@ -426,7 +433,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             group = analyzer & planner & executor  # Create group of 3
             group = analyzer & existing_group  # Add to existing group
         """
-        from llmling_agent.agent import StructuredAgent
         from llmling_agent.delegation.team import Team
 
         match other:
@@ -434,10 +440,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                 return Team([self, *other.agents])
             case Callable():
                 if callable(other):
-                    if has_return_type(other, str):
-                        agent_2 = Agent.from_callback(other)
-                    else:
-                        agent_2 = StructuredAgent.from_callback(other)
+                    agent_2 = Agent.from_callback(other)
                 agent_2.context.pool = self.context.pool
                 return Team([self, agent_2])
             case MessageNode():
@@ -474,7 +477,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         callback: ProcessorCallback[str],
         *,
         name: str | None = None,
-        debug: bool = False,
         **kwargs: Any,
     ) -> Agent[None]:
         """Create an agent from a processing callback.
@@ -485,15 +487,26 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                 - with or without context
                 - must return str for pipeline compatibility
             name: Optional name for the agent
-            debug: Whether to enable debug mode
             kwargs: Additional arguments for agent
         """
+        from llmling_agent.agent.agent import Agent
         from llmling_agent_providers.callback import CallbackProvider
 
-        name = name or getattr(callback, "__name__", "processor")
-        name = name or "processor"
+        name = name or callback.__name__ or "processor"
         provider = CallbackProvider(callback, name=name)
-        return Agent[None, Any](provider=provider, name=name, debug=debug, **kwargs)
+        agent = Agent[None, Any](provider=provider, name=name, **kwargs)
+        # Get return type from signature for validation
+        hints = get_type_hints(callback)
+        return_type = hints.get("return")
+
+        # If async, unwrap from Awaitable
+        if (
+            return_type
+            and hasattr(return_type, "__origin__")
+            and return_type.__origin__ is Awaitable
+        ):
+            return_type = return_type.__args__[0]
+        return StructuredAgent[None, TResult](agent, return_type or str)  # type: ignore
 
     @property
     def name(self) -> str:
@@ -623,7 +636,8 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         """
         tool_name = name or f"ask_{self.name}"
 
-        async def wrapped_tool(prompt: str) -> OutputDataT:
+        # TODO: should probably make output type configurable
+        async def wrapped_tool(prompt: str) -> Any:
             if pass_message_history and not parent:
                 msg = "Parent agent required for message history sharing"
                 raise ToolError(msg)
@@ -1151,10 +1165,11 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         return MessageStats(messages=messages)
 
     @asynccontextmanager
-    async def temporary_state(
+    async def temporary_state[T](
         self,
         *,
         system_prompts: list[AnyPromptType] | None = None,
+        output_type: type[T] | None = None,
         replace_prompts: bool = False,
         tools: list[ToolType] | None = None,
         replace_tools: bool = False,
@@ -1163,7 +1178,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         pause_routing: bool = False,
         model: ModelType | None = None,
         provider: AgentProvider | None = None,
-    ) -> AsyncIterator[Self]:
+    ) -> AsyncIterator[Self | Agent[T]]:
         """Temporarily modify agent state.
 
         Args:
@@ -1179,7 +1194,9 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         """
         old_model = self._provider.model if hasattr(self._provider, "model") else None  # pyright: ignore
         old_provider = self._provider
-
+        if output_type:
+            old_type = self._result_type
+            self.set_result_type(output_type)  # type: ignore
         async with AsyncExitStack() as stack:
             # System prompts (async)
             if system_prompts is not None:
@@ -1221,6 +1238,23 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                     self._provider = old_provider
                 elif model is not None and old_model:
                     self._provider.set_model(old_model)
+                if output_type:
+                    self.set_result_type(old_type)
+
+    async def validate_against(
+        self,
+        prompt: str,
+        criteria: type[OutputDataT],
+        **kwargs: Any,
+    ) -> bool:
+        """Check if agent's response satisfies stricter criteria."""
+        result = await self.run(prompt, **kwargs)
+        try:
+            criteria.model_validate(result.content.model_dump())  # type: ignore
+        except ValidationError:
+            return False
+        else:
+            return True
 
 
 if __name__ == "__main__":

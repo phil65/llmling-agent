@@ -240,7 +240,7 @@ Available options:
 Select ONE option by its exact label."""
 
         # Get LLM's string-based decision
-        result = await self.agent.to_structured(LLMPick).run(prompt or default_prompt)
+        result = await self.agent.run(prompt or default_prompt, output_type=LLMPick)
 
         # Convert to type-safe decision
         if result.content.selection not in label_map:
@@ -360,9 +360,7 @@ Available options:
 {picks_info} options by their exact labels.
 List your selections, one per line, followed by your reasoning."""
 
-        result = await self.agent.to_structured(LLMMultiPick).run(
-            prompt or default_prompt
-        )
+        result = await self.agent.run(prompt or default_prompt, output_type=LLMMultiPick)
 
         # Validate selections
         invalid = [s for s in result.content.selections if s not in label_map]
@@ -415,7 +413,7 @@ List your selections, one per line, followed by your reasoning."""
                 instance: item_model  # type: ignore
                 # explanation: str | None = None
 
-            result = await self.agent.to_structured(Extraction).run(final_prompt)
+            result = await self.agent.run(final_prompt, output_type=Extraction)
 
             # Convert model instance to actual type
             return as_type(**result.content.instance.model_dump())  # type: ignore
@@ -426,15 +424,14 @@ List your selections, one per line, followed by your reasoning."""
             """Construct instance from extracted data."""
             return as_type(**kwargs)
 
-        structured = self.agent.to_structured(item_model)
         tool = Tool.from_callable(
             construct,
             name_override=schema["name"],
             description_override=schema["description"],
             # schema_override=schema,
         )
-        with structured.tools.temporary_tools(tool, exclusive=not include_tools):
-            result = await structured.run(final_prompt)  # type: ignore
+        with self.agent.tools.temporary_tools(tool, exclusive=not include_tools):
+            result = await self.agent.run(final_prompt, output_type=item_model)  # type: ignore
         return result.content  # type: ignore
 
     async def extract_multiple[T](
@@ -480,7 +477,7 @@ List your selections, one per line, followed by your reasoning."""
                 instances: list[item_model]  # type: ignore
                 # explanation: str | None = None
 
-            result = await self.agent.to_structured(Extraction).run(final_prompt)
+            result = await self.agent.run(final_prompt, output_type=Extraction)
 
             # Validate counts
             num_instances = len(result.content.instances)
@@ -515,10 +512,12 @@ List your selections, one per line, followed by your reasoning."""
 
         add_instance.__annotations__ = schema_obj.get_annotations()
         add_instance.__signature__ = schema_obj.to_python_signature()  # type: ignore
-        structured = self.agent.to_structured(item_model)
-        with structured.tools.temporary_tools(add_instance, exclusive=not include_tools):
-            # Create extraction prompt
-            await structured.run(final_prompt)
+        async with self.agent.temporary_state(
+            tools=[add_instance],
+            replace_tools=not include_tools,
+            output_type=item_model,
+        ):
+            await self.agent.run(final_prompt)  # Create extraction prompt
 
         if len(instances) < min_items:
             msg = f"Found only {len(instances)} instances, need at least {min_items}"

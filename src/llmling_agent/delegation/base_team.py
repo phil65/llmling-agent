@@ -201,15 +201,12 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
         other: Agent[Any, Any] | ProcessorCallback[Any] | BaseTeam[Any, Any],
     ) -> TeamRun[Any, Any]:
         """Create a sequential pipeline."""
-        from llmling_agent.agent import Agent, StructuredAgent
+        from llmling_agent.agent import Agent
         from llmling_agent.delegation.teamrun import TeamRun
 
         # Handle conversion of callables first
         if callable(other):
-            if has_return_type(other, str):
-                other = Agent.from_callback(other)
-            else:
-                other = StructuredAgent.from_callback(other)
+            other = Agent.from_callback(other)
             other.context.pool = self.context.pool
 
         # If we're already a TeamRun, extend it

@@ -2,14 +2,11 @@
 
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable
-from typing import TYPE_CHECKING, Any, get_type_hints, overload
-
-from pydantic import ValidationError
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any
 
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messagenode import MessageNode
-from llmling_agent.utils.result_utils import to_type
 from llmling_agent_config.result_types import StructuredResponseConfig
 
 
@@ -21,7 +18,6 @@ if TYPE_CHECKING:
     from llmling_agent.delegation.team import Team
     from llmling_agent.delegation.teamrun import TeamRun
     from llmling_agent.messaging.messages import ChatMessage
-    from llmling_agent.talk.stats import MessageStats
     from llmling_agent_config.task import Job
     from llmling_agent_providers.callback import ProcessorCallback
 
@@ -77,22 +73,6 @@ class StructuredAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
 
         super().__init__(name=self._agent.name)
 
-        self._result_type = to_type(result_type)
-        agent.set_result_type(result_type)
-
-        match result_type:
-            case type() | str():
-                # For types and named definitions, use overrides if provided
-                self._agent.set_result_type(
-                    result_type,
-                    tool_name=tool_name,
-                    tool_description=tool_description,
-                )
-            case StructuredResponseConfig():
-                # For response definitions, use as-is
-                # (overrides don't apply to complete definitions)
-                self._agent.set_result_type(result_type)
-
     def __and__(
         self, other: Agent[Any, Any] | Team[Any] | ProcessorCallback[TResult]
     ) -> Team[TDeps]:
@@ -100,62 +80,6 @@ class StructuredAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
 
     def __or__(self, other: Agent[Any, Any] | ProcessorCallback | BaseTeam) -> TeamRun:
         return self._agent.__or__(other)
-
-    async def validate_against(
-        self,
-        prompt: str,
-        criteria: type[TResult],
-        **kwargs: Any,
-    ) -> bool:
-        """Check if agent's response satisfies stricter criteria."""
-        result = await self.run(prompt, **kwargs)
-        try:
-            criteria.model_validate(result.content.model_dump())  # type: ignore
-        except ValidationError:
-            return False
-        else:
-            return True
-
-    def __getattr__(self, name: str) -> Any:
-        return getattr(self._agent, name)
-
-    @overload
-    def to_structured(
-        self,
-        result_type: None,
-        *,
-        tool_name: str | None = None,
-        tool_description: str | None = None,
-    ) -> Agent[TDeps]: ...
-
-    @overload
-    def to_structured[TNewResult](
-        self,
-        result_type: type[TNewResult] | str | StructuredResponseConfig,
-        *,
-        tool_name: str | None = None,
-        tool_description: str | None = None,
-    ) -> StructuredAgent[TDeps, TNewResult]: ...
-
-    def to_structured[TNewResult](
-        self,
-        result_type: type[TNewResult] | str | StructuredResponseConfig | None,
-        *,
-        tool_name: str | None = None,
-        tool_description: str | None = None,
-    ) -> Agent[TDeps] | StructuredAgent[TDeps, TNewResult]:
-        if result_type is None:
-            return self._agent
-
-        return StructuredAgent(
-            self._agent,
-            result_type=result_type,
-            tool_name=tool_name,
-            tool_description=tool_description,
-        )
-
-    async def get_stats(self) -> MessageStats:
-        return await self._agent.get_stats()
 
     async def run_job(
         self,
@@ -223,55 +147,6 @@ class StructuredAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
             msg = f"Task execution failed: {e}"
             logger.exception(msg)
             raise JobError(msg) from e
-
-    @classmethod
-    def from_callback(
-        cls,
-        callback: ProcessorCallback[TResult],
-        *,
-        name: str | None = None,
-        **kwargs: Any,
-    ) -> StructuredAgent[None, TResult]:
-        """Create a structured agent from a processing callback.
-
-        Args:
-            callback: Function to process messages. Can be:
-                - sync or async
-                - with or without context
-                - with explicit return type
-            name: Optional name for the agent
-            **kwargs: Additional arguments for agent
-
-        Example:
-            ```python
-            class AnalysisResult(BaseModel):
-                sentiment: float
-                topics: list[str]
-
-            def analyze(msg: str) -> AnalysisResult:
-                return AnalysisResult(sentiment=0.8, topics=["tech"])
-
-            analyzer = StructuredAgent.from_callback(analyze)
-            ```
-        """
-        from llmling_agent.agent.agent import Agent
-        from llmling_agent_providers.callback import CallbackProvider
-
-        name = name or callback.__name__ or "processor"
-        provider = CallbackProvider(callback, name=name)
-        agent = Agent[None, Any](provider=provider, name=name, **kwargs)
-        # Get return type from signature for validation
-        hints = get_type_hints(callback)
-        return_type = hints.get("return")
-
-        # If async, unwrap from Awaitable
-        if (
-            return_type
-            and hasattr(return_type, "__origin__")
-            and return_type.__origin__ is Awaitable
-        ):
-            return_type = return_type.__args__[0]
-        return StructuredAgent[None, TResult](agent, return_type or str)  # type: ignore
 
     def is_busy(self) -> bool:
         """Check if agent is currently processing tasks."""

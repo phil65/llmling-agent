@@ -13,13 +13,8 @@ class AnalysisResult(BaseModel):
     topics: list[str]
 
 # Create structured agent directly
-agent = StructuredAgent[None, AnalysisResult](
-    base_agent,
-    result_type=AnalysisResult
-)
+agent = Agent(base_agent, output_type=AnalysisResult)
 
-# Or convert existing agent
-structured = base_agent.to_structured(AnalysisResult)
 ```
 
 ## Key Features
@@ -90,8 +85,7 @@ class AnalysisResult(BaseModel):
     sentiment: float
     topics: list[str]
 
-# Use concrete Python types for full type safety
-agent = base_agent.to_structured(AnalysisResult)
+
 ```
 
 ### Declarative Usage (YAML Configuration)
