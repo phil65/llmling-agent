@@ -63,6 +63,16 @@ class BaseMCPServerConfig(Schema):
         """Generate a unique client ID for this server configuration."""
         raise NotImplementedError
 
+    @classmethod
+    def from_string(cls, text: str) -> MCPServerConfig:
+        """Create a MCPServerConfig from a string."""
+        text = text.strip()
+        if text.startswith(("http://", "https://")) and text.endswith("/sse"):
+            return SSEMCPServerConfig(url=HttpUrl(text))
+        if text.startswith(("http://", "https://")):
+            return StreamableHTTPMCPServerConfig(url=HttpUrl(text))
+        return StdioMCPServerConfig.from_string(text)
+
 
 class StdioMCPServerConfig(BaseMCPServerConfig):
     """MCP server started via stdio.

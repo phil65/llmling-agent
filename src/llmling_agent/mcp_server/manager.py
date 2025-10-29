@@ -13,11 +13,7 @@ from llmling_agent.log import get_logger
 from llmling_agent.mcp_server.client import MCPClient
 from llmling_agent.models.content import AudioBase64Content, ImageBase64Content
 from llmling_agent.resource_providers.base import ResourceProvider
-from llmling_agent_config.mcp_server import (
-    SSEMCPServerConfig,
-    StdioMCPServerConfig,
-    StreamableHTTPMCPServerConfig,
-)
+from llmling_agent_config.mcp_server import BaseMCPServerConfig
 from llmling_agent_config.resources import ResourceInfo
 from llmling_agent_providers.base import UsageLimits
 
@@ -83,17 +79,9 @@ class MCPManager(ResourceProvider):
         self._progress_handler = progress_handler
         self._accessible_roots = accessible_roots
 
-    def add_server_config(self, server: MCPServerConfig | str):
+    def add_server_config(self, cfg: MCPServerConfig | str):
         """Add a new MCP server to the manager."""
-        match server:
-            case str() if server.startswith("http") and server.endswith("/sse"):
-                resolved: MCPServerConfig = SSEMCPServerConfig(url=server)
-            case str() if server.startswith("http"):
-                resolved = StreamableHTTPMCPServerConfig(url=server)
-            case str():
-                resolved = StdioMCPServerConfig.from_string(server)
-            case _:
-                resolved = server
+        resolved = BaseMCPServerConfig.from_string(cfg) if isinstance(cfg, str) else cfg
         self.servers.append(resolved)
 
     def __repr__(self) -> str:

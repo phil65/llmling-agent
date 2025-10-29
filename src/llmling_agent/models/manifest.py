@@ -14,10 +14,8 @@ from llmling_agent.models.agents import AgentConfig  # noqa: TC001
 from llmling_agent.resource_registry import ResourceRegistry
 from llmling_agent_config.converters import ConversionConfig
 from llmling_agent_config.mcp_server import (
+    BaseMCPServerConfig,
     MCPServerConfig,  # noqa: TC001
-    SSEMCPServerConfig,
-    StdioMCPServerConfig,
-    StreamableHTTPMCPServerConfig,
 )
 from llmling_agent_config.observability import ObservabilityConfig
 from llmling_agent_config.output_types import StructuredResponseConfig  # noqa: TC001
@@ -315,26 +313,10 @@ class AgentsManifest(Schema):
         Raises:
             ValueError: If string entry is empty
         """
-        configs: list[MCPServerConfig] = []
-
-        for server in self.mcp_servers:
-            match server:
-                case str() if server.strip().startswith((
-                    "http://",
-                    "https://",
-                )) and server.strip().endswith("/sse"):
-                    configs.append(SSEMCPServerConfig(url=server.strip()))
-                case str() if server.strip().startswith(("http://", "https://")):
-                    configs.append(StreamableHTTPMCPServerConfig(url=server.strip()))
-                case str() if server.strip():
-                    configs.append(StdioMCPServerConfig.from_string(server.strip()))
-                case str():
-                    msg = "Empty MCP server command"
-                    raise ValueError(msg)
-                case _:
-                    configs.append(server)
-
-        return configs
+        return [
+            BaseMCPServerConfig.from_string(cfg) if isinstance(cfg, str) else cfg
+            for cfg in self.mcp_servers
+        ]
 
     @cached_property
     def prompt_manager(self) -> PromptManager:
