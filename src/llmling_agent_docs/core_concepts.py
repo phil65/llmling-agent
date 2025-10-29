@@ -14,12 +14,6 @@ def _(page: mk.MkPage):
     page += mk.MkTemplate("docs/agents/basic_agent.md")
 
 
-@nav.route.page("Structured Agent", icon="octicon:package-16")
-def _(page: mk.MkPage):
-    """Type-safe structured output agents."""
-    page += mk.MkTemplate("docs/agents/structured_agent.md")
-
-
 @nav.route.page("Tools and Tool Management", icon="octicon:tools-16")
 def _(page: mk.MkPage):
     """Tool management and registration."""
