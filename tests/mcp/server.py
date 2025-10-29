@@ -44,6 +44,16 @@ async def test_progress(ctx: Context, message: str) -> str:
     return f"Progress test completed with message: {message}"
 
 
+@mcp.prompt
+async def static_prompt():
+    return "Static!"
+
+
+@mcp.prompt
+async def dynamic_prompt(some_arg: str):
+    return f"Dynamic! {some_arg}"
+
+
 class WeatherData(BaseModel):
     """Weather data model for PydanticAI."""
 
