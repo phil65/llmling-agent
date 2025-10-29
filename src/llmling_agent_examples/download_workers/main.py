@@ -44,8 +44,7 @@ async def run_example():
         boss.register_worker(worker_1)
         boss.register_worker(worker_2)
 
-        print("Calling both tools sequentially:")
-        # Downloads are run sequentially because they are coordinated by the same agent
+        print("Calling both tools:")
         start_time = time.time()
         result = await boss.run(PROMPT)
         duration = time.time() - start_time

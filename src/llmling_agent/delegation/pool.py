@@ -745,7 +745,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
         This method provides flexible agent configuration with dependency injection:
         - Without deps: Agent uses pool's shared dependencies
         - With deps: Agent uses provided custom dependencies
-        - With return_type: Returns a StructuredAgent with type validation
 
         Args:
             agent: Either agent name or instance
@@ -758,7 +757,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
             Either:
             - Agent[TPoolDeps] when using pool's shared deps
             - Agent[TCustomDeps] when custom deps provided
-            - StructuredAgent when return_type provided
 
         Raises:
             KeyError: If agent name not found
@@ -805,7 +803,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
         self,
         name: AgentName,
         *,
-        output_type: OutputSpec[TResult] | str | StructuredResponseConfig = str,
+        output_type: OutputSpec[TResult] | str | StructuredResponseConfig = str,  # type: ignore[assignment]
         **kwargs: Unpack[AgentKwargs],
     ) -> Agent[Any, TResult]:
         """Add a new permanent agent to the pool.

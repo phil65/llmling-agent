@@ -9,16 +9,18 @@ from schemez import InlineSchemaDef
 
 
 if TYPE_CHECKING:
-    from llmling_agent.agent import AgentContext
+    from llmling_agent_config.output_types import StructuredResponseConfig
 
 
-def to_type(output_type, context: AgentContext | None = None) -> type[BaseModel | str]:
+def to_type(
+    output_type, responses: dict[str, StructuredResponseConfig] | None = None
+) -> type[BaseModel | str]:
     match output_type:
         case str():
-            if context and output_type in context.definition.responses:
-                defn = context.definition.responses[output_type]  # from defined responses
+            if responses and output_type in responses:
+                defn = responses[output_type]  # from defined responses
                 return defn.response_schema.get_schema()
-            msg = f"Missing context for response type: {output_type!r}"
+            msg = f"Missing responses dict for response type: {output_type!r}"
             raise ValueError(msg)
         case InlineSchemaDef():
             return output_type.get_schema()

@@ -158,7 +158,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         provider: AgentType = "pydantic_ai",
         *,
         model: ModelType = None,
-        output_type: OutputSpec[OutputDataT] | StructuredResponseConfig | str = str,
+        output_type: OutputSpec[OutputDataT] | StructuredResponseConfig | str = str,  # type: ignore[assignment]
         runtime: RuntimeConfig | Config | JoinablePathLike | None = None,
         context: AgentContext[TDeps] | None = None,
         session: SessionIdType | SessionQuery | MemoryConfig | bool | int = None,
@@ -221,8 +221,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         self._infinite = False
         # save some stuff for asnyc init
         self._owns_runtime = False
-        # self._output_type: type | None = None
-        self._output_type = to_type(output_type)
         # match output_type:
         #     case type() | str():
         #         # For types and named definitions, use overrides if provided
@@ -241,6 +239,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             input_provider=input_provider,
         )
         self._context = ctx
+        self._output_type = to_type(output_type, ctx.definition.responses)
         memory_cfg = (
             session
             if isinstance(session, MemoryConfig)
