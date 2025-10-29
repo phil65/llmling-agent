@@ -27,6 +27,7 @@ if TYPE_CHECKING:
     from toprompt import AnyPromptType
 
     from llmling_agent.common_types import AnyTransformFn, AsyncFilterFn, QueueStrategy
+    from llmling_agent.mcp_server.client import ContextualProgressHandler
     from llmling_agent.messaging.context import NodeContext
     from llmling_agent.messaging.messagenode import MessageNode
     from llmling_agent.models.content import Content
@@ -58,6 +59,7 @@ class MessageEmitter[TDeps, TResult](ABC):
         context: NodeContext | None = None,
         mcp_servers: Sequence[str | MCPServerConfig] | None = None,
         enable_logging: bool = True,
+        progress_handler: ContextualProgressHandler | None = None,
     ):
         """Initialize message node."""
         super().__init__()
@@ -72,7 +74,13 @@ class MessageEmitter[TDeps, TResult](ABC):
         self._events = EventManager(self, enable_events=True)
         servers = mcp_servers or []
         name = f"node_{self._name}"
-        self.mcp = MCPManager(name, servers=servers, context=context, owner=self.name)
+        self.mcp = MCPManager(
+            name,
+            servers=servers,
+            context=context,
+            owner=self.name,
+            progress_handler=progress_handler,
+        )
         self.enable_db_logging = enable_logging
         self.conversation_id = str(uuid4())
         # Initialize conversation record if enabled
