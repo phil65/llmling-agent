@@ -32,7 +32,7 @@ from acp.filesystem import ACPFileSystem
 from acp.notifications import ACPNotifications
 from acp.requests import ACPRequests
 from acp.schema import ReadTextFileRequest
-from llmling_agent.agent.events import ToolCallProgressEvent
+from llmling_agent.agent.events import StreamCompleteEvent, ToolCallProgressEvent
 from llmling_agent.log import get_logger
 from llmling_agent.mcp_server.manager import MCPManager
 from llmling_agent_acp.acp_tools import get_acp_provider
@@ -366,8 +366,6 @@ with other agents effectively."""
         Returns:
             StopReason literal
         """
-        from llmling_agent.agent.agent import StreamCompleteEvent
-
         msg = "Starting agent.run_stream for session %s with %d content items"
         logger.info(msg, self.session_id, len(content))
         logger.info("Agent model: %s", self.agent.model_name)

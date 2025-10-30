@@ -9,7 +9,7 @@ from __future__ import annotations
 import asyncio
 from pathlib import Path
 
-from pydantic_ai import BinaryContent
+from pydantic_ai import BinaryContent, ToolReturn
 import pytest
 
 from llmling_agent.mcp_server.client import MCPClient
@@ -38,8 +38,12 @@ async def mcp_client():
 async def test_rich_content_image(mcp_client: MCPClient):
     """Test that FastMCP Image content is converted to PydanticAI types."""
     result = await mcp_client.call_tool("test_rich_content", {"content_type": "image"})
+    assert isinstance(result, ToolReturn)
+    assert result.content
     assert isinstance(result.content[0], BinaryContent)
     result = await mcp_client.call_tool("test_rich_content", {"content_type": "audio"})
+    assert isinstance(result, ToolReturn)
+    assert result.content
     assert isinstance(result.content[0], BinaryContent)
     assert result.content[0].media_type == "audio/wav"
     result = await mcp_client.call_tool("test_rich_content", {"content_type": "file"})

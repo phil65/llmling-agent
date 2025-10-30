@@ -296,7 +296,7 @@ class MCPClient:
 
         try:
             return await self._client.list_prompts()
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.debug("Failed to list prompts: %s", e)
             return []
 
