@@ -55,16 +55,12 @@ async def test_progress_handler_with_agent():
     """Test that progress handlers receive tool context information via Agent."""
     progress_capture = ProgressCapture()
     server_path = Path(__file__).parent / "server.py"
-    mcp_server = StdioMCPServerConfig(
-        name="progress_test_server",
-        command="uv",
-        args=["run", str(server_path)],
-    )
+    args = ["run", str(server_path)]
     async with Agent(
         name="progress_test_agent",
         model=TestModel(call_tools=["test_progress"]),
         system_prompt="You are a test assistant that calls tools.",
-        mcp_servers=[mcp_server],
+        mcp_servers=[StdioMCPServerConfig(name="progress_test", command="uv", args=args)],
     ) as agent:
         tools = await agent.tools.get_tools()
         tool_names = [tool.name for tool in tools]
@@ -149,11 +145,8 @@ async def test_direct_mcp_client_progress():
 
     progress_capture = ProgressCapture()
     server_path = Path(__file__).parent / "server.py"  # Get server path
-    cfg = StdioMCPServerConfig(
-        name="progress_test_server",
-        command="uv",
-        args=["run", str(server_path)],
-    )
+    args = ["run", str(server_path)]
+    cfg = StdioMCPServerConfig(name="progress_test_server", command="uv", args=args)
     client = MCPClient(cfg, progress_handler=progress_capture)
     async with client:
         await asyncio.sleep(0.5)  # Wait a bit for server to be ready
@@ -191,16 +184,10 @@ async def test_agent_stream_progress_events():
     from llmling_agent.agent.events import ToolCallProgressEvent
 
     server_path = Path(__file__).parent / "server.py"
-    mcp_server = StdioMCPServerConfig(
-        name="progress_test_server",
-        command="uv",
-        args=["run", str(server_path)],
-    )
-
-    async with Agent(
-        model=TestModel(call_tools=["test_progress"]),
-        mcp_servers=[mcp_server],
-    ) as agent:
+    args = ["run", str(server_path)]
+    mcp_server = StdioMCPServerConfig(name="progress_test", command="uv", args=args)
+    model = TestModel(call_tools=["test_progress"])
+    async with Agent(model=model, mcp_servers=[mcp_server]) as agent:
         events = [event async for event in agent.run_stream("")]
         progress_events = [e for e in events if isinstance(e, ToolCallProgressEvent)]
         assert len(progress_events) > 0, (
