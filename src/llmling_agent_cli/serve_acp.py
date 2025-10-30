@@ -166,7 +166,8 @@ def acp_command(
 
     async def run_acp_server():
         try:
-            await acp_server.run()
+            async with acp_server.agent_pool:
+                await acp_server.run()
         except KeyboardInterrupt:
             logger.info("ACP server shutdown requested")
         except Exception as e:

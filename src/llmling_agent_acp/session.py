@@ -174,7 +174,6 @@ class ACPSession:
         self.mcp_manager = MCPManager(
             name,
             servers=cfgs,
-            context=self.agent.context,
             progress_handler=self.agent._create_progress_handler(),
             accessible_roots=accessible_roots,
         )
