@@ -18,7 +18,6 @@ from acp.schema import (
     NewSessionResponse,
     PromptCapabilities,
     PromptResponse,
-    SessionMode,
     SessionModelState,
     SessionModeState,
     SessionNotification,
@@ -32,6 +31,7 @@ from llmling_agent.log import get_logger
 from llmling_agent.utils.tasks import TaskManager
 from llmling_agent_acp.command_bridge import ACPCommandBridge
 from llmling_agent_acp.commands.acp_commands import get_acp_commands
+from llmling_agent_acp.converters import agent_to_mode
 from llmling_agent_acp.session_manager import ACPSessionManager
 from llmling_agent_commands import get_commands
 
@@ -217,44 +217,26 @@ class LLMlingACPAgent(ACPAgent):
                 client_capabilities=self.client_capabilities,
             )
 
-            # Create session modes from available agents
-            modes = [
-                SessionMode(
-                    id=name,
-                    name=name,
-                    description=(
-                        self.agent_pool.get_agent(name).description
-                        or f"Switch to {name} agent"
-                    ),
-                )
-                for name in agent_names
-            ]
-
+            modes = [agent_to_mode(agent) for agent in self.agent_pool.agents.values()]
             state = SessionModeState(current_mode_id=default_name, available_modes=modes)
             # Get model information from the default agent
-            if session := await self.session_manager.get_session(session_id):
+            if session := self.session_manager.get_session(session_id):
                 current_model = session.agent.model_name
                 models = create_session_model_state(self.available_models, current_model)
             else:
                 models = None
-
-            response = NewSessionResponse(
-                session_id=session_id, modes=state, models=models
-            )
-            msg = "Created session %s with %d available agents"
-            logger.info(msg, session_id, len(modes))
-
         except Exception:
             logger.exception("Failed to create new session")
             raise
         else:
             # Schedule available commands update after session response is returned
-            session = await self.session_manager.get_session(session_id)
+            session = self.session_manager.get_session(session_id)
             if session:
                 # Schedule task to run after response is sent
                 coro = session.send_available_commands_update()
                 self.tasks.create_task(coro, name=f"send_commands_update_{session_id}")
-            return response
+            logger.info("Created session %s with %d agents", session_id, len(modes))
+            return NewSessionResponse(session_id=session_id, modes=state, models=models)
 
     async def load_session(self, params: LoadSessionRequest) -> LoadSessionResponse:
         """Load an existing session."""
@@ -263,7 +245,7 @@ class LLMlingACPAgent(ACPAgent):
             raise RuntimeError(msg)
 
         try:
-            session = await self.session_manager.get_session(params.session_id)
+            session = self.session_manager.get_session(params.session_id)
             if not session:
                 logger.warning("Session %s not found", params.session_id)
                 return LoadSessionResponse()
@@ -288,7 +270,7 @@ class LLMlingACPAgent(ACPAgent):
 
         try:
             logger.info("Processing prompt for session %s", params.session_id)
-            session = await self.session_manager.get_session(params.session_id)
+            session = self.session_manager.get_session(params.session_id)
             if not session:
                 msg = f"Session {params.session_id} not found"
                 raise ValueError(msg)  # noqa: TRY301
@@ -317,7 +299,7 @@ class LLMlingACPAgent(ACPAgent):
         try:
             logger.info("Cancelling session %s", params.session_id)
             # Get session and cancel it
-            if session := await self.session_manager.get_session(params.session_id):
+            if session := self.session_manager.get_session(params.session_id):
                 session.cancel()
                 logger.info("Cancelled operations for session %s", params.session_id)
             else:
@@ -340,7 +322,7 @@ class LLMlingACPAgent(ACPAgent):
         The mode ID corresponds to the agent name in the pool.
         """
         try:
-            session = await self.session_manager.get_session(params.session_id)
+            session = self.session_manager.get_session(params.session_id)
             if not session:
                 logger.warning("Session %s not found for mode switch", params.session_id)
                 return None
@@ -367,7 +349,7 @@ class LLMlingACPAgent(ACPAgent):
         Changes the model for the active agent in the session.
         """
         try:
-            session = await self.session_manager.get_session(params.session_id)
+            session = self.session_manager.get_session(params.session_id)
             if not session:
                 logger.warning("Session %s not found for model switch", params.session_id)
                 return None

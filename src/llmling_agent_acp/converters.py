@@ -19,6 +19,7 @@ from acp.schema import (
     ImageContentBlock,
     PermissionOption,
     ResourceContentBlock,
+    SessionMode,
     SseMcpServer,
     StdioMcpServer,
     TextContentBlock,
@@ -36,6 +37,7 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from acp.schema import ContentBlock, McpServer
+    from llmling_agent import Agent
     from llmling_agent.models.content import BaseContent
     from llmling_agent_config.mcp_server import MCPServerConfig
 
@@ -279,3 +281,11 @@ def to_tool_call_contents(tool_output: Any) -> list[ContentToolCallContent]:
     """
     raw_blocks = to_acp_content_blocks(tool_output)
     return [ContentToolCallContent(content=block) for block in raw_blocks]
+
+
+def agent_to_mode(agent: Agent) -> SessionMode:
+    return SessionMode(
+        id=agent.name,
+        name=agent.name,
+        description=(agent.description or f"Switch to {agent.name} agent"),
+    )

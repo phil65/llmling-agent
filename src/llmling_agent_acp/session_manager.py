@@ -113,7 +113,7 @@ class ACPSessionManager:
             self._sessions[session_id] = session
             return session_id  # Commands will be sent after session response is returned
 
-    async def get_session(self, session_id: str) -> ACPSession | None:
+    def get_session(self, session_id: str) -> ACPSession | None:
         """Get an existing session by ID.
 
         Args:

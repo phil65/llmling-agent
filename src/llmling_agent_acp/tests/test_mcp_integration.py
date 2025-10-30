@@ -121,7 +121,7 @@ async def test_session_manager_with_mcp(test_client, mock_acp_agent, client_capa
             client_capabilities=client_capabilities,
         )
 
-        session = await session_manager.get_session(session_id)
+        session = session_manager.get_session(session_id)
         assert session is not None
         assert session.mcp_servers == mcp_servers
         await session_manager.close_session(session_id)

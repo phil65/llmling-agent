@@ -596,13 +596,3 @@ with other agents effectively."""
         except Exception:
             msg = "Failed to register MCP prompts as commands for session %s"
             logger.exception(msg, self.session_id)
-
-    async def process_agent_stream_event(self, event: RichAgentStreamEvent) -> None:
-        """Process agent stream events.
-
-        Args:
-            event: The event to process.
-
-        Yields:
-            SessionNotification: The notification to send.
-        """
