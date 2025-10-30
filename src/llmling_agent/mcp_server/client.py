@@ -154,9 +154,8 @@ class MCPClient:
 
     async def _log_handler(self, message: LogMessage) -> None:
         """Handle server log messages."""
-        msg = message.data.get("msg", "")
         level = LEVEL_MAP.get(message.level.lower(), logging.INFO)
-        logger.log(level, "MCP Server: %s", msg)
+        logger.log(level, "MCP Server: %s", message.data)
 
     async def _elicitation_handler_impl(
         self,
@@ -351,7 +350,7 @@ class MCPClient:
         meta = {"mcp_tool": tool.name}
         return Tool.from_callable(tool_callable, source="mcp", metadata=meta)
 
-    def _create_progress_handler_with_context(
+    def _create_final_progress_handler(
         self, tool_name: str, tool_call_id: str, tool_input: dict[str, Any]
     ) -> ProgressHandler:
         """Create a FastMCP-compatible progress handler with baked-in context."""
@@ -377,60 +376,46 @@ class MCPClient:
             msg = "Not connected to MCP server"
             raise RuntimeError(msg)
 
+        # Create progress handler if we have handler
+        progress_handler = None
+        if self._progress_handler:
+            if run_context and run_context.tool_call_id and run_context.tool_name:
+                # Extract tool args from message history
+                tool_input = extract_tool_call_args(
+                    run_context.messages, run_context.tool_call_id
+                )
+                progress_handler = self._create_final_progress_handler(
+                    run_context.tool_name, run_context.tool_call_id, tool_input
+                )
+            else:
+                # Fallback to using passed arguments (direct tool call)
+                progress_handler = self._create_final_progress_handler(
+                    name, tool_call_id or "", arguments or {}
+                )
         try:
-            # Create progress handler if we have handler
-            progress_handler = None
-            if self._progress_handler:
-                if run_context and run_context.tool_call_id and run_context.tool_name:
-                    # Extract tool args from message history
-                    tool_input = extract_tool_call_args(
-                        run_context.messages, run_context.tool_call_id
-                    )
-                    progress_handler = self._create_progress_handler_with_context(
-                        run_context.tool_name, run_context.tool_call_id, tool_input
-                    )
-                else:
-                    # Fallback to using passed arguments (direct tool call)
-                    progress_handler = self._create_progress_handler_with_context(
-                        name, tool_call_id or "", arguments or {}
-                    )
-
-            # Use FastMCP's call_tool method with optional progress handler
             result = await self._client.call_tool(
                 name, arguments, progress_handler=progress_handler
             )
-
-            # Convert MCP content to PydanticAI content
-            pydantic_content = await self._convert_mcp_content_to_pydantic(result.content)
-
+            content = await self._convert_mcp_content(result.content)
             # Decision logic for return type
-            match (result.data is not None, bool(pydantic_content)):
-                case (True, True):
-                    # Both structured data and rich content -> ToolReturn
-                    return ToolReturn(return_value=result.data, content=pydantic_content)
-                case (True, False):
-                    # Only structured data -> return directly
+            match (result.data is not None, bool(content)):
+                case (True, True):  # Both structured data and rich content -> ToolReturn
+                    return ToolReturn(return_value=result.data, content=content)
+                case (True, False):  # Only structured data -> return directly
                     return result.data
-                case (False, True):
-                    # Only content -> ToolReturn with content
-                    return ToolReturn(
-                        return_value="Tool executed successfully",
-                        content=pydantic_content,
-                    )
-                case (False, False):
-                    # Fallback to text extraction
+                case (False, True):  # Only content -> ToolReturn with content
+                    msg = "Tool executed successfully"
+                    return ToolReturn(return_value=msg, content=content)
+                case (False, False):  # Fallback to text extraction
                     return extract_text_content(result.content)
-                case _:
-                    # Handle unexpected cases
+                case _:  # Handle unexpected cases
                     msg = f"Unexpected MCP content: {result.content}"
                     raise ValueError(msg)  # noqa: TRY301
         except Exception as e:
             msg = f"MCP tool call failed: {e}"
             raise RuntimeError(msg) from e
 
-    async def _convert_mcp_content_to_pydantic(
-        self, mcp_content: list[Any]
-    ) -> list[str | Any]:
+    async def _convert_mcp_content(self, mcp_content: list[Any]) -> list[str | Any]:
         """Convert MCP content blocks to PydanticAI content types."""
         from mcp.types import (
             AudioContent,
@@ -442,57 +427,48 @@ class MCPClient:
             TextResourceContents,
         )
 
-        pydantic_content: list[Any] = []
+        contents: list[Any] = []
 
         for block in mcp_content:
             match block:
                 case TextContent(text=text):
-                    pydantic_content.append(text)
+                    contents.append(text)
                 case TextResourceContents(text=text):
-                    pydantic_content.append(text)
+                    contents.append(text)
                 case ImageContent(data=data, mimeType=mime_type):
-                    # MCP data can be either bytes or base64 encoded string
                     decoded_data = base64.b64decode(data)
                     img = BinaryImage(data=decoded_data, media_type=mime_type)
-                    pydantic_content.append(img)
+                    contents.append(img)
                 case AudioContent(data=data, mimeType=mime_type):
-                    # MCP data can be either bytes or base64 encoded string
                     decoded_data = base64.b64decode(data)
                     content = BinaryContent(data=decoded_data, media_type=mime_type)
-                    pydantic_content.append(content)
+                    contents.append(content)
                 case BlobResourceContents(blob=blob):
-                    # MCP blob can be either bytes or base64 encoded string
                     decoded_data = base64.b64decode(blob)
                     mime = "application/octet-stream"
                     content = BinaryContent(data=decoded_data, media_type=mime)
-                    pydantic_content.append(content)
+                    contents.append(content)
                 case ResourceLink(uri=uri):
-                    # ResourceContentBlock should be read like PydanticAI does
                     try:
                         assert self._client
-                        resource_result = await self._client.read_resource_mcp(uri)
-                        if len(resource_result.contents) == 1:
-                            nested_result = await self._convert_mcp_content_to_pydantic([
-                                resource_result.contents[0]
-                            ])
-                            pydantic_content.extend(nested_result)
+                        res = await self._client.read_resource_mcp(uri)
+                        if len(res.contents) == 1:
+                            nested = await self._convert_mcp_content([res.contents[0]])
+                            contents.extend(nested)
                         else:
-                            nested_result = await self._convert_mcp_content_to_pydantic(
-                                resource_result.contents
-                            )
-                            pydantic_content.extend(nested_result)
+                            nested = await self._convert_mcp_content(res.contents)
+                            contents.extend(nested)
                     except Exception:  # noqa: BLE001
                         # Fallback to DocumentUrl if reading fails
-                        pydantic_content.append(DocumentUrl(url=str(uri)))
+                        contents.append(DocumentUrl(url=str(uri)))
                 case EmbeddedResource(resource=TextResourceContents(text=text)):
-                    pydantic_content.append(text)
+                    contents.append(text)
                 case EmbeddedResource(resource=BlobResourceContents() as blob_resource):
-                    pydantic_content.append(f"[Binary data: {blob_resource.mimeType}]")
+                    contents.append(f"[Binary data: {blob_resource.mimeType}]")
                 case _:
-                    # Convert anything else to string
-                    pydantic_content.append(str(block))
+                    contents.append(str(block))  # Convert anything else to string
 
-        return pydantic_content
+        return contents
 
 
 def _should_try_oauth_fallback(config: MCPServerConfig) -> bool:

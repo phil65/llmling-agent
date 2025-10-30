@@ -209,8 +209,8 @@ class SlashedAgent[TDeps, OutputDataT]:
             for command in commands:
                 logger.info("Processing slash command: %s", command)
                 command_events = await self._execute_slash_command(command)
-                for event in command_events:
-                    yield event
+                for cmd_event in command_events:
+                    yield cmd_event
 
         # If we have regular content, process it through the agent
         if regular_prompts:
