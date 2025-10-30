@@ -19,11 +19,15 @@ if TYPE_CHECKING:
 LogLevel = int | str
 
 
+_LOGGING_CONFIGURED = False
+
+
 def configure_logging(
     level: LogLevel = "INFO",
     *,
     use_colors: bool | None = None,
     json_logs: bool = False,
+    force: bool = False,
 ) -> None:
     """Configure structlog and standard logging.
 
@@ -31,7 +35,13 @@ def configure_logging(
         level: Logging level
         use_colors: Whether to use colored output (auto-detected if None)
         json_logs: Force JSON output regardless of TTY detection
+        force: Force reconfiguration even if already configured
     """
+    global _LOGGING_CONFIGURED
+
+    if _LOGGING_CONFIGURED and not force:
+        return
+
     if isinstance(level, str):
         level = getattr(logging, level.upper())
 
@@ -73,6 +83,8 @@ def configure_logging(
         cache_logger_on_first_use=True,
     )
 
+    _LOGGING_CONFIGURED = True
+
 
 def get_logger(
     name: str, log_level: LogLevel | None = None
@@ -86,6 +98,23 @@ def get_logger(
     Returns:
         A structlog BoundLogger instance
     """
+    # Ensure basic structlog configuration exists for tests
+    if not _LOGGING_CONFIGURED and not structlog.is_configured():
+        # Minimal configuration that doesn't interfere with stdio
+        structlog.configure(
+            processors=[
+                structlog.stdlib.filter_by_level,
+                structlog.stdlib.add_logger_name,
+                structlog.stdlib.add_log_level,
+                structlog.processors.StackInfoRenderer(),
+                structlog.processors.format_exc_info,
+                structlog.dev.ConsoleRenderer(colors=False),
+            ],
+            wrapper_class=structlog.stdlib.BoundLogger,
+            logger_factory=structlog.stdlib.LoggerFactory(),
+            cache_logger_on_first_use=True,
+        )
+
     logger = structlog.get_logger(f"llmling_agent.{name}")
     if log_level is not None:
         if isinstance(log_level, str):
