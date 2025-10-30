@@ -331,241 +331,196 @@ with other agents effectively."""
                 non_command_content.append(item)
 
         async with self._task_lock:
+            # Process commands if found
+            if commands and self.command_bridge:
+                for command in commands:
+                    logger.info("Processing slash command: %s", command)
+                    await self.command_bridge.execute_slash_command(command, self)
+
+                # If only commands, end turn
+                if not non_command_content:
+                    return "end_turn"
+
+            # Pass structured content to agent for processing
+            msg = "Processing prompt for session %s with %d content items"
+            logger.debug(msg, self.session_id, len(non_command_content))
+            content = non_command_content
+            msg = "Starting agent.run_stream for session %s with %d content items"
+            logger.info(msg, self.session_id, len(content))
+            logger.info("Agent model: %s", self.agent.model_name)
+
+            event_count = 0
+            has_yielded_anything = False
+            self._current_tool_inputs.clear()  # Reset tool inputs for new streaming session
+
             try:
-                # Process commands if found
-                if commands and self.command_bridge:
-                    for command in commands:
-                        logger.info("Processing slash command: %s", command)
-                        await self.command_bridge.execute_slash_command(command, self)
+                async for event in self.agent.run_stream(
+                    *content, usage_limits=self.usage_limits
+                ):
+                    if self._cancelled:
+                        return "cancelled"
 
-                    # If only commands, end turn
-                    if not non_command_content:
-                        return "end_turn"
+                    event_count += 1
+                    await self.handle_event(event)
+                msg = "Streaming finished. Processed %d events, yielded anything: %s"
+                logger.info(msg, event_count, has_yielded_anything)
 
-                # Pass structured content to agent for processing
-                msg = "Processing prompt for session %s with %d content items"
-                logger.debug(msg, self.session_id, len(non_command_content))
-                return await self._process_iter_response(non_command_content)
+            except UsageLimitExceeded as e:
+                logger.info("Usage limit exceeded for session %s: %s", self.session_id, e)
+                # Determine which limit was exceeded based on the error message
+                error_msg = str(e)
 
+                # Check for request limit (maps to max_turn_requests)
+                if "request_limit" in error_msg:
+                    return "max_turn_requests"
+                # Check for any token limits (maps to max_tokens)
+                if any(limit in error_msg for limit in ["tokens_limit", "token_limit"]):
+                    return "max_tokens"
+                # Tool call limits don't have a direct ACP stop reason, treat as refusal
+                if "tool_calls_limit" in error_msg or "tool call" in error_msg:
+                    return "refusal"
+                # Default to max_tokens for other usage limits
+                return "max_tokens"
             except Exception as e:
-                logger.exception("Error processing prompt in session %s", self.session_id)
-                # Send error as agent message
-                msg = f"I encountered an error while processing your request: {e}"
-                await self.notifications.send_agent_text(msg)
-                # Return refusal for errors
-                return "refusal"
+                logger.exception(
+                    "Error in agent streaming for session %s", self.session_id
+                )
+                logger.info("Sending error updates for session %s", self.session_id)
+                await self.notifications.send_agent_text(f"Agent error: {e}")
+                return "cancelled"
+            else:
+                return "end_turn"
 
-    async def _process_iter_response(  # noqa: PLR0911, PLR0915
-        self, content: list[str | BaseContent]
-    ) -> StopReason:
-        """Process content using event-based streaming.
-
-        Args:
-            content: List of content objects (strings and Content objects)
-
-        Returns:
-            StopReason literal
-        """
-        msg = "Starting agent.run_stream for session %s with %d content items"
-        logger.info(msg, self.session_id, len(content))
-        logger.info("Agent model: %s", self.agent.model_name)
-
-        event_count = 0
-        has_yielded_anything = False
-        self._current_tool_inputs.clear()  # Reset tool inputs for new streaming session
-
-        try:
-            async for event in self.agent.run_stream(
-                *content, usage_limits=self.usage_limits
+    async def handle_event(self, event: RichAgentStreamEvent):  # noqa: PLR0915
+        match event:
+            case (
+                PartStartEvent(part=TextPart(content=delta))
+                | PartDeltaEvent(delta=TextPartDelta(content_delta=delta))
             ):
-                if self._cancelled:
-                    return "cancelled"
+                await self.notifications.send_agent_text(delta)
+            case (
+                PartStartEvent(part=ThinkingPart(content=delta))
+                | PartDeltaEvent(delta=ThinkingPartDelta(content_delta=delta))
+            ):
+                await self.notifications.send_agent_thought(delta or "\n")
+            case PartStartEvent(delta=delta):
+                msg = "Received unhandled PartStartEvent %s for session %s"
+                logger.debug(msg, delta, self.session_id)
 
-                event_count += 1
-                msg = "Event %d (%s) for session %s"
-                logger.debug(msg, event_count, type(event).__name__, self.session_id)
+            case PartDeltaEvent(delta=ToolCallPartDelta()):
+                msg = "Received ToolCallPartDelta for session %s"
+                logger.debug(msg, self.session_id)
 
-                match event:
-                    case (
-                        PartStartEvent(part=TextPart(content=delta))
-                        | PartDeltaEvent(delta=TextPartDelta(content_delta=delta))
-                    ):
-                        has_yielded_anything = True
-                        await self.notifications.send_agent_text(delta)
-                    case (
-                        PartStartEvent(part=ThinkingPart(content=delta))
-                        | PartDeltaEvent(delta=ThinkingPartDelta(content_delta=delta))
-                    ):
-                        if delta is not None:
-                            has_yielded_anything = True
-                            await self.notifications.send_agent_thought(delta)
-                    case PartStartEvent(delta=delta):
-                        msg = "Received unhandled PartStartEvent %s for session %s"
-                        logger.debug(msg, delta, self.session_id)
+            case FunctionToolCallEvent(part=part):
+                tool_call_id = part.tool_call_id
+                self._current_tool_inputs[tool_call_id] = part.args_as_dict()
+                # Skip generic notifications for self-notifying tools
+                if part.tool_name not in ACP_SELF_NOTIFYING_TOOLS:
+                    await self.notifications.tool_call(
+                        tool_name=part.tool_name,
+                        tool_input=part.args_as_dict(),
+                        tool_output=None,  # Not available yet
+                        status="pending",
+                        tool_call_id=tool_call_id,
+                    )
 
-                    case PartDeltaEvent(delta=ToolCallPartDelta()):
-                        # Handle tool call delta updates
-                        msg = "Received ToolCallPartDelta for session %s"
-                        logger.debug(msg, self.session_id)
-
-                    case FunctionToolCallEvent(part=part):
-                        # Tool call started - save input for later use
-                        tool_call_id = part.tool_call_id
-                        self._current_tool_inputs[tool_call_id] = part.args_as_dict()
-
-                        # Skip generic notifications for self-notifying tools
-                        if part.tool_name not in ACP_SELF_NOTIFYING_TOOLS:
-                            await self.notifications.tool_call(
-                                tool_name=part.tool_name,
-                                tool_input=part.args_as_dict(),
-                                tool_output=None,  # Not available yet
-                                status="pending",
-                                tool_call_id=tool_call_id,
-                            )
-
-                    case FunctionToolResultEvent(
-                        result=result, tool_call_id=tool_call_id
-                    ) if isinstance(result, ToolReturnPart):
-                        # Tool call completed successfully
-                        tool_input = self._current_tool_inputs.get(tool_call_id, {})
-
-                        # Check if the tool result is a streaming AsyncGenerator
-                        if isinstance(result.content, AsyncGenerator):
-                            # Stream the tool output chunks
-                            full_content = ""
-                            async for chunk in result.content:
-                                full_content += str(chunk)
-
-                                # Yield intermediate streaming notification
-                                # Skip generic notifications for self-notifying tools
-                                if result.tool_name not in ACP_SELF_NOTIFYING_TOOLS:
-                                    await self.notifications.tool_call(
-                                        tool_name=result.tool_name,
-                                        tool_input=tool_input,
-                                        tool_output=chunk,
-                                        status="in_progress",
-                                        tool_call_id=tool_call_id,
-                                    )
-
-                            # Replace the AsyncGenerator with the full content to
-                            # prevent errors
-                            result.content = full_content
-                            final_output = full_content
-                        else:
-                            final_output = result.content
-
-                        # Final completion notification
+            case FunctionToolResultEvent(result=result, tool_call_id=tool_call_id) if (
+                isinstance(result, ToolReturnPart)
+            ):
+                tool_input = self._current_tool_inputs.get(tool_call_id, {})
+                # Check if the tool result is a streaming AsyncGenerator
+                if isinstance(result.content, AsyncGenerator):
+                    # Stream the tool output chunks
+                    full_content = ""
+                    async for chunk in result.content:
+                        full_content += str(chunk)
+                        # Yield intermediate streaming notification
                         # Skip generic notifications for self-notifying tools
                         if result.tool_name not in ACP_SELF_NOTIFYING_TOOLS:
-                            converted_blocks = to_acp_content_blocks(final_output)
                             await self.notifications.tool_call(
                                 tool_name=result.tool_name,
                                 tool_input=tool_input,
-                                tool_output=converted_blocks,
-                                status="completed",
-                                tool_call_id=tool_call_id,
-                            )
-                        # Clean up stored input
-                        self._current_tool_inputs.pop(tool_call_id, None)
-
-                    case FunctionToolResultEvent(
-                        result=result, tool_call_id=tool_call_id
-                    ) if isinstance(result, RetryPromptPart):
-                        # Tool call failed and needs retry
-                        tool_name = result.tool_name or "unknown"
-                        error_message = result.model_response()
-                        # Skip generic notifications for self-notifying tools
-                        if tool_name not in ACP_SELF_NOTIFYING_TOOLS:
-                            await self.notifications.tool_call(
-                                tool_name=tool_name,
-                                tool_input=self._current_tool_inputs.get(
-                                    tool_call_id, {}
-                                ),
-                                tool_output=f"Error: {error_message}",
-                                status="failed",
-                                tool_call_id=tool_call_id,
-                            )
-                        self._current_tool_inputs.pop(
-                            tool_call_id, None
-                        )  # Clean up stored input
-
-                    case ToolCallProgressEvent(
-                        progress=progress,
-                        total=total,
-                        message=message,
-                        tool_name=tool_name,
-                        tool_call_id=tool_call_id,
-                        tool_input=tool_input,
-                    ):
-                        logger.debug(
-                            f"Received progress event for tool {tool_name} with ID {tool_call_id}"
-                        )
-                        try:
-                            # Create content from progress message
-                            output = message if message else f"Progress: {progress}"
-                            if total:
-                                output += f"/{total}"
-
-                            # Create ACP tool call progress notification
-                            await self.notifications.tool_call(
-                                tool_name=tool_name,
-                                tool_input=tool_input or {},
-                                tool_output=output,
+                                tool_output=chunk,
                                 status="in_progress",
                                 tool_call_id=tool_call_id,
                             )
 
-                        except Exception as e:  # noqa: BLE001
-                            logger.warning(
-                                "Failed to convert progress event to ACP notification: %s",
-                                e,
-                            )
+                    # Replace the AsyncGenerator with the full content to
+                    # prevent errors
+                    result.content = full_content
+                    final_output = full_content
+                else:
+                    final_output = result.content
 
-                    case FinalResultEvent():
-                        msg = "Final result received for session %s"
-                        logger.debug(msg, self.session_id)
-                    case StreamCompleteEvent(message=message):
-                        # Handle final completion
-                        logger.debug("Stream completed for session %s", self.session_id)
-                        # If no chunks were streamed, send the complete content
-                        if (
-                            not has_yielded_anything
-                            and message.content
-                            and str(message.content).strip()
-                        ):
-                            await self.notifications.send_agent_text(str(message.content))
-                            has_yielded_anything = True
+                # Final completion notification
+                # Skip generic notifications for self-notifying tools
+                if result.tool_name not in ACP_SELF_NOTIFYING_TOOLS:
+                    converted_blocks = to_acp_content_blocks(final_output)
+                    await self.notifications.tool_call(
+                        tool_name=result.tool_name,
+                        tool_input=tool_input,
+                        tool_output=converted_blocks,
+                        status="completed",
+                        tool_call_id=tool_call_id,
+                    )
+                # Clean up stored input
+                self._current_tool_inputs.pop(tool_call_id, None)
 
-                    case _:
-                        # Log other events for debugging
-                        logger.debug("Other event: %s", type(event).__name__)
+            case FunctionToolResultEvent(result=result, tool_call_id=tool_call_id) if (
+                isinstance(result, RetryPromptPart)
+            ):
+                # Tool call failed and needs retry
+                tool_name = result.tool_name or "unknown"
+                error_message = result.model_response()
+                # Skip generic notifications for self-notifying tools
+                if tool_name not in ACP_SELF_NOTIFYING_TOOLS:
+                    await self.notifications.tool_call(
+                        tool_name=tool_name,
+                        tool_input=self._current_tool_inputs.get(tool_call_id, {}),
+                        tool_output=f"Error: {error_message}",
+                        status="failed",
+                        tool_call_id=tool_call_id,
+                    )
+                self._current_tool_inputs.pop(tool_call_id, None)  # Clean up stored input
 
-            msg = "Agent streaming finished. Processed %d events, yielded anything: %s"
-            logger.info(msg, event_count, has_yielded_anything)
+            case ToolCallProgressEvent(
+                progress=progress,
+                total=total,
+                message=message,
+                tool_name=tool_name,
+                tool_call_id=tool_call_id,
+                tool_input=tool_input,
+            ):
+                msg = "Received progress event for tool %s, id %s"
+                logger.debug(msg, tool_name, tool_call_id)
+                try:
+                    # Create content from progress message
+                    output = message if message else f"Progress: {progress}"
+                    if total:
+                        output += f"/{total}"
 
-        except UsageLimitExceeded as e:
-            logger.info("Usage limit exceeded for session %s: %s", self.session_id, e)
-            # Determine which limit was exceeded based on the error message
-            error_msg = str(e)
+                    # Create ACP tool call progress notification
+                    await self.notifications.tool_call(
+                        tool_name=tool_name,
+                        tool_input=tool_input or {},
+                        tool_output=output,
+                        status="in_progress",
+                        tool_call_id=tool_call_id,
+                    )
 
-            # Check for request limit (maps to max_turn_requests)
-            if "request_limit" in error_msg:
-                return "max_turn_requests"
-            # Check for any token limits (maps to max_tokens)
-            if any(limit in error_msg for limit in ["tokens_limit", "token_limit"]):
-                return "max_tokens"
-            # Tool call limits don't have a direct ACP stop reason, treat as refusal
-            if "tool_calls_limit" in error_msg or "tool call" in error_msg:
-                return "refusal"
-            # Default to max_tokens for other usage limits
-            return "max_tokens"
-        except Exception as e:
-            logger.exception("Error in agent streaming for session %s", self.session_id)
-            logger.info("Sending error updates for session %s", self.session_id)
-            await self.notifications.send_agent_text(f"Agent error: {e}")
-            return "cancelled"
-        else:
-            return "end_turn"
+                except Exception as e:  # noqa: BLE001
+                    msg = "Failed to convert progress event to ACP notification: %s"
+                    logger.warning(msg, e)
+
+            case FinalResultEvent():
+                msg = "Final result received for session %s"
+                logger.debug(msg, self.session_id)
+            case StreamCompleteEvent(message=message):
+                # Handle final completion
+                pass
+            case _:
+                # Log other events for debugging
+                logger.debug("Other event: %s", type(event).__name__)
 
     async def close(self) -> None:
         """Close the session and cleanup resources."""
