@@ -158,10 +158,15 @@ class ACPSession:
             progress_handler=self.agent._create_progress_handler(),
             accessible_roots=[root] if root else None,
         )
-        await self.mcp_manager.__aenter__()
-        self.agent.tools.add_provider(self.mcp_manager)
-        self.log.info("Added MCP servers to current agent", server_count=len(cfgs))
-        await self._register_mcp_prompts_as_commands()
+        try:
+            await self.mcp_manager.__aenter__()
+            self.agent.tools.add_provider(self.mcp_manager)
+            self.log.info("Added MCP servers to current agent", server_count=len(cfgs))
+            await self._register_mcp_prompts_as_commands()
+        except Exception:
+            self.log.exception("Failed to initialize MCP manager")
+            # Don't fail session creation, just log the error
+            self.mcp_manager = None
 
     async def init_project_context(self) -> None:
         """Load AGENTS.md file and inject project context into all agents.
