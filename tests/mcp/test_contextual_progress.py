@@ -149,14 +149,13 @@ async def test_direct_mcp_client_progress():
 
     progress_capture = ProgressCapture()
     server_path = Path(__file__).parent / "server.py"  # Get server path
-    mcp_server = StdioMCPServerConfig(
+    cfg = StdioMCPServerConfig(
         name="progress_test_server",
         command="uv",
         args=["run", str(server_path)],
     )
-    client = MCPClient(progress_handler=progress_capture)
+    client = MCPClient(cfg, progress_handler=progress_capture)
     async with client:
-        await client.connect(mcp_server)
         await asyncio.sleep(0.5)  # Wait a bit for server to be ready
         tools = client.get_tools()
         tool_names = [t["function"]["name"] for t in tools]

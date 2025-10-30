@@ -210,13 +210,13 @@ class MCPManager(ResourceProvider):
             return
 
         client = MCPClient(
+            config=config,
             elicitation_callback=self._elicitation_callback,
             sampling_callback=self._sampling_callback,
             progress_handler=self._progress_handler,
             accessible_roots=self._accessible_roots,
         )
         client = await self.exit_stack.enter_async_context(client)
-        await client.connect(config)
 
         self.clients[config.client_id] = client
 

@@ -52,7 +52,6 @@ type ContextualProgressHandler = Callable[
 if TYPE_CHECKING:
     from types import TracebackType
 
-    import fastmcp
     from fastmcp.client import ClientTransport
     from fastmcp.client.client import ProgressHandler
     from fastmcp.client.elicitation import ElicitationHandler, ElicitResult
@@ -94,6 +93,7 @@ class MCPClient:
 
     def __init__(
         self,
+        config: MCPServerConfig,
         elicitation_callback: ElicitationHandler | None = None,
         sampling_callback: ClientSamplingHandler | None = None,
         progress_handler: ContextualProgressHandler | None = None,
@@ -101,6 +101,7 @@ class MCPClient:
         accessible_roots: list[str] | None = None,
     ):
         self._elicitation_callback = elicitation_callback
+        self.config = config
         self._sampling_callback = sampling_callback
         self._progress_handler = MultiEventHandler[ContextualProgressHandler](
             handlers=[progress_handler] if progress_handler else []
@@ -108,12 +109,32 @@ class MCPClient:
         # Store message handler or mark for lazy creation
         self._message_handler = message_handler
         self._accessible_roots = accessible_roots or []
-        self._client: fastmcp.Client | None = None
+        self._client = self._get_client(self.config)
         self._available_tools: list[MCPTool] = []
         self._connected = False
 
     async def __aenter__(self) -> Self:
         """Enter context manager."""
+        try:
+            # First attempt with configured auth
+            await self._client.__aenter__()
+
+        except Exception as first_error:
+            # OAuth fallback for HTTP/SSE if not already using OAuth
+            if _should_try_oauth_fallback(self.config):
+                try:
+                    with contextlib.suppress(Exception):
+                        await self._client.__aexit__(None, None, None)
+                    self._client = self._get_client(self.config, force_oauth=True)
+                    await self._client.__aenter__()
+                    logger.info("Connected with OAuth fallback")
+                except Exception:  # noqa: BLE001
+                    raise first_error from None
+            else:
+                raise
+
+        self._connected = True
+        await self._refresh_tools()
         return self
 
     async def __aexit__(
@@ -123,19 +144,13 @@ class MCPClient:
         exc_tb: TracebackType | None,
     ):
         """Exit context manager and cleanup."""
-        await self.cleanup()
-
-    async def cleanup(self):
-        """Clean up resources."""
-        if self._client:
-            try:
-                await self._client.__aexit__(None, None, None)
-            except Exception as e:  # noqa: BLE001
-                logger.warning("Error during FastMCP client cleanup: %s", e)
-            finally:
-                self._client = None
-                self._connected = False
-                self._available_tools = []
+        try:
+            await self._client.__aexit__(None, None, None)
+        except Exception as e:  # noqa: BLE001
+            logger.warning("Error during FastMCP client cleanup: %s", e)
+        finally:
+            self._connected = False
+            self._available_tools = []
 
     async def _log_handler(self, message: LogMessage) -> None:
         """Handle server log messages."""
@@ -183,36 +198,6 @@ class MCPClient:
         except Exception as e:
             logger.exception("Sampling handler failed")
             return f"Sampling failed: {e}"
-
-    async def connect(self, config: MCPServerConfig):
-        """Connect to an MCP server using FastMCP.
-
-        Args:
-            config: MCP server configuration object
-        """
-        try:
-            # First attempt with configured auth
-            self._client = self._get_client(config)
-            await self._client.__aenter__()
-
-        except Exception as first_error:
-            # OAuth fallback for HTTP/SSE if not already using OAuth
-            if _should_try_oauth_fallback(config):
-                try:
-                    if self._client:
-                        with contextlib.suppress(Exception):
-                            await self._client.__aexit__(None, None, None)
-
-                    self._client = self._get_client(config, force_oauth=True)
-                    await self._client.__aenter__()
-                    logger.info("Connected with OAuth fallback")
-                except Exception:  # noqa: BLE001
-                    raise first_error from None
-            else:
-                raise
-
-        self._connected = True
-        await self._refresh_tools()
 
     def _get_client(self, config: MCPServerConfig, force_oauth: bool = False):
         """Create FastMCP client based on config."""

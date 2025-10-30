@@ -28,7 +28,6 @@ async def mcp_client():
     )
 
     client = MCPClient(config)
-    await client.connect(config)
     async with client:
         # Wait for server to be ready
         await asyncio.sleep(0.5)
