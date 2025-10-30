@@ -43,16 +43,6 @@ from llmling_agent_acp.converters import (
 )
 
 
-# Tools that send their own rich ACP notifications (with ToolCallLocation, etc.)
-# These tools are excluded from generic session-level notifications to prevent duplication
-ACP_SELF_NOTIFYING_TOOLS = {"read_text_file", "write_text_file", "run_command"}
-
-
-def _is_slash_command(text: str) -> bool:
-    """Check if text starts with a slash command."""
-    return bool(SLASH_PATTERN.match(text.strip()))
-
-
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
@@ -69,6 +59,14 @@ if TYPE_CHECKING:
 
 
 logger = get_logger(__name__)
+# Tools that send their own rich ACP notifications (with ToolCallLocation, etc.)
+# These tools are excluded from generic session-level notifications to prevent duplication
+ACP_SELF_NOTIFYING_TOOLS = {"read_text_file", "write_text_file", "run_command"}
+
+
+def _is_slash_command(text: str) -> bool:
+    """Check if text starts with a slash command."""
+    return bool(SLASH_PATTERN.match(text.strip()))
 
 
 @dataclass
@@ -147,45 +145,26 @@ class ACPSession:
 
     async def initialize_mcp_servers(self) -> None:
         """Initialize MCP servers if any are configured."""
-        # Always initialize permission server first
-        # await self._initialize_permission_server()
-
         if not self.mcp_servers:
             return
-
         msg = "Initializing %d MCP servers for session %s"
         logger.info(msg, len(self.mcp_servers), self.session_id)
         cfgs = [convert_acp_mcp_server_to_config(s) for s in self.mcp_servers]
-        # Initialize MCP manager with converted configs
-        name = f"session_{self.session_id}"
         # Define accessible roots for MCP servers
-        accessible_roots: list[str] = []
-        if self.cwd:
-            path = Path(self.cwd).resolve()
-            accessible_roots.append(path.as_uri())
-
+        root = Path(self.cwd).resolve().as_uri() if self.cwd else None
         # TODO: Investigate better ways of injecting MCP servers into agents/pool
         # For now, connect ACP MCP manager to agent's progress handler
         self.mcp_manager = MCPManager(
-            name,
+            f"session_{self.session_id}",
             servers=cfgs,
             progress_handler=self.agent._create_progress_handler(),
-            accessible_roots=accessible_roots,
+            accessible_roots=[root] if root else None,
         )
-        try:
-            # Start MCP manager and, fetch and add tools
-            await self.mcp_manager.__aenter__()
-            self.agent.tools.add_provider(self.mcp_manager)
-            msg = "Added %d MCP servers to current agent for session %s"
-            logger.info(msg, len(cfgs), self.session_id)
-            # Register MCP prompts as slash commands
-            await self._register_mcp_prompts_as_commands()
-
-        except Exception:
-            msg = "Failed to initialize MCP manager for session %s"
-            logger.exception(msg, self.session_id)
-            # Don't fail session creation, just log the error
-            self.mcp_manager = None
+        await self.mcp_manager.__aenter__()
+        self.agent.tools.add_provider(self.mcp_manager)
+        msg = "Added %d MCP servers to current agent for session %s"
+        logger.info(msg, len(cfgs), self.session_id)
+        await self._register_mcp_prompts_as_commands()
 
     async def init_project_context(self) -> None:
         """Load AGENTS.md file and inject project context into all agents.
@@ -263,26 +242,20 @@ class ACPSession:
             logger.warning(msg, self.session_id)
             return "refusal"
 
-        # Reset cancellation flag
         self._cancelled = False
-        # Convert content blocks to structured content
         contents = from_content_blocks(content_blocks)
         logger.debug("Converted content: %r", contents)
-
         if not contents:
             msg = "Empty prompt received for session %s"
             logger.warning(msg, self.session_id)
             return "refusal"
-
         # Check for slash commands in text content
         commands: list[str] = []
         non_command_content: list[str | BaseContent] = []
         for item in contents:
             if isinstance(item, str) and _is_slash_command(item):
-                # Found a slash command
-                command_text = item.strip()
-                logger.info("Found slash command: %s", command_text)
-                commands.append(command_text)
+                logger.info("Found slash command: %r", item)
+                commands.append(item.strip())
             else:
                 non_command_content.append(item)
 
@@ -297,11 +270,8 @@ class ACPSession:
                 if not non_command_content:
                     return "end_turn"
 
-            # Pass structured content to agent for processing
             msg = "Processing prompt for session %s with %d content items"
             logger.debug(msg, self.session_id, len(non_command_content))
-            msg = "Starting agent.run_stream for session %s with %d content items"
-            logger.info(msg, self.session_id, len(non_command_content))
             logger.info("Agent model: %s", self.agent.model_name)
             event_count = 0
             self._current_tool_inputs.clear()  # Reset tool inputs for new stream
@@ -315,29 +285,21 @@ class ACPSession:
 
                     event_count += 1
                     await self.handle_event(event)
-                msg = "Streaming finished. Processed %d events."
-                logger.info(msg, event_count)
+                logger.info("Streaming finished. Processed %d events.", event_count)
 
             except UsageLimitExceeded as e:
                 logger.info("Usage limit exceeded for session %s: %s", self.session_id, e)
-                # Determine which limit was exceeded based on the error message
-                error_msg = str(e)
-
-                # Check for request limit (maps to max_turn_requests)
+                error_msg = str(e)  # Determine which limit was hit based on error
                 if "request_limit" in error_msg:
                     return "max_turn_requests"
-                # Check for any token limits (maps to max_tokens)
                 if any(limit in error_msg for limit in ["tokens_limit", "token_limit"]):
                     return "max_tokens"
                 # Tool call limits don't have a direct ACP stop reason, treat as refusal
                 if "tool_calls_limit" in error_msg or "tool call" in error_msg:
                     return "refusal"
-                # Default to max_tokens for other usage limits
-                return "max_tokens"
+                return "max_tokens"  # Default to max_tokens for other usage limits
             except Exception as e:
-                msg = "Error in agent streaming for session %s"
-                logger.exception(msg, self.session_id)
-                logger.info("Sending error updates for session %s", self.session_id)
+                logger.exception("Error during streaming for session %s", self.session_id)
                 await self.notifications.send_agent_text(f"Agent error: {e}")
                 return "cancelled"
             else:
@@ -350,18 +312,19 @@ class ACPSession:
                 | PartDeltaEvent(delta=TextPartDelta(content_delta=delta))
             ):
                 await self.notifications.send_agent_text(delta)
+
             case (
                 PartStartEvent(part=ThinkingPart(content=delta))
                 | PartDeltaEvent(delta=ThinkingPartDelta(content_delta=delta))
             ):
                 await self.notifications.send_agent_thought(delta or "\n")
+
             case PartStartEvent(delta=delta):
                 msg = "Received unhandled PartStartEvent %s for session %s"
                 logger.debug(msg, delta, self.session_id)
 
             case PartDeltaEvent(delta=ToolCallPartDelta()):
-                msg = "Received ToolCallPartDelta for session %s"
-                logger.debug(msg, self.session_id)
+                logger.debug("Received ToolCallPartDelta for session %s", self.session_id)
 
             case FunctionToolCallEvent(part=part):
                 tool_call_id = part.tool_call_id
@@ -445,11 +408,11 @@ class ACPSession:
             ):
                 msg = "Received progress event for tool %s, id %s"
                 logger.debug(msg, tool_name, tool_call_id)
+                output = message if message else f"Progress: {progress}"
+                if total:
+                    output += f"/{total}"
                 try:
                     # Create content from progress message
-                    output = message if message else f"Progress: {progress}"
-                    if total:
-                        output += f"/{total}"
 
                     # Create ACP tool call progress notification
                     # await self.notifications.tool_call(
@@ -472,12 +435,12 @@ class ACPSession:
             case FinalResultEvent():
                 msg = "Final result received for session %s"
                 logger.debug(msg, self.session_id)
+
             case StreamCompleteEvent(message=message):
-                # Handle final completion
                 pass
+
             case _:
-                # Log other events for debugging
-                logger.debug("Other event: %s", type(event).__name__)
+                logger.debug("Unhandled event: %s", type(event).__name__)
 
     async def close(self) -> None:
         """Close the session and cleanup resources."""
