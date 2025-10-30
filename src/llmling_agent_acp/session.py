@@ -499,14 +499,19 @@ with other agents effectively."""
                         output += f"/{total}"
 
                     # Create ACP tool call progress notification
-                    await self.notifications.tool_call(
-                        tool_name=tool_name,
-                        tool_input=tool_input or {},
-                        tool_output=output,
+                    # await self.notifications.tool_call(
+                    #     tool_name=tool_name,
+                    #     tool_input=tool_input or {},
+                    #     tool_output=output,
+                    #     status="in_progress",
+                    #     tool_call_id=tool_call_id,
+                    # )
+                    await self.notifications.tool_call_progress(
+                        title=message,
+                        raw_output=output,
                         status="in_progress",
                         tool_call_id=tool_call_id,
                     )
-
                 except Exception as e:  # noqa: BLE001
                     msg = "Failed to convert progress event to ACP notification: %s"
                     logger.warning(msg, e)
