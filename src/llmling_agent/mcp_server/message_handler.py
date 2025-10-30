@@ -100,7 +100,7 @@ class MCPMessageHandler:
         self, message: mcp.types.ToolListChangedNotification
     ) -> None:
         """Handle tool list changes by refreshing tools."""
-        logger.info("MCP tool list changed: %s", message)
+        logger.info("MCP tool list changed", message=message)
         # Schedule async refresh - use create_task to avoid blocking
         task = asyncio.create_task(self.client._refresh_tools())
         # Store reference to avoid warning about unawaited task
@@ -112,14 +112,14 @@ class MCPMessageHandler:
         self, message: mcp.types.ResourceListChangedNotification
     ) -> None:
         """Handle resource list changes."""
-        logger.info("MCP resource list changed: %s", message)
+        logger.info("MCP resource list changed", message=message)
 
     async def on_resource_updated(
         self, message: mcp.types.ResourceUpdatedNotification
     ) -> None:
         """Handle resource updates."""
         # ResourceUpdatedNotification has uri directly, not in params
-        logger.info("MCP resource updated: %s", getattr(message, "uri", "unknown"))
+        logger.info("MCP resource updated", uri=getattr(message, "uri", "unknown"))
 
     async def on_progress(self, message: mcp.types.ProgressNotification) -> None:
         """Handle progress notifications with proper context."""
@@ -130,11 +130,11 @@ class MCPMessageHandler:
         self, message: mcp.types.PromptListChangedNotification
     ) -> None:
         """Handle prompt list changes."""
-        logger.info("MCP prompt list changed: %s", message)
+        logger.info("MCP prompt list changed", message=message)
 
     async def on_cancelled(self, message: mcp.types.CancelledNotification) -> None:
         """Handle cancelled operations."""
-        logger.info("MCP operation cancelled: %s", message)
+        logger.info("MCP operation cancelled", message=message)
 
     async def on_logging_message(
         self, message: mcp.types.LoggingMessageNotification
@@ -144,7 +144,7 @@ class MCPMessageHandler:
 
     async def on_exception(self, message: Exception) -> None:
         """Handle exceptions."""
-        logger.error("MCP client exception: %s", message)
+        logger.error("MCP client exception", error=message)
 
     async def on_ping(self, message: mcp.types.PingRequest) -> None:
         """Handle ping requests."""

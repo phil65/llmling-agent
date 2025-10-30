@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Self
 
+from llmling_agent.log import get_logger
+
 
 if TYPE_CHECKING:
     from llmling import BasePrompt
@@ -11,6 +13,9 @@ if TYPE_CHECKING:
     from llmling_agent.messaging.messages import ChatMessage
     from llmling_agent.tools.base import Tool
     from llmling_agent_config.resources import ResourceInfo
+
+
+logger = get_logger(__name__)
 
 
 class ResourceProvider:
@@ -24,6 +29,7 @@ class ResourceProvider:
         """Initialize the resource provider."""
         self.name = name
         self.owner = owner
+        self.log = logger.bind(name=self.name, owner=self.owner)
 
     async def __aenter__(self) -> Self:
         """Async context entry if required."""

@@ -152,7 +152,7 @@ class LLMlingACPAgent(ACPAgent):
 
         self._initialized = False
         agent_count = len(self.agent_pool.agents)
-        logger.info("Created ACP agent implementation with %d agents", agent_count)
+        logger.info("Created ACP agent implementation", agent_count=agent_count)
         if debug_commands:
             logger.info("Debug slash commands enabled for ACP testing")
 
@@ -163,7 +163,7 @@ class LLMlingACPAgent(ACPAgent):
         logger.info("Initializing ACP agent implementation")
         version = min(params.protocol_version, self.PROTOCOL_VERSION)
         self.client_capabilities = params.client_capabilities
-        logger.info("Client capabilities: %s", self.client_capabilities)
+        logger.info("Client capabilities", capabilities=self.client_capabilities)
         prompt_caps = PromptCapabilities(audio=True, embedded_context=True, image=True)
         mcp_caps = McpCapabilities(http=True, sse=True)
         caps = AgentCapabilities(
@@ -182,7 +182,7 @@ class LLMlingACPAgent(ACPAgent):
             agent_capabilities=caps,
             agent_info=impl,
         )
-        logger.info("ACP agent implementation initialized successfully: %s", response)
+        logger.info("ACP agent initialized successfully", response=response)
         return response
 
     async def new_session(self, params: NewSessionRequest) -> NewSessionResponse:
@@ -204,8 +204,11 @@ class LLMlingACPAgent(ACPAgent):
             else:
                 default_name = agent_names[0]
 
-            msg = "Creating new session. Available agents: %s. Default agent: %s"
-            logger.info(msg, agent_names, default_name)
+            logger.info(
+                "Creating new session",
+                available_agents=agent_names,
+                default_agent=default_name,
+            )
             session_id = await self.session_manager.create_session(
                 agent_pool=self.agent_pool,
                 default_agent_name=default_name,
@@ -237,7 +240,7 @@ class LLMlingACPAgent(ACPAgent):
                 coro_2 = session.init_project_context()
                 self.tasks.create_task(coro, name=f"send_commands_update_{session_id}")
                 self.tasks.create_task(coro_2, name=f"init_project_context_{session_id}")
-            logger.info("Created session %s with %d agents", session_id, len(modes))
+            logger.info("Created session", session_id=session_id, agent_count=len(modes))
             return NewSessionResponse(session_id=session_id, modes=state, models=models)
 
     async def load_session(self, params: LoadSessionRequest) -> LoadSessionResponse:
@@ -249,7 +252,7 @@ class LLMlingACPAgent(ACPAgent):
         try:
             session = self.session_manager.get_session(params.session_id)
             if not session:
-                logger.warning("Session %s not found", params.session_id)
+                logger.warning("Session not found", session_id=params.session_id)
                 return LoadSessionResponse()
 
             current_model = session.agent.model_name if session.agent else None
@@ -257,12 +260,12 @@ class LLMlingACPAgent(ACPAgent):
 
             return LoadSessionResponse(models=models)
         except Exception:
-            logger.exception("Failed to load session %s", params.session_id)
+            logger.exception("Failed to load session", session_id=params.session_id)
             return LoadSessionResponse()
 
     async def authenticate(self, params: AuthenticateRequest) -> None:
         """Authenticate with the agent."""
-        logger.info("Authentication requested with method %s", params.method_id)
+        logger.info("Authentication requested", method_id=params.method_id)
 
     async def prompt(self, params: PromptRequest) -> PromptResponse:
         """Process a prompt request."""
@@ -270,7 +273,7 @@ class LLMlingACPAgent(ACPAgent):
             msg = "Agent not initialized"
             raise RuntimeError(msg)
 
-        logger.info("Processing prompt for session %s", params.session_id)
+        logger.info("Processing prompt", session_id=params.session_id)
         session = self.session_manager.get_session(params.session_id)
         try:
             if not session:
@@ -279,10 +282,9 @@ class LLMlingACPAgent(ACPAgent):
             stop_reason = await session.process_prompt(params.prompt)
             # Return the actual stop reason from the session
             response = PromptResponse(stop_reason=stop_reason)
-            msg = "Returning PromptResponse: %s"
-            logger.info(msg, response.model_dump_json(exclude_none=True, by_alias=True))
+            logger.info("Returning PromptResponse", stop_reason=stop_reason)
         except Exception as e:
-            logger.exception("Failed to process prompt for session %s", params.session_id)
+            logger.exception("Failed to process prompt", session_id=params.session_id)
             msg = f"Error processing prompt: {e}"
             chunk = AgentMessageChunk(content=TextContentBlock(text=msg))
             notification = SessionNotification(session_id=params.session_id, update=chunk)
@@ -297,17 +299,18 @@ class LLMlingACPAgent(ACPAgent):
 
     async def cancel(self, params: CancelNotification) -> None:
         """Cancel operations for a session."""
-        logger.info("Cancelling session %s", params.session_id)
+        logger.info("Cancelling session", session_id=params.session_id)
         try:
             # Get session and cancel it
             if session := self.session_manager.get_session(params.session_id):
                 session.cancel()
-                logger.info("Cancelled operations for session %s", params.session_id)
+                logger.info("Cancelled operations", session_id=params.session_id)
             else:
-                logger.warning("Session %s not found for cancellation", params.session_id)
+                msg = "Session not found for cancellation"
+                logger.warning(msg, session_id=params.session_id)
 
         except Exception:
-            logger.exception("Failed to cancel session %s", params.session_id)
+            logger.exception("Failed to cancel session", session_id=params.session_id)
 
     async def ext_method(self, method: str, params: dict[str, Any]) -> dict[str, Any]:
         return {"example": "response"}
@@ -325,18 +328,19 @@ class LLMlingACPAgent(ACPAgent):
         try:
             session = self.session_manager.get_session(params.session_id)
             if not session:
-                logger.warning("Session %s not found for mode switch", params.session_id)
+                msg = "Session not found for mode switch"
+                logger.warning(msg, session_id=params.session_id)
                 return None
 
             # Validate agent exists in pool
             if not self.agent_pool or params.mode_id not in self.agent_pool.agents:
-                logger.error("Agent %s not found in pool", params.mode_id)
+                logger.error("Agent not found in pool", mode_id=params.mode_id)
                 return None
             await session.switch_active_agent(params.mode_id)
             return SetSessionModeResponse()
 
         except Exception:
-            logger.exception("Failed to set session mode for %s", params.session_id)
+            logger.exception("Failed to set session mode", session_id=params.session_id)
             return None
 
     async def set_session_model(
@@ -349,11 +353,16 @@ class LLMlingACPAgent(ACPAgent):
         try:
             session = self.session_manager.get_session(params.session_id)
             if not session:
-                logger.warning("Session %s not found for model switch", params.session_id)
+                msg = "Session not found for model switch"
+                logger.warning(msg, session_id=params.session_id)
                 return None
             session.agent.set_model(params.model_id)
-            logger.info("Set model %s for session %s", params.model_id, params.session_id)
+            logger.info(
+                "Set model",
+                model_id=params.model_id,
+                session_id=params.session_id,
+            )
             return SetSessionModelResponse()
         except Exception:
-            logger.exception("Failed to set session model for %s", params.session_id)
+            logger.exception("Failed to set session model", session_id=params.session_id)
             return None

@@ -8,16 +8,12 @@ from typing import TYPE_CHECKING, Any
 from pydantic_ai import RunContext  # noqa: TC002
 
 from acp.schema import TerminalToolCallContent
-from llmling_agent.log import get_logger
 from llmling_agent.resource_providers.base import ResourceProvider
 from llmling_agent.tools.base import Tool
 
 
 if TYPE_CHECKING:
     from llmling_agent_acp.session import ACPSession
-
-
-logger = get_logger(__name__)
 
 
 class ACPTerminalProvider(ResourceProvider):
@@ -177,7 +173,7 @@ class ACPTerminalProvider(ResourceProvider):
                     title=f"Command failed: {e}",
                 )
             except Exception:  # noqa: BLE001
-                logger.warning("Failed to send error update")
+                self.log.warning("Failed to send error update")
 
             return f"Error executing command: {e}"
         else:
@@ -204,7 +200,7 @@ class ACPTerminalProvider(ResourceProvider):
                 kind="read",
             )
         except Exception as e:  # noqa: BLE001
-            logger.warning("Failed to send pending update: %s", e)
+            self.log.warning("Failed to send pending update", error=e)
 
         try:
             output_response = await self.session.requests.terminal_output(terminal_id)
@@ -246,7 +242,7 @@ Status: {status_text}"""
                     raw_output=f"Error: {e}",
                 )
             except Exception:  # noqa: BLE001
-                logger.warning("Failed to send failed update")
+                self.log.warning("Failed to send failed update")
             return f"Error getting command output: {e}"
         else:
             return result
@@ -288,7 +284,7 @@ Status: {status_text}"""
                 kind="execute",
             )
         except Exception as e:  # noqa: BLE001
-            logger.warning("Failed to send pending update: %s", e)
+            self.log.warning("Failed to send pending update", error=e)
 
         try:
             create_response = await self.session.requests.create_terminal(
@@ -315,7 +311,7 @@ Status: {status_text}"""
                     raw_output=f"Error: {e}",
                 )
             except Exception:  # noqa: BLE001
-                logger.warning("Failed to send failed update")
+                self.log.warning("Failed to send failed update")
             return f"Error creating terminal: {e}"
         else:
             return f"""Created terminal: {terminal_id}
@@ -352,7 +348,7 @@ Use this terminal_id with other terminal tools:
                 content=[TerminalToolCallContent(terminal_id=terminal_id)],
             )
         except Exception as e:  # noqa: BLE001
-            logger.warning("Failed to send pending update: %s", e)
+            self.log.warning("Failed to send pending update", error=e)
 
         try:
             exit_response = await self.session.requests.wait_for_terminal_exit(
@@ -385,7 +381,7 @@ Status: {"SUCCESS" if exit_code == 0 else "FAILED"}"""
                     raw_output=f"Error: {e}",
                 )
             except Exception:  # noqa: BLE001
-                logger.warning("Failed to send failed update")
+                self.log.warning("Failed to send failed update")
             return f"Error waiting for terminal exit: {e}"
         else:
             return result
@@ -426,7 +422,7 @@ Status: {"SUCCESS" if exit_code == 0 else "FAILED"}"""
                     raw_output=f"Error: {e}",
                 )
             except Exception:  # noqa: BLE001
-                logger.warning("Failed to send failed update")
+                self.log.warning("Failed to send failed update")
             return f"Error killing terminal: {e}"
         else:
             return f"Terminal {terminal_id} killed successfully"
@@ -453,7 +449,7 @@ Status: {"SUCCESS" if exit_code == 0 else "FAILED"}"""
                 kind="execute",
             )
         except Exception as e:  # noqa: BLE001
-            logger.warning("Failed to send pending update: %s", e)
+            self.log.warning("Failed to send pending update", error=e)
 
         try:
             await self.session.requests.release_terminal(terminal_id)
@@ -472,7 +468,7 @@ Status: {"SUCCESS" if exit_code == 0 else "FAILED"}"""
                     raw_output=f"Error: {e}",
                 )
             except Exception:  # noqa: BLE001
-                logger.warning("Failed to send failed update")
+                self.log.warning("Failed to send failed update")
             return f"Error releasing terminal: {e}"
         else:
             return f"Terminal {terminal_id} released successfully"

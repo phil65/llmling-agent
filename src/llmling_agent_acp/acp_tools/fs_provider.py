@@ -125,7 +125,7 @@ class ACPFileSystemProvider(ResourceProvider):
                 locations=[ToolCallLocation(path=resolved_path)],
             )
         except Exception as e:  # noqa: BLE001
-            logger.warning("Failed to send pending update: %s", e)
+            self.log.warning("Failed to send pending update", error=e)
 
         try:
             content = await self.session.requests.read_text_file(
@@ -144,7 +144,7 @@ class ACPFileSystemProvider(ResourceProvider):
                     content=[format_zed_code_block(content, resolved_path)],
                 )
             except Exception as e:  # noqa: BLE001
-                logger.warning("Failed to send completed update: %s", e)
+                self.log.warning("Failed to send completed update", error=e)
 
         except Exception as e:  # noqa: BLE001
             # Send failed update
@@ -156,7 +156,7 @@ class ACPFileSystemProvider(ResourceProvider):
                     raw_output=f"Error: {e}",
                 )
             except Exception:  # noqa: BLE001
-                logger.warning("Failed to send failed update")
+                self.log.warning("Failed to send failed update")
 
             return f"Error reading file: {e}"
         else:
@@ -189,7 +189,7 @@ class ACPFileSystemProvider(ResourceProvider):
                 locations=[ToolCallLocation(path=resolved_path)],
             )
         except Exception as e:  # noqa: BLE001
-            logger.warning("Failed to send pending update: %s", e)
+            self.log.warning("Failed to send pending update", error=e)
 
         try:
             await self.session.requests.write_text_file(resolved_path, content=content)
@@ -202,7 +202,7 @@ class ACPFileSystemProvider(ResourceProvider):
                     content=[format_zed_code_block(content, resolved_path)],
                 )
             except Exception as e:  # noqa: BLE001
-                logger.warning("Failed to send completed update: %s", e)
+                self.log.warning("Failed to send completed update", error=e)
 
         except Exception as e:  # noqa: BLE001
             # Send failed update
@@ -213,7 +213,7 @@ class ACPFileSystemProvider(ResourceProvider):
                     raw_output=f"Error: {e}",
                 )
             except Exception:  # noqa: BLE001
-                logger.warning("Failed to send failed update")
+                self.log.warning("Failed to send failed update")
 
             return f"Error writing file: {e}"
         else:
@@ -264,7 +264,7 @@ class ACPFileSystemProvider(ResourceProvider):
                 },
             )
         except Exception as e:  # noqa: BLE001
-            logger.warning("Failed to send pending update: %s", e)
+            self.log.warning("Failed to send pending update", error=e)
 
         try:  # Read current file content
             original_content = await self.session.requests.read_text_file(resolved_path)
@@ -281,7 +281,7 @@ class ACPFileSystemProvider(ResourceProvider):
                         raw_output=error_msg,
                     )
                 except Exception:  # noqa: BLE001
-                    logger.warning("Failed to send failed update")
+                    self.log.warning("Failed to send failed update")
                 return error_msg
 
             # Write the new content
@@ -308,7 +308,7 @@ class ACPFileSystemProvider(ResourceProvider):
                     raw_output=error_msg,
                 )
             except Exception:  # noqa: BLE001
-                logger.warning("Failed to send failed update")
+                self.log.warning("Failed to send failed update")
             return error_msg
         else:
             return success_msg
@@ -354,7 +354,7 @@ class ACPFileSystemProvider(ResourceProvider):
                 },
             )
         except Exception as e:  # noqa: BLE001
-            logger.warning("Failed to send pending update: %s", e)
+            self.log.warning("Failed to send pending update", error=e)
 
         try:
             if mode == "create":  # For create mode, don't read existing file
@@ -422,7 +422,7 @@ class ACPFileSystemProvider(ResourceProvider):
                                     changed_lines=progress_line_numbers,
                                 )
                         except Exception as e:  # noqa: BLE001
-                            logger.warning("Failed to send progress update: %s", e)
+                            self.log.warning("Failed to send progress update", error=e)
 
                 new_content = "".join(new_content_parts).strip()
 
@@ -435,7 +435,7 @@ class ACPFileSystemProvider(ResourceProvider):
                         raw_output=error_msg,
                     )
                 except Exception:  # noqa: BLE001
-                    logger.warning("Failed to send failed update")
+                    self.log.warning("Failed to send failed update")
                 return error_msg
 
             # Write the new content to file
@@ -473,7 +473,7 @@ class ACPFileSystemProvider(ResourceProvider):
                     raw_output=error_msg,
                 )
             except Exception:  # noqa: BLE001
-                logger.warning("Failed to send failed update")
+                self.log.warning("Failed to send failed update")
             return error_msg
         else:
             return success_msg

@@ -559,7 +559,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             tool_name: Optional override for tool name
             tool_description: Optional override for tool description
         """
-        logger.debug("Setting result type to: %s for %r", output_type, self.name)
+        logger.debug("Setting result type", output_type=output_type, agent_name=self.name)
         self._output_type = to_type(output_type)
 
     @property
@@ -738,7 +738,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                 event_stream_handler=self.event_handler,
             )
         except Exception as e:
-            logger.exception("Agent run failed")
+            logger.exception("Agent run failed", agent_name=self.name)
             self.run_failed.emit("Agent run failed", e)
             raise
         else:
@@ -888,7 +888,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             )
 
         except Exception as e:
-            logger.exception("Agent stream failed")
+            logger.exception("Agent stream failed", agent_name=self.name)
             self.run_failed.emit("Agent stream failed", e)
             raise
 
@@ -1004,8 +1004,8 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                 return await self.run(await job.get_prompt(), store_history=store_history)
 
         except Exception as e:
+            logger.exception("Task execution failed", agent_name=self.name, error=str(e))
             msg = f"Task execution failed: {e}"
-            logger.exception(msg)
             raise JobError(msg) from e
 
     async def run_in_background(
@@ -1026,11 +1026,11 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             **kwargs: Arguments passed to run()
         """
         self._infinite = max_count is None
+        log = logger.bind(agent_name=self.name, interval=interval)
 
         async def _continuous():
             count = 0
-            msg = "%s: Starting continuous run (max_count=%s, interval=%s) for %r"
-            logger.debug(msg, self.name, max_count, interval, self.name)
+            log.debug("Starting continuous run", max_count=max_count)
             latest = None
             while max_count is None or count < max_count:
                 try:
@@ -1038,23 +1038,19 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                         call_with_context(p, self.context, **kwargs) if callable(p) else p
                         for p in prompt
                     ]
-                    msg = "%s: Generated prompt #%d: %s"
-                    logger.debug(msg, self.name, count, current_prompts)
-
+                    log.debug("Generated prompt", iteration=count)
                     latest = await self.run(current_prompts, **kwargs)
-                    msg = "%s: Run continous result #%d"
-                    logger.debug(msg, self.name, count)
+                    logger.debug("Run continuous result", iteration=count)
 
                     count += 1
                     await asyncio.sleep(interval)
                 except asyncio.CancelledError:
-                    logger.debug("%s: Continuous run cancelled", self.name)
+                    logger.debug("Continuous run cancelled", agent_name=self.name)
                     break
                 except Exception:
-                    logger.exception("%s: Background run failed", self.name)
+                    logger.exception("Background run failed", agent_name=self.name)
                     await asyncio.sleep(interval)
-            msg = "%s: Continuous run completed after %d iterations"
-            logger.debug(msg, self.name, count)
+            logger.debug("Continuous run completed", iterations=count)
             return latest
 
         # Cancel any existing background task
@@ -1067,7 +1063,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                 if not task.done():
                     task.cancel()
         else:
-            logger.debug("%s: Started background task %s", self.name, task.get_name())
+            log.debug("Started background task", task_name=task.get_name())
             self._background_task = task
             return None
 
