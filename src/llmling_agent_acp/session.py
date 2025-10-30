@@ -46,6 +46,17 @@ from llmling_agent_acp.converters import (
 # Tools that send their own rich ACP notifications (with ToolCallLocation, etc.)
 # These tools are excluded from generic session-level notifications to prevent duplication
 ACP_SELF_NOTIFYING_TOOLS = {"read_text_file", "write_text_file", "run_command"}
+RULES_FILE_NAMES = [
+    ".rules",
+    "CLAUDE.md",
+    "AGENT.md",
+    "AGENTS.md",
+    "GEMINI.md",
+    ".cursorrules",
+    ".windsurfrules",
+    ".clinerules",
+    ".github/copilot-instructions.md",
+]
 
 
 def _is_slash_command(text: str) -> bool:
@@ -67,8 +78,6 @@ if TYPE_CHECKING:
     from llmling_agent_acp.acp_agent import LLMlingACPAgent
     from llmling_agent_acp.command_bridge import ACPCommandBridge
     from llmling_agent_acp.session_manager import ACPSessionManager
-
-    # from llmling_agent_acp.permission_server import PermissionMCPServer
     from llmling_agent_providers.base import UsageLimits
 
 
@@ -196,22 +205,13 @@ class ACPSession:
 
         TODO: Consider moving this to __aenter__
         """
-        try:
-            # Use ACP readFile request to fetch AGENTS.md
-            path = f"{self.cwd}/AGENTS.md"
-            content = await self.requests.read_text_file(path)
-            if not content:
-                msg = "AGENTS.md exists but is empty for session %s"
-                logger.debug(msg, self.session_id)
-                return
-            for agent in self.agent_pool.agents.values():
-                agent.sys_prompts.prompts.append(f"## Project Information\n\n{content}")
-            logger.debug("Injected AGENTS.md context into agents")
-
-        except Exception as e:  # noqa: BLE001
-            # File doesn't exist or can't be read - that's fine, just log it
-            msg = "No AGENTS.md file found or couldn't read it for session %s: %s"
-            logger.debug(msg, self.session_id, e)
+        for filename in RULES_FILE_NAMES:
+            if info := await self.requests.read_text_file(f"{self.cwd}/{filename}"):
+                for agent in self.agent_pool.agents.values():
+                    prompt = f"## Project Information\n\n{info}"
+                    agent.sys_prompts.prompts.append(prompt)
+                logger.debug("Injected %s context into agents", filename)
+                break
 
     @property
     def agent(self) -> Agent[Any, str]:
@@ -569,7 +569,6 @@ class ACPSession:
                 self.command_bridge.add_mcp_prompt_commands(all_prompts)
                 msg = "Registered %d MCP prompts as slash commands for session %s"
                 logger.info(msg, len(all_prompts), self.session_id)
-
                 # Send updated command list to client
                 await self.send_available_commands_update()
 
