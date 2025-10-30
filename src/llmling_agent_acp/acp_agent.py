@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from importlib.metadata import version as _version
 from typing import TYPE_CHECKING, Any
 
 from slashed import CommandStore
@@ -179,7 +180,9 @@ class LLMlingACPAgent(ACPAgent):
             protocol_version=version,
             agent_capabilities=caps,
             agent_info=Implementation(
-                name="llmling-agent", title="LLMLing-Agent", version="1.0"
+                name="llmling-agent",
+                title="LLMLing-Agent",
+                version=_version("llmling-agent"),
             ),
         )
         logger.info("ACP agent implementation initialized successfully: %s", response)
