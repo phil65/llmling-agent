@@ -33,6 +33,19 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
+RULES_FILE_NAMES = [
+    ".rules",
+    "CLAUDE.md",
+    "AGENT.md",
+    "AGENTS.md",
+    "GEMINI.md",
+    ".cursorrules",
+    ".windsurfrules",
+    ".clinerules",
+    ".github/copilot-instructions.md",
+]
+
+
 class ACPRequests:
     """Clean API for creating and sending ACP session requests.
 
@@ -75,6 +88,20 @@ class ACPRequests:
         )
         response = await self.client.read_text_file(request)
         return response.content
+
+    async def read_agent_rules(self, cwd: str) -> str | None:
+        """Check common agent rule files and return content of first match.
+
+        Args:
+            cwd: Current working directory
+
+        Returns:
+            Agent rules as string or None if not found
+        """
+        for filename in RULES_FILE_NAMES:
+            if info := await self.read_text_file(f"{cwd}/{filename}"):
+                return info
+        return None
 
     async def write_text_file(self, path: str, content: str) -> None:
         """Write text content to a file.

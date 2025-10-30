@@ -46,17 +46,6 @@ from llmling_agent_acp.converters import (
 # Tools that send their own rich ACP notifications (with ToolCallLocation, etc.)
 # These tools are excluded from generic session-level notifications to prevent duplication
 ACP_SELF_NOTIFYING_TOOLS = {"read_text_file", "write_text_file", "run_command"}
-RULES_FILE_NAMES = [
-    ".rules",
-    "CLAUDE.md",
-    "AGENT.md",
-    "AGENTS.md",
-    "GEMINI.md",
-    ".cursorrules",
-    ".windsurfrules",
-    ".clinerules",
-    ".github/copilot-instructions.md",
-]
 
 
 def _is_slash_command(text: str) -> bool:
@@ -205,13 +194,10 @@ class ACPSession:
 
         TODO: Consider moving this to __aenter__
         """
-        for filename in RULES_FILE_NAMES:
-            if info := await self.requests.read_text_file(f"{self.cwd}/{filename}"):
-                for agent in self.agent_pool.agents.values():
-                    prompt = f"## Project Information\n\n{info}"
-                    agent.sys_prompts.prompts.append(prompt)
-                logger.debug("Injected %s context into agents", filename)
-                break
+        if info := await self.requests.read_agent_rules(self.cwd):
+            for agent in self.agent_pool.agents.values():
+                prompt = f"## Project Information\n\n{info}"
+                agent.sys_prompts.prompts.append(prompt)
 
     @property
     def agent(self) -> Agent[Any, str]:
@@ -239,20 +225,16 @@ class ACPSession:
         old_agent_name = self.current_agent_name
         self.current_agent_name = agent_name
 
-        # Move capability provider from old agent to new agent
-        if self._acp_provider:
+        if self._acp_provider:  # Move capability provider from old agent to new agent
             old_agent = self.agent_pool.get_agent(old_agent_name)
             new_agent = self.agent_pool.get_agent(agent_name)
-
             old_agent.tools.remove_provider(self._acp_provider)
             new_agent.tools.add_provider(self._acp_provider)
 
         msg = "Session %s switched from agent %s to %s"
         logger.info(msg, self.session_id, old_agent_name, agent_name)
-
         # if new_model := new_agent.model_name:
         #     await self.notifications.update_session_model(new_model)
-
         await self.send_available_commands_update()
 
     @property
@@ -276,7 +258,7 @@ class ACPSession:
             content_blocks: List of content blocks from the prompt request
 
         Returns:
-            SessionNotification objects for streaming to client, or StopReason literal
+            Stop reason
         """
         if not self._active:
             msg = "Attempted to process prompt on inactive session %s"
@@ -287,7 +269,7 @@ class ACPSession:
         self._cancelled = False
         # Convert content blocks to structured content
         contents = from_content_blocks(content_blocks)
-        logger.info("Converted content: %r", contents)
+        logger.debug("Converted content: %r", contents)
 
         if not contents:
             msg = "Empty prompt received for session %s"
