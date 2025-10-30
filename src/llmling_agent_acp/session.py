@@ -289,7 +289,7 @@ with other agents effectively."""
         """Check if the session is cancelled."""
         return self._cancelled
 
-    async def process_prompt(self, content_blocks: Sequence[ContentBlock]) -> StopReason:
+    async def process_prompt(self, content_blocks: Sequence[ContentBlock]) -> StopReason:  # noqa: PLR0911, PLR0915
         """Process a prompt request and stream responses.
 
         Args:
@@ -351,7 +351,7 @@ with other agents effectively."""
 
             event_count = 0
             has_yielded_anything = False
-            self._current_tool_inputs.clear()  # Reset tool inputs for new streaming session
+            self._current_tool_inputs.clear()  # Reset tool inputs for new stream
 
             try:
                 async for event in self.agent.run_stream(
@@ -382,9 +382,8 @@ with other agents effectively."""
                 # Default to max_tokens for other usage limits
                 return "max_tokens"
             except Exception as e:
-                logger.exception(
-                    "Error in agent streaming for session %s", self.session_id
-                )
+                msg = "Error in agent streaming for session %s"
+                logger.exception(msg, self.session_id)
                 logger.info("Sending error updates for session %s", self.session_id)
                 await self.notifications.send_agent_text(f"Agent error: {e}")
                 return "cancelled"
