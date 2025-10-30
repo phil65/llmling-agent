@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, overload
 
 from llmling_agent.resource_providers.base import ResourceProvider
 
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Callable, Sequence
 
     from llmling.prompts import BasePrompt
 
@@ -124,3 +124,87 @@ class StaticResourceProvider(ResourceProvider):
                 self._resources.pop(i)
                 return True
         return False
+
+    @overload
+    def tool(self, func: Callable[..., Any]) -> Callable[..., Any]: ...
+
+    @overload
+    def tool(
+        self,
+        *,
+        name: str | None = None,
+        description: str | None = None,
+        enabled: bool = True,
+        requires_confirmation: bool = False,
+        requires_capability: str | None = None,
+        priority: int = 100,
+        cache_enabled: bool = False,
+        metadata: dict[str, str] | None = None,
+        **kwargs: Any,
+    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]: ...
+
+    def tool(
+        self,
+        func: Callable[..., Any] | None = None,
+        *,
+        name: str | None = None,
+        description: str | None = None,
+        enabled: bool = True,
+        requires_confirmation: bool = False,
+        requires_capability: str | None = None,
+        priority: int = 100,
+        cache_enabled: bool = False,
+        metadata: dict[str, str] | None = None,
+        **kwargs: Any,
+    ) -> Callable[..., Any] | Callable[[Callable[..., Any]], Callable[..., Any]]:
+        """Decorator to register a function as a tool.
+
+        Can be used with or without parameters:
+
+        ```python
+        # Without parameters
+        @provider.tool
+        def my_function(x: int) -> str:
+            return str(x)
+
+        # With parameters
+        @provider.tool(name="custom_name", description="Custom description")
+        def another_function(y: str) -> str:
+            return y.upper()
+        ```
+
+        Args:
+            func: Function to register (when used without parentheses)
+            name: Override for tool name
+            description: Override for tool description
+            enabled: Whether tool is initially enabled
+            requires_confirmation: Whether execution needs confirmation
+            requires_capability: Optional capability requirement
+            priority: Execution priority (lower = higher priority)
+            cache_enabled: Whether to enable result caching
+            metadata: Additional tool metadata
+            **kwargs: Additional arguments passed to Tool.from_callable
+        """
+        from llmling_agent.tools.base import Tool
+
+        def decorator(f: Callable[..., Any]) -> Callable[..., Any]:
+            tool = Tool.from_callable(
+                f,
+                name_override=name,
+                description_override=description,
+                enabled=enabled,
+                requires_confirmation=requires_confirmation,
+                requires_capability=requires_capability,
+                priority=priority,
+                cache_enabled=cache_enabled,
+                metadata=metadata or {},
+                **kwargs,
+            )
+            self.add_tool(tool)
+            return f
+
+        if func is None:
+            # Called with arguments: @provider.tool(...)
+            return decorator
+        # Called without arguments: @provider.tool
+        return decorator(func)
