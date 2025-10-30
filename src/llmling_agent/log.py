@@ -1,10 +1,13 @@
-"""Logging configuration for llmling_agent."""
+"""Logging configuration for llmling_agent with structlog support."""
 
 from __future__ import annotations
 
 from contextlib import contextmanager
 import logging
-from typing import TYPE_CHECKING
+import sys
+from typing import TYPE_CHECKING, Any
+
+import structlog
 
 
 if TYPE_CHECKING:
@@ -16,19 +19,80 @@ if TYPE_CHECKING:
 LogLevel = int | str
 
 
-def get_logger(name: str, log_level: LogLevel | None = None) -> logging.Logger:
-    """Get a logger for the given name.
+def configure_logging(
+    level: LogLevel = "INFO",
+    *,
+    use_colors: bool | None = None,
+    json_logs: bool = False,
+) -> None:
+    """Configure structlog and standard logging.
+
+    Args:
+        level: Logging level
+        use_colors: Whether to use colored output (auto-detected if None)
+        json_logs: Force JSON output regardless of TTY detection
+    """
+    if isinstance(level, str):
+        level = getattr(logging, level.upper())
+
+    # Configure standard logging as backend
+    logging.basicConfig(
+        level=level,
+        handlers=[logging.StreamHandler(sys.stderr)],
+        force=True,
+        format="%(message)s",  # structlog handles formatting
+    )
+
+    # Determine output format
+    if use_colors is None:
+        use_colors = sys.stderr.isatty() and not json_logs
+
+    # Configure structlog processors
+    processors: list[Any] = [
+        structlog.stdlib.filter_by_level,
+        structlog.stdlib.add_logger_name,
+        structlog.stdlib.add_log_level,
+        structlog.stdlib.PositionalArgumentsFormatter(),
+        structlog.processors.TimeStamper(fmt="iso"),
+        structlog.processors.StackInfoRenderer(),
+        structlog.processors.format_exc_info,
+        structlog.processors.UnicodeDecoder(),
+    ]
+
+    # Add final renderer
+    if json_logs or (not use_colors and not sys.stderr.isatty()):
+        processors.append(structlog.processors.JSONRenderer())
+    else:
+        processors.append(structlog.dev.ConsoleRenderer(colors=use_colors))
+
+    structlog.configure(
+        processors=processors,
+        context_class=dict,
+        logger_factory=structlog.stdlib.LoggerFactory(),
+        wrapper_class=structlog.stdlib.BoundLogger,
+        cache_logger_on_first_use=True,
+    )
+
+
+def get_logger(
+    name: str, log_level: LogLevel | None = None
+) -> structlog.stdlib.BoundLogger:
+    """Get a structlog logger for the given name.
 
     Args:
         name: The name of the logger, will be prefixed with 'llmling_agent.'
         log_level: The logging level to set for the logger
 
     Returns:
-        A logger instance
+        A structlog BoundLogger instance
     """
-    logger = logging.getLogger(f"llmling_agent.{name}")
+    logger = structlog.get_logger(f"llmling_agent.{name}")
     if log_level is not None:
-        logger.setLevel(log_level)
+        if isinstance(log_level, str):
+            log_level = getattr(logging, log_level.upper())
+        # Set level on underlying stdlib logger
+        stdlib_logger = logging.getLogger(f"llmling_agent.{name}")
+        stdlib_logger.setLevel(log_level)
     return logger
 
 

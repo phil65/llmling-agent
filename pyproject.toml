@@ -50,6 +50,7 @@ dependencies = [
   "slashed>=0.1.0",
   "sqlalchemy[aiosqlite]",
   "sqlmodel>=0.0.22",
+  "structlog>=25.5.0",
   "tokonomics>=0.1.2",
   "toprompt>=0.0.1",
   "typer",

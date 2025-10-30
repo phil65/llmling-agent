@@ -8,11 +8,10 @@ integration with file system access, permission handling, and terminal support.
 from __future__ import annotations
 
 import asyncio
-import logging
 
 import typer as t
 
-from llmling_agent.log import get_logger
+from llmling_agent.log import configure_logging, get_logger
 from llmling_agent_cli import resolve_agent_config
 from llmling_agent_cli.cli_types import LogLevel  # noqa: TC001
 
@@ -119,16 +118,10 @@ def acp_command(
         5. Client sends prompt requests
         6. Server streams responses via session updates
     """  # noqa: E501
-    import sys
-
     from llmling_agent_acp import ACPServer
 
-    level = getattr(logging, log_level.upper())
-    logging.basicConfig(
-        level=level,
-        handlers=[logging.StreamHandler(sys.stderr)],
-        force=True,
-    )
+    # Configure logging with structlog
+    configure_logging(level=log_level)
     try:
         config_path = resolve_agent_config(config)
     except ValueError as e:

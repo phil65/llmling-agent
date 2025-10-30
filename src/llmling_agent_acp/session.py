@@ -117,7 +117,7 @@ class ACPSession:
     def __post_init__(self) -> None:
         """Initialize session state and set up providers."""
         self.mcp_servers = self.mcp_servers or []
-
+        self.log = logger.bind(session_id=self.session_id)
         self._active = True
         self._task_lock = asyncio.Lock()
         self._cancelled = False
@@ -140,15 +140,13 @@ class ACPSession:
         for agent in self.agent_pool.agents.values():
             agent.sys_prompts.prompts.append(self.get_cwd_context)  # pyright: ignore[reportArgumentType]
 
-        msg = "Created ACP session %s with agent pool (current: %s)"
-        logger.info(msg, self.session_id, self.current_agent_name)
+        self.log.info("Created ACP session", current_agent=self.current_agent_name)
 
     async def initialize_mcp_servers(self) -> None:
         """Initialize MCP servers if any are configured."""
         if not self.mcp_servers:
             return
-        msg = "Initializing %d MCP servers for session %s"
-        logger.info(msg, len(self.mcp_servers), self.session_id)
+        self.log.info("Initializing MCP servers", server_count=len(self.mcp_servers))
         cfgs = [convert_acp_mcp_server_to_config(s) for s in self.mcp_servers]
         # Define accessible roots for MCP servers
         root = Path(self.cwd).resolve().as_uri() if self.cwd else None
@@ -162,8 +160,7 @@ class ACPSession:
         )
         await self.mcp_manager.__aenter__()
         self.agent.tools.add_provider(self.mcp_manager)
-        msg = "Added %d MCP servers to current agent for session %s"
-        logger.info(msg, len(cfgs), self.session_id)
+        self.log.info("Added MCP servers to current agent", server_count=len(cfgs))
         await self._register_mcp_prompts_as_commands()
 
     async def init_project_context(self) -> None:
@@ -208,8 +205,7 @@ class ACPSession:
             old_agent.tools.remove_provider(self._acp_provider)
             new_agent.tools.add_provider(self._acp_provider)
 
-        msg = "Session %s switched from agent %s to %s"
-        logger.info(msg, self.session_id, old_agent_name, agent_name)
+        self.log.info("Switched agents", from_agent=old_agent_name, to_agent=agent_name)
         # if new_model := new_agent.model_name:
         #     await self.notifications.update_session_model(new_model)
         await self.send_available_commands_update()
@@ -222,7 +218,7 @@ class ACPSession:
     def cancel(self) -> None:
         """Cancel the current prompt turn."""
         self._cancelled = True
-        logger.info("Session %s cancelled", self.session_id)
+        self.log.info("Session cancelled")
 
     def is_cancelled(self) -> bool:
         """Check if the session is cancelled."""
@@ -238,23 +234,21 @@ class ACPSession:
             Stop reason
         """
         if not self._active:
-            msg = "Attempted to process prompt on inactive session %s"
-            logger.warning(msg, self.session_id)
+            self.log.warning("Attempted to process prompt on inactive session")
             return "refusal"
 
         self._cancelled = False
         contents = from_content_blocks(content_blocks)
-        logger.debug("Converted content: %r", contents)
+        self.log.debug("Converted content", content=contents)
         if not contents:
-            msg = "Empty prompt received for session %s"
-            logger.warning(msg, self.session_id)
+            self.log.warning("Empty prompt received")
             return "refusal"
         # Check for slash commands in text content
         commands: list[str] = []
         non_command_content: list[str | BaseContent] = []
         for item in contents:
             if isinstance(item, str) and _is_slash_command(item):
-                logger.info("Found slash command: %r", item)
+                self.log.info("Found slash command", command=item)
                 commands.append(item.strip())
             else:
                 non_command_content.append(item)
@@ -263,16 +257,18 @@ class ACPSession:
             # Process commands if found
             if commands and self.command_bridge:
                 for command in commands:
-                    logger.info("Processing slash command: %s", command)
+                    self.log.info("Processing slash command", command=command)
                     await self.command_bridge.execute_slash_command(command, self)
 
                 # If only commands, end turn
                 if not non_command_content:
                     return "end_turn"
 
-            msg = "Processing prompt for session %s with %d content items"
-            logger.debug(msg, self.session_id, len(non_command_content))
-            logger.info("Agent model: %s", self.agent.model_name)
+            self.log.debug(
+                "Processing prompt",
+                content_items=len(non_command_content),
+                model=self.agent.model_name,
+            )
             event_count = 0
             self._current_tool_inputs.clear()  # Reset tool inputs for new stream
 
@@ -285,10 +281,10 @@ class ACPSession:
 
                     event_count += 1
                     await self.handle_event(event)
-                logger.info("Streaming finished. Processed %d events.", event_count)
+                self.log.info("Streaming finished", events_processed=event_count)
 
             except UsageLimitExceeded as e:
-                logger.info("Usage limit exceeded for session %s: %s", self.session_id, e)
+                self.log.info("Usage limit exceeded", error=str(e))
                 error_msg = str(e)  # Determine which limit was hit based on error
                 if "request_limit" in error_msg:
                     return "max_turn_requests"
@@ -299,13 +295,13 @@ class ACPSession:
                     return "refusal"
                 return "max_tokens"  # Default to max_tokens for other usage limits
             except Exception as e:
-                logger.exception("Error during streaming for session %s", self.session_id)
+                self.log.exception("Error during streaming")
                 await self.notifications.send_agent_text(f"Agent error: {e}")
                 return "cancelled"
             else:
                 return "end_turn"
 
-    async def handle_event(self, event: RichAgentStreamEvent):  # noqa: PLR0915
+    async def handle_event(self, event: RichAgentStreamEvent):
         match event:
             case (
                 PartStartEvent(part=TextPart(content=delta))
@@ -320,11 +316,10 @@ class ACPSession:
                 await self.notifications.send_agent_thought(delta or "\n")
 
             case PartStartEvent(delta=delta):
-                msg = "Received unhandled PartStartEvent %s for session %s"
-                logger.debug(msg, delta, self.session_id)
+                self.log.debug("Received unhandled PartStartEvent", delta=delta)
 
             case PartDeltaEvent(delta=ToolCallPartDelta()):
-                logger.debug("Received ToolCallPartDelta for session %s", self.session_id)
+                self.log.debug("Received ToolCallPartDelta")
 
             case FunctionToolCallEvent(part=part):
                 tool_call_id = part.tool_call_id
@@ -406,8 +401,11 @@ class ACPSession:
                 tool_call_id=tool_call_id,
                 tool_input=tool_input,
             ):
-                msg = "Received progress event for tool %s, id %s"
-                logger.debug(msg, tool_name, tool_call_id)
+                self.log.debug(
+                    "Received progress event for tool",
+                    tool_name=tool_name,
+                    tool_call_id=tool_call_id,
+                )
                 output = message if message else f"Progress: {progress}"
                 if total:
                     output += f"/{total}"
@@ -429,18 +427,19 @@ class ACPSession:
                         tool_call_id=tool_call_id,
                     )
                 except Exception as e:  # noqa: BLE001
-                    msg = "Failed to convert progress event to ACP notification: %s"
-                    logger.warning(msg, e)
+                    self.log.warning(
+                        "Failed to convert progress event to ACP notification",
+                        error=str(e),
+                    )
 
             case FinalResultEvent():
-                msg = "Final result received for session %s"
-                logger.debug(msg, self.session_id)
+                self.log.debug("Final result received")
 
             case StreamCompleteEvent(message=message):
                 pass
 
             case _:
-                logger.debug("Unhandled event: %s", type(event).__name__)
+                self.log.debug("Unhandled event", event_type=type(event).__name__)
 
     async def close(self) -> None:
         """Close the session and cleanup resources."""
@@ -469,9 +468,9 @@ class ACPSession:
 
             # Note: Individual agents are managed by the pool's lifecycle
             # The pool will handle agent cleanup when it's closed
-            logger.info("Closed ACP session %s", self.session_id)
+            self.log.info("Closed ACP session")
         except Exception:
-            logger.exception("Error closing session %s", self.session_id)
+            self.log.exception("Error closing session")
 
     async def send_available_commands_update(self) -> None:
         """Send current available commands to client."""
@@ -481,8 +480,7 @@ class ACPSession:
             commands = self.command_bridge.to_available_commands(self.agent.context)
             await self.notifications.update_commands(commands)
         except Exception:
-            msg = "Failed to send available commands update for session %s"
-            logger.exception(msg, self.session_id)
+            self.log.exception("Failed to send available commands update")
 
     async def _register_mcp_prompts_as_commands(self) -> None:
         """Register MCP prompts as slash commands."""
@@ -499,11 +497,12 @@ class ACPSession:
             results = await asyncio.gather(*[client.list_prompts() for client in clients])
             if all_prompts := [p for result in results for p in result]:
                 self.command_bridge.add_mcp_prompt_commands(all_prompts)
-                msg = "Registered %d MCP prompts as slash commands for session %s"
-                logger.info(msg, len(all_prompts), self.session_id)
+                self.log.info(
+                    "Registered MCP prompts as slash commands",
+                    prompt_count=len(all_prompts),
+                )
                 # Send updated command list to client
                 await self.send_available_commands_update()
 
         except Exception:
-            msg = "Failed to register MCP prompts as commands for session %s"
-            logger.exception(msg, self.session_id)
+            self.log.exception("Failed to register MCP prompts as commands")
