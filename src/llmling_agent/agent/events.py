@@ -38,6 +38,35 @@ class ToolCallProgressEvent:
     """The input provided to the tool."""
 
 
+@dataclass(kw_only=True)
+class CommandOutputEvent:
+    """Event for slash command output."""
+
+    command: str
+    """The command name that was executed."""
+    output: str
+    """The output text from the command."""
+    event_kind: Literal["command_output"] = "command_output"
+    """Event type identifier."""
+
+
+@dataclass(kw_only=True)
+class CommandCompleteEvent:
+    """Event indicating slash command execution is complete."""
+
+    command: str
+    """The command name that was completed."""
+    success: bool
+    """Whether the command executed successfully."""
+    event_kind: Literal["command_complete"] = "command_complete"
+    """Event type identifier."""
+
+
 type RichAgentStreamEvent[OutputDataT] = (
     AgentStreamEvent | StreamCompleteEvent[OutputDataT] | ToolCallProgressEvent
+)
+
+
+type SlashedAgentStreamEvent[OutputDataT] = (
+    RichAgentStreamEvent[OutputDataT] | CommandOutputEvent | CommandCompleteEvent
 )
