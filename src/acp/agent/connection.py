@@ -45,8 +45,8 @@ if TYPE_CHECKING:
 
     from acp.agent.protocol import Agent
     from acp.connection import StreamObserver
-    from acp.meta import AgentMethod
     from acp.schema import (
+        AgentMethod,
         CreateTerminalRequest,
         InitializeResponse,
         KillTerminalCommandRequest,
