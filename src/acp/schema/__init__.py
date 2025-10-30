@@ -10,6 +10,7 @@ from acp.schema.agent_requests import (
     KillTerminalCommandRequest,
     WaitForTerminalExitRequest,
     WriteTextFileRequest,
+    AgentRequest,
 )
 from acp.schema.client_responses import (
     CreateTerminalResponse,
@@ -20,6 +21,7 @@ from acp.schema.client_responses import (
     RequestPermissionResponse,
     TerminalOutputResponse,
     WaitForTerminalExitResponse,
+    ClientResponse,
 )
 from acp.schema.client_requests import (
     InitializeRequest,
@@ -29,6 +31,7 @@ from acp.schema.client_requests import (
     SetSessionModeRequest,
     SetSessionModelRequest,
     PromptRequest,
+    ClientRequest,
 )
 from acp.schema.agent_responses import (
     InitializeResponse,
@@ -39,6 +42,7 @@ from acp.schema.agent_responses import (
     SetSessionModelResponse,
     PromptResponse,
     StopReason,
+    AgentResponse,
 )
 from acp.schema.capabilities import (
     AgentCapabilities,
@@ -112,6 +116,8 @@ __all__ = [
     "AgentMessageChunk",
     "AgentMethod",
     "AgentPlanUpdate",
+    "AgentRequest",
+    "AgentResponse",
     "AgentThoughtChunk",
     "AllowedOutcome",
     "Annotations",
@@ -126,6 +132,8 @@ __all__ = [
     "CancelNotification",
     "ClientCapabilities",
     "ClientMethod",
+    "ClientRequest",
+    "ClientResponse",
     "CommandInputHint",
     "ContentBlock",
     "ContentToolCallContent",
