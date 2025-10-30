@@ -172,7 +172,7 @@ class ACPNotifications:
         status: ToolCallStatus,
         *,
         title: str | None = None,
-        raw_output: str | None = None,
+        raw_output: Any | None = None,
         locations: Sequence[ToolCallLocation] | None = None,
         content: ContentType | None = None,
     ) -> None:
