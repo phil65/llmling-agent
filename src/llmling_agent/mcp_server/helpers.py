@@ -116,7 +116,10 @@ def extract_tool_call_args(
         if isinstance(message, ModelRequest):
             continue
         for part in message.parts:
-            if isinstance(part, BuiltinToolCallPart | ToolCallPart):
+            if (
+                isinstance(part, BuiltinToolCallPart | ToolCallPart)
+                and part.tool_call_id == tool_call_id
+            ):
                 return part.args_as_dict()
 
     return {}
