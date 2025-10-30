@@ -192,7 +192,7 @@ class ACPSession:
             # Don't fail session creation, just log the error
             self.mcp_manager = None
 
-    async def initialize_project_context(self) -> None:
+    async def init_project_context(self) -> None:
         """Load AGENTS.md file and inject project context into all agents.
 
         TODO: Consider moving this to __aenter__

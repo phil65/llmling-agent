@@ -234,7 +234,9 @@ class LLMlingACPAgent(ACPAgent):
             if session:
                 # Schedule task to run after response is sent
                 coro = session.send_available_commands_update()
+                coro_2 = session.init_project_context()
                 self.tasks.create_task(coro, name=f"send_commands_update_{session_id}")
+                self.tasks.create_task(coro_2, name=f"init_project_context_{session_id}")
             logger.info("Created session %s with %d agents", session_id, len(modes))
             return NewSessionResponse(session_id=session_id, modes=state, models=models)
 
