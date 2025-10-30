@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from acp.schema import (
     CreateTerminalRequest,
@@ -282,3 +282,15 @@ class ACPRequests:
             options=options,
         )
         return await self.client.request_permission(request)
+
+    async def custom_request(self, method: str, data: dict[str, Any]) -> dict[str, Any]:
+        """Send a custom request method.
+
+        Args:
+            method: The custom method name
+            data: The method parameters
+
+        Returns:
+            The response data from the custom method
+        """
+        return await self.client.custom_request(method, data)

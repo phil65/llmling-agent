@@ -6,16 +6,11 @@ from acp.debug_server import cli
 from acp.filesystem import ACPFileSystem, ACPPath
 from acp.agent.protocol import (
     Agent,
-    AgentExtensibilityCapability,
     BaseAgent,
-    SessionModeCapability,
-    SessionModelCapability,
-    SessionPersistenceCapability,
 )
 from acp.client.protocol import (
     BaseClient,
     Client,
-    ExtensibilityCapability,
     FileSystemCapability,
     TerminalCapability,
 )
@@ -26,6 +21,8 @@ from acp.schema import (
     CancelNotification,
     CreateTerminalRequest,
     CreateTerminalResponse,
+    CustomRequest,
+    CustomResponse,
     InitializeRequest,
     InitializeResponse,
     KillTerminalCommandRequest,
@@ -91,6 +88,9 @@ __all__ = [  # noqa: RUF022
     "SessionNotification",
     "SetSessionModeRequest",
     "SetSessionModeResponse",
+    # custom types
+    "CustomRequest",
+    "CustomResponse",
     # model types
     "ModelInfo",
     "SessionModelState",
@@ -117,14 +117,9 @@ __all__ = [  # noqa: RUF022
     "TerminalHandle",
     # split protocols
     "BaseAgent",
-    "SessionPersistenceCapability",
-    "SessionModeCapability",
-    "SessionModelCapability",
-    "AgentExtensibilityCapability",
     "BaseClient",
     "FileSystemCapability",
     "TerminalCapability",
-    "ExtensibilityCapability",
     # stdio helper
     "stdio_streams",
     # filesystem

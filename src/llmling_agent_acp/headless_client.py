@@ -8,7 +8,7 @@ making it ideal for testing and standalone usage.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 import uuid
 
 from anyenv import ProcessManager
@@ -383,12 +383,3 @@ class HeadlessACPClient(Client):
     def list_active_terminals(self) -> list[str]:
         """List all active terminal IDs."""
         return list(self.terminals.keys())
-
-    async def ext_method(self, method: str, params: dict[str, Any]) -> dict[str, Any]:
-        """Handle extension method calls."""
-        logger.debug("Extension method called: %s", method)
-        return {"ok": True, "method": method, "params": params}
-
-    async def ext_notification(self, method: str, params: dict[str, Any]) -> None:
-        """Handle extension notifications."""
-        logger.debug("Extension notification: %s", method)

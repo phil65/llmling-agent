@@ -31,6 +31,7 @@ from acp.schema import (
     AgentMessageChunk,
     AgentPlanUpdate,
     AgentThoughtChunk,
+    AuthenticateRequest,
     AuthenticateResponse,
     AvailableCommand,
     AvailableCommandsUpdate,
@@ -38,14 +39,24 @@ from acp.schema import (
     CreateTerminalResponse,
     # CurrentModelUpdate,
     CurrentModeUpdate,
+    CustomRequest,
+    CustomResponse,
     Implementation,
+    InitializeRequest,
     InitializeResponse,
+    LoadSessionRequest,
     LoadSessionResponse,
+    NewSessionRequest,
     NewSessionResponse,
     PlanEntry,
+    PromptRequest,
     PromptResponse,
     ReadTextFileResponse,
     SessionNotification,
+    SetSessionModelRequest,
+    SetSessionModelResponse,
+    SetSessionModeRequest,
+    SetSessionModeResponse,
     TextContentBlock,
     ToolCallProgress,
     ToolCallStart,
@@ -58,15 +69,12 @@ from llmling_agent.log import get_logger
 
 if TYPE_CHECKING:
     from acp.schema import (
-        AuthenticateRequest,
         CreateTerminalRequest,
-        InitializeRequest,
-        LoadSessionRequest,
-        NewSessionRequest,
-        PromptRequest,
         ReadTextFileRequest,
         WriteTextFileRequest,
     )
+    from acp.schema.agent_responses import AgentResponse
+    from acp.schema.client_requests import ClientRequest
 
 
 logger = get_logger(__name__)
@@ -107,7 +115,30 @@ class MockAgent(Agent):
         """Initialize with debug state."""
         self.debug_state = debug_state
 
-    async def initialize(self, params: InitializeRequest) -> InitializeResponse:
+    async def handle_request(self, request: ClientRequest) -> AgentResponse:  # noqa: PLR0911
+        """Unified request handler with type-safe dispatch."""
+        match request:
+            case InitializeRequest() as req:
+                return await self._handle_initialize(req)
+            case NewSessionRequest() as req:
+                return await self._handle_new_session(req)
+            case LoadSessionRequest() as req:
+                return await self._handle_load_session(req)
+            case AuthenticateRequest() as req:
+                return await self._handle_authenticate(req)
+            case PromptRequest() as req:
+                return await self._handle_prompt(req)
+            case SetSessionModeRequest() as req:
+                return await self._handle_set_session_mode(req)
+            case SetSessionModelRequest() as req:
+                return await self._handle_set_session_model(req)
+            case CustomRequest() as req:
+                return await self._handle_custom_request(req)
+            case _:
+                msg = f"Unsupported request type: {type(request)}"
+                raise TypeError(msg)
+
+    async def _handle_initialize(self, params: InitializeRequest) -> InitializeResponse:
         """Handle initialize request with mock capabilities."""
         return InitializeResponse(
             agent_capabilities=AgentCapabilities(load_session=True),
@@ -115,7 +146,7 @@ class MockAgent(Agent):
             agent_info=Implementation(name="MockAgent", version="1.0"),
         )
 
-    async def new_session(self, params: NewSessionRequest) -> NewSessionResponse:
+    async def _handle_new_session(self, params: NewSessionRequest) -> NewSessionResponse:
         """Create new debug session."""
         session_id = str(uuid.uuid4())
         session = DebugSession(
@@ -128,14 +159,16 @@ class MockAgent(Agent):
 
         return NewSessionResponse(session_id=session_id)
 
-    async def load_session(self, params: LoadSessionRequest) -> LoadSessionResponse:
+    async def _handle_load_session(
+        self, params: LoadSessionRequest
+    ) -> LoadSessionResponse:
         """Load existing debug session."""
         if params.session_id in self.debug_state.sessions:
             self.debug_state.active_session_id = params.session_id
             return LoadSessionResponse()
         raise HTTPException(status_code=404, detail="Session not found")
 
-    async def prompt(self, params: PromptRequest) -> PromptResponse:
+    async def _handle_prompt(self, params: PromptRequest) -> PromptResponse:
         """Handle prompt with mock response."""
         logger.info("Received prompt", session_id=params.session_id)
         return PromptResponse(stop_reason="end_turn")
@@ -144,11 +177,25 @@ class MockAgent(Agent):
         """Handle cancellation."""
         logger.info("Received cancellation request")
 
-    async def authenticate(
+    async def _handle_authenticate(
         self, params: AuthenticateRequest
-    ) -> AuthenticateResponse | None:
+    ) -> AuthenticateResponse:
         """Mock authentication - always succeeds."""
         return AuthenticateResponse()
+
+    async def _handle_set_session_mode(
+        self, params: SetSessionModeRequest
+    ) -> SetSessionModeResponse:
+        """Mock session mode change."""
+        logger.info("Mock session mode change", mode_id=params.mode_id)
+        return SetSessionModeResponse()
+
+    async def _handle_set_session_model(
+        self, params: SetSessionModelRequest
+    ) -> SetSessionModelResponse:
+        """Mock session model change."""
+        logger.info("Mock session model change", model_id=params.model_id)
+        return SetSessionModelResponse()
 
     async def read_text_file(self, params: ReadTextFileRequest) -> ReadTextFileResponse:
         """Mock file reading."""
@@ -176,22 +223,10 @@ def example_function():
         terminal_id = str(uuid.uuid4())
         return CreateTerminalResponse(terminal_id=terminal_id)
 
-    async def set_session_mode(self, params) -> None:
-        """Mock session mode change."""
-        logger.info("Mock session mode change")
-
-    async def set_session_model(self, params) -> None:
-        """Mock session model change."""
-        logger.info("Mock session model change")
-
-    async def ext_notification(self, method: str, params: dict[str, Any]) -> None:
-        """Mock extensibility notification."""
-        logger.info("Mock ext notification", method=method)
-
-    async def ext_method(self, method: str, params: dict[str, Any]) -> Any:
-        """Mock extensibility method."""
-        logger.info("Mock ext method", method=method)
-        return {"result": "mock response"}
+    async def _handle_custom_request(self, request: CustomRequest) -> CustomResponse:
+        """Handle custom request."""
+        logger.info("Mock custom request", method=request.method, data=request.data)
+        return CustomResponse(data={"result": "mock response", "method": request.method})
 
 
 # FastAPI models for web interface

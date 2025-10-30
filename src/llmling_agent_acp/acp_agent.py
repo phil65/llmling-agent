@@ -11,13 +11,21 @@ from acp import Agent as ACPAgent
 from acp.schema import (
     AgentCapabilities,
     AgentMessageChunk,
+    AuthenticateRequest,
+    AuthenticateResponse,
+    CustomRequest,
+    CustomResponse,
     Implementation,
+    InitializeRequest,
     InitializeResponse,
+    LoadSessionRequest,
     LoadSessionResponse,
     McpCapabilities,
     ModelInfo as ACPModelInfo,
+    NewSessionRequest,
     NewSessionResponse,
     PromptCapabilities,
+    PromptRequest,
     PromptResponse,
     SessionModelState,
     SessionModeState,
@@ -44,17 +52,13 @@ if TYPE_CHECKING:
 
     from acp import AgentSideConnection, Client
     from acp.schema import (
-        AuthenticateRequest,
+        AgentResponse,
         CancelNotification,
         ClientCapabilities,
-        InitializeRequest,
-        LoadSessionRequest,
-        NewSessionRequest,
-        PromptRequest,
-        SetSessionModelRequest,
-        SetSessionModeRequest,
+        ClientRequest,
     )
     from llmling_agent import AgentPool
+    from llmling_agent_acp.session import ACPSession
     from llmling_agent_providers.base import UsageLimits
 
 logger = get_logger(__name__)
@@ -158,7 +162,30 @@ class LLMlingACPAgent(ACPAgent):
 
         # Note: Tool registration happens after initialize() when we know client caps
 
-    async def initialize(self, params: InitializeRequest) -> InitializeResponse:
+    async def handle_request(self, request: ClientRequest) -> AgentResponse:  # noqa: PLR0911
+        """Unified request handler with type-safe dispatch."""
+        match request:
+            case InitializeRequest() as req:
+                return await self._handle_initialize(req)
+            case NewSessionRequest() as req:
+                return await self._handle_new_session(req)
+            case LoadSessionRequest() as req:
+                return await self._handle_load_session(req)
+            case AuthenticateRequest() as req:
+                return await self._handle_authenticate(req)
+            case PromptRequest() as req:
+                return await self._handle_prompt(req)
+            case SetSessionModeRequest() as req:
+                return await self._handle_set_session_mode(req)
+            case SetSessionModelRequest() as req:
+                return await self._handle_set_session_model(req)
+            case CustomRequest() as req:
+                return await self._handle_custom_request(req)
+            case _:
+                msg = f"Unsupported request type: {type(request)}"
+                raise TypeError(msg)
+
+    async def _handle_initialize(self, params: InitializeRequest) -> InitializeResponse:
         """Initialize the agent and negotiate capabilities."""
         logger.info("Initializing ACP agent implementation")
         version = min(params.protocol_version, self.PROTOCOL_VERSION)
@@ -185,7 +212,7 @@ class LLMlingACPAgent(ACPAgent):
         logger.info("ACP agent initialized successfully", response=response)
         return response
 
-    async def new_session(self, params: NewSessionRequest) -> NewSessionResponse:
+    async def _handle_new_session(self, params: NewSessionRequest) -> NewSessionResponse:
         """Create a new session."""
         if not self._initialized:
             msg = "Agent not initialized"
@@ -243,7 +270,9 @@ class LLMlingACPAgent(ACPAgent):
             logger.info("Created session", session_id=session_id, agent_count=len(modes))
             return NewSessionResponse(session_id=session_id, modes=state, models=models)
 
-    async def load_session(self, params: LoadSessionRequest) -> LoadSessionResponse:
+    async def _handle_load_session(
+        self, params: LoadSessionRequest
+    ) -> LoadSessionResponse:
         """Load an existing session."""
         if not self._initialized:
             msg = "Agent not initialized"
@@ -263,11 +292,14 @@ class LLMlingACPAgent(ACPAgent):
             logger.exception("Failed to load session", session_id=params.session_id)
             return LoadSessionResponse()
 
-    async def authenticate(self, params: AuthenticateRequest) -> None:
+    async def _handle_authenticate(
+        self, params: AuthenticateRequest
+    ) -> AuthenticateResponse:
         """Authenticate with the agent."""
         logger.info("Authentication requested", method_id=params.method_id)
+        return AuthenticateResponse()
 
-    async def prompt(self, params: PromptRequest) -> PromptResponse:
+    async def _handle_prompt(self, params: PromptRequest) -> PromptResponse:
         """Process a prompt request."""
         if not self._initialized:
             msg = "Agent not initialized"
@@ -312,50 +344,60 @@ class LLMlingACPAgent(ACPAgent):
         except Exception:
             logger.exception("Failed to cancel session", session_id=params.session_id)
 
-    async def ext_method(self, method: str, params: dict[str, Any]) -> dict[str, Any]:
-        return {"example": "response"}
+    async def _handle_custom_request(self, request: CustomRequest) -> CustomResponse:
+        """Handle custom extension requests."""
+        return CustomResponse(data={"example": "response", "method": request.method})
 
-    async def ext_notification(self, method: str, params: dict[str, Any]) -> None:
-        return None
-
-    async def set_session_mode(
+    async def _handle_set_session_mode(
         self, params: SetSessionModeRequest
-    ) -> SetSessionModeResponse | None:
+    ) -> SetSessionModeResponse:
         """Set the session mode (switch active agent).
 
         The mode ID corresponds to the agent name in the pool.
         """
-        try:
-            session = self.session_manager.get_session(params.session_id)
-            if not session:
+
+        def _validate_session(sess: ACPSession | None) -> None:
+            if not sess:
                 msg = "Session not found for mode switch"
                 logger.warning(msg, session_id=params.session_id)
-                return None
+                raise RuntimeError(msg)
 
-            # Validate agent exists in pool
+        def _validate_agent() -> None:
             if not self.agent_pool or params.mode_id not in self.agent_pool.agents:
-                logger.error("Agent not found in pool", mode_id=params.mode_id)
-                return None
+                msg = f"Agent not found in pool: {params.mode_id}"
+                logger.error(msg, mode_id=params.mode_id)
+                raise RuntimeError(msg)
+
+        try:
+            session = self.session_manager.get_session(params.session_id)
+            _validate_session(session)
+            _validate_agent()
+            assert session is not None  # For mypy
             await session.switch_active_agent(params.mode_id)
             return SetSessionModeResponse()
 
         except Exception:
             logger.exception("Failed to set session mode", session_id=params.session_id)
-            return None
+            raise
 
-    async def set_session_model(
+    async def _handle_set_session_model(
         self, params: SetSessionModelRequest
-    ) -> SetSessionModelResponse | None:
+    ) -> SetSessionModelResponse:
         """Set the session model.
 
         Changes the model for the active agent in the session.
         """
-        try:
-            session = self.session_manager.get_session(params.session_id)
-            if not session:
+
+        def _validate_session(sess: ACPSession | None) -> None:
+            if not sess:
                 msg = "Session not found for model switch"
                 logger.warning(msg, session_id=params.session_id)
-                return None
+                raise RuntimeError(msg)
+
+        try:
+            session = self.session_manager.get_session(params.session_id)
+            _validate_session(session)
+            assert session is not None  # For mypy
             session.agent.set_model(params.model_id)
             logger.info(
                 "Set model",
@@ -365,4 +407,4 @@ class LLMlingACPAgent(ACPAgent):
             return SetSessionModelResponse()
         except Exception:
             logger.exception("Failed to set session model", session_id=params.session_id)
-            return None
+            raise

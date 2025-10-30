@@ -71,17 +71,17 @@ class TerminalCapability(Protocol):
     ) -> KillTerminalCommandResponse | None: ...
 
 
-class ExtensibilityCapability(Protocol):
-    """Client capability for extension methods."""
+class CustomCapability(Protocol):
+    """Client capability for custom methods."""
 
-    async def ext_method(self, method: str, params: dict[str, Any]) -> dict[str, Any]: ...
+    async def custom_request(
+        self, method: str, data: dict[str, Any]
+    ) -> dict[str, Any]: ...
 
-    async def ext_notification(self, method: str, params: dict[str, Any]) -> None: ...
+    async def custom_notification(self, method: str, data: dict[str, Any]) -> None: ...
 
 
-class Client(
-    BaseClient, FileSystemCapability, TerminalCapability, ExtensibilityCapability
-):
+class Client(BaseClient, FileSystemCapability, TerminalCapability, CustomCapability):
     """High-level client interface for interacting with an ACP server.
 
     Includes all client capabilities.

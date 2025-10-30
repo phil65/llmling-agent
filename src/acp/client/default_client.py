@@ -7,7 +7,7 @@ that can be used for testing or as a base for more sophisticated client implemen
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from acp.client import Client
 from acp.schema import (
@@ -66,8 +66,6 @@ class DefaultACPClient(Client):
         self.use_real_files = use_real_files
         self.permission_outcomes = permission_outcomes or []
         self.files: dict[str, str] = {}  # In-memory file storage for testing
-        self.ext_calls: list[tuple[str, dict]] = []
-        self.ext_notes: list[tuple[str, dict]] = []
         self.notifications: list[SessionNotification] = []
 
     async def request_permission(
@@ -251,10 +249,3 @@ class DefaultACPClient(Client):
     def clear_session_updates(self) -> None:
         """Clear all stored session updates."""
         self.notifications.clear()
-
-    async def ext_method(self, method: str, params: dict[str, Any]) -> dict[str, Any]:
-        self.ext_calls.append((method, params))
-        return {"ok": True, "method": method}
-
-    async def ext_notification(self, method: str, params: dict[str, Any]) -> None:
-        self.ext_notes.append((method, params))

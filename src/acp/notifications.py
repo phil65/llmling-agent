@@ -415,3 +415,12 @@ class ACPNotifications:
         update = AgentMessageChunk(content=content)
         notification = SessionNotification(session_id=self.id, update=update)
         await self.client.session_update(notification)
+
+    async def custom_notification(self, method: str, data: dict[str, Any]) -> None:
+        """Send a custom notification method.
+
+        Args:
+            method: The custom method name
+            data: The method parameters
+        """
+        await self.client.custom_notification(method, data)

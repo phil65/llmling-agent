@@ -162,7 +162,7 @@ async def spawn_stdio_connection(
 
 @asynccontextmanager
 async def spawn_agent_process(
-    to_client: Callable[[Agent], Client],
+    to_client: Callable[[ClientSideConnection], Client],
     command: str,
     *args: str,
     env: Mapping[str, str] | None = None,

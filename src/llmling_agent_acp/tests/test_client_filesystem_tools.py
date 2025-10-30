@@ -64,7 +64,7 @@ class TestClientFilesystemTools:
         fs_cap = FileSystemCapability(read_text_file=True, write_text_file=True)
         client_cap = ClientCapabilities(fs=fs_cap, terminal=False)
         request = InitializeRequest(protocol_version=1, client_capabilities=client_cap)
-        await agent.initialize(request)
+        await agent.handle_request(request)
         return agent
 
     @pytest.fixture

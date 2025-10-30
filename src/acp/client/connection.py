@@ -29,7 +29,6 @@ if TYPE_CHECKING:
         WriteTextFileResponse,
     )
 
-from acp.agent.protocol import Agent
 from acp.connection import Connection
 from acp.exceptions import RequestError
 from acp.schema import (
@@ -57,7 +56,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
 
-class ClientSideConnection(Agent):
+class ClientSideConnection:
     """Client-side connection.
 
     Use when you implement the Client and need to talk to an Agent.
@@ -70,7 +69,7 @@ class ClientSideConnection(Agent):
 
     def __init__(
         self,
-        to_client: Callable[[Agent], Client],
+        to_client: Callable[[ClientSideConnection], Client],
         input_stream: asyncio.StreamWriter,
         output_stream: asyncio.StreamReader,
         observers: list[StreamObserver] | None = None,
@@ -128,10 +127,12 @@ class ClientSideConnection(Agent):
         dct = params.model_dump(by_alias=True, exclude_none=True, exclude_defaults=True)
         await self._conn.send_notification("session/cancel", dct)
 
-    async def ext_method(self, method: str, params: dict[str, Any]) -> dict[str, Any]:
+    async def custom_request(self, method: str, params: dict[str, Any]) -> dict[str, Any]:
+        """Send a custom request method."""
         return await self._conn.send_request(f"_{method}", params)
 
-    async def ext_notification(self, method: str, params: dict[str, Any]) -> None:
+    async def custom_notification(self, method: str, params: dict[str, Any]) -> None:
+        """Send a custom notification method."""
         await self._conn.send_notification(f"_{method}", params)
 
     async def close(self) -> None:
@@ -192,10 +193,9 @@ async def _handle_client_method(  # noqa: PLR0911
         case "terminal/kill":
             kill_request = KillTerminalCommandRequest.model_validate(params)
             return await client.kill_terminal(kill_request)
-        case str() if method.startswith("_") and is_notification:
-            await client.ext_notification(method[1:], params or {})
+        case str() if method.startswith("_"):
+            # Custom methods are now handled by the agent side
+            # This should not happen in normal operation
             return None
-        case str() if method.startswith("_") and is_notification:
-            return await client.ext_method(method[1:], params or {})
         case _:
             raise RequestError.method_not_found(method)

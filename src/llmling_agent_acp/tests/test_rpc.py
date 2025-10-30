@@ -317,16 +317,14 @@ async def test_set_session_mode_and_extensions(
         # Either empty object or typed response depending on implementation
         assert resp is None or resp.__class__.__name__ == "SetSessionModeResponse"
 
-        # ext_method
-        res = await agent_conn.ext_method("ping", {"x": 1})
+        # custom_request
+        res = await agent_conn.custom_request("ping", {"x": 1})
         assert res.get("ok") is True
 
-        # ext_notification
-        await agent_conn.ext_notification("note", {"y": 2})
-        # allow dispatch
-        await asyncio.sleep(0.05)
-        assert agent.ext_notes
-        assert agent.ext_notes[-1][0] == "note"
+        # Verify the custom request was tracked
+        assert len(agent.custom_requests) == 1
+        assert agent.custom_requests[0].method == "ping"
+        assert agent.custom_requests[0].data == {"x": 1}
 
 
 async def test_ignore_invalid_messages(test_agent: TestAgent):
