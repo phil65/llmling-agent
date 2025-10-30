@@ -250,7 +250,8 @@ class EventManager:
             self.node.task_manager.create_task(self._process_events(source), name=name)
             logger.debug("Added event source", name=config.name)
         except Exception as e:
-            logger.exception("Failed to add event source", name=config.name)
+            msg = "Failed to add event source"
+            logger.exception(msg, name=config.name)
             raise RuntimeError(msg) from e
         else:
             return source

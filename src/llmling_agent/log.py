@@ -53,10 +53,6 @@ def configure_logging(
         format="%(message)s",  # structlog handles formatting
     )
 
-    # Determine output format
-    if use_colors is None:
-        use_colors = sys.stderr.isatty() and not json_logs
-
     # Configure structlog processors
     processors: list[Any] = [
         structlog.stdlib.filter_by_level,
@@ -69,11 +65,14 @@ def configure_logging(
         structlog.processors.UnicodeDecoder(),
     ]
 
+    # Determine output format
+    colors = sys.stderr.isatty() and not json_logs if use_colors is not None else False
+
     # Add final renderer
-    if json_logs or (not use_colors and not sys.stderr.isatty()):
+    if json_logs or (not colors and not sys.stderr.isatty()):
         processors.append(structlog.processors.JSONRenderer())
     else:
-        processors.append(structlog.dev.ConsoleRenderer(colors=use_colors))
+        processors.append(structlog.dev.ConsoleRenderer(colors=colors))
 
     structlog.configure(
         processors=processors,
@@ -119,6 +118,7 @@ def get_logger(
     if log_level is not None:
         if isinstance(log_level, str):
             log_level = getattr(logging, log_level.upper())
+            assert log_level
         # Set level on underlying stdlib logger
         stdlib_logger = logging.getLogger(f"llmling_agent.{name}")
         stdlib_logger.setLevel(log_level)

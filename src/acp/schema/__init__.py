@@ -170,7 +170,6 @@ __all__ = [
     "PromptResponse",
     "ReadTextFileRequest",
     "ReadTextFileResponse",
-    "ReleasePermissionRequest",
     "ReleaseTerminalRequest",
     "ReleaseTerminalResponse",
     "RequestPermissionRequest",
