@@ -49,6 +49,7 @@ class ObservabilityRegistry:
         logfire.configure(
             service_name=config.service_name,
             environment=config.environment,
+            console=False,
             send_to_logfire=(config.type == "logfire"),
         )
         logfire.instrument_pydantic_ai()

@@ -36,11 +36,11 @@ async def test_elicitation(ctx: Context, message: str):
 async def test_progress(ctx: Context, message: str) -> str:
     """Test progress reporting with the given message."""
     await ctx.report_progress(0, 100, "first step")
-    await asyncio.sleep(0.1)
+    await asyncio.sleep(0.5)
     await ctx.report_progress(50, 100, "second step")
-    await asyncio.sleep(0.1)
+    await asyncio.sleep(0.5)
     await ctx.report_progress(99, 100, "third step")
-    await asyncio.sleep(0.1)
+    await asyncio.sleep(0.5)
     return f"Progress test completed with message: {message}"
 
 
@@ -150,4 +150,4 @@ async def test_rich_content(  # noqa: D417
 
 
 if __name__ == "__main__":
-    mcp.run(show_banner=False)
+    mcp.run(show_banner=False, log_level="error")
