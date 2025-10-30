@@ -5,8 +5,9 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Callable
 from contextlib import suppress
-import logging
 from typing import TYPE_CHECKING, Any
+
+from llmling_agent import log
 
 
 if TYPE_CHECKING:
@@ -15,6 +16,7 @@ if TYPE_CHECKING:
 
 __all__ = ["TaskSupervisor"]
 
+logger = log.get_logger(__name__)
 ErrorHandler = Callable[[asyncio.Task[Any], BaseException], None]
 
 
@@ -63,18 +65,20 @@ class TaskSupervisor:
                     on_error(task, exc)
                     handled = True
                 except Exception:
-                    msg = "Error in %s task-specific error handler"
-                    logging.exception(msg, self._source)
+                    logger.exception(
+                        "Error in task-specific error handler",
+                        source=self._source,
+                    )
             if not handled:
                 for handler in self._error_handlers:
                     try:
                         handler(task, exc)
                         handled = True
                     except Exception:
-                        msg = "Error in %s supervisor error handler"
-                        logging.exception(msg, self._source)
+                        msg = "Error in supervisor error handler"
+                        logger.exception(msg, source=self._source)
             if not handled:
-                logging.exception("Unhandled error in %s task", self._source)
+                logger.exception("Unhandled error in task", source=self._source)
 
     async def shutdown(self) -> None:
         self._closed = True

@@ -29,9 +29,7 @@ if TYPE_CHECKING:
     from datetime import datetime, timedelta
 
     from llmling_agent.messaging.messageemitter import MessageEmitter
-    from llmling_agent_config.events import (
-        EventConfig,
-    )
+    from llmling_agent_config.events import EventConfig
     from llmling_agent_events.base import EventSource
     from llmling_agent_events.timed_watcher import TimeEventSource
 
@@ -92,7 +90,7 @@ class EventManager:
                 if isinstance(result, Awaitable):
                     await result
             except Exception:
-                logger.exception("Error in event callback %r", callback.__name__)
+                logger.exception("Error in event callback", name=callback.__name__)
 
         # Run default handler if enabled
         if self.auto_run:
@@ -236,7 +234,7 @@ class EventManager:
         Raises:
             ValueError: If source already exists or is invalid
         """
-        logger.debug("Setting up event source: %s (%s)", config.name, config.type)
+        logger.debug("Setting up event source", name=config.name, type=config.type)
         from llmling_agent_events.base import EventSource
 
         if config.name in self._sources:
@@ -250,10 +248,9 @@ class EventManager:
             # Start processing events
             name = f"event_processor_{config.name}"
             self.node.task_manager.create_task(self._process_events(source), name=name)
-            logger.debug("Added event source: %s", config.name)
+            logger.debug("Added event source", name=config.name)
         except Exception as e:
-            msg = f"Failed to add event source {config.name}"
-            logger.exception(msg)
+            logger.exception("Failed to add event source", name=config.name)
             raise RuntimeError(msg) from e
         else:
             return source
@@ -266,7 +263,7 @@ class EventManager:
         """
         if source := self._sources.pop(name, None):
             await source.disconnect()
-            logger.debug("Removed event source: %s", name)
+            logger.debug("Removed event source", name=name)
 
     async def _process_events(self, source: EventSource):
         """Process events from a source.
@@ -365,11 +362,8 @@ class EventManager:
                         await self.emit_event(event)
                 except Exception as e:
                     if self.enabled:
-                        meta |= {
-                            "status": "error",
-                            "error": str(e),
-                            "duration": get_now() - start_time,
-                        }
+                        dur = get_now() - start_time
+                        meta |= {"status": "error", "error": str(e), "duration": dur}
                         event = EventData.create(name, content=str(e), metadata=meta)
                         await self.emit_event(event)
                     raise
@@ -388,11 +382,8 @@ class EventManager:
                         self.node.task_manager.run_background(self.emit_event(event))
                 except Exception as e:
                     if self.enabled:
-                        meta |= {
-                            "status": "error",
-                            "error": str(e),
-                            "duration": get_now() - start_time,
-                        }
+                        dur = get_now() - start_time
+                        meta |= {"status": "error", "error": str(e), "duration": dur}
                         event = EventData.create(name, content=str(e), metadata=meta)
                         self.node.task_manager.run_background(self.emit_event(event))
                     raise

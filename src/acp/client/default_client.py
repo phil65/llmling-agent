@@ -81,7 +81,8 @@ class DefaultACPClient(Client):
         Returns:
             Permission response granting access
         """
-        logger.info("Permission requested for %s", params.tool_call.title or "operation")
+        title = params.tool_call.title or "operation"
+        logger.info("Permission requested", title=title)
 
         # If we have test outcomes queued, use them
         if self.permission_outcomes:
@@ -124,9 +125,9 @@ class DefaultACPClient(Client):
             try:
                 path = Path(params.path)
                 path.write_text(params.content, encoding="utf-8")
-                logger.info("Wrote file %s", params.path)
+                logger.info("Wrote file", path=params.path)
             except Exception:
-                logger.exception("Failed to write file %s", params.path)
+                logger.exception("Failed to write file", path=params.path)
                 raise
         else:
             # In-memory storage for testing
@@ -164,11 +165,11 @@ class DefaultACPClient(Client):
                     end_line = start_line + params.limit if params.limit else len(lines)
                     content = "\n".join(lines[start_line:end_line])
 
-                logger.info("Read file %s", params.path)
+                logger.info("Read file", path=params.path)
                 return ReadTextFileResponse(content=content)
 
             except Exception:
-                logger.exception("Failed to read file %s", params.path)
+                logger.exception("Failed to read file", path=params.path)
                 raise
         else:
             # In-memory storage for testing

@@ -137,7 +137,7 @@ class MockAgent(Agent):
 
     async def prompt(self, params: PromptRequest) -> PromptResponse:
         """Handle prompt with mock response."""
-        logger.info("Received prompt in session %s", params.session_id)
+        logger.info("Received prompt", session_id=params.session_id)
         return PromptResponse(stop_reason="end_turn")
 
     async def cancel(self, params) -> None:
@@ -166,7 +166,7 @@ def example_function():
         self, params: WriteTextFileRequest
     ) -> WriteTextFileResponse:
         """Mock file writing."""
-        logger.info("Mock write to %s (%d chars)", params.path, len(params.content))
+        logger.info("Mock write", path=params.path, content_length=len(params.content))
         return WriteTextFileResponse()
 
     async def create_terminal(
@@ -186,11 +186,11 @@ def example_function():
 
     async def ext_notification(self, method: str, params: dict[str, Any]) -> None:
         """Mock extensibility notification."""
-        logger.info("Mock ext notification: %s", method)
+        logger.info("Mock ext notification", method=method)
 
     async def ext_method(self, method: str, params: dict[str, Any]) -> Any:
         """Mock extensibility method."""
-        logger.info("Mock ext method: %s", method)
+        logger.info("Mock ext method", method=method)
         return {"result": "mock response"}
 
 
@@ -475,9 +475,9 @@ async def send_notification(request: NotificationRequest):
         state.notifications_sent.append(record)
 
         logger.info(
-            "Sent %s notification to session %s",
-            request.notification_type,
-            request.session_id,
+            "Sent notification to session",
+            notification_type=request.notification_type,
+            session_id=request.session_id,
         )
         return {"success": True, "message": "Notification sent"}
 
@@ -629,11 +629,8 @@ class ACPDebugServer:
 
         self._fastapi_thread = threading.Thread(target=run_fastapi, daemon=True)
         self._fastapi_thread.start()
-        logger.info(
-            "FastAPI debug interface started at http://%s:%d",
-            self.fastapi_host,
-            self.fastapi_port,
-        )
+        url = f"http://{self.fastapi_host}:{self.fastapi_port}"
+        logger.info("FastAPI debug interface started", url=url)
 
     async def _run_acp_server(self):
         """Run ACP server on stdio."""
@@ -658,9 +655,8 @@ class ACPDebugServer:
             self.debug_state.client_connection = conn
 
             logger.info("ACP Debug Server ready - connect your client!")
-            logger.info(
-                "Web interface: http://%s:%d", self.fastapi_host, self.fastapi_port
-            )
+            url = f"http://{self.fastapi_host}:{self.fastapi_port}"
+            logger.info("Web interface", url=url)
 
             # Keep server running
             while self._running:
@@ -684,7 +680,7 @@ class ACPDebugServer:
             try:
                 await self.debug_state.client_connection.close()
             except Exception as e:  # noqa: BLE001
-                logger.warning("Error closing ACP connection: %s", e)
+                logger.warning("Error closing ACP connection", error=e)
             finally:
                 self.debug_state.client_connection = None
 

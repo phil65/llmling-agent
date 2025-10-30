@@ -876,8 +876,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
 
             # Yield final event with embedded message
             yield StreamCompleteEvent(message=response_msg)
-
-            # Post-processing
             self.message_sent.emit(response_msg)
             await self.log_message(response_msg)
             if store_history:

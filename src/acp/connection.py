@@ -159,7 +159,7 @@ class Connection:
                     message = anyenv.load_json(line, return_type=dict)
                 except Exception:
                     # Align with Rust/TS: on parse error, just skip instead of response
-                    logger.exception("Error parsing JSON-RPC message %s", line)
+                    logger.exception("Error parsing JSON-RPC message", line=line)
                     continue
                 else:
                     self._notify_observers(StreamDirection.INCOMING, message)

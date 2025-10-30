@@ -139,7 +139,7 @@ class SlashedAgent[TDeps, OutputDataT]:
 
         parsed = _parse_slash_command(command_text)
         if not parsed:
-            logger.warning("Invalid slash command: %s", command_text)
+            logger.warning("Invalid slash command", command=command_text)
             events.append(CommandCompleteEvent(command="unknown", success=False))
             return events
 
@@ -168,7 +168,7 @@ class SlashedAgent[TDeps, OutputDataT]:
         try:
             await self.command_store.execute_command(command_str, cmd_ctx)
         except Exception as e:
-            logger.exception("Command execution failed: %s", command_name)
+            logger.exception("Command execution failed", command=command_name)
             events.append(
                 CommandOutputEvent(command=command_name, output=f"Command error: {e}")
             )
@@ -207,7 +207,7 @@ class SlashedAgent[TDeps, OutputDataT]:
         # Execute all commands first
         if commands:
             for command in commands:
-                logger.info("Processing slash command: %s", command)
+                logger.info("Processing slash command", command=command)
                 command_events = await self._execute_slash_command(command)
                 for cmd_event in command_events:
                     yield cmd_event
