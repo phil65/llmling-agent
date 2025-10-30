@@ -14,6 +14,8 @@ from acp.schema import (
     CancelNotification,
     CreateTerminalRequest,
     CreateTerminalResponse,
+    CustomRequest,
+    CustomResponse,
     InitializeRequest,
     KillTerminalCommandRequest,
     KillTerminalCommandResponse,

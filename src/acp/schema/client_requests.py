@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence  # noqa: TC003
+from typing import Any
 
 from pydantic import Field
 
@@ -11,6 +12,16 @@ from acp.schema.capabilities import ClientCapabilities
 from acp.schema.common import Implementation  # noqa: TC001
 from acp.schema.content_blocks import ContentBlock  # noqa: TC001
 from acp.schema.mcp import McpServer  # noqa: TC001
+
+
+class CustomRequest(Request):
+    """Request for custom/extension methods."""
+
+    method: str
+    """The custom method name (without underscore prefix)."""
+
+    data: dict[str, Any]
+    """The method parameters."""
 
 
 class NewSessionRequest(Request):
@@ -142,4 +153,5 @@ ClientRequest = (
     | SetSessionModeRequest
     | PromptRequest
     | SetSessionModelRequest
+    | CustomRequest
 )

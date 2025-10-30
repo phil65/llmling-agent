@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence  # noqa: TC003
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import Field
 
@@ -9,6 +9,13 @@ from acp.schema.base import Response
 from acp.schema.capabilities import AgentCapabilities
 from acp.schema.common import AuthMethod, Implementation  # noqa: TC001
 from acp.schema.session_state import SessionModelState, SessionModeState  # noqa: TC001
+
+
+class CustomResponse(Response):
+    """Response for custom/extension methods."""
+
+    data: dict[str, Any] | None = None
+    """The method result data."""
 
 
 StopReason = Literal[
@@ -130,4 +137,5 @@ AgentResponse = (
     | SetSessionModeResponse
     | PromptResponse
     | SetSessionModelResponse
+    | CustomResponse
 )

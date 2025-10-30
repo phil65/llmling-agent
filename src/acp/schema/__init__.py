@@ -31,6 +31,7 @@ from acp.schema.client_requests import (
     SetSessionModeRequest,
     SetSessionModelRequest,
     PromptRequest,
+    CustomRequest,
     ClientRequest,
 )
 from acp.schema.agent_responses import (
@@ -41,6 +42,7 @@ from acp.schema.agent_responses import (
     SetSessionModeResponse,
     SetSessionModelResponse,
     PromptResponse,
+    CustomResponse,
     StopReason,
     AgentResponse,
 )
@@ -140,6 +142,8 @@ __all__ = [
     "CreateTerminalRequest",
     "CreateTerminalResponse",
     "CurrentModeUpdate",
+    "CustomRequest",
+    "CustomResponse",
     "DeniedOutcome",
     "EmbeddedResourceContentBlock",
     "EnvVariable",
