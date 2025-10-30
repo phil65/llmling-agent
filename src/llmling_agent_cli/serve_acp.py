@@ -119,10 +119,16 @@ def acp_command(
         5. Client sends prompt requests
         6. Server streams responses via session updates
     """  # noqa: E501
+    import sys
+
     from llmling_agent_acp import ACPServer
 
     level = getattr(logging, log_level.upper())
-    logging.basicConfig(level=level)
+    logging.basicConfig(
+        level=level,
+        handlers=[logging.StreamHandler(sys.stderr)],
+        force=True,
+    )
     try:
         config_path = resolve_agent_config(config)
     except ValueError as e:
