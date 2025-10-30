@@ -56,8 +56,6 @@ def _is_slash_command(text: str) -> bool:
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from mcp.types import Prompt
-
     from acp import Client
     from acp.schema import ClientCapabilities, ContentBlock, McpServer, StopReason
     from llmling_agent import Agent, AgentPool
@@ -535,19 +533,8 @@ class ACPSession:
                 return
 
             # Use gather to fetch prompts concurrently, with exception handling
-            results = await asyncio.gather(
-                *[client.list_prompts() for client in clients], return_exceptions=True
-            )
-
-            all_prompts: list[Prompt] = []
-            for result in results:
-                if isinstance(result, BaseException):
-                    logger.warning("Failed to list prompts from MCP client: %s", result)
-                else:
-                    all_prompts.extend(result)
-
-            # Register prompts as commands
-            if all_prompts:
+            results = await asyncio.gather(*[client.list_prompts() for client in clients])
+            if all_prompts := [p for result in results for p in result]:
                 self.command_bridge.add_mcp_prompt_commands(all_prompts)
                 msg = "Registered %d MCP prompts as slash commands for session %s"
                 logger.info(msg, len(all_prompts), self.session_id)
