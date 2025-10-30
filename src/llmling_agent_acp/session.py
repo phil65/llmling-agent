@@ -378,21 +378,20 @@ class ACPSession:
                         tool_call_id=tool_call_id,
                     )
 
-            case FunctionToolResultEvent(result=result, tool_call_id=tool_call_id) if (
-                isinstance(result, ToolReturnPart)
+            case FunctionToolResultEvent(
+                result=ToolReturnPart(content=content, tool_name=tool_name) as result,
+                tool_call_id=tool_call_id,
             ):
                 tool_input = self._current_tool_inputs.get(tool_call_id, {})
-                # Check if the tool result is a streaming AsyncGenerator
-                if isinstance(result.content, AsyncGenerator):
-                    # Stream the tool output chunks
+                if isinstance(content, AsyncGenerator):
                     full_content = ""
-                    async for chunk in result.content:
+                    async for chunk in content:
                         full_content += str(chunk)
                         # Yield intermediate streaming notification
                         # Skip generic notifications for self-notifying tools
-                        if result.tool_name not in ACP_SELF_NOTIFYING_TOOLS:
+                        if tool_name not in ACP_SELF_NOTIFYING_TOOLS:
                             await self.notifications.tool_call(
-                                tool_name=result.tool_name,
+                                tool_name=tool_name,
                                 tool_input=tool_input,
                                 tool_output=chunk,
                                 status="in_progress",
@@ -420,11 +419,12 @@ class ACPSession:
                 # Clean up stored input
                 self._current_tool_inputs.pop(tool_call_id, None)
 
-            case FunctionToolResultEvent(result=result, tool_call_id=tool_call_id) if (
-                isinstance(result, RetryPromptPart)
+            case FunctionToolResultEvent(
+                result=RetryPromptPart(tool_name=tool_name) as result,
+                tool_call_id=tool_call_id,
             ):
                 # Tool call failed and needs retry
-                tool_name = result.tool_name or "unknown"
+                tool_name = tool_name or "unknown"
                 error_message = result.model_response()
                 # Skip generic notifications for self-notifying tools
                 if tool_name not in ACP_SELF_NOTIFYING_TOOLS:
