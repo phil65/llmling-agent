@@ -289,7 +289,7 @@ with other agents effectively."""
         """Check if the session is cancelled."""
         return self._cancelled
 
-    async def process_prompt(self, content_blocks: Sequence[ContentBlock]) -> StopReason:  # noqa: PLR0911, PLR0915
+    async def process_prompt(self, content_blocks: Sequence[ContentBlock]) -> StopReason:  # noqa: PLR0911
         """Process a prompt request and stream responses.
 
         Args:
@@ -305,10 +305,6 @@ with other agents effectively."""
 
         # Reset cancellation flag
         self._cancelled = False
-        # Check for cancellation
-        if self._cancelled:
-            return "cancelled"
-
         # Convert content blocks to structured content
         contents = from_content_blocks(content_blocks)
         logger.info("Converted content: %r", contents)
@@ -344,26 +340,23 @@ with other agents effectively."""
             # Pass structured content to agent for processing
             msg = "Processing prompt for session %s with %d content items"
             logger.debug(msg, self.session_id, len(non_command_content))
-            content = non_command_content
             msg = "Starting agent.run_stream for session %s with %d content items"
-            logger.info(msg, self.session_id, len(content))
+            logger.info(msg, self.session_id, len(non_command_content))
             logger.info("Agent model: %s", self.agent.model_name)
-
             event_count = 0
-            has_yielded_anything = False
             self._current_tool_inputs.clear()  # Reset tool inputs for new stream
 
             try:
                 async for event in self.agent.run_stream(
-                    *content, usage_limits=self.usage_limits
+                    *non_command_content, usage_limits=self.usage_limits
                 ):
                     if self._cancelled:
                         return "cancelled"
 
                     event_count += 1
                     await self.handle_event(event)
-                msg = "Streaming finished. Processed %d events, yielded anything: %s"
-                logger.info(msg, event_count, has_yielded_anything)
+                msg = "Streaming finished. Processed %d events."
+                logger.info(msg, event_count)
 
             except UsageLimitExceeded as e:
                 logger.info("Usage limit exceeded for session %s: %s", self.session_id, e)

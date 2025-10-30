@@ -12,7 +12,6 @@ from typing import TYPE_CHECKING, Any, overload
 from pydantic import HttpUrl
 
 from acp.schema import (
-    AgentMessageChunk,
     AudioContentBlock,
     ContentToolCallContent,
     EmbeddedResourceContentBlock,
@@ -20,7 +19,6 @@ from acp.schema import (
     ImageContentBlock,
     PermissionOption,
     ResourceContentBlock,
-    SessionNotification,
     SseMcpServer,
     StdioMcpServer,
     TextContentBlock,
@@ -281,22 +279,3 @@ def to_tool_call_contents(tool_output: Any) -> list[ContentToolCallContent]:
     """
     raw_blocks = to_acp_content_blocks(tool_output)
     return [ContentToolCallContent(content=block) for block in raw_blocks]
-
-
-def to_agent_text_notification(
-    response: str, session_id: str
-) -> SessionNotification | None:
-    """Convert agent response text to ACP session notification.
-
-    Args:
-        response: Response text from llmling agent
-        session_id: ACP session identifier
-
-    Returns:
-        SessionNotification with agent text message, or None if response is empty
-    """
-    if not response.strip():
-        return None
-
-    update = AgentMessageChunk(content=TextContentBlock(text=response))
-    return SessionNotification(session_id=session_id, update=update)

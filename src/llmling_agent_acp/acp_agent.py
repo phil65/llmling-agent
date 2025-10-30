@@ -9,6 +9,7 @@ from slashed import CommandStore
 from acp import Agent as ACPAgent
 from acp.schema import (
     AgentCapabilities,
+    AgentMessageChunk,
     Implementation,
     InitializeResponse,
     LoadSessionResponse,
@@ -20,16 +21,17 @@ from acp.schema import (
     SessionMode,
     SessionModelState,
     SessionModeState,
+    SessionNotification,
     SetSessionModelRequest,
     SetSessionModelResponse,
     SetSessionModeRequest,
     SetSessionModeResponse,
+    TextContentBlock,
 )
 from llmling_agent.log import get_logger
 from llmling_agent.utils.tasks import TaskManager
 from llmling_agent_acp.command_bridge import ACPCommandBridge
 from llmling_agent_acp.commands.acp_commands import get_acp_commands
-from llmling_agent_acp.converters import to_agent_text_notification
 from llmling_agent_acp.session_manager import ACPSessionManager
 from llmling_agent_commands import get_commands
 
@@ -299,11 +301,12 @@ class LLMlingACPAgent(ACPAgent):
         except Exception as e:
             logger.exception("Failed to process prompt for session %s", params.session_id)
             msg = f"Error processing prompt: {e}"
-            if update := to_agent_text_notification(msg, params.session_id):
-                try:
-                    await self.connection.session_update(update)
-                except Exception:
-                    logger.exception("Failed to send error update")
+            chunk = AgentMessageChunk(content=TextContentBlock(text=msg))
+            notification = SessionNotification(session_id=params.session_id, update=chunk)
+            try:
+                await self.connection.session_update(notification)
+            except Exception:
+                logger.exception("Failed to send error update")
 
             return PromptResponse(stop_reason="refusal")
         else:
