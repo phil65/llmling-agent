@@ -162,11 +162,8 @@ class LLMlingACPAgent(ACPAgent):
         """Initialize the agent and negotiate capabilities."""
         logger.info("Initializing ACP agent implementation")
         version = min(params.protocol_version, self.PROTOCOL_VERSION)
-
-        # Store client capabilities for tool registration
         self.client_capabilities = params.client_capabilities
         logger.info("Client capabilities: %s", self.client_capabilities)
-
         prompt_caps = PromptCapabilities(audio=True, embedded_context=True, image=True)
         mcp_caps = McpCapabilities(http=True, sse=True)
         caps = AgentCapabilities(
@@ -174,16 +171,16 @@ class LLMlingACPAgent(ACPAgent):
             prompt_capabilities=prompt_caps,
             mcp_capabilities=mcp_caps,
         )
-
         self._initialized = True
+        impl = Implementation(
+            name="llmling-agent",
+            title="LLMLing-Agent",
+            version=_version("llmling-agent"),
+        )
         response = InitializeResponse(
             protocol_version=version,
             agent_capabilities=caps,
-            agent_info=Implementation(
-                name="llmling-agent",
-                title="LLMLing-Agent",
-                version=_version("llmling-agent"),
-            ),
+            agent_info=impl,
         )
         logger.info("ACP agent implementation initialized successfully: %s", response)
         return response
@@ -273,13 +270,12 @@ class LLMlingACPAgent(ACPAgent):
             msg = "Agent not initialized"
             raise RuntimeError(msg)
 
+        logger.info("Processing prompt for session %s", params.session_id)
+        session = self.session_manager.get_session(params.session_id)
         try:
-            logger.info("Processing prompt for session %s", params.session_id)
-            session = self.session_manager.get_session(params.session_id)
             if not session:
                 msg = f"Session {params.session_id} not found"
                 raise ValueError(msg)  # noqa: TRY301
-
             stop_reason = await session.process_prompt(params.prompt)
             # Return the actual stop reason from the session
             response = PromptResponse(stop_reason=stop_reason)
@@ -301,8 +297,8 @@ class LLMlingACPAgent(ACPAgent):
 
     async def cancel(self, params: CancelNotification) -> None:
         """Cancel operations for a session."""
+        logger.info("Cancelling session %s", params.session_id)
         try:
-            logger.info("Cancelling session %s", params.session_id)
             # Get session and cancel it
             if session := self.session_manager.get_session(params.session_id):
                 session.cancel()
@@ -336,10 +332,7 @@ class LLMlingACPAgent(ACPAgent):
             if not self.agent_pool or params.mode_id not in self.agent_pool.agents:
                 logger.error("Agent %s not found in pool", params.mode_id)
                 return None
-
             await session.switch_active_agent(params.mode_id)
-            msg = "Switched session %s to agent %s"
-            logger.info(msg, params.session_id, params.mode_id)
             return SetSessionModeResponse()
 
         except Exception:
