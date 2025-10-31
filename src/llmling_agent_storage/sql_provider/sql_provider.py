@@ -32,8 +32,6 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
     from datetime import datetime
 
-    from sqlalchemy.ext.asyncio import AsyncEngine
-
     from llmling_agent.common_types import JsonValue
     from llmling_agent.messaging.messages import ChatMessage
     from llmling_agent_config.session import SessionQuery
@@ -53,19 +51,14 @@ class SQLModelProvider(StorageProvider[Message]):
 
     can_load_history = True
 
-    def __init__(
-        self,
-        config: SQLStorageConfig,
-        engine: AsyncEngine,
-    ):
+    def __init__(self, config: SQLStorageConfig):
         """Initialize provider with async database engine.
 
         Args:
             config: Configuration for provider
-            engine: Async SQLModel engine instance
         """
         super().__init__(config)
-        self.engine = engine
+        self.engine = config.get_engine()
         self.auto_migrate = config.auto_migration
 
     async def _init_database(self, auto_migrate: bool = True):

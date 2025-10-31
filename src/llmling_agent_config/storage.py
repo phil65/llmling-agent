@@ -1,12 +1,18 @@
 """Storage configuration."""
 
+from __future__ import annotations
+
 import os
 from pathlib import Path
-from typing import Annotated, Final, Literal
+from typing import TYPE_CHECKING, Annotated, Final, Literal
 
 from platformdirs import user_data_dir
 from pydantic import AnyUrl, ConfigDict, Field, SecretStr
 from schemez import Schema
+
+
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncEngine
 
 
 LogFormat = Literal["chronological", "conversations"]
@@ -65,6 +71,20 @@ class SQLStorageConfig(BaseStorageProviderConfig):
 
     auto_migration: bool = True
     """Whether to automatically add missing columns"""
+
+    def get_engine(self) -> AsyncEngine:
+        from sqlalchemy.ext.asyncio import create_async_engine
+
+        # Convert URL to async format
+        url_str = str(self.url)
+        if url_str.startswith("sqlite://"):
+            url_str = url_str.replace("sqlite://", "sqlite+aiosqlite://", 1)
+        elif url_str.startswith("postgresql://"):
+            url_str = url_str.replace("postgresql://", "postgresql+asyncpg://", 1)
+        elif url_str.startswith("mysql://"):
+            url_str = url_str.replace("mysql://", "mysql+aiomysql://", 1)
+
+        return create_async_engine(url_str, pool_size=self.pool_size)
 
 
 class TextLogConfig(BaseStorageProviderConfig):
