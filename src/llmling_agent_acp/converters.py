@@ -11,17 +11,14 @@ from typing import TYPE_CHECKING, overload
 
 from pydantic import HttpUrl
 from pydantic_ai import (
-    AudioUrl,
     BinaryContent,
-    DocumentUrl,
-    ImageUrl,
+    FileUrl,
     ToolReturn,
-    UserContent,
-    VideoUrl,
 )
 
 from acp.schema import (
     AudioContentBlock,
+    BlobResourceContents,
     EmbeddedResourceContentBlock,
     HttpMcpServer,
     ImageContentBlock,
@@ -43,6 +40,8 @@ from llmling_agent_config.mcp_server import (
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
+
+    from pydantic_ai import UserContent
 
     from acp.schema import ContentBlock, McpServer
     from llmling_agent import Agent
@@ -172,12 +171,10 @@ def from_content_blocks(blocks: Sequence[ContentBlock]) -> Sequence[str | BaseCo
 
 
 def to_acp_content_blocks(  # noqa: PLR0911
-    tool_output: ToolReturn
-    | list[ToolReturn]
-    | UserContent
-    | Sequence[UserContent]
-    | None,
-) -> list[TextContentBlock | ImageContentBlock | AudioContentBlock]:
+    tool_output: (
+        ToolReturn | list[ToolReturn] | UserContent | Sequence[UserContent] | None
+    ),
+) -> list[ContentBlock]:
     """Convert pydantic-ai tool output to raw ACP content blocks.
 
     Returns unwrapped content blocks that can be used directly or wrapped
@@ -187,18 +184,18 @@ def to_acp_content_blocks(  # noqa: PLR0911
         tool_output: Output from pydantic-ai tool execution
 
     Returns:
-        List of content blocks (TextContentBlock, ImageContentBlock, AudioContentBlock)
+        List of ContentBlock objects
     """
     if tool_output is None:
         return []
 
     # Handle ToolReturn objects with separate content field
     if isinstance(tool_output, ToolReturn):
-        blocks: list[TextContentBlock | ImageContentBlock | AudioContentBlock] = []
+        result_blocks: list[ContentBlock] = []
 
         # Add the return value as text
         if tool_output.return_value is not None:
-            blocks.append(TextContentBlock(text=str(tool_output.return_value)))
+            result_blocks.append(TextContentBlock(text=str(tool_output.return_value)))
 
         # Add any multimodal content
         if tool_output.content:
@@ -208,16 +205,16 @@ def to_acp_content_blocks(  # noqa: PLR0911
                 else [tool_output.content]
             )
             for content_item in content_list:
-                blocks.extend(to_acp_content_blocks(content_item))
+                result_blocks.extend(to_acp_content_blocks(content_item))
 
-        return blocks
+        return result_blocks
 
     # Handle lists of content
     if isinstance(tool_output, list):
-        blocks = []
+        list_blocks: list[ContentBlock] = []
         for item in tool_output:
-            blocks.extend(to_acp_content_blocks(item))
-        return blocks
+            list_blocks.extend(to_acp_content_blocks(item))
+        return list_blocks
 
     # Handle multimodal content types
     match tool_output:
@@ -236,27 +233,44 @@ def to_acp_content_blocks(  # noqa: PLR0911
             return [AudioContentBlock(data=audio_data, mime_type=media_type)]
 
         case BinaryContent(data=data, media_type=media_type):
-            # Other binary content - describe as text for now
-            size_mb = len(data) / (1024 * 1024)
+            # Other binary content - embed as blob resource
+            blob_data = base64.b64encode(data).decode("utf-8")
+            blob_resource = BlobResourceContents(
+                blob=blob_data,
+                mime_type=media_type,
+                uri=f"data:{media_type};base64,{blob_data[:50]}...",
+            )
             return [
-                TextContentBlock(text=f"Binary content ({media_type}): {size_mb:.2f} MB")
+                EmbeddedResourceContentBlock(
+                    resource=blob_resource,
+                    annotations=None,
+                )
             ]
 
-        case ImageUrl(url=url):
-            # Image URL - create markdown image link
-            return [TextContentBlock(text=f"![Image]({url})")]
+        case FileUrl(url=url, kind=kind, media_type=media_type):
+            # Handle all URL types with unified logic using FileUrl base class
+            from urllib.parse import urlparse
 
-        case AudioUrl(url=url):
-            # Audio URL - create markdown link
-            return [TextContentBlock(text=f"[Audio]({url})")]
+            parsed = urlparse(str(url))
 
-        case DocumentUrl(url=url):
-            # Document URL - create markdown link
-            return [TextContentBlock(text=f"[Document]({url})")]
+            # Extract resource type from kind (e.g., "image-url" -> "image")
+            resource_type = kind.replace("-url", "")
 
-        case VideoUrl(url=url):
-            # Video URL - create markdown link
-            return [TextContentBlock(text=f"[Video]({url})")]
+            # Generate name from URL path or use type as fallback
+            name = parsed.path.split("/")[-1] if parsed.path else resource_type
+            if not name or name == "/":
+                name = (
+                    f"{resource_type}_{parsed.netloc}" if parsed.netloc else resource_type
+                )
+
+            return [
+                ResourceContentBlock(
+                    uri=str(url),
+                    name=name,
+                    description=f"{resource_type.title()} resource",
+                    mime_type=media_type,  # Uses FileUrl's computed media_type property
+                )
+            ]
 
         case _:
             # Everything else - convert to string
