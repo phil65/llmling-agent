@@ -29,7 +29,7 @@ from acp.schema import (
     ToolCallStart,
     UserMessageChunk,
 )
-from acp.utils import infer_tool_kind
+from acp.utils import infer_tool_kind, to_acp_content_blocks
 from llmling_agent.log import get_logger
 
 
@@ -433,8 +433,6 @@ class ACPNotifications:
         """Replay a ModelRequest by converting it to appropriate ACP notifications."""
         from pydantic_ai import ToolReturnPart, UserPromptPart
 
-        from acp.utils import to_acp_content_blocks
-
         for part in request.parts:
             match part:
                 case UserPromptPart(content=content):
@@ -443,7 +441,6 @@ class ACPNotifications:
                         await self.send_user_message(content)
                     else:
                         # Convert multi-modal content to appropriate ACP content blocks
-                        from acp.utils import to_acp_content_blocks
 
                         converted_content = to_acp_content_blocks(content)
                         # Send each content block as separate notifications
