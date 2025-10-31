@@ -24,6 +24,7 @@ from acp.schema import (
     ToolCallLocation,
     ToolCallProgress,
     ToolCallStart,
+    UserMessageChunk,
 )
 from acp.utils import infer_tool_kind
 from llmling_agent.log import get_logger
@@ -306,6 +307,16 @@ class ACPNotifications:
         update = AgentThoughtChunk(content=TextContentBlock(text=message))
         notification = SessionNotification(session_id=self.id, update=update)
         await self.client.session_update(notification)
+
+    async def send_user_message(self, message: str) -> None:
+        """Send a user message notification.
+
+        Args:
+            message: Text message to send
+        """
+        update = UserMessageChunk(content=TextContentBlock(text=message))
+        notification = SessionNotification[Any](session_id=self.id, update=update)
+        await self.client.handle_notification(notification)
 
     async def send_agent_image(
         self,
