@@ -41,10 +41,9 @@ if TYPE_CHECKING:
         ToolCallKind,
         ToolCallStatus,
     )
+    from acp.schema.tool_call import ToolCallContent
 
-    ContentType = Sequence[
-        ContentToolCallContent | FileEditToolCallContent | TerminalToolCallContent | str
-    ]
+    ContentType = Sequence[ToolCallContent | str]
 logger = get_logger(__name__)
 
 
