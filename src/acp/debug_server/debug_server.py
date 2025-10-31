@@ -496,10 +496,12 @@ async def send_notification(request: NotificationRequest):
             request.notification_type, request.data
         )
 
-        notification = SessionNotification(session_id=request.session_id, update=update)
+        notification = SessionNotification[Any](
+            session_id=request.session_id, update=update
+        )
 
         # Send through ACP connection
-        await state.client_connection.session_update(notification)
+        await state.client_connection.handle_notification(notification)
 
         # Track notification
         record = NotificationRecord(

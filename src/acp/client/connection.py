@@ -154,45 +154,43 @@ async def _handle_client_method(  # noqa: PLR0911
     WriteTextFileResponse
     | ReadTextFileResponse
     | RequestPermissionResponse
-    | SessionNotification
     | CreateTerminalResponse
     | TerminalOutputResponse
     | WaitForTerminalExitResponse
     | ReleaseTerminalResponse
     | KillTerminalCommandResponse
-    | dict[str, Any]
     | None
 ):
-    """Handle client method calls."""
+    """Handle client method calls using unified request interface."""
     match method:
         case "fs/write_text_file":
-            write_file_request = WriteTextFileRequest.model_validate(params)
-            return await client.write_text_file(write_file_request)
+            write_request = WriteTextFileRequest.model_validate(params)
+            return await client.handle_request(write_request)
         case "fs/read_text_file":
-            read_file_request = ReadTextFileRequest.model_validate(params)
-            return await client.read_text_file(read_file_request)
+            read_request = ReadTextFileRequest.model_validate(params)
+            return await client.handle_request(read_request)
         case "session/request_permission":
             permission_request = RequestPermissionRequest.model_validate(params)
-            return await client.request_permission(permission_request)
+            return await client.handle_request(permission_request)
         case "session/update":
-            notification = SessionNotification.model_validate(params)
-            await client.session_update(notification)
+            notification = SessionNotification[Any].model_validate(params)
+            await client.handle_notification(notification)
             return None
         case "terminal/create":
             create_request = CreateTerminalRequest.model_validate(params)
-            return await client.create_terminal(create_request)
+            return await client.handle_request(create_request)
         case "terminal/output":
             output_request = TerminalOutputRequest.model_validate(params)
-            return await client.terminal_output(output_request)
+            return await client.handle_request(output_request)
         case "terminal/release":
             release_request = ReleaseTerminalRequest.model_validate(params)
-            return await client.release_terminal(release_request)
+            return await client.handle_request(release_request)
         case "terminal/wait_for_exit":
             wait_request = WaitForTerminalExitRequest.model_validate(params)
-            return await client.wait_for_terminal_exit(wait_request)
+            return await client.handle_request(wait_request)
         case "terminal/kill":
             kill_request = KillTerminalCommandRequest.model_validate(params)
-            return await client.kill_terminal(kill_request)
+            return await client.handle_request(kill_request)
         case str() if method.startswith("_"):
             # Custom methods are now handled by the agent side
             # This should not happen in normal operation

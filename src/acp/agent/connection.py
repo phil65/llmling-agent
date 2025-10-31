@@ -48,6 +48,8 @@ if TYPE_CHECKING:
     from acp.connection import StreamObserver
     from acp.schema import (
         AgentMethod,
+        AgentRequest,
+        ClientResponse,
         CreateTerminalRequest,
         KillTerminalCommandRequest,
         ReadTextFileRequest,
@@ -71,6 +73,22 @@ class AgentSideConnection(Client):
         input: asyncio.StreamWriter (local -> peer)
         output: asyncio.StreamReader (peer -> local)
     """
+
+    async def handle_request(self, request: AgentRequest) -> ClientResponse:
+        """Not used.
+
+        AgentSideConnection sends requests to clients, doesn't handle them.
+        """
+        msg = "AgentSideConnection doesn't handle requests - it sends them"
+        raise NotImplementedError(msg)
+
+    async def handle_notification(self, notification: SessionNotification[Any]) -> None:
+        """Not used.
+
+        AgentSideConnection sends notifications to clients, doesn't handle them.
+        """
+        msg = "AgentSideConnection doesn't handle notifications - it sends them"
+        raise NotImplementedError(msg)
 
     def __init__(
         self,

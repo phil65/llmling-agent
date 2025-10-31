@@ -163,8 +163,8 @@ class ACPNotifications:
             ],
             raw_input=raw_input,
         )
-        notification = SessionNotification(session_id=self.id, update=start)
-        await self.client.session_update(notification)
+        notification = SessionNotification[Any](session_id=self.id, update=start)
+        await self.client.handle_notification(notification)
 
     async def tool_call_progress(
         self,
@@ -199,8 +199,8 @@ class ACPNotifications:
                 for i in content or []
             ],
         )
-        notification = SessionNotification(session_id=self.id, update=progress)
-        await self.client.session_update(notification)
+        notification = SessionNotification[Any](session_id=self.id, update=progress)
+        await self.client.handle_notification(notification)
 
     async def file_edit_progress(
         self,
@@ -274,8 +274,8 @@ class ACPNotifications:
             entries: List of plan entries to send
         """
         plan = AgentPlanUpdate(entries=entries)
-        notification = SessionNotification(session_id=self.id, update=plan)
-        await self.client.session_update(notification)
+        notification = SessionNotification[Any](session_id=self.id, update=plan)
+        await self.client.handle_notification(notification)
 
     async def update_commands(self, commands: list[AvailableCommand]) -> None:
         """Send a command update notification.
@@ -284,8 +284,8 @@ class ACPNotifications:
             commands: List of available commands to send
         """
         update = AvailableCommandsUpdate(available_commands=commands)
-        notification = SessionNotification(session_id=self.id, update=update)
-        await self.client.session_update(notification)
+        notification = SessionNotification[Any](session_id=self.id, update=update)
+        await self.client.handle_notification(notification)
 
     async def send_agent_text(self, message: str) -> None:
         """Send a text message notification.
@@ -294,8 +294,8 @@ class ACPNotifications:
             message: Text message to send
         """
         update = AgentMessageChunk(content=TextContentBlock(text=message))
-        notification = SessionNotification(session_id=self.id, update=update)
-        await self.client.session_update(notification)
+        notification = SessionNotification[Any](session_id=self.id, update=update)
+        await self.client.handle_notification(notification)
 
     async def send_agent_thought(self, message: str) -> None:
         """Send a text message notification.
@@ -304,8 +304,8 @@ class ACPNotifications:
             message: Text message to send
         """
         update = AgentThoughtChunk(content=TextContentBlock(text=message))
-        notification = SessionNotification(session_id=self.id, update=update)
-        await self.client.session_update(notification)
+        notification = SessionNotification[Any](session_id=self.id, update=update)
+        await self.client.handle_notification(notification)
 
     async def send_user_message(self, message: str) -> None:
         """Send a user message notification.
@@ -337,8 +337,8 @@ class ACPNotifications:
             data=data, mime_type=mime_type, uri=uri, annotations=annotations
         )
         update = AgentMessageChunk(content=content)
-        notification = SessionNotification(session_id=self.id, update=update)
-        await self.client.session_update(notification)
+        notification = SessionNotification[Any](session_id=self.id, update=update)
+        await self.client.handle_notification(notification)
 
     async def update_session_mode(self, mode_id: str) -> None:
         """Send a session mode update notification.
@@ -347,8 +347,8 @@ class ACPNotifications:
             mode_id: Unique identifier for the session mode
         """
         update = CurrentModeUpdate(current_mode_id=mode_id)
-        notification = SessionNotification(session_id=self.id, update=update)
-        await self.client.session_update(notification)
+        notification = SessionNotification[Any](session_id=self.id, update=update)
+        await self.client.handle_notification(notification)
 
     # async def update_session_model(self, model_id: str) -> None:
     #     """Send a session model update notification.
@@ -378,8 +378,8 @@ class ACPNotifications:
             data=data, mime_type=mime_type, annotations=annotations
         )
         update = AgentMessageChunk(content=content)
-        notification = SessionNotification(session_id=self.id, update=update)
-        await self.client.session_update(notification)
+        notification = SessionNotification[Any](session_id=self.id, update=update)
+        await self.client.handle_notification(notification)
 
     async def send_agent_resource(
         self,
@@ -413,8 +413,8 @@ class ACPNotifications:
             annotations=annotations,
         )
         update = AgentMessageChunk(content=content)
-        notification = SessionNotification(session_id=self.id, update=update)
-        await self.client.session_update(notification)
+        notification = SessionNotification[Any](session_id=self.id, update=update)
+        await self.client.handle_notification(notification)
 
     async def custom_notification(self, method: str, data: dict[str, Any]) -> None:
         """Send a custom notification method.
@@ -423,4 +423,7 @@ class ACPNotifications:
             method: The custom method name
             data: The method parameters
         """
-        await self.client.custom_notification(method, data)
+        # Custom notifications are handled differently - they go through the agent side
+        # This method should not be used in the new architecture
+        msg = "Custom notifications should be handled by the agent side"
+        raise NotImplementedError(msg)

@@ -690,7 +690,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         usage_limits: UsageLimits | None = None,
         message_id: str | None = None,
         conversation_id: str | None = None,
-        messages: list[ChatMessage[Any]] | None = None,
+        message_history: list[ChatMessage[Any]] | None = None,
         wait_for_connections: bool | None = None,
     ) -> ChatMessage[OutputDataT]:
         """Run agent with prompt and get response.
@@ -706,7 +706,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             message_id: Optional message id for the returned message.
                         Automatically generated if not provided.
             conversation_id: Optional conversation id for the returned message.
-            messages: Optional list of messages to replace the conversation history
+            message_history: Optional list of messages to replace the conversation history
             wait_for_connections: Whether to wait for connected agents to complete
 
         Returns:
@@ -722,14 +722,16 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         start_time = time.perf_counter()
         sys_prompt = await self.sys_prompts.format_system_prompt(self)
 
-        message_history = (
-            messages if messages is not None else self.conversation.get_history()
+        msg_history = (
+            message_history
+            if message_history is not None
+            else self.conversation.get_history()
         )
         try:
             result = await self._provider.generate_response(
                 *await convert_prompts(prompts),
                 message_id=message_id,
-                message_history=message_history,
+                message_history=msg_history,
                 tools=tools,
                 output_type=final_type,
                 usage_limits=usage_limits,

@@ -7,15 +7,20 @@ from typing import TYPE_CHECKING, Any
 
 from acp.schema import (
     CreateTerminalRequest,
+    CreateTerminalResponse,
     EnvVariable,
     KillTerminalCommandRequest,
     PermissionOption,
     ReadTextFileRequest,
+    ReadTextFileResponse,
     ReleaseTerminalRequest,
     RequestPermissionRequest,
+    RequestPermissionResponse,
     TerminalOutputRequest,
+    TerminalOutputResponse,
     ToolCall,
     WaitForTerminalExitRequest,
+    WaitForTerminalExitResponse,
     WriteTextFileRequest,
 )
 from llmling_agent.log import get_logger
@@ -23,12 +28,6 @@ from llmling_agent.log import get_logger
 
 if TYPE_CHECKING:
     from acp import Client
-    from acp.schema import (
-        CreateTerminalResponse,
-        RequestPermissionResponse,
-        TerminalOutputResponse,
-        WaitForTerminalExitResponse,
-    )
 
 logger = get_logger(__name__)
 
@@ -86,7 +85,8 @@ class ACPRequests:
             limit=limit,
             line=line,
         )
-        response = await self.client.read_text_file(request)
+        response = await self.client.handle_request(request)
+        assert isinstance(response, ReadTextFileResponse)
         return response.content
 
     async def read_agent_rules(self, cwd: str) -> str | None:
@@ -111,7 +111,7 @@ class ACPRequests:
             content: Text content to write
         """
         request = WriteTextFileRequest(session_id=self.id, path=path, content=content)
-        await self.client.write_text_file(request)
+        await self.client.handle_request(request)
 
     async def create_terminal(
         self,
@@ -142,7 +142,9 @@ class ACPRequests:
             env=[EnvVariable(name=k, value=v) for k, v in (env or {}).items()],
             output_byte_limit=output_byte_limit,
         )
-        return await self.client.create_terminal(request)
+        response = await self.client.handle_request(request)
+        assert isinstance(response, CreateTerminalResponse)
+        return response
 
     async def terminal_output(self, terminal_id: str) -> TerminalOutputResponse:
         """Get output from a terminal session.
@@ -154,7 +156,9 @@ class ACPRequests:
             Terminal output response
         """
         request = TerminalOutputRequest(session_id=self.id, terminal_id=terminal_id)
-        return await self.client.terminal_output(request)
+        response = await self.client.handle_request(request)
+        assert isinstance(response, TerminalOutputResponse)
+        return response
 
     async def wait_for_terminal_exit(
         self,
@@ -169,7 +173,9 @@ class ACPRequests:
             Terminal exit response with exit_code
         """
         request = WaitForTerminalExitRequest(session_id=self.id, terminal_id=terminal_id)
-        return await self.client.wait_for_terminal_exit(request)
+        response = await self.client.handle_request(request)
+        assert isinstance(response, WaitForTerminalExitResponse)
+        return response
 
     async def kill_terminal(self, terminal_id: str) -> None:
         """Kill a terminal session.
@@ -178,7 +184,7 @@ class ACPRequests:
             terminal_id: Terminal identifier to kill
         """
         request = KillTerminalCommandRequest(session_id=self.id, terminal_id=terminal_id)
-        await self.client.kill_terminal(request)
+        await self.client.handle_request(request)
 
     async def release_terminal(self, terminal_id: str) -> None:
         """Release a terminal session.
@@ -187,7 +193,7 @@ class ACPRequests:
             terminal_id: Terminal identifier to release
         """
         request = ReleaseTerminalRequest(session_id=self.id, terminal_id=terminal_id)
-        await self.client.release_terminal(request)
+        await self.client.handle_request(request)
 
     async def run_command(
         self,
@@ -281,7 +287,9 @@ class ACPRequests:
             tool_call=tool_call,
             options=options,
         )
-        return await self.client.request_permission(request)
+        response = await self.client.handle_request(request)
+        assert isinstance(response, RequestPermissionResponse)
+        return response
 
     async def custom_request(self, method: str, data: dict[str, Any]) -> dict[str, Any]:
         """Send a custom request method.
@@ -293,4 +301,7 @@ class ACPRequests:
         Returns:
             The response data from the custom method
         """
-        return await self.client.custom_request(method, data)
+        # Custom requests are handled differently - they go through the agent side
+        # This method should not be used in the new architecture
+        msg = "Custom requests should be handled by the agent side"
+        raise NotImplementedError(msg)

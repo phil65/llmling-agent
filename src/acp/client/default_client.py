@@ -12,9 +12,17 @@ from typing import TYPE_CHECKING
 from acp.client import Client
 from acp.schema import (
     AllowedOutcome,
+    CreateTerminalRequest,
     DeniedOutcome,
+    KillTerminalCommandRequest,
+    ReadTextFileRequest,
     ReadTextFileResponse,
+    ReleaseTerminalRequest,
+    RequestPermissionRequest,
     RequestPermissionResponse,
+    TerminalOutputRequest,
+    WaitForTerminalExitRequest,
+    WriteTextFileRequest,
     WriteTextFileResponse,
 )
 from llmling_agent import log
@@ -22,20 +30,14 @@ from llmling_agent import log
 
 if TYPE_CHECKING:
     from acp.schema import (
-        CreateTerminalRequest,
+        AgentRequest,
+        ClientResponse,
         CreateTerminalResponse,
-        KillTerminalCommandRequest,
         KillTerminalCommandResponse,
-        ReadTextFileRequest,
-        ReleaseTerminalRequest,
         ReleaseTerminalResponse,
-        RequestPermissionRequest,
         SessionNotification,
-        TerminalOutputRequest,
         TerminalOutputResponse,
-        WaitForTerminalExitRequest,
         WaitForTerminalExitResponse,
-        WriteTextFileRequest,
     )
 
 logger = log.get_logger(__name__)
@@ -68,7 +70,36 @@ class DefaultACPClient(Client):
         self.files: dict[str, str] = {}  # In-memory file storage for testing
         self.notifications: list[SessionNotification] = []
 
-    async def request_permission(
+    async def handle_request(self, request: AgentRequest) -> ClientResponse:  # noqa: PLR0911
+        """Handle any agent request and return appropriate response."""
+        match request:
+            case WriteTextFileRequest():
+                return await self._write_text_file(request)
+            case ReadTextFileRequest():
+                return await self._read_text_file(request)
+            case RequestPermissionRequest():
+                return await self._request_permission(request)
+            case CreateTerminalRequest():
+                return await self._create_terminal(request)
+            case TerminalOutputRequest():
+                return await self._terminal_output(request)
+            case ReleaseTerminalRequest():
+                return await self._release_terminal(request)
+            case WaitForTerminalExitRequest():
+                return await self._wait_for_terminal_exit(request)
+            case KillTerminalCommandRequest():
+                return await self._kill_terminal(request)
+            case _:
+                msg = f"Unknown request type: {type(request)}"
+                raise ValueError(msg)
+
+    async def handle_notification(self, notification: SessionNotification) -> None:
+        """Handle session update notification."""
+        msg = "Session update for %s: %s"
+        logger.debug(msg, notification.session_id, notification.update.session_update)
+        self.notifications.append(notification)
+
+    async def _request_permission(
         self, params: RequestPermissionRequest
     ) -> RequestPermissionResponse:
         """Default permission handler - grants all permissions or uses test queue.
@@ -97,17 +128,7 @@ class DefaultACPClient(Client):
         cancelled_outcome = DeniedOutcome()
         return RequestPermissionResponse(outcome=cancelled_outcome)
 
-    async def session_update(self, params: SessionNotification) -> None:
-        """Handle session update notifications.
-
-        Args:
-            params: Session update notification
-        """
-        msg = "Session update for %s: %s"
-        logger.debug(msg, params.session_id, params.update.session_update)
-        self.notifications.append(params)
-
-    async def write_text_file(
+    async def _write_text_file(
         self, params: WriteTextFileRequest
     ) -> WriteTextFileResponse:
         """Write text to file (if allowed).
@@ -133,7 +154,7 @@ class DefaultACPClient(Client):
 
         return WriteTextFileResponse()
 
-    async def read_text_file(self, params: ReadTextFileRequest) -> ReadTextFileResponse:
+    async def _read_text_file(self, params: ReadTextFileRequest) -> ReadTextFileResponse:
         """Read text from file (if allowed).
 
         Args:
@@ -174,7 +195,7 @@ class DefaultACPClient(Client):
             content = self.files.get(str(params.path), "default content")
             return ReadTextFileResponse(content=content)
 
-    async def create_terminal(
+    async def _create_terminal(
         self, params: CreateTerminalRequest
     ) -> CreateTerminalResponse:
         """Create terminal (not implemented).
@@ -188,7 +209,7 @@ class DefaultACPClient(Client):
         msg = "Terminal operations not implemented"
         raise NotImplementedError(msg)
 
-    async def terminal_output(
+    async def _terminal_output(
         self, params: TerminalOutputRequest
     ) -> TerminalOutputResponse:
         """Get terminal output (not implemented).
@@ -202,9 +223,9 @@ class DefaultACPClient(Client):
         msg = "Terminal operations not implemented"
         raise NotImplementedError(msg)
 
-    async def release_terminal(
+    async def _release_terminal(
         self, params: ReleaseTerminalRequest
-    ) -> ReleaseTerminalResponse | None:
+    ) -> ReleaseTerminalResponse:
         """Release terminal (not implemented).
 
         Args:
@@ -213,7 +234,7 @@ class DefaultACPClient(Client):
         msg = "Terminal operations not implemented"
         raise NotImplementedError(msg)
 
-    async def wait_for_terminal_exit(
+    async def _wait_for_terminal_exit(
         self, params: WaitForTerminalExitRequest
     ) -> WaitForTerminalExitResponse:
         """Wait for terminal exit (not implemented).
@@ -227,9 +248,9 @@ class DefaultACPClient(Client):
         msg = "Terminal operations not implemented"
         raise NotImplementedError(msg)
 
-    async def kill_terminal(
+    async def _kill_terminal(
         self, params: KillTerminalCommandRequest
-    ) -> KillTerminalCommandResponse | None:
+    ) -> KillTerminalCommandResponse:
         """Kill terminal (not implemented).
 
         Args:

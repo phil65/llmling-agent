@@ -319,9 +319,11 @@ class LLMlingACPAgent(ACPAgent):
             logger.exception("Failed to process prompt", session_id=params.session_id)
             msg = f"Error processing prompt: {e}"
             chunk = AgentMessageChunk(content=TextContentBlock(text=msg))
-            notification = SessionNotification(session_id=params.session_id, update=chunk)
+            notification = SessionNotification[Any](
+                session_id=params.session_id, update=chunk
+            )
             try:
-                await self.connection.session_update(notification)
+                await self.connection.handle_notification(notification)
             except Exception:
                 logger.exception("Failed to send error update")
 

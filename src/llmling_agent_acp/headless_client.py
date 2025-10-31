@@ -16,14 +16,22 @@ from anyenv import ProcessManager
 from acp.client import Client
 from acp.schema import (
     AllowedOutcome,
+    CreateTerminalRequest,
     CreateTerminalResponse,
     DeniedOutcome,
+    KillTerminalCommandRequest,
     KillTerminalCommandResponse,
+    ReadTextFileRequest,
     ReadTextFileResponse,
+    ReleaseTerminalRequest,
     ReleaseTerminalResponse,
+    RequestPermissionRequest,
     RequestPermissionResponse,
+    TerminalOutputRequest,
     TerminalOutputResponse,
+    WaitForTerminalExitRequest,
     WaitForTerminalExitResponse,
+    WriteTextFileRequest,
     WriteTextFileResponse,
 )
 from llmling_agent.log import get_logger
@@ -31,15 +39,9 @@ from llmling_agent.log import get_logger
 
 if TYPE_CHECKING:
     from acp.schema import (
-        CreateTerminalRequest,
-        KillTerminalCommandRequest,
-        ReadTextFileRequest,
-        ReleaseTerminalRequest,
-        RequestPermissionRequest,
+        AgentRequest,
+        ClientResponse,
         SessionNotification,
-        TerminalOutputRequest,
-        WaitForTerminalExitRequest,
-        WriteTextFileRequest,
     )
 
 logger = get_logger(__name__)
@@ -81,7 +83,39 @@ class HeadlessACPClient(Client):
         self.notifications: list[SessionNotification] = []
         self.permission_requests: list[RequestPermissionRequest] = []
 
-    async def request_permission(
+    async def handle_request(self, request: AgentRequest) -> ClientResponse:  # noqa: PLR0911
+        """Handle any agent request and return appropriate response."""
+        match request:
+            case WriteTextFileRequest():
+                return await self._write_text_file(request)
+            case ReadTextFileRequest():
+                return await self._read_text_file(request)
+            case RequestPermissionRequest():
+                return await self._request_permission(request)
+            case CreateTerminalRequest():
+                return await self._create_terminal(request)
+            case TerminalOutputRequest():
+                return await self._terminal_output(request)
+            case ReleaseTerminalRequest():
+                return await self._release_terminal(request)
+            case WaitForTerminalExitRequest():
+                return await self._wait_for_terminal_exit(request)
+            case KillTerminalCommandRequest():
+                return await self._kill_terminal(request)
+            case _:
+                msg = f"Unknown request type: {type(request)}"
+                raise ValueError(msg)
+
+    async def handle_notification(self, notification: SessionNotification) -> None:
+        """Handle session update notification."""
+        logger.debug(
+            "Session update for %s: %s",
+            notification.session_id,
+            type(notification.update).__name__,
+        )
+        self.notifications.append(notification)
+
+    async def _request_permission(
         self, params: RequestPermissionRequest
     ) -> RequestPermissionResponse:
         """Handle permission requests.
@@ -106,18 +140,7 @@ class HeadlessACPClient(Client):
         logger.debug("Denying permission for %s", tool_name)
         return RequestPermissionResponse(outcome=DeniedOutcome())
 
-    async def session_update(self, params: SessionNotification) -> None:
-        """Handle session update notifications.
-
-        Args:
-            params: Session update notification
-        """
-        logger.debug(
-            "Session update for %s: %s", params.session_id, type(params.update).__name__
-        )
-        self.notifications.append(params)
-
-    async def read_text_file(self, params: ReadTextFileRequest) -> ReadTextFileResponse:
+    async def _read_text_file(self, params: ReadTextFileRequest) -> ReadTextFileResponse:
         """Read text from file.
 
         Args:
@@ -157,7 +180,7 @@ class HeadlessACPClient(Client):
             logger.exception("Failed to read file %s", params.path)
             raise
 
-    async def write_text_file(
+    async def _write_text_file(
         self, params: WriteTextFileRequest
     ) -> WriteTextFileResponse:
         """Write text to file.
@@ -187,7 +210,7 @@ class HeadlessACPClient(Client):
             logger.exception("Failed to write file %s", params.path)
             raise
 
-    async def create_terminal(
+    async def _create_terminal(
         self, params: CreateTerminalRequest
     ) -> CreateTerminalResponse:
         """Create a new terminal session using ProcessManager.
@@ -220,7 +243,7 @@ class HeadlessACPClient(Client):
             logger.exception("Failed to create terminal for command: %s", params.command)
             raise
 
-    async def terminal_output(
+    async def _terminal_output(
         self, params: TerminalOutputRequest
     ) -> TerminalOutputResponse:
         """Get output from terminal.
@@ -250,7 +273,7 @@ class HeadlessACPClient(Client):
             logger.exception("Failed to get output for terminal %s", terminal_id)
             raise
 
-    async def wait_for_terminal_exit(
+    async def _wait_for_terminal_exit(
         self, params: WaitForTerminalExitRequest
     ) -> WaitForTerminalExitResponse:
         """Wait for terminal process to exit.
@@ -279,9 +302,9 @@ class HeadlessACPClient(Client):
             logger.exception("Failed to wait for terminal %s", terminal_id)
             raise
 
-    async def kill_terminal(
+    async def _kill_terminal(
         self, params: KillTerminalCommandRequest
-    ) -> KillTerminalCommandResponse | None:
+    ) -> KillTerminalCommandResponse:
         """Kill terminal process.
 
         Args:
@@ -310,9 +333,9 @@ class HeadlessACPClient(Client):
             logger.exception("Failed to kill terminal %s", terminal_id)
             raise
 
-    async def release_terminal(
+    async def _release_terminal(
         self, params: ReleaseTerminalRequest
-    ) -> ReleaseTerminalResponse | None:
+    ) -> ReleaseTerminalResponse:
         """Release terminal resources.
 
         Args:

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import anyenv
 from slashed import CommandContext, SlashedCommand  # noqa: TC002
@@ -55,7 +55,7 @@ class DebugSendTextCommand(SlashedCommand):
         """
         session = ctx.context.session
         try:
-            content = TextContentBlock(type="text", text=text)
+            content = TextContentBlock(text=text)
 
             if chunk_type == "agent":
                 update: SessionUpdate = AgentMessageChunk(content=content)
@@ -67,10 +67,10 @@ class DebugSendTextCommand(SlashedCommand):
                 await ctx.output.print(f"❌ **Invalid chunk type:** `{chunk_type}`")
                 return
 
-            notification = SessionNotification(
+            notification = SessionNotification[Any](
                 session_id=session.session_id, update=update
             )
-            await session.client.session_update(notification)
+            await session.client.handle_notification(notification)
             await ctx.output.print(f"✅ **Sent {chunk_type} text chunk:** {text[:50]}...")
 
         except Exception as e:
@@ -144,7 +144,7 @@ class DebugUpdateToolCallCommand(SlashedCommand):
                 tool_content = [
                     ContentToolCallContent(
                         type="content",
-                        content=TextContentBlock(type="text", text=content),
+                        content=TextContentBlock(text=content),
                     )
                 ]
             await session.notifications.tool_call_progress(
@@ -224,11 +224,10 @@ class DebugReplaySequenceCommand(SlashedCommand):
                         logger.warning("Unknown update type: %s", update_type)
                         continue
 
-                    notification = SessionNotification(
+                    notification = SessionNotification[Any](
                         session_id=session.session_id, update=update
                     )
-
-                    await session.client.session_update(notification)
+                    await session.client.handle_notification(notification)
                     count += 1
 
                     # Optional delay between notifications
@@ -312,9 +311,7 @@ class DebugCreateTemplateCommand(SlashedCommand):
 
             # Create proper BaseModel instances
             message_chunk = AgentMessageChunk(
-                content=TextContentBlock(
-                    type="text", text="Hello, this is a debug message!"
-                )
+                content=TextContentBlock(text="Hello, this is a debug message!")
             )
 
             tool_start = ToolCallStart(
@@ -332,16 +329,14 @@ class DebugCreateTemplateCommand(SlashedCommand):
                 content=[
                     ContentToolCallContent(
                         type="content",
-                        content=TextContentBlock(
-                            type="text", text="Tool completed successfully!"
-                        ),
+                        content=TextContentBlock(text="Tool completed successfully!"),
                     )
                 ],
                 session_update="tool_call_update",
             )
 
             # Create notifications using proper SessionNotification models
-            notifications = [
+            notifications: list[SessionNotification[Any]] = [
                 SessionNotification(session_id="template", update=message_chunk),
                 SessionNotification(session_id="template", update=tool_start),
                 SessionNotification(session_id="template", update=tool_update),
@@ -396,8 +391,8 @@ class DebugSendRawCommand(SlashedCommand):
                 await ctx.output.print(msg)
                 return
 
-            notification = SessionNotification(session_id=session.session_id, **data)
-            await session.client.session_update(notification)
+            notification = SessionNotification[Any](session_id=session.session_id, **data)
+            await session.client.handle_notification(notification)
             await ctx.output.print("✅ **Sent raw notification**")
         except json.JSONDecodeError as e:
             await ctx.output.print(f"❌ **Invalid JSON:** {e}")

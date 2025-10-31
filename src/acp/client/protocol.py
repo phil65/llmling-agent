@@ -1,89 +1,31 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Protocol
+from typing import TYPE_CHECKING, Protocol
 
 
 if TYPE_CHECKING:
     from acp.schema import (
-        CreateTerminalRequest,
-        CreateTerminalResponse,
-        KillTerminalCommandRequest,
-        KillTerminalCommandResponse,
-        ReadTextFileRequest,
-        ReadTextFileResponse,
-        ReleaseTerminalRequest,
-        ReleaseTerminalResponse,
-        RequestPermissionRequest,
-        RequestPermissionResponse,
+        AgentRequest,
+        ClientResponse,
         SessionNotification,
-        TerminalOutputRequest,
-        TerminalOutputResponse,
-        WaitForTerminalExitRequest,
-        WaitForTerminalExitResponse,
-        WriteTextFileRequest,
-        WriteTextFileResponse,
     )
 
 
 class BaseClient(Protocol):
-    """Base client interface for ACP - always required."""
+    """Base client interface for ACP with clean union signature."""
 
-    async def request_permission(
-        self, params: RequestPermissionRequest
-    ) -> RequestPermissionResponse: ...
+    async def handle_request(self, request: AgentRequest) -> ClientResponse:
+        """Handle any agent request and return appropriate response."""
+        ...
 
-    async def session_update(self, params: SessionNotification) -> None: ...
-
-
-class FileSystemCapability(Protocol):
-    """Client capability for filesystem operations."""
-
-    async def write_text_file(
-        self, params: WriteTextFileRequest
-    ) -> WriteTextFileResponse | None: ...
-
-    async def read_text_file(
-        self, params: ReadTextFileRequest
-    ) -> ReadTextFileResponse: ...
+    async def handle_notification(self, notification: SessionNotification) -> None:
+        """Handle session update notification."""
+        ...
 
 
-class TerminalCapability(Protocol):
-    """Client capability for terminal operations."""
+class Client(BaseClient):
+    """ACP Client interface.
 
-    async def create_terminal(
-        self, params: CreateTerminalRequest
-    ) -> CreateTerminalResponse: ...
-
-    async def terminal_output(
-        self, params: TerminalOutputRequest
-    ) -> TerminalOutputResponse: ...
-
-    async def release_terminal(
-        self, params: ReleaseTerminalRequest
-    ) -> ReleaseTerminalResponse | None: ...
-
-    async def wait_for_terminal_exit(
-        self, params: WaitForTerminalExitRequest
-    ) -> WaitForTerminalExitResponse: ...
-
-    async def kill_terminal(
-        self, params: KillTerminalCommandRequest
-    ) -> KillTerminalCommandResponse | None: ...
-
-
-class CustomCapability(Protocol):
-    """Client capability for custom methods."""
-
-    async def custom_request(
-        self, method: str, data: dict[str, Any]
-    ) -> dict[str, Any]: ...
-
-    async def custom_notification(self, method: str, data: dict[str, Any]) -> None: ...
-
-
-class Client(BaseClient, FileSystemCapability, TerminalCapability, CustomCapability):
-    """High-level client interface for interacting with an ACP server.
-
-    Includes all client capabilities.
-    New implementations should inherit from specific capability protocols instead.
+    Uses unified handle_request method with type-safe signatures.
+    All requests are routed through a single entry point for cleaner implementation.
     """

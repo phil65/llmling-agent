@@ -11,8 +11,6 @@ from acp.agent.protocol import (
 from acp.client.protocol import (
     BaseClient,
     Client,
-    FileSystemCapability,
-    TerminalCapability,
 )
 from acp.terminal_handle import TerminalHandle
 from acp.schema import (
@@ -118,8 +116,6 @@ __all__ = [  # noqa: RUF022
     # split protocols
     "BaseAgent",
     "BaseClient",
-    "FileSystemCapability",
-    "TerminalCapability",
     # stdio helper
     "stdio_streams",
     # filesystem
