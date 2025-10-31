@@ -7,13 +7,21 @@ content blocks, session updates, and other data structures using the external ac
 from __future__ import annotations
 
 import base64
-from typing import TYPE_CHECKING, Any, overload
+from typing import TYPE_CHECKING, overload
 
 from pydantic import HttpUrl
+from pydantic_ai import (
+    AudioUrl,
+    BinaryContent,
+    DocumentUrl,
+    ImageUrl,
+    ToolReturn,
+    UserContent,
+    VideoUrl,
+)
 
 from acp.schema import (
     AudioContentBlock,
-    ContentToolCallContent,
     EmbeddedResourceContentBlock,
     HttpMcpServer,
     ImageContentBlock,
@@ -164,7 +172,11 @@ def from_content_blocks(blocks: Sequence[ContentBlock]) -> Sequence[str | BaseCo
 
 
 def to_acp_content_blocks(  # noqa: PLR0911
-    tool_output: Any,
+    tool_output: ToolReturn
+    | list[ToolReturn]
+    | UserContent
+    | Sequence[UserContent]
+    | None,
 ) -> list[TextContentBlock | ImageContentBlock | AudioContentBlock]:
     """Convert pydantic-ai tool output to raw ACP content blocks.
 
@@ -177,22 +189,6 @@ def to_acp_content_blocks(  # noqa: PLR0911
     Returns:
         List of content blocks (TextContentBlock, ImageContentBlock, AudioContentBlock)
     """
-    try:
-        # Import pydantic-ai types only when needed to avoid dependency issues
-        from pydantic_ai import (
-            AudioUrl,
-            BinaryContent,
-            DocumentUrl,
-            ImageUrl,
-            ToolReturn,
-            VideoUrl,
-        )
-    except ImportError:
-        # Fallback if pydantic-ai not available - convert to text
-        if tool_output is not None:
-            return [TextContentBlock(text=str(tool_output))]
-        return []
-
     if tool_output is None:
         return []
 
@@ -265,22 +261,6 @@ def to_acp_content_blocks(  # noqa: PLR0911
         case _:
             # Everything else - convert to string
             return [TextContentBlock(text=str(tool_output))]
-
-
-def to_tool_call_contents(tool_output: Any) -> list[ContentToolCallContent]:
-    """Convert pydantic-ai tool output to ACP content blocks.
-
-    Handles multimodal content from pydantic-ai including images, audio, binary content,
-    URLs, and ToolReturn objects with separate content fields.
-
-    Args:
-        tool_output: Output from pydantic-ai tool execution
-
-    Returns:
-        List of ContentToolCallContent blocks for ACP
-    """
-    raw_blocks = to_acp_content_blocks(tool_output)
-    return [ContentToolCallContent(content=block) for block in raw_blocks]
 
 
 def agent_to_mode(agent: Agent) -> SessionMode:
