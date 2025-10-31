@@ -54,7 +54,7 @@ Add this configuration to your Zed `settings.json`:
         "--python",
         "3.13",
         "llmling-agent[default]@latest",
-        "acp",
+        "serve-acp",
         "https://raw.githubusercontent.com/phil65/llmling-agent/refs/heads/main/src/llmling_agent_examples/pick_experts/config.yml",
         "--model-provider",
         "openai"
