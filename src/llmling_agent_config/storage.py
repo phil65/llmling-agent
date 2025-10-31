@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Annotated, Final, Literal
 
 from platformdirs import user_data_dir
-from pydantic import AnyUrl, ConfigDict, Field, SecretStr
+from pydantic import ConfigDict, Field, SecretStr
 from schemez import Schema
 
 
@@ -26,11 +26,11 @@ DATA_DIR: Final = Path(user_data_dir(APP_NAME, APP_AUTHOR))
 DEFAULT_DB_NAME: Final = "history.db"
 
 
-def get_database_path() -> AnyUrl:
+def get_database_path() -> str:
     """Get the database file path, creating directories if needed."""
     db_path = DATA_DIR / DEFAULT_DB_NAME
     db_path.parent.mkdir(parents=True, exist_ok=True)
-    return AnyUrl(f"sqlite:///{db_path}")
+    return f"sqlite:///{db_path}"
 
 
 class BaseStorageProviderConfig(Schema):
@@ -63,7 +63,7 @@ class SQLStorageConfig(BaseStorageProviderConfig):
     type: Literal["sql"] = Field("sql", init=False)
     """SQLModel storage configuration."""
 
-    url: AnyUrl = Field(default_factory=get_database_path)
+    url: str = Field(default_factory=get_database_path)
     """Database URL (e.g. sqlite:///history.db)"""
 
     pool_size: int = Field(default=5, ge=1)
@@ -84,6 +84,9 @@ class SQLStorageConfig(BaseStorageProviderConfig):
         elif url_str.startswith("mysql://"):
             url_str = url_str.replace("mysql://", "mysql+aiomysql://", 1)
 
+        # SQLite doesn't support pool_size parameter
+        if url_str.startswith("sqlite+aiosqlite://"):
+            return create_async_engine(url_str)
         return create_async_engine(url_str, pool_size=self.pool_size)
 
 

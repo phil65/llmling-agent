@@ -5,8 +5,7 @@ from decimal import Decimal
 from uuid import uuid4
 
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlmodel import SQLModel, delete, select
+from sqlmodel import delete, select
 
 from llmling_agent.messaging.messages import TokenCost
 from llmling_agent.utils.now import get_now
@@ -19,111 +18,88 @@ from llmling_agent_storage.sql_provider import Conversation, Message, SQLModelPr
 # Reference time for all tests
 BASE_TIME = datetime(2024, 1, 1, 12, 0)  # noon on Jan 1, 2024
 
-# Create async engine for testing
-async_engine = create_async_engine(
-    "sqlite+aiosqlite:///:memory:",
-    connect_args={"check_same_thread": False},
-)
-
-
-async def create_async_tables():
-    """Create tables for async engine."""
-    from sqlalchemy.ext.asyncio import create_async_engine
-
-    temp_engine = create_async_engine("sqlite+aiosqlite:///:memory:")
-    async with temp_engine.begin() as conn:
-        await conn.run_sync(SQLModel.metadata.create_all)
-    await temp_engine.dispose()
-
-
-@pytest.fixture(autouse=True)
-async def cleanup_database():
-    """Clean up the database before each test."""
-    # Create tables for async engine
-    async with async_engine.begin() as conn:
-        await conn.run_sync(SQLModel.metadata.create_all)
-
-    # Clean database
-    async with AsyncSession(async_engine) as session:
-        await session.execute(delete(Message))
-        await session.execute(delete(Conversation))
-        await session.commit()
-
-
-@pytest.fixture
-async def sample_data(cleanup_database: None):
-    """Create sample conversation data."""
-    async with AsyncSession(async_engine) as session:
-        # Create two conversations
-        start = BASE_TIME - timedelta(hours=1)  # 11:00
-        conv1 = Conversation(id="conv1", agent_name="test_agent", start_time=start)
-        start = BASE_TIME - timedelta(hours=2)  # 10:00
-        conv2 = Conversation(id="conv2", agent_name="other_agent", start_time=start)
-        session.add(conv1)
-        session.add(conv2)
-        await session.commit()
-
-        # Create provider for async operations
-        config = SQLStorageConfig(url="sqlite+aiosqlite:///:memory:")
-        provider = SQLModelProvider(config, async_engine)
-
-        # Add messages
-        test_data = [
-            (
-                "conv1",  # conversation_id
-                "Hello",  # content
-                "user",  # role
-                "user",  # name
-                "gpt-5",  # model
-                TokenCost(
-                    token_usage={"total": 10, "prompt": 5, "completion": 5},
-                    total_cost=Decimal("0.001"),
-                ),  # cost_info
-            ),
-            (
-                "conv1",
-                "Hi there!",
-                "assistant",
-                "test_agent",
-                "gpt-5",
-                TokenCost(
-                    token_usage={"total": 20, "prompt": 10, "completion": 10},
-                    total_cost=Decimal("0.002"),
-                ),
-            ),
-            (
-                "conv2",
-                "Testing",
-                "user",
-                "user",
-                "gpt-3.5-turbo",
-                TokenCost(
-                    token_usage={"total": 15, "prompt": 7, "completion": 8},
-                    total_cost=Decimal("0.0015"),
-                ),
-            ),
-        ]
-
-        # Add messages using the provider's method signature
-        for conv_id, content, role, name, model, cost_info in test_data:
-            await provider.log_message(
-                conversation_id=conv_id,
-                message_id=str(uuid4()),
-                content=content,
-                role=role,
-                name=name,
-                model=model,
-                cost_info=cost_info,
-                response_time=None,
-                forwarded_from=None,
-            )
+# Test configuration
+test_config = SQLStorageConfig(url="sqlite+aiosqlite:///:memory:")
 
 
 @pytest.fixture
 async def provider():
     """Create SQLModelProvider instance."""
-    config = SQLStorageConfig(url="sqlite+aiosqlite:///:memory:")
-    return SQLModelProvider(config, async_engine)
+    async with SQLModelProvider(test_config) as p:
+        yield p
+
+
+@pytest.fixture(autouse=True)
+async def cleanup_database(provider: SQLModelProvider):
+    """Clean up the database before each test."""
+    # Clean database - provider manages its own session
+    await provider.session.execute(delete(Message))
+    await provider.session.execute(delete(Conversation))
+    await provider.session.commit()
+
+
+@pytest.fixture
+async def sample_data(provider: SQLModelProvider):
+    """Create sample conversation data."""
+    # Create two conversations - provider manages its own session
+    start = BASE_TIME - timedelta(hours=1)  # 11:00
+    conv1 = Conversation(id="conv1", agent_name="test_agent", start_time=start)
+    start = BASE_TIME - timedelta(hours=2)  # 10:00
+    conv2 = Conversation(id="conv2", agent_name="other_agent", start_time=start)
+    provider.session.add(conv1)
+    provider.session.add(conv2)
+    await provider.session.commit()
+
+    # Add messages
+    test_data = [
+        (
+            "conv1",  # conversation_id
+            "Hello",  # content
+            "user",  # role
+            "user",  # name
+            "gpt-5",  # model
+            TokenCost(
+                token_usage={"total": 10, "prompt": 5, "completion": 5},
+                total_cost=Decimal("0.001"),
+            ),  # cost_info
+        ),
+        (
+            "conv1",
+            "Hi there!",
+            "assistant",
+            "test_agent",
+            "gpt-5",
+            TokenCost(
+                token_usage={"total": 20, "prompt": 10, "completion": 10},
+                total_cost=Decimal("0.002"),
+            ),
+        ),
+        (
+            "conv2",
+            "Testing",
+            "user",
+            "user",
+            "gpt-3.5-turbo",
+            TokenCost(
+                token_usage={"total": 15, "prompt": 7, "completion": 8},
+                total_cost=Decimal("0.0015"),
+            ),
+        ),
+    ]
+
+    # Add messages using the provider's method signature
+    for conv_id, content, role, name, model, cost_info in test_data:
+        await provider.log_message(
+            conversation_id=conv_id,
+            message_id=str(uuid4()),
+            content=content,
+            role=role,
+            name=name,
+            model=model,
+            cost_info=cost_info,
+            response_time=None,
+            forwarded_from=None,
+        )
 
 
 def test_parse_time_period():
@@ -207,13 +183,12 @@ async def test_basic_filters(provider: SQLModelProvider, sample_data: None):
 
 async def test_time_filters(provider: SQLModelProvider, sample_data: None):
     """Test time-based filtering."""
-    # First find conversation start times
-    async with AsyncSession(async_engine) as session:
-        result = await session.execute(
-            select(Conversation).order_by(Conversation.start_time.desc())
-        )
-        conv = result.scalars().first()
-        latest_conv_time = conv.start_time  # type:ignore
+    # First find conversation start times - provider manages its own session
+    result = await provider.session.execute(
+        select(Conversation).order_by(Conversation.start_time.desc())
+    )
+    conv = result.scalars().first()
+    latest_conv_time = conv.start_time  # type:ignore
 
     # Get all conversations (no time filter)
     filters = QueryFilters()
@@ -257,15 +232,12 @@ async def test_period_filtering(provider: SQLModelProvider, sample_data: None):
     results = await provider.get_conversations(filters)
     print(f"\nGot {len(results)} conversations with since={since}")
 
-    # Print all conversations and their times
-    async with AsyncSession(async_engine) as session:
-        result = await session.execute(select(Conversation))
-        convs = result.scalars().all()
-        for conv in convs:
-            print(f"Conv {conv.id}: start_time={conv.start_time}, since={since}")
-            print(
-                f"Comparison: {conv.start_time} >= {since} = {conv.start_time >= since}"
-            )
+    # Print all conversations and their times - provider manages its own session
+    result = await provider.session.execute(select(Conversation))
+    convs = result.scalars().all()
+    for conv in convs:
+        print(f"Conv {conv.id}: start_time={conv.start_time}, since={since}")
+        print(f"Comparison: {conv.start_time} >= {since} = {conv.start_time >= since}")
 
 
 if __name__ == "__main__":
