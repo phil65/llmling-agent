@@ -12,15 +12,18 @@ from acp.schema import (
     AudioContentBlock,
     AvailableCommand,
     AvailableCommandsUpdate,
+    BlobResourceContents,
     ContentToolCallContent,
     # CurrentModelUpdate,
     CurrentModeUpdate,
+    EmbeddedResourceContentBlock,
     FileEditToolCallContent,
     ImageContentBlock,
     ResourceContentBlock,
     SessionNotification,
     TerminalToolCallContent,
     TextContentBlock,
+    TextResourceContents,
     ToolCallLocation,
     ToolCallProgress,
     ToolCallStart,
@@ -32,6 +35,8 @@ from llmling_agent.log import get_logger
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
+
+    from pydantic_ai import ModelRequest, ModelResponse
 
     from acp import Client
     from acp.schema import (
@@ -63,6 +68,7 @@ class ACPNotifications:
         """
         self.client = client
         self.id = session_id
+        self._tool_call_inputs: dict[str, dict] = {}
 
     async def tool_call(
         self,
@@ -316,6 +322,226 @@ class ACPNotifications:
         update = UserMessageChunk(content=TextContentBlock(text=message))
         notification = SessionNotification[Any](session_id=self.id, update=update)
         await self.client.handle_notification(notification)
+
+    async def send_user_image(
+        self,
+        data: str,
+        mime_type: str,
+        *,
+        uri: str | None = None,
+        annotations: Any | None = None,
+    ) -> None:
+        """Send a user image notification.
+
+        Args:
+            data: Base64-encoded image data
+            mime_type: MIME type of the image
+            uri: Optional URI of the image
+            annotations: Optional annotations for the content block
+        """
+        content = ImageContentBlock(
+            data=data,
+            mime_type=mime_type,
+            uri=uri,
+            annotations=annotations,
+        )
+        update = UserMessageChunk(content=content)
+        notification = SessionNotification[Any](session_id=self.id, update=update)
+        await self.client.handle_notification(notification)
+
+    async def send_user_audio(
+        self,
+        data: str,
+        mime_type: str,
+        *,
+        annotations: Any | None = None,
+    ) -> None:
+        """Send a user audio notification.
+
+        Args:
+            data: Base64-encoded audio data
+            mime_type: MIME type of the audio
+            annotations: Optional annotations for the content block
+        """
+        content = AudioContentBlock(
+            data=data,
+            mime_type=mime_type,
+            annotations=annotations,
+        )
+        update = UserMessageChunk(content=content)
+        notification = SessionNotification[Any](session_id=self.id, update=update)
+        await self.client.handle_notification(notification)
+
+    async def send_user_resource(
+        self,
+        uri: str,
+        name: str,
+        *,
+        description: str | None = None,
+        mime_type: str | None = None,
+        size: int | None = None,
+        title: str | None = None,
+        annotations: Any | None = None,
+    ) -> None:
+        """Send a user resource link notification.
+
+        Args:
+            uri: URI of the resource
+            name: Name of the resource
+            description: Optional description of the resource
+            mime_type: Optional MIME type of the resource
+            size: Optional size of the resource in bytes
+            title: Optional title of the resource
+            annotations: Optional annotations for the content block
+        """
+        content = ResourceContentBlock(
+            uri=uri,
+            name=name,
+            description=description,
+            mime_type=mime_type,
+            size=size,
+            title=title,
+            annotations=annotations,
+        )
+        update = UserMessageChunk(content=content)
+        notification = SessionNotification[Any](session_id=self.id, update=update)
+        await self.client.handle_notification(notification)
+
+    async def replay(self, messages: Sequence[ModelRequest | ModelResponse]) -> None:
+        """Replay a sequence of model messages as notifications.
+
+        Args:
+            messages: Sequence of ModelRequest and ModelResponse objects to replay
+        """
+        from pydantic_ai import ModelRequest, ModelResponse
+
+        for message in messages:
+            try:
+                match message:
+                    case ModelRequest():
+                        await self._replay_request(message)
+                    case ModelResponse():
+                        await self._replay_response(message)
+                    case _:
+                        logger.debug(
+                            "Unhandled message type", message_type=type(message).__name__
+                        )
+            except Exception as e:
+                logger.exception("Failed to replay message", error=str(e))
+
+    async def _replay_request(self, request: ModelRequest) -> None:
+        """Replay a ModelRequest by converting it to appropriate ACP notifications."""
+        from pydantic_ai import ToolReturnPart, UserPromptPart
+
+        from llmling_agent_acp.converters import to_acp_content_blocks
+
+        for part in request.parts:
+            match part:
+                case UserPromptPart(content=content):
+                    # Handle both str and Sequence[UserContent] types
+                    if isinstance(content, str):
+                        await self.send_user_message(content)
+                    else:
+                        # Convert multi-modal content to appropriate ACP content blocks
+                        from llmling_agent_acp.converters import to_acp_content_blocks
+
+                        converted_content = to_acp_content_blocks(content)
+                        # Send each content block as separate notifications
+                        for block in converted_content:
+                            # Handle different content block types with proper
+                            # pattern matching
+                            match block:
+                                case TextContentBlock(text=text):
+                                    await self.send_user_message(text)
+                                case ImageContentBlock() as img_block:
+                                    await self.send_user_image(
+                                        data=img_block.data,
+                                        mime_type=img_block.mime_type,
+                                        uri=img_block.uri,
+                                        annotations=img_block.annotations,
+                                    )
+                                case AudioContentBlock() as audio_block:
+                                    await self.send_user_audio(
+                                        data=audio_block.data,
+                                        mime_type=audio_block.mime_type,
+                                        annotations=audio_block.annotations,
+                                    )
+                                case ResourceContentBlock() as resource_block:
+                                    await self.send_user_resource(
+                                        uri=resource_block.uri,
+                                        name=resource_block.name,
+                                        description=resource_block.description,
+                                        mime_type=resource_block.mime_type,
+                                        size=resource_block.size,
+                                        title=resource_block.title,
+                                        annotations=resource_block.annotations,
+                                    )
+                                case EmbeddedResourceContentBlock() as embedded_block:
+                                    # Handle embedded resources with proper
+                                    # pattern matching
+                                    match embedded_block.resource:
+                                        case TextResourceContents(text=text):
+                                            await self.send_user_message(text)
+                                        case BlobResourceContents() as blob_resource:
+                                            blob_size = len(blob_resource.blob) * 3 // 4
+                                            size_mb = blob_size / (1024 * 1024)
+                                            mime = blob_resource.mime_type or "unknown"
+                                            msg = (
+                                                f"Embedded resource: {mime} "
+                                                f"({size_mb:.2f} MB)"
+                                            )
+                                            await self.send_user_message(msg)
+                                        case _:
+                                            await self.send_user_message(
+                                                "Embedded resource"
+                                            )
+                                case _:
+                                    # Fallback for unknown types
+                                    await self.send_user_message(str(block))
+
+                case ToolReturnPart(
+                    content=content, tool_name=tool_name, tool_call_id=tool_call_id
+                ):
+                    converted_content = to_acp_content_blocks(content)
+                    tool_input = self._tool_call_inputs.get(tool_call_id, {})
+                    await self.tool_call(
+                        tool_name=tool_name,
+                        tool_input=tool_input,
+                        tool_output=converted_content,
+                        status="completed",
+                        tool_call_id=tool_call_id,
+                    )
+                    # Clean up stored input
+                    self._tool_call_inputs.pop(tool_call_id, None)
+
+                case _:
+                    logger.debug(
+                        "Unhandled request part type", part_type=type(part).__name__
+                    )
+
+    async def _replay_response(self, response: ModelResponse) -> None:
+        """Replay a ModelResponse by converting it to appropriate ACP notifications."""
+        from pydantic_ai import TextPart, ThinkingPart, ToolCallPart
+
+        for part in response.parts:
+            match part:
+                case TextPart(content=content):
+                    await self.send_agent_text(content)
+
+                case ThinkingPart(content=content):
+                    await self.send_agent_thought(content)
+
+                case ToolCallPart(tool_call_id=tool_call_id):
+                    # Store tool call inputs for later use with ToolReturnPart
+                    tool_input = part.args_as_dict()
+                    self._tool_call_inputs[tool_call_id] = tool_input
+                    # Skip sending notification - ACP protocol overrides previous
+                    # tool call state
+
+                case _:
+                    logger.debug(
+                        "Unhandled response part type", part_type=type(part).__name__
+                    )
 
     async def send_agent_image(
         self,
