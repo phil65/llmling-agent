@@ -55,7 +55,7 @@ class DebugSendTextCommand(SlashedCommand):
         """
         session = ctx.context.session
         try:
-            content = TextContentBlock(type="text", text=text)
+            content = TextContentBlock(text=text)
 
             if chunk_type == "agent":
                 update: SessionUpdate = AgentMessageChunk(content=content)
@@ -144,7 +144,7 @@ class DebugUpdateToolCallCommand(SlashedCommand):
                 tool_content = [
                     ContentToolCallContent(
                         type="content",
-                        content=TextContentBlock(type="text", text=content),
+                        content=TextContentBlock(text=content),
                     )
                 ]
             await session.notifications.tool_call_progress(
@@ -312,9 +312,7 @@ class DebugCreateTemplateCommand(SlashedCommand):
 
             # Create proper BaseModel instances
             message_chunk = AgentMessageChunk(
-                content=TextContentBlock(
-                    type="text", text="Hello, this is a debug message!"
-                )
+                content=TextContentBlock(text="Hello, this is a debug message!")
             )
 
             tool_start = ToolCallStart(
@@ -332,9 +330,7 @@ class DebugCreateTemplateCommand(SlashedCommand):
                 content=[
                     ContentToolCallContent(
                         type="content",
-                        content=TextContentBlock(
-                            type="text", text="Tool completed successfully!"
-                        ),
+                        content=TextContentBlock(text="Tool completed successfully!"),
                     )
                 ],
                 session_update="tool_call_update",

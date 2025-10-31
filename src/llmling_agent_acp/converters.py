@@ -10,11 +10,7 @@ import base64
 from typing import TYPE_CHECKING, overload
 
 from pydantic import HttpUrl
-from pydantic_ai import (
-    BinaryContent,
-    FileUrl,
-    ToolReturn,
-)
+from pydantic_ai import BinaryContent, FileUrl, ToolReturn
 
 from acp.schema import (
     AudioContentBlock,

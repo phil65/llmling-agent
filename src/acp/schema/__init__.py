@@ -205,7 +205,6 @@ __all__ = [
     "ToolCallStart",
     "ToolCallStatus",
     "UserMessageChunk",
-    "VideoContentBlockAgentThoughtChunk",
     "WaitForTerminalExitRequest",
     "WaitForTerminalExitResponse",
     "WriteTextFileRequest",
