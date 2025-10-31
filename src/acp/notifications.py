@@ -321,7 +321,7 @@ class ACPNotifications:
         """
         update = UserMessageChunk(content=TextContentBlock(text=message))
         notification = SessionNotification[Any](session_id=self.id, update=update)
-        await self.client.handle_notification(notification)
+        await self.client.session_update(notification)
 
     async def send_user_image(
         self,
@@ -347,7 +347,7 @@ class ACPNotifications:
         )
         update = UserMessageChunk(content=content)
         notification = SessionNotification[Any](session_id=self.id, update=update)
-        await self.client.handle_notification(notification)
+        await self.client.session_update(notification)
 
     async def send_user_audio(
         self,
@@ -370,7 +370,7 @@ class ACPNotifications:
         )
         update = UserMessageChunk(content=content)
         notification = SessionNotification[Any](session_id=self.id, update=update)
-        await self.client.handle_notification(notification)
+        await self.client.session_update(notification)
 
     async def send_user_resource(
         self,
@@ -405,7 +405,7 @@ class ACPNotifications:
         )
         update = UserMessageChunk(content=content)
         notification = SessionNotification[Any](session_id=self.id, update=update)
-        await self.client.handle_notification(notification)
+        await self.client.session_update(notification)
 
     async def replay(self, messages: Sequence[ModelRequest | ModelResponse]) -> None:
         """Replay a sequence of model messages as notifications.
