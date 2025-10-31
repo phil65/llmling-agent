@@ -31,6 +31,7 @@ from pydantic_ai import (
 from acp.filesystem import ACPFileSystem
 from acp.notifications import ACPNotifications
 from acp.requests import ACPRequests
+from acp.utils import to_acp_content_blocks
 from llmling_agent.agent.events import StreamCompleteEvent, ToolCallProgressEvent
 from llmling_agent.log import get_logger
 from llmling_agent.mcp_server.manager import MCPManager
@@ -39,7 +40,6 @@ from llmling_agent_acp.command_bridge import SLASH_PATTERN
 from llmling_agent_acp.converters import (
     convert_acp_mcp_server_to_config,
     from_content_blocks,
-    to_acp_content_blocks,
 )
 
 

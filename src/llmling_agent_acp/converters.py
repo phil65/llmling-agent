@@ -6,11 +6,9 @@ content blocks, session updates, and other data structures using the external ac
 
 from __future__ import annotations
 
-import base64
 from typing import TYPE_CHECKING, overload
 
 from pydantic import HttpUrl
-from pydantic_ai import BinaryContent, FileUrl, ToolReturn
 
 from acp.schema import (
     AudioContentBlock,
@@ -18,7 +16,6 @@ from acp.schema import (
     EmbeddedResourceContentBlock,
     HttpMcpServer,
     ImageContentBlock,
-    PermissionOption,
     ResourceContentBlock,
     SessionMode,
     SseMcpServer,
@@ -37,8 +34,6 @@ from llmling_agent_config.mcp_server import (
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from pydantic_ai import UserContent
-
     from acp.schema import ContentBlock, McpServer
     from llmling_agent import Agent
     from llmling_agent.models.content import BaseContent
@@ -46,14 +41,6 @@ if TYPE_CHECKING:
 
 
 logger = get_logger(__name__)
-
-
-DEFAULT_PERMISSION_OPTIONS = [
-    PermissionOption(option_id="allow_once", name="Allow Once", kind="allow_once"),
-    PermissionOption(option_id="deny_once", name="Deny Once", kind="reject_once"),
-    PermissionOption(option_id="allow_always", name="Always Allow", kind="allow_always"),
-    PermissionOption(option_id="deny_always", name="Always Deny", kind="reject_always"),
-]
 
 
 @overload
@@ -131,7 +118,15 @@ def from_content_blocks(blocks: Sequence[ContentBlock]) -> Sequence[str | BaseCo
     Returns:
         List of content objects (str for text, Content objects for rich media)
     """
-    from llmling_agent.models.content import AudioBase64Content, ImageBase64Content
+    from llmling_agent.models.content import (
+        AudioBase64Content,
+        AudioURLContent,
+        ImageBase64Content,
+        ImageURLContent,
+        PDFBase64Content,
+        PDFURLContent,
+        VideoURLContent,
+    )
 
     content: list[str | BaseContent] = []
 
@@ -139,138 +134,59 @@ def from_content_blocks(blocks: Sequence[ContentBlock]) -> Sequence[str | BaseCo
         match block:
             case TextContentBlock(text=text):
                 content.append(text)
-            case ImageContentBlock(data=data, mime_type=mime_type):
+
+            case ImageContentBlock(data=data, mime_type=mime_type, uri=uri):
+                # Prefer data over URI as per ACP specification
                 content.append(ImageBase64Content(data=data, mime_type=mime_type))
+
             case AudioContentBlock(data=data, mime_type=mime_type):
-                # Audio always has data
                 format_type = mime_type.split("/")[-1] if mime_type else "mp3"
                 content.append(AudioBase64Content(data=data, format=format_type))
 
-            case ResourceContentBlock(name=name, description=description, uri=uri):
-                # Resource links - convert to text for now
-                parts = [f"Resource: {name}"]
-                if description:
-                    parts.append(f"Description: {description}")
-                parts.append(f"URI: {format_uri_as_link(uri)}")
-                content.append("\n".join(parts))
+            case ResourceContentBlock(
+                uri=uri, description=description, mime_type=mime_type
+            ):
+                # Convert to appropriate content type based on MIME type
+                if mime_type:
+                    if mime_type.startswith("image/"):
+                        content.append(ImageURLContent(url=uri, description=description))
+                    elif mime_type.startswith("audio/"):
+                        content.append(AudioURLContent(url=uri, description=description))
+                    elif mime_type.startswith("video/"):
+                        content.append(VideoURLContent(url=uri, description=description))
+                    elif mime_type == "application/pdf":
+                        content.append(PDFURLContent(url=uri, description=description))
+                    else:
+                        # Generic resource - convert to text link
+                        content.append(format_uri_as_link(uri))
+                else:
+                    # No MIME type - fallback to text link
+                    content.append(format_uri_as_link(uri))
+
             case EmbeddedResourceContentBlock(resource=resource):
                 match resource:
                     case TextResourceContents(uri=uri, text=text):
                         content.append(format_uri_as_link(uri))
                         content.append(f'\n<context ref="{uri}">\n{text}\n</context>')
-                    case _:
-                        # Binary resource - just describe it with formatted URI
-                        formatted_uri = format_uri_as_link(resource.uri)
-                        content.append(f"Binary Resource: {formatted_uri}")
+                    case BlobResourceContents(blob=blob, mime_type=mime_type):
+                        # Convert embedded binary to appropriate content type
+                        if mime_type and mime_type.startswith("image/"):
+                            content.append(
+                                ImageBase64Content(data=blob, mime_type=mime_type)
+                            )
+                        elif mime_type and mime_type.startswith("audio/"):
+                            format_type = mime_type.split("/")[-1]
+                            content.append(
+                                AudioBase64Content(data=blob, format=format_type)
+                            )
+                        elif mime_type == "application/pdf":
+                            content.append(PDFBase64Content(data=blob))
+                        else:
+                            # Unknown binary type - describe it
+                            formatted_uri = format_uri_as_link(resource.uri)
+                            content.append(f"Binary Resource: {formatted_uri}")
 
     return content
-
-
-def to_acp_content_blocks(  # noqa: PLR0911
-    tool_output: (
-        ToolReturn | list[ToolReturn] | UserContent | Sequence[UserContent] | None
-    ),
-) -> list[ContentBlock]:
-    """Convert pydantic-ai tool output to raw ACP content blocks.
-
-    Returns unwrapped content blocks that can be used directly or wrapped
-    in ContentToolCallContent as needed.
-
-    Args:
-        tool_output: Output from pydantic-ai tool execution
-
-    Returns:
-        List of ContentBlock objects
-    """
-    if tool_output is None:
-        return []
-
-    # Handle ToolReturn objects with separate content field
-    if isinstance(tool_output, ToolReturn):
-        result_blocks: list[ContentBlock] = []
-
-        # Add the return value as text
-        if tool_output.return_value is not None:
-            result_blocks.append(TextContentBlock(text=str(tool_output.return_value)))
-
-        # Add any multimodal content
-        if tool_output.content:
-            content_list = (
-                tool_output.content
-                if isinstance(tool_output.content, list)
-                else [tool_output.content]
-            )
-            for content_item in content_list:
-                result_blocks.extend(to_acp_content_blocks(content_item))
-
-        return result_blocks
-
-    # Handle lists of content
-    if isinstance(tool_output, list):
-        list_blocks: list[ContentBlock] = []
-        for item in tool_output:
-            list_blocks.extend(to_acp_content_blocks(item))
-        return list_blocks
-
-    # Handle multimodal content types
-    match tool_output:
-        case BinaryContent(data=data, media_type=media_type) if media_type.startswith(
-            "image/"
-        ):
-            # Image content - convert binary data to base64
-            image_data = base64.b64encode(data).decode("utf-8")
-            return [ImageContentBlock(data=image_data, mime_type=media_type)]
-
-        case BinaryContent(data=data, media_type=media_type) if media_type.startswith(
-            "audio/"
-        ):
-            # Audio content - convert binary data to base64
-            audio_data = base64.b64encode(data).decode("utf-8")
-            return [AudioContentBlock(data=audio_data, mime_type=media_type)]
-
-        case BinaryContent(data=data, media_type=media_type):
-            # Other binary content - embed as blob resource
-            blob_data = base64.b64encode(data).decode("utf-8")
-            blob_resource = BlobResourceContents(
-                blob=blob_data,
-                mime_type=media_type,
-                uri=f"data:{media_type};base64,{blob_data[:50]}...",
-            )
-            return [
-                EmbeddedResourceContentBlock(
-                    resource=blob_resource,
-                    annotations=None,
-                )
-            ]
-
-        case FileUrl(url=url, kind=kind, media_type=media_type):
-            # Handle all URL types with unified logic using FileUrl base class
-            from urllib.parse import urlparse
-
-            parsed = urlparse(str(url))
-
-            # Extract resource type from kind (e.g., "image-url" -> "image")
-            resource_type = kind.replace("-url", "")
-
-            # Generate name from URL path or use type as fallback
-            name = parsed.path.split("/")[-1] if parsed.path else resource_type
-            if not name or name == "/":
-                name = (
-                    f"{resource_type}_{parsed.netloc}" if parsed.netloc else resource_type
-                )
-
-            return [
-                ResourceContentBlock(
-                    uri=str(url),
-                    name=name,
-                    description=f"{resource_type.title()} resource",
-                    mime_type=media_type,  # Uses FileUrl's computed media_type property
-                )
-            ]
-
-        case _:
-            # Everything else - convert to string
-            return [TextContentBlock(text=str(tool_output))]
 
 
 def agent_to_mode(agent: Agent) -> SessionMode:
