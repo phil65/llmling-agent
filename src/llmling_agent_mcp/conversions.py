@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 import urllib.parse
 
 from mcp import types
+from pydantic import AnyUrl
 
 from llmling_agent.messaging.messages import ChatMessage
 from llmling_agent.models.content import AudioBase64Content, ImageBase64Content
@@ -113,7 +114,7 @@ def _denormalize_windows_path(path: str) -> str:
     return "/".join(parts)
 
 
-def to_mcp_uri(uri: str) -> types.AnyUrl:
+def to_mcp_uri(uri: str) -> AnyUrl:
     """Convert internal URI to MCP-compatible AnyUrl."""
     try:
         if not uri:
@@ -128,7 +129,7 @@ def to_mcp_uri(uri: str) -> types.AnyUrl:
 
         match scheme:
             case "http" | "https":
-                return types.AnyUrl(uri)
+                return AnyUrl(uri)
 
             case "file":
                 path = _normalize_windows_path(rest.lstrip("/"))
@@ -137,11 +138,11 @@ def to_mcp_uri(uri: str) -> types.AnyUrl:
                     raise ValueError(msg)  # noqa: TRY301
                 parts = path.split("/")
                 encoded = [urllib.parse.quote(part) for part in parts if part]
-                return types.AnyUrl(f"file://host/{'/'.join(encoded)}")
+                return AnyUrl(f"file://host/{'/'.join(encoded)}")
 
             case "text" | "python" | "cli" | "callable" | "image":
                 name = urllib.parse.quote(rest)
-                return types.AnyUrl(f"resource://host/{name}")
+                return AnyUrl(f"resource://host/{name}")
 
             case _:
                 msg = f"Unsupported URI scheme: {scheme}"
