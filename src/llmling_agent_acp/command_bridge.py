@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 from acp.schema import AvailableCommand
 from llmling_agent.log import get_logger
+from llmling_agent_acp.commands.acp_commands import ACPCommandContext
 from llmling_agent_acp.commands.mcp_commands import MCPPromptCommand
 
 
@@ -21,6 +22,7 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 SLASH_PATTERN = re.compile(r"^/([\w-]+)(?:\s+(.*))?$")
+ACP_COMMANDS = {"list-sessions", "load-session", "save-session", "delete-session"}
 
 
 class ACPOutputWriter:
@@ -92,12 +94,8 @@ class ACPCommandBridge:
         # Create output writer that sends directly to session
         output_writer = ACPOutputWriter(session)
 
-        # Check if it's an ACP-specific command
-        acp_commands = {"list-sessions", "load-session", "save-session", "delete-session"}
-
-        if command_name in acp_commands:
+        if command_name in ACP_COMMANDS:
             # Use ACP context for ACP commands
-            from llmling_agent_acp.commands.acp_commands import ACPCommandContext
 
             acp_ctx = ACPCommandContext(session)
             cmd_ctx: CommandContext = self.command_store.create_context(
