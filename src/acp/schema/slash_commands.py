@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Self
+
 from pydantic import RootModel
 
 from acp.schema.base import AnnotatedObject, Schema
@@ -32,3 +34,22 @@ class AvailableCommand(AnnotatedObject):
 
     name: str
     """Command name (e.g., `create_plan`, `research_codebase`)."""
+
+    @classmethod
+    def create(cls, name: str, description: str, input_hint: str | None = None) -> Self:
+        """Create a new Command.
+
+        Args:
+            name: Name of the command.
+            description: Description of the command.
+            input_hint: Hint for the input.
+
+        Returns:
+            A new available command.
+        """
+        spec = (
+            AvailableCommandInput(root=CommandInputHint(hint=input_hint))
+            if input_hint
+            else None
+        )
+        return cls(name=name, description=description, input=spec)

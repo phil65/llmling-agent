@@ -5,20 +5,16 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING, Any
 
-from acp.schema import AvailableCommand, AvailableCommandInput, CommandInputHint
+from acp.schema import AvailableCommand
 from llmling_agent.log import get_logger
 from llmling_agent_acp.commands.mcp_commands import MCPPromptCommand
-
-
-if TYPE_CHECKING:
-    from slashed import CommandStore
 
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
     from mcp.types import Prompt as MCPPrompt
-    from slashed import BaseCommand, CommandContext, CommandStore
+    from slashed import CommandContext, CommandStore
 
     from llmling_agent.agent.context import AgentContext
     from llmling_agent_acp.session import ACPSession
@@ -61,7 +57,14 @@ class ACPCommandBridge:
         Returns:
             List of ACP AvailableCommand objects
         """
-        commands = [_convert_command(cmd) for cmd in self.command_store.list_commands()]
+        commands = [
+            AvailableCommand.create(
+                name=cmd.name,
+                description=cmd.description,
+                input_hint=cmd.usage,
+            )
+            for cmd in self.command_store.list_commands()
+        ]
         commands.extend([
             cmd.to_available_command() for cmd in self._mcp_prompt_commands.values()
         ])
@@ -94,7 +97,7 @@ class ACPCommandBridge:
 
         if command_name in acp_commands:
             # Use ACP context for ACP commands
-            from llmling_agent_acp.acp_commands import ACPCommandContext
+            from llmling_agent_acp.commands.acp_commands import ACPCommandContext
 
             acp_ctx = ACPCommandContext(session)
             cmd_ctx: CommandContext = self.command_store.create_context(
@@ -139,21 +142,3 @@ class ACPCommandBridge:
                 callback()
             except Exception:
                 logger.exception("Command update callback failed")
-
-
-def _convert_command(command: BaseCommand) -> AvailableCommand:
-    """Convert a single slashed command to ACP format.
-
-    Args:
-        command: Slashed command to convert
-
-    Returns:
-        ACP AvailableCommand
-    """
-    description = command.description
-    spec = (
-        AvailableCommandInput(root=CommandInputHint(hint=command.usage))
-        if command.usage
-        else None
-    )
-    return AvailableCommand(name=command.name, description=description, input=spec)
