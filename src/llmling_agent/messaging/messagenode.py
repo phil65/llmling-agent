@@ -9,11 +9,13 @@ from uuid import uuid4
 
 from anyenv import method_spawner
 from psygnal import Signal
+from pydantic_ai import UserPromptPart
 
 from llmling_agent.messaging.messageemitter import MessageEmitter
 from llmling_agent.messaging.messages import ChatMessage
 from llmling_agent.prompts.convert import convert_prompts
 from llmling_agent.tools import ToolCallInfo
+from llmling_agent_providers.pydanticai.convert_content import content_to_pydantic_ai
 
 
 if TYPE_CHECKING:
@@ -64,6 +66,9 @@ class MessageNode[TDeps, TResult](MessageEmitter[TDeps, TResult]):
                 content=final_prompt,
                 role="user",
                 conversation_id=str(uuid4()),
+                parts=[
+                    UserPromptPart(content=[content_to_pydantic_ai(i) for i in prompts])
+                ],
             )
         self.message_received.emit(user_msg)
         self.context.current_prompt = final_prompt
