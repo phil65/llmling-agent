@@ -365,6 +365,5 @@ module-name = [
   "llmling_agent_input",
   "llmling_agent_server",
   "llmling_agent_toolsets",
-  "llmling_textual",
   "acp",
 ]

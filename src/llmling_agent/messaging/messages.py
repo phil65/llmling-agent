@@ -6,6 +6,7 @@ import dataclasses
 from dataclasses import dataclass, field, replace
 from decimal import Decimal
 from typing import TYPE_CHECKING, Any, Literal, Self, TypeVar
+import uuid
 from uuid import uuid4
 
 from genai_prices import calc_price
@@ -274,12 +275,12 @@ class ChatMessage[TContent]:
                     content=content,
                     parts=parts,
                     usage=usage,
-                    message_id=message_id,
+                    message_id=message_id or str(uuid.uuid4()),
                     conversation_id=conversation_id,
                     model_name=model_name,
                     timestamp=timestamp,
                     provider_name=provider_name,
-                    provider_details=provider_details,
+                    provider_details=provider_details or {},
                     finish_reason=finish_reason,
                     provider_response_id=provider_response_id,
                     name=name,
