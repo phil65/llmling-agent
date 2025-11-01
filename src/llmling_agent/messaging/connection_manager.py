@@ -236,8 +236,8 @@ class ConnectionManager:
             should_wait = any(
                 self._wait_states.get(t.name, False) for t in self.get_targets()
             )
-        msg = "ConnectionManager routing message from %s to %d connections"
-        logger.debug(msg, message.name, len(self._connections))
+        msg = "ConnectionManager routing message"
+        logger.debug(msg, sender=message.name, num_connections=len(self._connections))
         for talk in self._connections:
             await talk._handle_message(message, None)
 

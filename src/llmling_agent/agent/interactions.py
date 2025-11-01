@@ -119,7 +119,7 @@ class Interactions[TDeps, TResult]:
 
         while True:
             if max_rounds and rounds >= max_rounds:
-                logger.debug("Conversation ended: max rounds (%d) reached", max_rounds)
+                logger.debug("Conversation ended", max_rounds=max_rounds)
                 return
 
             response = await current_node.run(

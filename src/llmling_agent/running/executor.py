@@ -142,9 +142,12 @@ def _group_parallel(
             group = by_deps[key]
             groups.append(group)
             seen_funcs.update(f.name for f in group)
-    msg = "Grouped %d functions into %d groups: %s"
-    group_names = [[f.name for f in g] for g in groups]
-    logger.debug(msg, len(sorted_funcs), len(groups), group_names)
+    logger.debug(
+        "Grouped functions into groups",
+        num_funcs=len(sorted_funcs),
+        num_groups=len(groups),
+        group_names=[[f.name for f in g] for g in groups],
+    )
     return groups
 
 
@@ -247,8 +250,8 @@ async def execute_functions(
     parallel: bool = False,
 ) -> dict[str, Any]:
     """Execute discovered functions in the right order."""
-    msg = "Executing %d functions (parallel=%s)"
-    logger.info(msg, len(functions), parallel)
+    msg = "Executing functions"
+    logger.info(msg, num_functions=len(functions), parallel=parallel)
     results: dict[str, Any] = {}
 
     # Sort by order/dependencies
@@ -259,11 +262,15 @@ async def execute_functions(
         # Group functions that can run in parallel
         groups = _group_parallel(sorted_funcs)
         for i, group in enumerate(groups):
-            msg = "Executing parallel group %d/%d: %s"
-            logger.debug(msg, i + 1, len(groups), [f.name for f in group])
+            logger.debug(
+                "Executing parallel group",
+                group=i + 1,
+                num_groups=len(groups),
+                names=[f.name for f in group],
+            )
 
             # Ensure previous results are available
-            logger.debug("Available results: %s", sorted(results))
+            logger.debug("Available results", results=sorted(results))
 
             # Run group in parallel
             tasks = [execute_single(func, pool, results, inputs) for func in group]
@@ -271,7 +278,7 @@ async def execute_functions(
 
             # Update results after group completes
             results.update(dict(group_results))
-            logger.debug("Group %d complete", i + 1)
+            logger.debug("Group complete", num=i + 1)
 
             # Add small delay between groups to ensure timing separation
             if i < len(groups) - 1:

@@ -48,7 +48,7 @@ def generate_schema(
 
     # Generate new schema
     schema = AgentsManifest.model_json_schema()
-    logger.info("Generated schema with %d keys", len(schema))
+    logger.info("Generated schema")
 
     # Check if different from existing
     changed = True

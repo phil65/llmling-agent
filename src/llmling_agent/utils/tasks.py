@@ -61,14 +61,13 @@ class TaskManager:
             delay: Optional delay before execution
         """
         task = asyncio.create_task(coro, name=name)
-        msg = "Created task: %s (priority=%d, delay=%s)"
-        logger.debug(msg, task.get_name(), priority, delay)
+        logger.debug("Created task", name=task.get_name(), priority=priority, delay=delay)
 
         def _done_callback(t: asyncio.Task[Any]):
-            logger.debug("Task completed: %s", t.get_name())
+            logger.debug("Task completed", name=t.get_name())
             self._pending_tasks.discard(t)
             if t.exception():
-                logger.error("Task failed with error: %s", t.exception())
+                logger.error("Task failed", error=t.exception())
 
         task.add_done_callback(_done_callback)
         self._pending_tasks.add(task)
@@ -134,8 +133,8 @@ class TaskManager:
                 # Running loop - use thread pool
                 import concurrent.futures
 
-                msg = "Running coroutine %r in Executor due to active event loop"
-                logger.debug(msg, coro.__name__)
+                msg = "Running coroutine in Executor due to active event loop"
+                logger.debug(msg, name=coro.__name__)
                 with concurrent.futures.ThreadPoolExecutor() as pool:
                     future = pool.submit(lambda: asyncio.run(coro))
                     return future.result()

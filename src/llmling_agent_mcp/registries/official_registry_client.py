@@ -206,11 +206,11 @@ class MCPRegistryClient:
         if cache_key in self._cache:
             cached_data = self._cache[cache_key]
             if time.time() - cached_data["timestamp"] < CACHE_TTL:
-                log.debug("[MCPRegistry] Using cached server list")
+                log.debug("Using cached server list")
                 return cached_data["servers"]
 
         try:
-            log.info("[MCPRegistry] Fetching server list from registry")
+            log.info("Fetching server list from registry")
             response = await self.client.get(f"{self.base_url}/v0/servers")
             response.raise_for_status()
             data = response.json()
@@ -243,7 +243,7 @@ class MCPRegistryClient:
 
             # Cache the result
             self._cache[cache_key] = {"servers": servers, "timestamp": time.time()}
-            log.info("[MCPRegistry] Successfully fetched %d servers", len(servers))
+            log.info("Successfully fetched %d servers", len(servers))
             return servers
 
     async def get_server(self, server_id: str) -> RegistryServer:
@@ -254,11 +254,11 @@ class MCPRegistryClient:
         if cache_key in self._cache:
             cached_data = self._cache[cache_key]
             if time.time() - cached_data["timestamp"] < CACHE_TTL:
-                log.debug("[MCPRegistry] Using cached server details for %s", server_id)
+                log.debug("Using cached server details for %s", server_id)
                 return cached_data["server"]
 
         try:
-            log.info("[MCPRegistry] Fetching server details for %s", server_id)
+            log.info("Fetching server details for %s", server_id)
 
             # Get all wrappers to access metadata
             response = await self.client.get(f"{self.base_url}/v0/servers")
@@ -295,9 +295,7 @@ class MCPRegistryClient:
 
             # Cache the result
             self._cache[cache_key] = {"server": server, "timestamp": time.time()}
-            log.info(
-                "[MCPRegistry] Successfully fetched server details for %s", server_id
-            )
+            log.info("Successfully fetched server details for %s", server_id)
 
         except httpx.HTTPStatusError as e:
             if e.response.status_code == HTTP_NOT_FOUND:
@@ -314,12 +312,12 @@ class MCPRegistryClient:
     def clear_cache(self):
         """Clear the metadata cache."""
         self._cache.clear()
-        log.debug("[MCPRegistry] Cleared metadata cache")
+        log.debug("Cleared metadata cache")
 
     async def close(self):
         """Close the HTTP client."""
         await self.client.aclose()
-        log.debug("[MCPRegistry] Closed HTTP client")
+        log.debug("Closed HTTP client")
 
     async def __aenter__(self):
         return self

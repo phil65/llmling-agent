@@ -260,7 +260,7 @@ class MCPClient:
         try:
             tools = await self._client.list_tools()
             self._available_tools = tools
-            logger.debug("Refreshed %d tools from MCP server", len(tools))
+            logger.debug("Refreshed tools from MCP server", num_tools=len(tools))
         except Exception as e:  # noqa: BLE001
             logger.warning("Failed to refresh tools: %s", e)
             self._available_tools = []

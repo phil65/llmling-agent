@@ -233,7 +233,7 @@ class MCPManager(ResourceProvider):
                     msg = "Failed to create tool from MCP tool: %s"
                     logger.exception(msg, tool.name)
                     continue
-        logger.debug("Fetched %s MCP tools", len(all_tools))
+        logger.debug("Fetched MCP tools", num_tools=len(all_tools))
         return all_tools
 
     async def list_prompts(self) -> list[StaticPrompt]:

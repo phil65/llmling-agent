@@ -215,7 +215,7 @@ class SlashedAgent[TDeps, OutputDataT]:
         # If we have regular content, process it through the agent
         if regular_prompts:
             logger.debug(
-                "Processing %d regular prompts through agent", len(regular_prompts)
+                "Processing prompts through agent", num_prompts=len(regular_prompts)
             )
             async for event in self.agent.run_stream(*regular_prompts, **kwargs):
                 yield event
