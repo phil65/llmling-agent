@@ -10,7 +10,7 @@ from uuid import uuid4
 
 from genai_prices import calc_price
 from pydantic import BaseModel
-from pydantic_ai import RequestUsage
+from pydantic_ai import ModelRequest, ModelResponse, RequestUsage
 import tokonomics
 
 from llmling_agent.common_types import MessageRole, SimpleJsonType  # noqa: TC001
@@ -22,7 +22,12 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
     from datetime import datetime
 
-    from pydantic_ai import FinishReason, ModelRequestPart, ModelResponsePart, RunUsage
+    from pydantic_ai import (
+        FinishReason,
+        ModelRequestPart,
+        ModelResponsePart,
+        RunUsage,
+    )
 
     from llmling_agent.tools import ToolCallInfo
 
@@ -200,7 +205,7 @@ class ChatMessage[TContent]:
     model_name: str | None = None
     """The name of the model that generated the response."""
 
-    kind: Literal["response"] = "response"
+    kind: Literal["response", "request"] = "response"
     """Message type identifier, this is available on all parts as a discriminator."""
 
     provider_name: str | None = None
@@ -215,6 +220,71 @@ class ChatMessage[TContent]:
     """Reason the model finished generating the response.
 
     Normalized to OpenTelemetry values."""
+
+    def to_pydantic_ai(self) -> ModelRequest | ModelResponse:
+        """Convert this message to a Pydantic model."""
+        match self.kind:
+            case "request":
+                return ModelRequest(parts=self.parts, instructions=None)  # TODO
+            case "response":
+                return ModelResponse(
+                    parts=self.parts,
+                    usage=self.usage,
+                    model_name=self.model_name,
+                    timestamp=self.timestamp,
+                    provider_name=self.provider_name,
+                    provider_details=self.provider_details,
+                    finish_reason=self.finish_reason,
+                    provider_response_id=self.provider_response_id,
+                )
+
+    @classmethod
+    def from_pydantic_ai[TContent](
+        cls,
+        message: ModelRequest | ModelResponse,
+        conversation_id: str | None = None,
+        content: TContent | None = None,
+        name: str | None = None,
+        message_id: str | None = None,
+        forwarded_from: list[str] | None = None,
+    ) -> ChatMessage[TContent]:
+        """Convert a Pydantic model to a ChatMessage."""
+        match message:
+            case ModelRequest(parts=parts, instructions=instructions):
+                return ChatMessage(
+                    kind="request",
+                    parts=parts,
+                    message_id=message_id,
+                    instructions=instructions,
+                    forwarded_from=forwarded_from,
+                    name=name,
+                )
+            case ModelResponse(
+                parts=parts,
+                usage=usage,
+                model_name=model_name,
+                timestamp=timestamp,
+                provider_name=provider_name,
+                provider_details=provider_details,
+                finish_reason=finish_reason,
+                provider_response_id=provider_response_id,
+            ):
+                return ChatMessage(
+                    kind="response",
+                    content=content,
+                    parts=parts,
+                    usage=usage,
+                    message_id=message_id,
+                    conversation_id=conversation_id,
+                    model_name=model_name,
+                    timestamp=timestamp,
+                    provider_name=provider_name,
+                    provider_details=provider_details,
+                    finish_reason=finish_reason,
+                    provider_response_id=provider_response_id,
+                    name=name,
+                    forwarded_from=forwarded_from,
+                )
 
     def forwarded(self, previous_message: ChatMessage[Any]) -> Self:
         """Create new message showing it was forwarded from another message.
