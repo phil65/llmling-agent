@@ -86,7 +86,7 @@ class ACPSessionManager:
 
             # Check for existing session
             if session_id in self._sessions:
-                logger.warning("Session ID %s already exists", session_id)
+                logger.warning("Session ID already exists", session_id=session_id)
                 msg = f"Session {session_id} already exists"
                 raise ValueError(msg)
 
@@ -132,9 +132,12 @@ class ACPSessionManager:
             session = self._sessions.pop(session_id, None)
             if session:
                 await session.close()
-                logger.info("Removed session %s", session_id)
+                logger.info("Removed session", session_id=session_id)
             else:
-                logger.warning("Attempted to close non-existent session %s", session_id)
+                logger.warning(
+                    "Attempted to close non-existent session",
+                    session_id=session_id,
+                )
 
     async def cleanup_inactive_sessions(self) -> None:
         """Remove any inactive sessions."""
@@ -151,7 +154,10 @@ class ACPSessionManager:
                     try:
                         await session.close()
                     except Exception:
-                        logger.exception("Error closing inactive session %s", session_id)
+                        logger.exception(
+                            "Error closing inactive session",
+                            session_id=session_id,
+                        )
 
             if inactive_sessions:
                 logger.info("Cleaned up %d inactive sessions", len(inactive_sessions))
@@ -171,7 +177,7 @@ class ACPSessionManager:
             try:
                 await session.close()
             except Exception:
-                logger.exception("Error closing session %s", session.session_id)
+                logger.exception("Error closing session", session=session.session_id)
 
         logger.info("Closed all %d sessions", len(sessions))
 
@@ -189,5 +195,5 @@ class ACPSessionManager:
                 try:
                     await session.send_available_commands_update()
                 except Exception:
-                    msg = "Failed to update commands for session %s"
-                    logger.exception(msg, session.session_id)
+                    msg = "Failed to update commands"
+                    logger.exception(msg, session_id=session.session_id)

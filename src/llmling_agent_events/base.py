@@ -62,7 +62,7 @@ class EventSource(ABC):
         if not config.enabled:
             msg = f"Source {config.name} is disabled"
             raise ValueError(msg)
-        logger.info("Creating event source: %s (%s)", config.name, config.type)
+        logger.info("Creating event source", name=config.name, provider=config.type)
         match config:
             case FileWatchConfig():
                 from llmling_agent_events.file_watcher import FileSystemEventSource

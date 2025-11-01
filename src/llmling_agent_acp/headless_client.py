@@ -95,15 +95,15 @@ class HeadlessACPClient(Client):
         self.permission_requests.append(params)
 
         tool_name = params.tool_call.title or "operation"
-        logger.info("Permission requested for %s", tool_name)
+        logger.info("Permission requested", tool_name=tool_name)
 
         if self.auto_grant_permissions and params.options:
             # Grant permission using first available option
             option_id = params.options[0].option_id
-            logger.debug("Auto-granting permission for %s", tool_name)
+            logger.debug("Auto-granting permission", tool_name=tool_name)
             return RequestPermissionResponse(outcome=AllowedOutcome(option_id=option_id))
 
-        logger.debug("Denying permission for %s", tool_name)
+        logger.debug("Denying permission", tool_name=tool_name)
         return RequestPermissionResponse(outcome=DeniedOutcome())
 
     async def session_update(self, params: SessionNotification) -> None:
@@ -113,7 +113,9 @@ class HeadlessACPClient(Client):
             params: Session update notification
         """
         logger.debug(
-            "Session update for %s: %s", params.session_id, type(params.update).__name__
+            "Session update",
+            session_id=params.session_id,
+            update_type=type(params.update).__name__,
         )
         self.notifications.append(params)
 
@@ -150,11 +152,11 @@ class HeadlessACPClient(Client):
                 end_line = start_line + params.limit if params.limit else len(lines)
                 content = "".join(lines[start_line:end_line])
 
-            logger.debug("Read file %s (%d chars)", params.path, len(content))
+            logger.debug("Read file", path=params.path, num_chars=len(content))
             return ReadTextFileResponse(content=content)
 
         except Exception:
-            logger.exception("Failed to read file %s", params.path)
+            logger.exception("Failed to read file", path=params.path)
             raise
 
     async def write_text_file(
@@ -180,11 +182,11 @@ class HeadlessACPClient(Client):
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(params.content, encoding="utf-8")
 
-            logger.debug("Wrote file %s (%d chars)", params.path, len(params.content))
+            logger.debug("Wrote file", path=params.path, num_chars=len(params.content))
             return WriteTextFileResponse()
 
         except Exception:
-            logger.exception("Failed to write file %s", params.path)
+            logger.exception("Failed to write file", path=params.path)
             raise
 
     async def create_terminal(
@@ -209,15 +211,15 @@ class HeadlessACPClient(Client):
             terminal_id = f"term_{uuid.uuid4().hex[:8]}"
             self.terminals[terminal_id] = process_id
             logger.info(
-                "Created terminal %s for command: %s",
-                terminal_id,
-                f"{params.command} {' '.join(params.args or [])}",
+                "Created terminal",
+                terminal_id=terminal_id,
+                command=f"{params.command} {' '.join(params.args or [])}",
             )
 
             return CreateTerminalResponse(terminal_id=terminal_id)
 
         except Exception:
-            logger.exception("Failed to create terminal for command: %s", params.command)
+            logger.exception("Failed to create terminal", command=params.command)
             raise
 
     async def terminal_output(
@@ -247,7 +249,7 @@ class HeadlessACPClient(Client):
                 output=output.combined, truncated=output.truncated
             )
         except Exception:
-            logger.exception("Failed to get output for terminal %s", terminal_id)
+            logger.exception("Failed to get output", terminal_id=terminal_id)
             raise
 
     async def wait_for_terminal_exit(
@@ -273,10 +275,10 @@ class HeadlessACPClient(Client):
         try:
             process_id = self.terminals[terminal_id]
             exit_code = await self.process_manager.wait_for_exit(process_id)
-            logger.debug("Terminal %s exited with code %d", terminal_id, exit_code)
+            logger.debug("Terminal exited", terminal_id=terminal_id, exit_code=exit_code)
             return WaitForTerminalExitResponse(exit_code=exit_code)
         except Exception:
-            logger.exception("Failed to wait for terminal %s", terminal_id)
+            logger.exception("Failed to wait", terminal_id=terminal_id)
             raise
 
     async def kill_terminal(
@@ -303,11 +305,11 @@ class HeadlessACPClient(Client):
             process_id = self.terminals[terminal_id]
             await self.process_manager.kill_process(process_id)
 
-            logger.info("Killed terminal %s", terminal_id)
+            logger.info("Killed terminal", terminal_id=terminal_id)
             return KillTerminalCommandResponse()
 
         except Exception:
-            logger.exception("Failed to kill terminal %s", terminal_id)
+            logger.exception("Failed to kill terminal", terminal_id=terminal_id)
             raise
 
     async def release_terminal(
@@ -337,11 +339,11 @@ class HeadlessACPClient(Client):
             # Remove from our tracking
             del self.terminals[terminal_id]
 
-            logger.info("Released terminal %s", terminal_id)
+            logger.info("Released terminal", terminal_id=terminal_id)
             return ReleaseTerminalResponse()
 
         except Exception:
-            logger.exception("Failed to release terminal %s", terminal_id)
+            logger.exception("Failed to release terminal", terminal_id=terminal_id)
             raise
 
     async def cleanup(self) -> None:
@@ -355,7 +357,7 @@ class HeadlessACPClient(Client):
                 await self.process_manager.release_process(process_id)
                 del self.terminals[terminal_id]
             except Exception:
-                logger.exception("Error cleaning up terminal %s", terminal_id)
+                logger.exception("Error cleaning up terminal", terminal_id=terminal_id)
 
         # Clean up process manager
         await self.process_manager.cleanup()
@@ -386,9 +388,9 @@ class HeadlessACPClient(Client):
 
     async def ext_method(self, method: str, params: dict[str, Any]) -> dict[str, Any]:
         """Handle extension method calls."""
-        logger.debug("Extension method called: %s", method)
+        logger.debug("Extension method called", method=method)
         return {"ok": True, "method": method, "params": params}
 
     async def ext_notification(self, method: str, params: dict[str, Any]) -> None:
         """Handle extension notifications."""
-        logger.debug("Extension notification: %s", method)
+        logger.debug("Extension notification", method=method)

@@ -147,7 +147,7 @@ class MCPClient:
         try:
             await self._client.__aexit__(None, None, None)
         except Exception as e:  # noqa: BLE001
-            logger.warning("Error during FastMCP client cleanup: %s", e)
+            logger.warning("Error during FastMCP client cleanup", error=e)
         finally:
             self._connected = False
             self._available_tools = []
@@ -155,7 +155,7 @@ class MCPClient:
     async def _log_handler(self, message: LogMessage) -> None:
         """Handle server log messages."""
         level = LEVEL_MAP.get(message.level.lower(), logging.INFO)
-        logger.log(level, "MCP Server: %s", message.data)
+        logger.log(level, "MCP Server: ", data=message.data)
 
     async def _elicitation_handler_impl(
         self,
@@ -262,7 +262,7 @@ class MCPClient:
             self._available_tools = tools
             logger.debug("Refreshed tools from MCP server", num_tools=len(tools))
         except Exception as e:  # noqa: BLE001
-            logger.warning("Failed to refresh tools: %s", e)
+            logger.warning("Failed to refresh tools", error=e)
             self._available_tools = []
 
     def get_tools(self) -> list[dict[str, Any]]:
@@ -281,7 +281,7 @@ class MCPClient:
         try:
             return await self._client.list_prompts()
         except Exception as e:  # noqa: BLE001
-            logger.debug("Failed to list prompts: %s", e)
+            logger.debug("Failed to list prompts", error=e)
             return []
 
     async def list_resources(self) -> list[MCPResource]:

@@ -185,7 +185,7 @@ class PromptManager:
         gathered_results = await asyncio.gather(*coros, return_exceptions=True)
         for (name, _), prompts in zip(providers.items(), gathered_results, strict=False):
             if isinstance(prompts, BaseException):
-                logger.exception("Failed to list prompts from %s", name)
+                logger.exception("Failed to list prompts", source=name)
                 continue
             result[name] = prompts
         return result

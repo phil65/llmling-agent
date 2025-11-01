@@ -61,7 +61,7 @@ class ServerBridge(abc.ABC):
             msg = "Server is already running"
             raise RuntimeError(msg)
 
-        logger.info("Starting %s server", self.__class__.__name__)
+        logger.info("Starting server", name=self.__class__.__name__)
         self._running = True
 
         try:
@@ -71,7 +71,7 @@ class ServerBridge(abc.ABC):
             raise
         finally:
             self._running = False
-            logger.info("Server %s stopped", self.__class__.__name__)
+            logger.info("Server stopped", name=self.__class__.__name__)
 
     @abc.abstractmethod
     async def _run(self) -> None:
@@ -89,7 +89,7 @@ class ServerBridge(abc.ABC):
         Subclasses can override for custom cleanup logic.
         """
         if self._running:
-            logger.info("Shutting down %s server", self.__class__.__name__)
+            logger.info("Shutting down server", name=self.__class__.__name__)
             self._running = False
 
     async def __aenter__(self) -> Self:

@@ -136,7 +136,7 @@ class Team[TDeps = None](BaseTeam[TDeps, Any]):
                 message = await node.run(*prompts, **kwargs)
                 await queue.put(message)
             except Exception as e:
-                logger.exception("Error executing node %s", node.name)
+                logger.exception("Error executing node", name=node.name)
                 failures[node.name] = e
                 # Put None to maintain queue count
                 await queue.put(None)

@@ -318,7 +318,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
                     msg = f"Chain broken at {agent.name}: {e}"
                     logger.exception(msg)
                     raise ValueError(msg) from e
-                logger.warning("Chain handler %s failed: %s", agent.name, e)
+                logger.warning("Chain handler failed", name=agent.name, error=e)
 
 
 if __name__ == "__main__":

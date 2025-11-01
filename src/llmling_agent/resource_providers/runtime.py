@@ -38,7 +38,7 @@ class RuntimeResourceProvider(ResourceProvider):
             try:
                 tools.append(Tool(tool, source="runtime"))
             except Exception:
-                logger.exception("Failed to convert runtime tool: %s", tool.name)
+                logger.exception("Failed to convert runtime tool", name=tool.name)
                 continue
 
         return tools
@@ -58,7 +58,7 @@ class RuntimeResourceProvider(ResourceProvider):
                 info = ResourceInfo(name=name, uri=uri, description=resource.description)
                 resources.append(info)
             except Exception:
-                logger.exception("Failed to convert runtime resource: %s", resource.name)
+                logger.exception("Failed to convert runtime resource", name=resource.name)
                 continue
 
         return resources

@@ -79,7 +79,7 @@ class ACPCommandBridge:
             args = match.group(2) or ""
             command_name, args = command_name, args.strip()
         else:
-            logger.warning("Invalid slash command: %s", command_text)
+            logger.warning("Invalid slash command", command=command_text)
             return
 
         # Check if it's an MCP prompt command first

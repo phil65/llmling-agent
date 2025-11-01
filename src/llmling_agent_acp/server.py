@@ -138,9 +138,9 @@ class ACPServer:
             )
             raise ValueError(msg)
 
-        logger.info("Created ACP server with agent pool containing: %s", agent_names)
+        logger.info("Created ACP server with agent pool", agent_names=agent_names)
         if agent:
-            logger.info("Will use agent '%s' for ACP sessions", agent)
+            logger.info("ACP session agent", agent=agent)
         return server
 
     async def run(self) -> None:
@@ -150,8 +150,8 @@ class ACPServer:
             raise RuntimeError(msg)
         self._running = True
         agent_names = list(self.agent_pool.agents.keys())
-        msg = "Starting ACP server with %d agents on stdio: %s"
-        logger.info(msg, len(agent_names), agent_names)
+        msg = "Starting ACP server on stdio"
+        logger.info(msg, num_agents=len(agent_names), agent_names=agent_names)
         try:
             await self._initialize_models()  # Initialize models on first run
             create_acp_agent = functools.partial(
@@ -169,10 +169,10 @@ class ACPServer:
             file = self.debug_file if self.debug_messages else None
             conn = AgentSideConnection(create_acp_agent, writer, reader, debug_file=file)
             logger.info(
-                "ACP server started: file_access=%s, terminal=%s, session_support=%s",
-                self.file_access,
-                self.terminal_access,
-                self.session_support,
+                "ACP server started",
+                file_access=self.file_access,
+                terminal_access=self.terminal_access,
+                session_support=self.session_support,
             )
             try:  # Keep the connection alive
                 while self._running:

@@ -42,7 +42,7 @@ class ObservabilityRegistry:
 
         config = observability_config.provider
         if not config.enabled:
-            logger.debug("Provider %s is disabled", config.type)
+            logger.debug("Provider is disabled", provider=config.type)
             return
 
         _setup_otel_environment(config)  # Configure OTEL env variables based on provider
@@ -56,7 +56,7 @@ class ObservabilityRegistry:
         logging.basicConfig(handlers=[logfire.LogfireLoggingHandler()])
 
         self._configured = True
-        logger.info("Configured observability with %s backend", config.type)
+        logger.info("Configured observability", provider=config.type)
 
 
 def _setup_otel_environment(config: BaseObservabilityConfig):
@@ -66,7 +66,7 @@ def _setup_otel_environment(config: BaseObservabilityConfig):
     headers = getattr(config, "_headers", getattr(config, "headers", {}))
 
     if not endpoint:
-        logger.warning("No endpoint found for provider %s", config.type)
+        logger.warning("No endpoint found", provider=config.type)
         return
 
     # Set standard OTEL environment variables
@@ -88,8 +88,12 @@ def _setup_otel_environment(config: BaseObservabilityConfig):
     if resource_attrs:
         os.environ["OTEL_RESOURCE_ATTRIBUTES"] = ",".join(resource_attrs)
 
-    msg = "Set OTEL environment: endpoint=%s, protocol=%s, headers=%s"
-    logger.debug(msg, endpoint, config.protocol, bool(headers))
+    logger.debug(
+        "Set OTEL environment",
+        endpoint=endpoint,
+        protocol=config.protocol,
+        headers=headers,
+    )
 
 
 # Global registry instance

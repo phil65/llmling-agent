@@ -179,7 +179,7 @@ class ToolManager(BaseRegistry[str, Tool]):
         tool_info = self[tool_name]
         tool_info.enabled = True
         self.events.changed(tool_name, tool_info)
-        logger.debug("Enabled tool: %s", tool_name)
+        logger.debug("Enabled tool", tool_name=tool_name)
 
     def disable_tool(self, tool_name: str):
         """Disable a tool."""
@@ -189,7 +189,7 @@ class ToolManager(BaseRegistry[str, Tool]):
         tool_info = self[tool_name]
         tool_info.enabled = False
         self.events.changed(tool_name, tool_info)
-        logger.debug("Disabled tool: %s", tool_name)
+        logger.debug("Disabled tool", tool_name=tool_name)
 
     def is_tool_enabled(self, tool_name: str) -> bool:
         """Check if a tool is currently enabled."""
@@ -427,8 +427,8 @@ class ToolManager(BaseRegistry[str, Tool]):
             case _:
                 msg = f"Unsupported worker type: {type(worker)}"
                 raise ValueError(msg)
-        msg = "Registering worker %s as tool %s"
-        logger.debug(msg, worker.name, tool.name)
+        msg = "Registering worker as tool"
+        logger.debug(msg, worker_name=worker.name, tool_name=tool.name)
         return self.register_tool(tool, source="agent", metadata={"agent": worker.name})
 
     def reset(self):

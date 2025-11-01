@@ -79,8 +79,8 @@ class MCPPromptCommand:
                     result = await client.get_prompt(self.mcp_prompt.name, arguments)
                 except Exception as e:
                     if arguments:
-                        msg = "MCP prompt with arguments failed, trying without: %s"
-                        logger.warning(msg, e)
+                        msg = "MCP prompt with arguments failed, trying without"
+                        logger.warning(msg, error=e)
                         result = await client.get_prompt(self.mcp_prompt.name)
                     else:
                         raise

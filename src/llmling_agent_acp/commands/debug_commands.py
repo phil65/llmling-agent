@@ -221,7 +221,7 @@ class DebugReplaySequenceCommand(SlashedCommand):
                     elif update_type == "tool_call_update":
                         update = ToolCallProgress(**update_data)
                     else:
-                        logger.warning("Unknown update type: %s", update_type)
+                        logger.warning("Unknown update type", update_type=update_type)
                         continue
 
                     notification = SessionNotification(
@@ -238,7 +238,7 @@ class DebugReplaySequenceCommand(SlashedCommand):
                         await asyncio.sleep(delay / 1000)
 
                 except Exception as e:  # noqa: BLE001
-                    logger.warning("Failed to replay notification: %s", e)
+                    logger.warning("Failed to replay notification", error=e)
                     continue
 
             await ctx.output.print(

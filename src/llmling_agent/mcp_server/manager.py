@@ -230,8 +230,7 @@ class MCPManager(ResourceProvider):
                     tool_info = client.convert_tool(tool)
                     all_tools.append(tool_info)
                 except Exception:
-                    msg = "Failed to create tool from MCP tool: %s"
-                    logger.exception(msg, tool.name)
+                    logger.exception("Failed to create MCP tool", name=tool.name)
                     continue
         logger.debug("Fetched MCP tools", num_tools=len(all_tools))
         return all_tools
@@ -248,7 +247,7 @@ class MCPManager(ResourceProvider):
                         converted = await convert_mcp_prompt(client, prompt)
                         client_prompts.append(converted)
                     except Exception:
-                        logger.exception("Failed to convert prompt: %s", prompt.name)
+                        logger.exception("Failed to convert prompt", name=prompt.name)
             except Exception:
                 logger.exception("Failed to get prompts from MCP server")
                 return []
@@ -272,7 +271,7 @@ class MCPManager(ResourceProvider):
                         converted = await convert_mcp_resource(resource)
                         client_resources.append(converted)
                     except Exception:
-                        logger.exception("Failed to convert resource: %s", resource.name)
+                        logger.exception("Failed to convert resource", name=resource.name)
             except Exception:
                 logger.exception("Failed to get resources from MCP server")
                 return []

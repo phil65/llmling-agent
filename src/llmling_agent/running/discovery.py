@@ -48,8 +48,7 @@ class NodeFunction:
             for name, param in sig.parameters.items()
             if param.default is not param.empty
         }
-        msg = "Registered node function %s (deps=%s)"
-        logger.debug(msg, self.name, self.depends_on)
+        logger.debug("Registered node function", name=self.name, deps=self.depends_on)
 
 
 def node_function(

@@ -69,12 +69,12 @@ def task_command(
         level = getattr(logging, log_level.upper())
         logging.basicConfig(level=level)
         logger = log.get_logger(__name__)
-        logger.debug("Starting task execution: %s", task_name)
+        logger.debug("Starting task execution", name=task_name)
 
         # Resolve configuration path
         try:
             config_path = resolve_agent_config(config)
-            logger.debug("Using config from: %s", config_path)
+            logger.debug("Using config", source=config_path)
         except ValueError as e:
             msg = str(e)
             raise t.BadParameter(msg) from e

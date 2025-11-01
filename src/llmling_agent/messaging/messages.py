@@ -115,7 +115,7 @@ class TokenCost:
         ):
             logger.debug("Missing token counts in Usage object")
             return None
-        logger.debug("Token usage: %s", usage)
+        logger.debug("Token usage", usage=usage)
 
         # return cls(token_usage=token_usage, total_cost=Decimal(total_cost))
         if model in {"None", "test"}:

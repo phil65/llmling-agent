@@ -153,5 +153,5 @@ async def _get_promptantic_result(output_type: type[BaseModel]) -> BaseModel | N
     except ImportError:
         return None
     except Exception as e:  # noqa: BLE001
-        logger.warning("Promptantic failed: %s", e)
+        logger.warning("Promptantic failed", error=e)
         return None

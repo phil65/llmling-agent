@@ -74,7 +74,7 @@ class EmailEventSource(EventSource):
                 case "TO":
                     criteria.append(f'TO "{value}"')
                 case _:
-                    logger.warning("Unsupported email filter: %s", key)
+                    logger.warning("Unsupported email filter", key=key)
 
         return " ".join(criteria)
 

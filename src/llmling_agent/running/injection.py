@@ -50,10 +50,10 @@ def inject_nodes[T, **P](
     """Get nodes to inject based on function signature."""
     hints = typing.get_type_hints(func)
     params = inspect.signature(func).parameters
-    msg = "Injecting nodes for %s.%s"
-    logger.debug(msg, func.__module__, func.__qualname__)
-    logger.debug("Type hints: %s", hints)
-    logger.debug("Available nodes in pool: %s", sorted(pool.nodes))
+    msg = "Injecting nodes"
+    logger.debug(msg, module=func.__module__, name=func.__qualname__)
+    logger.debug("Type hints", hints=hints)
+    logger.debug("Available nodes in pool", nodes=sorted(pool.nodes))
 
     nodes: dict[str, MessageNode[Any, Any]] = {}
     for name, param in params.items():
@@ -61,12 +61,12 @@ def inject_nodes[T, **P](
             inspect.Parameter.POSITIONAL_OR_KEYWORD,
             inspect.Parameter.KEYWORD_ONLY,
         }:
-            logger.debug("Skipping %s: wrong parameter kind %s", name, param.kind)
+            logger.debug("Skippin: wrong parameter kind", name=name, kind=param.kind)
             continue
 
         hint = hints.get(name)
         if hint is None:
-            logger.debug("Skipping %s: no type hint", name)
+            logger.debug("Skipping: no type hint", name=name)
             continue
 
         # Handle Optional/Union types
@@ -82,11 +82,11 @@ def inject_nodes[T, **P](
         )
 
         if not is_node:
-            msg = "Skipping %s: not a node type (hint=%s, origin=%s, args=%s)"
-            logger.debug(msg, name, hint, origin, args)
+            msg = "Skipping. Not a node type."
+            logger.debug(msg, name=name, hint=hint, origin=origin, args=args)
             continue
 
-        logger.debug("Found node parameter: %s", name)
+        logger.debug("Found node parameter", name=name)
 
         # Check for duplicate parameters
         if name in provided_kwargs and provided_kwargs[name] is not None:
@@ -109,7 +109,7 @@ def inject_nodes[T, **P](
             raise NodeInjectionError(msg)
 
         nodes[name] = pool.nodes[name]
-        logger.debug("Injecting node %s for parameter %s", nodes[name], name)
+        logger.debug("Injecting node", node=nodes[name], name=name)
 
-    logger.debug("Injection complete. Injected nodes: %s", sorted(nodes))
+    logger.debug("Injection complete.", nodes=sorted(nodes))
     return nodes

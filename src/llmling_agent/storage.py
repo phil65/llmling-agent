@@ -60,7 +60,7 @@ def deserialize_parts(parts_json: str | None) -> Sequence[ModelResponsePart]:
         # Deserialize using pydantic's JSON deserialization
         return parts_adapter.validate_json(parts_json.encode())
     except Exception as e:  # noqa: BLE001
-        logger.warning("Failed to deserialize message parts: %s", e)
+        logger.warning("Failed to deserialize message parts", error=e)
         return []  # Return empty list on failure
 
 
@@ -92,7 +92,7 @@ def serialize_parts(parts: Sequence[ModelResponsePart | ModelRequestPart]) -> st
         # Serialize using pydantic's JSON serialization
         return parts_adapter.dump_json(serializable_parts).decode()
     except Exception as e:  # noqa: BLE001
-        logger.warning("Failed to serialize message parts: %s", e)
+        logger.warning("Failed to serialize message parts", error=e)
         return str(parts)  # Fallback to string representation
 
 
@@ -242,8 +242,8 @@ class StorageManager:
         if self.config.default_provider:
             if provider := find_provider(self.config.default_provider):
                 return provider
-            msg = "Default provider %s not found or not capable of loading history"
-            logger.warning(msg, self.config.default_provider)
+            msg = "Default provider not found or not capable of loading history"
+            logger.warning(msg, provider=self.config.default_provider)
 
         # Find first capable provider
         for provider in self.providers:

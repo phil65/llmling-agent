@@ -128,7 +128,7 @@ def acp_command(
         msg = str(e)
         raise t.BadParameter(msg) from e
 
-    logger.info("Starting ACP server for config: %s", config_path)
+    logger.info("Starting ACP server", config_path=config_path)
 
     acp_server = ACPServer.from_config(
         config_path,
@@ -154,8 +154,6 @@ def acp_command(
         logger.info("Raw JSON-RPC message debugging enabled -> %s", debug_path)
     if debug_commands:
         logger.info("Debug slash commands enabled")
-    msg = "Starting ACP server (file_access=%s terminal_access=%s session_support=%s)"
-    logger.info(msg, file_access, terminal_access, session_support)
 
     async def run_acp_server():
         try:

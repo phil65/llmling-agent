@@ -171,7 +171,7 @@ async def execute_single(
     Raises:
         ExecutionError: If execution fails
     """
-    logger.debug("Executing %s", func.name)
+    logger.debug("Executing function", name=func.name)
     try:
         kwargs = func.default_inputs.copy()
         if inputs:

@@ -236,8 +236,10 @@ class ConversationManager:
                 case BasePrompt():
                     await self.add_context_from_prompt(source)
         except Exception:
-            msg = "Failed to load context from %s"
-            logger.exception(msg, "file" if isinstance(source, str) else source.type)
+            logger.exception(
+                "Failed to load context",
+                source="file" if isinstance(source, str) else source.type,
+            )
 
     def load_history_from_database(
         self,
