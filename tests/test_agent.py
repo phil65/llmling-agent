@@ -67,11 +67,13 @@ async def test_agent_streaming_pydanticai_history(test_agent: Agent[None]):
     history = [
         ChatMessage(
             role="user",
+            kind="request",
             content="Previous message",
             parts=[UserPromptPart(content="Previous message")],
         ),
         ChatMessage(
             role="assistant",
+            kind="response",
             content="Previous response",
             parts=[TextPart(content="Previous response")],
         ),

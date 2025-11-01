@@ -66,6 +66,7 @@ class MessageNode[TDeps, TResult](MessageEmitter[TDeps, TResult]):
                 content=final_prompt,
                 role="user",
                 conversation_id=str(uuid4()),
+                kind="request",
                 parts=[
                     UserPromptPart(content=[content_to_pydantic_ai(i) for i in prompts])
                 ],
