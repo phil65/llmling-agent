@@ -482,7 +482,7 @@ class ACPSession:
         if not self.command_bridge:
             return
         try:
-            commands = self.command_bridge.to_available_commands(self.agent.context)
+            commands = self.command_bridge.get_acp_commands(self.agent.context)
             await self.notifications.update_commands(commands)
         except Exception:
             self.log.exception("Failed to send available commands update")

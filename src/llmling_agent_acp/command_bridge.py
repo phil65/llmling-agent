@@ -25,18 +25,6 @@ SLASH_PATTERN = re.compile(r"^/([\w-]+)(?:\s+(.*))?$")
 ACP_COMMANDS = {"list-sessions", "load-session", "save-session", "delete-session"}
 
 
-class ACPOutputWriter:
-    """OutputWriter that immediately sends updates to ACP session."""
-
-    def __init__(self, session: ACPSession) -> None:
-        """Initialize with ACP session for immediate updates."""
-        self.session = session
-
-    async def print(self, message: str = "", **kwargs: Any) -> None:
-        """Send message immediately as session updates."""
-        await self.session.notifications.send_agent_text(message)
-
-
 class ACPCommandBridge:
     """Converts slashed commands to ACP AvailableCommand format."""
 
@@ -50,7 +38,7 @@ class ACPCommandBridge:
         self._update_callbacks: list[Callable[[], None]] = []
         self._mcp_prompt_commands: dict[str, MCPPromptCommand] = {}
 
-    def to_available_commands(self, context: AgentContext[Any]) -> list[AvailableCommand]:
+    def get_acp_commands(self, context: AgentContext[Any]) -> list[AvailableCommand]:
         """Convert slashed commands to ACP format.
 
         Args:
@@ -91,22 +79,19 @@ class ACPCommandBridge:
         if command_name in self._mcp_prompt_commands:
             mcp_cmd = self._mcp_prompt_commands[command_name]
             await mcp_cmd.execute(args, session)
-        # Create output writer that sends directly to session
-        output_writer = ACPOutputWriter(session)
-
         if command_name in ACP_COMMANDS:
             # Use ACP context for ACP commands
 
             acp_ctx = ACPCommandContext(session)
             cmd_ctx: CommandContext = self.command_store.create_context(
                 data=acp_ctx,
-                output_writer=output_writer,
+                output_writer=session.notifications.send_agent_text,
             )
         else:
             # Use regular agent context for other commands
             cmd_ctx = self.command_store.create_context(
                 data=session.agent.context,
-                output_writer=output_writer,
+                output_writer=session.notifications.send_agent_text,
             )
 
         command_str = f"{command_name} {args}".strip()
