@@ -135,7 +135,7 @@ class PoolPreview(Static):
             self.update(Syntax(content, "yaml", theme="monokai"))
             self._current_path = path
         except Exception:
-            logger.exception("Failed to load config: %s", path)
+            logger.exception("Failed to load config", path=path)
             self.update(f"Error loading {path}")
 
 

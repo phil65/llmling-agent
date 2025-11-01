@@ -6,8 +6,8 @@ from collections.abc import Callable
 from typing import Any
 
 from epregistry import EntryPointRegistry
-from llmling.core.log import get_logger
 
+from llmling_agent.log import get_logger
 from llmling_agent.resource_providers.base import ResourceProvider
 from llmling_agent.tools.base import Tool
 
@@ -43,6 +43,6 @@ class EntryPointTools(ResourceProvider):
                 tool = Tool.from_callable(item, source="entry_point", metadata=meta)
                 self._tools.append(tool)
             except Exception as e:  # noqa: BLE001
-                logger.warning("Failed to load tool from %s: %s", self.module, e)
+                logger.warning("Failed to load tool", module=self.module, error=e)
 
         return self._tools

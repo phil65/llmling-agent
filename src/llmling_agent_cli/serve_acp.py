@@ -151,7 +151,7 @@ def acp_command(
         logger.info("Message activity logging enabled")
     if debug_messages:
         debug_path = debug_file or "acp-debug.jsonl"
-        logger.info("Raw JSON-RPC message debugging enabled -> %s", debug_path)
+        logger.info("Raw JSON-RPC message debugging enabled", path=debug_path)
     if debug_commands:
         logger.info("Debug slash commands enabled")
 

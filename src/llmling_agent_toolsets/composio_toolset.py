@@ -5,8 +5,7 @@ from __future__ import annotations
 import os
 from typing import Any
 
-from llmling.core.log import get_logger
-
+from llmling_agent.log import get_logger
 from llmling_agent.resource_providers.base import ResourceProvider
 from llmling_agent.tools.base import Tool
 
@@ -42,7 +41,7 @@ class ComposioTools(ResourceProvider):
                     user_id=self.user_id,
                 )
             except Exception:
-                logger.exception("Error executing tool %s", tool_slug)
+                logger.exception("Error executing tool", name=tool_slug)
                 return {"error": f"Failed to execute tool {tool_slug}"}
 
         handle_tool_call.__name__ = tool_slug

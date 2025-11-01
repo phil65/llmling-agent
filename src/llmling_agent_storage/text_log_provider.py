@@ -273,6 +273,6 @@ class TextLogProvider(StorageProvider):
             text = self.content_template.render(context)
             path.write_text(text, encoding=self.encoding)
         except Exception as e:
-            logger.exception("Failed to write to log file: %s", path)
+            logger.exception("Failed to write to log file", path=path)
             msg = f"Failed to write to log file: {e}"
             raise RuntimeError(msg) from e

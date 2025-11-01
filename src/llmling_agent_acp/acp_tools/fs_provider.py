@@ -609,7 +609,7 @@ async def _apply_structured_edits(original_content: str, edits_response: str) ->
         )
         raise ModelRetry(msg)
 
-    logger.info("Applied %s/%s structured edits", applied_edits, len(old_texts))
+    logger.info("Applied structured edits", num=applied_edits, total=len(old_texts))
     return content
 
 
