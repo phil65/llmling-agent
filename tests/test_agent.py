@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 
-from pydantic_ai import PartDeltaEvent, TextPartDelta
+from pydantic_ai import PartDeltaEvent, TextPart, TextPartDelta, UserPromptPart
 from pydantic_ai.models.test import TestModel
 import pytest
 
@@ -27,8 +27,16 @@ async def test_simple_agent_run(test_agent: Agent[None]):
 async def test_agent_message_history(test_agent: Agent[None]):
     """Test agent with message history."""
     history = [
-        ChatMessage(content="Previous message", role="user"),
-        ChatMessage(content="Previous response", role="assistant"),
+        ChatMessage(
+            content="Previous message",
+            role="user",
+            parts=[UserPromptPart(content="Previous message")],
+        ),
+        ChatMessage(
+            content="Previous response",
+            role="assistant",
+            parts=[TextPart(content="Previous response")],
+        ),
     ]
     test_agent.conversation.set_history(history)
     result = await test_agent.run(SIMPLE_PROMPT)
@@ -57,8 +65,16 @@ async def test_agent_streaming(test_agent: Agent[None]):
 async def test_agent_streaming_pydanticai_history(test_agent: Agent[None]):
     """Test streaming pydantic-ai history."""
     history = [
-        ChatMessage(role="user", content="Previous message"),
-        ChatMessage(role="assistant", content="Previous response"),
+        ChatMessage(
+            role="user",
+            content="Previous message",
+            parts=[UserPromptPart(content="Previous message")],
+        ),
+        ChatMessage(
+            role="assistant",
+            content="Previous response",
+            parts=[TextPart(content="Previous response")],
+        ),
     ]
     test_agent.conversation.set_history(history)
 

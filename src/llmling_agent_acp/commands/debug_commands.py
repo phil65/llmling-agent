@@ -139,7 +139,7 @@ class DebugUpdateToolCallCommand(SlashedCommand):
         """
         session = ctx.context.session
         try:
-            tool_content = None
+            tool_content = []
             if content:
                 tool_content = [
                     ContentToolCallContent(
@@ -331,7 +331,7 @@ class DebugCreateTemplateCommand(SlashedCommand):
                         content=TextContentBlock(text="Tool completed successfully!"),
                     )
                 ],
-                session_update="tool_call_update",
+                title="tool_call_update",
             )
 
             # Create notifications using proper SessionNotification models
