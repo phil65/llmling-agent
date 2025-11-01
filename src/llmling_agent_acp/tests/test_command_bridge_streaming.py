@@ -22,7 +22,7 @@ async def test_command_bridge_immediate_execution():
 
     # Set up agent and session
     agent = Agent(name="test_agent", provider=simple_callback)
-    agent_pool = AgentPool[None]()
+    agent_pool = AgentPool()
     agent_pool.register("test_agent", agent)
 
     # Create command store and bridge

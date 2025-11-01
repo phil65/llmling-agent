@@ -104,7 +104,7 @@ def mock_agent_pool():
         return f"Test response: {message}"
 
     agent = Agent(name="test_agent", provider=simple_callback)
-    pool = AgentPool[None]()
+    pool = AgentPool()
     pool.register("test_agent", agent)
     return pool
 

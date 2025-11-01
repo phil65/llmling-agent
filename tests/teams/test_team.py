@@ -9,7 +9,7 @@ from llmling_agent import Agent, AgentPool, ChatMessage, Team, TeamRun
 
 async def test_team_parallel_execution():
     """Test that team runs all agents in parallel and collects responses."""
-    async with AgentPool[None]() as pool:
+    async with AgentPool() as pool:
         # Create three agents that append their name to input
         a1 = await pool.add_agent("a1", system_prompt="Append 'a1'", model="test")
         a2 = await pool.add_agent("a2", system_prompt="Append 'a2'", model="test")
@@ -30,7 +30,7 @@ async def test_team_parallel_execution():
 
 async def test_team_shared_prompt():
     """Test that shared prompt is prepended to individual prompts."""
-    async with AgentPool[None]() as pool:
+    async with AgentPool() as pool:
         # Create agents that echo their input
         def echo(prompt: str) -> str:
             return prompt
@@ -52,7 +52,7 @@ async def test_team_shared_prompt():
 
 async def test_nested_teams():
     """Test nesting Teams and TeamRuns inside each other."""
-    async with AgentPool[None]() as pool:
+    async with AgentPool() as pool:
         # Create basic agents
         a1 = await pool.add_agent("a1", model="test")
         a2 = await pool.add_agent("a2", model="test")
@@ -71,7 +71,7 @@ async def test_nested_teams():
 
 async def test_nested_team_run():
     """Test nesting Teams and TeamRuns inside each other."""
-    async with AgentPool[None]() as pool:
+    async with AgentPool() as pool:
         # Create basic agents
         a1 = await pool.add_agent("a1", model="test")
         a2 = await pool.add_agent("a2", model="test")
@@ -101,7 +101,7 @@ async def test_nested_team_run():
 
 async def test_simple_team_run_iter():
     """Test run_iter with a simple team of agents."""
-    async with AgentPool[None]() as pool:
+    async with AgentPool() as pool:
         # Create basic agents
         a1 = await pool.add_agent("a1", model="test")
         a2 = await pool.add_agent("a2", model="test")
@@ -117,7 +117,7 @@ async def test_simple_team_run_iter():
 
 async def test_sequential_run_iter():
     """Test run_iter with a sequential execution (TeamRun)."""
-    async with AgentPool[None]() as pool:
+    async with AgentPool() as pool:
         a1 = await pool.add_agent("a1", model="test")
         a2 = await pool.add_agent("a2", model="test")
 
@@ -132,7 +132,7 @@ async def test_sequential_run_iter():
 
 async def test_simple_team_with_teamrun_iter():
     """Test run_iter with a team containing a simple TeamRun."""
-    async with AgentPool[None]() as pool:
+    async with AgentPool() as pool:
         a1 = await pool.add_agent("a1", model="test")
         a2 = await pool.add_agent("a2", model="test")
         a3 = await pool.add_agent("a3", model="test")
@@ -158,7 +158,7 @@ async def test_simple_team_with_teamrun_iter():
 
 async def test_team_run_iter_execution_order():
     """Test that run_iter preserves execution order within sequential parts."""
-    async with AgentPool[None]() as pool:
+    async with AgentPool() as pool:
         a1 = await pool.add_agent("a1", model="test")
         a2 = await pool.add_agent("a2", model="test")
         a3 = await pool.add_agent("a3", model="test")
@@ -178,7 +178,7 @@ async def test_team_run_iter_execution_order():
 
 async def test_team_operators():
     """Test team combination operators (& and |)."""
-    async with AgentPool[None]() as pool:
+    async with AgentPool() as pool:
         # Create basic agents
         a1 = await pool.add_agent("a1", model="test")
         a2 = await pool.add_agent("a2", model="test")

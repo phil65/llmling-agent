@@ -9,7 +9,7 @@ from llmling_agent import AgentPool
 @pytest.fixture
 async def pool():
     """Create agent pool with test agents."""
-    pool = AgentPool[None]()
+    pool = AgentPool()
 
     # Add three agents with test models
     await pool.add_agent("agent1", model=TestModel())

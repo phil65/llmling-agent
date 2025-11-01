@@ -97,7 +97,7 @@ async def test_plain_tool_no_context(default_model: str):
 @pytest.mark.integration
 async def test_capability_tools(default_model: str):
     """Test that capability tools work with AgentContext."""
-    async with AgentPool[None]() as pool:
+    async with AgentPool() as pool:
         toolsets = [AgentManagementToolsetConfig()]
         toolset_providers = [config.get_provider() for config in toolsets]
         agent = await pool.add_agent(
@@ -119,7 +119,7 @@ async def test_capability_tools(default_model: str):
 
 async def test_team_creation(default_model: str):
     """Test that an agent can create other agents and form them into a team."""
-    async with AgentPool[None]() as pool:
+    async with AgentPool() as pool:
         # Create creator agent with needed toolsets
         toolsets = [AgentManagementToolsetConfig()]
         toolset_providers = [config.get_provider() for config in toolsets]

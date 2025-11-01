@@ -21,7 +21,7 @@ class TestACPIntegration:
             return f"Test response: {message}"
 
         agent = Agent(name="test_agent", provider=simple_callback)
-        pool = AgentPool[None]()
+        pool = AgentPool()
         pool.register("test_agent", agent)
         return pool
 
@@ -92,7 +92,7 @@ class TestACPIntegration:
         agent1 = Agent(name="agent1", provider=callback1)
         agent2 = Agent(name="agent2", provider=callback2)
 
-        multi_pool = AgentPool[None]()
+        multi_pool = AgentPool()
         multi_pool.register("agent1", agent1)
         multi_pool.register("agent2", agent2)
         mock_client = Mock()

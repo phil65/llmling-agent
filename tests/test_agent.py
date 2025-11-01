@@ -130,7 +130,7 @@ def test_sync_wrapper(test_agent: Agent[None]):
 
 async def test_agent_forwarding():
     """Test message forwarding between agents."""
-    async with AgentPool[None]() as pool:
+    async with AgentPool() as pool:
         model = TestModel(custom_output_text="Main response")
         main_agent = await pool.add_agent("main-agent", model=model)
         model = TestModel(custom_output_text="Helper response")

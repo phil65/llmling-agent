@@ -81,7 +81,7 @@ if __name__ == "__main__":
 
     async def main():
         """Run server and test client."""
-        pool = AgentPool[None]()
+        pool = AgentPool()
         await pool.add_agent("gpt-5-nano", model="openai:gpt-5-nano")
         async with pool:
             server = ResponsesServer(pool)

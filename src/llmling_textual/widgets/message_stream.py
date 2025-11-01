@@ -96,5 +96,5 @@ if __name__ == "__main__":
 
     from llmling_agent import AgentPool
 
-    pool = AgentPool[None]()
+    pool = AgentPool()
     show(MessageStream(pool))

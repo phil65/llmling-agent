@@ -19,7 +19,7 @@ class TestTeamRunBackground:
 
     async def test_single_execution(self):
         """Test single background execution."""
-        async with AgentPool[None]() as pool:
+        async with AgentPool() as pool:
             # Create agents with delayed processors
             agent1 = await pool.add_agent(
                 "agent1", provider=lambda x: delayed_processor(x, 0.1)
@@ -53,7 +53,7 @@ class TestTeamRunBackground:
 
     # async def test_continuous_execution(self):
     #     """Test continuous background execution."""
-    #     async with AgentPool[None]() as pool:
+    #     async with AgentPool() as pool:
     #         agent1 = await pool.add_agent(
     #             "agent1", provider=lambda x: delayed_processor(x, 0.1)
     #         )
@@ -87,7 +87,7 @@ class TestTeamRunBackground:
     #         msg = "Test error"
     #         raise ValueError(msg)
 
-    #     async with AgentPool[None]() as pool:
+    #     async with AgentPool() as pool:
     #         agent = await pool.add_agent("failing_agent", provider=failing_processor)
 
     #         run = agent
@@ -99,7 +99,7 @@ class TestTeamRunBackground:
 
     async def test_cancellation(self):
         """Test cancellation of background execution."""
-        async with AgentPool[None]() as pool:
+        async with AgentPool() as pool:
             agent = await pool.add_agent(
                 "agent", provider=lambda x: delayed_processor(x, 0.5)
             )
@@ -123,7 +123,7 @@ class TestTeamRunBackground:
 
     async def test_timing_accuracy(self):
         """Test that timing information is accurate."""
-        async with AgentPool[None]() as pool:
+        async with AgentPool() as pool:
             agent = await pool.add_agent(
                 "agent", provider=lambda x: delayed_processor(x, 0.2)
             )

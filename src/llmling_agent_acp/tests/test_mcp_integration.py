@@ -48,7 +48,7 @@ async def test_session_with_mcp_servers(test_client, mock_acp_agent, client_capa
         return f"Test response for: {message}"
 
     agent = Agent(name="test_agent", provider=simple_callback)
-    agent_pool = AgentPool[None]()
+    agent_pool = AgentPool()
     agent_pool.register("test_agent", agent)
     command_store = CommandStore()
     command_bridge = ACPCommandBridge(command_store)
@@ -106,7 +106,7 @@ async def test_session_manager_with_mcp(test_client, mock_acp_agent, client_capa
         return f"Test response for: {message}"
 
     agent = Agent(name="test_agent", provider=simple_callback)
-    agent_pool = AgentPool[None]()  # Create empty pool and register the agent
+    agent_pool = AgentPool()  # Create empty pool and register the agent
     agent_pool.register("test_agent", agent)
     mcp_servers = [StdioMcpServer(name="tools", command="echo", args=["tools"], env=[])]
 
