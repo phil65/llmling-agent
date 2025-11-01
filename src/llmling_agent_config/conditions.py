@@ -147,10 +147,12 @@ class TokenThresholdCondition(ConnectionCondition):
             case "total":
                 return context.stats.token_count >= self.max_tokens
             case "prompt":
-                return context.message.cost_info.token_usage["prompt"] >= self.max_tokens
+                return (
+                    context.message.cost_info.token_usage.input_tokens >= self.max_tokens
+                )
             case "completion":
                 return (
-                    context.message.cost_info.token_usage["completion"] >= self.max_tokens
+                    context.message.cost_info.token_usage.output_tokens >= self.max_tokens
                 )
             case _:
                 msg = f"Unknown count type: {self.count_type}"

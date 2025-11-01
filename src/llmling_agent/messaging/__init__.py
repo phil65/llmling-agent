@@ -2,7 +2,6 @@
 
 from llmling_agent.messaging.messages import (
     ChatMessage,
-    TokenUsage,
     TokenCost,
     AgentResponse,
     TeamResponse,
@@ -19,5 +18,4 @@ __all__ = [
     "MessageNode",
     "TeamResponse",
     "TokenCost",
-    "TokenUsage",
 ]

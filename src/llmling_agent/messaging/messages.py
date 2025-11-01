@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import dataclasses
-from dataclasses import asdict, dataclass, field, replace
+from dataclasses import dataclass, field, replace
 from decimal import Decimal
-from typing import TYPE_CHECKING, Any, Literal, Self, TypedDict, TypeVar
+from typing import TYPE_CHECKING, Any, Literal, Self, TypeVar
 from uuid import uuid4
 
 from genai_prices import calc_price
@@ -39,7 +39,7 @@ Time: {{ timestamp.strftime('%Y-%m-%d %H:%M:%S') }}
 {{ content }}
 ----------------------------------------
 {%- if show_costs and cost_info %}
-Tokens: {{ "{:,}".format(cost_info.token_usage['total']) }}
+Tokens: {{ "{:,}".format(cost_info.token_usage.total_tokens) }}
 Cost: ${{ "%.5f"|format(cost_info.total_cost) }}
 {%- if response_time %}
 Response time: {{ "%.2f"|format(response_time) }}s
@@ -63,7 +63,7 @@ MARKDOWN_TEMPLATE = """## {{ name or role.title() }}
 {%- if show_costs and cost_info %}
 ---
 **Stats:**
-- Tokens: {{ "{:,}".format(cost_info.token_usage['total']) }}
+- Tokens: {{ "{:,}".format(cost_info.token_usage.total_tokens) }}
 - Cost: ${{ "%.4f"|format(cost_info.total_cost) }}
 {%- if response_time %}
 - Response time: {{ "%.2f"|format(response_time) }}s
@@ -89,22 +89,11 @@ MESSAGE_TEMPLATES = {
 }
 
 
-class TokenUsage(TypedDict):
-    """Token usage statistics from model responses."""
-
-    total: int
-    """Total tokens used"""
-    prompt: int
-    """Tokens used in the prompt"""
-    completion: int
-    """Tokens used in the completion"""
-
-
 @dataclass(frozen=True)
 class TokenCost:
     """Combined token and cost tracking."""
 
-    token_usage: TokenUsage
+    token_usage: RunUsage
     """Token counts for prompt and completion"""
     total_cost: Decimal
     """Total cost in USD"""
@@ -126,13 +115,7 @@ class TokenCost:
         ):
             logger.debug("Missing token counts in Usage object")
             return None
-
-        token_usage = TokenUsage(
-            total=usage.total_tokens,
-            prompt=usage.input_tokens,
-            completion=usage.output_tokens,
-        )
-        logger.debug("Token usage: %s", token_usage)
+        logger.debug("Token usage: %s", usage)
 
         # return cls(token_usage=token_usage, total_cost=Decimal(total_cost))
         if model in {"None", "test"}:
@@ -154,7 +137,7 @@ class TokenCost:
                 )
                 price = Decimal(cost.total_cost if cost else 0)
 
-        return cls(token_usage=token_usage, total_cost=price)
+        return cls(token_usage=usage, total_cost=price)
 
 
 @dataclass
@@ -293,9 +276,13 @@ class ChatMessage[TContent]:
             case _:
                 msg = f"Invalid style: {style}"
                 raise ValueError(msg)
-
         template_obj = env.from_string(template_str)
-        vars_ = {**asdict(self), "show_metadata": show_metadata, "show_costs": show_costs}
+        vars_ = {
+            **(self.__dict__),
+            "show_metadata": show_metadata,
+            "show_costs": show_costs,
+        }
+        print(vars_)
         if variables:
             vars_.update(variables)
 

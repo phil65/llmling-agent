@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from uuid import uuid4
 
+from pydantic_ai import RunUsage
 import pytest
 from sqlmodel import delete, select
 
@@ -59,7 +60,7 @@ async def sample_data(provider: SQLModelProvider):
             "user",  # name
             "gpt-5",  # model
             TokenCost(
-                token_usage={"total": 10, "prompt": 5, "completion": 5},
+                token_usage=RunUsage(input_tokens=5, output_tokens=5),
                 total_cost=Decimal("0.001"),
             ),  # cost_info
         ),
@@ -70,7 +71,7 @@ async def sample_data(provider: SQLModelProvider):
             "test_agent",
             "gpt-5",
             TokenCost(
-                token_usage={"total": 20, "prompt": 10, "completion": 10},
+                token_usage=RunUsage(input_tokens=10, output_tokens=10),
                 total_cost=Decimal("0.002"),
             ),
         ),
@@ -81,7 +82,7 @@ async def sample_data(provider: SQLModelProvider):
             "user",
             "gpt-3.5-turbo",
             TokenCost(
-                token_usage={"total": 15, "prompt": 7, "completion": 8},
+                token_usage=RunUsage(input_tokens=7, output_tokens=8),
                 total_cost=Decimal("0.0015"),
             ),
         ),

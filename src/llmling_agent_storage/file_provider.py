@@ -6,6 +6,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING, TypedDict, cast
 
+from pydantic_ai import RunUsage
 from upath import UPath
 
 from llmling_agent.common_types import JsonValue, MessageRole  # noqa: TC001
@@ -14,11 +15,11 @@ from llmling_agent.messaging.messages import ChatMessage, TokenCost
 from llmling_agent.storage import deserialize_parts
 from llmling_agent.utils.now import get_now
 from llmling_agent_storage.base import StorageProvider
+from llmling_agent_storage.models import TokenUsage
 
 
 if TYPE_CHECKING:
     from pydantic_ai import FinishReason
-    from tokonomics.toko_types import TokenUsage
 
     from llmling_agent_config.session import SessionQuery
     from llmling_agent_config.storage import FileStorageConfig
@@ -154,11 +155,15 @@ class FileProvider(StorageProvider):
             # Convert to ChatMessage
             cost_info = None
             if msg["token_usage"]:
-                from llmling_agent.messaging.messages import TokenUsage
-
-                usage = cast(TokenUsage, msg["token_usage"])
+                usage = msg["token_usage"]
                 cost = Decimal(msg["cost"] or 0.0)
-                cost_info = TokenCost(token_usage=usage, total_cost=cost)
+                cost_info = TokenCost(
+                    token_usage=RunUsage(
+                        input_tokens=usage["prompt"],
+                        output_tokens=usage["completion"],
+                    ),
+                    total_cost=cost,
+                )
 
             chat_message = ChatMessage[str](
                 content=msg["content"],
@@ -209,7 +214,16 @@ class FileProvider(StorageProvider):
             "name": name,
             "model": model,
             "cost": Decimal(cost_info.total_cost) if cost_info else None,
-            "token_usage": cost_info.token_usage.copy() if cost_info else None,
+            "token_usage": TokenUsage(
+                {
+                    "prompt": cost_info.token_usage.input_tokens if cost_info else None,
+                    "completion": cost_info.token_usage.output_tokens
+                    if cost_info
+                    else None,
+                }
+                if cost_info
+                else None
+            ),
             "response_time": response_time,
             "forwarded_from": forwarded_from,
             "provider_name": provider_name,

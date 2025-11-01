@@ -5,6 +5,7 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import TYPE_CHECKING, Any
 
+from pydantic_ai import RunUsage
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import SQLModel, desc, select
 
@@ -166,9 +167,9 @@ class SQLModelProvider(StorageProvider[Message]):
             model_provider=provider,
             model_name=model_name,
             response_time=response_time,
-            total_tokens=cost_info.token_usage.get("total") if cost_info else None,
-            input_tokens=cost_info.token_usage.get("prompt") if cost_info else None,
-            output_tokens=cost_info.token_usage.get("completion") if cost_info else None,
+            total_tokens=cost_info.token_usage.total_tokens if cost_info else None,
+            input_tokens=cost_info.token_usage.input_tokens if cost_info else None,
+            output_tokens=cost_info.token_usage.output_tokens if cost_info else None,
             cost=float(cost_info.total_cost) if cost_info else None,
             forwarded_from=forwarded_from,
             provider_name=provider_name,
@@ -368,11 +369,10 @@ class SQLModelProvider(StorageProvider[Message]):
                 agent,
                 timestamp,
                 TokenCost(
-                    token_usage={
-                        "total": total or 0,
-                        "prompt": prompt or 0,
-                        "completion": completion or 0,
-                    },
+                    token_usage=RunUsage(
+                        input_tokens=prompt or 0,
+                        output_tokens=completion or 0,
+                    ),
                     total_cost=Decimal(0),  # We don't store this in DB
                 )
                 if total or prompt or completion

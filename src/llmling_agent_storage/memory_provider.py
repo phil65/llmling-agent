@@ -15,12 +15,15 @@ from llmling_agent_storage.models import ConversationData
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from tokonomics.toko_types import TokenUsage
-
     from llmling_agent.common_types import JsonValue
     from llmling_agent_config.session import SessionQuery
     from llmling_agent_config.storage import MemoryStorageConfig
-    from llmling_agent_storage.models import MessageData, QueryFilters, StatsFilters
+    from llmling_agent_storage.models import (
+        MessageData,
+        QueryFilters,
+        StatsFilters,
+        TokenUsage,
+    )
 
 
 class MemoryStorageProvider(StorageProvider):
@@ -316,9 +319,9 @@ class MemoryStorageProvider(StorageProvider):
         total = prompt = completion = 0
         for msg in messages:
             if msg.cost_info:
-                total += msg.cost_info.token_usage.get("total", 0)
-                prompt += msg.cost_info.token_usage.get("prompt", 0)
-                completion += msg.cost_info.token_usage.get("completion", 0)
+                total += msg.cost_info.token_usage.total_tokens
+                prompt += msg.cost_info.token_usage.input_tokens
+                completion += msg.cost_info.token_usage.output_tokens
         return {"total": total, "prompt": prompt, "completion": completion}
 
     async def reset(

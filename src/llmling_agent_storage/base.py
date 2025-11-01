@@ -249,7 +249,7 @@ class StorageProvider[T]:
             entry = stats[key]
             entry["messages"] += 1
             if token_usage:
-                entry["total_tokens"] += token_usage.token_usage.get("total", 0)
+                entry["total_tokens"] += token_usage.token_usage.total_tokens
             if model:
                 entry["models"].add(model)
 

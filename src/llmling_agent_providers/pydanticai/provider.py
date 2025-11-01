@@ -14,6 +14,7 @@ from pydantic_ai import (
     FunctionToolCallEvent,
     PartStartEvent,
     RunContext,
+    RunUsage,
     TextPartDelta,
     ToolCallPart,
     UsageLimits as PydanticAiUsageLimits,
@@ -24,7 +25,7 @@ from pydantic_ai.tools import GenerateToolJsonSchema
 
 from llmling_agent.agent.context import AgentContext
 from llmling_agent.log import get_logger
-from llmling_agent.messaging.messages import TokenCost, TokenUsage
+from llmling_agent.messaging.messages import TokenCost
 from llmling_agent.tasks.exceptions import (
     ChainAbortedError,
     RunAbortedError,
@@ -329,10 +330,9 @@ class PydanticAIProvider(AgentProvider[Any]):
         usage = result.usage()
         cost = await TokenCost.from_usage(model=resolved_model, usage=usage)
         total = cost.total_cost if cost else Decimal(0)
-        token_usage = TokenUsage(
-            total=usage.total_tokens,
-            prompt=usage.input_tokens,
-            completion=usage.output_tokens,
+        token_usage = RunUsage(
+            input_tokens=usage.input_tokens,
+            output_tokens=usage.output_tokens,
         )
         cost_info = TokenCost(token_usage=token_usage, total_cost=total)
         return ProviderResponse(

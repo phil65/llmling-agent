@@ -6,6 +6,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING, Any
 
+from pydantic_ai import RunUsage
 from sqlalchemy import JSON, Column, and_, or_
 from sqlalchemy.sql import expression
 from sqlmodel import select
@@ -39,9 +40,9 @@ def aggregate_token_usage(
             prompt += msg.input_tokens or 0
             completion += msg.output_tokens or 0
         elif msg.cost_info:
-            total += msg.cost_info.token_usage.get("total", 0)
-            prompt += msg.cost_info.token_usage.get("prompt", 0)
-            completion += msg.cost_info.token_usage.get("completion", 0)
+            total += msg.cost_info.token_usage.total_tokens
+            prompt += msg.cost_info.token_usage.input_tokens
+            completion += msg.cost_info.token_usage.output_tokens
     return {"total": total, "prompt": prompt, "completion": completion}
 
 
@@ -50,11 +51,10 @@ def to_chat_message(db_message: Message) -> ChatMessage[str]:
     cost_info = None
     if db_message.total_tokens is not None:
         cost_info = TokenCost(
-            token_usage={
-                "total": db_message.total_tokens or 0,
-                "prompt": db_message.input_tokens or 0,
-                "completion": db_message.output_tokens or 0,
-            },
+            token_usage=RunUsage(
+                input_tokens=db_message.input_tokens or 0,
+                output_tokens=db_message.output_tokens or 0,
+            ),
             total_cost=Decimal(db_message.cost or 0.0),
         )
 
@@ -200,7 +200,11 @@ def format_conversation(
                 "timestamp": msg.timestamp.isoformat(),
                 "model": msg.model_name,
                 "name": msg.name,
-                "token_usage": msg.cost_info.token_usage if msg.cost_info else None,
+                "token_usage": {
+                    "prompt": msg.usage.input_tokens,
+                    "completion": msg.usage.output_tokens,
+                    "total": msg.usage.total_tokens,
+                },
                 "cost": float(msg.cost_info.total_cost) if msg.cost_info else None,
                 "response_time": msg.response_time,
             }

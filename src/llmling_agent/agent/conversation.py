@@ -210,7 +210,7 @@ class ConversationManager:
             if max_tokens:
                 # Count tokens in this message
                 if msg.cost_info:
-                    msg_tokens = msg.cost_info.token_usage["total"]
+                    msg_tokens = msg.cost_info.token_usage.total_tokens
                 else:
                     # Fallback to tiktoken if no cost info
                     msg_tokens = self.get_message_tokens(msg)

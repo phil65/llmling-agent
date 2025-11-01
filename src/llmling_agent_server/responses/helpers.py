@@ -49,9 +49,9 @@ async def handle_request(request: ResponseRequest, agent: Agent[Any, Any]):
     usage_info: ResponseUsage | None = None
     if message.cost_info and (token_usage := message.cost_info.token_usage):
         # Map the keys correctly from agent's dict to ResponseUsage TypedDict
-        input_tk = token_usage.get("prompt", 0)  # Agent uses 'prompt'
-        output_tk = token_usage.get("completion", 0)  # Agent uses 'completion'
-        total_tk = token_usage.get("total", 0)  # Agent uses 'total'
+        input_tk = token_usage.input_tokens
+        output_tk = token_usage.output_tokens
+        total_tk = token_usage.total_tokens
 
         usage_info = ResponseUsage(
             input_tokens=input_tk,

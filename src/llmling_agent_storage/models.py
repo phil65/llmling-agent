@@ -9,10 +9,19 @@ from typing import TYPE_CHECKING, Literal, TypedDict
 if TYPE_CHECKING:
     from datetime import datetime
 
-    from llmling_agent.messaging import TokenUsage
-
 
 GroupBy = Literal["agent", "model", "hour", "day"]
+
+
+class TokenUsage(TypedDict):
+    """Token usage statistics from model responses."""
+
+    total: int
+    """Total tokens used"""
+    prompt: int
+    """Tokens used in the prompt"""
+    completion: int
+    """Tokens used in the completion"""
 
 
 class MessageData(TypedDict):

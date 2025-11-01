@@ -48,8 +48,8 @@ class ChatMessageContainer(EventedList[ChatMessage[Any]]):
             Token count for the message
         """
         if message.cost_info:
-            return message.cost_info.token_usage["total"]
-        return count_tokens(str(message.content), message.model_name)
+            return message.cost_info.token_usage.total_tokens
+        return count_tokens(str(message.usage.total_tokens), message.model_name)
 
     def get_history_tokens(self, fallback_model: str | None = None) -> int:
         """Get total token count for all messages.
@@ -61,7 +61,7 @@ class ChatMessageContainer(EventedList[ChatMessage[Any]]):
             Total token count across all messages
         """
         # Use cost_info if available
-        total = sum(msg.cost_info.token_usage["total"] for msg in self if msg.cost_info)
+        total = sum(m.cost_info.token_usage.total_tokens for m in self if m.cost_info)
 
         # For messages without cost_info, estimate using tiktoken
         if msgs := [msg for msg in self if not msg.cost_info]:
