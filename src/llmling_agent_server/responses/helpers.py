@@ -18,7 +18,7 @@ from llmling_agent_server.responses.models import (
 
 if TYPE_CHECKING:
     from llmling_agent.agent import Agent
-    from llmling_agent_server.responses_models import ResponseRequest
+    from llmling_agent_server.responses.models import ResponseRequest
 
 
 async def handle_request(request: ResponseRequest, agent: Agent[Any, Any]):
