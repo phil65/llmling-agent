@@ -32,16 +32,31 @@ class PromptLayerProvider(BasePromptProvider):
     ) -> str:
         # PromptLayer primarily tracks prompts used with their API
         # But also allows template management
-        return self.client.templates.get(name)
+        dct = self.client.templates.get(name)
+        template = dct["prompt_template"]
+        return (
+            str(template.get("content"))
+            if "content" in template
+            else str(template.get("messages"))
+        )
+
+    async def list_prompts(self) -> list[str]:
+        """List available prompts from Fabric repository."""
+        dct = self.client.templates.all()
+        return [prompt["prompt_name"] for prompt in dct]
 
 
 if __name__ == "__main__":
+    from pydantic import SecretStr
+
     from llmling_agent_config.prompt_hubs import PromptLayerConfig
 
     async def main():
-        config = PromptLayerConfig(api_key="pl_480ead79b098fc25c63cdb4c95115deb")
+        config = PromptLayerConfig(
+            api_key=SecretStr("pl_480ead79b098fc25c63cdb4c95115deb")
+        )
         provider = PromptLayerProvider(config)
-        prompt = await provider.get_prompt("example_prompt")
+        prompt = await provider.list_prompts()
         print(prompt)
 
     import asyncio
