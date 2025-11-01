@@ -43,13 +43,9 @@ class ResourceRegistry(BaseRegistry[str, AbstractFileSystem]):
         from llmling_agent_config.resources import SourceResourceConfig
 
         match config:
-            case SourceResourceConfig():
+            case SourceResourceConfig(uri=uri):
                 # Extract base path from URI if present
-                protocol, path = (
-                    config.uri.split("://", 1)
-                    if "://" in config.uri
-                    else (config.uri, "")
-                )
+                protocol, path = uri.split("://", 1) if "://" in uri else (uri, "")
                 if path:
                     config.storage_options["root"] = path
 

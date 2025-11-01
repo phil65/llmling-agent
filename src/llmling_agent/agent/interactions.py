@@ -414,7 +414,6 @@ List your selections, one per line, followed by your reasoning."""
                 # explanation: str | None = None
 
             result = await self.agent.run(final_prompt, output_type=Extraction)
-
             # Convert model instance to actual type
             return as_type(**result.content.instance.model_dump())  # type: ignore
 

@@ -34,15 +34,10 @@ class FabricPromptHub(BasePromptProvider):
 
         async with httpx.AsyncClient() as client:
             # Try system prompt first
-            response = await client.get(system_url)
-            if response.status_code == 200:  # noqa: PLR2004
+            if (response := await client.get(system_url)).status_code == 200:  # noqa: PLR2004
                 return response.text
-
-            # Try user prompt if system not found
-            response = await client.get(user_url)
-            if response.status_code == 200:  # noqa: PLR2004
+            if (response := await client.get(user_url)).status_code == 200:  # noqa: PLR2004
                 return response.text
-
             msg = f"Template {name!r} not found in Fabric repository"
             raise ValueError(msg)
 
