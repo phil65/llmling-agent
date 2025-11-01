@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from mcp.types import TextContent
+
 from acp.schema import AvailableCommand, AvailableCommandInput, CommandInputHint
 from llmling_agent.log import get_logger
 
@@ -55,63 +57,46 @@ class MCPPromptCommand:
         Yields:
             SessionNotification objects with prompt results
         """
+        arguments = self._parse_arguments(args) if args.strip() else None
+        assert session.mcp_manager, "No MCP manager available"
+        # Find appropriate MCP client (use first available for now)
+        if not session.mcp_manager.clients:
+            error_msg = "No MCP clients connected"
+            await session.notifications.send_agent_text(error_msg)
+            return
+        # Execute prompt via first available MCP client
+        client = next(iter(session.mcp_manager.clients.values()))
+
         try:
-            # Parse arguments if needed
-            arguments = self._parse_arguments(args) if args.strip() else None
-
-            # Get MCP manager from session
-            if not session.mcp_manager:
-                error_msg = "No MCP servers available"
-                await session.notifications.send_agent_text(error_msg)
-                return
-
-            # Find appropriate MCP client (use first available for now)
-            if not session.mcp_manager.clients:
-                error_msg = "No MCP clients connected"
-                await session.notifications.send_agent_text(error_msg)
-                return
-            # Execute prompt via first available MCP client
-            client = next(iter(session.mcp_manager.clients.values()))
-
+            # Try with arguments first, fallback to no arguments
             try:
-                # Try with arguments first, fallback to no arguments
-                try:
-                    result = await client.get_prompt(self.mcp_prompt.name, arguments)
-                except Exception as e:
-                    if arguments:
-                        msg = "MCP prompt with arguments failed, trying without"
-                        logger.warning(msg, error=e)
-                        result = await client.get_prompt(self.mcp_prompt.name)
-                    else:
-                        raise
-
-                # Convert prompt result to text
-                content_parts = []
-                for message in result.messages:
-                    if hasattr(message.content, "text"):
-                        content_parts.append(message.content.text)  # type: ignore
-                    else:
-                        content_parts.append(str(message.content))
-
-                output = "\n".join(content_parts)
-
-                # Add argument info if provided
-                if arguments:
-                    arg_info = ", ".join(f"{k}={v}" for k, v in arguments.items())
-                    output = (
-                        f"Prompt {self.mcp_prompt.name!r} with "
-                        f"args ({arg_info}):\n\n{output}"
-                    )
-
-                await session.notifications.send_agent_text(output)
-
+                result = await client.get_prompt(self.mcp_prompt.name, arguments)
             except Exception as e:
-                error_msg = f"MCP prompt execution failed: {e}"
-                logger.exception("MCP prompt execution error")
-                await session.notifications.send_agent_text(error_msg)
+                if arguments:
+                    msg = "MCP prompt with arguments failed, trying without"
+                    logger.warning(msg, error=e)
+                    result = await client.get_prompt(self.mcp_prompt.name)
+                else:
+                    raise
+
+            content_parts = [  # Convert prompt result to text
+                message.content.text
+                for message in result.messages
+                if isinstance(message.content, TextContent)
+            ]
+            output = "\n".join(content_parts)
+            # Add argument info if provided
+            if arguments:
+                arg_info = ", ".join(f"{k}={v}" for k, v in arguments.items())
+                output = (
+                    f"Prompt {self.mcp_prompt.name!r} with args ({arg_info}):\n\n{output}"
+                )
+
+            await session.notifications.send_agent_text(output)
+
         except Exception as e:
-            error_msg = f"Command error: {e}"
-            logger.exception("MCP command execution error")
+            error_msg = f"MCP prompt execution failed: {e}"
+            logger.exception("MCP prompt execution error")
             await session.notifications.send_agent_text(error_msg)
 
     def _parse_arguments(self, args_str: str) -> dict[str, str]:
