@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from llmling_agent.models.content import Content
 
 
-def content_to_pydantic_ai(content: Content) -> UserContent | None:  # noqa: PLR0911
+def content_to_pydantic_ai(content: Content | str) -> UserContent:  # noqa: PLR0911
     """Convert our Content types to pydantic-ai content types.
 
     Args:
@@ -31,6 +31,8 @@ def content_to_pydantic_ai(content: Content) -> UserContent | None:  # noqa: PLR
         In these cases, None is returned and a warning is emitted.
     """
     match content:
+        case str():
+            return content
         case own_content.ImageURLContent(url=url):
             return ImageUrl(url=url)
 
@@ -50,8 +52,7 @@ def content_to_pydantic_ai(content: Content) -> UserContent | None:  # noqa: PLR
         case own_content.VideoURLContent():
             msg = "Video content not supported by pydantic-ai"
             warnings.warn(msg, UserWarning, stacklevel=2)
-            return None
+            return content.url
         case _:
-            msg = f"Unknown content type: {type(content)}"
-            warnings.warn(msg, UserWarning, stacklevel=2)
-            return None
+            msg = f"Unsupported content type: {type(content)}"
+            raise TypeError(msg)
