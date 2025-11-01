@@ -11,6 +11,7 @@ from uuid import UUID, uuid4
 from llmling import BasePrompt, PromptMessage, StaticPrompt
 from llmling.config.models import BaseResource
 from psygnal import Signal
+from pydantic_ai import UserPromptPart
 from upathtools import read_path
 
 from llmling_agent.log import get_logger
@@ -385,8 +386,13 @@ class ConversationManager:
                     messages = await self._agent.context.storage.filter_messages(history)
                 else:
                     messages = [
-                        ChatMessage(content=await to_prompt(p), role="user")
+                        ChatMessage(
+                            content=prompt,
+                            role="user",
+                            parts=[UserPromptPart(content=prompt)],
+                        )
                         for p in history
+                        if (prompt := await to_prompt(p))
                     ]
 
             if replace_history:

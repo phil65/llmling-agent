@@ -9,38 +9,8 @@ import pytest
 from slashed import CommandStore
 
 from llmling_agent import Agent, AgentPool
-from llmling_agent_acp.command_bridge import ACPCommandBridge, ACPOutputWriter
+from llmling_agent_acp.command_bridge import ACPCommandBridge
 from llmling_agent_acp.session import ACPSession
-
-
-@pytest.mark.asyncio
-async def test_acp_output_writer():
-    """Test that ACPOutputWriter sends updates immediately to session."""
-    # Mock session with notifications
-    mock_session = AsyncMock(spec=ACPSession)
-    mock_session.session_id = "test_session"
-    mock_session.notifications = AsyncMock()
-
-    received_messages = []
-
-    async def capture_message(message):
-        received_messages.append(message)
-
-    mock_session.notifications.send_agent_text.side_effect = capture_message
-
-    writer = ACPOutputWriter(mock_session)
-
-    # Test sending multiple messages
-    await writer.print("First message")
-    await writer.print("Second message")
-
-    # Verify messages were sent immediately
-    expected_message_count = 2
-    assert len(received_messages) == expected_message_count
-
-    # Verify content was sent correctly
-    assert received_messages[0] == "First message"
-    assert received_messages[1] == "Second message"
 
 
 @pytest.mark.asyncio

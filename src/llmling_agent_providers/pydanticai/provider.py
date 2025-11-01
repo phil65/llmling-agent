@@ -363,7 +363,7 @@ class PydanticAIProvider(AgentProvider[Any]):
             model = infer_model(model)
         self._model = model
         self._kwargs["model"] = model
-        logger.debug("Changed model from %s to %s", old_name, self.model_name)
+        logger.debug("Changed model", old_name=old_name, new_name=self.model_name)
 
     @property
     def model_name(self) -> str | None:
