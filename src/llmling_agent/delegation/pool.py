@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 from contextlib import AsyncExitStack, asynccontextmanager, suppress
 import os
-from typing import TYPE_CHECKING, Any, Self, TypeVar, Unpack, cast, overload
+from typing import TYPE_CHECKING, Any, Self, Unpack, cast, overload
 
 from anyenv import MultiEventHandler
 from llmling import BaseRegistry, LLMLingError
@@ -52,9 +52,6 @@ if TYPE_CHECKING:
 
 
 logger = get_logger(__name__)
-
-
-TResult = TypeVar("TResult", default=Any)
 
 
 class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any]]):
@@ -214,7 +211,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
         self.clear()
 
     @overload
-    def create_team_run(
+    def create_team_run[TResult](
         self,
         agents: Sequence[str],
         validator: MessageNode[Any, TResult] | None = None,
@@ -242,7 +239,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
     ) -> TeamRun[TDeps, TResult]: ...
 
     @overload
-    def create_team_run(
+    def create_team_run[TResult](
         self,
         agents: Sequence[AgentName | MessageNode[Any, Any]],
         validator: MessageNode[Any, TResult] | None = None,
@@ -255,7 +252,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
         pick_prompt: str | None = None,
     ) -> TeamRun[Any, TResult]: ...
 
-    def create_team_run(
+    def create_team_run[TResult](
         self,
         agents: Sequence[AgentName | MessageNode[Any, Any]] | None = None,
         validator: MessageNode[Any, TResult] | None = None,

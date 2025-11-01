@@ -27,10 +27,7 @@ from pydantic import ValidationError
 from pydantic_ai import AgentRunResultEvent, PartDeltaEvent, TextPartDelta
 from upath import UPath
 
-from llmling_agent.agent.events import (
-    StreamCompleteEvent,
-    ToolCallProgressEvent,
-)
+from llmling_agent.agent.events import StreamCompleteEvent, ToolCallProgressEvent
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messagenode import MessageNode
 from llmling_agent.messaging.messages import ChatMessage, TokenCost
@@ -62,9 +59,7 @@ if TYPE_CHECKING:
     from upath.types import JoinablePathLike
 
     from llmling_agent.agent import AgentContext
-    from llmling_agent.agent.events import (
-        RichAgentStreamEvent,
-    )
+    from llmling_agent.agent.events import RichAgentStreamEvent
     from llmling_agent.agent.interactions import Interactions
     from llmling_agent.common_types import (
         AgentName,

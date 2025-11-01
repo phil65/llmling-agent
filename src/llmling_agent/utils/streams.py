@@ -4,13 +4,11 @@ from __future__ import annotations
 
 import asyncio
 from contextlib import asynccontextmanager
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any
 
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterable, AsyncIterator
-
-T = TypeVar("T")
 
 
 @asynccontextmanager

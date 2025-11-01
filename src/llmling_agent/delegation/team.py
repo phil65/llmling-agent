@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from time import perf_counter
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 from aioitertools.asyncio import as_generated
@@ -30,9 +30,6 @@ if TYPE_CHECKING:
     from llmling_agent.agent.agent import StreamCompleteEvent
     from llmling_agent.talk import Talk
     from llmling_agent_config.task import Job
-
-
-TDeps = TypeVar("TDeps", default=None)
 
 
 async def normalize_stream_for_teams(
@@ -65,7 +62,7 @@ async def normalize_stream_for_teams(
             yield (node, item)
 
 
-class Team[TDeps](BaseTeam[TDeps, Any]):
+class Team[TDeps = None](BaseTeam[TDeps, Any]):
     """Group of agents that can execute together."""
 
     async def execute(

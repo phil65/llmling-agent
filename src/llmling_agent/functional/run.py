@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING, Any, TypeVar, Unpack, overload
+from typing import TYPE_CHECKING, Any, Unpack, overload
 
 from llmling_agent import Agent
 from llmling_agent.models.content import ImageURLContent
@@ -16,9 +16,6 @@ if TYPE_CHECKING:
     from toprompt import AnyPromptType
 
     from llmling_agent.agent.agent import AgentKwargs
-
-
-TResult = TypeVar("TResult", default=str)
 
 
 @overload
