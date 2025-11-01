@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
     from datetime import datetime
 
-    from pydantic_ai import FinishReason, ModelResponsePart, RunUsage
+    from pydantic_ai import FinishReason, ModelRequestPart, ModelResponsePart, RunUsage
 
     from llmling_agent.tools import ToolCallInfo
 
@@ -187,7 +187,7 @@ class ChatMessage[TContent]:
     provider_details: dict[str, Any] = field(default_factory=dict)
     """Provider specific metadata / extra information."""
 
-    parts: Sequence[ModelResponsePart] = field(default_factory=list)
+    parts: Sequence[ModelResponsePart | ModelRequestPart] = field(default_factory=list)
     """The parts of the model message."""
 
     usage: RequestUsage = field(default_factory=RequestUsage)

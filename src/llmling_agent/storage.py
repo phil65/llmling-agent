@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     from datetime import datetime
     from types import TracebackType
 
-    from pydantic_ai import ModelResponsePart
+    from pydantic_ai import ModelRequestPart, ModelResponsePart
 
     from llmling_agent.common_types import JsonValue
     from llmling_agent.messaging.messages import ChatMessage
@@ -64,7 +64,7 @@ def deserialize_parts(parts_json: str | None) -> Sequence[ModelResponsePart]:
         return []  # Return empty list on failure
 
 
-def serialize_parts(parts: Sequence[ModelResponsePart]) -> str | None:
+def serialize_parts(parts: Sequence[ModelResponsePart | ModelRequestPart]) -> str | None:
     """Serialize pydantic-ai message parts from ChatMessage.
 
     Args:
