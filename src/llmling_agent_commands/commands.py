@@ -54,4 +54,4 @@ class ListNodesCommand(SlashedCommand):
 
         headers = ["Node", "Status", "Connections", "Description"]
         table = format_table(headers, rows)
-        await ctx.output.print(f"## 🔗 Available Nodes\n\n{table}")
+        await ctx.print(f"## 🔗 Available Nodes\n\n{table}")

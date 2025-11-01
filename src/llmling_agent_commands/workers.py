@@ -103,7 +103,7 @@ class AddWorkerCommand(SlashedCommand):
                 parent=ctx.context.agent,
             )
 
-            await ctx.output.print(
+            await ctx.print(
                 f"✅ **Added agent** `{worker_name}` **as worker tool:** `{tool_info.name}`\n"  # noqa: E501
                 f"🔧 **Tool enabled:** {tool_info.enabled}"
             )
@@ -156,7 +156,7 @@ class RemoveWorkerCommand(SlashedCommand):
 
             # Remove the tool
             del ctx.context.agent.tools[tool_name]
-            await ctx.output.print(f"🗑️ **Removed worker tool:** `{tool_name}`")
+            await ctx.print(f"🗑️ **Removed worker tool:** `{tool_name}`")
 
         except Exception as e:
             msg = f"Failed to remove worker: {e}"
@@ -194,7 +194,7 @@ class ListWorkersCommand(SlashedCommand):
         ]
 
         if not worker_tools:
-            await ctx.output.print("ℹ️ **No worker tools registered**")  #  noqa: RUF001
+            await ctx.print("ℹ️ **No worker tools registered**")  #  noqa: RUF001
             return
 
         rows = []
@@ -210,4 +210,4 @@ class ListWorkersCommand(SlashedCommand):
 
         headers = ["Status", "Agent", "Tool", "Description"]
         table = format_table(headers, rows)
-        await ctx.output.print(f"## 👥 Registered Workers\n\n{table}")
+        await ctx.print(f"## 👥 Registered Workers\n\n{table}")

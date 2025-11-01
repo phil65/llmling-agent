@@ -36,7 +36,7 @@ class ClearCommand(SlashedCommand):
             ctx: Command context
         """
         ctx.context.agent.conversation.clear()
-        await ctx.output.print("🧹 **Chat history cleared**")
+        await ctx.print("🧹 **Chat history cleared**")
 
 
 class ResetCommand(SlashedCommand):
@@ -57,6 +57,6 @@ class ResetCommand(SlashedCommand):
             ctx: Command context
         """
         await ctx.context.agent.reset()
-        await ctx.output.print(
+        await ctx.print(
             "🔄 **Session state reset** - history cleared, tools and settings restored"
         )

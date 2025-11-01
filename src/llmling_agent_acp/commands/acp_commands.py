@@ -51,7 +51,7 @@ class ACPCommandContext:
 
 #         # Check if we have access to session manager
 #         if not session.manager:
-#             await ctx.output.print("❌ **Session manager not available**")
+#             await ctx.print("❌ **Session manager not available**")
 #             return
 
 #         # If no filter specified, show both
@@ -114,10 +114,10 @@ class ACPCommandContext:
 #                 except Exception as e:
 #                     output_lines.append(f"*Error loading stored sessions: {e}*\n")
 
-#             await ctx.output.print("\n".join(output_lines))
+#             await ctx.print("\n".join(output_lines))
 
 #         except Exception as e:
-#             await ctx.output.print(f"❌ **Error listing sessions:** {e}")
+#             await ctx.print(f"❌ **Error listing sessions:** {e}")
 
 
 # class LoadSessionCommand(SlashedCommand):
@@ -150,7 +150,7 @@ class ACPCommandContext:
 #         """
 #         session = ctx.context.session
 #         if not session.manager:
-#             await ctx.output.print("❌ **Session manager not available**")
+#             await ctx.print("❌ **Session manager not available**")
 #             return
 
 #         try:
@@ -162,7 +162,7 @@ class ACPCommandContext:
 #                     )
 #                 )
 #                 if not session_data:
-#                     await ctx.output.print(f"❌ **Session not found:** `{session_id}`")
+#                     await ctx.print(f"❌ **Session not found:** `{session_id}`")
 #                     return
 
 #                 if preview:
@@ -186,31 +186,31 @@ class ACPCommandContext:
 #                             f"**Metadata:** ```json\n{metadata_json}\n```"
 #                         )
 
-#                     await ctx.output.print("\n".join(preview_lines))
+#                     await ctx.print("\n".join(preview_lines))
 #                     return
 
 #                 # Actually load the session
 #                 if no_replay:
-#                     await ctx.output.print(
+#                     await ctx.print(
 #                         f"🔄 **Loading session `{session_id}` without replay...**"
 #                     )
-#                     await ctx.output.print(
+#                     await ctx.print(
 #                         f"✅ **Session `{session_id}` is available for loading**"
 #                     )
 #                 else:
 #                     load_msg = f"🔄 **Loading session `{session_id}` with replay...**"
-#                     await ctx.output.print(load_msg)
+#                     await ctx.print(load_msg)
 
 #                     msg_count = len(session_data.conversation)
-#                     await ctx.output.print(f"📽️ **Replaying {msg_count} messages...**")
-#                     await ctx.output.print(
+#                     await ctx.print(f"📽️ **Replaying {msg_count} messages...**")
+#                     await ctx.print(
 #                         f"✅ **Session `{session_id}` loaded successfully**"
 #                     )
 #             else:
-#                 await ctx.output.print("❌ **Session persistence not enabled**")
+#                 await ctx.print("❌ **Session persistence not enabled**")
 
 #         except Exception as e:
-#             await ctx.output.print(f"❌ **Error loading session:** {e}")
+#             await ctx.print(f"❌ **Error loading session:** {e}")
 
 
 # class SaveSessionCommand(SlashedCommand):
@@ -243,7 +243,7 @@ class ACPCommandContext:
 #         session = ctx.context.session
 
 #         if not session.manager:
-#             await ctx.output.print("❌ **Session manager not available**")
+#             await ctx.print("❌ **Session manager not available**")
 #             return
 
 #         try:
@@ -251,18 +251,18 @@ class ACPCommandContext:
 #                 await session.manager._persistent_manager.save_session(session)
 
 #                 msg_count = len(getattr(session, "_conversation_history", []))
-#                 await ctx.output.print(
+#                 await ctx.print(
 #                     f"💾 **Session `{session.session_id}` saved successfully**"
 #                 )
-#                 await ctx.output.print(f"📊 **Saved {msg_count} messages**")
+#                 await ctx.print(f"📊 **Saved {msg_count} messages**")
 
 #                 if description:
-#                     await ctx.output.print(f"📝 **Description:** {description}")
+#                     await ctx.print(f"📝 **Description:** {description}")
 #             else:
-#                 await ctx.output.print("❌ **Session persistence not enabled**")
+#                 await ctx.print("❌ **Session persistence not enabled**")
 
 #         except Exception as e:
-#             await ctx.output.print(f"❌ **Error saving session:** {e}")
+#             await ctx.print(f"❌ **Error saving session:** {e}")
 
 
 # class DeleteSessionCommand(SlashedCommand):
@@ -291,7 +291,7 @@ class ACPCommandContext:
 #         """
 #         session = ctx.context.session
 #         if not session.manager:
-#             await ctx.output.print("❌ **Session manager not available**")
+#             await ctx.print("❌ **Session manager not available**")
 #             return
 
 #         try:
@@ -303,32 +303,32 @@ class ACPCommandContext:
 #                     )
 #                 )
 #                 if not session_data:
-#                     await ctx.output.print(f"❌ **Session not found:** `{session_id}`")
+#                     await ctx.print(f"❌ **Session not found:** `{session_id}`")
 #                     return
 
 #                 if not confirm:
 #                     msg_count = len(session_data.conversation)
-#                     await ctx.output.print(
+#                     await ctx.print(
 #                         f"⚠️  **About to delete session `{session_id}`**"
 #                     )
-#                     await ctx.output.print(
+#                     await ctx.print(
 #                         f"📊 **This session has {msg_count} messages**"
 #                     )
-#                     await ctx.output.print(
+#                     await ctx.print(
 #                         f"**To confirm, run:** `/delete-session {session_id} --confirm`"
 #                     )
 #                     return
 
 #                 # Delete the session
 #                 await session.manager._persistent_manager.store.delete_session(session_id)  # noqa: E501
-#                 await ctx.output.print(
+#                 await ctx.print(
 #                     f"🗑️  **Session `{session_id}` deleted successfully**"
 #                 )
 #             else:
-#                 await ctx.output.print("❌ **Session persistence not enabled**")
+#                 await ctx.print("❌ **Session persistence not enabled**")
 
 #         except Exception as e:
-#             await ctx.output.print(f"❌ **Error deleting session:** {e}")
+#             await ctx.print(f"❌ **Error deleting session:** {e}")
 
 
 def get_acp_commands() -> list[type[SlashedCommand]]:

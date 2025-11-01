@@ -87,11 +87,11 @@ async def test_immediate_send_with_slow_command():
 
     # Create a command that outputs multiple lines with delays
     async def slow_command_func(ctx, args, kwargs):
-        await ctx.output.print("Starting task...")
+        await ctx.print("Starting task...")
         await asyncio.sleep(0.01)  # Small delay
-        await ctx.output.print("Processing...")
+        await ctx.print("Processing...")
         await asyncio.sleep(0.01)  # Small delay
-        await ctx.output.print("Completed!")
+        await ctx.print("Completed!")
 
     # Set up command store
     command_store = CommandStore()
@@ -142,7 +142,7 @@ async def test_immediate_send_error_handling():
     """Test that errors in commands are properly sent immediately."""
 
     async def failing_command(ctx, args, kwargs):
-        await ctx.output.print("Starting...")
+        await ctx.print("Starting...")
         msg = "Command failed!"
         raise ValueError(msg)
 

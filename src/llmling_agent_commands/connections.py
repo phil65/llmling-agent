@@ -94,7 +94,7 @@ class ConnectCommand(SlashedCommand):
 
             wait_text = "*(waiting for responses)*" if wait else "*(async)*"
             msg = f"🔗 **Connected:** `{source}` → `{node_name}` {wait_text}"
-            await ctx.output.print(msg)
+            await ctx.print(msg)
         except Exception as e:
             msg = f"Failed to connect {source!r} to {node_name!r}: {e}"
             raise CommandError(msg) from e
@@ -132,7 +132,7 @@ class DisconnectCommand(SlashedCommand):
             target_node = ctx.context.pool[node_name]
             assert isinstance(target_node, MessageNode)
             ctx.context.node.connections.disconnect(target_node)
-            await ctx.output.print(f"🔌 **Disconnected:** `{source}` ⛔ `{node_name}`")
+            await ctx.print(f"🔌 **Disconnected:** `{source}` ⛔ `{node_name}`")
         except Exception as e:
             msg = f"{source!r} failed to disconnect from {node_name!r}: {e}"
             raise CommandError(msg) from e
@@ -158,11 +158,11 @@ class DisconnectAllCommand(SlashedCommand):
             ctx: Command context
         """
         if not ctx.context.node.connections.get_targets():
-            await ctx.output.print("ℹ️ **No active connections**")  #  noqa: RUF001
+            await ctx.print("ℹ️ **No active connections**")  #  noqa: RUF001
             return
         source = ctx.context.node_name
         await ctx.context.node.disconnect_all()
-        await ctx.output.print(f"🔌 **Disconnected** `{source}` from all nodes")
+        await ctx.print(f"🔌 **Disconnected** `{source}` from all nodes")
 
 
 class ListConnectionsCommand(SlashedCommand):
@@ -184,7 +184,7 @@ class ListConnectionsCommand(SlashedCommand):
             ctx: Command context
         """
         if not ctx.context.node.connections.get_targets():
-            await ctx.output.print("ℹ️ **No active connections**")  #  noqa: RUF001
+            await ctx.print("ℹ️ **No active connections**")  #  noqa: RUF001
             return
 
         # Create tree visualization
@@ -203,4 +203,4 @@ class ListConnectionsCommand(SlashedCommand):
         with console.capture() as capture:
             console.print(tree)
         tree_str = capture.get()
-        await ctx.output.print(f"\n## 🌳 Connection Tree\n\n```\n{tree_str}\n```")
+        await ctx.print(f"\n## 🌳 Connection Tree\n\n```\n{tree_str}\n```")

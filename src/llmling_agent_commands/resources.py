@@ -113,9 +113,9 @@ class ListResourcesCommand(SlashedCommand):
 
             headers = ["Resource", "Type", "URI", "Description"]
             table = format_table(headers, rows)
-            await ctx.output.print(f"## 📁 Available Resources\n\n{table}")
+            await ctx.print(f"## 📁 Available Resources\n\n{table}")
         except Exception as e:  # noqa: BLE001
-            await ctx.output.print(f"❌ **Failed to list resources:** {e}")
+            await ctx.print(f"❌ **Failed to list resources:** {e}")
 
 
 class ShowResourceCommand(SlashedCommand):
@@ -163,7 +163,7 @@ class ShowResourceCommand(SlashedCommand):
             try:
                 info = await fs._info(f"{name}://")
             except Exception as e:  # noqa: BLE001
-                await ctx.output.print(f"❌ **Resource** `{name}` **not found:** {e}")
+                await ctx.print(f"❌ **Resource** `{name}` **not found:** {e}")
                 return
 
             sections = [f"## 📁 Resource: {name}\n"]
@@ -184,9 +184,9 @@ class ShowResourceCommand(SlashedCommand):
             except Exception as e:  # noqa: BLE001
                 sections.append(f"\nFailed to list contents: {e}")
 
-            await ctx.output.print("\n".join(sections))
+            await ctx.print("\n".join(sections))
         except Exception as e:  # noqa: BLE001
-            await ctx.output.print(f"❌ **Error accessing resource:** {e}")
+            await ctx.print(f"❌ **Error accessing resource:** {e}")
 
     def get_completer(self):
         """Get completer for resource names."""
@@ -258,7 +258,7 @@ class AddResourceCommand(SlashedCommand):
                     )
                 msg = f"✅ **Added {len(files)} files from** `{resource_name}`"
 
-            await ctx.output.print(msg)
+            await ctx.print(msg)
 
         except Exception as e:
             msg = f"Error loading resource: {e}"

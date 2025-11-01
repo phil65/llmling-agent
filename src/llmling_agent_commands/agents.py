@@ -138,7 +138,7 @@ class CreateAgentCommand(SlashedCommand):
             msg = f"✅ **Created agent** `{agent_name}`"
             if tool_list:
                 msg += f" with tools: `{', '.join(tool_list)}`"
-            await ctx.output.print(
+            await ctx.print(
                 f"{msg}\n\n💡 Use `/connect {agent_name}` to forward messages"
             )
 
@@ -173,7 +173,7 @@ class ShowAgentCommand(SlashedCommand):
         import yamling
 
         if not ctx.context.node.context:
-            await ctx.output.print("❌ **No node context available**")
+            await ctx.print("❌ **No node context available**")
             return
 
         # Get the agent's config with current overrides
@@ -198,7 +198,7 @@ class ShowAgentCommand(SlashedCommand):
             "```",
         ]
 
-        await ctx.output.print("\n".join(sections))
+        await ctx.print("\n".join(sections))
 
 
 class ListAgentsCommand(SlashedCommand):
@@ -235,7 +235,7 @@ class ListAgentsCommand(SlashedCommand):
 
         headers = ["Name", "Model", "Type", "Description"]
         table = format_table(headers, rows)
-        await ctx.output.print(f"## 🤖 Available Agents\n\n{table}")
+        await ctx.print(f"## 🤖 Available Agents\n\n{table}")
 
 
 class SwitchAgentCommand(SlashedCommand):

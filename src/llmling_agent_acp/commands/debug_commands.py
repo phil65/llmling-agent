@@ -64,18 +64,18 @@ class DebugSendTextCommand(SlashedCommand):
             elif chunk_type == "thought":
                 update = AgentThoughtChunk(content=content)
             else:
-                await ctx.output.print(f"❌ **Invalid chunk type:** `{chunk_type}`")
+                await ctx.print(f"❌ **Invalid chunk type:** `{chunk_type}`")
                 return
 
             notification = SessionNotification(
                 session_id=session.session_id, update=update
             )
             await session.client.session_update(notification)
-            await ctx.output.print(f"✅ **Sent {chunk_type} text chunk:** {text[:50]}...")
+            await ctx.print(f"✅ **Sent {chunk_type} text chunk:** {text[:50]}...")
 
         except Exception as e:
             logger.exception("Failed to send debug text chunk")
-            await ctx.output.print(f"❌ **Failed to send text chunk:** {e}")
+            await ctx.print(f"❌ **Failed to send text chunk:** {e}")
 
 
 class DebugSendToolCallCommand(SlashedCommand):
@@ -106,10 +106,10 @@ class DebugSendToolCallCommand(SlashedCommand):
         try:
             id_ = f"debug-{hash(title)}"
             await session.notifications.tool_call_start(id_, title=title, kind=kind)
-            await ctx.output.print(f"✅ **Sent tool call:** {title}")
+            await ctx.print(f"✅ **Sent tool call:** {title}")
         except Exception as e:
             logger.exception("Failed to send debug tool call")
-            await ctx.output.print(f"❌ **Failed to send tool call:** {e}")
+            await ctx.print(f"❌ **Failed to send tool call:** {e}")
 
 
 class DebugUpdateToolCallCommand(SlashedCommand):
@@ -152,11 +152,11 @@ class DebugUpdateToolCallCommand(SlashedCommand):
                 status,
                 content=tool_content,
             )
-            await ctx.output.print(f"✅ **Updated tool call {tool_call_id}:** {status}")
+            await ctx.print(f"✅ **Updated tool call {tool_call_id}:** {status}")
 
         except Exception as e:
             logger.exception("Failed to update debug tool call")
-            await ctx.output.print(f"❌ **Failed to update tool call:** {e}")
+            await ctx.print(f"❌ **Failed to update tool call:** {e}")
 
 
 class DebugReplaySequenceCommand(SlashedCommand):
@@ -183,7 +183,7 @@ class DebugReplaySequenceCommand(SlashedCommand):
         try:
             path = Path(file_path)
             if not path.exists():
-                await ctx.output.print(f"❌ **File not found:** `{file_path}`")
+                await ctx.print(f"❌ **File not found:** `{file_path}`")
                 return
 
             with path.open() as f:
@@ -193,7 +193,7 @@ class DebugReplaySequenceCommand(SlashedCommand):
                 not isinstance(sequence_data, dict)
                 or "notifications" not in sequence_data
             ):
-                await ctx.output.print(
+                await ctx.print(
                     "❌ **Invalid replay file.** Expected: `{'notifications': [...]}`"
                 )
                 return
@@ -241,13 +241,11 @@ class DebugReplaySequenceCommand(SlashedCommand):
                     logger.warning("Failed to replay notification", error=e)
                     continue
 
-            await ctx.output.print(
-                f"✅ **Replayed {count} notifications from** `{file_path}`"
-            )
+            await ctx.print(f"✅ **Replayed {count} notifications from** `{file_path}`")
 
         except Exception as e:
             logger.exception("Failed to replay debug sequence")
-            await ctx.output.print(f"❌ **Failed to replay sequence:** {e}")
+            await ctx.print(f"❌ **Failed to replay sequence:** {e}")
 
 
 class DebugSessionInfoCommand(SlashedCommand):
@@ -279,11 +277,11 @@ class DebugSessionInfoCommand(SlashedCommand):
             }
 
             text = anyenv.dump_json(info, indent=True)
-            await ctx.output.print(f"## 🔍 Session Debug Info\n\n```json\n{text}\n```")
+            await ctx.print(f"## 🔍 Session Debug Info\n\n```json\n{text}\n```")
 
         except Exception as e:
             logger.exception("Failed to get session info")
-            await ctx.output.print(f"❌ **Failed to get session info:** {e}")
+            await ctx.print(f"❌ **Failed to get session info:** {e}")
 
 
 class DebugCreateTemplateCommand(SlashedCommand):
@@ -355,11 +353,11 @@ class DebugCreateTemplateCommand(SlashedCommand):
             with Path(file_path).open("w") as f:
                 json.dump(template, f, indent=2)
 
-            await ctx.output.print(f"✅ **Created replay template:** `{file_path}`")
+            await ctx.print(f"✅ **Created replay template:** `{file_path}`")
 
         except Exception as e:
             logger.exception("Failed to create replay template")
-            await ctx.output.print(f"❌ **Failed to create template:** {e}")
+            await ctx.print(f"❌ **Failed to create template:** {e}")
 
 
 class DebugSendRawCommand(SlashedCommand):
@@ -389,17 +387,17 @@ class DebugSendRawCommand(SlashedCommand):
             # Validate it has the expected structure
             if "update" not in data:
                 msg = "❌ **Notification JSON must contain 'update' field**"
-                await ctx.output.print(msg)
+                await ctx.print(msg)
                 return
 
             notification = SessionNotification(session_id=session.session_id, **data)
             await session.client.session_update(notification)
-            await ctx.output.print("✅ **Sent raw notification**")
+            await ctx.print("✅ **Sent raw notification**")
         except json.JSONDecodeError as e:
-            await ctx.output.print(f"❌ **Invalid JSON:** {e}")
+            await ctx.print(f"❌ **Invalid JSON:** {e}")
         except Exception as e:
             logger.exception("Failed to send raw notification")
-            await ctx.output.print(f"❌ **Failed to send raw notification:** {e}")
+            await ctx.print(f"❌ **Failed to send raw notification:** {e}")
 
 
 def get_debug_commands() -> list[type[SlashedCommand]]:

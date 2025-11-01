@@ -55,9 +55,9 @@ class SetModelCommand(SlashedCommand):
         try:
             # Create new session with model override
             ctx.context.agent.set_model(model)
-            await ctx.output.print(f"✅ **Model changed to:** `{model}`")
+            await ctx.print(f"✅ **Model changed to:** `{model}`")
         except Exception as e:  # noqa: BLE001
-            await ctx.output.print(f"❌ **Failed to change model:** {e}")
+            await ctx.print(f"❌ **Failed to change model:** {e}")
 
     def get_completer(self):
         """Get completer for model names."""

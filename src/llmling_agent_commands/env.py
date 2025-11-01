@@ -93,7 +93,7 @@ class SetEnvCommand(SlashedCommand):
             # Re-initialize agent with new runtime
             await agent.__aenter__()
 
-            await ctx.output.print(
+            await ctx.print(
                 f"✅ **Environment changed to:** `{path}`\n"
                 f"🔧 **Replaced runtime tools:** `{', '.join(tools)}`"
             )
@@ -135,14 +135,14 @@ class OpenEnvFileCommand(SlashedCommand):
                 # For file environments, open in browser
                 try:
                     webbrowser.open(uri)
-                    await ctx.output.print(f"🌐 **Opening environment file:** `{uri}`")
+                    await ctx.print(f"🌐 **Opening environment file:** `{uri}`")
                 except Exception as e:
                     msg = f"Failed to open environment file: {e}"
                     raise CommandError(msg) from e
             case InlineEnvironment() as cfg:
                 # For inline environments, display the configuration
                 yaml_config = cfg.model_dump_yaml()
-                await ctx.output.print(
+                await ctx.print(
                     "📝 **Inline environment configuration:**\n\n"
                     f"```yaml\n{yaml_config}\n```"
                 )
@@ -153,14 +153,12 @@ class OpenEnvFileCommand(SlashedCommand):
                         path, config.config_file_path
                     )
                     webbrowser.open(resolved)
-                    await ctx.output.print(
-                        f"🌐 **Opening environment file:** `{resolved}`"
-                    )
+                    await ctx.print(f"🌐 **Opening environment file:** `{resolved}`")
                 except Exception as e:
                     msg = f"Failed to open environment file: {e}"
                     raise CommandError(msg) from e
             case None:
-                await ctx.output.print("ℹ️ **No environment configured**")  #  noqa: RUF001
+                await ctx.print("ℹ️ **No environment configured**")  #  noqa: RUF001
 
     def get_completer(self):
         """Get completer for YAML files."""

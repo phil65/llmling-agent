@@ -57,13 +57,13 @@ class CopyClipboardCommand(SlashedCommand):
         )
 
         if not content.strip():
-            await ctx.output.print("ℹ️ **No messages found to copy**")  #  noqa: RUF001
+            await ctx.print("ℹ️ **No messages found to copy**")  #  noqa: RUF001
             return
 
         try:
             clipman.init()
             clipman.copy(content)
-            await ctx.output.print("📋 **Messages copied to clipboard**")
+            await ctx.print("📋 **Messages copied to clipboard**")
         except Exception as e:
             msg = f"Failed to copy to clipboard: {e}"
             raise CommandError(msg) from e
@@ -105,7 +105,7 @@ class EditAgentFileCommand(SlashedCommand):
         try:
             webbrowser.open(config.config_file_path)
             msg = f"🌐 **Opening agent configuration:** `{config.config_file_path}`"
-            await ctx.output.print(msg)
+            await ctx.print(msg)
         except Exception as e:
             msg = f"Failed to open configuration file: {e}"
             raise CommandError(msg) from e

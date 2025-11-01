@@ -117,7 +117,7 @@ class ListToolsCommand(SlashedCommand):
 
         headers = ["Status", "Name", "Source"]
         table = format_table(headers, rows)
-        await ctx.output.print(f"## 🔧 Available Tools\n\n{table}")
+        await ctx.print(f"## 🔧 Available Tools\n\n{table}")
 
 
 class ShowToolCommand(SlashedCommand):
@@ -172,9 +172,9 @@ class ShowToolCommand(SlashedCommand):
             if extra_info:
                 sections.extend(extra_info)
 
-            await ctx.output.print("\n".join(sections))
+            await ctx.print("\n".join(sections))
         except KeyError:
-            await ctx.output.print(f"❌ **Tool** `{name}` **not found**")
+            await ctx.print(f"❌ **Tool** `{name}` **not found**")
 
     def get_completer(self):
         """Get completer for tool names."""
@@ -205,7 +205,7 @@ class EnableToolCommand(SlashedCommand):
         """
         try:
             ctx.context.agent.tools.enable_tool(name)
-            await ctx.output.print(f"✅ **Tool** `{name}` **enabled**")
+            await ctx.print(f"✅ **Tool** `{name}` **enabled**")
         except ValueError as e:
             msg = f"Failed to enable tool: {e}"
             raise CommandError(msg) from e
@@ -239,7 +239,7 @@ class DisableToolCommand(SlashedCommand):
         """
         try:
             ctx.context.agent.tools.disable_tool(name)
-            await ctx.output.print(f"❌ **Tool** `{name}` **disabled**")
+            await ctx.print(f"❌ **Tool** `{name}` **disabled**")
         except ValueError as e:
             msg = f"Failed to disable tool: {e}"
             raise CommandError(msg) from e
@@ -291,7 +291,7 @@ class RegisterToolCommand(SlashedCommand):
 
             # Show the registered tool info
             tool_info.format_info()
-            await ctx.output.print(
+            await ctx.print(
                 f"✅ **Tool registered successfully:**\n`{tool_info.name}`"
                 f" - {tool_info.description or '*No description*'}"
             )

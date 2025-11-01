@@ -77,7 +77,7 @@ class ReadCommand(SlashedCommand):
             await agent.conversation.add_context_from_path(
                 path, convert_to_md=convert_to_md
             )
-            await ctx.output.print(
+            await ctx.print(
                 f"📄 **Added content from** {path!r} **to next message as context**"
             )
         except Exception as e:

@@ -59,7 +59,7 @@ class ShowPromptCommand(SlashedCommand):
         """
         try:
             prompt = await ctx.context.prompt_manager.get(identifier)
-            await ctx.output.print(f"## 📝 Prompt Content\n\n```\n{prompt}\n```")
+            await ctx.print(f"## 📝 Prompt Content\n\n```\n{prompt}\n```")
         except Exception as e:
             msg = f"Error getting prompt: {e}"
             raise CommandError(msg) from e
@@ -106,4 +106,4 @@ class ListPromptsCommand(SlashedCommand):
                 output_lines.extend(
                     f"- `{prompt_name}`" for prompt_name in sorted_prompts
                 )
-        await ctx.output.print("\n".join(output_lines))
+        await ctx.print("\n".join(output_lines))
