@@ -30,16 +30,6 @@ class MCPMessageHandler:
         | Exception,
     ) -> None:
         """Handle FastMCP messages by dispatching to appropriate handlers."""
-        return await self.dispatch(message)
-
-    async def dispatch(
-        self,
-        message: RequestResponder[mcp.types.ServerRequest, mcp.types.ClientResult]
-        | mcp.types.ServerNotification
-        | Exception,
-    ) -> None:
-        """Main dispatch method called by FastMCP."""
-        # Handle all messages
         from mcp.shared.session import RequestResponder
         import mcp.types
 

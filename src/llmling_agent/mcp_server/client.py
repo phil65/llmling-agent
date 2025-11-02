@@ -35,6 +35,13 @@ from llmling_agent.mcp_server.helpers import (
     extract_tool_call_args,
     mcp_tool_to_fn_schema,
 )
+from llmling_agent.mcp_server.message_handler import MCPMessageHandler
+from llmling_agent.tools.base import Tool
+from llmling_agent_config.mcp_server import (
+    SSEMCPServerConfig,
+    StdioMCPServerConfig,
+    StreamableHTTPMCPServerConfig,
+)
 
 
 type ContextualProgressHandler = Callable[
@@ -48,6 +55,7 @@ type ContextualProgressHandler = Callable[
     ],
     Any,  # Supports both sync (None) and async (Awaitable[None]) returns
 ]
+
 
 if TYPE_CHECKING:
     from types import TracebackType
@@ -69,7 +77,6 @@ if TYPE_CHECKING:
         Tool as MCPTool,
     )
 
-    from llmling_agent.tools.base import Tool
     from llmling_agent_config.mcp_server import MCPServerConfig
 
 
@@ -204,12 +211,6 @@ class MCPClient:
         from fastmcp.client import SSETransport, StreamableHttpTransport
         from fastmcp.client.transports import StdioTransport
 
-        from llmling_agent_config.mcp_server import (
-            SSEMCPServerConfig,
-            StdioMCPServerConfig,
-            StreamableHTTPMCPServerConfig,
-        )
-
         transport: ClientTransport
         # Create transport based on config type
         match config:
@@ -233,14 +234,7 @@ class MCPClient:
                 raise ValueError(msg)
 
         # Create message handler if needed
-        msg_handler: MessageHandlerT | MessageHandler | None
-        if not self._message_handler:
-            from llmling_agent.mcp_server.message_handler import MCPMessageHandler
-
-            msg_handler = MCPMessageHandler(self)
-        else:
-            msg_handler = self._message_handler
-
+        msg_handler = self._message_handler or MCPMessageHandler(self)
         return fastmcp.Client(
             transport,
             log_handler=self._log_handler,
@@ -312,8 +306,6 @@ class MCPClient:
 
     def convert_tool(self, tool: MCPTool) -> Tool:
         """Create a properly typed callable from MCP tool schema."""
-        from llmling_agent import Tool
-
         schema = mcp_tool_to_fn_schema(tool)
         fn_schema = FunctionSchema.from_dict(schema)
         sig = fn_schema.to_python_signature()
@@ -323,18 +315,15 @@ class MCPClient:
             # Filter out None values for optional params
             schema_props = tool.inputSchema.get("properties", {})
             required_props = set(tool.inputSchema.get("required", []))
-
             filtered_kwargs = {
                 k: v
                 for k, v in kwargs.items()
                 if k in required_props or (k in schema_props and v is not None)
             }
-            tc_id = ctx.tool_call_id if ctx else None
-
             return await self.call_tool(
                 tool.name,
                 filtered_kwargs,
-                tool_call_id=tc_id,
+                tool_call_id=ctx.tool_call_id if ctx else None,
                 run_context=ctx,
             )
 
@@ -344,11 +333,9 @@ class MCPClient:
         # Update return annotation to support multiple types
         annotations["return"] = str | Any | ToolReturn
         tool_callable.__annotations__ = annotations
-
         tool_callable.__name__ = tool.name
         tool_callable.__doc__ = tool.description or "No description provided."
-        meta = {"mcp_tool": tool.name}
-        return Tool.from_callable(tool_callable, source="mcp", metadata=meta)
+        return Tool.from_callable(tool_callable, source="mcp")
 
     def _create_final_progress_handler(
         self, tool_name: str, tool_call_id: str, tool_input: dict[str, Any]
@@ -473,10 +460,5 @@ class MCPClient:
 
 def _should_try_oauth_fallback(config: MCPServerConfig) -> bool:
     """Check if OAuth fallback should be attempted."""
-    from llmling_agent_config.mcp_server import StdioMCPServerConfig
-
     # No fallback for stdio or if OAuth already configured
-    if isinstance(config, StdioMCPServerConfig):
-        return False
-
-    return not config.auth.oauth
+    return not isinstance(config, StdioMCPServerConfig) and not config.auth.oauth
