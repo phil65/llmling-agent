@@ -87,7 +87,7 @@ def get_tool_calls(
         parts_to_tool_call_info(
             call_parts[part.tool_call_id],
             part,
-            tools.get(part.tool_name),
+            t.agent_name if (t := tools.get(part.tool_name)) else None,
             agent_name=agent_name,
         )
         for part in parts
@@ -98,7 +98,7 @@ def get_tool_calls(
 def parts_to_tool_call_info(
     call_part: ToolCallPart,
     return_part: ToolReturnPart,
-    tool_info: Tool | None,
+    agent_tool_name: str | None,
     agent_name: str | None = None,
 ) -> ToolCallInfo:
     """Convert matching tool call and return parts into a ToolCallInfo."""
@@ -109,7 +109,7 @@ def parts_to_tool_call_info(
         result=return_part.content,
         tool_call_id=call_part.tool_call_id or str(uuid4()),
         timestamp=return_part.timestamp,
-        agent_tool_name=tool_info.agent_name if tool_info else None,
+        agent_tool_name=agent_tool_name,
     )
 
 

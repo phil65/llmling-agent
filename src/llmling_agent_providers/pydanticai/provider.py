@@ -478,39 +478,19 @@ if __name__ == "__main__":
         print(f"Final result available: {final_result is not None}")
         print(f"Model: {final_result.response.model_name}")
 
-    # Test real-time tool signal emission
-    async def test_tool_signals():
-        print("\nTesting real-time tool signal emission...")
-
-        # Create provider with signal handler
-        signals_received = []
-
-        def on_tool_used(tool_info):
-            signals_received.append(tool_info)
-            print(f"🔧 Signal received: {tool_info.tool_name}({tool_info.args})")
-
         provider = PydanticAIProvider()
-        provider.tool_used.connect(on_tool_used)
 
-        # Create a simple tool
         def get_weather(city: str) -> str:
             return f"It's sunny in {city}"
 
         tools = [Tool.from_callable(get_weather)]
+        response = await provider.generate_response(
+            "What's the weather like in Paris?",
+            message_id="test-123",
+            model="openai:gpt-4o-mini",
+            message_history=[],
+            tools=tools,
+        )
+        print(f"Response: {response.content}")
 
-        try:
-            response = await provider.generate_response(
-                "What's the weather like in Paris?",
-                message_id="test-123",
-                model="openai:gpt-4o-mini",
-                message_history=[],
-                tools=tools,
-            )
-            print(f"Response: {response.content}")
-            print(f"Signals received: {len(signals_received)}")
-
-        except Exception as e:  # noqa: BLE001
-            print(f"Error: {e}")
-
-    # asyncio.run(main())
-    asyncio.run(test_tool_signals())
+    asyncio.run(main())
