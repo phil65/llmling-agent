@@ -10,8 +10,14 @@ from uuid import uuid4
 
 from genai_prices import calc_price
 from pydantic import BaseModel
-from pydantic_ai import ModelRequest, ModelResponse, RequestUsage, UserPromptPart
-from pydantic_ai.messages import FilePart, TextPart
+from pydantic_ai import (
+    ModelRequest,
+    ModelResponse,
+    RequestUsage,
+    ToolCallPart,
+    UserPromptPart,
+)
+from pydantic_ai.messages import BuiltinToolReturnPart, FilePart, TextPart
 import tokonomics
 
 from llmling_agent.common_types import MessageRole, SimpleJsonType  # noqa: TC001
@@ -372,21 +378,19 @@ class ChatMessage[TContent]:
                 case FilePart(content=binary_content):
                     # File parts (images, etc.) become user content directly
                     user_content.append(binary_content)
+                case BuiltinToolReturnPart():
+                    # Tool return parts become user content strings
+                    user_content.append(part.model_response_str())
+                case ToolCallPart():
+                    # Tool return parts become user content strings
+                    user_content.append(part.args_as_json_str())
                 case _:
-                    # Other parts (tool calls, etc.) are kept as-is for now
-                    # Could be extended to handle more conversion cases
                     pass
 
         # Create new UserPromptPart with converted content
         if user_content:
-            if len(user_content) == 1 and isinstance(user_content[0], str):
-                # Single string content
-                converted_parts = [UserPromptPart(content=user_content[0])]
-            else:
-                # Multi-modal content
-                converted_parts = [UserPromptPart(content=user_content)]
+            converted_parts = [UserPromptPart(content=user_content)]
         else:
-            # Fallback to text representation if no convertible parts
             converted_parts = [UserPromptPart(content=str(self.content))]
 
         return replace(self, role="user", parts=converted_parts, cost_info=None)
