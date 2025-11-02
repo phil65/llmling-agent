@@ -377,13 +377,9 @@ class ChatMessage[TContent]:
             New ChatMessage with role='user' and converted parts
         """
         if self.role == "user":
-            # Already a request, return as-is
-            return self
+            return self  # Already a request, return as-is
 
-        # Convert response parts to user content
-        converted_parts: list[Any] = []
-        user_content: list[UserContent] = []
-
+        user_content: list[UserContent] = []  # Convert response parts to user content
         for part in self.parts:
             match part:
                 case TextPart(content=text_content):
@@ -392,9 +388,7 @@ class ChatMessage[TContent]:
                 case FilePart(content=binary_content):
                     # File parts (images, etc.) become user content directly
                     user_content.append(binary_content)
-                case BaseToolReturnPart(
-                    content=str() | Sequence(UserContent()) as content
-                ):
+                case BaseToolReturnPart(content=str() | (UserContent(),) as content):
                     user_content.append(content)
                 case BaseToolReturnPart():
                     # Tool return parts become user content strings
