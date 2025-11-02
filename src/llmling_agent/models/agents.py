@@ -16,7 +16,7 @@ from llmling import (
     PromptMessage,
     StaticPrompt,
 )
-from llmling.utils.importing import import_callable, import_class
+from llmling.utils.importing import import_class
 from pydantic import Field, model_validator
 from schemez import InlineSchemaDef
 from toprompt import render_prompt
@@ -312,7 +312,6 @@ class AgentConfig(NodeConfig):
         """
         # If string shorthand is used, convert to default provider config
         from llmling_agent_config.providers import (
-            CallbackProviderConfig,
             HumanProviderConfig,
             PydanticAIProviderConfig,
         )
@@ -325,12 +324,8 @@ class AgentConfig(NodeConfig):
                 case "human":
                     provider_config = HumanProviderConfig()
                 case _:
-                    try:
-                        fn = import_callable(provider_config)
-                        provider_config = CallbackProviderConfig(callback=fn)
-                    except Exception:  # noqa: BLE001
-                        msg = f"Invalid provider type: {provider_config}"
-                        raise ValueError(msg)  # noqa: B904
+                    msg = f"Invalid provider type: {provider_config}"
+                    raise ValueError(msg)
 
         # Create provider instance from config
         return provider_config.get_provider()

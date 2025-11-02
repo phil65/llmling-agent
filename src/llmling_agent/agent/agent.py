@@ -83,7 +83,7 @@ from llmling_agent.common_types import IndividualEventHandler
 from llmling_agent_providers.base import AgentProvider
 
 
-AgentType = Literal["pydantic_ai", "human"] | AgentProvider | Callable[..., Any]
+AgentType = Literal["pydantic_ai", "human"] | AgentProvider
 
 logger = get_logger(__name__)
 # OutputDataT = TypeVar('OutputDataT', default=str, covariant=True)
@@ -308,12 +308,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                 from llmling_agent_providers.human import HumanProvider
 
                 self._provider = HumanProvider(name=name, debug=debug, context=ctx)
-            case Callable():
-                from llmling_agent_providers.callback import CallbackProvider
 
-                self._provider = CallbackProvider(
-                    provider, name=name, debug=debug, context=ctx
-                )
             case AgentProvider():
                 self._provider = provider
                 self._provider.context = ctx
