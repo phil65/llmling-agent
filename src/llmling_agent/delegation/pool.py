@@ -762,7 +762,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
             base.conversation.load_history_from_database(session=session)
 
         # Convert to structured if needed
-        if return_type is not None:
+        if return_type not in {str, None}:
             base.set_output_type(return_type)
 
         return base
