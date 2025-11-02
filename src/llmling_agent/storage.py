@@ -81,7 +81,7 @@ def serialize_parts(parts: Sequence[ModelResponsePart | ModelRequestPart]) -> st
         serializable_parts = []
         for part in parts:
             # Handle RetryPromptPart context serialization issues
-            from pydantic_ai.messages import RetryPromptPart
+            from pydantic_ai import RetryPromptPart
 
             if isinstance(part, RetryPromptPart) and isinstance(part.content, list):
                 for content in part.content:

@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Annotated, Literal
 
 from pydantic import Field
-from pydantic_ai.builtin_tools import (
+from pydantic_ai import (
     CodeExecutionTool,
     ImageGenerationTool,
     MCPServerTool,
@@ -138,7 +138,7 @@ class MemoryToolConfig(BaseBuiltinToolConfig):
 
     def get_builtin_tool(self) -> MemoryTool:
         """Convert config to MemoryTool instance."""
-        from pydantic_ai.builtin_tools import MemoryTool
+        from pydantic_ai import MemoryTool
 
         return MemoryTool()
 
