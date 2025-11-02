@@ -21,7 +21,7 @@ async def test_command_bridge_immediate_execution():
         return f"Response: {message}"
 
     # Set up agent and session
-    agent = Agent(name="test_agent", provider=simple_callback)
+    agent = Agent.from_callback(name="test_agent", callback=simple_callback)
     agent_pool = AgentPool()
     agent_pool.register("test_agent", agent)
 

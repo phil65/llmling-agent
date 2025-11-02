@@ -42,7 +42,6 @@ pipeline = agent1 | uppercase | agent2
 When creating pipelines with `|`:
 
 - Each component processes the output of the previous one
-- Callables are converted to agents using CallbackProvider
 - Results flow through the pipeline in order
 - Monitoring is automatically set up
 

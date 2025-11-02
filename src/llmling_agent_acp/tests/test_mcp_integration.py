@@ -47,7 +47,7 @@ async def test_session_with_mcp_servers(test_client, mock_acp_agent, client_capa
     def simple_callback(message: str) -> str:
         return f"Test response for: {message}"
 
-    agent = Agent(name="test_agent", provider=simple_callback)
+    agent = Agent.from_callback(name="test_agent", callback=simple_callback)
     agent_pool = AgentPool()
     agent_pool.register("test_agent", agent)
     command_store = CommandStore()
@@ -105,7 +105,7 @@ async def test_session_manager_with_mcp(test_client, mock_acp_agent, client_capa
     def simple_callback(message: str) -> str:
         return f"Test response for: {message}"
 
-    agent = Agent(name="test_agent", provider=simple_callback)
+    agent = Agent.from_callback(name="test_agent", callback=simple_callback)
     agent_pool = AgentPool()  # Create empty pool and register the agent
     agent_pool.register("test_agent", agent)
     mcp_servers = [StdioMcpServer(name="tools", command="echo", args=["tools"], env=[])]
@@ -137,7 +137,7 @@ async def test_tool_integration():
     def simple_callback(message: str) -> str:
         return f"Test response for: {message}"
 
-    agent = Agent(name="test_agent", provider=simple_callback)
+    agent = Agent.from_callback(name="test_agent", callback=simple_callback)
 
     async with agent:
         initial_tools = len(await agent.tools.get_tools())
