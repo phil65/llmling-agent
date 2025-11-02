@@ -4,11 +4,9 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from typing import TYPE_CHECKING, Any
-from uuid import uuid4
 
 from anyenv import method_spawner
 from psygnal import Signal
-from pydantic_ai import UserPromptPart
 
 from llmling_agent.messaging.messageemitter import MessageEmitter
 from llmling_agent.messaging.messages import ChatMessage
@@ -60,14 +58,8 @@ class MessageNode[TDeps, TResult](MessageEmitter[TDeps, TResult]):
             prompts = await convert_prompts(prompt)
             final_prompt = "\n\n".join(str(p) for p in prompts)
             # use format_prompts?
-            user_msg = ChatMessage[str](
-                content=final_prompt,
-                role="user",
-                conversation_id=str(uuid4()),
-                parts=[
-                    UserPromptPart(content=[content_to_pydantic_ai(i) for i in prompts])
-                ],
-            )
+            messages = [content_to_pydantic_ai(i) for i in prompts]
+            user_msg = ChatMessage.user_prompt(content=final_prompt, message=messages)
         self.message_received.emit(user_msg)
         self.context.current_prompt = final_prompt
         return user_msg, prompts
