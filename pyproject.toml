@@ -113,6 +113,7 @@ dev = [
   # Only add below (Copier)
   "pytest-asyncio>=0.24.0",
   "pytest-cov",
+  "pytest-rerunfailures>=16.1",
   "pytest-xdist",
 ]
 benchmark = ["pyinstrument"]
