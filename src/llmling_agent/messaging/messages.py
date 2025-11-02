@@ -26,6 +26,7 @@ if TYPE_CHECKING:
 
     from pydantic_ai import (
         FinishReason,
+        ModelMessage,
         ModelRequestPart,
         ModelResponsePart,
         RunUsage,
@@ -197,6 +198,9 @@ class ChatMessage[TContent]:
 
     parts: Sequence[ModelResponsePart | ModelRequestPart] = field(default_factory=list)
     """The parts of the model message."""
+
+    messages: list[ModelMessage] = field(default_factory=list)
+    """List of messages which were generated during the the creation of this messsage."""
 
     usage: RequestUsage = field(default_factory=RequestUsage)
     """Usage information for the request.

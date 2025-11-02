@@ -22,7 +22,7 @@ from llmling_agent.tools import ToolCallInfo
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
-    from pydantic_ai import AgentRunResultEvent, AgentStreamEvent
+    from pydantic_ai import AgentRunResultEvent, AgentStreamEvent, ModelMessage
     from pydantic_ai.models import Model
 
     from llmling_agent.agent.context import AgentContext
@@ -43,6 +43,7 @@ class ProviderResponse:
 
     content: Any
     tool_calls: list[ToolCallInfo] = field(default_factory=list)
+    messages: list[ModelMessage] = field(default_factory=list)
     response: ModelResponse = field(default_factory=lambda: ModelResponse(parts=[]))
     cost_and_usage: TokenCost | None = None
     provider_details: dict[str, Any] | None = None

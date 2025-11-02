@@ -11,7 +11,7 @@ from llmling_agent import AgentPool, AgentsManifest
 
 
 if TYPE_CHECKING:
-    from llmling_agent import Agent
+    from llmling_agent import Agent, ChatMessage
 
 
 class ConversationOutput(BaseModel):
@@ -72,10 +72,10 @@ async def test_agent_pool_conversation_flow():
 
     async with AgentPool[None](manifest) as pool:
         # Get agent directly for conversation
-        agent = pool.get_agent("test_agent")
+        agent = pool.get_agent("test_agent", return_type=ConversationOutput)
 
         # Run multiple prompts in sequence
-        responses = []
+        responses: list[ChatMessage[ConversationOutput]] = []
         prompts = ["Hello!", "How are you?"]
 
         for prompt in prompts:
@@ -86,12 +86,12 @@ async def test_agent_pool_conversation_flow():
         assert len(responses) == 2  # noqa: PLR2004
 
         # Verify conversation order was maintained
-        assert responses[0].data.conversation_index == 1  # type: ignore
-        assert responses[1].data.conversation_index == 2  # type: ignore # noqa: PLR2004
+        assert responses[0].data.conversation_index == 1
+        assert responses[1].data.conversation_index == 2  # noqa: PLR2004
 
         # Verify message content
-        assert responses[0].data.message == "Response to: Hello!"  # type: ignore
-        assert responses[1].data.message == "Response to: How are you?"  # type: ignore
+        assert responses[0].data.message == "Response to: Hello!"
+        assert responses[1].data.message == "Response to: How are you?"
 
         # Verify agent name
         assert all(r.name == "test_agent" for r in responses)

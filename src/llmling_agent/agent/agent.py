@@ -743,6 +743,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                 name=self.name,
                 model_name=result.response.model_name,
                 finish_reason=result.response.finish_reason,
+                messages=result.messages,
                 parts=result.response.parts,
                 provider_response_id=result.response.provider_response_id,
                 usage=result.response.usage,
@@ -838,6 +839,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                         case AgentRunResultEvent(result=result):
                             usage = result.usage()
                             model_name = result.response.model_name
+                            new_msgs = result.new_messages()
                             finish_reason = result.response.finish_reason
                             provider_name = result.response.provider_name
                             provider_response_id = result.response.provider_response_id
@@ -858,6 +860,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                 content=output,  # type: ignore
                 role="assistant",
                 name=self.name,
+                messages=new_msgs,
                 model_name=model_name,
                 message_id=message_id,
                 conversation_id=user_msg.conversation_id,
