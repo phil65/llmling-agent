@@ -689,41 +689,22 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
                 raise ValueError(msg) from e
 
     @overload
-    def get_agent(
+    def get_agent[TResult = str](
         self,
         agent: AgentName | Agent[Any, str],
         *,
-        model_override: str | None = None,
-        session: SessionIdType | SessionQuery = None,
-    ) -> Agent[TPoolDeps]: ...
-
-    @overload
-    def get_agent[TResult](
-        self,
-        agent: AgentName | Agent[Any, str],
-        *,
-        return_type: type[TResult],
+        return_type: type[TResult] = str,  # type: ignore
         model_override: str | None = None,
         session: SessionIdType | SessionQuery = None,
     ) -> Agent[TPoolDeps, TResult]: ...
 
     @overload
-    def get_agent[TCustomDeps](
+    def get_agent[TCustomDeps, TResult = str](
         self,
         agent: AgentName | Agent[Any, str],
         *,
         deps: TCustomDeps,
-        model_override: str | None = None,
-        session: SessionIdType | SessionQuery = None,
-    ) -> Agent[TCustomDeps]: ...
-
-    @overload
-    def get_agent[TCustomDeps, TResult](
-        self,
-        agent: AgentName | Agent[Any, str],
-        *,
-        deps: TCustomDeps,
-        return_type: type[TResult],
+        return_type: type[TResult] = str,  # type: ignore
         model_override: str | None = None,
         session: SessionIdType | SessionQuery = None,
     ) -> Agent[TCustomDeps, TResult]: ...
@@ -733,7 +714,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
         agent: AgentName | Agent[Any, str],
         *,
         deps: Any | None = None,
-        return_type: Any | None = None,
+        return_type: Any = str,
         model_override: str | None = None,
         session: SessionIdType | SessionQuery = None,
     ) -> Agent[Any, Any]:
