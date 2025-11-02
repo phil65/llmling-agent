@@ -256,6 +256,21 @@ class ChatMessage[TContent]:
                 ]
 
     @classmethod
+    def user_prompt(
+        cls,
+        message: str | Sequence[UserContent],
+        content: Any | None = None,
+        conversation_id: str | None = None,
+    ) -> Self:
+        """Create a user prompt message."""
+        return cls(
+            messages=[ModelRequest(parts=[UserPromptPart(content=message)])],
+            role="user",
+            content=content,
+            conversation_id=conversation_id or str(uuid4()),
+        )
+
+    @classmethod
     def from_pydantic_ai[TContentType](
         cls,
         content: TContentType,
