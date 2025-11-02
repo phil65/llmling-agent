@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel
+import pytest
 
 from llmling_agent import AgentPool, AgentsManifest
 
@@ -124,3 +125,7 @@ async def test_sequential_execution():
 #         # Verify shared context was set for both agents
 #         assert agent1.context.data == shared_data
 #         assert agent2.context.data == shared_data
+
+
+if __name__ == "__main__":
+    pytest.main(["-v", __file__])
