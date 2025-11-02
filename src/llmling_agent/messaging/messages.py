@@ -11,7 +11,8 @@ from uuid import uuid4
 
 from genai_prices import calc_price
 from pydantic import BaseModel
-from pydantic_ai import ModelRequest, ModelResponse, RequestUsage
+from pydantic_ai import ModelRequest, ModelResponse, RequestUsage, UserPromptPart
+from pydantic_ai.messages import FilePart, TextPart
 import tokonomics
 
 from llmling_agent.common_types import MessageRole, SimpleJsonType  # noqa: TC001
@@ -29,6 +30,7 @@ if TYPE_CHECKING:
         ModelResponsePart,
         RunUsage,
     )
+    from pydantic_ai.messages import UserContent
 
     from llmling_agent.tools import ToolCallInfo
 
@@ -312,6 +314,50 @@ class ChatMessage[TContent]:
     def to_text_message(self) -> ChatMessage[str]:
         """Convert this message to a text-only version."""
         return dataclasses.replace(self, content=str(self.content))  # type: ignore
+
+    def to_request(self) -> Self:
+        """Convert this message to a request message.
+
+        If the message is already a request (user role), this is a no-op.
+        If it's a response (assistant role), converts response parts to user content.
+
+        Returns:
+            New ChatMessage with role='user' and converted parts
+        """
+        if self.role == "user":
+            # Already a request, return as-is
+            return self
+
+        # Convert response parts to user content
+        converted_parts: list[Any] = []
+        user_content: list[UserContent] = []
+
+        for part in self.parts:
+            match part:
+                case TextPart(content=text_content):
+                    # Text parts become user content strings
+                    user_content.append(text_content)
+                case FilePart(content=binary_content):
+                    # File parts (images, etc.) become user content directly
+                    user_content.append(binary_content)
+                case _:
+                    # Other parts (tool calls, etc.) are kept as-is for now
+                    # Could be extended to handle more conversion cases
+                    pass
+
+        # Create new UserPromptPart with converted content
+        if user_content:
+            if len(user_content) == 1 and isinstance(user_content[0], str):
+                # Single string content
+                converted_parts = [UserPromptPart(content=user_content[0])]
+            else:
+                # Multi-modal content
+                converted_parts = [UserPromptPart(content=user_content)]
+        else:
+            # Fallback to text representation if no convertible parts
+            converted_parts = [UserPromptPart(content=str(self.content))]
+
+        return replace(self, role="user", parts=converted_parts, cost_info=None)
 
     @property
     def data(self) -> TContent:

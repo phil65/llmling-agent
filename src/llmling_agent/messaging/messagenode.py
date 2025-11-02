@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from dataclasses import replace
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
@@ -54,15 +53,9 @@ class MessageNode[TDeps, TResult](MessageEmitter[TDeps, TResult]):
             user_msg = prompt[0]
             prompts = await convert_prompts([user_msg.content])
             # Update received message's chain to show it came through its source
-            user_msg = user_msg.forwarded(prompt[0])
+            user_msg = user_msg.forwarded(prompt[0]).to_request()
             # clear cost info to avoid double-counting
             final_prompt = "\n\n".join(str(p) for p in prompts)
-            user_msg = replace(
-                user_msg,
-                role="user",
-                cost_info=None,
-                parts=[UserPromptPart(content=[final_prompt])],
-            )
         else:
             prompts = await convert_prompts(prompt)
             final_prompt = "\n\n".join(str(p) for p in prompts)

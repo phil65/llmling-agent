@@ -110,7 +110,6 @@ async def test_history_sharing(tmp_path: Path):
 
         # Create some conversation history
         result = await main_agent.run("Remember X equals 42")
-        print(result)
         # Worker should have access to history
         result = await main_agent.run("Ask worker: What is X?")
         assert "42" in result.content
