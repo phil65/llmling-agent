@@ -56,8 +56,13 @@ class MessageNode[TDeps, TResult](MessageEmitter[TDeps, TResult]):
             # Update received message's chain to show it came through its source
             user_msg = user_msg.forwarded(prompt[0])
             # clear cost info to avoid double-counting
-            user_msg = replace(user_msg, role="user", cost_info=None)
             final_prompt = "\n\n".join(str(p) for p in prompts)
+            user_msg = replace(
+                user_msg,
+                role="user",
+                cost_info=None,
+                parts=[UserPromptPart(content=[final_prompt])],
+            )
         else:
             prompts = await convert_prompts(prompt)
             final_prompt = "\n\n".join(str(p) for p in prompts)
@@ -66,7 +71,6 @@ class MessageNode[TDeps, TResult](MessageEmitter[TDeps, TResult]):
                 content=final_prompt,
                 role="user",
                 conversation_id=str(uuid4()),
-                kind="request",
                 parts=[
                     UserPromptPart(content=[content_to_pydantic_ai(i) for i in prompts])
                 ],

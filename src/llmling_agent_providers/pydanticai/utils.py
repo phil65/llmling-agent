@@ -5,17 +5,12 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, overload
 from uuid import uuid4
 
-import anyenv
 from pydantic_ai import (
-    ModelRequest,
-    SystemPromptPart,
     ToolCallPart,
     ToolReturnPart,
-    UserPromptPart,
     messages as _messages,
 )
 
-from llmling_agent.models.content import BaseContent
 from llmling_agent.tools import ToolCallInfo
 
 
@@ -30,7 +25,6 @@ if TYPE_CHECKING:
         MCPServerStreamableHTTP,
     )
 
-    from llmling_agent.messaging.messages import ChatMessage
     from llmling_agent.models.content import Content
     from llmling_agent.tools.base import Tool
     from llmling_agent_config.mcp_server import (
@@ -117,25 +111,6 @@ def parts_to_tool_call_info(
         timestamp=return_part.timestamp,
         agent_tool_name=tool_info.agent_name if tool_info else None,
     )
-
-
-def to_model_request(message: ChatMessage[str | Content]) -> ModelRequest:
-    """Convert ChatMessage to pydantic-ai ModelMessage."""
-    match message.content:
-        case BaseContent():
-            content = [message.content.to_openai_format()]
-            part = UserPromptPart(content=anyenv.dump_json({"content": content}))
-            return ModelRequest(parts=[part])
-        case str():
-            part_cls = {
-                "user": UserPromptPart,
-                "system": SystemPromptPart,
-                "assistant": UserPromptPart,
-            }.get(message.role)
-            if not part_cls:
-                msg = f"Unknown message role: {message.role}"
-                raise ValueError(msg)
-            return ModelRequest(parts=[part_cls(content=message.content)])
 
 
 async def convert_prompts_to_user_content(

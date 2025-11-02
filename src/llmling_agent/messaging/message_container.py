@@ -13,7 +13,6 @@ from llmling_agent.utils.count_tokens import batch_count_tokens, count_tokens
 
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
     from datetime import datetime
 
     from bigtree import DAGNode
@@ -122,48 +121,6 @@ class ChatMessageContainer(EventedList[ChatMessage[Any]]):
         if max_messages:
             messages = messages[-max_messages:]
         return messages
-
-    def get_context_window(
-        self,
-        *,
-        max_tokens: int | None = None,
-        max_messages: int | None = None,
-        include_system: bool = True,
-    ) -> list[ChatMessage[Any]]:
-        """Get messages respecting token and message limits.
-
-        Args:
-            max_tokens: Optional token limit for window
-            max_messages: Optional message count limit
-            include_system: Whether to include system messages
-
-        Returns:
-            List of messages fitting within constraints
-        """
-        # Filter system messages if needed
-        history: Sequence[ChatMessage[Any]] = self
-        if not include_system:
-            history = [msg for msg in self if msg.role != "system"]
-
-        # Apply message limit if specified
-        if max_messages:
-            history = history[-max_messages:]
-
-        # Apply token limit if specified
-        if max_tokens:
-            token_count = 0
-            filtered: list[Any] = []
-
-            # Work backwards from most recent
-            for msg in reversed(history):
-                msg_tokens = self.get_message_tokens(msg)
-                if token_count + msg_tokens > max_tokens:
-                    break
-                token_count += msg_tokens
-                filtered.insert(0, msg)
-            history = filtered
-
-        return list(history)
 
     def get_between(
         self,

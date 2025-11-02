@@ -103,20 +103,17 @@ async def test_history_sharing(tmp_path: Path):
         main_agent = pool.get_agent("main")
         worker = pool.get_agent("worker")
 
-        # Configure test models
-        main_model = TestModel(call_tools=["ask_worker"])  # Only call worker
-        worker_model = TestModel(custom_output_text="The value is 42")  # string response
-
-        # Override the models
-        main_agent.set_model(main_model)
+        # Configure models: real model for main agent, TestModel for worker
+        main_agent.set_model("openai:gpt-5-nano")
+        worker_model = TestModel(custom_output_text="The value is 42")
         worker.set_model(worker_model)
 
         # Create some conversation history
-        await main_agent.run("Remember X equals 42")
-
+        result = await main_agent.run("Remember X equals 42")
+        print(result)
         # Worker should have access to history
         result = await main_agent.run("Ask worker: What is X?")
-        assert "42" in result.data
+        assert "42" in result.content
 
 
 async def test_context_sharing(tmp_path: Path):

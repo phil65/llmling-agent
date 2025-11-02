@@ -137,4 +137,9 @@ class EventNode[TEventData](MessageEmitter[None, TEventData]):
         """Convert event data to message."""
         result = await self.event.convert_data(content[0])
         meta = kwargs.get("metadata", {})
-        return ChatMessage(content=result, role="system", name=self.name, metadata=meta)
+        return ChatMessage(
+            content=result,
+            role="assistant",
+            name=self.name,
+            metadata=meta,
+        )

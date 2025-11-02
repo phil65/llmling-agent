@@ -158,7 +158,7 @@ class ChatMessage[TContent]:
     """Message content, typed as TContent (either str or BaseModel)."""
 
     role: MessageRole
-    """Role of the message sender (user/assistant/system)."""
+    """Role of the message sender (user/assistant)."""
 
     metadata: SimpleJsonType = field(default_factory=dict)
     """Additional metadata about the message."""
@@ -206,9 +206,6 @@ class ChatMessage[TContent]:
     model_name: str | None = None
     """The name of the model that generated the response."""
 
-    kind: Literal["response", "request"] = "response"
-    """Message type identifier, this is available on all parts as a discriminator."""
-
     provider_name: str | None = None
     """The name of the LLM provider that generated the response."""
 
@@ -222,14 +219,23 @@ class ChatMessage[TContent]:
 
     Normalized to OpenTelemetry values."""
 
+    @property
+    def kind(self) -> Literal["request", "response"]:
+        """Role of the message."""
+        match self.role:
+            case "assistant":
+                return "response"
+            case "user":
+                return "request"
+
     def to_pydantic_ai(self) -> ModelRequest | ModelResponse:
         """Convert this message to a Pydantic model."""
         match self.kind:
             case "request":
-                return ModelRequest(parts=self.parts, instructions=None)  # TODO
+                return ModelRequest(parts=self.parts, instructions=None)  # type: ignore
             case "response":
                 return ModelResponse(
-                    parts=self.parts,
+                    parts=self.parts,  # type: ignore
                     usage=self.usage,
                     model_name=self.model_name,
                     timestamp=self.timestamp,
@@ -240,24 +246,25 @@ class ChatMessage[TContent]:
                 )
 
     @classmethod
-    def from_pydantic_ai[TContent](
+    def from_pydantic_ai[TContentType](
         cls,
+        content: TContentType,
         message: ModelRequest | ModelResponse,
         conversation_id: str | None = None,
-        content: TContent | None = None,
         name: str | None = None,
         message_id: str | None = None,
         forwarded_from: list[str] | None = None,
-    ) -> ChatMessage[TContent]:
+    ) -> ChatMessage[TContentType]:
         """Convert a Pydantic model to a ChatMessage."""
         match message:
-            case ModelRequest(parts=parts, instructions=instructions):
+            case ModelRequest(parts=parts, instructions=_instructions):
                 return ChatMessage(
-                    kind="request",
                     parts=parts,
-                    message_id=message_id,
-                    instructions=instructions,
-                    forwarded_from=forwarded_from,
+                    content=content,
+                    role="user" if message.kind == "request" else "assistant",
+                    message_id=message_id or str(uuid.uuid4()),
+                    # instructions=instructions,
+                    forwarded_from=forwarded_from or [],
                     name=name,
                 )
             case ModelResponse(
@@ -271,7 +278,7 @@ class ChatMessage[TContent]:
                 provider_response_id=provider_response_id,
             ):
                 return ChatMessage(
-                    kind="response",
+                    role="user" if message.kind == "request" else "assistant",
                     content=content,
                     parts=parts,
                     usage=usage,
@@ -284,8 +291,11 @@ class ChatMessage[TContent]:
                     finish_reason=finish_reason,
                     provider_response_id=provider_response_id,
                     name=name,
-                    forwarded_from=forwarded_from,
+                    forwarded_from=forwarded_from or [],
                 )
+            case _:
+                msg = f"Unknown message kind: {message.kind}"
+                raise ValueError(msg)
 
     def forwarded(self, previous_message: ChatMessage[Any]) -> Self:
         """Create new message showing it was forwarded from another message.

@@ -67,7 +67,7 @@ class ChatMessage[TContent]:
     content: TContent
     """Message content (string or structured data)"""
 
-    role: "user" | "assistant" | "system"
+    role: "user" | "assistant"
     """Role of the message sender"""
 
     # Metadata
