@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass, field, replace
 from decimal import Decimal
 from typing import TYPE_CHECKING, Any, Literal, Self, TypeVar
@@ -11,13 +12,16 @@ from uuid import uuid4
 from genai_prices import calc_price
 from pydantic import BaseModel
 from pydantic_ai import (
+    BaseToolReturnPart,
+    FilePart,
     ModelRequest,
     ModelResponse,
     RequestUsage,
+    TextPart,
     ToolCallPart,
+    UserContent,
     UserPromptPart,
 )
-from pydantic_ai.messages import BuiltinToolReturnPart, FilePart, TextPart
 import tokonomics
 
 from llmling_agent.common_types import MessageRole, SimpleJsonType  # noqa: TC001
@@ -26,7 +30,6 @@ from llmling_agent.utils.now import get_now
 
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
     from datetime import datetime
 
     from pydantic_ai import (
@@ -36,7 +39,6 @@ if TYPE_CHECKING:
         ModelResponsePart,
         RunUsage,
     )
-    from pydantic_ai.messages import UserContent
 
     from llmling_agent.tools import ToolCallInfo
 
@@ -230,9 +232,21 @@ class ChatMessage[TContent]:
 
     Normalized to OpenTelemetry values."""
 
-    # def parts(self) -> Sequence[ModelResponsePart | ModelRequestPart]:
+    @property
+    def last_message(self) -> ModelMessage:
+        """Return the last message from the message history."""
+        # The response may not be the very last item if it contained an output tool call.
+        # See `CallToolsNode._handle_final_result`.
+        for message in reversed(self.messages):
+            if isinstance(message, ModelMessage):
+                return message
+        msg = "No last message found in the message history"
+        raise ValueError(msg)  # pragma: no cover
+
+    # @property
+    # def parts(self) -> Sequence[ModelRequestPart] | Sequence[ModelResponsePart]:
     #     """The parts of the last model message."""
-    #     return self.messages[-1].parts
+    #     return self.last_message.parts
 
     @property
     def kind(self) -> Literal["request", "response"]:
@@ -282,7 +296,7 @@ class ChatMessage[TContent]:
     def from_pydantic_ai[TContentType](
         cls,
         content: TContentType,
-        message: ModelRequest | ModelResponse,
+        message: ModelMessage,
         conversation_id: str | None = None,
         name: str | None = None,
         message_id: str | None = None,
@@ -378,7 +392,11 @@ class ChatMessage[TContent]:
                 case FilePart(content=binary_content):
                     # File parts (images, etc.) become user content directly
                     user_content.append(binary_content)
-                case BuiltinToolReturnPart():
+                case BaseToolReturnPart(
+                    content=str() | Sequence(UserContent()) as content
+                ):
+                    user_content.append(content)
+                case BaseToolReturnPart():
                     # Tool return parts become user content strings
                     user_content.append(part.model_response_str())
                 case ToolCallPart():
