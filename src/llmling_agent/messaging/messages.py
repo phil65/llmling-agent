@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import dataclasses
 from dataclasses import dataclass, field, replace
 from decimal import Decimal
 from typing import TYPE_CHECKING, Any, Literal, Self, TypeVar
@@ -225,6 +224,10 @@ class ChatMessage[TContent]:
 
     Normalized to OpenTelemetry values."""
 
+    # def parts(self) -> Sequence[ModelResponsePart | ModelRequestPart]:
+    #     """The parts of the last model message."""
+    #     return self.messages[-1].parts
+
     @property
     def kind(self) -> Literal["request", "response"]:
         """Role of the message."""
@@ -334,9 +337,15 @@ class ChatMessage[TContent]:
         from_ = [*previous_message.forwarded_from, previous_message.name or "unknown"]
         return replace(self, forwarded_from=from_)
 
-    def to_text_message(self) -> ChatMessage[str]:
-        """Convert this message to a text-only version."""
-        return dataclasses.replace(self, content=str(self.content))  # type: ignore
+    @property
+    def response(self) -> ModelResponse:
+        """Return the last response from the message history."""
+        # The response may not be the very last item if it contained an output tool call. See `CallToolsNode._handle_final_result`.
+        for message in reversed(self.messages):
+            if isinstance(message, ModelResponse):
+                return message
+        msg = "No response found in the message history"
+        raise ValueError(msg)
 
     def to_request(self) -> Self:
         """Convert this message to a request message.
