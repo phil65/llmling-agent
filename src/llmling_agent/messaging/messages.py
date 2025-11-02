@@ -234,22 +234,26 @@ class ChatMessage[TContent]:
             case "user":
                 return "request"
 
-    def to_pydantic_ai(self) -> ModelRequest | ModelResponse:
+    def to_pydantic_ai(self) -> Sequence[ModelMessage]:
         """Convert this message to a Pydantic model."""
+        if self.messages:
+            return self.messages
         match self.kind:
             case "request":
-                return ModelRequest(parts=self.parts, instructions=None)  # type: ignore
+                return [ModelRequest(parts=self.parts, instructions=None)]  # type: ignore
             case "response":
-                return ModelResponse(
-                    parts=self.parts,  # type: ignore
-                    usage=self.usage,
-                    model_name=self.model_name,
-                    timestamp=self.timestamp,
-                    provider_name=self.provider_name,
-                    provider_details=self.provider_details,
-                    finish_reason=self.finish_reason,
-                    provider_response_id=self.provider_response_id,
-                )
+                return [
+                    ModelResponse(
+                        parts=self.parts,  # type: ignore
+                        usage=self.usage,
+                        model_name=self.model_name,
+                        timestamp=self.timestamp,
+                        provider_name=self.provider_name,
+                        provider_details=self.provider_details,
+                        finish_reason=self.finish_reason,
+                        provider_response_id=self.provider_response_id,
+                    )
+                ]
 
     @classmethod
     def from_pydantic_ai[TContentType](

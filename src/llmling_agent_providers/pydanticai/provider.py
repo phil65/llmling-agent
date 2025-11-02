@@ -309,7 +309,9 @@ class PydanticAIProvider(AgentProvider[Any]):
         result: AgentRunResult = await agent.run(
             converted_prompts,  # Pass converted prompts
             deps=self._context,  # type: ignore
-            message_history=[m.to_pydantic_ai() for m in message_history],
+            message_history=[
+                msg for run in message_history for msg in run.to_pydantic_ai()
+            ],
             model=to_use,
             output_type=output_type or str,
             model_settings=self.model_settings,  # type: ignore
@@ -418,7 +420,9 @@ class PydanticAIProvider(AgentProvider[Any]):
         async for event in agent.run_stream_events(
             converted_prompts,
             deps=self._context,
-            message_history=[m.to_pydantic_ai() for m in message_history],
+            message_history=[
+                msg for run in message_history for msg in run.to_pydantic_ai()
+            ],
             model=model or self.model,  # type: ignore
             output_type=output_type or str,
             model_settings=self.model_settings,  # type: ignore
