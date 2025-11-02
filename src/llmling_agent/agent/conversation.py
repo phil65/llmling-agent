@@ -385,7 +385,7 @@ class ConversationManager:
                     messages = await self._agent.context.storage.filter_messages(history)
                 else:
                     messages = [
-                        ChatMessage.user_prompt(content=prompt, message=prompt)
+                        ChatMessage.user_prompt(message=prompt)
                         for p in history
                         if (prompt := await to_prompt(p))
                     ]

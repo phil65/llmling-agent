@@ -259,17 +259,16 @@ class ChatMessage[TContent]:
                 ]
 
     @classmethod
-    def user_prompt(
+    def user_prompt[TPromptContent: str | Sequence[UserContent] = str](
         cls,
-        message: str | Sequence[UserContent],
-        content: Any | None = None,
+        message: TPromptContent,
         conversation_id: str | None = None,
-    ) -> Self:
+    ) -> ChatMessage[TPromptContent]:
         """Create a user prompt message."""
-        return cls(
+        return ChatMessage(
             messages=[ModelRequest(parts=[UserPromptPart(content=message)])],
             role="user",
-            content=content,
+            content=message,
             conversation_id=conversation_id or str(uuid4()),
         )
 
@@ -340,7 +339,8 @@ class ChatMessage[TContent]:
     @property
     def response(self) -> ModelResponse:
         """Return the last response from the message history."""
-        # The response may not be the very last item if it contained an output tool call. See `CallToolsNode._handle_final_result`.
+        # The response may not be the very last item if it contained an output tool call.
+        #  See `CallToolsNode._handle_final_result`.
         for message in reversed(self.messages):
             if isinstance(message, ModelResponse):
                 return message

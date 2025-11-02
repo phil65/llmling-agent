@@ -59,7 +59,7 @@ class MessageNode[TDeps, TResult](MessageEmitter[TDeps, TResult]):
             final_prompt = "\n\n".join(str(p) for p in prompts)
             # use format_prompts?
             messages = [content_to_pydantic_ai(i) for i in prompts]
-            user_msg = ChatMessage.user_prompt(content=final_prompt, message=messages)
+            user_msg = ChatMessage.user_prompt(message=messages)
         self.message_received.emit(user_msg)
         self.context.current_prompt = final_prompt
         return user_msg, prompts

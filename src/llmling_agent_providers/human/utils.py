@@ -41,3 +41,34 @@ async def get_structured_response(
             logger.exception("Failed to parse structured response")
             error_msg = f"Invalid response format: {e}"
             raise ToolError(error_msg) from e
+
+
+def get_textual_streaming_app():
+    from textual.app import App
+    from textual.events import Key  # noqa: TC002
+    from textual.widgets import Input
+
+    class StreamingInputApp(App):
+        def __init__(self, chunk_callback):
+            super().__init__()
+            self.chunk_callback = chunk_callback
+            self.buffer = []
+            self.done = False
+
+        def compose(self):
+            yield Input(id="input")
+
+        def on_input_changed(self, event: Input.Changed):
+            # New character was typed
+            if len(event.value) > len(self.buffer):
+                new_char = event.value[len(self.buffer) :]
+                self.chunk_callback(new_char)
+            self.buffer = list(event.value)
+
+        def on_key(self, event: Key):
+            if event.key == "enter":
+                self.done = True
+                self.result = "".join(self.buffer)
+                self.exit()
+
+    return StreamingInputApp
