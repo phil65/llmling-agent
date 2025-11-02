@@ -8,13 +8,12 @@ from typing import TYPE_CHECKING, Annotated, Any, Literal
 
 from pydantic import ConfigDict, Field, ImportString
 from schemez import Schema
+from upath import UPath
 
 from llmling_agent_config.conditions import Condition
 
 
 if TYPE_CHECKING:
-    from upath import UPath
-
     from llmling_agent.messaging.messages import ChatMessage
     from llmling_agent_providers.callback import CallbackProvider
 
@@ -146,7 +145,6 @@ class FileConnectionConfig(ConnectionConfig):
     def get_provider(self) -> CallbackProvider:
         """Get provider for file writing."""
         from jinja2 import Template
-        from upath import UPath
 
         from llmling_agent_providers.callback import CallbackProvider
 

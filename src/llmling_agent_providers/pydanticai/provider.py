@@ -338,6 +338,7 @@ class PydanticAIProvider(AgentProvider[Any]):
         cost_info = TokenCost(token_usage=token_usage, total_cost=total)
         return ProviderResponse(
             content=result.output,
+            messages=new_msgs,
             response=result.response,
             tool_calls=tool_calls,
             cost_and_usage=cost_info,

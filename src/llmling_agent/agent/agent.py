@@ -562,35 +562,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         """Get the underlying provider."""
         return self._provider
 
-    @provider.setter
-    def provider(self, value: AgentType, model: ModelType = None):
-        """Set the underlying provider."""
-        from llmling_agent_providers.base import AgentProvider
-
-        name = self.name
-        debug = self._debug
-        self._provider.tool_used.disconnect(self.tool_used)
-        match value:
-            case AgentProvider():
-                self._provider = value
-            case "pydantic_ai":
-                from llmling_agent_providers.pydanticai import PydanticAIProvider
-
-                self._provider = PydanticAIProvider(model=model, name=name, debug=debug)
-            case "human":
-                from llmling_agent_providers.human import HumanProvider
-
-                self._provider = HumanProvider(name=name, debug=debug)
-            case Callable():
-                from llmling_agent_providers.callback import CallbackProvider
-
-                self._provider = CallbackProvider(value, name=name, debug=debug)
-            case _:
-                msg = f"Invalid agent type: {type}"
-                raise ValueError(msg)
-        self._provider.tool_used.connect(self.tool_used)
-        self._provider.context = self._context  # pyright: ignore[reportAttributeAccessIssue]
-
     def to_structured[NewOutputDataT](
         self,
         output_type: type[NewOutputDataT] | str | StructuredResponseConfig,
