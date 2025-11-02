@@ -665,7 +665,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
         agent = await self.exit_stack.enter_async_context(agent)
 
         # Override structured configuration if provided
-        if return_type is not None:
+        if return_type not in {None, str}:
             agent.set_output_type(return_type)
 
         return agent
