@@ -40,10 +40,9 @@ agents:
   agent_1:
     name: First Agent
     description: First test agent
-    provider:
-      type: callback
-      callback: {__name__}.make_test_response
-    model: test
+    model:
+      type: function
+      function: {__name__}.make_test_response
     output_type: _TestOutput
     system_prompts:
       - You are the first agent
@@ -51,10 +50,9 @@ agents:
   agent_2:
     name: Second Agent
     description: Second test agent
-    provider:
-      type: callback
-      callback: {__name__}.make_test_response
-    model: test
+    model:
+      type: function
+      function: {__name__}.make_test_response
     output_type: _TestOutput
     system_prompts:
       - You are the second agent
@@ -66,7 +64,9 @@ async def test_parallel_execution():
     manifest = AgentsManifest.from_yaml(TEST_CONFIG)
 
     async with AgentPool[None](manifest) as pool:
-        group: Team[Any] = pool.create_team(["agent_1", "agent_2"])
+        agent_1 = pool.get_agent("agent_1", return_type=_TestOutput)
+        agent_2 = pool.get_agent("agent_2", return_type=_TestOutput)
+        group: Team[Any] = pool.create_team([agent_1, agent_2])
 
         prompt = "Test input"
         responses = await group.execute(prompt)
@@ -85,7 +85,9 @@ async def test_sequential_execution():
     manifest: AgentsManifest = AgentsManifest.from_yaml(TEST_CONFIG)
 
     async with AgentPool[None](manifest) as pool:
-        group: TeamRun[Any, Any] = pool.create_team_run(["agent_1", "agent_2"])
+        agent_1 = pool.get_agent("agent_1", return_type=_TestOutput)
+        agent_2 = pool.get_agent("agent_2", return_type=_TestOutput)
+        group: TeamRun[Any, Any] = pool.create_team_run([agent_1, agent_2])
 
         prompt = "Test input"
         responses = await group.execute(prompt)

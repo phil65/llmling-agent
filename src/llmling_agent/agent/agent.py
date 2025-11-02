@@ -21,6 +21,7 @@ from uuid import uuid4
 
 from anyenv import MultiEventHandler, method_spawner
 from llmling import Config, RuntimeConfig, ToolError
+from llmling_models import function_to_model
 import logfire
 from psygnal import Signal
 from pydantic import ValidationError
@@ -487,10 +488,10 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             kwargs: Additional arguments for agent
         """
         from llmling_agent.agent.agent import Agent
-        from llmling_agent_providers.callback import CallbackProvider
 
         name = name or callback.__name__ or "processor"
-        provider = CallbackProvider(callback, name=name)
+
+        model = function_to_model(callback)
         # Get return type from signature for validation
         hints = get_type_hints(callback)
         return_type = hints.get("return")
@@ -503,7 +504,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         ):
             return_type = return_type.__args__[0]
         return Agent(
-            provider=provider,
+            model=model,
             name=name,
             output_type=return_type or str,
             **kwargs,

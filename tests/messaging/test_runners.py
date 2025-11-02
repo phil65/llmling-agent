@@ -49,10 +49,9 @@ agents:
   test_agent:
     name: Test Agent
     description: Agent for testing conversation flow
-    provider:
-      type: callback
-      callback: {__name__}.make_response
-    model: test
+    model:
+      type: function
+      function: {__name__}.make_response
     output_type: ConversationOutput
     system_prompts:
       - You are a test agent
@@ -88,7 +87,7 @@ async def test_agent_pool_conversation_flow():
         # Verify conversation order was maintained
         assert responses[0].data.conversation_index == 1
         assert responses[1].data.conversation_index == 2  # noqa: PLR2004
-
+        print(responses)
         # Verify message content
         assert responses[0].data.message == "Response to: Hello!"
         assert responses[1].data.message == "Response to: How are you?"

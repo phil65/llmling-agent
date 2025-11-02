@@ -15,7 +15,7 @@ from llmling_agent_config.conditions import Condition
 
 if TYPE_CHECKING:
     from llmling_agent.messaging.messages import ChatMessage
-    from llmling_agent_providers.callback import CallbackProvider
+    from llmling_agent_providers.pydanticai import PydanticAIProvider
 
 
 ConnectionType = Literal["run", "context", "forward"]
@@ -142,11 +142,12 @@ class FileConnectionConfig(ConnectionConfig):
         variables = {"date": date, "time": time_, **context}
         return UPath(self.path.format(**variables))
 
-    def get_provider(self) -> CallbackProvider:
+    def get_provider(self) -> PydanticAIProvider:
         """Get provider for file writing."""
         from jinja2 import Template
+        from llmling_models import function_to_model
 
-        from llmling_agent_providers.callback import CallbackProvider
+        from llmling_agent_providers.pydanticai import PydanticAIProvider
 
         path_obj = UPath(self.path)
         template_obj = Template(self.template)
@@ -157,7 +158,7 @@ class FileConnectionConfig(ConnectionConfig):
             return ""
 
         name = f"file_writer_{path_obj.stem}"
-        return CallbackProvider(write_message, name=name)
+        return PydanticAIProvider(model=function_to_model(write_message), name=name)
 
 
 class CallableConnectionConfig(ConnectionConfig):
@@ -190,11 +191,16 @@ class CallableConnectionConfig(ConnectionConfig):
 
         return await execute(self.callable, message, **self.kw_args)
 
-    def get_provider(self) -> CallbackProvider:
+    def get_provider(self) -> PydanticAIProvider:
         """Get provider for callable."""
-        from llmling_agent_providers.callback import CallbackProvider
+        from llmling_models import function_to_model
 
-        return CallbackProvider(self.callable, name=self.callable.__name__)
+        from llmling_agent_providers.pydanticai import PydanticAIProvider
+
+        return PydanticAIProvider(
+            model=function_to_model(self.callable),
+            name=self.callable.__name__,
+        )
 
 
 ForwardingTarget = Annotated[
