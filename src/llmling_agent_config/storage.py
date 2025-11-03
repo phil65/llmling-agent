@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Annotated, Final, Literal
 
 from platformdirs import user_data_dir
 from pydantic import ConfigDict, Field, SecretStr
+from pydantic_ai import Agent
 from schemez import Schema
 
 
@@ -24,6 +25,9 @@ APP_NAME: Final = "llmling-agent"
 APP_AUTHOR: Final = "llmling"
 DATA_DIR: Final = Path(user_data_dir(APP_NAME, APP_AUTHOR))
 DEFAULT_DB_NAME: Final = "history.db"
+DEFAULT_TITLE_PROMPT = """\
+Create a short & consise title for this message. Only answer with that title.
+"""
 
 
 def get_database_path() -> str:
@@ -190,6 +194,12 @@ class StorageConfig(Schema):
     log_context: bool = True
     """Whether to log additions to the context."""
 
+    title_generation_model: str = "openai:gpt-5-nano"
+    """Whether to log command executions."""
+
+    title_generation_prompt: str = DEFAULT_TITLE_PROMPT
+    """Whether to log additions to the context."""
+
     model_config = ConfigDict(frozen=True)
 
     @property
@@ -206,3 +216,11 @@ class StorageConfig(Schema):
                 return [MemoryStorageConfig()]
             return [SQLStorageConfig()]
         return self.providers
+
+    def get_title_generation_agent(self) -> Agent:
+        """Get title generation agent configuration."""
+        return Agent(
+            name="title_generation",
+            model=self.title_generation_model,
+            instructions=self.title_generation_prompt,
+        )
