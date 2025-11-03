@@ -44,6 +44,8 @@ from llmling_agent_acp.converters import (
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
+    from pydantic_ai.messages import SystemPromptPart, UserPromptPart
+
     from acp import Client
     from acp.schema import ClientCapabilities, ContentBlock, McpServer, StopReason
     from llmling_agent import Agent, AgentPool
@@ -118,6 +120,9 @@ class ACPSession:
         self._current_tool_inputs: dict[str, dict] = {}
         self.fs = ACPFileSystem(self.client, session_id=self.session_id)
         self._acp_provider: AggregatingResourceProvider | None = None
+        # Staged prompt parts for context building
+
+        self._staged_parts: list[SystemPromptPart | UserPromptPart] = []
         self.notifications = ACPNotifications(
             client=self.client,
             session_id=self.session_id,
@@ -212,6 +217,26 @@ class ACPSession:
     def is_cancelled(self) -> bool:
         """Check if the session is cancelled."""
         return self._cancelled
+
+    def get_staged_parts(self) -> list[SystemPromptPart | UserPromptPart]:
+        """Get copy of currently staged prompt parts."""
+        return self._staged_parts.copy()
+
+    def add_staged_parts(self, parts: list[SystemPromptPart | UserPromptPart]) -> None:
+        """Add prompt parts to staging area.
+
+        Args:
+            parts: List of SystemPromptPart or UserPromptPart to stage
+        """
+        self._staged_parts.extend(parts)
+
+    def clear_staged_parts(self) -> None:
+        """Clear all staged prompt parts."""
+        self._staged_parts.clear()
+
+    def get_staged_parts_count(self) -> int:
+        """Get count of staged parts."""
+        return len(self._staged_parts)
 
     async def process_prompt(self, content_blocks: Sequence[ContentBlock]) -> StopReason:  # noqa: PLR0911
         """Process a prompt request and stream responses.
@@ -466,14 +491,9 @@ class ACPSession:
             return
 
         try:
-            # Collect all prompts from all MCP clients concurrently
-            clients = list(self.agent_pool.mcp.clients.values())
-            if not clients:
-                return
-
-            # Use gather to fetch prompts concurrently, with exception handling
-            results = await asyncio.gather(*[client.list_prompts() for client in clients])
-            if all_prompts := [p for result in results for p in result]:
+            # Get all prompts from the agent's ToolManager
+            all_prompts = await self.agent.tools.list_prompts()
+            if all_prompts:
                 self.command_bridge.add_mcp_prompt_commands(all_prompts)
                 self.log.info(
                     "Registered MCP prompts as slash commands",

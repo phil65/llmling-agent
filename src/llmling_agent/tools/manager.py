@@ -24,14 +24,11 @@ if TYPE_CHECKING:
     from collections.abc import Iterator
     from datetime import datetime
 
-    from mcp.types import Prompt as MCPPrompt
-
     from llmling_agent import Agent, MessageNode
     from llmling_agent.common_types import AnyCallable, ToolSource, ToolType
+    from llmling_agent.mcp_server.manager import Prompt
     from llmling_agent.resource_providers.base import ResourceProvider
-    from llmling_agent.resource_providers.callable_provider import (
-        ResourceCallable,
-    )
+    from llmling_agent.resource_providers.callable_provider import ResourceCallable
 
 
 logger = get_logger(__name__)
@@ -249,75 +246,26 @@ class ToolManager(BaseRegistry[str, Tool]):
         """Get tool names based on state."""
         return {t.name for t in await self.get_tools() if t.matches_filter(state)}
 
-    async def list_prompts(self) -> list[MCPPrompt]:
-        """Get all MCP prompt metadata from all providers.
+    async def list_prompts(self) -> list[Prompt]:
+        """Get all prompts from all providers.
 
         Returns:
-            List of prompt metadata dictionaries with name, description, and arguments
+            List of Prompt instances
         """
         from llmling_agent.mcp_server.manager import MCPManager
 
-        all_prompts: list[MCPPrompt] = []
+        all_prompts: list[Prompt] = []
 
-        # Get raw MCP prompt metadata from all providers
+        # Get prompts from all MCP providers
         for provider in self.providers:
             if isinstance(provider, MCPManager):
                 try:
-                    # Get raw MCP prompt metadata from all clients
-                    for client in provider.clients.values():
-                        try:
-                            result = await client.list_prompts()
-                            # Convert raw MCP prompts to dict format
-                            all_prompts.extend(result)
-                        except Exception:
-                            logger.exception("Failed to list prompts from MCP client")
-                            continue
+                    prompts = await provider.list_prompts()
+                    all_prompts.extend(prompts)
                 except Exception:
                     logger.exception("Failed to get prompts from provider: %r", provider)
 
         return all_prompts
-
-    async def get_resolved_prompt(
-        self, name: str, arguments: dict[str, Any] | None = None
-    ) -> str | None:
-        """Get a resolved prompt by name with optional arguments.
-
-        Args:
-            name: Name of the prompt to retrieve
-            arguments: Optional arguments to pass to the prompt
-
-        Returns:
-            Resolved prompt content as string if found, None otherwise
-        """
-        from llmling_agent.mcp_server.manager import MCPManager
-
-        # Search through all MCP providers
-        for provider in self.providers:
-            if isinstance(provider, MCPManager):
-                try:
-                    # Check each client in the MCP manager
-                    for client in provider.clients.values():
-                        try:
-                            # Try to get the resolved prompt from this client
-                            result = await client.get_prompt(name, arguments)
-                            # Convert MCP response messages to string content
-                            from mcp.types import TextContent
-
-                            content_parts = []
-                            for message in result.messages:
-                                if isinstance(message.content, TextContent):
-                                    content_parts.append(message.content.text)
-                                elif isinstance(message.content, str):
-                                    content_parts.append(message.content)
-                            return "\n".join(content_parts) if content_parts else None
-                        except Exception:  # noqa: BLE001
-                            # This client doesn't have the prompt, try next
-                            continue
-                except Exception:
-                    logger.exception("Failed to get prompt from provider: %r", provider)
-                    continue
-
-        return None
 
     def register_tool(
         self,

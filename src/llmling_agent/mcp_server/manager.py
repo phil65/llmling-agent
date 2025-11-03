@@ -6,8 +6,8 @@ import asyncio
 from contextlib import AsyncExitStack
 from typing import TYPE_CHECKING, Any, Self
 
-from llmling.prompts import PromptMessage, StaticPrompt
 from pydantic_ai import UsageLimits
+from pydantic_ai.messages import SystemPromptPart, UserPromptPart
 
 from llmling_agent.log import get_logger
 from llmling_agent.mcp_server.client import MCPClient
@@ -32,21 +32,124 @@ if TYPE_CHECKING:
     from llmling_agent_config.mcp_server import MCPServerConfig
 
 
+class Prompt:
+    """A prompt that can be rendered from an MCP server."""
+
+    def __init__(
+        self,
+        name: str,
+        description: str | None,
+        arguments: list[dict[str, Any]] | None,
+        client: MCPClient,
+    ):
+        self.name = name
+        self.description = description
+        self.arguments = arguments or []
+        self._client = client
+
+    def __repr__(self) -> str:
+        return f"Prompt(name={self.name!r}, description={self.description!r})"
+
+    async def get_components(
+        self, arguments: dict[str, str] | None = None
+    ) -> list[SystemPromptPart | UserPromptPart]:
+        """Get prompt as pydantic-ai message components.
+
+        Args:
+            arguments: Arguments to pass to the prompt template
+
+        Returns:
+            List of message parts ready for agent usage
+
+        Raises:
+            RuntimeError: If prompt fetch fails
+            ValueError: If prompt contains unsupported message types
+        """
+        try:
+            result = await self._client.get_prompt(self.name, arguments)
+        except Exception as e:
+            msg = f"Failed to get prompt {self.name!r}: {e}"
+            raise RuntimeError(msg) from e
+
+        # Convert MCP messages to pydantic-ai parts
+        from mcp.types import (
+            AudioContent,
+            EmbeddedResource,
+            ImageContent,
+            ResourceLink,
+            TextContent,
+            TextResourceContents,
+        )
+
+        parts: list[SystemPromptPart | UserPromptPart] = []
+
+        for message in result.messages:
+            # Extract text content from MCP message
+            text_content = ""
+
+            match message.content:
+                case TextContent(text=text):
+                    text_content = text
+                case EmbeddedResource(resource=resource):
+                    if isinstance(resource, TextResourceContents):
+                        text_content = resource.text
+                    else:
+                        text_content = f"[Resource: {resource.uri}]"
+                case ResourceLink(uri=uri, description=desc):
+                    text_content = f"[Resource Link: {uri}]"
+                    if desc:
+                        text_content += f" - {desc}"
+                case ImageContent(mimeType=mime_type):
+                    text_content = f"[Image: {mime_type}]"
+                case AudioContent(mimeType=mime_type):
+                    text_content = f"[Audio: {mime_type}]"
+                case _:
+                    # Fallback to string representation
+                    text_content = str(message.content)
+
+            # Convert based on role
+            match message.role:
+                case "system":
+                    parts.append(SystemPromptPart(content=text_content))
+                case "user":
+                    parts.append(UserPromptPart(content=text_content))
+                case "assistant":
+                    # Convert assistant messages to user parts for context
+                    parts.append(UserPromptPart(content=f"Assistant: {text_content}"))
+                case _:
+                    logger.warning(
+                        "Unsupported message role in MCP prompt",
+                        role=message.role,
+                        prompt_name=self.name,
+                    )
+
+        if not parts:
+            msg = f"No supported message parts found in prompt {self.name!r}"
+            raise ValueError(msg)
+
+        return parts
+
+
 logger = get_logger(__name__)
 
 
-async def convert_mcp_prompt(client: MCPClient, prompt: MCPPrompt) -> StaticPrompt:
-    """Convert MCP prompt to StaticPrompt."""
-    from mcp.types import TextContent, TextResourceContents
-
-    result = await client.get_prompt(prompt.name)
-    messages = [
-        PromptMessage(role="system", content=message.content.text)
-        for message in result.messages
-        if isinstance(message.content, TextContent | TextResourceContents)
+def convert_mcp_prompt(client: MCPClient, prompt: MCPPrompt) -> Prompt:
+    """Convert MCP prompt to our Prompt class."""
+    arguments = [
+        {
+            "name": arg.name,
+            "description": arg.description,
+            "required": arg.required or False,
+        }
+        for arg in prompt.arguments or []
     ]
-    desc = prompt.description or "No description provided"
-    return StaticPrompt(name=prompt.name, description=desc, messages=messages)
+
+    return Prompt(
+        name=prompt.name,
+        description=prompt.description,
+        arguments=arguments,
+        client=client,
+    )
 
 
 async def convert_mcp_resource(resource: MCPResource) -> ResourceInfo:
@@ -234,16 +337,16 @@ class MCPManager(ResourceProvider):
         logger.debug("Fetched MCP tools", num_tools=len(all_tools))
         return all_tools
 
-    async def list_prompts(self) -> list[StaticPrompt]:
+    async def list_prompts(self) -> list[Prompt]:
         """Get all available prompts from MCP servers."""
 
-        async def get_client_prompts(client: MCPClient) -> list[StaticPrompt]:
+        async def get_client_prompts(client: MCPClient) -> list[Prompt]:
             try:
                 result = await client.list_prompts()
-                client_prompts: list[StaticPrompt] = []
+                client_prompts: list[Prompt] = []
                 for prompt in result:
                     try:
-                        converted = await convert_mcp_prompt(client, prompt)
+                        converted = convert_mcp_prompt(client, prompt)
                         client_prompts.append(converted)
                     except Exception:
                         logger.exception("Failed to convert prompt", name=prompt.name)
@@ -325,8 +428,28 @@ if __name__ == "__main__":
         async with manager:
             await manager.setup_server(cfg)
             prompts = await manager.list_prompts()
-            print(prompts)
-            p = prompts[-1]
-            print(await p.format(arguments={"text": "Hello, world!"}))
+            print(f"Found prompts: {prompts}")
+
+            # Test static prompt (no arguments)
+            static_prompt = next(p for p in prompts if p.name == "static_prompt")
+            print(f"\n--- Testing static prompt: {static_prompt} ---")
+            components = await static_prompt.get_components()
+            assert components, "No prompt components found"
+            print(f"Found {len(components)} prompt components:")
+            for i, component in enumerate(components):
+                comp_type = type(component).__name__
+                print(f"  {i + 1}. {comp_type}: {component.content}")
+
+            # Test dynamic prompt (with arguments)
+            dynamic_prompt = next(p for p in prompts if p.name == "dynamic_prompt")
+            print(f"\n--- Testing dynamic prompt: {dynamic_prompt} ---")
+            components = await dynamic_prompt.get_components(
+                arguments={"some_arg": "Hello, world!"}
+            )
+            assert components, "No prompt components found"
+            print(f"Found {len(components)} prompt components:")
+            for i, component in enumerate(components):
+                comp_type = type(component).__name__
+                print(f"  {i + 1}. {comp_type}: {component.content}")
 
     asyncio.run(main())

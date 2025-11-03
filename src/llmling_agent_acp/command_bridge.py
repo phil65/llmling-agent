@@ -8,16 +8,16 @@ from typing import TYPE_CHECKING, Any
 from acp.schema import AvailableCommand
 from llmling_agent.log import get_logger
 from llmling_agent_acp.commands.acp_commands import ACPCommandContext
-from llmling_agent_acp.commands.mcp_commands import MCPPromptCommand
+from llmling_agent_acp.commands.mcp_commands import PromptCommand
 
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from mcp.types import Prompt as MCPPrompt
     from slashed import CommandContext, CommandStore
 
     from llmling_agent.agent.context import AgentContext
+    from llmling_agent.mcp_server.manager import Prompt
     from llmling_agent_acp.session import ACPSession
 
 logger = get_logger(__name__)
@@ -36,7 +36,7 @@ class ACPCommandBridge:
         """
         self.command_store = command_store
         self._update_callbacks: list[Callable[[], None]] = []
-        self._mcp_prompt_commands: dict[str, MCPPromptCommand] = {}
+        self._mcp_prompt_commands: dict[str, PromptCommand] = {}
 
     def get_acp_commands(self, context: AgentContext[Any]) -> list[AvailableCommand]:
         """Convert slashed commands to ACP format.
@@ -79,6 +79,7 @@ class ACPCommandBridge:
         if command_name in self._mcp_prompt_commands:
             mcp_cmd = self._mcp_prompt_commands[command_name]
             await mcp_cmd.execute(args, session)
+            return
         if command_name in ACP_COMMANDS:
             # Use ACP context for ACP commands
 
@@ -109,13 +110,13 @@ class ACPCommandBridge:
         """
         self._update_callbacks.append(callback)
 
-    def add_mcp_prompt_commands(self, mcp_prompts: list[MCPPrompt]) -> None:
-        """Add MCP prompts as slash commands.
+    def add_mcp_prompt_commands(self, prompts: list[Prompt]) -> None:
+        """Add prompts as slash commands.
 
         Args:
-            mcp_prompts: List of MCP prompt objects from MCP servers
+            prompts: List of Prompt instances from ToolManager
         """
-        self._mcp_prompt_commands = {p.name: MCPPromptCommand(p) for p in mcp_prompts}
+        self._mcp_prompt_commands = {p.name: PromptCommand(p) for p in prompts}
         self._notify_command_update()  # Notify about command updates
 
     def _notify_command_update(self) -> None:
