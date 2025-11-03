@@ -188,6 +188,9 @@ class Conversation(AsyncAttrs, SQLModel, table=True):  # type: ignore[call-arg]
     agent_name: str = Field(index=True)
     """Name of the agent handling the conversation"""
 
+    title: str | None = Field(default=None, index=True)
+    """Generated title for the conversation"""
+
     start_time: datetime = Field(
         sa_column=Column(UTCDateTime, index=True), default_factory=get_now
     )
