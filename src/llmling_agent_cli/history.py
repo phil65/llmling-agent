@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime
 
 from llmling.cli.constants import output_format_opt
@@ -86,19 +87,21 @@ def show_history(
         config_path = resolve_agent_config(config)
         provider = get_history_provider(config_path)
 
-        results = provider.task_manager.run_task_sync(
-            provider.get_filtered_conversations(
-                agent_name=agent_name,
-                period=period,
-                since=since,
-                query=query,
-                model=model,
-                limit=limit,
-                compact=compact,
-                include_tokens=tokens,
-            )
-        )
-        format_output(results, output_format)
+        async def main():
+            async with provider:
+                results = await provider.get_filtered_conversations(
+                    agent_name=agent_name,
+                    period=period,
+                    since=since,
+                    query=query,
+                    model=model,
+                    limit=limit,
+                    compact=compact,
+                    include_tokens=tokens,
+                )
+                format_output(results, output_format)
+
+        asyncio.run(main())
 
     except Exception as e:
         logger.exception("Failed to show history")
@@ -139,11 +142,13 @@ def show_stats(
         cutoff = get_now() - parse_time_period(period)
         filters = StatsFilters(cutoff=cutoff, group_by=group_by, agent_name=agent_name)  # type: ignore
 
-        stats = provider.task_manager.run_task_sync(
-            provider.get_conversation_stats(filters)
-        )
-        formatted = format_stats(stats, period, group_by)
-        format_output(formatted, output_format)
+        async def main():
+            async with provider:
+                stats = await provider.get_conversation_stats(filters)
+            formatted = format_stats(stats, period, group_by)
+            format_output(formatted, output_format)
+
+        asyncio.run(main())
 
     except Exception as e:
         logger.exception("Failed to show stats")
@@ -187,11 +192,19 @@ def reset_history(
             if input(msg).lower() != "y":
                 print("Operation cancelled.")
                 return
-        coro = provider.reset(agent_name=agent_name, hard=hard)
-        conv_count, msg_count = provider.task_manager.run_task_sync(coro)
 
-        what = f" for {agent_name}" if agent_name else ""
-        print(f"Deleted {conv_count} conversations and {msg_count} messages{what}.")
+        async def main():
+            async with provider:
+                conv_count, msg_count = await provider.reset(
+                    agent_name=agent_name, hard=hard
+                )
+
+                what = f" for {agent_name}" if agent_name else ""
+                print(
+                    f"Deleted {conv_count} conversations and {msg_count} messages{what}."
+                )
+
+        asyncio.run(main())
 
     except Exception as e:
         logger.exception("Failed to reset history")
