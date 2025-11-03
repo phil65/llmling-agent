@@ -43,7 +43,7 @@ async def run_example():
     # only for complete YAML workflows, otherwise your linter wont like what you are doin.
     config_path = get_config_path(None if is_pyodide() else __file__)
     manifest = AgentsManifest.from_file(config_path)
-    async with AgentPool[None](manifest) as pool:
+    async with AgentPool(manifest) as pool:
         analyzer = pool.get_agent("analyzer")
         result_2 = await analyzer.run("I'm really excited about this project!")
         analysis = result_2.data

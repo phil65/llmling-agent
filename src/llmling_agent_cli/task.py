@@ -36,7 +36,7 @@ async def execute_job(
     """Execute task with agent."""
     from llmling_agent import AgentPool
 
-    async with AgentPool[None](config) as pool:
+    async with AgentPool(config) as pool:
         # Get both agent and task
         agent = pool.get_agent(agent_name)
         task = pool.get_job(task_name)

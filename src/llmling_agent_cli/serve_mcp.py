@@ -58,7 +58,7 @@ def serve_command(
             port=port,
             zed_mode=zed_mode,
         )
-        async with AgentPool[None](manifest) as pool:
+        async with AgentPool(manifest) as pool:
             if show_messages:
                 for agent in pool.agents.values():
                     agent.message_sent.connect(on_message)

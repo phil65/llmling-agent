@@ -32,7 +32,7 @@ async def run_example():
     config_path = get_config_path(None if is_pyodide() else __file__)
     manifest = AgentsManifest.from_file(config_path)
 
-    async with AgentPool[None](manifest) as pool:
+    async with AgentPool(manifest) as pool:
         # Get agents (connections already set up from YAML)
         picker = pool.get_agent("picker")
         analyzer = pool.get_agent("analyzer")

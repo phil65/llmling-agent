@@ -68,7 +68,7 @@ async def run_example():
     async def progress_handler(progress, total, message):
         print(f"Progress: {progress}/{total} - {message}")
 
-    async with AgentPool[None](
+    async with AgentPool(
         manifest,
         progress_handlers=[progress_handler],
     ) as pool:

@@ -53,7 +53,7 @@ def run_command(
             raise t.BadParameter(error_msg) from e
 
         async def run():
-            async with AgentPool[None](config_path) as pool:
+            async with AgentPool(config_path) as pool:
 
                 def on_message(chat_message: ChatMessage[Any]):
                     print(

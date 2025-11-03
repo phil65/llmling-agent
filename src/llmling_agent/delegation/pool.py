@@ -166,6 +166,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
             # Collect all components to initialize
             components: list[AbstractAsyncContextManager[Any]] = [
                 self.mcp,
+                self.storage,
                 *agents,
                 *teams,
             ]
@@ -173,7 +174,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
             # Add MCP server if configured
             if self.server:
                 components.append(self.server)
-            components.append(self.storage)
             # Initialize all components
             if self.parallel_load:
                 await asyncio.gather(
@@ -849,7 +849,7 @@ if __name__ == "__main__":
 
     async def main():
         path = "src/llmling_agent/config_resources/agents.yml"
-        async with AgentPool[None](path) as pool:
+        async with AgentPool(path) as pool:
             agent: Agent[None, Any] = pool.get_agent("overseer")
             print(agent)
 

@@ -112,5 +112,5 @@ def manifest():
 @pytest.fixture
 async def pool(manifest):
     """Create test pool with agents."""
-    async with AgentPool[None](manifest) as pool:
+    async with AgentPool(manifest) as pool:
         yield pool

@@ -45,7 +45,7 @@ def watch_command(
         print(text)
 
     async def run_watch():
-        async with AgentPool[None](config) as pool:
+        async with AgentPool(config) as pool:
             # Connect message handlers if showing all messages
             if show_messages:
                 for agent in pool.agents.values():

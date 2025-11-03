@@ -67,7 +67,7 @@ async def run_nodes_async(
         discovered = [f for f in discovered if f.name in functions]
 
     # Run with pool
-    async with AgentPool[None](config) as pool:
+    async with AgentPool(config) as pool:
         return await execute_functions(
             discovered,
             pool,

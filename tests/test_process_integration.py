@@ -59,7 +59,7 @@ def process_manifest():
 
 async def test_process_manager_pool_integration(process_manifest):
     """Test ProcessManager is properly integrated with AgentPool."""
-    async with AgentPool[None](process_manifest) as pool:
+    async with AgentPool(process_manifest) as pool:
         agent = pool.agents["process_agent"]
         assert agent.context.process_manager
         assert agent.context.process_manager is pool.process_manager
@@ -67,7 +67,7 @@ async def test_process_manager_pool_integration(process_manifest):
 
 async def test_process_tools_registration(process_manifest):
     """Test that process management tools are properly registered."""
-    async with AgentPool[None](process_manifest) as pool:
+    async with AgentPool(process_manifest) as pool:
         agent = pool.agents["process_agent"]
 
         # Get available tools
@@ -90,7 +90,7 @@ async def test_process_tools_registration(process_manifest):
 
 async def test_basic_process_workflow(process_manifest):
     """Test a complete process management workflow."""
-    async with AgentPool[None](process_manifest) as pool:
+    async with AgentPool(process_manifest) as pool:
         pm = pool.process_manager
 
         # Start a simple process (platform-aware)
@@ -116,7 +116,7 @@ async def test_basic_process_workflow(process_manifest):
 
 async def test_pool_cleanup_kills_processes(process_manifest):
     """Test that pool cleanup properly kills all processes."""
-    async with AgentPool[None](process_manifest) as pool:
+    async with AgentPool(process_manifest) as pool:
         pm = pool.process_manager
 
         # Start a long-running process (platform-aware)
@@ -143,7 +143,7 @@ async def test_toolset_requirement_enforcement():
     )
     manifest = AgentsManifest(agents={"limited_agent": agent_config})
 
-    async with AgentPool[None](manifest) as pool:
+    async with AgentPool(manifest) as pool:
         agent = pool.agents["limited_agent"]
         tools = await agent.tools.get_tools()
         tool_names = [tool.name for tool in tools]
@@ -166,7 +166,7 @@ async def test_toolset_requirement_enforcement():
 
 async def test_multiple_processes_management(process_manifest):
     """Test managing multiple processes simultaneously."""
-    async with AgentPool[None](process_manifest) as pool:
+    async with AgentPool(process_manifest) as pool:
         pm = pool.process_manager
 
         # Start multiple processes (platform-aware)
@@ -200,7 +200,7 @@ async def test_multiple_processes_management(process_manifest):
 @pytest.mark.skip(reason="Output limit test needs refinement")
 async def test_process_output_limit(process_manifest):
     """Test process output limiting functionality."""
-    async with AgentPool[None](process_manifest) as pool:
+    async with AgentPool(process_manifest) as pool:
         pm = pool.process_manager
 
         # Start process with small output limit
@@ -224,7 +224,7 @@ async def test_process_output_limit(process_manifest):
 
 async def test_error_handling_invalid_command(process_manifest):
     """Test error handling for invalid commands."""
-    async with AgentPool[None](process_manifest) as pool:
+    async with AgentPool(process_manifest) as pool:
         pm = pool.process_manager
 
         # Try to start non-existent command
@@ -234,7 +234,7 @@ async def test_error_handling_invalid_command(process_manifest):
 
 async def test_process_info_retrieval(process_manifest):
     """Test getting detailed process information."""
-    async with AgentPool[None](process_manifest) as pool:
+    async with AgentPool(process_manifest) as pool:
         pm = pool.process_manager
 
         # Use platform-appropriate commands and working directory

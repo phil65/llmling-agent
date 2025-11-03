@@ -11,7 +11,7 @@ async with Agent(...) as agent:
     print(result.content)
 
 # Multiple agents in a pool
-async with AgentPool[None]("agents.yml") as pool:
+async with AgentPool("agents.yml") as pool:
     analyzer = pool.get_agent("analyzer")
     summarizer = pool.get_agent("summarizer")
 

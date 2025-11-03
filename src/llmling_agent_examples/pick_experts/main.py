@@ -19,7 +19,7 @@ os.environ["OPENAI_API_KEY"] = os.environ.get("OPENAI_API_KEY", "your_api_key_he
 async def run_example():
     """Run the expert selection example."""
     config_path = get_config_path(None if is_pyodide() else __file__)
-    async with AgentPool[None](config_path) as pool:
+    async with AgentPool(config_path) as pool:
         coordinator = pool.get_agent("coordinator")
         experts = pool.create_team(["database_expert", "frontend_dev", "security_expert"])
 

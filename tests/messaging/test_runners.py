@@ -69,7 +69,7 @@ async def test_agent_pool_conversation_flow():
     """Test conversation flow maintaining history between messages."""
     manifest = AgentsManifest.from_yaml(TEST_CONFIG)
 
-    async with AgentPool[None](manifest) as pool:
+    async with AgentPool(manifest) as pool:
         # Get agent directly for conversation
         agent = pool.get_agent("test_agent", return_type=ConversationOutput)
 
@@ -101,7 +101,7 @@ async def test_agent_pool_validation():
     manifest = AgentsManifest.from_yaml(TEST_CONFIG)
 
     # Test getting non-existent agent
-    async with AgentPool[None](manifest) as pool:
+    async with AgentPool(manifest) as pool:
         with pytest.raises(KeyError, match="nonexistent"):
             pool.get_agent("nonexistent")
 
@@ -110,7 +110,7 @@ async def test_agent_pool_team_errors():
     """Test error handling in team tasks."""
     manifest = AgentsManifest.from_yaml(TEST_CONFIG)
 
-    async with AgentPool[None](manifest) as pool:
+    async with AgentPool(manifest) as pool:
         # Test with non-existent team member
         with pytest.raises(KeyError, match="nonexistent"):
             pool.create_team(["test_agent", "nonexistent"])
@@ -121,7 +121,7 @@ async def test_agent_pool_cleanup():
     manifest = AgentsManifest.from_yaml(TEST_CONFIG)
 
     # Use context manager to ensure proper cleanup
-    async with AgentPool[None](manifest) as pool:
+    async with AgentPool(manifest) as pool:
         # Add some agents
         agent: Agent[None] = pool.get_agent("test_agent")
         assert "test_agent" in pool.agents
@@ -140,7 +140,7 @@ async def test_agent_pool_context_cleanup():
     manifest = AgentsManifest.from_yaml(TEST_CONFIG)
     runtime_ref = None
 
-    async with AgentPool[None](manifest) as pool:
+    async with AgentPool(manifest) as pool:
         agent: Agent[None] = pool.get_agent("test_agent")
         runtime_ref = agent.runtime
         assert "test_agent" in pool.agents

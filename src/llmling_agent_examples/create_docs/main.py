@@ -38,7 +38,7 @@ async def main():
     config_path = Path(__file__).parent / "config.yml"
     manifest = AgentsManifest.from_file(config_path)
 
-    async with AgentPool[None](manifest) as pool:
+    async with AgentPool(manifest) as pool:
         scanner = pool.get_agent("file_scanner")
         writer = pool.get_agent("doc_writer")
         checker = pool.get_agent("error_checker")

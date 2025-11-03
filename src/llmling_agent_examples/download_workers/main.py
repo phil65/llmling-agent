@@ -32,7 +32,7 @@ async def run_example():
     config_path = get_config_path(None if is_pyodide() else __file__)
     manifest = AgentsManifest.from_file(config_path)
 
-    async with AgentPool[None](manifest) as pool:
+    async with AgentPool(manifest) as pool:
         # Get the boss agent
         boss: Agent[Any, str] = pool.get_agent("overseer")
 
