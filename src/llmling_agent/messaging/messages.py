@@ -12,8 +12,12 @@ from uuid import uuid4
 from genai_prices import calc_price
 from pydantic import BaseModel
 from pydantic_ai import (
+    AudioUrl,
     BaseToolReturnPart,
+    BinaryContent,
+    DocumentUrl,
     FilePart,
+    ImageUrl,
     ModelRequest,
     ModelResponse,
     RequestUsage,
@@ -21,6 +25,7 @@ from pydantic_ai import (
     ToolCallPart,
     UserContent,
     UserPromptPart,
+    VideoUrl,
 )
 import tokonomics
 
@@ -283,13 +288,10 @@ class ChatMessage[TContent]:
         instructions: str | None = None,
     ) -> ChatMessage[TPromptContent]:
         """Create a user prompt message."""
+        part = UserPromptPart(content=message)
+        request = ModelRequest(parts=[part], instructions=instructions)
         return ChatMessage(
-            messages=[
-                ModelRequest(
-                    parts=[UserPromptPart(content=message)],
-                    instructions=instructions,
-                )
-            ],
+            messages=[request],
             role="user",
             content=message,
             conversation_id=conversation_id or str(uuid4()),
@@ -390,7 +392,27 @@ class ChatMessage[TContent]:
                 case FilePart(content=binary_content):
                     # File parts (images, etc.) become user content directly
                     user_content.append(binary_content)
-                case BaseToolReturnPart(content=str() | (UserContent(),) as content):
+                case BaseToolReturnPart(
+                    content=(
+                        ImageUrl()
+                        | AudioUrl()
+                        | DocumentUrl()
+                        | VideoUrl()
+                        | BinaryContent()
+                        | str(),
+                    ) as content
+                ):
+                    user_content.extend(content)
+                case BaseToolReturnPart(
+                    content=(
+                        str()
+                        | ImageUrl()
+                        | AudioUrl()
+                        | DocumentUrl()
+                        | VideoUrl()
+                        | BinaryContent()
+                    ) as content
+                ):
                     user_content.append(content)
                 case BaseToolReturnPart():
                     # Tool return parts become user content strings
