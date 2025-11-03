@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from acp.schema import AvailableCommand, AvailableCommandInput, CommandInputHint
+from acp.schema import AvailableCommand
 from llmling_agent.log import get_logger
 
 
@@ -36,13 +36,14 @@ class PromptCommand:
             ACP AvailableCommand object
         """
         # Create input spec from prompt arguments
-        spec = None
+        hint = None
         if self.prompt.arguments:
-            arg_names = [arg["name"] for arg in self.prompt.arguments]
-            hint = f"Arguments: {', '.join(arg_names)}"
-            spec = AvailableCommandInput(root=CommandInputHint(hint=hint))
-        name = self.name  # Use prompt name directly
-        return AvailableCommand(name=name, description=self.description, input=spec)
+            hint = f"Arguments: {', '.join(i['name'] for i in self.prompt.arguments)}"
+        return AvailableCommand.create(
+            name=self.name,
+            description=self.description,
+            input_hint=hint,
+        )
 
     async def execute(self, args: str, session: ACPSession) -> None:
         """Execute prompt command.
@@ -57,9 +58,7 @@ class PromptCommand:
             # Get components from the prompt
             components = await self.prompt.get_components(arguments)
 
-            # Stage the components for later use
-            session.add_staged_parts(components)
-
+            session.add_staged_parts(components)  # Stage the components for later use
             # Convert components to text output for display
             content_parts = []
             for part in components:
@@ -69,7 +68,6 @@ class PromptCommand:
                     # Handle sequence of UserContent - convert to string
                     content_parts.append(str(part.content))
             output = "\n".join(content_parts)
-
             # Add argument info if provided
             if arguments:
                 arg_info = ", ".join(f"{k}={v}" for k, v in arguments.items())
@@ -106,12 +104,8 @@ class PromptCommand:
             return {}
 
         args_list = args_str.strip().split()
-        arguments = {}
-
-        # Map positional arguments to prompt argument names
-        for i, arg_value in enumerate(args_list):
-            if i < len(self.prompt.arguments):
-                arg_name = self.prompt.arguments[i]["name"]
-                arguments[arg_name] = arg_value
-
-        return arguments
+        return {  # Map positional arguments to prompt argument names
+            self.prompt.arguments[i]["name"]: arg_value
+            for i, arg_value in enumerate(args_list)
+            if i < len(self.prompt.arguments)
+        }
