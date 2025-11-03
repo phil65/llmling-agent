@@ -19,14 +19,6 @@ def sample_config() -> Config:
     return Config()
 
 
-def test_file_environment_basic():
-    """Test basic file environment creation."""
-    env = FileEnvironment(uri="config.yml")
-    assert env.type == "file"
-    assert env.uri == "config.yml"
-    assert env.get_display_name() == "File: config.yml"
-
-
 def test_file_environment_path_resolution(tmp_path: pathlib.Path):
     """Test path resolution relative to config file."""
     # Create a mock config structure
@@ -54,18 +46,6 @@ def test_file_environment_validation():
     # Empty URI
     with pytest.raises(ValidationError):
         FileEnvironment(uri="")
-
-
-def test_inline_environment_basic(sample_config: Config):
-    """Test basic inline environment creation."""
-    env = InlineEnvironment.from_config(sample_config, uri="default-tools")
-    assert env.type == "inline"
-    assert env.uri == "default-tools"
-    assert env.get_display_name() == "Inline: default-tools"
-
-    # Test without URI
-    env = InlineEnvironment.from_config(sample_config)
-    assert env.get_display_name() == "Inline configuration"
 
 
 @pytest.mark.parametrize(
@@ -96,19 +76,6 @@ def test_environment_types(
     env = expected_type.model_validate(env_data)
     assert isinstance(env, expected_type)
     assert env.get_file_path() == expected_path
-
-
-def test_environment_display_names():
-    """Test display name generation for different environment types."""
-    file_env = FileEnvironment(uri="config.yml")
-    assert file_env.get_display_name() == "File: config.yml"
-    cfg = Config()
-    inline_env = InlineEnvironment.from_config(cfg, uri="custom-env")
-    assert inline_env.get_display_name() == "Inline: custom-env"
-
-    # Without URI
-    inline_env = InlineEnvironment()
-    assert inline_env.get_display_name() == "Inline configuration"
 
 
 def test_environment_serialization(sample_config: Config):

@@ -30,9 +30,6 @@ class FileEnvironment(Schema):
 
     model_config = ConfigDict(frozen=True)
 
-    def get_display_name(self) -> str:
-        return f"File: {self.uri}"
-
     def get_file_path(self) -> str:
         """Get resolved file path."""
         from upath import UPath
@@ -68,9 +65,6 @@ class InlineEnvironment(Config):
     """Path to agent config file for resolving relative paths"""
 
     model_config = ConfigDict(frozen=True)
-
-    def get_display_name(self) -> str:
-        return f"Inline: {self.uri}" if self.uri else "Inline configuration"
 
     def get_file_path(self) -> str | None:
         """No file path for inline environments."""
