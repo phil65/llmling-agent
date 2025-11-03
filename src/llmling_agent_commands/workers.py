@@ -14,40 +14,6 @@ from llmling_agent_commands.markdown_utils import format_table
 logger = get_logger(__name__)
 
 
-ADD_WORKER_HELP = """\
-Add another agent as a worker tool.
-
-Options:
-  --reset-history    Clear worker's history before each run (default: true)
-  --share-history   Pass current agent's message history (default: false)
-  --share-context   Share context data between agents (default: false)
-
-Examples:
-  /add-worker specialist               # Basic worker
-  /add-worker analyst --share-history  # Pass conversation history
-  /add-worker helper --share-context   # Share context between agents
-"""
-
-REMOVE_WORKER_HELP = """\
-Remove a worker tool from the current agent.
-
-Examples:
-  /remove-worker specialist  # Remove the specialist worker tool
-"""
-
-LIST_WORKERS_HELP = """\
-List all registered worker tools and their settings.
-
-Shows:
-- Worker agent name
-- Tool name
-- Current settings (history/context sharing)
-- Enabled/disabled status
-
-Example: /list-workers
-"""
-
-
 class AddWorkerCommand(SlashedCommand):
     """Add another agent as a worker tool.
 

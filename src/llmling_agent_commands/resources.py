@@ -13,58 +13,6 @@ from llmling_agent_commands.markdown_utils import format_table
 
 logger = get_logger(__name__)
 
-LIST_RESOURCES_HELP = """\
-Display all resources available to the agent.
-
-Shows:
-- Resource names and descriptions
-- Resource types and URIs
-- Whether parameters are supported
-- MIME types
-
-Resource types can be:
-- path: Files or URLs
-- text: Raw text content
-- cli: Command line tools
-- source: Python source code
-- callable: Python functions
-- image: Image files
-
-Use /show-resource for detailed information about specific resources.
-"""
-
-SHOW_RESOURCES_HELP = """\
-Display detailed information and content of a specific resource.
-
-Shows:
-- Resource metadata (type, URI, description)
-- MIME type information
-- Parameter support status
-- Resource content (if loadable)
-
-For resources that support parameters:
-- Pass parameters as --param arguments
-- Parameters are passed to resource loader\
-
-Examples:
-  /show-resource config.yml               # Show configuration file
-  /show-resource template --date today    # Template with parameters
-  /show-resource image.png               # Show image details
-  /show-resource api --key value         # API with parameters
-
-Note: Some resources might require parameters to be viewed.
-"""
-
-ADD_RESOURCE_HELP = """\
-Add content from a resource to the next message.
-
-Parameters are passed to the resource loader if supported.
-
-Examples:
-/add-resource config.yml
-/add-resource template --date today
-/add-resource api_data --key value"""
-
 
 class ListResourcesCommand(SlashedCommand):
     """Display all resources available to the agent.

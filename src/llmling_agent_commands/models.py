@@ -9,21 +9,6 @@ from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent_commands.completers import get_model_names
 
 
-SET_MODEL_HELP = """\
-Change the language model for the current conversation.
-
-The model change takes effect immediately for all following messages.
-Previous messages and their context are preserved.
-
-Examples:
-  /set-model gpt-5
-  /set-model openai:gpt-5-mini
-  /set-model claude-2
-
-Note: Available models depend on your configuration and API access.
-"""
-
-
 class SetModelCommand(SlashedCommand):
     """Change the language model for the current conversation.
 

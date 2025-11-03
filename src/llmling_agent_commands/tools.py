@@ -18,69 +18,6 @@ from llmling_agent_commands.markdown_utils import format_table
 
 logger = get_logger(__name__)
 
-CODE_TEMPLATE = '''\
-def my_tool(text: str) -> str:
-    """A new tool.
-
-    Args:
-        text: Input text
-
-    Returns:
-        Tool result
-    """
-    return f"You said: {text}"
-'''
-
-TOOL_INFO_HELP = """\
-Display detailed information about a specific tool:
-- Source (runtime/agent/builtin)
-- Current status (enabled/disabled)
-- Priority and capabilities
-- Parameter descriptions
-- Additional metadata
-
-Example: /tool-info open_browser
-"""
-
-WRITE_TOOL_HELP = """\
-Opens an interactive Python editor to create new tools.
-- ESC + Enter or Alt + Enter to save and exit
-- Functions will be available as tools immediately
-
-Example template:
-def my_tool(text: str) -> str:
-    '''A new tool'''
-    return f'You said: {text}'
-"""
-
-REGISTER_TOOL_HELP = """\
-Register a new tool from a Python import path.
-Examples:
-  /register-tool webbrowser.open
-  /register-tool json.dumps --name format_json
-  /register-tool os.getcwd --description 'Get current directory'
-"""
-
-ENABLE_TOOL_HELP = """\
-Enable a previously disabled tool.
-Use /list-tools to see available tools.
-
-Example: /enable-tool open_browser
-"""
-
-DISABLE_TOOL_HELP = """\
-Disable a tool to prevent its use.
-Use /list-tools to see available tools.
-
-Example: /disable-tool open_browser
-"""
-
-LIST_TOOLS_HELP = """\
-Show all available tools and their current status.
-Tools are grouped by source (runtime/agent/builtin).
-✓ indicates enabled, ✗ indicates disabled.
-"""
-
 
 class ListToolsCommand(SlashedCommand):
     """Show all available tools and their current status.

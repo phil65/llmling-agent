@@ -7,19 +7,6 @@ from slashed import CommandContext, SlashedCommand  # noqa: TC002
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
 
 
-RESET_HELP = """\
-Reset the entire session state:
-- Clears chat history
-- Restores default tool settings
-- Resets any session-specific configurations
-"""
-
-CLEAR_HELP = """\
-Clear the current chat session history.
-This removes all previous messages but keeps tools and settings.
-"""
-
-
 class ClearCommand(SlashedCommand):
     """Clear the current chat session history.
 

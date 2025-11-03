@@ -12,28 +12,6 @@ from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent_config.environment import FileEnvironment, InlineEnvironment
 
 
-SET_ENV_HELP = """\
-Change the environment configuration file for the current session.
-
-The environment file defines:
-- Available tools
-- Resource configurations
-- Other runtime settings
-
-Example: /set-env configs/new_env.yml
-
-Note: This will reload the runtime configuration and update available tools.
-"""
-
-EDIT_ENV_HELP = """\
-Open the agent's environment configuration file in the default editor.
-This allows you to modify:
-- Available tools
-- Resources
-- Other environment settings
-"""
-
-
 class SetEnvCommand(SlashedCommand):
     """Change the environment configuration file for the current session.
 

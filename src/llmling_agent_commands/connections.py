@@ -21,31 +21,6 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-CONNECT_HELP = """\
-Connect the current node to another node.
-Messages will be forwarded to the target node.
-
-Examples:
-  /connect node2          # Forward to node, wait for responses
-  /connect node2 --no-wait  # Forward without waiting
-"""
-
-DISCONNECT_HELP = """\
-Disconnect the current node from a target node.
-Stops forwarding messages to the specified node.
-
-Example: /disconnect node2
-"""
-
-LIST_CONNECTIONS_HELP = """\
-Show current node connections and their status.
-Displays:
-- Connected nodes
-- Wait settings
-- Message flow direction
-"""
-
-
 def format_node_name(node: MessageEmitter[Any, Any], current: bool = False) -> str:
     """Format node name for display."""
     name = node.name

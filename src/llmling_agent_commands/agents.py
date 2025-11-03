@@ -11,59 +11,6 @@ from llmling_agent_commands.completers import get_available_agents
 from llmling_agent_commands.markdown_utils import format_table
 
 
-CREATE_AGENT_HELP = """\
-Create a new agent in the current session.
-
-Creates a temporary agent that inherits the current agent's model.
-The new agent will exist only for this session.
-
-Options:
-  --system-prompt "prompt"   System instructions for the agent (required)
-  --model model_name        Override model (default: same as current agent)
-  --role role_name         Agent role (assistant/specialist/overseer)
-  --description "text"     Optional description of the agent
-  --tools "import_path1|import_path2"   Optional list tools (by import path)
-
-Examples:
-  # Create poet using same model as current agent
-  /create-agent poet --system-prompt "Create poems from any text"
-
-  # Create analyzer with different model
-  /create-agent analyzer --system-prompt "Analyze in detail" --model gpt-5
-
-  # Create specialized helper
-  /create-agent helper --system-prompt "Debug code" --role specialist
-"""
-
-SHOW_AGENT_HELP_TEXT = """\
-Display the complete configuration of the current agent as YAML.
-Shows:
-- Basic agent settings
-- Model configuration (with override indicators)
-- Environment settings (including inline environments)
-- System prompts
-- Response type configuration
-- Other settings
-
-Fields that have been overridden at runtime are marked with comments.
-"""
-
-LIST_AGENTS_HELP = """\
-Show all agents defined in the current configuration.
-Displays:
-- Agent name
-- Model used (if specified)
-- Description (if available)
-"""
-
-SWITCH_AGENT_HELP = """\
-Switch the current chat session to a different agent.
-Use /list-agents to see available agents.
-
-Example: /switch-agent url_opener
-"""
-
-
 class CreateAgentCommand(SlashedCommand):
     """Create a new agent in the current session.
 

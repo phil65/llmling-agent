@@ -12,28 +12,6 @@ from llmling_agent.log import get_logger
 logger = get_logger(__name__)
 
 
-READ_HELP = """\
-Read content from files or URLs into the conversation.
-
-By default reads raw content, but can convert supported formats to markdown
-with the --convert-to-md flag.
-
-Supported formats for conversion:
-- PDF documents
-- Office files (Word, Excel, PowerPoint)
-- Images (with metadata)
-- Audio files (metadata)
-- HTML pages
-- Text formats (CSV, JSON, XML)
-
-Examples:
-  /read document.txt               # Read raw text
-  /read document.pdf --convert-to-md   # Convert PDF to markdown
-  /read https://example.com/doc.docx --convert-to-md
-  /read presentation.pptx --convert-to-md
-"""
-
-
 class ReadCommand(SlashedCommand):
     """Read content from files or URLs into the conversation.
 

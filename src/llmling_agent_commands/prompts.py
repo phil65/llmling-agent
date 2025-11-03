@@ -8,31 +8,6 @@ from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent_commands.completers import PromptCompleter
 
 
-PROMPT_HELP = """\
-Show prompts from configured prompt hubs.
-
-Usage examples:
-  /prompt role.reviewer            # Use builtin prompt
-  /prompt openlit:code_review     # Use specific provider
-  /prompt langfuse:explain@v2     # Use specific version
-  /prompt some_prompt[var=value]  # With variables
-"""
-
-
-EXECUTE_PROMPT_HELP = """\
-Execute a named prompt with optional arguments.
-
-Arguments:
-  name: Name of the prompt to execute
-  argN=valueN: Optional arguments for the prompt
-
-Examples:
-  /prompt greet
-  /prompt analyze file=test.py
-  /prompt search query='python code'
-"""
-
-
 class ShowPromptCommand(SlashedCommand):
     """Show prompts from configured prompt hubs.
 
