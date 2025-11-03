@@ -61,7 +61,6 @@ class SQLModelProvider(StorageProvider[Message]):
         super().__init__(config)
         self.engine = config.get_engine()
         self.auto_migrate = config.auto_migration
-        self.session: AsyncSession | None = None
 
     async def _init_database(self, auto_migrate: bool = True):
         """Initialize database tables and optionally migrate columns.
@@ -106,14 +105,10 @@ class SQLModelProvider(StorageProvider[Message]):
     async def __aenter__(self):
         """Initialize async database resources."""
         await self._init_database(auto_migrate=self.auto_migrate)
-        self.session = AsyncSession(self.engine)
         return await super().__aenter__()
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """Clean up async database resources properly."""
-        if self.session:
-            await self.session.close()
-            self.session = None
         await self.engine.dispose()
         return await super().__aexit__(exc_type, exc_val, exc_tb)
 
@@ -123,13 +118,11 @@ class SQLModelProvider(StorageProvider[Message]):
 
     async def filter_messages(self, query: SessionQuery) -> list[ChatMessage[str]]:
         """Filter messages using SQL queries."""
-        if not self.session:
-            msg = "Session not initialized. Use provider as async context manager."
-            raise RuntimeError(msg)
-        stmt = build_message_query(query)
-        result = await self.session.execute(stmt)
-        messages = result.scalars().all()
-        return [to_chat_message(msg) for msg in messages]
+        async with AsyncSession(self.engine) as session:
+            stmt = build_message_query(query)
+            result = await session.execute(stmt)
+            messages = result.scalars().all()
+            return [to_chat_message(msg) for msg in messages]
 
     async def log_message(
         self,
@@ -153,33 +146,30 @@ class SQLModelProvider(StorageProvider[Message]):
 
         provider, model_name = parse_model_info(model)
 
-        if not self.session:
-            error_msg = "Session not initialized. Use provider as async context manager."
-            raise RuntimeError(error_msg)
-
-        msg = Message(
-            conversation_id=conversation_id,
-            id=message_id,
-            content=content,
-            role=role,
-            name=name,
-            model=model,
-            model_provider=provider,
-            model_name=model_name,
-            response_time=response_time,
-            total_tokens=cost_info.token_usage.total_tokens if cost_info else None,
-            input_tokens=cost_info.token_usage.input_tokens if cost_info else None,
-            output_tokens=cost_info.token_usage.output_tokens if cost_info else None,
-            cost=float(cost_info.total_cost) if cost_info else None,
-            forwarded_from=forwarded_from,
-            provider_name=provider_name,
-            provider_response_id=provider_response_id,
-            messages=messages,
-            finish_reason=finish_reason,
-            timestamp=get_now(),
-        )
-        self.session.add(msg)
-        await self.session.commit()
+        async with AsyncSession(self.engine) as session:
+            msg = Message(
+                conversation_id=conversation_id,
+                id=message_id,
+                content=content,
+                role=role,
+                name=name,
+                model=model,
+                model_provider=provider,
+                model_name=model_name,
+                response_time=response_time,
+                total_tokens=cost_info.token_usage.total_tokens if cost_info else None,
+                input_tokens=cost_info.token_usage.input_tokens if cost_info else None,
+                output_tokens=cost_info.token_usage.output_tokens if cost_info else None,
+                cost=float(cost_info.total_cost) if cost_info else None,
+                forwarded_from=forwarded_from,
+                provider_name=provider_name,
+                provider_response_id=provider_response_id,
+                messages=messages,
+                finish_reason=finish_reason,
+                timestamp=get_now(),
+            )
+            session.add(msg)
+            await session.commit()
 
     async def log_conversation(
         self,
@@ -191,13 +181,11 @@ class SQLModelProvider(StorageProvider[Message]):
         """Log conversation to database."""
         from llmling_agent_storage.sql_provider.models import Conversation
 
-        if not self.session:
-            msg = "Session not initialized. Use provider as async context manager."
-            raise RuntimeError(msg)
-        now = start_time or get_now()
-        convo = Conversation(id=conversation_id, agent_name=node_name, start_time=now)
-        self.session.add(convo)
-        await self.session.commit()
+        async with AsyncSession(self.engine) as session:
+            now = start_time or get_now()
+            convo = Conversation(id=conversation_id, agent_name=node_name, start_time=now)
+            session.add(convo)
+            await session.commit()
 
     async def log_command(
         self,
@@ -209,18 +197,16 @@ class SQLModelProvider(StorageProvider[Message]):
         metadata: dict[str, JsonValue] | None = None,
     ):
         """Log command to database."""
-        if not self.session:
-            msg = "Session not initialized. Use provider as async context manager."
-            raise RuntimeError(msg)
-        history = CommandHistory(
-            session_id=session_id,
-            agent_name=agent_name,
-            command=command,
-            context_type=context_type.__name__ if context_type else None,
-            context_metadata=metadata or {},
-        )
-        self.session.add(history)
-        await self.session.commit()
+        async with AsyncSession(self.engine) as session:
+            history = CommandHistory(
+                session_id=session_id,
+                agent_name=agent_name,
+                command=command,
+                context_type=context_type.__name__ if context_type else None,
+                context_metadata=metadata or {},
+            )
+            session.add(history)
+            await session.commit()
 
     async def get_filtered_conversations(
         self,
@@ -266,71 +252,67 @@ class SQLModelProvider(StorageProvider[Message]):
         current_session_only: bool = False,
     ) -> list[str]:
         """Get command history from database."""
-        if not self.session:
-            msg = "Session not initialized. Use provider as async context manager."
-            raise RuntimeError(msg)
-        query = select(CommandHistory)
-        if current_session_only:
-            query = query.where(CommandHistory.session_id == str(session_id))
-        else:
-            query = query.where(CommandHistory.agent_name == agent_name)
+        async with AsyncSession(self.engine) as session:
+            query = select(CommandHistory)
+            if current_session_only:
+                query = query.where(CommandHistory.session_id == str(session_id))
+            else:
+                query = query.where(CommandHistory.agent_name == agent_name)
 
-        query = query.order_by(desc(CommandHistory.timestamp))  # type: ignore
-        if limit:
-            query = query.limit(limit)
+            query = query.order_by(desc(CommandHistory.timestamp))  # type: ignore
+            if limit:
+                query = query.limit(limit)
 
-        result = await self.session.execute(query)
-        return [h.command for h in result.scalars()]
+            result = await session.execute(query)
+            return [h.command for h in result.scalars()]
 
     async def get_conversations(
         self,
         filters: QueryFilters,
     ) -> list[tuple[ConversationData, Sequence[ChatMessage[str]]]]:
         """Get filtered conversations using SQL queries."""
-        if not self.session:
-            msg = "Session not initialized. Use provider as async context manager."
-            raise RuntimeError(msg)
+        async with AsyncSession(self.engine) as session:
+            results: list[tuple[ConversationData, Sequence[ChatMessage[str]]]] = []
 
-        results: list[tuple[ConversationData, Sequence[ChatMessage[str]]]] = []
+            # Base conversation query
+            conv_query = select(Conversation)
 
-        # Base conversation query
-        conv_query = select(Conversation)
+            if filters.agent_name:
+                conv_query = conv_query.where(
+                    Conversation.agent_name == filters.agent_name
+                )
 
-        if filters.agent_name:
-            conv_query = conv_query.where(Conversation.agent_name == filters.agent_name)
+            # Apply time filters if provided
+            if filters.since:
+                conv_query = conv_query.where(Conversation.start_time >= filters.since)
 
-        # Apply time filters if provided
-        if filters.since:
-            conv_query = conv_query.where(Conversation.start_time >= filters.since)
+            if filters.limit:
+                conv_query = conv_query.limit(filters.limit)
 
-        if filters.limit:
-            conv_query = conv_query.limit(filters.limit)
+            conv_result = await session.execute(conv_query)
+            conversations = conv_result.scalars().all()
 
-        # Execute conversation query
-        conv_result = await self.session.execute(conv_query)
-        conversations = conv_result.scalars().all()
+            for conv in conversations:
+                # Get messages for this conversation
+                msg_query = select(Message).where(Message.conversation_id == conv.id)
 
-        for conv in conversations:
-            # Get messages for this conversation
-            msg_query = select(Message).where(Message.conversation_id == conv.id)
+                if filters.query:
+                    msg_query = msg_query.where(Message.content.contains(filters.query))  # type: ignore
+                if filters.model:
+                    msg_query = msg_query.where(Message.model_name == filters.model)
 
-            if filters.query:
-                msg_query = msg_query.where(Message.content.contains(filters.query))  # type: ignore
-            if filters.model:
-                msg_query = msg_query.where(Message.model_name == filters.model)
+                msg_query = msg_query.order_by(Message.timestamp.asc())  # type: ignore
+                msg_result = await session.execute(msg_query)
+                messages = msg_result.scalars().all()
 
-            msg_query = msg_query.order_by(Message.timestamp.asc())  # type: ignore
-            msg_result = await self.session.execute(msg_query)
-            messages = msg_result.scalars().all()
+                if not messages:
+                    continue
 
-            if not messages:
-                continue
+                chat_messages = [to_chat_message(msg) for msg in messages]
+                conv_data = format_conversation(conv, messages)
+                results.append((conv_data, chat_messages))
 
-            chat_messages = [to_chat_message(msg) for msg in messages]
-            conv_data = format_conversation(conv, messages)
-            results.append((conv_data, chat_messages))
-
-        return results
+            return results
 
     async def get_conversation_stats(
         self,
@@ -339,47 +321,43 @@ class SQLModelProvider(StorageProvider[Message]):
         """Get statistics using SQL aggregations."""
         from llmling_agent_storage.sql_provider.models import Conversation, Message
 
-        if not self.session:
-            msg = "Session not initialized. Use provider as async context manager."
-            raise RuntimeError(msg)
-        # Base query for stats
-        query = (
-            select(  # type: ignore[call-overload]
-                Message.model,
-                Conversation.agent_name,
-                Message.timestamp,
-                Message.total_tokens,
-                Message.input_tokens,
-                Message.output_tokens,
-            )
-            .join(Conversation, Message.conversation_id == Conversation.id)
-            .where(Message.timestamp > filters.cutoff)
-        )
-
-        if filters.agent_name:
-            query = query.where(Conversation.agent_name == filters.agent_name)
-
-        # Execute the query
-        result = await self.session.execute(query)
-
-        # Execute query and get raw data
-        rows = [
-            (
-                model,
-                agent,
-                timestamp,
-                TokenCost(
-                    token_usage=RunUsage(
-                        input_tokens=prompt or 0,
-                        output_tokens=completion or 0,
-                    ),
-                    total_cost=Decimal(0),  # We don't store this in DB
+        async with AsyncSession(self.engine) as session:
+            # Base query for stats
+            query = (
+                select(  # type: ignore[call-overload]
+                    Message.model,
+                    Conversation.agent_name,
+                    Message.timestamp,
+                    Message.total_tokens,
+                    Message.input_tokens,
+                    Message.output_tokens,
                 )
-                if total or prompt or completion
-                else None,
+                .join(Conversation, Message.conversation_id == Conversation.id)
+                .where(Message.timestamp > filters.cutoff)
             )
-            for model, agent, timestamp, total, prompt, completion in result.all()
-        ]
+
+            if filters.agent_name:
+                query = query.where(Conversation.agent_name == filters.agent_name)
+
+            # Execute query and get raw data
+            result = await session.execute(query)
+            rows = [
+                (
+                    model,
+                    agent,
+                    timestamp,
+                    TokenCost(
+                        token_usage=RunUsage(
+                            input_tokens=prompt or 0,
+                            output_tokens=completion or 0,
+                        ),
+                        total_cost=Decimal(0),  # We don't store this in DB
+                    )
+                    if total or prompt or completion
+                    else None,
+                )
+                for model, agent, timestamp, total, prompt, completion in result.all()
+            ]
 
         # Use base class aggregation
         return self.aggregate_stats(rows, filters.group_by)
