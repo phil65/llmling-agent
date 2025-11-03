@@ -141,7 +141,6 @@
             {
               "discriminator": {
                 "mapping": {
-                  "callback": "#/$defs/CallbackProviderConfig",
                   "human": "#/$defs/HumanProviderConfig",
                   "pydantic_ai": "#/$defs/PydanticAIProviderConfig"
                 },
@@ -153,9 +152,6 @@
                 },
                 {
                   "$ref": "#/$defs/HumanProviderConfig"
-                },
-                {
-                  "$ref": "#/$defs/CallbackProviderConfig"
                 }
               ]
             },
@@ -428,7 +424,7 @@
           ],
           "default": null,
           "description": "Name of the response definition to use",
-          "title": "Result Type"
+          "title": "Output Type"
         },
         "retries": {
           "default": 1,
@@ -599,6 +595,18 @@
           "description": "Enable debug output for this agent.",
           "title": "Debug",
           "type": "boolean"
+        },
+        "usage_limits": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/UsageLimits"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Usage limits for this agent."
         }
       },
       "title": "AgentConfig",
@@ -948,6 +956,19 @@
           "description": "Human-readable description of what this prompt does.",
           "title": "Description",
           "type": "string"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Title of the prompt.",
+          "title": "Title"
         },
         "arguments": {
           "description": "List of arguments that this prompt accepts.",
@@ -1503,53 +1524,6 @@
         "import_path"
       ],
       "title": "CallableResource",
-      "type": "object"
-    },
-    "CallbackProviderConfig": {
-      "additionalProperties": false,
-      "description": "Configuration for callback-based provider.\n\nAllows defining processor functions through:\n- Import path to callback function\n- Generic type for result validation",
-      "properties": {
-        "type": {
-          "const": "callback",
-          "default": "callback",
-          "description": "Import-path based Callback provider.",
-          "title": "Type",
-          "type": "string"
-        },
-        "name": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Optional name for the provider instance.",
-          "title": "Name"
-        },
-        "model_settings": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ModelSettings"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Optional settings to configure the LLM behavior."
-        },
-        "callback": {
-          "description": "Import path to processor callback.",
-          "type": "string"
-        }
-      },
-      "required": [
-        "callback"
-      ],
-      "title": "CallbackProviderConfig",
       "type": "object"
     },
     "CodeExecutionToolsetConfig": {
@@ -2293,6 +2267,19 @@
           "title": "Description",
           "type": "string"
         },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Title of the prompt.",
+          "title": "Title"
+        },
         "arguments": {
           "description": "List of arguments that this prompt accepts.",
           "items": {
@@ -2873,6 +2860,19 @@
           "description": "Human-readable description of what this prompt does.",
           "title": "Description",
           "type": "string"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Title of the prompt.",
+          "title": "Title"
         },
         "arguments": {
           "description": "List of arguments that this prompt accepts.",
@@ -6523,8 +6523,6 @@
         },
         "url": {
           "description": "Database URL (e.g. sqlite:///history.db)",
-          "format": "uri",
-          "minLength": 1,
           "title": "Url",
           "type": "string"
         },
@@ -6971,8 +6969,7 @@
               "items": {
                 "enum": [
                   "user",
-                  "assistant",
-                  "system"
+                  "assistant"
                 ],
                 "type": "string"
               },
@@ -7166,6 +7163,19 @@
           "description": "Human-readable description of what this prompt does.",
           "title": "Description",
           "type": "string"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Title of the prompt.",
+          "title": "Title"
         },
         "arguments": {
           "description": "List of arguments that this prompt accepts.",
@@ -8534,6 +8544,83 @@
         }
       },
       "title": "UpsonicToolSetConfig",
+      "type": "object"
+    },
+    "UsageLimits": {
+      "properties": {
+        "request_limit": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 50,
+          "description": "The maximum number of requests allowed to the model.",
+          "title": "Request Limit"
+        },
+        "tool_calls_limit": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The maximum number of successful tool calls allowed to be executed.",
+          "title": "Tool Calls Limit"
+        },
+        "input_tokens_limit": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The maximum number of input/prompt tokens allowed.",
+          "title": "Input Tokens Limit"
+        },
+        "output_tokens_limit": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The maximum number of output/response tokens allowed.",
+          "title": "Output Tokens Limit"
+        },
+        "total_tokens_limit": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The maximum number of tokens allowed in requests and responses combined.",
+          "title": "Total Tokens Limit"
+        },
+        "count_tokens_before_request": {
+          "default": false,
+          "description": "If True, perform a token counting pass before sending the request to the model,\nto enforce `request_tokens_limit` ahead of time. This may incur additional overhead\n(from calling the model's `count_tokens` API before making the actual request) and is disabled by default.",
+          "title": "Count Tokens Before Request",
+          "type": "boolean"
+        }
+      },
+      "title": "UsageLimits",
       "type": "object"
     },
     "UserInteractionToolsetConfig": {
