@@ -19,11 +19,12 @@ from llmling_agent_providers.human.utils import get_textual_streaming_app
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
+    from pydantic_ai import UsageLimits
+
     from llmling_agent.agent.context import AgentContext
     from llmling_agent.common_types import ModelType
     from llmling_agent.messaging.messages import ChatMessage
     from llmling_agent.models.content import Content
-    from llmling_agent_providers.base import UsageLimits
 
 
 logger = get_logger(__name__)

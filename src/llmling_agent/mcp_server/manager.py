@@ -7,6 +7,7 @@ from contextlib import AsyncExitStack
 from typing import TYPE_CHECKING, Any, Self
 
 from llmling.prompts import PromptMessage, StaticPrompt
+from pydantic_ai import UsageLimits
 
 from llmling_agent.log import get_logger
 from llmling_agent.mcp_server.client import MCPClient
@@ -14,7 +15,6 @@ from llmling_agent.models.content import AudioBase64Content, ImageBase64Content
 from llmling_agent.resource_providers.base import ResourceProvider
 from llmling_agent_config.mcp_server import BaseMCPServerConfig
 from llmling_agent_config.resources import ResourceInfo
-from llmling_agent_providers.base import UsageLimits
 
 
 if TYPE_CHECKING:

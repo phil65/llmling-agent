@@ -18,6 +18,7 @@ from llmling import (
 )
 from llmling.utils.importing import import_class
 from pydantic import Field, model_validator
+from pydantic_ai import UsageLimits  # noqa: TC002
 from schemez import InlineSchemaDef
 from toprompt import render_prompt
 from upath import UPath
@@ -137,6 +138,9 @@ class AgentConfig(NodeConfig):
 
     debug: bool = False
     """Enable debug output for this agent."""
+
+    usage_limits: UsageLimits | None = None
+    """Usage limits for this agent."""
 
     def is_structured(self) -> bool:
         """Check if this config defines a structured agent."""

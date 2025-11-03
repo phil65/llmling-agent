@@ -55,6 +55,7 @@ if TYPE_CHECKING:
     from llmling.config.models import Resource
     from llmling.prompts import PromptType
     import PIL.Image
+    from pydantic_ai import UsageLimits
     from pydantic_ai.output import OutputSpec
     from toprompt import AnyPromptType
     from upath.types import JoinablePathLike
@@ -78,7 +79,6 @@ if TYPE_CHECKING:
     from llmling_agent_config.session import SessionQuery
     from llmling_agent_config.task import Job
     from llmling_agent_input.base import InputProvider
-    from llmling_agent_providers.base import UsageLimits
 
 from llmling_agent.common_types import IndividualEventHandler
 from llmling_agent_providers.base import AgentProvider

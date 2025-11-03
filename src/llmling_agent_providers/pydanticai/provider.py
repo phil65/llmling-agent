@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict
 from decimal import Decimal
 from functools import wraps
 from typing import TYPE_CHECKING, Any, get_args, get_origin
@@ -17,7 +16,6 @@ from pydantic_ai import (
     RunUsage,
     TextPartDelta,
     ToolCallPart,
-    UsageLimits as PydanticAiUsageLimits,
 )
 import pydantic_ai._function_schema
 from pydantic_ai.models import KnownModelName, Model
@@ -43,14 +41,18 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterable, AsyncIterator, Awaitable, Callable
 
     from anyenv import MultiEventHandler
-    from pydantic_ai import AgentRunResultEvent, AgentStreamEvent, BuiltinToolCallPart
+    from pydantic_ai import (
+        AgentRunResultEvent,
+        AgentStreamEvent,
+        BuiltinToolCallPart,
+        UsageLimits,
+    )
     from pydantic_ai.agent import AgentRunResult, EventStreamHandler
 
     from llmling_agent.common_types import EndStrategy, IndividualEventHandler, ModelType
     from llmling_agent.messaging.messages import ChatMessage
     from llmling_agent.models.content import Content
     from llmling_agent.tools.base import Tool
-    from llmling_agent_providers.base import UsageLimits
 
 
 logger = get_logger(__name__)
@@ -305,7 +307,6 @@ class PydanticAIProvider(AgentProvider[Any]):
         # Run with complete history and event handler
         to_use = model or self.model
         to_use = infer_model(to_use) if isinstance(to_use, str) else to_use
-        limits = asdict(usage_limits) if usage_limits else {}
         result: AgentRunResult = await agent.run(
             converted_prompts,  # Pass converted prompts
             deps=self._context,  # type: ignore
@@ -315,7 +316,7 @@ class PydanticAIProvider(AgentProvider[Any]):
             model=to_use,
             output_type=output_type or str,
             model_settings=self.model_settings,  # type: ignore
-            usage_limits=PydanticAiUsageLimits(**limits),
+            usage_limits=usage_limits,
             event_stream_handler=final_handler,
         )
 
@@ -412,7 +413,6 @@ class PydanticAIProvider(AgentProvider[Any]):
         """Stream events directly from pydantic-ai without wrapper complexity."""
         agent = await self.get_agent(system_prompt or "", tools=tools or [])
         use_model = model or self.model
-        limits = asdict(usage_limits) if usage_limits else {}
         if isinstance(use_model, str):
             use_model = infer_model(use_model)
 
@@ -427,7 +427,7 @@ class PydanticAIProvider(AgentProvider[Any]):
             model=model or self.model,  # type: ignore
             output_type=output_type or str,
             model_settings=self.model_settings,  # type: ignore
-            usage_limits=PydanticAiUsageLimits(**limits),
+            usage_limits=usage_limits,
         ):
             # Emit signals for external consumers
             match event:

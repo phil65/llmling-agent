@@ -22,7 +22,12 @@ from llmling_agent.tools import ToolCallInfo
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
-    from pydantic_ai import AgentRunResultEvent, AgentStreamEvent, ModelMessage
+    from pydantic_ai import (
+        AgentRunResultEvent,
+        AgentStreamEvent,
+        ModelMessage,
+        UsageLimits,
+    )
     from pydantic_ai.models import Model
 
     from llmling_agent.agent.context import AgentContext
@@ -47,26 +52,6 @@ class ProviderResponse:
     response: ModelResponse = field(default_factory=lambda: ModelResponse(parts=[]))
     cost_and_usage: TokenCost | None = None
     provider_details: dict[str, Any] | None = None
-
-
-@dataclass
-class UsageLimits:
-    """Limits on model usage."""
-
-    request_limit: int | None = 50
-    """The maximum number of requests allowed to the model."""
-
-    tool_calls_limit: int | None = None
-    """The maximum number of successful tool calls allowed to be executed."""
-
-    input_tokens_limit: int | None = None
-    """The maximum number of tokens allowed in requests to the model."""
-
-    output_tokens_limit: int | None = None
-    """The maximum number of tokens allowed in responses from the model."""
-
-    total_tokens_limit: int | None = None
-    """The maximum number of tokens allowed in requests and responses combined."""
 
 
 class AgentProvider[TDeps]:
