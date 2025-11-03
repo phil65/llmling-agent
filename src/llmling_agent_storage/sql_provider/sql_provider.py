@@ -61,6 +61,7 @@ class SQLModelProvider(StorageProvider[Message]):
         super().__init__(config)
         self.engine = config.get_engine()
         self.auto_migrate = config.auto_migration
+        self.session: AsyncSession | None = None
 
     async def _init_database(self, auto_migrate: bool = True):
         """Initialize database tables and optionally migrate columns.
