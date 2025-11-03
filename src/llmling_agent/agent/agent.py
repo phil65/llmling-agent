@@ -183,7 +183,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
 
         Args:
             name: Name of the agent for logging and identification
-            provider: Agent type to use (ai: PydanticAIProvider, human: HumanProvider)
+            provider: Agent type to use
             model: The default model to use (defaults to GPT-5)
             output_type: The default output type to use (defaults to str)
             runtime: Runtime configuration providing access to resources/tools

@@ -58,14 +58,14 @@ class MCPPromptCommand:
             SessionNotification objects with prompt results
         """
         arguments = self._parse_arguments(args) if args.strip() else None
-        assert session.mcp_manager, "No MCP manager available"
+        assert session.agent.mcp, "No MCP manager available"
         # Find appropriate MCP client (use first available for now)
-        if not session.mcp_manager.clients:
+        if not session.agent.mcp.clients:
             error_msg = "No MCP clients connected"
             await session.notifications.send_agent_text(error_msg)
             return
         # Execute prompt via first available MCP client
-        client = next(iter(session.mcp_manager.clients.values()))
+        client = next(iter(session.agent.mcp.clients.values()))
 
         try:
             # Try with arguments first, fallback to no arguments

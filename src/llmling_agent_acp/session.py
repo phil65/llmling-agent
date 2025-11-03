@@ -130,7 +130,7 @@ class ACPSession:
 
         if self.client_capabilities:
             self._acp_provider = get_acp_provider(self)
-            current_agent = self.agent_pool.get_agent(self.current_agent_name)
+            current_agent = self.agent
             current_agent.tools.add_provider(self._acp_provider)
 
         # Add cwd context to all agents in the pool
@@ -155,7 +155,6 @@ class ACPSession:
             except Exception:
                 self.log.exception("Failed to initialize MCP manager")
                 # Don't fail session creation, just log the error
-                self.mcp_manager = None
 
     async def init_project_context(self) -> None:
         """Load AGENTS.md file and inject project context into all agents.
@@ -446,7 +445,7 @@ class ACPSession:
         try:
             # Clean up capability provider if present
             if self._acp_provider:
-                current_agent = self.agent_pool.get_agent(self.current_agent_name)
+                current_agent = self.agent
                 current_agent.tools.remove_provider(self._acp_provider)
 
             # Remove cwd context callable from all agents

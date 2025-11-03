@@ -566,27 +566,7 @@ validator.connect_to(executor) # Cyclic connections
 
 BOTH connection types can be set up for BOTH teams and agents intiuiviely in the YAML file.
 
-### Human-in-the-Loop Integration
-
-LLMling-Agent offers multiple levels of human integration:
-
-```python
-# Provider-level human integration
-from llmling_agent import Agent
-
-async with Agent(provider="human") as agent:
-    result = await agent.run("We can ask ourselves and be part of Workflows!")
-```
-
-```yaml
-# Or via YAML configuration
-agents:
-  human_agent:
-    provider: "human"  # Complete human control
-    timeout: 300  # Optional timeout in seconds
-```
-
-You can also use LLMling-models for more sophisticated human integration:
+You can also use LLMling-models for more sophisticated human-in-the-loop integration:
 - Remote human operators via network
 - Hybrid human-AI workflows
 - Input streaming support

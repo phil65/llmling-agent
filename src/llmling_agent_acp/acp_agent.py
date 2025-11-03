@@ -9,15 +9,11 @@ from slashed import CommandStore
 
 from acp import Agent as ACPAgent
 from acp.schema import (
-    AgentCapabilities,
     AgentMessageChunk,
-    Implementation,
     InitializeResponse,
     LoadSessionResponse,
-    McpCapabilities,
     ModelInfo as ACPModelInfo,
     NewSessionResponse,
-    PromptCapabilities,
     PromptResponse,
     SessionModelState,
     SessionModeState,
@@ -32,6 +28,7 @@ from llmling_agent.log import get_logger
 from llmling_agent.utils.tasks import TaskManager
 from llmling_agent_acp.command_bridge import ACPCommandBridge
 from llmling_agent_acp.commands.acp_commands import get_acp_commands
+from llmling_agent_acp.commands.debug_commands import get_debug_commands
 from llmling_agent_acp.converters import agent_to_mode
 from llmling_agent_acp.session_manager import ACPSessionManager
 from llmling_agent_commands import get_commands
@@ -140,8 +137,6 @@ class LLMlingACPAgent(ACPAgent):
 
         commands_to_register = [*get_commands(), *get_acp_commands()]
         if debug_commands:
-            from llmling_agent_acp.commands.debug_commands import get_debug_commands
-
             commands_to_register.extend(get_debug_commands())
 
         for command in commands_to_register:
@@ -164,23 +159,18 @@ class LLMlingACPAgent(ACPAgent):
         version = min(params.protocol_version, self.PROTOCOL_VERSION)
         self.client_capabilities = params.client_capabilities
         logger.info("Client capabilities", capabilities=self.client_capabilities)
-        prompt_caps = PromptCapabilities(audio=True, embedded_context=True, image=True)
-        mcp_caps = McpCapabilities(http=True, sse=True)
-        caps = AgentCapabilities(
-            load_session=self.session_support,
-            prompt_capabilities=prompt_caps,
-            mcp_capabilities=mcp_caps,
-        )
         self._initialized = True
-        impl = Implementation(
+        response = InitializeResponse.create(
+            protocol_version=version,
             name="llmling-agent",
             title="LLMLing-Agent",
             version=_version("llmling-agent"),
-        )
-        response = InitializeResponse(
-            protocol_version=version,
-            agent_capabilities=caps,
-            agent_info=impl,
+            load_session=self.session_support,
+            http_mcp_servers=True,
+            sse_mcp_servers=True,
+            audio_prompts=True,
+            embedded_context_prompts=True,
+            image_prompts=True,
         )
         logger.info("ACP agent initialized successfully", response=response)
         return response

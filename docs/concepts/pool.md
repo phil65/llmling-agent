@@ -169,12 +169,6 @@ planner = await pool.add_agent(
     system_prompt="You create execution plans.",
 )
 
-# With specific provider
-researcher = await pool.add_agent(
-    "researcher",
-    provider="human",  # or "pydantic_ai"
-    system_prompt="You research topics thoroughly.",
-)
 ```
 
 

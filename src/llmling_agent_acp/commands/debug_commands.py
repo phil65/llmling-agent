@@ -15,16 +15,18 @@ from acp.schema import (
     ContentToolCallContent,
     SessionNotification,
     TextContentBlock,
+    ToolCallKind,  # noqa: TC001
     ToolCallProgress,
     ToolCallStart,
+    ToolCallStatus,  # noqa: TC001
     UserMessageChunk,
 )
 from llmling_agent.log import get_logger
+from llmling_agent_acp.commands.acp_commands import ACPCommandContext  # noqa: TC001
 
 
 if TYPE_CHECKING:
-    from acp.schema import SessionUpdate, ToolCallKind, ToolCallStatus
-    from llmling_agent_acp.commands.acp_commands import ACPCommandContext
+    from acp.schema import SessionUpdate
 
 
 logger = get_logger(__name__)
@@ -271,9 +273,6 @@ class DebugSessionInfoCommand(SlashedCommand):
                     if session.client_capabilities
                     else None
                 ),
-                "mcp_servers": len(session.mcp_manager.servers)
-                if session.mcp_manager
-                else 0,
             }
 
             text = anyenv.dump_json(info, indent=True)

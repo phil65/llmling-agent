@@ -24,6 +24,8 @@ if TYPE_CHECKING:
     from collections.abc import Iterator
     from datetime import datetime
 
+    from mcp.types import Prompt as MCPPrompt
+
     from llmling_agent import Agent, MessageNode
     from llmling_agent.common_types import AnyCallable, ToolSource, ToolType
     from llmling_agent.resource_providers.base import ResourceProvider
@@ -247,7 +249,7 @@ class ToolManager(BaseRegistry[str, Tool]):
         """Get tool names based on state."""
         return {t.name for t in await self.get_tools() if t.matches_filter(state)}
 
-    async def list_prompts(self) -> list[dict[str, Any]]:
+    async def list_prompts(self) -> list[MCPPrompt]:
         """Get all MCP prompt metadata from all providers.
 
         Returns:
@@ -255,7 +257,7 @@ class ToolManager(BaseRegistry[str, Tool]):
         """
         from llmling_agent.mcp_server.manager import MCPManager
 
-        all_prompts = []
+        all_prompts: list[MCPPrompt] = []
 
         # Get raw MCP prompt metadata from all providers
         for provider in self.providers:
@@ -266,22 +268,7 @@ class ToolManager(BaseRegistry[str, Tool]):
                         try:
                             result = await client.list_prompts()
                             # Convert raw MCP prompts to dict format
-                            for mcp_prompt in result:
-                                prompt_dict = {
-                                    "name": mcp_prompt.name,
-                                    "description": mcp_prompt.description,
-                                    "arguments": [
-                                        {
-                                            "name": arg.name,
-                                            "description": arg.description,
-                                            "required": arg.required,
-                                        }
-                                        for arg in mcp_prompt.arguments
-                                    ]
-                                    if mcp_prompt.arguments
-                                    else [],
-                                }
-                                all_prompts.append(prompt_dict)
+                            all_prompts.extend(result)
                         except Exception:
                             logger.exception("Failed to list prompts from MCP client")
                             continue

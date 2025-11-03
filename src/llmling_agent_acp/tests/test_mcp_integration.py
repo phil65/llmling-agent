@@ -83,7 +83,6 @@ async def test_session_with_mcp_servers(test_client, mock_acp_agent, client_capa
 
     assert session.session_id == "test_session"
     assert session.mcp_servers == mcp_servers
-    assert session.mcp_manager is None  # Not initialized yet
 
     # Test initialization (this will fail without real MCP servers, which is expected)
     try:
