@@ -5,9 +5,10 @@ from __future__ import annotations
 from functools import wraps
 from typing import TYPE_CHECKING, Any
 
-from llmling.core.log import get_logger
 from llmling.prompts.models import DynamicPrompt, PromptParameter
 from llmling.utils.importing import import_callable
+
+from llmling_agent_mcp.log import get_logger
 
 
 if TYPE_CHECKING:
@@ -85,7 +86,11 @@ def prepare_prompts_for_zed(prompts: Sequence[BasePrompt]) -> list[BasePrompt]:
 
         try:
             # Get and wrap the original function
-            original_func = import_callable(prompt.import_path)
+            original_func = (
+                import_callable(prompt.import_path)
+                if isinstance(prompt.import_path, str)
+                else prompt.import_path
+            )
             wrapped_func = create_zed_wrapper(original_func)
 
             # Create new prompt with single input parameter
