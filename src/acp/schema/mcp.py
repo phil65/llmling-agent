@@ -69,7 +69,7 @@ class StdioMcpServer(BaseMcpServer):
     args: Sequence[str]
     """Command-line arguments to pass to the MCP server."""
 
-    # type: Literal["stdio"] = Field(default="stdio", init=False)
+    # typ: Literal["stdio"] = Field(default="stdio", init=False)
     # """Stdio transport type."""
 
     command: str

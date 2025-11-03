@@ -58,6 +58,7 @@ type ContextualProgressHandler = Callable[
 
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from types import TracebackType
 
     from fastmcp.client import ClientTransport
@@ -69,11 +70,14 @@ if TYPE_CHECKING:
     import mcp
     from mcp.client.session import RequestContext
     from mcp.types import (
+        BlobResourceContents,
+        ContentBlock,
         CreateMessageRequestParams,
         ElicitRequestParams,
         Prompt as MCPPrompt,
         Resource as MCPResource,
         SamplingMessage,
+        TextResourceContents,
         Tool as MCPTool,
     )
 
@@ -402,7 +406,10 @@ class MCPClient:
             msg = f"MCP tool call failed: {e}"
             raise RuntimeError(msg) from e
 
-    async def _convert_mcp_content(self, mcp_content: list[Any]) -> list[str | Any]:
+    async def _convert_mcp_content(
+        self,
+        mcp_content: Sequence[ContentBlock | TextResourceContents | BlobResourceContents],
+    ) -> list[str | BinaryContent]:
         """Convert MCP content blocks to PydanticAI content types."""
         from mcp.types import (
             AudioContent,
@@ -439,12 +446,8 @@ class MCPClient:
                     try:
                         assert self._client
                         res = await self._client.read_resource_mcp(uri)
-                        if len(res.contents) == 1:
-                            nested = await self._convert_mcp_content([res.contents[0]])
-                            contents.extend(nested)
-                        else:
-                            nested = await self._convert_mcp_content(res.contents)
-                            contents.extend(nested)
+                        nested = await self._convert_mcp_content(res.contents)
+                        contents.extend(nested)
                     except Exception:  # noqa: BLE001
                         # Fallback to DocumentUrl if reading fails
                         contents.append(DocumentUrl(url=str(uri)))

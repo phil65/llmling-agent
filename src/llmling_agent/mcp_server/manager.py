@@ -310,3 +310,23 @@ class MCPManager(ResourceProvider):
     def active_servers(self) -> list[str]:
         """Get IDs of active servers."""
         return list(self.clients)
+
+
+if __name__ == "__main__":
+    from llmling_agent_config.mcp_server import StdioMCPServerConfig
+
+    cfg = StdioMCPServerConfig(
+        command="uv",
+        args=["run", "/home/phil65/dev/oss/llmling-agent/tests/mcp/server.py"],
+    )
+
+    async def main():
+        manager = MCPManager()
+        async with manager:
+            await manager.setup_server(cfg)
+            prompts = await manager.list_prompts()
+            print(prompts)
+            p = prompts[-1]
+            print(await p.format(arguments={"text": "Hello, world!"}))
+
+    asyncio.run(main())
