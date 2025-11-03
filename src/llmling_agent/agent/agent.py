@@ -711,7 +711,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                 model_name=result.response.model_name,
                 finish_reason=result.response.finish_reason,
                 messages=result.messages,
-                parts=result.response.parts,
                 provider_response_id=result.response.provider_response_id,
                 usage=result.response.usage,
                 provider_name=result.response.provider_name,
@@ -779,7 +778,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             model_name = None
             output = None
             finish_reason = None
-            parts: Sequence[Any] = []
             provider_name = None
             provider_response_id = None
 
@@ -810,7 +808,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                             finish_reason = result.response.finish_reason
                             provider_name = result.response.provider_name
                             provider_response_id = result.response.provider_response_id
-                            parts = result.response.parts
 
                             output = result.output
                             # Don't yield AgentRunResultEvent,
@@ -834,7 +831,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                 cost_info=cost_info,
                 response_time=time.perf_counter() - start_time,
                 provider_response_id=provider_response_id,
-                parts=parts,
                 provider_name=provider_name,
                 finish_reason=finish_reason,
             )

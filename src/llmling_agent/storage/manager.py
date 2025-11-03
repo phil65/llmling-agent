@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Self
 from anyenv import method_spawner
 
 from llmling_agent.log import get_logger
-from llmling_agent.storage.serialization import serialize_parts
+from llmling_agent.storage.serialization import serialize_messages
 from llmling_agent.utils.tasks import TaskManager
 from llmling_agent_config.storage import (
     FileStorageConfig,
@@ -225,7 +225,7 @@ class StorageManager:
                         forwarded_from=message.forwarded_from,
                         provider_name=message.provider_name,
                         provider_response_id=message.provider_response_id,
-                        parts=serialize_parts(message.parts),
+                        messages=serialize_messages(message.messages),
                         finish_reason=message.finish_reason,
                     )
                 )

@@ -12,7 +12,7 @@ from upath import UPath
 from llmling_agent.common_types import JsonValue, MessageRole  # noqa: TC001
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messages import ChatMessage, TokenCost
-from llmling_agent.storage import deserialize_parts
+from llmling_agent.storage import deserialize_messages
 from llmling_agent.utils.now import get_now
 from llmling_agent_storage.base import StorageProvider
 from llmling_agent_storage.models import TokenUsage
@@ -43,7 +43,7 @@ class MessageData(TypedDict):
     forwarded_from: list[str] | None
     provider_name: str | None
     provider_response_id: str | None
-    parts: str | None
+    messages: str | None
     finish_reason: FinishReason | None
 
 
@@ -177,7 +177,7 @@ class FileProvider(StorageProvider):
                 timestamp=datetime.fromisoformat(msg["timestamp"]),
                 provider_name=msg["provider_name"],
                 provider_response_id=msg["provider_response_id"],
-                parts=deserialize_parts(msg["parts"]),
+                messages=deserialize_messages(msg["messages"]),
                 finish_reason=msg["finish_reason"],
             )
             messages.append(chat_message)
@@ -201,7 +201,7 @@ class FileProvider(StorageProvider):
         forwarded_from: list[str] | None = None,
         provider_name: str | None = None,
         provider_response_id: str | None = None,
-        parts: str | None = None,
+        messages: str | None = None,
         finish_reason: FinishReason | None = None,
     ):
         """Log a new message."""
@@ -228,7 +228,7 @@ class FileProvider(StorageProvider):
             "forwarded_from": forwarded_from,
             "provider_name": provider_name,
             "provider_response_id": provider_response_id,
-            "parts": parts,
+            "messages": messages,
             "finish_reason": finish_reason,
         })
         self._save()

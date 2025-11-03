@@ -145,7 +145,7 @@ class SQLModelProvider(StorageProvider[Message]):
         forwarded_from: list[str] | None = None,
         provider_name: str | None = None,
         provider_response_id: str | None = None,
-        parts: str | None = None,
+        messages: str | None = None,
         finish_reason: str | None = None,
     ):
         """Log message to database."""
@@ -174,7 +174,7 @@ class SQLModelProvider(StorageProvider[Message]):
             forwarded_from=forwarded_from,
             provider_name=provider_name,
             provider_response_id=provider_response_id,
-            parts=parts,
+            messages=messages,
             finish_reason=finish_reason,
             timestamp=get_now(),
         )

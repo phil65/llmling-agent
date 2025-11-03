@@ -12,7 +12,7 @@ from sqlalchemy.sql import expression
 from sqlmodel import select
 
 from llmling_agent.messaging.messages import ChatMessage, TokenCost
-from llmling_agent.storage import deserialize_parts
+from llmling_agent.storage import deserialize_messages
 from llmling_agent_storage.models import ConversationData
 from llmling_agent_storage.sql_provider.models import Conversation
 
@@ -71,7 +71,7 @@ def to_chat_message(db_message: Message) -> ChatMessage[str]:
         timestamp=db_message.timestamp,
         provider_name=db_message.provider_name,
         provider_response_id=db_message.provider_response_id,
-        parts=deserialize_parts(db_message.parts),
+        messages=deserialize_messages(db_message.messages),
         finish_reason=db_message.finish_reason,  # type: ignore
     )
 

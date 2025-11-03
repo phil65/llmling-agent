@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any, cast
 
 from llmling_agent.messaging.messages import ChatMessage, TokenCost
-from llmling_agent.storage import deserialize_parts
+from llmling_agent.storage import deserialize_messages
 from llmling_agent.utils.now import get_now
 from llmling_agent_storage.base import StorageProvider
 from llmling_agent_storage.models import ConversationData
@@ -99,7 +99,7 @@ class MemoryStorageProvider(StorageProvider):
                 timestamp=msg["timestamp"],
                 provider_name=msg["provider_name"],
                 provider_response_id=msg["provider_response_id"],
-                parts=deserialize_parts(msg["parts"]),
+                messages=deserialize_messages(msg["messages"]),
                 finish_reason=msg["finish_reason"],
             )
             filtered.append(chat_message)
@@ -124,7 +124,7 @@ class MemoryStorageProvider(StorageProvider):
         forwarded_from: list[str] | None = None,
         provider_name: str | None = None,
         provider_response_id: str | None = None,
-        parts: str | None = None,
+        messages: str | None = None,
         finish_reason: str | None = None,
     ):
         """Store message in memory."""
@@ -144,7 +144,7 @@ class MemoryStorageProvider(StorageProvider):
             "forwarded_from": forwarded_from,
             "provider_name": provider_name,
             "provider_response_id": provider_response_id,
-            "parts": parts,
+            "messages": messages,
             "finish_reason": finish_reason,
             "timestamp": get_now(),
         })

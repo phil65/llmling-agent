@@ -181,6 +181,7 @@ class Team[TDeps = None](BaseTeam[TDeps, Any]):
         message_id = message_id or str(uuid4())
         return ChatMessage(
             content=[r.message.content for r in result if r.message],
+            messages=[m for r in result if r.message for m in r.message.messages],
             role="assistant",
             name=self.name,
             message_id=message_id,

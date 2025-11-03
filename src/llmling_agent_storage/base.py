@@ -104,7 +104,7 @@ class StorageProvider[T]:
         forwarded_from: list[str] | None = None,
         provider_name: str | None = None,
         provider_response_id: str | None = None,
-        parts: str | None = None,
+        messages: str | None = None,
         finish_reason: FinishReason | None = None,
     ):
         """Log a message (if supported)."""
@@ -165,7 +165,7 @@ class StorageProvider[T]:
             model=model,
             provider_name=None,
             provider_response_id=None,
-            parts=None,
+            messages=None,
             finish_reason=None,
         )
 

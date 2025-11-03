@@ -203,9 +203,6 @@ class ChatMessage[TContent]:
     provider_details: dict[str, Any] = field(default_factory=dict)
     """Provider specific metadata / extra information."""
 
-    parts: Sequence[ModelResponsePart | ModelRequestPart] = field(default_factory=list)
-    """The parts of the model message."""
-
     messages: list[ModelMessage] = field(default_factory=list)
     """List of messages which were generated during the the creation of this messsage."""
 
@@ -238,15 +235,15 @@ class ChatMessage[TContent]:
         # The response may not be the very last item if it contained an output tool call.
         # See `CallToolsNode._handle_final_result`.
         for message in reversed(self.messages):
-            if isinstance(message, ModelMessage):
+            if isinstance(message, ModelRequest | ModelResponse):
                 return message
         msg = "No last message found in the message history"
         raise ValueError(msg)  # pragma: no cover
 
-    # @property
-    # def parts(self) -> Sequence[ModelRequestPart] | Sequence[ModelResponsePart]:
-    #     """The parts of the last model message."""
-    #     return self.last_message.parts
+    @property
+    def parts(self) -> Sequence[ModelRequestPart] | Sequence[ModelResponsePart]:
+        """The parts of the last model message."""
+        return self.last_message.parts
 
     @property
     def kind(self) -> Literal["request", "response"]:
@@ -310,9 +307,9 @@ class ChatMessage[TContent]:
     ) -> ChatMessage[TContentType]:
         """Convert a Pydantic model to a ChatMessage."""
         match message:
-            case ModelRequest(parts=parts, instructions=_instructions):
+            case ModelRequest(instructions=_instructions):
                 return ChatMessage(
-                    parts=parts,
+                    messages=[message],
                     content=content,
                     role="user" if message.kind == "request" else "assistant",
                     message_id=message_id or str(uuid.uuid4()),
@@ -321,7 +318,6 @@ class ChatMessage[TContent]:
                     name=name,
                 )
             case ModelResponse(
-                parts=parts,
                 usage=usage,
                 model_name=model_name,
                 timestamp=timestamp,
@@ -333,7 +329,7 @@ class ChatMessage[TContent]:
                 return ChatMessage(
                     role="user" if message.kind == "request" else "assistant",
                     content=content,
-                    parts=parts,
+                    messages=[message],
                     usage=usage,
                     message_id=message_id or str(uuid.uuid4()),
                     conversation_id=conversation_id,
@@ -411,7 +407,13 @@ class ChatMessage[TContent]:
         else:
             converted_parts = [UserPromptPart(content=str(self.content))]
 
-        return replace(self, role="user", parts=converted_parts, cost_info=None)
+        return replace(
+            self,
+            role="user",
+            messages=[ModelRequest(parts=converted_parts)],
+            cost_info=None,
+            # TODO: what about message_id?
+        )
 
     @property
     def data(self) -> TContent:

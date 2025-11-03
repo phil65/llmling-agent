@@ -163,6 +163,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
 
         return ChatMessage(
             content=content,
+            messages=[m for chat_message in all_messages for m in chat_message.messages],
             role="assistant",
             name=self.name,
             associated_messages=all_messages,

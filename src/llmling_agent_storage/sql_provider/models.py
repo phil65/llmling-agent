@@ -167,8 +167,8 @@ class Message(AsyncAttrs, SQLModel, table=True):  # type: ignore[call-arg]
     provider_response_id: str | None = None
     """Request ID as specified by the model provider"""
 
-    parts: str | None = None
-    """Serialized pydantic-ai message parts"""
+    messages: str | None = None
+    """Serialized pydantic-ai model messages"""
 
     finish_reason: str | None = None  # Literal pydantic_ai.FinishReason
     """Reason the model finished generating the response"""
