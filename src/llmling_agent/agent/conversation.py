@@ -435,7 +435,6 @@ class ConversationManager:
             content=formatted,
             role="user",
             name="user",
-            model_name=self._agent.model_name,
             metadata=metadata,
             conversation_id="context",  # TODO: should probably allow DB field to be NULL
         )

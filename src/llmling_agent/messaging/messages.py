@@ -283,10 +283,16 @@ class ChatMessage[TContent]:
         cls,
         message: TPromptContent,
         conversation_id: str | None = None,
+        instructions: str | None = None,
     ) -> ChatMessage[TPromptContent]:
         """Create a user prompt message."""
         return ChatMessage(
-            messages=[ModelRequest(parts=[UserPromptPart(content=message)])],
+            messages=[
+                ModelRequest(
+                    parts=[UserPromptPart(content=message)],
+                    instructions=instructions,
+                )
+            ],
             role="user",
             content=message,
             conversation_id=conversation_id or str(uuid4()),
