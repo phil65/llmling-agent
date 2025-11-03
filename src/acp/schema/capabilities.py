@@ -38,6 +38,30 @@ class ClientCapabilities(AnnotatedObject):
     terminal: bool | None = False
     """Whether the Client support all `terminal/*` methods."""
 
+    @classmethod
+    def create(
+        cls,
+        read_text_file: bool | None = False,
+        write_text_file: bool | None = False,
+        terminal: bool | None = False,
+    ):
+        """Create a new instance of ClientCapabilities.
+
+        Args:
+            read_text_file: Whether the Client supports `fs/read_text_file` requests.
+            write_text_file: Whether the Client supports `fs/write_text_file` requests.
+            terminal: Whether the Client supports all `terminal/*` methods.
+
+        Returns:
+            A new instance of ClientCapabilities.
+        """
+        return cls(
+            fs=FileSystemCapability(
+                read_text_file=read_text_file, write_text_file=write_text_file
+            ),
+            terminal=terminal,
+        )
+
 
 class PromptCapabilities(AnnotatedObject):
     """Prompt capabilities supported by the agent in `session/prompt` requests.
@@ -97,3 +121,36 @@ class AgentCapabilities(AnnotatedObject):
         default_factory=PromptCapabilities
     )
     """Prompt capabilities supported by the agent."""
+
+    @classmethod
+    def create(
+        cls,
+        load_session: bool | None = False,
+        http_mcp_servers: bool = False,
+        sse_mcp_servers: bool = False,
+        audio_prompts: bool = False,
+        embedded_context_prompts: bool = False,
+        image_prompts: bool = False,
+    ):
+        """Create an instance of AgentCapabilities.
+
+        Args:
+            load_session: Whether the agent supports `session/load`.
+            http_mcp_servers: Whether the agent supports HTTP MCP servers.
+            sse_mcp_servers: Whether the agent supports SSE MCP servers.
+            audio_prompts: Whether the agent supports audio prompts.
+            embedded_context_prompts: Whether the agent supports embedded context prompts.
+            image_prompts: Whether the agent supports image prompts.
+        """
+        return cls(
+            load_session=load_session,
+            mcp_capabilities=McpCapabilities(
+                http=http_mcp_servers,
+                sse=sse_mcp_servers,
+            ),
+            prompt_capabilities=PromptCapabilities(
+                audio=audio_prompts,
+                embedded_context=embedded_context_prompts,
+                image=image_prompts,
+            ),
+        )

@@ -128,6 +128,51 @@ class InitializeResponse(Response):
     The client should disconnect, if it doesn't support this version.
     """
 
+    @classmethod
+    def create(
+        cls,
+        name: str,
+        title: str,
+        version: str,
+        protocol_version: int,
+        load_session: bool | None = False,
+        http_mcp_servers: bool = False,
+        sse_mcp_servers: bool = False,
+        audio_prompts: bool = False,
+        embedded_context_prompts: bool = False,
+        image_prompts: bool = False,
+        auth_methods: Sequence[AuthMethod] | None = None,
+    ):
+        """Create an instance of AgentCapabilities.
+
+        Args:
+            name: The name of the agent.
+            title: The title of the agent.
+            version: The version of the agent.
+            protocol_version: The protocol version of the agent.
+            load_session: Whether the agent supports `session/load`.
+            http_mcp_servers: Whether the agent supports HTTP MCP servers.
+            sse_mcp_servers: Whether the agent supports SSE MCP servers.
+            audio_prompts: Whether the agent supports audio prompts.
+            embedded_context_prompts: Whether the agent supports embedded context prompts.
+            image_prompts: Whether the agent supports image prompts.
+            auth_methods: The authentication methods supported by the agent.
+        """
+        caps = AgentCapabilities.create(
+            load_session=load_session,
+            http_mcp_servers=http_mcp_servers,
+            sse_mcp_servers=sse_mcp_servers,
+            audio_prompts=audio_prompts,
+            embedded_context_prompts=embedded_context_prompts,
+            image_prompts=image_prompts,
+        )
+        return cls(
+            agent_info=Implementation(name=name, title=title, version=version),
+            protocol_version=protocol_version,
+            agent_capabilities=caps,
+            auth_methods=auth_methods,
+        )
+
 
 AgentResponse = (
     InitializeResponse
