@@ -80,9 +80,12 @@ class EmbeddedResourceContentBlock[
 
 
 class TextContentBlock(BaseContentBlock):
-    """Plain text content.
+    """Text content.
+
+    May be plain text or formatted with Markdown.
 
     All agents MUST support text content blocks in prompts.
+    Clients SHOULD render this text as Markdown.
     """
 
     type: Literal["text"] = Field(default="text", init=False)
