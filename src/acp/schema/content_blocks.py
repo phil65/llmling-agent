@@ -148,7 +148,7 @@ class ResourceContentBlock(BaseContentBlock):
     name: str
     """Name of the resource."""
 
-    size: int | None = None
+    size: int | None = Field(default=None, ge=0)
     """Size of the resource in bytes."""
 
     title: str | None = None

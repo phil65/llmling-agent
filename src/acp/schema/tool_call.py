@@ -58,7 +58,7 @@ class ToolCall(AnnotatedObject):
 class FileEditToolCallContent(AnnotatedObject):
     """File modification shown as a diff."""
 
-    type: Literal["diff"] = "diff"
+    type: Literal["diff"] = Field(default="diff", init=False)
     """File modification shown as a diff."""
 
     new_text: str
@@ -78,7 +78,7 @@ class TerminalToolCallContent(Schema):
     See protocol docs: [Terminal](https://agentclientprotocol.com/protocol/terminal)
     """
 
-    type: Literal["terminal"] = "terminal"
+    type: Literal["terminal"] = Field(default="terminal", init=False)
     """Terminal tool call content."""
 
     terminal_id: str
@@ -88,7 +88,7 @@ class TerminalToolCallContent(Schema):
 class ContentToolCallContent[TContentBlock: ContentBlock = ContentBlock](Schema):
     """Standard content block (text, images, resources)."""
 
-    type: Literal["content"] = "content"
+    type: Literal["content"] = Field(default="content", init=False)
     """Standard content block (text, images, resources)."""
 
     content: TContentBlock
@@ -119,7 +119,7 @@ class DeniedOutcome(Schema):
     See protocol docs: [Cancellation](https://agentclientprotocol.com/protocol/prompt-turn#cancellation)
     """
 
-    outcome: Literal["cancelled"] = "cancelled"
+    outcome: Literal["cancelled"] = Field(default="cancelled", init=False)
 
 
 class AllowedOutcome(Schema):
@@ -128,7 +128,7 @@ class AllowedOutcome(Schema):
     option_id: str
     """The ID of the option the user selected."""
 
-    outcome: Literal["selected"] = "selected"
+    outcome: Literal["selected"] = Field(default="selected", init=False)
 
 
 class PermissionOption(AnnotatedObject):

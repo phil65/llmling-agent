@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 from collections.abc import Sequence  # noqa: TC003
-from typing import Literal
+from typing import Annotated, Literal
+
+from pydantic import Field, HttpUrl  # noqa: TC002
 
 from acp.schema.base import AnnotatedObject, Schema
 from acp.schema.common import EnvVariable  # noqa: TC001
@@ -35,9 +37,10 @@ class HttpMcpServer(BaseMcpServer):
     headers: Sequence[HttpHeader]
     """HTTP headers to set when making requests to the MCP server."""
 
-    type: Literal["http"] = "http"
+    type: Literal["http"] = Field(default="http", init=False)
+    """HTTP transport type."""
 
-    url: str
+    url: HttpUrl
     """URL to the MCP server."""
 
 
@@ -50,9 +53,10 @@ class SseMcpServer(BaseMcpServer):
     headers: Sequence[HttpHeader]
     """HTTP headers to set when making requests to the MCP server."""
 
-    type: Literal["sse"] = "sse"
+    type: Literal["sse"] = Field(default="sse", init=False)
+    """SSE transport type."""
 
-    url: str
+    url: HttpUrl
     """URL to the MCP server."""
 
 
@@ -65,6 +69,9 @@ class StdioMcpServer(BaseMcpServer):
     args: Sequence[str]
     """Command-line arguments to pass to the MCP server."""
 
+    type: Literal["stdio"] = Field(default="stdio", init=False)
+    """Stdio transport type."""
+
     command: str
     """Path to the MCP server executable."""
 
@@ -72,4 +79,7 @@ class StdioMcpServer(BaseMcpServer):
     """Environment variables to set when launching the MCP server."""
 
 
-McpServer = HttpMcpServer | SseMcpServer | StdioMcpServer
+McpServer = Annotated[
+    (HttpMcpServer | SseMcpServer | StdioMcpServer),
+    Field(discriminator="type"),
+]
