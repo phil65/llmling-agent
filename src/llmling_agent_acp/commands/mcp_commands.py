@@ -61,8 +61,7 @@ class MCPPromptCommand:
         assert session.agent.mcp, "No MCP manager available"
         # Find appropriate MCP client (use first available for now)
         if not session.agent.mcp.clients:
-            error_msg = "No MCP clients connected"
-            await session.notifications.send_agent_text(error_msg)
+            await session.notifications.send_agent_text("❌ No MCP clients connected")
             return
         # Execute prompt via first available MCP client
         client = next(iter(session.agent.mcp.clients.values()))
@@ -95,7 +94,7 @@ class MCPPromptCommand:
             await session.notifications.send_agent_text(output)
 
         except Exception as e:
-            error_msg = f"MCP prompt execution failed: {e}"
+            error_msg = f"❌ MCP prompt execution failed: {e}"
             logger.exception("MCP prompt execution error")
             await session.notifications.send_agent_text(error_msg)
 

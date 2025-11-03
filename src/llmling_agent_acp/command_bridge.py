@@ -99,7 +99,7 @@ class ACPCommandBridge:
             await self.command_store.execute_command(command_str, cmd_ctx)
         except Exception as e:
             logger.exception("Command execution failed")
-            await session.notifications.send_agent_text(f"Command error: {e}")
+            await session.notifications.send_agent_text(f"❌ Command error: {e}")
 
     def register_update_callback(self, callback: Callable[[], None]) -> None:
         """Register callback for command updates.

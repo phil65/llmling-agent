@@ -279,7 +279,7 @@ class ACPSession:
                 return "max_tokens"  # Default to max_tokens for other usage limits
             except Exception as e:
                 self.log.exception("Error during streaming")
-                await self.notifications.send_agent_text(f"Agent error: {e}")
+                await self.notifications.send_agent_text(f"❌ Agent error: {e}")
                 return "cancelled"
             else:
                 return "end_turn"
