@@ -379,36 +379,35 @@ class SQLModelProvider(StorageProvider[Message]):
             DELETE_ALL_MESSAGES,
         )
 
-        if not self.session:
-            msg = "Session not initialized. Use provider as async context manager."
-            raise RuntimeError(msg)
+        async with AsyncSession(self.engine) as session:
+            if hard:
+                if agent_name:
+                    msg = "Hard reset cannot be used with agent_name"
+                    raise ValueError(msg)
+                # Drop and recreate all tables
+                async with self.engine.begin() as conn:
+                    await conn.run_sync(SQLModel.metadata.drop_all)
+                await session.commit()
+                # Recreate schema
+                await self._init_database()
+                return 0, 0
 
-        if hard:
-            if agent_name:
-                msg = "Hard reset cannot be used with agent_name"
-                raise ValueError(msg)
-            # Drop and recreate all tables
-            async with self.engine.begin() as conn:
-                await conn.run_sync(SQLModel.metadata.drop_all)
-            await self.session.commit()
-            # Recreate schema
-            await self._init_database()
-            return 0, 0
-
-        # Get counts first
-        conv_count, msg_count = await self.get_conversation_counts(agent_name=agent_name)
-
-        # Delete data
-        if agent_name:
-            await self.session.execute(text(DELETE_AGENT_MESSAGES), {"agent": agent_name})
-            await self.session.execute(
-                text(DELETE_AGENT_CONVERSATIONS), {"agent": agent_name}
+            # Get counts first
+            conv_count, msg_count = await self.get_conversation_counts(
+                agent_name=agent_name
             )
-        else:
-            await self.session.execute(text(DELETE_ALL_MESSAGES))
-            await self.session.execute(text(DELETE_ALL_CONVERSATIONS))
 
-        await self.session.commit()
+            # Delete data
+            if agent_name:
+                await session.execute(text(DELETE_AGENT_MESSAGES), {"agent": agent_name})
+                await session.execute(
+                    text(DELETE_AGENT_CONVERSATIONS), {"agent": agent_name}
+                )
+            else:
+                await session.execute(text(DELETE_ALL_MESSAGES))
+                await session.execute(text(DELETE_ALL_CONVERSATIONS))
+
+            await session.commit()
         return conv_count, msg_count
 
     async def get_conversation_counts(

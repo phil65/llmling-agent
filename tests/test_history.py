@@ -6,14 +6,13 @@ from uuid import uuid4
 
 from pydantic_ai import RunUsage
 import pytest
-from sqlmodel import delete, select
 
 from llmling_agent.messaging.messages import TokenCost
 from llmling_agent.utils.now import get_now
 from llmling_agent.utils.parse_time import parse_time_period
 from llmling_agent_config.storage import SQLStorageConfig
 from llmling_agent_storage.models import QueryFilters, StatsFilters
-from llmling_agent_storage.sql_provider import Conversation, Message, SQLModelProvider
+from llmling_agent_storage.sql_provider import SQLModelProvider
 
 
 # Reference time for all tests
@@ -33,23 +32,22 @@ async def provider():
 @pytest.fixture(autouse=True)
 async def cleanup_database(provider: SQLModelProvider):
     """Clean up the database before each test."""
-    # Clean database - provider manages its own session
-    await provider.session.execute(delete(Message))
-    await provider.session.execute(delete(Conversation))
-    await provider.session.commit()
+    # Clean database using provider's reset method
+    await provider.reset(hard=True)
 
 
 @pytest.fixture
 async def sample_data(provider: SQLModelProvider):
     """Create sample conversation data."""
-    # Create two conversations - provider manages its own session
+    # Create two conversations using provider methods
     start = BASE_TIME - timedelta(hours=1)  # 11:00
-    conv1 = Conversation(id="conv1", agent_name="test_agent", start_time=start)
+    await provider.log_conversation(
+        conversation_id="conv1", node_name="test_agent", start_time=start
+    )
     start = BASE_TIME - timedelta(hours=2)  # 10:00
-    conv2 = Conversation(id="conv2", agent_name="other_agent", start_time=start)
-    provider.session.add(conv1)
-    provider.session.add(conv2)
-    await provider.session.commit()
+    await provider.log_conversation(
+        conversation_id="conv2", node_name="other_agent", start_time=start
+    )
 
     # Add messages
     test_data = [
@@ -184,12 +182,12 @@ async def test_basic_filters(provider: SQLModelProvider, sample_data: None):
 
 async def test_time_filters(provider: SQLModelProvider, sample_data: None):
     """Test time-based filtering."""
-    # First find conversation start times - provider manages its own session
-    result = await provider.session.execute(
-        select(Conversation).order_by(Conversation.start_time.desc())
+    # First find conversation start times using provider method
+    filters = QueryFilters()
+    conversations = await provider.get_conversations(filters)
+    latest_conv_time = max(
+        datetime.fromisoformat(conv_data["start_time"]) for conv_data, _ in conversations
     )
-    conv = result.scalars().first()
-    latest_conv_time = conv.start_time  # type:ignore
 
     # Get all conversations (no time filter)
     filters = QueryFilters()
@@ -233,12 +231,14 @@ async def test_period_filtering(provider: SQLModelProvider, sample_data: None):
     results = await provider.get_conversations(filters)
     print(f"\nGot {len(results)} conversations with since={since}")
 
-    # Print all conversations and their times - provider manages its own session
-    result = await provider.session.execute(select(Conversation))
-    convs = result.scalars().all()
-    for conv in convs:
-        print(f"Conv {conv.id}: start_time={conv.start_time}, since={since}")
-        print(f"Comparison: {conv.start_time} >= {since} = {conv.start_time >= since}")
+    # Print all conversations and their times using provider method
+    filters = QueryFilters()
+    conversations = await provider.get_conversations(filters)
+    for conv_data, _ in conversations:
+        start_time = datetime.fromisoformat(conv_data["start_time"])
+        print(f"Conversation {conv_data['id']}: {conv_data['start_time']}")
+        print(f"Conv {conv_data['id']}: start_time={start_time}, since={since}")
+        print(f"Comparison: {start_time} >= {since} = {start_time >= since}")
 
 
 if __name__ == "__main__":
