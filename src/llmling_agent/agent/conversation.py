@@ -5,10 +5,10 @@ from __future__ import annotations
 from collections import deque
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Literal, Self, overload
+from typing import TYPE_CHECKING, Any, Self, overload
 from uuid import UUID, uuid4
 
-from llmling import BasePrompt, PromptMessage, StaticPrompt
+from llmling import BasePrompt
 from llmling.config.models import BaseResource
 from psygnal import Signal
 from upathtools import read_path
@@ -36,19 +36,6 @@ if TYPE_CHECKING:
     from llmling_agent_config.session import MemoryConfig
 
 logger = get_logger(__name__)
-
-OverrideMode = Literal["replace", "append"]
-type PromptInput = str | BasePrompt
-
-
-def _to_base_prompt(prompt: PromptInput) -> BasePrompt:
-    """Convert input to BasePrompt instance."""
-    if isinstance(prompt, str):
-        msg = PromptMessage(role="system", content=prompt)
-        return StaticPrompt(
-            name="System prompt", description="System prompt", messages=[msg]
-        )
-    return prompt
 
 
 class ConversationManager:
