@@ -7,7 +7,7 @@ import os
 from typing import TYPE_CHECKING, Any
 
 from toprompt import to_prompt
-from upathtools import read_path
+from upathtools import read_path, to_upath
 
 from llmling_agent.models.content import (
     BaseContent,
@@ -57,8 +57,6 @@ async def convert_prompts(
 
             case os.PathLike():
                 from mimetypes import guess_type
-
-                from upathtools import to_upath
 
                 path_obj = to_upath(p)
                 mime_type, _ = guess_type(str(path_obj))

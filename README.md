@@ -606,11 +606,9 @@ agent.events.add_webhook("/hooks/github",port=8000)
 Handle images and PDFs alongside text (depends on provider / model support)
 
 ```python
-import PIL.Image
 from llmling_agent import Agent
 
 async with Agent(...) as agent:
-    result = await agent.run("What's in this image?", PIL.Image.open("image.jpg"))
     result = await agent.run("What's in this image?", pathlib.Path("image.jpg"))
     result = await agent.run("What's in this PDF?", pathlib.Path("document.pdf"))
 ```

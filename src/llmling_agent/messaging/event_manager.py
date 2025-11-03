@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from collections import defaultdict
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from functools import wraps
@@ -63,7 +64,7 @@ class EventManager:
         self._sources: dict[str, EventSource] = {}
         self._callbacks: list[EventCallback] = []
         self.auto_run = auto_run
-        self._observers: dict[str, list[EventObserver]] = {}
+        self._observers = defaultdict[str, list[EventObserver]](list)
 
     async def _default_handler(self, event: EventData):
         """Default event handler that converts events to node runs."""
@@ -430,7 +431,7 @@ class EventManager:
 
         def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
             observer = EventObserver(func, interval=interval)
-            self._observers.setdefault(event_type, []).append(observer)
+            self._observers[event_type].append(observer)
 
             @wraps(func)
             async def wrapper(*args: Any, **kwargs: Any) -> Any:
@@ -464,3 +465,8 @@ class EventObserver:
             await execute(self.callback, event)
         except Exception:
             logger.exception("Error in event observer")
+
+
+if __name__ == "__main__":
+    # Example usage of the event manager
+    event_manager = EventManager()

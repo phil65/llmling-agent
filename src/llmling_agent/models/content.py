@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import base64
 import io
-from typing import TYPE_CHECKING, Annotated, Any, Literal, Self
+from typing import TYPE_CHECKING, Annotated, Literal, Self
 
 from pydantic import ConfigDict, Field
 from schemez import Schema
@@ -29,10 +29,6 @@ class BaseContent(Schema):
     """Human-readable description of the content."""
 
     model_config = ConfigDict(frozen=True)
-
-    def to_openai_format(self) -> dict[str, Any]:
-        """Convert to OpenAI API format."""
-        raise NotImplementedError
 
 
 class BaseImageContent(BaseContent):
@@ -88,11 +84,6 @@ class ImageURLContent(BaseImageContent):
     url: str
     """URL to the image."""
 
-    def to_openai_format(self) -> dict[str, Any]:
-        """Convert to OpenAI API format for vision models."""
-        content = {"url": self.url, "detail": self.detail or "auto"}
-        return {"type": "image_url", "image_url": content}
-
 
 class ImageBase64Content(BaseImageContent):
     """Image from base64 data."""
@@ -105,12 +96,6 @@ class ImageBase64Content(BaseImageContent):
 
     mime_type: str = "image/jpeg"
     """MIME type of the image."""
-
-    def to_openai_format(self) -> dict[str, Any]:
-        """Convert to OpenAI API format for vision models."""
-        data_url = f"data:{self.mime_type};base64,{self.data}"
-        content = {"url": data_url, "detail": self.detail or "auto"}
-        return {"type": "image_url", "image_url": content}
 
     @classmethod
     def from_bytes(
@@ -143,10 +128,6 @@ class BasePDFContent(BaseContent):
 
     detail: DetailLevel | None = None
     """Detail level for document processing by models."""
-
-    def to_openai_format(self) -> dict[str, Any]:
-        """Convert to OpenAI API format for PDF handling."""
-        raise NotImplementedError
 
     @classmethod
     async def from_path(
@@ -188,11 +169,6 @@ class PDFURLContent(BasePDFContent):
     url: str
     """URL to the PDF document."""
 
-    def to_openai_format(self) -> dict[str, Any]:
-        """Convert to OpenAI API format for PDF handling."""
-        content = {"url": self.url, "detail": self.detail or "auto"}
-        return {"type": "file", "file": content}
-
 
 class PDFBase64Content(BasePDFContent):
     """PDF from base64 data."""
@@ -202,12 +178,6 @@ class PDFBase64Content(BasePDFContent):
 
     data: str
     """Base64-encoded PDF data."""
-
-    def to_openai_format(self) -> dict[str, Any]:
-        """Convert to OpenAI API format for PDF handling."""
-        data_url = f"data:application/pdf;base64,{self.data}"
-        content = {"url": data_url, "detail": self.detail or "auto"}
-        return {"type": "file", "file": content}
 
     @classmethod
     def from_bytes(
@@ -241,11 +211,6 @@ class AudioURLContent(AudioContent):
     url: str
     """URL to the audio."""
 
-    def to_openai_format(self) -> dict[str, Any]:
-        """Convert to OpenAI API format for audio models."""
-        content = {"url": self.url, "format": self.format or "auto"}
-        return {"type": "audio", "audio": content}
-
 
 class AudioBase64Content(AudioContent):
     """Audio from base64 data."""
@@ -258,12 +223,6 @@ class AudioBase64Content(AudioContent):
 
     format: str | None = None  # mp3, wav, etc
     """Audio format."""
-
-    def to_openai_format(self) -> dict[str, Any]:
-        """Convert to OpenAI API format for audio models."""
-        data_url = f"data:audio/{self.format or 'mp3'};base64,{self.data}"
-        content = {"url": data_url, "format": self.format or "auto"}
-        return {"type": "audio", "audio": content}
 
     @classmethod
     def from_bytes(cls, data: bytes, audio_format: str = "mp3") -> Self:
@@ -311,11 +270,6 @@ class VideoURLContent(VideoContent):
 
     url: str
     """URL to the video."""
-
-    def to_openai_format(self) -> dict[str, Any]:
-        """Convert to OpenAI API format for video models."""
-        content = {"url": self.url, "format": self.format or "auto"}
-        return {"type": "video", "video": content}
 
 
 Content = Annotated[
