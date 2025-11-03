@@ -53,7 +53,6 @@ if TYPE_CHECKING:
     from llmling_agent_acp.acp_agent import LLMlingACPAgent
     from llmling_agent_acp.command_bridge import ACPCommandBridge
     from llmling_agent_acp.session_manager import ACPSessionManager
-    from llmling_agent_providers.base import UsageLimits
 
 
 logger = get_logger(__name__)
@@ -99,9 +98,6 @@ class ACPSession:
 
     mcp_servers: Sequence[McpServer] | None = None
     """Optional MCP server configurations"""
-
-    usage_limits: UsageLimits | None = None
-    """Optional usage limits for model requests and tokens"""
 
     command_bridge: ACPCommandBridge | None = None
     """Optional command bridge for slash commands"""
@@ -262,9 +258,7 @@ class ACPSession:
             self._current_tool_inputs.clear()  # Reset tool inputs for new stream
 
             try:
-                async for event in self.agent.run_stream(
-                    *non_command_content, usage_limits=self.usage_limits
-                ):
+                async for event in self.agent.run_stream(*non_command_content):
                     if self._cancelled:
                         return "cancelled"
 

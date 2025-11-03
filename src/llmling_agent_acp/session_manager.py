@@ -18,7 +18,6 @@ if TYPE_CHECKING:
     from llmling_agent import AgentPool
     from llmling_agent_acp.acp_agent import LLMlingACPAgent
     from llmling_agent_acp.command_bridge import ACPCommandBridge
-    from llmling_agent_providers.base import UsageLimits
 
 
 logger = get_logger(__name__)
@@ -60,7 +59,6 @@ class ACPSessionManager:
         acp_agent: LLMlingACPAgent,
         mcp_servers: Sequence[McpServer] | None = None,
         session_id: str | None = None,
-        usage_limits: UsageLimits | None = None,
         client_capabilities: ClientCapabilities | None = None,
     ) -> str:
         """Create a new ACP session.
@@ -72,7 +70,6 @@ class ACPSessionManager:
             client: External library Client interface
             mcp_servers: Optional MCP server configurations
             session_id: Optional specific session ID (generated if None)
-            usage_limits: Optional usage limits for model requests and tokens
             acp_agent: ACP agent instance for capability tools
             client_capabilities: Client capabilities for tool registration
 
@@ -97,7 +94,6 @@ class ACPSessionManager:
                 cwd=cwd,
                 client=client,
                 mcp_servers=mcp_servers,
-                usage_limits=usage_limits,
                 command_bridge=self.command_bridge,
                 acp_agent=acp_agent,
                 client_capabilities=client_capabilities,

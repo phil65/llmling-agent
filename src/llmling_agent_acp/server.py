@@ -26,7 +26,6 @@ if TYPE_CHECKING:
     from tokonomics.model_discovery.model_info import ModelInfo
     from upath.types import JoinablePathLike
 
-    from llmling_agent_providers.base import UsageLimits
 
 logger = get_logger(__name__)
 
@@ -44,9 +43,6 @@ class ACPServer:
 
     agent_pool: AgentPool[Any]
     """AgentPool containing available agents"""
-
-    usage_limits: UsageLimits | None = None
-    """Optional usage limits for model requests and tokens"""
 
     session_support: bool = True
     """Whether to support session-based operations"""
@@ -87,7 +83,6 @@ class ACPServer:
         cls,
         config_path: JoinablePathLike,
         *,
-        usage_limits: UsageLimits | None = None,
         session_support: bool = True,
         file_access: bool = True,
         terminal_access: bool = True,
@@ -101,7 +96,6 @@ class ACPServer:
 
         Args:
             config_path: Path to llmling-agent YAML config file
-            usage_limits: Optional usage limits for model requests and tokens
             session_support: Enable session loading support
             file_access: Enable file system access
             terminal_access: Enable terminal access
@@ -118,7 +112,6 @@ class ACPServer:
         pool = AgentPool(manifest=manifest)
         server = cls(
             agent_pool=pool,
-            usage_limits=usage_limits,
             session_support=session_support,
             file_access=file_access,
             terminal_access=terminal_access,
@@ -161,7 +154,6 @@ class ACPServer:
                 session_support=self.session_support,
                 file_access=self.file_access,
                 terminal_access=self.terminal_access,
-                usage_limits=self.usage_limits,
                 debug_commands=self.debug_commands,
                 default_agent=self.agent,
             )

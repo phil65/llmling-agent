@@ -52,7 +52,6 @@ if TYPE_CHECKING:
         SetSessionModeRequest,
     )
     from llmling_agent import AgentPool
-    from llmling_agent_providers.base import UsageLimits
 
 logger = get_logger(__name__)
 
@@ -104,7 +103,6 @@ class LLMlingACPAgent(ACPAgent):
         session_support: bool = True,
         file_access: bool = True,
         terminal_access: bool = True,
-        usage_limits: UsageLimits | None = None,
         debug_commands: bool = False,
         default_agent: str | None = None,
     ) -> None:
@@ -117,7 +115,6 @@ class LLMlingACPAgent(ACPAgent):
             session_support: Whether agent supports session loading
             file_access: Whether agent can access filesystem
             terminal_access: Whether agent can use terminal
-            usage_limits: Optional usage limits for model requests and tokens
             debug_commands: Whether to enable debug slash commands for testing
             default_agent: Optional specific agent name to use as default
         """
@@ -128,7 +125,6 @@ class LLMlingACPAgent(ACPAgent):
         self.file_access = file_access
         self.terminal_access = terminal_access
         self.client: Client = connection
-        self.usage_limits = usage_limits
         self.debug_commands = debug_commands
         self.default_agent = default_agent
         self.client_capabilities: ClientCapabilities | None = None
@@ -205,7 +201,6 @@ class LLMlingACPAgent(ACPAgent):
                 cwd=params.cwd,
                 client=self.client,
                 mcp_servers=params.mcp_servers,
-                usage_limits=self.usage_limits,
                 acp_agent=self,
                 client_capabilities=self.client_capabilities,
             )
