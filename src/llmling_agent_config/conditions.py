@@ -9,7 +9,6 @@ from typing import TYPE_CHECKING, Annotated, Literal
 from pydantic import ConfigDict, Field, ImportString
 from schemez import Schema
 
-from llmling_agent.utils.inspection import execute
 from llmling_agent.utils.now import get_now
 
 
@@ -206,6 +205,8 @@ class CallableCondition(ConnectionCondition):
 
     async def check(self, context: EventContext) -> bool:
         """Execute predicate function."""
+        from llmling_agent.utils.inspection import execute
+
         return await execute(self.predicate, context.message, context.stats)
 
 
