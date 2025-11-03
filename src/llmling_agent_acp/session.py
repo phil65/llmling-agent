@@ -9,7 +9,6 @@ from __future__ import annotations
 import asyncio
 from collections.abc import AsyncGenerator
 from dataclasses import dataclass
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from pydantic_ai import (
@@ -34,7 +33,6 @@ from acp.requests import ACPRequests
 from acp.utils import to_acp_content_blocks
 from llmling_agent.agent.events import StreamCompleteEvent, ToolCallProgressEvent
 from llmling_agent.log import get_logger
-from llmling_agent.mcp_server.manager import MCPManager
 from llmling_agent_acp.acp_tools import get_acp_provider
 from llmling_agent_acp.command_bridge import SLASH_PATTERN
 from llmling_agent_acp.converters import (
@@ -122,7 +120,6 @@ class ACPSession:
         self._task_lock = asyncio.Lock()
         self._cancelled = False
         self._current_tool_inputs: dict[str, dict] = {}
-        self.mcp_manager: MCPManager | None = None
         self.fs = ACPFileSystem(self.client, session_id=self.session_id)
         self._acp_provider: AggregatingResourceProvider | None = None
         self.notifications = ACPNotifications(
@@ -149,24 +146,16 @@ class ACPSession:
         self.log.info("Initializing MCP servers", server_count=len(self.mcp_servers))
         cfgs = [convert_acp_mcp_server_to_config(s) for s in self.mcp_servers]
         # Define accessible roots for MCP servers
-        root = Path(self.cwd).resolve().as_uri() if self.cwd else None
-        # TODO: Investigate better ways of injecting MCP servers into agents/pool
-        # For now, connect ACP MCP manager to agent's progress handler
-        self.mcp_manager = MCPManager(
-            f"session_{self.session_id}",
-            servers=cfgs,
-            progress_handler=self.agent._create_progress_handler(),
-            accessible_roots=[root] if root else None,
-        )
-        try:
-            await self.mcp_manager.__aenter__()
-            self.agent.tools.add_provider(self.mcp_manager)
-            self.log.info("Added MCP servers to current agent", server_count=len(cfgs))
-            await self._register_mcp_prompts_as_commands()
-        except Exception:
-            self.log.exception("Failed to initialize MCP manager")
-            # Don't fail session creation, just log the error
-            self.mcp_manager = None
+        # root = Path(self.cwd).resolve().as_uri() if self.cwd else None
+        for cfg in cfgs:
+            try:
+                await self.agent_pool.mcp.setup_server(cfg)
+                self.log.info("Added MCP servers", server_count=len(cfgs))
+                await self._register_mcp_prompts_as_commands()
+            except Exception:
+                self.log.exception("Failed to initialize MCP manager")
+                # Don't fail session creation, just log the error
+                self.mcp_manager = None
 
     async def init_project_context(self) -> None:
         """Load AGENTS.md file and inject project context into all agents.
@@ -455,11 +444,6 @@ class ACPSession:
         self._current_tool_inputs.clear()
 
         try:
-            # Clean up MCP manager if present
-            if self.mcp_manager:
-                await self.mcp_manager.cleanup()
-                self.mcp_manager = None
-
             # Clean up capability provider if present
             if self._acp_provider:
                 current_agent = self.agent_pool.get_agent(self.current_agent_name)
@@ -489,12 +473,12 @@ class ACPSession:
 
     async def _register_mcp_prompts_as_commands(self) -> None:
         """Register MCP prompts as slash commands."""
-        if not self.mcp_manager or not self.command_bridge:
+        if not self.command_bridge:
             return
 
         try:
             # Collect all prompts from all MCP clients concurrently
-            clients = list(self.mcp_manager.clients.values())
+            clients = list(self.agent_pool.mcp.clients.values())
             if not clients:
                 return
 
