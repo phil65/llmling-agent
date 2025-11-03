@@ -31,6 +31,7 @@ from acp.filesystem import ACPFileSystem
 from acp.notifications import ACPNotifications
 from acp.requests import ACPRequests
 from acp.utils import to_acp_content_blocks
+from llmling_agent.agent import SlashedAgent
 from llmling_agent.agent.events import StreamCompleteEvent, ToolCallProgressEvent
 from llmling_agent.log import get_logger
 from llmling_agent_acp.acp_tools import get_acp_provider
@@ -171,6 +172,12 @@ class ACPSession:
     def agent(self) -> Agent[Any, str]:
         """Get the currently active agent."""
         return self.agent_pool.get_agent(self.current_agent_name)
+
+    @property
+    def slashed_agent(self) -> SlashedAgent[Any, str]:
+        """Get the wrapped slashed agent."""
+        store = self.command_bridge.command_store if self.command_bridge else None
+        return SlashedAgent(self.agent, command_store=store)
 
     def get_cwd_context(self) -> str:
         """Get current working directory context for prompts."""

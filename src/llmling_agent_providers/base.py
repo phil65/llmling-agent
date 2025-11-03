@@ -3,12 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Literal,
-    TypeVar,
-)
+from typing import TYPE_CHECKING, Any, Literal, TypeVar
 
 from psygnal import Signal
 from pydantic_ai import ModelResponse, _agent_graph
