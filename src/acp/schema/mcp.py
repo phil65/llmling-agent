@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence  # noqa: TC003
-from typing import Annotated, Literal
+from typing import Literal
 
 from pydantic import Field, HttpUrl  # noqa: TC002
 
@@ -69,8 +69,8 @@ class StdioMcpServer(BaseMcpServer):
     args: Sequence[str]
     """Command-line arguments to pass to the MCP server."""
 
-    type: Literal["stdio"] = Field(default="stdio", init=False)
-    """Stdio transport type."""
+    # type: Literal["stdio"] = Field(default="stdio", init=False)
+    # """Stdio transport type."""
 
     command: str
     """Path to the MCP server executable."""
@@ -79,7 +79,4 @@ class StdioMcpServer(BaseMcpServer):
     """Environment variables to set when launching the MCP server."""
 
 
-McpServer = Annotated[
-    (HttpMcpServer | SseMcpServer | StdioMcpServer),
-    Field(discriminator="type"),
-]
+McpServer = HttpMcpServer | SseMcpServer | StdioMcpServer

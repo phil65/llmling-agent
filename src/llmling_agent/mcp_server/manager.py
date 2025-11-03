@@ -7,7 +7,6 @@ from contextlib import AsyncExitStack
 from typing import TYPE_CHECKING, Any, Self
 
 from llmling.prompts import PromptMessage, StaticPrompt
-from mcp.types import TextResourceContents
 
 from llmling_agent.log import get_logger
 from llmling_agent.mcp_server.client import MCPClient
@@ -38,7 +37,7 @@ logger = get_logger(__name__)
 
 async def convert_mcp_prompt(client: MCPClient, prompt: MCPPrompt) -> StaticPrompt:
     """Convert MCP prompt to StaticPrompt."""
-    from mcp.types import TextContent
+    from mcp.types import TextContent, TextResourceContents
 
     result = await client.get_prompt(prompt.name)
     messages = [

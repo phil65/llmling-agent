@@ -257,11 +257,7 @@ class ACPSession:
                 if not non_command_content:
                     return "end_turn"
 
-            self.log.debug(
-                "Processing prompt",
-                content_items=len(non_command_content),
-                model=self.agent.model_name,
-            )
+            self.log.debug("Processing prompt", content_items=len(non_command_content))
             event_count = 0
             self._current_tool_inputs.clear()  # Reset tool inputs for new stream
 
