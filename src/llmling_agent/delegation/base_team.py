@@ -519,23 +519,6 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
         **kwargs: Any,
     ) -> TeamResponse: ...
 
-    def run_sync(
-        self,
-        *prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str],
-        store_history: bool = True,
-    ) -> ChatMessage[TResult]:
-        """Run agent synchronously (convenience wrapper).
-
-        Args:
-            prompt: User query or instruction
-            store_history: Whether the message exchange should be added to the
-                           context window
-        Returns:
-            Result containing response and run information
-        """
-        coro = self.run(*prompt, store_history=store_history)
-        return self.task_manager.run_task_sync(coro)
-
 
 if __name__ == "__main__":
 
