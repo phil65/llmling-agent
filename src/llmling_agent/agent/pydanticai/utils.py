@@ -11,9 +11,7 @@ from llmling_agent.tools import ToolCallInfo
 
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
-
-    from pydantic_ai import ModelMessage, UserContent
+    from pydantic_ai import ModelMessage
     from pydantic_ai.mcp import (
         MCPServer,
         MCPServerSSE,
@@ -21,7 +19,6 @@ if TYPE_CHECKING:
         MCPServerStreamableHTTP,
     )
 
-    from llmling_agent.models.content import BaseContent
     from llmling_agent.tools.base import Tool
     from llmling_agent_config.mcp_server import (
         MCPServerConfig,
@@ -78,33 +75,6 @@ def parts_to_tool_call_info(
         timestamp=return_part.timestamp,
         agent_tool_name=agent_tool_name,
     )
-
-
-async def convert_prompts_to_user_content(
-    prompts: Sequence[str | BaseContent],
-) -> list[str | UserContent]:
-    """Convert our prompts to pydantic-ai compatible format.
-
-    Args:
-        prompts: Sequence of string prompts or Content objects
-
-    Returns:
-        List of strings and pydantic-ai UserContent objects
-    """
-    # Special case: if we only have string prompts, format them together
-    # if all(isinstance(p, str) for p in prompts):
-    #     formatted = await format_prompts(prompts)
-    #     return [formatted]
-
-    # Otherwise, process each item individually in order
-    result: list[str | UserContent] = []
-    for p in prompts:
-        if isinstance(p, str):
-            result.append(p)
-        elif p_content := p.to_pydantic_ai():
-            result.append(p_content)
-
-    return result
 
 
 @overload

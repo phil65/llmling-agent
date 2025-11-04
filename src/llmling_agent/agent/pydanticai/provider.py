@@ -29,7 +29,6 @@ from pydantic_graph import End
 
 from llmling_agent.agent.context import AgentContext
 from llmling_agent.agent.pydanticai.utils import (
-    convert_prompts_to_user_content,
     get_tool_calls,
 )
 from llmling_agent.log import get_logger
@@ -320,14 +319,11 @@ class PydanticAIProvider:
         # Always use our event distributor as the final handler
         final_handler: EventStreamHandler = event_distributor
 
-        # Convert prompts to pydantic-ai format
-        converted_prompts = await convert_prompts_to_user_content(prompts)
-
         # Run with complete history and event handler
         to_use = model or self.model
         to_use = infer_model(to_use) if isinstance(to_use, str) else to_use
         result: AgentRunResult = await agent.run(
-            converted_prompts,  # Pass converted prompts
+            [i if isinstance(i, str) else i.to_pydantic_ai() for i in prompts],
             deps=dependency,
             message_history=[
                 msg for run in message_history for msg in run.to_pydantic_ai()
@@ -436,10 +432,9 @@ class PydanticAIProvider:
         if isinstance(use_model, str):
             use_model = infer_model(use_model)
 
-        converted_prompts = await convert_prompts_to_user_content(prompts)
         tool_dict = {i.name: i for i in tools or []}
         async for event in agent.run_stream_events(
-            converted_prompts,
+            [i if isinstance(i, str) else i.to_pydantic_ai() for i in prompts],
             deps=dependency,
             message_history=[
                 msg for run in message_history for msg in run.to_pydantic_ai()
