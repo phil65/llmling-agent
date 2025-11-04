@@ -489,8 +489,11 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
                             msg = f"Forward target {name_} not found for {name}"
                             raise ValueError(msg)
                         target_node = self[name_]
-                    case FileConnectionConfig() | CallableConnectionConfig():
-                        target_node = Agent(provider=target.get_provider())
+                    case FileConnectionConfig(path=path_obj):
+                        name = f"file_writer_{UPath(path_obj).stem}"
+                        target_node = Agent(model=target.get_model(), name=name)
+                    case CallableConnectionConfig(callable=fn):
+                        target_node = Agent(model=target.get_model(), name=fn.__name__)
                     case _:
                         msg = f"Invalid connection config: {target}"
                         raise ValueError(msg)
