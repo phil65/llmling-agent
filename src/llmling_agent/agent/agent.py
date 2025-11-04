@@ -328,7 +328,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         return f"Agent({self.name!r}, model={self._provider._model!r}{desc})"
 
     def __prompt__(self) -> str:
-        typ = self._provider.__class__.__name__
+        typ = self.__class__.__name__
         model = self.model_name or "default"
         parts = [f"Agent: {self.name}", f"Type: {typ}", f"Model: {model}"]
         if self.description:

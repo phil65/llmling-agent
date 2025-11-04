@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 
     from llmling_agent import MessageNode
     from llmling_agent.agent import Agent
-    from llmling_agent.agent.agent import StreamCompleteEvent
+    from llmling_agent.agent.events import StreamCompleteEvent
     from llmling_agent.common_types import PromptCompatible
 
 
@@ -279,7 +279,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
         """
         from pydantic_ai import PartDeltaEvent, TextPartDelta
 
-        from llmling_agent.agent.agent import StreamCompleteEvent
+        from llmling_agent.agent.events import StreamCompleteEvent
 
         current_message = prompts
         collected_content = []
