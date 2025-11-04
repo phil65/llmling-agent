@@ -61,18 +61,22 @@ def configure_logging(
         structlog.stdlib.PositionalArgumentsFormatter(),
         structlog.processors.TimeStamper(fmt="iso"),
         structlog.processors.StackInfoRenderer(),
-        structlog.processors.format_exc_info,
         structlog.processors.UnicodeDecoder(),
     ]
 
     # Determine output format
     colors = sys.stderr.isatty() and not json_logs if use_colors is not None else False
+    use_console_renderer = not (json_logs or (not colors and not sys.stderr.isatty()))
+
+    # Add format_exc_info only for non-console renderers
+    if not use_console_renderer:
+        processors.append(structlog.processors.format_exc_info)
 
     # Add final renderer
-    if json_logs or (not colors and not sys.stderr.isatty()):
-        processors.append(structlog.processors.JSONRenderer())
-    else:
+    if use_console_renderer:
         processors.append(structlog.dev.ConsoleRenderer(colors=colors))
+    else:
+        processors.append(structlog.processors.JSONRenderer())
 
     structlog.configure(
         processors=processors,
@@ -106,7 +110,6 @@ def get_logger(
                 structlog.stdlib.add_logger_name,
                 structlog.stdlib.add_log_level,
                 structlog.processors.StackInfoRenderer(),
-                structlog.processors.format_exc_info,
                 structlog.dev.ConsoleRenderer(colors=False),
             ],
             wrapper_class=structlog.stdlib.BoundLogger,

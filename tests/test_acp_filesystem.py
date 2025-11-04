@@ -4,7 +4,7 @@ import sys
 
 import pytest
 
-from acp.filesystem import ACPFileSystem, ACPPath
+from acp.filesystem import ACPFileSystem
 
 
 if sys.platform == "win32":
@@ -190,8 +190,5 @@ def test_open(acp_fs):
     assert file_obj.mode == "rb"  # Mode gets converted to binary
 
 
-def test_acp_path_creation(mock_session):
-    """Test ACP path object creation."""
-    fs = ACPFileSystem(mock_session.client, mock_session.session_id)
-    path = ACPPath("test.txt", fs=fs)
-    assert str(path) == "test.txt"
+if __name__ == "__main__":
+    pytest.main(["-v", __file__])

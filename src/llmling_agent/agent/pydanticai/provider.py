@@ -212,7 +212,7 @@ class PydanticAIProvider:
         agent = await self.get_agent(
             system_prompt or "",
             tools=tools or [],
-            override_model=model,
+            override_model=model or self._model,
         )
         tool_dict = {i.name: i for i in tools or []}
 
@@ -247,16 +247,12 @@ class PydanticAIProvider:
         # Always use our event distributor as the final handler
         final_handler: EventStreamHandler = event_distributor
 
-        # Run with complete history and event handler
-        to_use = model or self.model
-        to_use = infer_model(to_use) if isinstance(to_use, str) else to_use
         result: AgentRunResult = await agent.run(
             [i if isinstance(i, str) else i.to_pydantic_ai() for i in prompts],
             deps=dependency,
             message_history=[
                 msg for run in message_history for msg in run.to_pydantic_ai()
             ],
-            model=to_use,
             output_type=output_type or str,
             model_settings=self.model_settings,  # type: ignore
             usage_limits=usage_limits,
