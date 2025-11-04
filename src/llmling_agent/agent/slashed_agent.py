@@ -14,10 +14,15 @@ if TYPE_CHECKING:
     from collections.abc import AsyncGenerator, Callable
 
     from slashed import CommandStore
-    from slashed.events import CommandStoreEvent
 
     from llmling_agent.agent.agent import Agent
     from llmling_agent.agent.events import SlashedAgentStreamEvent
+
+from slashed.events import (
+    CommandExecutedEvent,
+    CommandOutputEvent as StoreCommandOutputEvent,
+    CommandStoreEvent,
+)
 
 
 logger = get_logger(__name__)
@@ -142,19 +147,15 @@ class SlashedAgent[TDeps, OutputDataT]:
                     event = await asyncio.wait_for(self._event_queue.get(), timeout=0.1)
 
                     # Convert store events to our stream events
-                    if hasattr(event, "output") and hasattr(event, "context"):
-                        # This looks like a CommandOutputEvent from the store
-                        yield CommandOutputEvent(
-                            command=command_name, output=event.output
-                        )
-                    elif hasattr(event, "success") and hasattr(event, "error"):
-                        # This looks like a CommandExecutedEvent
-                        success = event.success
-                        if not success and event.error:
+                    match event:
+                        case StoreCommandOutputEvent(output=output):
+                            yield CommandOutputEvent(command=command_name, output=output)
+                        case CommandExecutedEvent(success=False, error=error) if error:
                             yield CommandOutputEvent(
                                 command=command_name,
-                                output=f"Command error: {event.error}",
+                                output=f"Command error: {error}",
                             )
+                            success = False
 
                 except TimeoutError:
                     # No events in queue, continue checking if command is done
@@ -174,10 +175,9 @@ class SlashedAgent[TDeps, OutputDataT]:
             while not self._event_queue.empty():
                 try:
                     event = self._event_queue.get_nowait()
-                    if hasattr(event, "output") and hasattr(event, "context"):
-                        yield CommandOutputEvent(
-                            command=command_name, output=event.output
-                        )
+                    match event:
+                        case StoreCommandOutputEvent(output=output):
+                            yield CommandOutputEvent(command=command_name, output=output)
                 except asyncio.QueueEmpty:
                     break
 
