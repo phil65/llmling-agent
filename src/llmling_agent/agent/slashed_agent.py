@@ -38,22 +38,6 @@ def _parse_slash_command(command_text: str) -> tuple[str, str] | None:
     return None
 
 
-def _create_default_command_store() -> CommandStore:
-    """Create command store with built-in commands.
-
-    Returns:
-        CommandStore with all built-in commands registered
-    """
-    from slashed import CommandStore
-
-    from llmling_agent_commands import get_commands
-
-    store = CommandStore()
-    for cmd in get_commands():
-        store.register_command(cmd)
-    return store
-
-
 class StreamingOutputWriter:
     """OutputWriter that captures command output and emits it as events."""
 
@@ -108,8 +92,10 @@ class SlashedAgent[TDeps, OutputDataT]:
             output_writer_factory: Optional factory for creating output writers
             context_data_factory: Optional factory for creating command context data
         """
+        from llmling_agent_commands import create_default_command_store
+
         self.agent = agent
-        self.command_store = command_store or _create_default_command_store()
+        self.command_store = command_store or create_default_command_store()
         self._output_writer_factory = output_writer_factory
         self._context_data_factory = context_data_factory
 

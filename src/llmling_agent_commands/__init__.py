@@ -41,7 +41,7 @@ from llmling_agent_commands.utils import CopyClipboardCommand, EditAgentFileComm
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from slashed import BaseCommand, SlashedCommand
+    from slashed import BaseCommand, SlashedCommand, CommandStore
 
 
 def get_agent_commands() -> list[BaseCommand | type[SlashedCommand]]:
@@ -101,3 +101,17 @@ def get_commands() -> list[BaseCommand | type[SlashedCommand]]:
         *get_agent_commands(),
         *get_pool_commands(),
     ]
+
+
+def create_default_command_store() -> CommandStore:
+    """Create command store with built-in commands.
+
+    Returns:
+        CommandStore with all built-in commands registered
+    """
+    from slashed import CommandStore
+
+    store = CommandStore()
+    for cmd in get_commands():
+        store.register_command(cmd)
+    return store
