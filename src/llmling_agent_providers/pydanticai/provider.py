@@ -4,10 +4,11 @@ from __future__ import annotations
 
 from decimal import Decimal
 from functools import wraps
-from typing import TYPE_CHECKING, Any, get_args, get_origin
+from typing import TYPE_CHECKING, Any, Literal, get_args, get_origin
 
 from llmling_models import AllModels, infer_model
 import logfire
+from psygnal import Signal
 from pydantic_ai import (
     Agent as PydanticAgent,
     FunctionToolCallEvent,
@@ -29,8 +30,9 @@ from llmling_agent.tasks.exceptions import (
     RunAbortedError,
     ToolSkippedError,
 )
+from llmling_agent.tools import ToolCallInfo
 from llmling_agent.utils.inspection import execute, has_argument_type
-from llmling_agent_providers.base import AgentProvider, ProviderResponse
+from llmling_agent_providers.base import ProviderResponse
 from llmling_agent_providers.pydanticai.utils import (
     convert_prompts_to_user_content,
     get_tool_calls,
@@ -86,10 +88,11 @@ def _is_call_ctx(annotation: Any) -> bool:
 pydantic_ai._function_schema._is_call_ctx = _is_call_ctx  # type: ignore
 
 
-class PydanticAIProvider(AgentProvider[Any]):
+class PydanticAIProvider:
     """Provider using pydantic-ai as backend."""
 
     NAME = "pydantic_ai"
+    tool_used = Signal(ToolCallInfo)
 
     def __init__(
         self,
@@ -115,11 +118,9 @@ class PydanticAIProvider(AgentProvider[Any]):
             debug: Whether to enable debug mode
             model_settings: Additional model-specific settings
         """
-        super().__init__(
-            name=name,
-            context=context,
-            debug=debug,
-        )
+        self._name = name
+        self._context = context
+        self._debug = debug
         self.model_settings = model_settings or {}
         self._model = model
         self._kwargs: dict[str, Any] = dict(
@@ -439,6 +440,32 @@ class PydanticAIProvider(AgentProvider[Any]):
                     )
                     self.tool_used.emit(call_info)
             yield event
+
+    @property
+    def context(self) -> AgentContext[Any]:
+        """Get context."""
+        if self._context is None:
+            msg = "Context not set"
+            raise RuntimeError(msg)
+        return self._context
+
+    @context.setter
+    def context(self, value: AgentContext[Any]):
+        """Set context."""
+        self._context = value
+
+    async def supports_feature(self, capability: Literal["vision"]) -> bool:
+        """Check if provider supports a specific capability."""
+        import tokonomics
+
+        match capability:
+            case "vision":
+                if not self.model_name:
+                    return False
+                caps = await tokonomics.get_model_capabilities(self.model_name)
+                return bool(caps and caps.supports_vision)
+            case _:
+                return False
 
 
 if __name__ == "__main__":

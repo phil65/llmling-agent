@@ -79,7 +79,7 @@ class Job[TDeps, TResult = str](Schema):
 
         # Check vision capabilities
         if self.requires_vision:  # noqa: SIM102
-            if not await agent.provider.supports_feature("vision"):
+            if not await agent._provider.supports_feature("vision"):
                 return False
 
         return True

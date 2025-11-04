@@ -37,7 +37,6 @@ if TYPE_CHECKING:
     from llmling_agent.talk.stats import AggregatedTalkStats
     from llmling_agent_config.mcp_server import MCPServerConfig
     from llmling_agent_config.session import SessionQuery
-    from llmling_agent_providers.base import AgentProvider
 
 logger = get_logger(__name__)
 
@@ -470,7 +469,6 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
         replace_history: bool = False,
         pause_routing: bool = False,
         model: ModelType | None = None,
-        provider: AgentProvider | None = None,
     ) -> AsyncIterator[Self]:
         """Temporarily modify state of all agents in the team.
 
@@ -485,7 +483,6 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
             replace_history: Whether to replace existing history
             pause_routing: Whether to pause message routing
             model: Temporary model override
-            provider: Temporary provider override
         """
         # Get all agents (flattened) before entering context
         agents = list(self.iter_agents())
@@ -505,7 +502,6 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
                         replace_history=replace_history,
                         pause_routing=pause_routing,
                         model=model,
-                        provider=provider,
                     )
                 )
             try:

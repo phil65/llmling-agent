@@ -77,7 +77,6 @@ if TYPE_CHECKING:
     from llmling_agent_config.session import SessionQuery
     from llmling_agent_config.task import Job
     from llmling_agent_input.base import InputProvider
-    from llmling_agent_providers.base import AgentProvider
 
 from llmling_agent.common_types import IndividualEventHandler
 
@@ -286,7 +285,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             from pydantic_ai import models
 
             assert isinstance(model, models.Model)
-        self._provider: AgentProvider = PydanticAIProvider(
+        self._provider = PydanticAIProvider(
             model=model,
             retries=retries,
             end_strategy=end_strategy,
@@ -530,11 +529,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         """
         logger.debug("Setting result type", output_type=output_type, agent_name=self.name)
         self._output_type = to_type(output_type)
-
-    @property
-    def provider(self) -> AgentProvider:
-        """Get the underlying provider."""
-        return self._provider
 
     def to_structured[NewOutputDataT](
         self,
@@ -1150,7 +1144,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         replace_history: bool = False,
         pause_routing: bool = False,
         model: ModelType | None = None,
-        provider: AgentProvider | None = None,
     ) -> AsyncIterator[Self | Agent[T]]:
         """Temporarily modify agent state.
 
@@ -1164,10 +1157,8 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             replace_history: Whether to replace existing history
             pause_routing: Whether to pause message routing
             model: Temporary model override
-            provider: Temporary provider override
         """
         old_model = self._provider.model if hasattr(self._provider, "model") else None  # pyright: ignore
-        old_provider = self._provider
         if output_type:
             old_type = self._output_type
             self.set_output_type(output_type)  # type: ignore
@@ -1198,19 +1189,15 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             if pause_routing:
                 await stack.enter_async_context(self.connections.paused_routing())
 
-            # Model/Provider
-            if provider is not None:
-                self._provider = provider
+            # Model
             elif model is not None:
                 self._provider.set_model(model)
 
             try:
                 yield self
             finally:
-                # Restore model/provider
-                if provider is not None:
-                    self._provider = old_provider
-                elif model is not None and old_model:
+                # Restore model
+                if model is not None and old_model:
                     self._provider.set_model(old_model)
                 if output_type:
                     self.set_output_type(old_type)
