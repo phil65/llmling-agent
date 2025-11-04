@@ -169,9 +169,9 @@ class ACPSession:
                 agent.sys_prompts.prompts.append(prompt)
 
     @property
-    def agent(self) -> Agent[Any, str]:
+    def agent(self) -> Agent[ACPSession, str]:
         """Get the currently active agent."""
-        return self.agent_pool.get_agent(self.current_agent_name)
+        return self.agent_pool.get_agent(self.current_agent_name, deps_type=ACPSession)
 
     @property
     def slashed_agent(self) -> SlashedAgent[Any, str]:
