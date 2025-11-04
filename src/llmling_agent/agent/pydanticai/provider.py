@@ -108,7 +108,6 @@ pydantic_ai._function_schema._is_call_ctx = _is_call_ctx  # type: ignore
 class PydanticAIProvider:
     """Provider using pydantic-ai as backend."""
 
-    NAME = "pydantic_ai"
     tool_used = Signal(ToolCallInfo)
 
     def __init__(
@@ -141,8 +140,6 @@ class PydanticAIProvider:
         self.model_settings = model_settings or {}
         self._model = model
         self._kwargs: dict[str, Any] = dict(
-            name=name,
-            tools=[],
             retries=retries,
             end_strategy=end_strategy,
             output_retries=output_retries,
@@ -222,12 +219,9 @@ class PydanticAIProvider:
                 # Extract tool call info and emit signal immediately
                 call = event.part
                 if call.tool_name in tool_dict:
-                    tool_call_info = self._create_tool_call_info(
-                        call, tool_dict, message_id
-                    )
-                    tool_call_info.message_id = message_id
-
-                    self.tool_used.emit(tool_call_info)
+                    tc_info = self._create_tool_call_info(call, tool_dict, message_id)
+                    tc_info.message_id = message_id
+                    self.tool_used.emit(tc_info)
 
         # Event distributor: single consumer, multiple processors
         async def event_distributor(
@@ -250,9 +244,7 @@ class PydanticAIProvider:
         result: AgentRunResult = await agent.run(
             [i if isinstance(i, str) else i.to_pydantic_ai() for i in prompts],
             deps=dependency,
-            message_history=[
-                msg for run in message_history for msg in run.to_pydantic_ai()
-            ],
+            message_history=[m for run in message_history for m in run.to_pydantic_ai()],
             output_type=output_type or str,
             model_settings=self.model_settings,  # type: ignore
             usage_limits=usage_limits,
@@ -287,12 +279,12 @@ class PydanticAIProvider:
     @property
     def name(self) -> str:
         """Get agent name."""
-        return self._kwargs.get("name", "agent")  # type: ignore
+        return self._name or "agent"
 
     @name.setter
     def name(self, value: str | None):
         """Set agent name."""
-        self._kwargs["name"] = value
+        self._name = value or "agent"
 
     def set_model(self, model: ModelType):
         """Set the model for this agent.
@@ -359,9 +351,7 @@ class PydanticAIProvider:
         async for event in agent.run_stream_events(
             [i if isinstance(i, str) else i.to_pydantic_ai() for i in prompts],
             deps=dependency,
-            message_history=[
-                msg for run in message_history for msg in run.to_pydantic_ai()
-            ],
+            message_history=[m for run in message_history for m in run.to_pydantic_ai()],
             model=model or self.model,  # type: ignore
             output_type=output_type or str,
             model_settings=self.model_settings,  # type: ignore

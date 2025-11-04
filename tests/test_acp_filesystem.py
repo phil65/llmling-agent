@@ -95,21 +95,18 @@ def acp_fs(mock_session):
     return ACPFileSystem(mock_session.client, mock_session.session_id)
 
 
-@pytest.mark.asyncio
 async def test_cat_file(acp_fs):
     """Test reading file content."""
     content = await acp_fs._cat_file("test.txt")
     assert content == b"test content"
 
 
-@pytest.mark.asyncio
 async def test_cat_file_not_found(acp_fs):
     """Test reading non-existent file."""
     with pytest.raises(FileNotFoundError):
         await acp_fs._cat_file("nonexistent.txt")
 
 
-@pytest.mark.asyncio
 async def test_put_file(acp_fs):
     """Test writing file content."""
     await acp_fs._put_file("new.txt", "new content")
@@ -117,14 +114,12 @@ async def test_put_file(acp_fs):
     assert acp_fs.client.files["new.txt"] == "new content"
 
 
-@pytest.mark.asyncio
 async def test_put_file_bytes(acp_fs):
     """Test writing bytes content."""
     await acp_fs._put_file("new.txt", b"new content")
     assert acp_fs.client.files["new.txt"] == "new content"
 
 
-@pytest.mark.asyncio
 async def test_ls_detail(acp_fs):
     """Test directory listing with details."""
     files = await acp_fs._ls(".", detail=True)
@@ -138,7 +133,6 @@ async def test_ls_detail(acp_fs):
         assert "size" in file_info
 
 
-@pytest.mark.asyncio
 async def test_ls_simple(acp_fs):
     """Test simple directory listing."""
     files = await acp_fs._ls(".", detail=False)
@@ -146,28 +140,24 @@ async def test_ls_simple(acp_fs):
     # Note: mock returns the same detailed output, so this tests the parsing
 
 
-@pytest.mark.asyncio
 async def test_exists(acp_fs):
     """Test file existence check."""
     assert await acp_fs._exists("test.txt") is True
     assert await acp_fs._exists("nonexistent.txt") is False
 
 
-@pytest.mark.asyncio
 async def test_isfile(acp_fs):
     """Test file type check."""
     assert await acp_fs._isfile("test.txt") is True
     assert await acp_fs._isfile("subdir") is False
 
 
-@pytest.mark.asyncio
 async def test_isdir(acp_fs):
     """Test directory type check."""
     assert await acp_fs._isdir("subdir") is True
     assert await acp_fs._isdir("test.txt") is False
 
 
-@pytest.mark.asyncio
 async def test_info(acp_fs):
     """Test file info retrieval."""
     info = await acp_fs._info("test.txt")
@@ -176,7 +166,6 @@ async def test_info(acp_fs):
     assert info["size"] == 12  # noqa: PLR2004
 
 
-@pytest.mark.asyncio
 async def test_byte_range_not_supported(acp_fs):
     """Test that byte range reads are not supported."""
     with pytest.raises(NotImplementedError, match="byte range reads"):

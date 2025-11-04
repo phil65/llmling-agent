@@ -50,7 +50,6 @@ class ProgressCapture:
             self.completed.set()
 
 
-@pytest.mark.asyncio
 async def test_progress_handler_with_agent():
     """Test that progress handlers receive tool context information via Agent."""
     progress_capture = ProgressCapture()
@@ -113,7 +112,6 @@ async def test_progress_handler_with_agent():
             )
 
 
-@pytest.mark.asyncio
 async def test_progress_handler_without_context():
     """Test that progress handlers work even when context is not available."""
     events = []
@@ -137,7 +135,6 @@ async def test_progress_handler_without_context():
     assert events[0]["has_context"] is False
 
 
-@pytest.mark.asyncio
 async def test_direct_mcp_client_progress():
     """Test contextual progress handler with direct MCP client call (no RunContext)."""
     from llmling_agent.mcp_server.client import MCPClient
@@ -177,7 +174,6 @@ async def test_direct_mcp_client_progress():
         )
 
 
-@pytest.mark.asyncio
 async def test_agent_stream_progress_events():
     """Test that ToolCallProgressEvent appears in agent stream."""
     from llmling_agent.agent.events import ToolCallProgressEvent

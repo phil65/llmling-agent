@@ -13,7 +13,6 @@ from llmling_agent_acp.command_bridge import ACPCommandBridge
 from llmling_agent_acp.session import ACPSession
 
 
-@pytest.mark.asyncio
 async def test_command_bridge_immediate_execution():
     """Test that command execution sends updates immediately."""
 
@@ -51,7 +50,6 @@ async def test_command_bridge_immediate_execution():
     assert len(sent_messages) > 0
 
 
-@pytest.mark.asyncio
 async def test_immediate_send_with_slow_command():
     """Test immediate sending works with commands that produce output over time."""
 
@@ -107,7 +105,6 @@ async def test_immediate_send_with_slow_command():
         assert expected in actual_messages
 
 
-@pytest.mark.asyncio
 async def test_immediate_send_error_handling():
     """Test that errors in commands are properly sent immediately."""
 
@@ -149,3 +146,7 @@ async def test_immediate_send_error_handling():
     message_text = " ".join(sent_messages)
     assert "Starting..." in message_text
     assert "Command error:" in message_text
+
+
+if __name__ == "__main__":
+    pytest.main(["-v", __file__])

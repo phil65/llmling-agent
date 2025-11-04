@@ -14,7 +14,6 @@ from acp.filesystem import ACPFileSystem
 from llmling_agent_acp.headless_client import HeadlessACPClient
 
 
-@pytest.mark.asyncio
 async def test_acp_filesystem_fsspec_operations():
     """Test ACP filesystem with real fsspec operations using headless client."""
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -77,7 +76,7 @@ async def test_acp_filesystem_fsspec_operations():
             await client.cleanup()
 
 
-# @pytest.mark.asyncio
+#
 # async def test_acp_filesystem_with_nested_directories():
 #     """Test ACP filesystem operations with nested directory structures."""
 #     with tempfile.TemporaryDirectory() as tmpdir:
@@ -125,7 +124,7 @@ async def test_acp_filesystem_fsspec_operations():
 #             await client.cleanup()
 
 
-# @pytest.mark.asyncio
+#
 # async def test_acp_filesystem_error_conditions():
 #     """Test ACP filesystem error handling."""
 #     with tempfile.TemporaryDirectory() as tmpdir:
