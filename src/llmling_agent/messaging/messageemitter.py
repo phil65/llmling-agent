@@ -41,9 +41,6 @@ if TYPE_CHECKING:
 class MessageEmitter[TDeps, TResult](ABC):
     """Base class for all message processing nodes."""
 
-    outbox = Signal(object)  # ChatMessage
-    """Signal emitted when node produces a message."""
-
     message_received = Signal(ChatMessage)
     """Signal emitted when node receives a message."""
 

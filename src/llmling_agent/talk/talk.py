@@ -357,14 +357,14 @@ class Talk[TTransmittedData]:
                 if self.delay is not None or self.priority != 0:
 
                     async def delayed_emit():
-                        target.outbox.emit(message, prompt)
+                        await target.connections.route_message(message)
 
                     coro = delayed_emit()
                     target.task_manager.run_background(
                         coro, priority=self.priority, delay=self.delay
                     )
                 else:
-                    target.outbox.emit(message, prompt)
+                    await target.connections.route_message(message)
                 return None
 
     async def trigger(
