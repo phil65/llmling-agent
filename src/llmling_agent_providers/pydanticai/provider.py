@@ -264,6 +264,7 @@ class PydanticAIProvider(AgentProvider[Any]):
         system_prompt: str | None = None,
         usage_limits: UsageLimits | None = None,
         event_stream_handler: MultiEventHandler[IndividualEventHandler] | None = None,
+        dependency: Any | None = None,
         **kwargs: Any,
     ) -> ProviderResponse:
         """Generate response using pydantic-ai."""
@@ -309,7 +310,7 @@ class PydanticAIProvider(AgentProvider[Any]):
         to_use = infer_model(to_use) if isinstance(to_use, str) else to_use
         result: AgentRunResult = await agent.run(
             converted_prompts,  # Pass converted prompts
-            deps=self._context,  # type: ignore
+            deps=dependency,
             message_history=[
                 msg for run in message_history for msg in run.to_pydantic_ai()
             ],
@@ -408,6 +409,7 @@ class PydanticAIProvider(AgentProvider[Any]):
         tools: list[Tool] | None = None,
         system_prompt: str | None = None,
         usage_limits: UsageLimits | None = None,
+        dependency: Any | None = None,
         **kwargs: Any,
     ) -> AsyncIterator[AgentStreamEvent | AgentRunResultEvent[TResult]]:
         """Stream events directly from pydantic-ai without wrapper complexity."""
@@ -420,7 +422,7 @@ class PydanticAIProvider(AgentProvider[Any]):
         tool_dict = {i.name: i for i in tools or []}
         async for event in agent.run_stream_events(
             converted_prompts,
-            deps=self._context,
+            deps=dependency,
             message_history=[
                 msg for run in message_history for msg in run.to_pydantic_ai()
             ],

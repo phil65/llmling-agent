@@ -158,6 +158,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         name: str = "llmling-agent",
         provider: AgentType = "pydantic_ai",
         *,
+        deps_type: type[TDeps] | None = None,
         model: ModelType = None,
         output_type: OutputSpec[OutputDataT] | StructuredResponseConfig | str = str,  # type: ignore[assignment]
         runtime: RuntimeConfig | Config | JoinablePathLike | None = None,
@@ -183,6 +184,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         Args:
             name: Name of the agent for logging and identification
             provider: Agent type to use
+            deps_type: Type of dependencies to use
             model: The default model to use (defaults to GPT-5)
             output_type: The default output type to use (defaults to str)
             runtime: Runtime configuration providing access to resources/tools
@@ -222,6 +224,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         self._infinite = False
         # save some stuff for asnyc init
         self._owns_runtime = False
+        self.dep_type = deps_type
         # match output_type:
         #     case type() | str():
         #         # For types and named definitions, use overrides if provided
@@ -652,6 +655,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         message_id: str | None = None,
         conversation_id: str | None = None,
         messages: list[ChatMessage[Any]] | None = None,
+        deps: TDeps | None = None,
         wait_for_connections: bool | None = None,
     ) -> ChatMessage[OutputDataT]:
         """Run agent with prompt and get response.
@@ -668,6 +672,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                         Automatically generated if not provided.
             conversation_id: Optional conversation id for the returned message.
             messages: Optional list of messages to replace the conversation history
+            deps: Optional dependencies for the agent
             wait_for_connections: Whether to wait for connected agents to complete
 
         Returns:
@@ -690,6 +695,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             result = await self._provider.generate_response(
                 *await convert_prompts(prompts),
                 message_id=message_id,
+                dependency=deps,
                 message_history=message_history,
                 tools=tools,
                 output_type=final_type,
@@ -739,6 +745,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         conversation_id: str | None = None,
         messages: list[ChatMessage[Any]] | None = None,
         wait_for_connections: bool | None = None,
+        deps: TDeps | None = None,
     ) -> AsyncIterator[RichAgentStreamEvent[OutputDataT]]:
         """Run agent with prompt and get a streaming response.
 
@@ -755,6 +762,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             conversation_id: Optional conversation id for the returned message.
             messages: Optional list of messages to replace the conversation history
             wait_for_connections: Whether to wait for connected agents to complete
+            deps: Optional dependencies for the agent
         Returns:
             An async iterator yielding streaming events with final message embedded.
 
@@ -771,8 +779,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             messages if messages is not None else self.conversation.get_history()
         )
         try:
-            # Collect chunks for final message construction
-            chunks = []
             usage = None
             model_name = None
             output = None
@@ -789,6 +795,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                 tools=tools,
                 usage_limits=usage_limits,
                 system_prompt=sys_prompt,
+                dependency=deps,
             )
 
             async with merge_queue_into_iterator(
@@ -798,7 +805,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                     # Pass through PydanticAI events and collect chunks
                     match event:
                         case PartDeltaEvent(delta=TextPartDelta(content_delta=delta)):
-                            chunks.append(delta)
                             yield event  # Pass through original event
                         case AgentRunResultEvent(result=result):
                             usage = result.usage()

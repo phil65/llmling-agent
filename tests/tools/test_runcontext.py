@@ -11,10 +11,9 @@ from llmling_agent_config.toolsets import (
 )
 
 
-async def run_ctx_tool(ctx: RunContext[AgentContext], arg: str) -> str:
+async def run_ctx_tool(ctx: RunContext, arg: str) -> str:
     """Tool expecting RunContext."""
     assert isinstance(ctx, RunContext)
-    assert isinstance(ctx.deps, AgentContext)
     return f"RunContext tool got: {arg}"
 
 
@@ -24,9 +23,9 @@ async def agent_ctx_tool(ctx: AgentContext, arg: str) -> str:
     return f"AgentContext tool got: {arg}"
 
 
-async def data_with_run_ctx(ctx: RunContext[AgentContext]) -> str:
+async def data_with_run_ctx(ctx: RunContext) -> str:
     """Tool accessing data through RunContext."""
-    return f"Data from RunContext: {ctx.deps.data}"
+    return f"Data from RunContext: {ctx.deps}"
 
 
 async def data_with_agent_ctx(ctx: AgentContext) -> str:
@@ -56,12 +55,12 @@ async def test_tool_context_injection(default_model: str):
     test_deps = {"key": "value"}
     context = AgentContext[Any].create_default("test")
     context.data = test_deps
-    async with Agent(model=default_model) as agent:
+    async with Agent(model=default_model, deps_type=bool) as agent:
         agent.context = context
         # Register our test tool
         agent.tools.register_tool(test_tool, enabled=True)
         # Run agent which should trigger tool
-        await agent.run("Use the test_tool with arg='test'")
+        await agent.run("Use the test_tool with arg='test'", deps=True)
 
         # Verify context
         assert context_received is not None, "Tool did not receive context"
@@ -69,10 +68,6 @@ async def test_tool_context_injection(default_model: str):
 
         # Verify dependencies
         assert deps_received is not None, "Tool did not receive dependencies"
-        assert deps_received.data == test_deps, "Wrong dependencies received"
-
-        # Verify agent context
-        assert deps_received.node_name == "test"
 
 
 async def test_plain_tool_no_context(default_model: str):
@@ -172,15 +167,15 @@ async def test_context_sharing(default_model: str):
     """Test that both context types access same data."""
     shared_data = {"key": "value"}
 
-    agent = Agent[dict](name="test", model=default_model)
+    agent = Agent[dict](name="test", model=default_model, deps_type=dict)
     agent.context.data = shared_data
 
     agent.tools.register_tool(data_with_run_ctx)
     agent.tools.register_tool(data_with_agent_ctx)
 
     async with agent:
-        result1 = await agent.run("Use data_with_run_ctx tool")
-        result2 = await agent.run("Use data_with_agent_ctx tool")
+        result1 = await agent.run("Use data_with_run_ctx tool", deps=shared_data)
+        result2 = await agent.run("Use data_with_agent_ctx tool", deps=shared_data)
 
         assert any(
             call.result == "Data from RunContext: {'key': 'value'}"

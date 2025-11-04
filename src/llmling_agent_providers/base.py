@@ -111,6 +111,7 @@ class AgentProvider[TDeps]:
         model: ModelType = None,
         tools: list[Tool] | None = None,
         usage_limits: UsageLimits | None = None,
+        dependency: Any | None = None,
         **kwargs: Any,
     ) -> ProviderResponse:
         """Generate a response. Must be implemented by providers."""
@@ -125,6 +126,7 @@ class AgentProvider[TDeps]:
         model: ModelType = None,
         tools: list[Tool] | None = None,
         usage_limits: UsageLimits | None = None,
+        dependency: Any | None = None,
         **kwargs: Any,
     ) -> AsyncIterator[AgentStreamEvent | AgentRunResultEvent[TResult]]:
         """Stream a response. Must be implemented by providers."""
