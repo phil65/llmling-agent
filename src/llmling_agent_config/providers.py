@@ -66,11 +66,6 @@ class PydanticAIProviderConfig(BaseProviderConfig):
     None means use the global retry setting.
     """
 
-    defer_model_check: bool = False
-    """Whether to defer model evaluation until first run.
-    True can speed up initialization but might fail later.
-    """
-
     validation_enabled: bool = True
     """Whether to validate model outputs against schemas."""
 
@@ -99,7 +94,6 @@ class PydanticAIProviderConfig(BaseProviderConfig):
             name=self.name or "ai-agent",
             end_strategy=self.end_strategy,
             output_retries=self.output_retries,
-            defer_model_check=self.defer_model_check,
             model_settings=settings,
         )
 

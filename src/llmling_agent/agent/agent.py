@@ -111,7 +111,6 @@ class AgentKwargs(TypedDict, total=False):
     retries: int
     output_retries: int | None
     end_strategy: EndStrategy
-    defer_model_check: bool
 
     # Context & State
     context: AgentContext[Any] | None  # x
@@ -173,7 +172,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         retries: int = 1,
         output_retries: int | None = None,
         end_strategy: EndStrategy = "early",
-        defer_model_check: bool = False,
         input_provider: InputProvider | None = None,
         parallel_init: bool = True,
         debug: bool = False,
@@ -208,7 +206,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             output_retries: Max retries for result validation (defaults to retries)
             end_strategy: Strategy for handling tool calls that are requested alongside
                           a final result
-            defer_model_check: Whether to defer model evaluation until first run
             input_provider: Provider for human input (tool confirmation / HumanProviders)
             parallel_init: Whether to initialize resources in parallel
             debug: Whether to enable debug mode
@@ -303,7 +300,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                     retries=retries,
                     end_strategy=end_strategy,
                     output_retries=output_retries,
-                    defer_model_check=defer_model_check,
                     debug=debug,
                     context=ctx,
                 )

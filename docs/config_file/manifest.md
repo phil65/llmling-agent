@@ -11,7 +11,6 @@ Let's look at a complete, correctly structured example:
 agents:
   analyzer:  # Agent name (key in agents dict)
     # Basic configuration
-    provider: "pydantic_ai"  # "pydantic_ai" | "human" | custom provider config
     name: "analyzer"  # Optional override for agent name
     inherits: "base_agent"  # Optional parent config to inherit from
     description: "Code analysis specialist"
@@ -96,7 +95,7 @@ agents:
 
   # Additional agents...
   planner:
-    provider: "human"
+    model: "openai:gpt-5-nano"
     # ... configuration for planner agent
 
 teams:

@@ -13,7 +13,6 @@ agents:
       name: "gpt4-agent"  # optional provider instance name
       end_strategy: "early"  # "early" | "complete" | "confirm"
       output_retries: 3  # max retries for result validation
-      defer_model_check: false  # whether to defer model check until first run
       model: "openai:gpt-5"  # optional model override
       model_settings:  # additional settings passed to pydantic-ai
         temperature: 0.7
