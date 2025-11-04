@@ -20,15 +20,13 @@ from llmling_agent.utils.now import get_now
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Sequence
     from datetime import datetime
-    import os
 
-    import PIL.Image
     from pydantic_ai import AgentStreamEvent
-    from toprompt import AnyPromptType
 
     from llmling_agent import MessageNode
     from llmling_agent.agent import Agent
     from llmling_agent.agent.agent import StreamCompleteEvent
+    from llmling_agent.common_types import PromptCompatible
 
 
 logger = get_logger(__name__)
@@ -135,7 +133,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
 
     async def _run(
         self,
-        *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str] | None,
+        *prompts: PromptCompatible | None,
         wait_for_connections: bool | None = None,
         message_id: str | None = None,
         conversation_id: str | None = None,
@@ -178,7 +176,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
 
     async def execute(
         self,
-        *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str] | None,
+        *prompts: PromptCompatible | None,
         **kwargs: Any,
     ) -> TeamResponse[TResult]:
         """Start execution with optional monitoring."""
@@ -197,7 +195,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
 
     async def run_iter(
         self,
-        *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str],
+        *prompts: PromptCompatible,
         **kwargs: Any,
     ) -> AsyncIterator[ChatMessage[Any]]:
         """Yield messages from the execution chain."""
@@ -211,7 +209,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
 
     async def execute_iter(
         self,
-        *prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str],
+        *prompt: PromptCompatible,
         **kwargs: Any,
     ) -> AsyncIterator[Talk[Any] | AgentResponse[Any]]:
         from toprompt import to_prompt
@@ -261,7 +259,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
 
     async def run_stream(
         self,
-        *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str],
+        *prompts: PromptCompatible,
         require_all: bool = True,
         **kwargs: Any,
     ) -> AsyncIterator[

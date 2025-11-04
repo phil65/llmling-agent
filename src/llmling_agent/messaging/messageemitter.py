@@ -20,13 +20,14 @@ from llmling_agent.utils.tasks import TaskManager
 if TYPE_CHECKING:
     from collections.abc import Coroutine
     from datetime import timedelta
-    import os
     from types import TracebackType
 
-    import PIL.Image
-    from toprompt import AnyPromptType
-
-    from llmling_agent.common_types import AnyTransformFn, AsyncFilterFn, QueueStrategy
+    from llmling_agent.common_types import (
+        AnyTransformFn,
+        AsyncFilterFn,
+        PromptCompatible,
+        QueueStrategy,
+    )
     from llmling_agent.mcp_server.client import ContextualProgressHandler
     from llmling_agent.messaging.context import NodeContext
     from llmling_agent.messaging.messagenode import MessageNode
@@ -302,7 +303,7 @@ class MessageEmitter[TDeps, TResult](ABC):
 
     async def pre_run(
         self,
-        *prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str] | ChatMessage,
+        *prompt: PromptCompatible | ChatMessage,
     ) -> tuple[ChatMessage[Any], list[Content | str]]:
         """Hook to prepare a MessgeNode run call.
 
@@ -356,7 +357,7 @@ class MessageEmitter[TDeps, TResult](ABC):
 
     async def run(
         self,
-        *prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str] | ChatMessage,
+        *prompt: PromptCompatible | ChatMessage,
         wait_for_connections: bool | None = None,
         store_history: bool = True,
         **kwargs: Any,

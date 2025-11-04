@@ -17,11 +17,8 @@ from llmling_agent_providers.pydanticai.convert_content import content_to_pydant
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
-    import os
 
-    import PIL.Image
-    from toprompt import AnyPromptType
-
+    from llmling_agent.common_types import PromptCompatible
     from llmling_agent.models.content import Content
     from llmling_agent.talk.stats import AggregatedMessageStats, MessageStats
 
@@ -34,7 +31,7 @@ class MessageNode[TDeps, TResult](MessageEmitter[TDeps, TResult]):
 
     async def pre_run(
         self,
-        *prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str] | ChatMessage,
+        *prompt: PromptCompatible | ChatMessage,
     ) -> tuple[ChatMessage[Any], list[Content | str]]:
         """Hook to prepare a MessgeNode run call.
 
@@ -86,7 +83,7 @@ class MessageNode[TDeps, TResult](MessageEmitter[TDeps, TResult]):
     # @overload
     # async def run(
     #     self,
-    #     *prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str] | ChatMessage,
+    #     *prompt: PromptCompatible | ChatMessage,
     #     wait_for_connections: bool | None = None,
     #     store_history: bool = True,
     #     output_type: None,
@@ -96,7 +93,7 @@ class MessageNode[TDeps, TResult](MessageEmitter[TDeps, TResult]):
     # @overload
     # async def run[OutputTypeT](
     #     self,
-    #     *prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str] | ChatMessage,
+    #     *prompt: PromptCompatible | ChatMessage,
     #     wait_for_connections: bool | None = None,
     #     store_history: bool = True,
     #     output_type: type[OutputTypeT],
@@ -106,7 +103,7 @@ class MessageNode[TDeps, TResult](MessageEmitter[TDeps, TResult]):
     @method_spawner
     async def run[OutputTypeT](
         self,
-        *prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str] | ChatMessage,
+        *prompt: PromptCompatible | ChatMessage,
         wait_for_connections: bool | None = None,
         store_history: bool = True,
         output_type: type[OutputTypeT] | None = None,

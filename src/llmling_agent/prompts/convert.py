@@ -2,43 +2,25 @@
 
 from __future__ import annotations
 
-from importlib.util import find_spec
 import os
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from toprompt import to_prompt
+import upath
 from upathtools import read_path, to_upath
 
-from llmling_agent.models.content import (
-    BaseContent,
-    BaseImageContent,
-    BasePDFContent,
-    ImageBase64Content,
-)
+from llmling_agent.models.content import BaseContent, BaseImageContent, BasePDFContent
 
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    import PIL.Image
-    from toprompt import AnyPromptType
-
-    from llmling_agent.models.content import (
-        Content,
-    )
-
-
-def is_pil_image(obj: Any) -> bool:
-    """Check if object is a PIL.Image.Image instance without direct import."""
-    if not find_spec("PIL"):
-        return False
-    import PIL.Image
-
-    return isinstance(obj, PIL.Image.Image)
+    from llmling_agent.common_types import PromptCompatible
+    from llmling_agent.models.content import Content
 
 
 async def convert_prompts(
-    prompts: Sequence[AnyPromptType | PIL.Image.Image | os.PathLike[str] | Content],
+    prompts: Sequence[PromptCompatible | Content],
 ) -> list[str | Content]:
     """Convert prompts to our internal format.
 
@@ -51,11 +33,7 @@ async def convert_prompts(
     result: list[str | Content] = []
     for p in prompts:
         match p:
-            case _ if is_pil_image(p):
-                # Only convert PIL images if PIL is available
-                result.append(ImageBase64Content.from_pil_image(p))  # type: ignore
-
-            case os.PathLike():
+            case os.PathLike() | upath.UPath():
                 from mimetypes import guess_type
 
                 path_obj = to_upath(p)

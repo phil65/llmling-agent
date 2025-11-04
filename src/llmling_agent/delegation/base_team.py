@@ -21,14 +21,12 @@ from llmling_agent_config.teams import TeamConfig
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Iterator, Sequence
-    import os
 
-    import PIL.Image
     from psygnal.containers._evented_list import ListEvents
     from toprompt import AnyPromptType
 
     from llmling_agent import Agent, AgentPool, Team
-    from llmling_agent.common_types import ModelType, ToolType
+    from llmling_agent.common_types import ModelType, PromptCompatible, ToolType
     from llmling_agent.delegation.teamrun import ExtendedTeamTalk, TeamRun
     from llmling_agent.messaging.messages import ChatMessage, TeamResponse
     from llmling_agent.talk.stats import AggregatedTalkStats
@@ -286,7 +284,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
 
     async def run_in_background(
         self,
-        *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str] | None,
+        *prompts: PromptCompatible | None,
         max_count: int | None = 1,  # 1 = single execution, None = indefinite
         interval: float = 1.0,
         **kwargs: Any,
@@ -515,7 +513,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
     @abstractmethod
     async def execute(
         self,
-        *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str] | None,
+        *prompts: PromptCompatible | None,
         **kwargs: Any,
     ) -> TeamResponse: ...
 

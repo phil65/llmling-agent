@@ -10,6 +10,8 @@ from llmling import LLMCallableTool
 from pydantic import BaseModel, ConfigDict, field_validator
 from pydantic_ai import AgentStreamEvent, RunContext
 from pydantic_ai.models import Model
+from toprompt.to_prompt import AnyPromptType
+from upath.types import JoinablePathLike
 
 
 # Define what we consider JSON-serializable
@@ -45,7 +47,7 @@ type ToolType = str | AnyCallable | LLMCallableTool
 # Event handler types for composable event processing
 # Individual event handler for composability - takes single events
 IndividualEventHandler = Callable[[RunContext, AgentStreamEvent], Awaitable[None]]
-
+PromptCompatible = AnyPromptType | JoinablePathLike
 # P = ParamSpec("P")
 # SyncAsync = Callable[P, OptionalAwaitable[T]]
 EndStrategy = Literal["early", "exhaustive"]

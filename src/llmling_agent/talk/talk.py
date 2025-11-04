@@ -20,12 +20,13 @@ from llmling_agent.utils.now import get_now
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Iterator
     from datetime import datetime, timedelta
-    import os
 
-    import PIL.Image
-    from toprompt import AnyPromptType
-
-    from llmling_agent.common_types import AnyFilterFn, AnyTransformFn, QueueStrategy
+    from llmling_agent.common_types import (
+        AnyFilterFn,
+        AnyTransformFn,
+        PromptCompatible,
+        QueueStrategy,
+    )
     from llmling_agent.messaging.events import ConnectionEventData, EventData
     from llmling_agent.messaging.messageemitter import MessageEmitter
     from llmling_agent.messaging.messagenode import MessageNode
@@ -307,7 +308,7 @@ class Talk[TTransmittedData]:
         self,
         message: ChatMessage[Any],
         target: MessageNode,
-        prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str] | None = None,
+        prompt: PromptCompatible | None = None,
     ) -> ChatMessage[Any] | None:
         """Process message for a single target."""
         from llmling_agent.agent import Agent
@@ -315,9 +316,7 @@ class Talk[TTransmittedData]:
 
         match self.connection_type:
             case "run":
-                prompts: list[AnyPromptType | PIL.Image.Image | os.PathLike[str]] = [
-                    message
-                ]
+                prompts: list[PromptCompatible] = [message]
                 if prompt:
                     prompts.append(prompt)
                 return await target.run(*prompts)
@@ -369,7 +368,7 @@ class Talk[TTransmittedData]:
                 return None
 
     async def trigger(
-        self, prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str] | None = None
+        self, prompt: PromptCompatible | None = None
     ) -> list[ChatMessage[TTransmittedData]]:
         """Process queued messages."""
         if not self._pending_messages:
@@ -562,9 +561,7 @@ class TeamTalk[TTransmittedData](list["Talk | TeamTalk"]):
         for talk in self:
             await talk._handle_message(message, prompt)
 
-    async def trigger(
-        self, prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str] | None = None
-    ) -> list[ChatMessage]:
+    async def trigger(self, prompt: PromptCompatible | None = None) -> list[ChatMessage]:
         messages = []
         for talk in self:
             messages.extend(await talk.trigger(prompt))

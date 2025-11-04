@@ -20,14 +20,13 @@ logger = get_logger(__name__)
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
-    import os
 
-    import PIL.Image
     from pydantic_ai import AgentStreamEvent
     from toprompt import AnyPromptType
 
     from llmling_agent import MessageNode
     from llmling_agent.agent.agent import StreamCompleteEvent
+    from llmling_agent.common_types import PromptCompatible
     from llmling_agent.talk import Talk
     from llmling_agent_config.task import Job
 
@@ -67,7 +66,7 @@ class Team[TDeps = None](BaseTeam[TDeps, Any]):
 
     async def execute(
         self,
-        *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str] | None,
+        *prompts: PromptCompatible | None,
         **kwargs: Any,
     ) -> TeamResponse:
         """Run all agents in parallel with monitoring."""
@@ -170,7 +169,7 @@ class Team[TDeps = None](BaseTeam[TDeps, Any]):
 
     async def _run(
         self,
-        *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str] | None,
+        *prompts: PromptCompatible | None,
         wait_for_connections: bool | None = None,
         message_id: str | None = None,
         conversation_id: str | None = None,
@@ -195,7 +194,7 @@ class Team[TDeps = None](BaseTeam[TDeps, Any]):
 
     async def run_stream(
         self,
-        *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str],
+        *prompts: PromptCompatible,
         **kwargs: Any,
     ) -> AsyncIterator[
         tuple[MessageNode[Any, Any], AgentStreamEvent | StreamCompleteEvent]

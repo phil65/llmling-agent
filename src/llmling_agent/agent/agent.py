@@ -49,12 +49,10 @@ from llmling_agent_config.session import MemoryConfig
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Coroutine, Sequence
     from datetime import datetime
-    import os
     from types import TracebackType
 
     from llmling.config.models import Resource
     from llmling.prompts import PromptType
-    import PIL.Image
     from pydantic_ai import UsageLimits
     from pydantic_ai.output import OutputSpec
     from toprompt import AnyPromptType
@@ -67,6 +65,7 @@ if TYPE_CHECKING:
         AgentName,
         EndStrategy,
         ModelType,
+        PromptCompatible,
         SessionIdType,
         ToolType,
     )
@@ -644,7 +643,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
     @logfire.instrument("Calling Agent.run: {prompts}:")
     async def _run(
         self,
-        *prompts: AnyPromptType | PIL.Image.Image | os.PathLike[str] | ChatMessage[Any],
+        *prompts: PromptCompatible | ChatMessage[Any],
         output_type: type[OutputDataT] | None = None,
         model: ModelType = None,
         store_history: bool = True,
@@ -730,7 +729,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
     @method_spawner
     async def run_stream(
         self,
-        *prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str],
+        *prompt: PromptCompatible,
         output_type: type[OutputDataT] | None = None,
         model: ModelType = None,
         tool_choice: str | list[str] | None = None,
@@ -876,7 +875,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
 
     async def run_iter(
         self,
-        *prompt_groups: Sequence[AnyPromptType | PIL.Image.Image | os.PathLike[str]],
+        *prompt_groups: Sequence[PromptCompatible],
         output_type: type[OutputDataT] | None = None,
         model: ModelType = None,
         store_history: bool = True,
@@ -969,7 +968,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
 
     async def run_in_background(
         self,
-        *prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str],
+        *prompt: PromptCompatible,
         max_count: int | None = None,
         interval: float = 1.0,
         block: bool = False,

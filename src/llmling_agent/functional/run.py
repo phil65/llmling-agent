@@ -10,17 +10,13 @@ from llmling_agent.models.content import ImageURLContent
 
 
 if TYPE_CHECKING:
-    import os
-
-    import PIL.Image
-    from toprompt import AnyPromptType
-
     from llmling_agent.agent.agent import AgentKwargs
+    from llmling_agent.common_types import PromptCompatible
 
 
 @overload
 async def run_agent[TResult](
-    prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str],
+    prompt: PromptCompatible,
     image_url: str | None = None,
     *,
     output_type: type[TResult],
@@ -30,14 +26,14 @@ async def run_agent[TResult](
 
 @overload
 async def run_agent(
-    prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str],
+    prompt: PromptCompatible,
     image_url: str | None = None,
     **kwargs: Unpack[AgentKwargs],
 ) -> str: ...
 
 
 async def run_agent(
-    prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str],
+    prompt: PromptCompatible,
     image_url: str | None = None,
     *,
     output_type: type[Any] | None = None,
@@ -55,7 +51,7 @@ async def run_agent(
 
 @overload
 def run_agent_sync[TResult](
-    prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str],
+    prompt: PromptCompatible,
     image_url: str | None = None,
     *,
     output_type: type[TResult],
@@ -65,14 +61,14 @@ def run_agent_sync[TResult](
 
 @overload
 def run_agent_sync(
-    prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str],
+    prompt: PromptCompatible,
     image_url: str | None = None,
     **kwargs: Unpack[AgentKwargs],
 ) -> str: ...
 
 
 def run_agent_sync(
-    prompt: AnyPromptType | PIL.Image.Image | os.PathLike[str],
+    prompt: PromptCompatible,
     image_url: str | None = None,
     *,
     output_type: type[Any] | None = None,
