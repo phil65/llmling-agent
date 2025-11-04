@@ -25,7 +25,7 @@ from llmling_models import function_to_model
 import logfire
 from psygnal import Signal
 from pydantic import ValidationError
-from pydantic_ai import AgentRunResultEvent, PartDeltaEvent, TextPartDelta
+from pydantic_ai import AgentRunResultEvent
 from upath import UPath
 
 from llmling_agent.agent.events import StreamCompleteEvent, ToolCallProgressEvent
@@ -224,7 +224,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         self._infinite = False
         # save some stuff for asnyc init
         self._owns_runtime = False
-        self.dep_type = deps_type
+        self.deps_type = deps_type
         # match output_type:
         #     case type() | str():
         #         # For types and named definitions, use overrides if provided
@@ -804,8 +804,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                 async for event in events:
                     # Pass through PydanticAI events and collect chunks
                     match event:
-                        case PartDeltaEvent(delta=TextPartDelta(content_delta=delta)):
-                            yield event  # Pass through original event
                         case AgentRunResultEvent(result=result):
                             usage = result.usage()
                             model_name = result.response.model_name

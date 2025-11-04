@@ -6,6 +6,11 @@ import asyncio
 import re
 from typing import TYPE_CHECKING, Any
 
+from slashed.events import (
+    CommandExecutedEvent,
+    CommandOutputEvent as SlashedCommandOutputEvent,
+)
+
 from llmling_agent.agent.events import CommandCompleteEvent, CommandOutputEvent
 from llmling_agent.log import get_logger
 
@@ -14,15 +19,10 @@ if TYPE_CHECKING:
     from collections.abc import AsyncGenerator, Callable
 
     from slashed import CommandStore
+    from slashed.events import CommandStoreEvent
 
     from llmling_agent.agent.agent import Agent
     from llmling_agent.agent.events import SlashedAgentStreamEvent
-
-from slashed.events import (
-    CommandExecutedEvent,
-    CommandOutputEvent as StoreCommandOutputEvent,
-    CommandStoreEvent,
-)
 
 
 logger = get_logger(__name__)
@@ -148,7 +148,7 @@ class SlashedAgent[TDeps, OutputDataT]:
 
                     # Convert store events to our stream events
                     match event:
-                        case StoreCommandOutputEvent(output=output):
+                        case SlashedCommandOutputEvent(output=output):
                             yield CommandOutputEvent(command=command_name, output=output)
                         case CommandExecutedEvent(success=False, error=error) if error:
                             yield CommandOutputEvent(
@@ -176,7 +176,7 @@ class SlashedAgent[TDeps, OutputDataT]:
                 try:
                     event = self._event_queue.get_nowait()
                     match event:
-                        case StoreCommandOutputEvent(output=output):
+                        case SlashedCommandOutputEvent(output=output):
                             yield CommandOutputEvent(command=command_name, output=output)
                 except asyncio.QueueEmpty:
                     break
