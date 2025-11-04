@@ -703,7 +703,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
         self,
         agent: AgentName | Agent[Any, str],
         *,
-        deps: TCustomDeps,
+        deps_type: type[TCustomDeps],
         return_type: type[TResult] = str,  # type: ignore
         model_override: str | None = None,
         session: SessionIdType | SessionQuery = None,
@@ -713,7 +713,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
         self,
         agent: AgentName | Agent[Any, str],
         *,
-        deps: Any | None = None,
+        deps_type: Any | None = None,
         return_type: Any = str,
         model_override: str | None = None,
         session: SessionIdType | SessionQuery = None,
@@ -726,7 +726,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
 
         Args:
             agent: Either agent name or instance
-            deps: Optional custom dependencies (overrides shared deps)
+            deps_type: Optional custom dependencies type (overrides shared deps)
             return_type: Optional type for structured responses
             model_override: Optional model override
             session: Optional session ID or query to recover conversation
@@ -751,7 +751,8 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
             base.context = AgentContext[Any].create_default(base.name)
 
         # Use custom deps if provided, otherwise use shared deps
-        base.context.data = deps if deps is not None else self.shared_deps
+        # base.context.data = deps if deps is not None else self.shared_deps
+        base.deps_type = deps_type
         base.context.pool = self
 
         # Apply overrides
