@@ -73,19 +73,15 @@ class MessageEmitter[TDeps, TResult](ABC):
         self.description = description
         self.connections = ConnectionManager(self)
         self._events = EventManager(self, enable_events=True)
-        servers = mcp_servers or []
-        name = f"node_{self._name}"
         self.mcp = MCPManager(
-            name,
-            servers=servers,
+            f"node_{self._name}",
+            servers=mcp_servers or [],
             context=context,
             owner=self.name,
             progress_handler=progress_handler,
         )
         self.enable_db_logging = enable_logging
         self.conversation_id = str(uuid4())
-        # Initialize conversation record if enabled
-
         # Connect to the combined signal to capture all messages
         # TODO: need to check this
         # node.message_received.connect(self.log_message)
@@ -114,7 +110,7 @@ class MessageEmitter[TDeps, TResult](ABC):
         exc_tb: TracebackType | None,
     ):
         """Clean up base resources."""
-        await self._events.cleanup()
+        await self._events.__aexit__(exc_type, exc_val, exc_tb)
         await self.mcp.__aexit__(exc_type, exc_val, exc_tb)
         await self.task_manager.cleanup_tasks()
 
