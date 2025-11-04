@@ -207,8 +207,8 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         from llmling_agent.agent import AgentContext
         from llmling_agent.agent.conversation import ConversationManager
         from llmling_agent.agent.interactions import Interactions
+        from llmling_agent.agent.pydanticai import PydanticAIProvider
         from llmling_agent.agent.sys_prompts import SystemPrompts
-        from llmling_agent_providers.pydanticai import PydanticAIProvider
 
         self.task_manager = TaskManager()
         self._infinite = False

@@ -356,7 +356,6 @@ module-name = [
   "llmling_agent_cli",
   "llmling_agent_commands",
   "llmling_agent_examples",
-  "llmling_agent_providers",
   "llmling_agent_storage",
   "llmling_agent_docs",
   "llmling_agent_events",

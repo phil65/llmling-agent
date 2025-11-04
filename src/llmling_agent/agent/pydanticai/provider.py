@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 from decimal import Decimal
 from functools import wraps
-from typing import TYPE_CHECKING, Any, Literal, get_args, get_origin
+from typing import TYPE_CHECKING, Any, Literal, TypeVar, get_args, get_origin
 
 from llmling_models import AllModels, infer_model
 import logfire
@@ -12,17 +13,25 @@ from psygnal import Signal
 from pydantic_ai import (
     Agent as PydanticAgent,
     FunctionToolCallEvent,
+    ModelResponse,
     PartStartEvent,
     RunContext,
     RunUsage,
     TextPartDelta,
     ToolCallPart,
+    _agent_graph,
 )
 import pydantic_ai._function_schema
 from pydantic_ai.models import KnownModelName, Model
+from pydantic_ai.result import FinalResult
 from pydantic_ai.tools import GenerateToolJsonSchema
+from pydantic_graph import End
 
 from llmling_agent.agent.context import AgentContext
+from llmling_agent.agent.pydanticai.utils import (
+    convert_prompts_to_user_content,
+    get_tool_calls,
+)
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messages import TokenCost
 from llmling_agent.tasks.exceptions import (
@@ -32,11 +41,6 @@ from llmling_agent.tasks.exceptions import (
 )
 from llmling_agent.tools import ToolCallInfo
 from llmling_agent.utils.inspection import execute, has_argument_type
-from llmling_agent_providers.base import ProviderResponse
-from llmling_agent_providers.pydanticai.utils import (
-    convert_prompts_to_user_content,
-    get_tool_calls,
-)
 
 
 if TYPE_CHECKING:
@@ -47,6 +51,7 @@ if TYPE_CHECKING:
         AgentRunResultEvent,
         AgentStreamEvent,
         BuiltinToolCallPart,
+        ModelMessage,
         UsageLimits,
     )
     from pydantic_ai.agent import AgentRunResult, EventStreamHandler
@@ -56,8 +61,23 @@ if TYPE_CHECKING:
     from llmling_agent.models.content import Content
     from llmling_agent.tools.base import Tool
 
+logger = get_logger(__name__)
 
 logger = get_logger(__name__)
+TResult_co = TypeVar("TResult_co", default=str, covariant=True)
+type TNode[TResult_co] = _agent_graph.AgentNode | End[FinalResult[TResult_co]]
+
+
+@dataclass
+class ProviderResponse:
+    """Raw response data from provider."""
+
+    content: Any
+    tool_calls: list[ToolCallInfo] = field(default_factory=list)
+    messages: list[ModelMessage] = field(default_factory=list)
+    response: ModelResponse = field(default_factory=lambda: ModelResponse(parts=[]))
+    cost_and_usage: TokenCost | None = None
+    provider_details: dict[str, Any] | None = None
 
 
 # 🤫 Secret agent stuff below

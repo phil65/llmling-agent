@@ -8,11 +8,11 @@ from typing import TYPE_CHECKING, Any
 from anyenv import method_spawner
 from psygnal import Signal
 
+from llmling_agent.agent.pydanticai.convert_content import content_to_pydantic_ai
 from llmling_agent.messaging.messageemitter import MessageEmitter
 from llmling_agent.messaging.messages import ChatMessage
 from llmling_agent.prompts.convert import convert_prompts
 from llmling_agent.tools import ToolCallInfo
-from llmling_agent_providers.pydanticai.convert_content import content_to_pydantic_ai
 
 
 if TYPE_CHECKING:

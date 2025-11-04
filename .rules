@@ -94,7 +94,6 @@ src/
 ├── llmling_agent_input/        # Input providers (human, textual, etc.)
 ├── llmling_agent_mcp/          # Model Context Protocol integration
 ├── llmling_agent_prompts/      # Prompt hub integrations
-├── llmling_agent_providers/    # LLM providers (PydanticAI, Human, ...)
 ├── llmling_agent_resources/    # Resource management
 ├── llmling_agent_server/       # Web server and API
 ├── llmling_agent_storage/      # Storage providers (SQL, file, memory)
@@ -106,7 +105,6 @@ src/
 ### Module Dependencies
 Dependencies are strictly enforced by `tach.toml`:
 - Core `llmling_agent` depends on most other modules
-- Provider modules (`llmling_agent_providers`) depend on core
 - CLI modules depend on core + commands + UI modules
 - No circular dependencies allowed
 
@@ -123,11 +121,6 @@ Dependencies are strictly enforced by `tach.toml`:
 - **TeamRuns**: Sequential execution chains (`agent1 | agent2`)
 - **Connections**: Configurable message routing between nodes
 
-### Provider System
-- **Base classes**: Abstract providers in `llmling_agent_providers/base.py`
-- **Implementations**: Separate modules for each provider type
-- **Tool integration**: Unified tool calling across all providers
-- **Streaming support**: Async streaming for real-time responses
 
 ## File Naming Conventions
 

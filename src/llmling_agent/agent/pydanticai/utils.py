@@ -124,7 +124,7 @@ async def convert_prompts_to_user_content(
     Returns:
         List of strings and pydantic-ai UserContent objects
     """
-    from llmling_agent_providers.pydanticai.convert_content import content_to_pydantic_ai
+    from llmling_agent.agent.pydanticai.convert_content import content_to_pydantic_ai
 
     # Special case: if we only have string prompts, format them together
     # if all(isinstance(p, str) for p in prompts):
