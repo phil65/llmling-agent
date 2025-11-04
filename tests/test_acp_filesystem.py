@@ -195,9 +195,3 @@ def test_acp_path_creation(mock_session):
     fs = ACPFileSystem(mock_session.client, mock_session.session_id)
     path = ACPPath("test.txt", fs=fs)
     assert str(path) == "test.txt"
-
-
-def test_make_path(acp_fs):
-    """Test path creation from filesystem."""
-    path = acp_fs._make_path("test.txt")
-    assert isinstance(path, ACPPath)

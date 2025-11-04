@@ -20,7 +20,6 @@ from llmling_agent_config.mcp_server import (
 from llmling_agent_config.observability import ObservabilityConfig
 from llmling_agent_config.output_types import StructuredResponseConfig  # noqa: TC001
 from llmling_agent_config.pool_server import MCPPoolServerConfig
-from llmling_agent_config.providers import BaseProviderConfig
 from llmling_agent_config.resources import (  # noqa: TC001
     ResourceConfig,
     SourceResourceConfig,
@@ -416,16 +415,6 @@ class AgentsManifest(Schema):
             output_type=self.get_output_type(name) or str,
             # name=config.name or name,
         )
-
-    def get_used_providers(self) -> set[str]:
-        """Get all providers configured in this manifest."""
-        providers = set[str]()
-
-        for agent_config in self.agents.values():
-            match agent_config.provider:
-                case ("pydantic_ai" as typ) | BaseProviderConfig(type=typ):
-                    providers.add(typ)
-        return providers
 
     @classmethod
     def from_file(cls, path: JoinablePathLike) -> Self:

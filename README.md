@@ -135,27 +135,17 @@ This is the extended version
 # agents.yml
 agents:
   analyzer:
-    provider:  # Provider configuration
-      type: "pydantic_ai"  # Provider type discriminator
-      name: "PydanticAI Provider"  # Optional provider name
-      end_strategy: "early"  # "early" | "complete" | "confirm"
-      model:  # Model configuration
-        type: "fallback"  # Lot of special "meta-models" included out of the box!
-        models:  # Try models in sequence
-          - "openai:gpt-5"
-          - "openai:gpt-5-nano"
-          - "anthropic:claude-sonnet-4-0"
-      output_retries: 3  # Max retries for result validation
-      defer_model_check: false  # Whether to defer model evaluation
-      validation_enabled: true  # Whether to validate outputs
-      allow_text_fallback: true  # Accept plain text when validation fails
-
     name: "Code Analyzer"  # Display name
     inherits: "base_agent"  # Optional parent config to inherit from
     description: "Code analysis specialist"
     debug: false
     retries: 1  # Number of retries for failed operations
-
+    model:  # Model configuration
+      type: "fallback"  # Lot of special "meta-models" included out of the box!
+      models:  # Try models in sequence
+        - "openai:gpt-5"
+        - "openai:gpt-5-nano"
+        - "anthropic:claude-sonnet-4-0"
     # Structured output
     output_type:
       type: "inline"  # or "import" for Python types
@@ -181,8 +171,6 @@ agents:
     toolsets:
       - type: agent_management  # Enables delegation
       - type: resource_access   # Enables resource loading
-      can_register_tools: true
-      history_access: "own"  # "none" | "own" | "all"
 
     # Environment configuration
     environment:

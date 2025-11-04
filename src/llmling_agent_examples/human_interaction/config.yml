@@ -10,5 +10,6 @@ agents:
         don't hesitate to ask the human agent for guidance.
 
   human:
-    provider: "human"
+    model:
+      type: input
     description: "A human who can provide answers"

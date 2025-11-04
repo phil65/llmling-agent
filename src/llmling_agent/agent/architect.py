@@ -1,17 +1,12 @@
 from __future__ import annotations
 
 import pathlib
-from typing import TYPE_CHECKING
 
 from schemez import YAMLCode
 from upathtools import read_folder_as_text, read_path
 
 from llmling_agent import Agent, models
 import llmling_agent_config
-
-
-if TYPE_CHECKING:
-    from llmling_agent.agent.agent import AgentType
 
 
 SYS_PROMPT = """
@@ -35,7 +30,6 @@ README_URL = "https://raw.githubusercontent.com/phil65/llmling-agent/main/README
 async def create_architect_agent(
     name: str = "config_generator",
     model: str = "openrouter:gpt-5-nano",
-    provider: AgentType = "pydantic_ai",
 ) -> Agent[None, YAMLCode]:
     code = await read_folder_as_text(CONFIG_PATH, pattern="**/*.py")
     core_code = await read_folder_as_text(CORE_CONFIG_PATH, pattern="**/*.py")
@@ -44,7 +38,6 @@ async def create_architect_agent(
     agent = Agent(
         name,
         model=model,
-        provider=provider,
         system_prompt=SYS_PROMPT,
         output_type=YAMLCode,
     )
