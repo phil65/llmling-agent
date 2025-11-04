@@ -2,16 +2,13 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 import inspect
 import re
-from typing import TYPE_CHECKING, Annotated, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import Field, ImportString
 from schemez import Schema
-
-
-if TYPE_CHECKING:
-    from collections.abc import Callable
 
 
 class BaseCommandConfig(Schema):
@@ -96,7 +93,7 @@ class CallableCommandConfig(BaseCommandConfig):
     type: Literal["callable"] = Field("callable", init=False)
     """Callable command configuration."""
 
-    function: ImportString
+    function: ImportString[Callable[..., Any]]
     """Python function import path (e.g., 'my.package.module.function_name')."""
 
     def get_callable(self) -> Callable[..., str]:

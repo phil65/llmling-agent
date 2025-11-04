@@ -9,8 +9,6 @@ from typing import TYPE_CHECKING, Annotated, Literal
 from pydantic import ConfigDict, Field, ImportString
 from schemez import Schema
 
-from llmling_agent.utils.now import get_now
-
 
 if TYPE_CHECKING:
     from llmling_agent.talk.registry import EventContext
@@ -43,6 +41,8 @@ class Jinja2Condition(ConnectionCondition):
 
     async def check(self, ctx: EventContext) -> bool:
         from jinjarope import Environment
+
+        from llmling_agent.utils.now import get_now
 
         env = Environment(trim_blocks=True, lstrip_blocks=True, enable_async=True)
         template = env.from_string(self.template)
@@ -117,6 +117,8 @@ class TimeCondition(ConnectionCondition):
 
     async def check(self, context: EventContext) -> bool:
         """Check if time duration has elapsed."""
+        from llmling_agent.utils.now import get_now
+
         elapsed = get_now() - context.stats.start_time
         return elapsed >= self.duration
 
