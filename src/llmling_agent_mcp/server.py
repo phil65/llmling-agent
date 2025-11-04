@@ -100,7 +100,7 @@ class LLMLingServer:
         # This is a fallback handler in case the client does not support sampling.
         return CreateMessageResult(
             role="user",
-            content=[TextContent(type="text", text="test")],
+            content=TextContent(type="text", text="test"),
             model="test",
         )
 
