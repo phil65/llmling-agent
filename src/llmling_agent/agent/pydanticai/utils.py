@@ -5,11 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, overload
 from uuid import uuid4
 
-from pydantic_ai import (
-    ToolCallPart,
-    ToolReturnPart,
-    messages as _messages,
-)
+from pydantic_ai import ToolCallPart, ToolReturnPart
 
 from llmling_agent.tools import ToolCallInfo
 
@@ -33,35 +29,6 @@ if TYPE_CHECKING:
         StdioMCPServerConfig,
         StreamableHTTPMCPServerConfig,
     )
-
-
-def format_part(  # noqa: PLR0911
-    response: str | _messages.ModelRequestPart | _messages.ModelResponsePart,
-) -> str:
-    """Format any kind of response in a readable way.
-
-    Args:
-        response: Response part to format
-
-    Returns:
-        A human-readable string representation
-    """
-    match response:
-        case str():
-            return response
-        case _messages.TextPart():
-            return response.content
-        case _messages.ToolCallPart():
-            args = str(response.args)
-            return f"Tool call: {response.tool_name}\nArgs: {args}"
-        case _messages.ToolReturnPart():
-            return f"Tool {response.tool_name} returned: {response.content}"
-        case _messages.RetryPromptPart():
-            if isinstance(response.content, str):
-                return f"Retry needed: {response.content}"
-            return f"Validation errors:\n{response.content}"
-        case _:
-            return str(response)
 
 
 def get_tool_calls(
