@@ -469,4 +469,7 @@ class EventObserver:
 
 if __name__ == "__main__":
     # Example usage of the event manager
-    event_manager = EventManager()
+    from llmling_agent import Agent
+
+    agent = Agent()
+    event_manager = EventManager(node=agent)
