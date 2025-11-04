@@ -12,6 +12,10 @@ from schemez.schema import Schema
 from llmling_agent import log
 from llmling_agent.models.agents import AgentConfig  # noqa: TC001
 from llmling_agent.resource_registry import ResourceRegistry
+from llmling_agent_config.commands import (  # noqa: TC001
+    CommandConfig,
+    StaticCommandConfig,
+)
 from llmling_agent_config.converters import ConversionConfig
 from llmling_agent_config.mcp_server import (
     BaseMCPServerConfig,
@@ -106,6 +110,17 @@ class AgentsManifest(Schema):
     which exposes pool functionality to other applications / clients."""
 
     prompts: PromptLibraryConfig = Field(default_factory=PromptLibraryConfig)
+
+    commands: dict[str, CommandConfig | str] = Field(default_factory=dict)
+    """Global command shortcuts for prompt injection.
+
+    Supports both shorthand string syntax and full command configurations:
+        commands:
+          df: "check disk space"  # shorthand -> StaticCommandConfig
+          analyze:  # full config
+            type: file
+            path: "./prompts/analysis.md"
+    """
 
     model_config = ConfigDict(use_attribute_docstrings=True, extra="forbid")
 
@@ -316,6 +331,25 @@ class AgentsManifest(Schema):
             BaseMCPServerConfig.from_string(cfg) if isinstance(cfg, str) else cfg
             for cfg in self.mcp_servers
         ]
+
+    def get_command_configs(self) -> dict[str, CommandConfig]:
+        """Get processed command configurations.
+
+        Converts string entries to StaticCommandConfig instances.
+
+        Returns:
+            Dict mapping command names to CommandConfig instances
+        """
+        result: dict[str, CommandConfig] = {}
+        for name, config in self.commands.items():
+            if isinstance(config, str):
+                result[name] = StaticCommandConfig(name=name, content=config)
+            else:
+                # Set name if not provided
+                if config.name is None:
+                    config.name = name
+                result[name] = config
+        return result
 
     @cached_property
     def prompt_manager(self) -> PromptManager:

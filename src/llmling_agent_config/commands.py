@@ -1,0 +1,205 @@
+"""Command configuration for prompt shortcuts."""
+
+from __future__ import annotations
+
+import inspect
+import re
+from typing import TYPE_CHECKING, Annotated, Literal
+
+from pydantic import Field, ImportString
+from schemez import Schema
+
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+
+class BaseCommandConfig(Schema):
+    """Base configuration for commands."""
+
+    type: str
+    """Type discriminator for command configurations."""
+
+    name: str | None = None
+    """Command name (optional, can be inferred from key)."""
+
+    description: str | None = None
+    """Optional description of what this command does."""
+
+    def get_callable(self) -> Callable[..., str]:
+        """Generate a callable function from the command configuration.
+
+        Returns:
+            A function with proper signature that can be introspected by libraries
+            like slashed that examine Python callables.
+        """
+        raise NotImplementedError
+
+
+class StaticCommandConfig(BaseCommandConfig):
+    """Static command with inline content."""
+
+    type: Literal["static"] = Field("static", init=False)
+    """Static command configuration."""
+
+    content: str
+    """The prompt template content. Supports ${env.VAR} substitution."""
+
+    def get_callable(self) -> Callable[..., str]:
+        """Generate a callable function from the static command content.
+
+        Parses {param} placeholders in content to create function parameters.
+
+        Returns:
+            A function with signature matching the template parameters
+        """
+        # Extract parameter names from {param} placeholders
+        param_names = list(set(re.findall(r"\{(\w+)\}", self.content)))
+        param_names.sort()  # Consistent ordering
+
+        # Create function that does template substitution
+        def command_func(*args, **kwargs):
+            """Generated command function."""
+            # Build substitution dict from args and kwargs
+            substitutions = {}
+            for i, name in enumerate(param_names):
+                if i < len(args):
+                    substitutions[name] = args[i]
+                elif name in kwargs:
+                    substitutions[name] = kwargs[name]
+                else:
+                    substitutions[name] = ""  # Default empty string
+
+            # Substitute into template
+            return self.content.format(**substitutions)
+
+        # Create proper signature
+        parameters = [
+            inspect.Parameter(
+                name, inspect.Parameter.POSITIONAL_OR_KEYWORD, annotation=str, default=""
+            )
+            for name in param_names
+        ]
+        signature = inspect.Signature(parameters, return_annotation=str)
+
+        # Set function metadata
+        command_func.__name__ = self.name or "unnamed_command"
+        command_func.__doc__ = self.description or self.content
+        command_func.__signature__ = signature  # type: ignore
+
+        return command_func
+
+
+class CallableCommandConfig(BaseCommandConfig):
+    """Callable command that references a Python function."""
+
+    type: Literal["callable"] = Field("callable", init=False)
+    """Callable command configuration."""
+
+    function: ImportString
+    """Python function import path (e.g., 'my.package.module.function_name')."""
+
+    def get_callable(self) -> Callable[..., str]:
+        """Return the imported function directly.
+
+        Returns:
+            The imported Python function
+
+        Raises:
+            ImportError: If the function cannot be imported
+            TypeError: If the imported object is not callable
+        """
+        func = self.function
+        if not callable(func):
+            msg = f"Imported object {self.function} is not callable"
+            raise TypeError(msg)
+
+        # Set name if not provided
+        if self.name is None and hasattr(func, "__name__"):
+            func.__name__ = self.name or func.__name__
+        elif self.name:
+            func.__name__ = self.name
+
+        # Set description as docstring if provided
+        if self.description and not func.__doc__:
+            func.__doc__ = self.description
+        elif self.description:
+            # Prepend description to existing docstring
+            existing_doc = func.__doc__ or ""
+            func.__doc__ = f"{self.description}\n\n{existing_doc}".strip()
+
+        return func
+
+
+class FileCommandConfig(BaseCommandConfig):
+    """File-based command that loads content from external file."""
+
+    type: Literal["file"] = Field("file", init=False)
+    """File-based command configuration."""
+
+    path: str
+    """Path to file containing the prompt template."""
+
+    encoding: str = "utf-8"
+    """File encoding to use when reading the file."""
+
+    def get_callable(self) -> Callable[..., str]:
+        """Generate a callable function from the file-based command.
+
+        Loads content from file and creates function with parameters
+        based on {param} placeholders in the file content.
+
+        Returns:
+            A function with signature matching the template parameters
+
+        Raises:
+            FileNotFoundError: If the specified file doesn't exist
+            UnicodeDecodeError: If file cannot be decoded with specified encoding
+        """
+        from pathlib import Path
+
+        # Load content from file
+        file_path = Path(self.path)
+        content = file_path.read_text(encoding=self.encoding)
+
+        # Extract parameter names from {param} placeholders
+        param_names = list(set(re.findall(r"\{(\w+)\}", content)))
+        param_names.sort()  # Consistent ordering
+
+        # Create function that does template substitution
+        def command_func(*args, **kwargs):
+            """Generated command function from file."""
+            # Build substitution dict from args and kwargs
+            substitutions = {}
+            for i, name in enumerate(param_names):
+                if i < len(args):
+                    substitutions[name] = args[i]
+                elif name in kwargs:
+                    substitutions[name] = kwargs[name]
+                else:
+                    substitutions[name] = ""  # Default empty string
+
+            # Substitute into template
+            return content.format(**substitutions)
+
+        # Create proper signature
+        parameters = [
+            inspect.Parameter(
+                name, inspect.Parameter.POSITIONAL_OR_KEYWORD, annotation=str, default=""
+            )
+            for name in param_names
+        ]
+        signature = inspect.Signature(parameters, return_annotation=str)
+
+        # Set function metadata
+        command_func.__name__ = self.name or "unnamed_command"
+        command_func.__doc__ = self.description or f"Command from {self.path}"
+        command_func.__signature__ = signature  # type: ignore
+
+        return command_func
+
+
+CommandConfig = Annotated[
+    StaticCommandConfig | FileCommandConfig | CallableCommandConfig,
+    Field(discriminator="type"),
+]
