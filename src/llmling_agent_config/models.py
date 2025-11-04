@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Annotated, Any, Literal
 
-from pydantic import Field, ImportString, SecretStr
+from pydantic import ConfigDict, Field, ImportString, SecretStr
 from schemez import Schema
 
 
@@ -346,6 +346,43 @@ class TestModelConfig(BaseModelConfig):
             custom_output_text=self.custom_output_text,
             call_tools=self.call_tools,
         )
+
+
+class ModelSettings(Schema):
+    """Settings to configure an LLM."""
+
+    max_output_tokens: int | None = None
+    """The maximum number of tokens to generate."""
+
+    temperature: float | None = Field(None, ge=0.0, le=2.0)
+    """Amount of randomness in the response (0.0 - 2.0)."""
+
+    top_p: float | None = Field(None, ge=0.0, le=1.0)
+    """An alternative to sampling with temperature, called nucleus sampling."""
+
+    timeout: float | None = None
+    """Override the client-level default timeout for a request, in seconds."""
+
+    parallel_tool_calls: bool | None = None
+    """Whether to allow parallel tool calls."""
+
+    seed: int | None = None
+    """The random seed to use for the model."""
+
+    presence_penalty: float | None = Field(None, ge=-2.0, le=2.0)
+    """Penalize new tokens based on whether they have appeared in the text so far."""
+
+    frequency_penalty: float | None = Field(None, ge=-2.0, le=2.0)
+    """Penalize new tokens based on their existing frequency in the text so far."""
+
+    logit_bias: dict[str, int] | None = None
+    """Modify the likelihood of specified tokens appearing in the completion."""
+
+    model_config = ConfigDict(frozen=True)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Convert to TypedDict format for pydantic-ai."""
+        return {k: v for k, v in self.model_dump().items() if v is not None}
 
 
 AnyModelConfig = Annotated[

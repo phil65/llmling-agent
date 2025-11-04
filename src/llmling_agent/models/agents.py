@@ -35,7 +35,6 @@ from llmling_agent_config.knowledge import Knowledge  # noqa: TC001
 from llmling_agent_config.models import AnyModelConfig  # noqa: TC001
 from llmling_agent_config.nodes import NodeConfig
 from llmling_agent_config.output_types import StructuredResponseConfig  # noqa: TC001
-from llmling_agent_config.providers import ProviderConfig  # noqa: TC001
 from llmling_agent_config.session import MemoryConfig, SessionQuery
 from llmling_agent_config.system_prompts import PromptConfig  # noqa: TC001
 from llmling_agent_config.tools import BaseToolConfig, ToolConfig  # noqa: TC001
@@ -46,11 +45,9 @@ from llmling_agent_config.workers import WorkerConfig  # noqa: TC001
 if TYPE_CHECKING:
     from llmling_agent.resource_providers.base import ResourceProvider
     from llmling_agent.tools.base import Tool
-    from llmling_agent_providers.base import AgentProvider
 
 
 ToolConfirmationMode = Literal["always", "never", "per_tool"]
-ProviderName = Literal["pydantic_ai", "human"]
 
 logger = log.get_logger(__name__)
 
@@ -67,9 +64,6 @@ class AgentConfig(NodeConfig):
 
     The configuration can be loaded from YAML or created programmatically.
     """
-
-    provider: ProviderConfig | ProviderName = "pydantic_ai"
-    """Provider configuration or shorthand type"""
 
     inherits: str | None = None
     """Name of agent config to inherit from"""
@@ -306,33 +300,6 @@ class AgentConfig(NodeConfig):
                 case BasePrompt():
                     prompts.append(prompt)
         return prompts
-
-    def get_provider(self) -> AgentProvider:
-        """Get resolved provider instance.
-
-        Creates provider instance based on configuration:
-        - Full provider config: Use as-is
-        - Shorthand type: Create default provider config
-        """
-        # If string shorthand is used, convert to default provider config
-        from llmling_agent_config.providers import (
-            HumanProviderConfig,
-            PydanticAIProviderConfig,
-        )
-
-        provider_config = self.provider
-        if isinstance(provider_config, str):
-            match provider_config:
-                case "pydantic_ai":
-                    provider_config = PydanticAIProviderConfig(model=self.model)
-                case "human":
-                    provider_config = HumanProviderConfig()
-                case _:
-                    msg = f"Invalid provider type: {provider_config}"
-                    raise ValueError(msg)
-
-        # Create provider instance from config
-        return provider_config.get_provider()
 
     def render_system_prompts(self, context: dict[str, Any] | None = None) -> list[str]:
         """Render system prompts with context."""

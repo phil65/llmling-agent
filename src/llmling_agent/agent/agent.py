@@ -11,7 +11,6 @@ import time
 from typing import (
     TYPE_CHECKING,
     Any,
-    Literal,
     Self,
     TypedDict,
     get_type_hints,
@@ -78,12 +77,10 @@ if TYPE_CHECKING:
     from llmling_agent_config.session import SessionQuery
     from llmling_agent_config.task import Job
     from llmling_agent_input.base import InputProvider
+    from llmling_agent_providers.base import AgentProvider
 
 from llmling_agent.common_types import IndividualEventHandler
-from llmling_agent_providers.base import AgentProvider
 
-
-AgentType = Literal["pydantic_ai", "human"] | AgentProvider
 
 logger = get_logger(__name__)
 # OutputDataT = TypeVar('OutputDataT', default=str, covariant=True)
@@ -93,7 +90,6 @@ class AgentKwargs(TypedDict, total=False):
     """Keyword arguments for configuring an Agent instance."""
 
     # Core Identity
-    provider: AgentType
     description: str | None
 
     # Model Configuration
@@ -155,7 +151,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         # we dont use AgentKwargs here so that we can work with explicit ones in the ctor
         self,
         name: str = "llmling-agent",
-        provider: AgentType = "pydantic_ai",
         *,
         deps_type: type[TDeps] | None = None,
         model: ModelType = None,
@@ -181,7 +176,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
 
         Args:
             name: Name of the agent for logging and identification
-            provider: Agent type to use
             deps_type: Type of dependencies to use
             model: The default model to use (defaults to GPT-5)
             output_type: The default output type to use (defaults to str)
@@ -215,7 +209,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         from llmling_agent.agent.conversation import ConversationManager
         from llmling_agent.agent.interactions import Interactions
         from llmling_agent.agent.sys_prompts import SystemPrompts
-        from llmling_agent_providers.base import AgentProvider
+        from llmling_agent_providers.pydanticai import PydanticAIProvider
 
         self.task_manager = TaskManager()
         self._infinite = False
@@ -287,33 +281,19 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             resources.extend(ctx.config.knowledge.get_resources())
         self.conversation = ConversationManager(self, memory_cfg, resources=resources)
         # Initialize provider
-        match provider:
-            case "pydantic_ai":
-                from llmling_agent_providers.pydanticai import PydanticAIProvider
 
-                if model and not isinstance(model, str):
-                    from pydantic_ai import models
+        if model and not isinstance(model, str):
+            from pydantic_ai import models
 
-                    assert isinstance(model, models.Model)
-                self._provider: AgentProvider = PydanticAIProvider(
-                    model=model,
-                    retries=retries,
-                    end_strategy=end_strategy,
-                    output_retries=output_retries,
-                    debug=debug,
-                    context=ctx,
-                )
-            case "human":
-                from llmling_agent_providers.human import HumanProvider
-
-                self._provider = HumanProvider(name=name, debug=debug, context=ctx)
-
-            case AgentProvider():
-                self._provider = provider
-                self._provider.context = ctx
-            case _:
-                msg = f"Invalid agent type: {type}"
-                raise ValueError(msg)
+            assert isinstance(model, models.Model)
+        self._provider: AgentProvider = PydanticAIProvider(
+            model=model,
+            retries=retries,
+            end_strategy=end_strategy,
+            output_retries=output_retries,
+            debug=debug,
+            context=ctx,
+        )
 
         # Initialize skills registry
         from llmling_agent.tools.skills import SkillsRegistry

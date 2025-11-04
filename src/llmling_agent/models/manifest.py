@@ -403,7 +403,9 @@ class AgentsManifest(Schema):
         return Agent(
             runtime=runtime,
             context=context,
-            provider=config.get_provider(),
+            model=config.model
+            if isinstance(config.model, str) or config.model is None
+            else config.model.get_model(),
             system_prompt=sys_prompts,
             name=name,
             description=config.description,
