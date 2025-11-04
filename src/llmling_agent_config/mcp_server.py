@@ -11,6 +11,12 @@ from schemez import Schema
 
 if TYPE_CHECKING:
     from mcp_interviewer import ServerScoreCard
+    from pydantic_ai.mcp import (
+        MCPServer,
+        MCPServerSSE,
+        MCPServerStdio,
+        MCPServerStreamableHTTP,
+    )
 
 
 class MCPServerAuthSettings(Schema):
@@ -58,6 +64,17 @@ class BaseMCPServerConfig(Schema):
         env["PYTHONIOENCODING"] = "utf-8"
         return env
 
+    def to_pydantic_ai(self) -> MCPServer:
+        """Convert to pydantic-ai MCP server instance.
+
+        Returns:
+            A pydantic-ai MCP server instance
+
+        Raises:
+            NotImplementedError: Must be implemented by subclasses
+        """
+        raise NotImplementedError
+
     @property
     def client_id(self) -> str:
         """Generate a unique client ID for this server configuration."""
@@ -102,6 +119,18 @@ class StdioMCPServerConfig(BaseMCPServerConfig):
         """Generate a unique client ID for this stdio server configuration."""
         return f"{self.command}_{' '.join(self.args)}"
 
+    def to_pydantic_ai(self) -> MCPServerStdio:
+        """Convert to pydantic-ai MCPServerStdio instance."""
+        from pydantic_ai.mcp import MCPServerStdio
+
+        return MCPServerStdio(
+            command=self.command,
+            args=self.args,
+            env=self.get_env_vars() if self.env else None,
+            id=self.name,
+            timeout=self.timeout,
+        )
+
     async def check(self) -> ServerScoreCard:
         from mcp_interviewer import MCPInterviewer
         from mcp_interviewer.models import StdioServerParameters
@@ -133,6 +162,17 @@ class SSEMCPServerConfig(BaseMCPServerConfig):
     def client_id(self) -> str:
         """Generate a unique client ID for this SSE server configuration."""
         return f"sse_{self.url}"
+
+    def to_pydantic_ai(self) -> MCPServerSSE:
+        """Convert to pydantic-ai MCPServerSSE instance."""
+        from pydantic_ai.mcp import MCPServerSSE
+
+        return MCPServerSSE(
+            url=str(self.url),
+            headers=self.headers,
+            id=self.name,
+            timeout=self.timeout,
+        )
 
     async def check(self) -> ServerScoreCard:
         from mcp_interviewer import MCPInterviewer
@@ -169,6 +209,17 @@ class StreamableHTTPMCPServerConfig(BaseMCPServerConfig):
     def client_id(self) -> str:
         """Generate a unique client ID for this streamable HTTP server configuration."""
         return f"streamable_http_{self.url}"
+
+    def to_pydantic_ai(self) -> MCPServerStreamableHTTP:
+        """Convert to pydantic-ai MCPServerStreamableHTTP instance."""
+        from pydantic_ai.mcp import MCPServerStreamableHTTP
+
+        return MCPServerStreamableHTTP(
+            url=str(self.url),
+            headers=self.headers,
+            id=self.name,
+            timeout=self.timeout,
+        )
 
     async def check(self) -> ServerScoreCard:
         from mcp_interviewer import MCPInterviewer

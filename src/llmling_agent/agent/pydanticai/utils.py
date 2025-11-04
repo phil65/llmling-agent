@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, overload
+from typing import TYPE_CHECKING
 from uuid import uuid4
 
 from pydantic_ai import ToolCallPart, ToolReturnPart
@@ -12,20 +12,8 @@ from llmling_agent.tools import ToolCallInfo
 
 if TYPE_CHECKING:
     from pydantic_ai import ModelMessage
-    from pydantic_ai.mcp import (
-        MCPServer,
-        MCPServerSSE,
-        MCPServerStdio,
-        MCPServerStreamableHTTP,
-    )
 
     from llmling_agent.tools.base import Tool
-    from llmling_agent_config.mcp_server import (
-        MCPServerConfig,
-        SSEMCPServerConfig,
-        StdioMCPServerConfig,
-        StreamableHTTPMCPServerConfig,
-    )
 
 
 def get_tool_calls(
@@ -75,66 +63,3 @@ def parts_to_tool_call_info(
         timestamp=return_part.timestamp,
         agent_tool_name=agent_tool_name,
     )
-
-
-@overload
-def mcp_config_to_pydantic_ai(config: StdioMCPServerConfig) -> MCPServerStdio: ...
-
-
-@overload
-def mcp_config_to_pydantic_ai(config: SSEMCPServerConfig) -> MCPServerSSE: ...
-
-
-@overload
-def mcp_config_to_pydantic_ai(
-    config: StreamableHTTPMCPServerConfig,
-) -> MCPServerStreamableHTTP: ...
-
-
-@overload
-def mcp_config_to_pydantic_ai(config: MCPServerConfig) -> MCPServer: ...
-
-
-def mcp_config_to_pydantic_ai(config: MCPServerConfig) -> MCPServer:
-    """Convert llmling-agent MCP server config to pydantic-ai MCP server.
-
-    Args:
-        config: The MCP server configuration to convert
-
-    Returns:
-        A pydantic-ai MCP server instance
-
-    Raises:
-        ValueError: If server type is not supported
-    """
-    from pydantic_ai.mcp import MCPServerSSE, MCPServerStdio, MCPServerStreamableHTTP
-
-    match config.type:
-        case "stdio":
-            return MCPServerStdio(
-                command=config.command,
-                args=config.args,
-                env=config.get_env_vars() if config.env else None,
-                id=config.name,
-                timeout=config.timeout,
-            )
-
-        case "sse":
-            return MCPServerSSE(
-                url=str(config.url),
-                headers=config.headers,
-                id=config.name,
-                timeout=config.timeout,
-            )
-
-        case "streamable-http":
-            return MCPServerStreamableHTTP(
-                url=str(config.url),
-                headers=config.headers,
-                id=config.name,
-                timeout=config.timeout,
-            )
-
-        case _:
-            msg = f"Unsupported MCP server type: {config.type}"
-            raise ValueError(msg)

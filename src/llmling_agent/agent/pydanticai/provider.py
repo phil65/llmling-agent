@@ -28,9 +28,7 @@ from pydantic_ai.tools import GenerateToolJsonSchema
 from pydantic_graph import End
 
 from llmling_agent.agent.context import AgentContext
-from llmling_agent.agent.pydanticai.utils import (
-    get_tool_calls,
-)
+from llmling_agent.agent.pydanticai.utils import get_tool_calls
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messages import TokenCost
 from llmling_agent.tasks.exceptions import (
