@@ -141,7 +141,6 @@ class PydanticAIProvider:
         self.model_settings = model_settings or {}
         self._model = model
         self._kwargs: dict[str, Any] = dict(
-            model=model,
             name=name,
             tools=[],
             retries=retries,
@@ -160,11 +159,12 @@ class PydanticAIProvider:
         self,
         system_prompt: str,
         tools: list[Tool],
+        override_model: str | Model | None = None,
     ) -> PydanticAgent[Any, Any]:
         kwargs = self._kwargs.copy()
-        model = kwargs.pop("model", None)
-        model = infer_model(model) if isinstance(model, str) else model
-        agent = PydanticAgent(model=model, instructions=system_prompt, **kwargs)  # type: ignore
+        model = override_model or self._model
+        model_ = infer_model(model) if isinstance(model, str) else model
+        agent = PydanticAgent(model=model_, instructions=system_prompt, **kwargs)  # type: ignore
         for tool in tools:
             wrapped = (
                 wrap_tool(tool, self._context)
@@ -209,7 +209,11 @@ class PydanticAIProvider:
         **kwargs: Any,
     ) -> ProviderResponse:
         """Generate response using pydantic-ai."""
-        agent = await self.get_agent(system_prompt or "", tools=tools or [])
+        agent = await self.get_agent(
+            system_prompt or "",
+            tools=tools or [],
+            override_model=model,
+        )
         tool_dict = {i.name: i for i in tools or []}
 
         # Create event stream handler for real-time tool signals
@@ -304,13 +308,12 @@ class PydanticAIProvider:
         if isinstance(model, str):
             model = infer_model(model)
         self._model = model
-        self._kwargs["model"] = model
         logger.debug("Changed model", old_name=old_name, new_name=self.model_name)
 
     @property
     def model_name(self) -> str | None:
         """Get the model name in a consistent format."""
-        match model := self._kwargs["model"]:
+        match model := self._model:
             case str() | None:
                 return model
             case Model():
@@ -351,11 +354,11 @@ class PydanticAIProvider:
         **kwargs: Any,
     ) -> AsyncIterator[AgentStreamEvent | AgentRunResultEvent[TResult]]:
         """Stream events directly from pydantic-ai without wrapper complexity."""
-        agent = await self.get_agent(system_prompt or "", tools=tools or [])
-        use_model = model or self.model
-        if isinstance(use_model, str):
-            use_model = infer_model(use_model)
-
+        agent = await self.get_agent(
+            system_prompt or "",
+            tools=tools or [],
+            override_model=model,
+        )
         tool_dict = {i.name: i for i in tools or []}
         async for event in agent.run_stream_events(
             [i if isinstance(i, str) else i.to_pydantic_ai() for i in prompts],
