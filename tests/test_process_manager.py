@@ -31,14 +31,14 @@ def mock_process():
     return process
 
 
-async def test_process_manager_initialization(process_manager):
+async def test_process_manager_initialization(process_manager: ProcessManager):
     """Test ProcessManager initializes correctly."""
     assert isinstance(process_manager._processes, dict)
     assert isinstance(process_manager._output_tasks, dict)
     assert len(process_manager._processes) == 0
 
 
-async def test_start_process_success(process_manager, mock_process):
+async def test_start_process_success(process_manager: ProcessManager, mock_process):
     """Test successfully starting a process."""
     with patch("asyncio.create_subprocess_exec", return_value=mock_process):
         process_id = await process_manager.start_process("echo", ["hello"])
@@ -53,7 +53,7 @@ async def test_start_process_success(process_manager, mock_process):
         assert running_proc.process == mock_process
 
 
-async def test_start_process_with_options(process_manager, mock_process):
+async def test_start_process_with_options(process_manager: ProcessManager, mock_process):
     """Test starting a process with environment and working directory."""
     with patch(
         "asyncio.create_subprocess_exec", return_value=mock_process
@@ -74,7 +74,7 @@ async def test_start_process_with_options(process_manager, mock_process):
         assert "TEST_VAR" in call_args[1]["env"]
 
 
-async def test_start_process_failure(process_manager):
+async def test_start_process_failure(process_manager: ProcessManager):
     """Test handling process creation failure."""
     with (
         patch("asyncio.create_subprocess_exec", side_effect=OSError("Command not found")),
@@ -83,7 +83,7 @@ async def test_start_process_failure(process_manager):
         await process_manager.start_process("nonexistent_command")
 
 
-async def test_get_output_success(process_manager, mock_process):
+async def test_get_output_success(process_manager: ProcessManager, mock_process):
     """Test getting process output."""
     with patch("asyncio.create_subprocess_exec", return_value=mock_process):
         process_id = await process_manager.start_process("echo", ["hello"])
@@ -99,13 +99,13 @@ async def test_get_output_success(process_manager, mock_process):
         assert output.combined == "Hello\n"
 
 
-async def test_get_output_nonexistent_process(process_manager):
+async def test_get_output_nonexistent_process(process_manager: ProcessManager):
     """Test getting output for non-existent process."""
     with pytest.raises(ValueError, match="Process nonexistent not found"):
         await process_manager.get_output("nonexistent")
 
 
-async def test_wait_for_exit(process_manager, mock_process):
+async def test_wait_for_exit(process_manager: ProcessManager, mock_process):
     """Test waiting for process completion."""
     mock_process.wait.return_value = 42
 
@@ -117,7 +117,7 @@ async def test_wait_for_exit(process_manager, mock_process):
         mock_process.wait.assert_called_once()
 
 
-async def test_kill_process(process_manager, mock_process):
+async def test_kill_process(process_manager: ProcessManager, mock_process):
     """Test killing a running process."""
     mock_process.returncode = None  # Still running
 
@@ -129,13 +129,13 @@ async def test_kill_process(process_manager, mock_process):
         mock_process.terminate.assert_called_once()
 
 
-async def test_kill_nonexistent_process(process_manager):
+async def test_kill_nonexistent_process(process_manager: ProcessManager):
     """Test killing non-existent process."""
     with pytest.raises(ValueError, match="Process nonexistent not found"):
         await process_manager.kill_process("nonexistent")
 
 
-async def test_release_process(process_manager, mock_process):
+async def test_release_process(process_manager: ProcessManager, mock_process):
     """Test releasing process resources."""
     with patch("asyncio.create_subprocess_exec", return_value=mock_process):
         process_id = await process_manager.start_process("test_cmd")
@@ -151,7 +151,7 @@ async def test_release_process(process_manager, mock_process):
         assert process_id not in process_manager._output_tasks
 
 
-async def test_list_processes(process_manager, mock_process):
+async def test_list_processes(process_manager: ProcessManager, mock_process):
     """Test listing active processes."""
     assert process_manager.list_processes() == []
 
@@ -165,7 +165,7 @@ async def test_list_processes(process_manager, mock_process):
         assert process_id2 in processes
 
 
-async def test_get_process_info(process_manager, mock_process):
+async def test_get_process_info(process_manager: ProcessManager, mock_process):
     """Test getting process information."""
     with patch("asyncio.create_subprocess_exec", return_value=mock_process):
         process_id = await process_manager.start_process("test_cmd", ["arg1"])
@@ -179,7 +179,7 @@ async def test_get_process_info(process_manager, mock_process):
         assert "is_running" in info
 
 
-async def test_cleanup(process_manager, mock_process):
+async def test_cleanup(process_manager: ProcessManager, mock_process):
     """Test cleaning up all processes."""
     mock_process.returncode = None  # Still running
 
