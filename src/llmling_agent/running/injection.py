@@ -22,11 +22,10 @@ def is_node_type(typ: Any) -> bool:
     """Check if a type is or inherits from MessageNode."""
     from llmling_agent import MessageNode
 
-    # Direct type check
     if typ is MessageNode:
         return True
 
-    # For actual types (not GenericAlias etc)
+    # For "real" types
     if isinstance(typ, type):
         return issubclass(typ, MessageNode)
 
@@ -50,10 +49,13 @@ def inject_nodes[T, **P](
     """Get nodes to inject based on function signature."""
     hints = typing.get_type_hints(func)
     params = inspect.signature(func).parameters
-    msg = "Injecting nodes"
-    logger.debug(msg, module=func.__module__, name=func.__qualname__)
-    logger.debug("Type hints", hints=hints)
-    logger.debug("Available nodes in pool", nodes=sorted(pool.nodes))
+    logger.debug(
+        "Injecting nodes",
+        module=func.__module__,
+        name=func.__qualname__,
+        type_hint=hints,
+        nodes=sorted(pool.nodes),
+    )
 
     nodes: dict[str, MessageNode[Any, Any]] = {}
     for name, param in params.items():
