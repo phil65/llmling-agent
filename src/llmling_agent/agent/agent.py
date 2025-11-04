@@ -65,6 +65,7 @@ if TYPE_CHECKING:
         AgentName,
         EndStrategy,
         ModelType,
+        ProcessorCallback,
         PromptCompatible,
         SessionIdType,
         ToolType,
@@ -74,7 +75,6 @@ if TYPE_CHECKING:
     from llmling_agent.resource_providers.base import ResourceProvider
     from llmling_agent_config.mcp_server import MCPServerConfig
     from llmling_agent_config.output_types import StructuredResponseConfig
-    from llmling_agent_config.providers import ProcessorCallback
     from llmling_agent_config.session import SessionQuery
     from llmling_agent_config.task import Job
     from llmling_agent_input.base import InputProvider

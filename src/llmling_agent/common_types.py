@@ -25,6 +25,7 @@ SimpleJsonType = dict[
     str, bool | int | float | str | list[str] | dict[str, bool | int | float | str]
 ]
 type SessionIdType = str | UUID | None
+type ProcessorCallback[TResult] = Callable[..., TResult | Awaitable[TResult]]
 
 
 NodeName = str

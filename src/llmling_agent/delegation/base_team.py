@@ -26,12 +26,16 @@ if TYPE_CHECKING:
     from toprompt import AnyPromptType
 
     from llmling_agent import Agent, AgentPool, Team
-    from llmling_agent.common_types import ModelType, PromptCompatible, ToolType
+    from llmling_agent.common_types import (
+        ModelType,
+        ProcessorCallback,
+        PromptCompatible,
+        ToolType,
+    )
     from llmling_agent.delegation.teamrun import ExtendedTeamTalk, TeamRun
     from llmling_agent.messaging.messages import ChatMessage, TeamResponse
     from llmling_agent.talk.stats import AggregatedTalkStats
     from llmling_agent_config.mcp_server import MCPServerConfig
-    from llmling_agent_config.providers import ProcessorCallback
     from llmling_agent_config.session import SessionQuery
     from llmling_agent_providers.base import AgentProvider
 

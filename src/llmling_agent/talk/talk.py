@@ -24,6 +24,7 @@ if TYPE_CHECKING:
     from llmling_agent.common_types import (
         AnyFilterFn,
         AnyTransformFn,
+        ProcessorCallback,
         PromptCompatible,
         QueueStrategy,
     )
@@ -32,7 +33,6 @@ if TYPE_CHECKING:
     from llmling_agent.messaging.messagenode import MessageNode
     from llmling_agent_config.events import ConnectionEventType
     from llmling_agent_config.forward_targets import ConnectionType
-    from llmling_agent_config.providers import ProcessorCallback
 
 logger = get_logger(__name__)
 

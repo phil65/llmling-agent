@@ -25,6 +25,7 @@ if TYPE_CHECKING:
     from llmling_agent.common_types import (
         AnyTransformFn,
         AsyncFilterFn,
+        ProcessorCallback,
         PromptCompatible,
         QueueStrategy,
     )
@@ -35,7 +36,6 @@ if TYPE_CHECKING:
     from llmling_agent.talk import Talk, TeamTalk
     from llmling_agent_config.forward_targets import ConnectionType
     from llmling_agent_config.mcp_server import MCPServerConfig
-    from llmling_agent_config.providers import ProcessorCallback
 
 
 class MessageEmitter[TDeps, TResult](ABC):
