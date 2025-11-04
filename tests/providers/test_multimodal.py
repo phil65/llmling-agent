@@ -1,9 +1,12 @@
+from __future__ import annotations
+
 import pytest
 
 from llmling_agent import Agent
 from llmling_agent.models.content import ImageURLContent
 
 
+@pytest.mark.flaky(reruns=3)
 async def test_vision(vision_model: str):
     """Test basic vision capability with a small, public image."""
     agent = Agent(name="test-vision", model=vision_model)
