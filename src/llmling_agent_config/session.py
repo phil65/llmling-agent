@@ -9,7 +9,6 @@ from pydantic import ConfigDict
 from schemez import Schema
 
 from llmling_agent.common_types import MessageRole
-from llmling_agent.utils.now import get_now
 
 
 if TYPE_CHECKING:
@@ -87,6 +86,7 @@ class SessionQuery(Schema):
 
     def get_time_cutoff(self) -> datetime | None:
         """Get datetime from time period string."""
+        from llmling_agent.utils.now import get_now
         from llmling_agent.utils.parse_time import parse_time_period
 
         if not self.since:

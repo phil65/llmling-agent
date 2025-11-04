@@ -28,6 +28,7 @@ from pydantic_ai import AgentRunResultEvent
 from upath import UPath
 
 from llmling_agent.agent.events import StreamCompleteEvent, ToolCallProgressEvent
+from llmling_agent.common_types import IndividualEventHandler
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messagenode import MessageNode
 from llmling_agent.messaging.messages import ChatMessage, TokenCost
@@ -77,8 +78,6 @@ if TYPE_CHECKING:
     from llmling_agent_config.session import SessionQuery
     from llmling_agent_config.task import Job
     from llmling_agent_input.base import InputProvider
-
-from llmling_agent.common_types import IndividualEventHandler
 
 
 logger = get_logger(__name__)
