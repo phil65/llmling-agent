@@ -32,7 +32,7 @@ if TYPE_CHECKING:
     from llmling_agent.mcp_server.client import ContextualProgressHandler
     from llmling_agent.messaging.context import NodeContext
     from llmling_agent.messaging.messagenode import MessageNode
-    from llmling_agent.models.content import Content
+    from llmling_agent.models.content import BaseContent
     from llmling_agent.talk import Talk, TeamTalk
     from llmling_agent_config.forward_targets import ConnectionType
     from llmling_agent_config.mcp_server import MCPServerConfig
@@ -297,7 +297,7 @@ class MessageEmitter[TDeps, TResult](ABC):
     async def pre_run(
         self,
         *prompt: PromptCompatible | ChatMessage,
-    ) -> tuple[ChatMessage[Any], list[Content | str]]:
+    ) -> tuple[ChatMessage[Any], list[BaseContent | str]]:
         """Hook to prepare a MessgeNode run call.
 
         Args:

@@ -21,7 +21,7 @@ if TYPE_CHECKING:
         MCPServerStreamableHTTP,
     )
 
-    from llmling_agent.models.content import Content
+    from llmling_agent.models.content import BaseContent
     from llmling_agent.tools.base import Tool
     from llmling_agent_config.mcp_server import (
         MCPServerConfig,
@@ -81,7 +81,7 @@ def parts_to_tool_call_info(
 
 
 async def convert_prompts_to_user_content(
-    prompts: Sequence[str | Content],
+    prompts: Sequence[str | BaseContent],
 ) -> list[str | UserContent]:
     """Convert our prompts to pydantic-ai compatible format.
 
@@ -91,8 +91,6 @@ async def convert_prompts_to_user_content(
     Returns:
         List of strings and pydantic-ai UserContent objects
     """
-    from llmling_agent.agent.pydanticai.convert_content import content_to_pydantic_ai
-
     # Special case: if we only have string prompts, format them together
     # if all(isinstance(p, str) for p in prompts):
     #     formatted = await format_prompts(prompts)
@@ -103,7 +101,7 @@ async def convert_prompts_to_user_content(
     for p in prompts:
         if isinstance(p, str):
             result.append(p)
-        elif p_content := content_to_pydantic_ai(p):
+        elif p_content := p.to_pydantic_ai():
             result.append(p_content)
 
     return result

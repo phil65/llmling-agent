@@ -7,12 +7,20 @@ import io
 from typing import TYPE_CHECKING, Annotated, Literal, Self
 
 from pydantic import ConfigDict, Field
+from pydantic_ai import (
+    AudioUrl,
+    BinaryContent,
+    BinaryImage,
+    DocumentUrl,
+    ImageUrl,
+)
 from schemez import Schema
 from upathtools import read_path
 
 
 if TYPE_CHECKING:
     import PIL.Image
+    from pydantic_ai import UserContent
     from upath.types import JoinablePathLike
 
 
@@ -29,6 +37,10 @@ class BaseContent(Schema):
     """Human-readable description of the content."""
 
     model_config = ConfigDict(frozen=True)
+
+    def to_pydantic_ai(self) -> UserContent:
+        msg = "Subclasses must implement this method"
+        raise NotImplementedError(msg)
 
 
 class BaseImageContent(BaseContent):
@@ -84,6 +96,9 @@ class ImageURLContent(BaseImageContent):
     url: str
     """URL to the image."""
 
+    def to_pydantic_ai(self) -> ImageUrl:
+        return ImageUrl(url=self.url)
+
 
 class ImageBase64Content(BaseImageContent):
     """Image from base64 data."""
@@ -96,6 +111,10 @@ class ImageBase64Content(BaseImageContent):
 
     mime_type: str = "image/jpeg"
     """MIME type of the image."""
+
+    def to_pydantic_ai(self) -> BinaryImage:
+        binary_data = base64.b64decode(self.data)
+        return BinaryImage(data=binary_data, media_type=self.mime_type or "image/jpeg")
 
     @classmethod
     def from_bytes(
@@ -169,6 +188,9 @@ class PDFURLContent(BasePDFContent):
     url: str
     """URL to the PDF document."""
 
+    def to_pydantic_ai(self) -> DocumentUrl:
+        return DocumentUrl(url=self.url)
+
 
 class PDFBase64Content(BasePDFContent):
     """PDF from base64 data."""
@@ -191,6 +213,10 @@ class PDFBase64Content(BasePDFContent):
         content = base64.b64encode(data).decode()
         return cls(data=content, detail=detail, description=description)
 
+    def to_pydantic_ai(self) -> BinaryContent:
+        binary_data = base64.b64decode(self.data)
+        return BinaryContent(binary_data, media_type="application/pdf")
+
 
 class AudioContent(BaseContent):
     """Base for audio content."""
@@ -211,6 +237,9 @@ class AudioURLContent(AudioContent):
     url: str
     """URL to the audio."""
 
+    def to_pydantic_ai(self) -> AudioUrl:
+        return AudioUrl(url=self.url)
+
 
 class AudioBase64Content(AudioContent):
     """Audio from base64 data."""
@@ -223,6 +252,10 @@ class AudioBase64Content(AudioContent):
 
     format: str | None = None  # mp3, wav, etc
     """Audio format."""
+
+    def to_pydantic_ai(self) -> BinaryContent:
+        binary_data = base64.b64decode(self.data)
+        return BinaryContent(data=binary_data, media_type=f"audio/{self.format or 'mp3'}")
 
     @classmethod
     def from_bytes(cls, data: bytes, audio_format: str = "mp3") -> Self:

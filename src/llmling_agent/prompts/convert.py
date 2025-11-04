@@ -16,12 +16,11 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from llmling_agent.common_types import PromptCompatible
-    from llmling_agent.models.content import Content
 
 
 async def convert_prompts(
-    prompts: Sequence[PromptCompatible | Content],
-) -> list[str | Content]:
+    prompts: Sequence[PromptCompatible | BaseContent],
+) -> list[str | BaseContent]:
     """Convert prompts to our internal format.
 
     Handles:
@@ -30,7 +29,7 @@ async def convert_prompts(
     - Regular prompts -> str via to_prompt
     - Content objects -> pass through
     """
-    result: list[str | Content] = []
+    result: list[str | BaseContent] = []
     for p in prompts:
         match p:
             case os.PathLike() | upath.UPath():
@@ -41,7 +40,7 @@ async def convert_prompts(
 
                 match mime_type:
                     case "application/pdf":
-                        content: Content = await BasePDFContent.from_path(path_obj)
+                        content: BaseContent = await BasePDFContent.from_path(path_obj)
                         result.append(content)
                     case str() if mime_type.startswith("image/"):
                         content = await BaseImageContent.from_path(path_obj)
@@ -58,7 +57,7 @@ async def convert_prompts(
     return result
 
 
-async def format_prompts(prompts: Sequence[str | Content]) -> str:
+async def format_prompts(prompts: Sequence[str | BaseContent]) -> str:
     """Format prompts for human readability using to_prompt."""
     from toprompt import to_prompt
 

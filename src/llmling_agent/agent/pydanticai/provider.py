@@ -58,7 +58,7 @@ if TYPE_CHECKING:
 
     from llmling_agent.common_types import EndStrategy, IndividualEventHandler, ModelType
     from llmling_agent.messaging.messages import ChatMessage
-    from llmling_agent.models.content import Content
+    from llmling_agent.models.content import BaseContent
     from llmling_agent.tools.base import Tool
 
 logger = get_logger(__name__)
@@ -273,7 +273,7 @@ class PydanticAIProvider:
     @logfire.instrument("Pydantic-AI call. model: {model} result type {output_type}.")
     async def generate_response(
         self,
-        *prompts: str | Content,
+        *prompts: str | BaseContent,
         message_id: str,
         message_history: list[ChatMessage],
         output_type: type[Any] | None = None,
@@ -419,7 +419,7 @@ class PydanticAIProvider:
 
     async def stream_events[TResult = str](
         self,
-        *prompts: str | Content,
+        *prompts: str | BaseContent,
         message_history: list[ChatMessage],
         message_id: str,
         output_type: type[TResult] | None = None,

@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING, Any
 from anyenv import method_spawner
 from psygnal import Signal
 
-from llmling_agent.agent.pydanticai.convert_content import content_to_pydantic_ai
 from llmling_agent.messaging.messageemitter import MessageEmitter
 from llmling_agent.messaging.messages import ChatMessage
 from llmling_agent.prompts.convert import convert_prompts
@@ -19,7 +18,7 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
     from llmling_agent.common_types import PromptCompatible
-    from llmling_agent.models.content import Content
+    from llmling_agent.models.content import BaseContent
     from llmling_agent.talk.stats import AggregatedMessageStats, MessageStats
 
 
@@ -32,7 +31,7 @@ class MessageNode[TDeps, TResult](MessageEmitter[TDeps, TResult]):
     async def pre_run(
         self,
         *prompt: PromptCompatible | ChatMessage,
-    ) -> tuple[ChatMessage[Any], list[Content | str]]:
+    ) -> tuple[ChatMessage[Any], list[BaseContent | str]]:
         """Hook to prepare a MessgeNode run call.
 
         Args:
@@ -55,7 +54,7 @@ class MessageNode[TDeps, TResult](MessageEmitter[TDeps, TResult]):
             prompts = await convert_prompts(prompt)
             final_prompt = "\n\n".join(str(p) for p in prompts)
             # use format_prompts?
-            messages = [content_to_pydantic_ai(i) for i in prompts]
+            messages = [i if isinstance(i, str) else i.to_pydantic_ai() for i in prompts]
             user_msg = ChatMessage.user_prompt(message=messages)
         self.message_received.emit(user_msg)
         self.context.current_prompt = final_prompt
