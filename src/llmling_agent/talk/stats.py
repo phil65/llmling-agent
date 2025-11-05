@@ -44,7 +44,7 @@ class MessageStats:
     @property
     def tool_calls(self) -> list[ToolCallInfo]:
         """Accumulated tool calls going through this connection."""
-        return [call for msg in self.messages for call in msg.tool_calls]
+        return [call for msg in self.messages for call in msg.get_tool_calls()]
 
     @property
     def byte_count(self) -> int:
@@ -91,7 +91,7 @@ class AggregatedMessageStats:
     @property
     def tool_calls(self) -> list[ToolCallInfo]:
         """Accumulated tool calls going through this connection."""
-        return [call for msg in self.messages for call in msg.tool_calls]
+        return [call for msg in self.messages for call in msg.get_tool_calls()]
 
     @property
     def start_time(self) -> datetime:

@@ -41,7 +41,7 @@ async def handle_request(request: ResponseRequest, agent: Agent[Any, Any]):
 
     calls = [
         ResponseToolCall(type=f"{tc.tool_name}_call", id=tc.tool_call_id)
-        for tc in message.tool_calls
+        for tc in message.get_tool_calls()
     ]
     output = calls + output  # type: ignore
 

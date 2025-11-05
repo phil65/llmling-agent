@@ -108,8 +108,8 @@ async def test_capability_tools(default_model: str):
             "helper", system_prompt="You help with tasks", model=default_model
         )
         result = await agent_2.run("Delegate 'say hello' to agent with name `helper`")
-        assert result.tool_calls
-        assert result.tool_calls[0].tool_name == "delegate_to"
+        assert result.get_tool_calls()
+        assert result.get_tool_calls()[0].tool_name == "delegate_to"
 
 
 @pytest.mark.flaky(reruns=3)
@@ -149,17 +149,20 @@ async def test_context_compatibility(default_model: str):
         # All should work
         result1 = await agent.run("Use run_ctx_tool with argument 'test'")
         assert any(
-            call.result == "RunContext tool got: test" for call in result1.tool_calls
+            call.result == "RunContext tool got: test"
+            for call in result1.get_tool_calls()
         )
 
         result2 = await agent.run("Use agent_ctx_tool with argument 'test'")
         assert any(
-            call.result == "AgentContext tool got: test" for call in result2.tool_calls
+            call.result == "AgentContext tool got: test"
+            for call in result2.get_tool_calls()
         )
 
         result3 = await agent.run("Use no_ctx_tool with argument 'test'")
         assert any(
-            call.result == "No context tool got: test" for call in result3.tool_calls
+            call.result == "No context tool got: test"
+            for call in result3.get_tool_calls()
         )
 
 
@@ -179,11 +182,11 @@ async def test_context_sharing(default_model: str):
 
         assert any(
             call.result == "Data from RunContext: {'key': 'value'}"
-            for call in result1.tool_calls
+            for call in result1.get_tool_calls()
         )
         assert any(
             call.result == "Data from AgentContext: {'key': 'value'}"
-            for call in result2.tool_calls
+            for call in result2.get_tool_calls()
         )
 
 

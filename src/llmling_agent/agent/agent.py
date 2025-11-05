@@ -49,7 +49,6 @@ from llmling_agent.agent.events import (
     ToolCallProgressEvent,
     create_queuing_progress_handler,
 )
-from llmling_agent.agent.utils import get_tool_calls
 from llmling_agent.common_types import IndividualEventHandler
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messagenode import MessageNode
@@ -711,7 +710,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                     for handler in self.event_handler._wrapped_handlers:
                         await handler(ctx, event)
 
-            # Run the agentlet
             result = await agentlet.run(
                 [
                     i if isinstance(i, str) else i.to_pydantic_ai()
@@ -726,14 +724,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                 event_stream_handler=event_distributor,
             )
 
-            # Extract tool calls and build response
-            new_msgs = result.new_messages()
-
-            tool_dict = {i.name: i for i in tools}
-            tool_calls = get_tool_calls(new_msgs, tool_dict, agent_name=self.name)
-            for call in tool_calls:
-                call.message_id = message_id
-
             # Calculate costs
             usage = result.usage()
             cost_info = await TokenCost.from_usage(
@@ -746,13 +736,12 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                 name=self.name,
                 model_name=result.response.model_name,
                 finish_reason=result.response.finish_reason,
-                messages=new_msgs,
+                messages=result.new_messages(),
                 provider_response_id=result.response.provider_response_id,
                 usage=usage,
                 provider_name=result.response.provider_name,
                 message_id=message_id,
                 conversation_id=conversation_id,
-                tool_calls=tool_calls,
                 cost_info=cost_info,
                 response_time=time.perf_counter() - start_time,
                 provider_details={},
