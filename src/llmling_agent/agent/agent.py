@@ -42,6 +42,7 @@ from upath import UPath
 
 from llmling_agent.agent.events import (
     StreamCompleteEvent,
+    ToolCallProgressEvent,
     create_queuing_progress_handler,
 )
 from llmling_agent.common_types import IndividualEventHandler
@@ -75,8 +76,8 @@ if TYPE_CHECKING:
     from toprompt import AnyPromptType
     from upath.types import JoinablePathLike
 
-    from llmling_agent.agent import AgentContext, Interactions
-    from llmling_agent.agent.events import RichAgentStreamEvent, ToolCallProgressEvent
+    from llmling_agent.agent import AgentContext
+    from llmling_agent.agent.events import RichAgentStreamEvent
     from llmling_agent.common_types import (
         AgentName,
         EndStrategy,
@@ -103,48 +104,27 @@ NoneType = type(None)
 class AgentKwargs(TypedDict, total=False):
     """Keyword arguments for configuring an Agent instance."""
 
-    # Core Identity
     description: str | None
-
-    # Model Configuration
     model: ModelType
     system_prompt: str | Sequence[str]
-    # model_settings: dict[str, Any]
-
-    # Runtime Environment
     runtime: RuntimeConfig | Config | JoinablePathLike | None
     tools: Sequence[ToolType | Tool] | None
     toolsets: Sequence[ResourceProvider] | None
     mcp_servers: Sequence[str | MCPServerConfig] | None
-
-    # Execution Settings
     retries: int
     output_retries: int | None
     end_strategy: EndStrategy
-
-    # Context & State
     context: AgentContext[Any] | None  # x
     session: SessionIdType | SessionQuery | MemoryConfig | bool | int
-
-    # Behavior Control
     input_provider: InputProvider | None
     debug: bool
     event_handlers: Sequence[IndividualEventHandler] | None
 
 
 class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
-    """Agent for AI-powered interaction with LLMling resources and tools.
+    """The main agent class.
 
     Generically typed with: LLMLingAgent[Type of Dependencies, Type of Result]
-
-    This agent integrates LLMling's resource system with PydanticAI's agent capabilities.
-    It provides:
-    - Access to resources through RuntimeConfig
-    - Tool registration for resource operations
-    - System prompt customization
-    - Signals
-    - Message history management
-    - Database logging
     """
 
     @dataclass(frozen=True)
@@ -156,8 +136,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         new_tools: dict[str, bool]
         timestamp: datetime = field(default_factory=get_now)
 
-    # this fixes weird mypy issue
-    talk: Interactions
     run_failed = Signal(str, Exception)
     agent_reset = Signal(AgentReset)
 
@@ -254,7 +232,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             else MemoryConfig.from_value(session)
         )
         # Initialize progress queue before super().__init__()
-        self._progress_queue: asyncio.Queue[ToolCallProgressEvent] = asyncio.Queue()
+        self._progress_queue = asyncio.Queue[ToolCallProgressEvent]()
 
         super().__init__(
             name=name,
@@ -286,10 +264,8 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         if builtin_tools := ctx.config.get_tool_provider():
             self.tools.add_provider(builtin_tools)
 
-        # Add toolset providers
-        if toolsets:
-            for toolset_provider in toolsets:
-                self.tools.add_provider(toolset_provider)
+        for toolset_provider in toolsets or []:
+            self.tools.add_provider(toolset_provider)
 
         # Initialize conversation manager
         resources = list(resources)
@@ -650,9 +626,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         )
 
         for tool in tools:
-            wrapped = (
-                wrap_tool(tool, self.context) if self.context else tool.callable.callable
-            )
+            wrapped = wrap_tool(tool, self.context)
             if has_argument_type(wrapped, RunContext):
                 agent.tool(wrapped)
             elif has_argument_type(wrapped, AgentContext):
@@ -725,7 +699,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             # Create pydantic-ai agent for this run
             agentlet = await self.get_agentlet(tools, model, final_type, self.deps_type)
 
-            from llmling_agent.messaging.messages import TokenCost
             from llmling_agent.prompts.convert import convert_prompts
 
             # Convert prompts

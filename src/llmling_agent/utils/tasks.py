@@ -67,7 +67,7 @@ class TaskManager:
             logger.debug("Task completed", name=t.get_name())
             self._pending_tasks.discard(t)
             if t.exception():
-                logger.error("Task failed", error=t.exception())
+                logger.error("Task failed", error=t.exception(), name=t.get_name())
 
         task.add_done_callback(_done_callback)
         self._pending_tasks.add(task)

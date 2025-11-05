@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any
 
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterable, AsyncIterator
+    from collections.abc import AsyncIterator
 
 
 @asynccontextmanager
@@ -74,76 +74,3 @@ async def merge_queue_into_iterator[T](
         # Clean up tasks
         secondary_task_obj.cancel()
         await asyncio.gather(primary_task_obj, secondary_task_obj, return_exceptions=True)
-
-
-@asynccontextmanager
-async def merge_async_iterables[T](
-    *iterables: AsyncIterable[T],
-) -> AsyncIterator[AsyncIterator[T]]:
-    """Merge multiple async iterables into a single stream.
-
-    Args:
-        *iterables: Variable number of async iterables to merge
-
-    Yields:
-        Async iterator that yields events from all iterables as they arrive
-
-    Example:
-        ```python
-        async def gen1():
-            yield 1
-            yield 2
-
-        async def gen2():
-            yield "a"
-            yield "b"
-
-        async with merge_async_iterables(gen1(), gen2()) as events:
-            async for event in events:
-                print(f"Got: {event}")  # Prints: 1, "a", 2, "b" (or similar order)
-        ```
-    """
-    if not iterables:
-        # Handle empty case
-        async def empty():
-            return
-            yield  # Make it an async generator
-
-        yield empty()
-        return
-
-    # Create a queue for all merged events
-    event_queue: asyncio.Queue[T | None] = asyncio.Queue()
-    completed_count = 0
-
-    # Task for each iterable
-    async def iterable_task(iterable: AsyncIterable[T]):
-        nonlocal completed_count
-        try:
-            async for event in iterable:
-                await event_queue.put(event)
-        finally:
-            completed_count += 1
-            # Signal completion when all iterables are done
-            if completed_count == len(iterables):
-                await event_queue.put(None)
-
-    # Start all tasks
-    tasks = [asyncio.create_task(iterable_task(iterable)) for iterable in iterables]
-
-    try:
-        # Create async iterator that drains the merged queue
-        async def merged_events():
-            while True:
-                event = await event_queue.get()
-                if event is None:  # All iterables completed
-                    break
-                yield event
-
-        yield merged_events()
-
-    finally:
-        # Clean up tasks
-        for task in tasks:
-            task.cancel()
-        await asyncio.gather(*tasks, return_exceptions=True)
