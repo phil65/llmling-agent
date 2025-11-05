@@ -5,10 +5,10 @@ from __future__ import annotations
 from abc import abstractmethod
 from typing import TYPE_CHECKING, Any
 
+from evented.configs import DEFAULT_TEMPLATE, EventConfig
 from pydantic import ConfigDict, Field, ImportString
 from schemez import Schema
 
-from llmling_agent_config.events import DEFAULT_TEMPLATE, EventConfig
 from llmling_agent_config.forward_targets import ForwardingTarget
 from llmling_agent_config.mcp_server import (
     BaseMCPServerConfig,

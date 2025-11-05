@@ -21,6 +21,8 @@ if TYPE_CHECKING:
     from collections.abc import Awaitable, Iterator
     from datetime import datetime, timedelta
 
+    from evented.event_data import EventData
+
     from llmling_agent.common_types import (
         AnyFilterFn,
         AnyTransformFn,
@@ -29,7 +31,7 @@ if TYPE_CHECKING:
         QueueStrategy,
     )
     from llmling_agent.messaging import MessageEmitter, MessageNode
-    from llmling_agent.messaging.events import ConnectionEventData, EventData
+    from llmling_agent.messaging.events import ConnectionEventData
     from llmling_agent_config.events import ConnectionEventType
     from llmling_agent_config.forward_targets import ConnectionType
 

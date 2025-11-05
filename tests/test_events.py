@@ -1,11 +1,11 @@
 from __future__ import annotations
 
+from evented.configs import TimeEventConfig
+from evented.event_data import EventData
 import pytest
 
 from llmling_agent.messaging import ChatMessage, EventManager
-from llmling_agent.messaging.events import EventData
 from llmling_agent.utils.now import get_now
-from llmling_agent_config.events import TimeEventConfig
 
 
 @pytest.fixture

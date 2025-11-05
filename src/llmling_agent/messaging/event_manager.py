@@ -10,29 +10,30 @@ from functools import wraps
 import inspect
 from typing import TYPE_CHECKING, Any, Self, overload
 
-from psygnal import Signal
-from pydantic import SecretStr
-
-from llmling_agent.log import get_logger
-from llmling_agent.messaging.events import EventData, FunctionResultEventData
-from llmling_agent.utils.inspection import execute
-from llmling_agent.utils.now import get_now
-from llmling_agent_config.events import (
+from evented.configs import (
     EmailConfig,
     FileWatchConfig,
     TimeEventConfig,
     WebhookConfig,
 )
+from evented.event_data import EventData, FunctionResultEventData
+from psygnal import Signal
+from pydantic import SecretStr
+
+from llmling_agent.log import get_logger
+from llmling_agent.utils.inspection import execute
+from llmling_agent.utils.now import get_now
 
 
 if TYPE_CHECKING:
     from collections.abc import Coroutine, Sequence
     from datetime import datetime, timedelta
 
+    from evented.base import EventSource
+    from evented.configs import EventConfig
+    from evented.timed_watcher import TimeEventSource
+
     from llmling_agent.messaging import MessageEmitter
-    from llmling_agent_config.events import EventConfig
-    from llmling_agent_events.base import EventSource
-    from llmling_agent_events.timed_watcher import TimeEventSource
 
 
 logger = get_logger(__name__)
@@ -151,7 +152,8 @@ class EventManager:
             secret: Optional secret for request validation
         """
         name = name or f"webhook_{len(self._sources)}"
-        config = WebhookConfig(name=name, path=path, port=port, secret=secret)
+        sec = SecretStr(secret) if secret else None
+        config = WebhookConfig(name=name, path=path, port=port, secret=sec)
         return await self.add_source(config)
 
     async def add_timed_event(
@@ -236,7 +238,7 @@ class EventManager:
             ValueError: If source already exists or is invalid
         """
         logger.debug("Setting up event source", name=config.name, type=config.type)
-        from llmling_agent_events.base import EventSource
+        from evented.base import EventSource
 
         if config.name in self._sources:
             msg = f"Event source already exists: {config.name}"
@@ -244,7 +246,7 @@ class EventManager:
 
         try:
             source = EventSource.from_config(config)
-            await source.connect()
+            await source.__aenter__()
             self._sources[config.name] = source
             # Start processing events
             name = f"event_processor_{config.name}"
@@ -264,7 +266,7 @@ class EventManager:
             name: Name of source to remove
         """
         if source := self._sources.pop(name, None):
-            await source.disconnect()
+            await source.__aexit__(None, None, None)
             logger.debug("Removed event source", name=name)
 
     async def _process_events(self, source: EventSource):
