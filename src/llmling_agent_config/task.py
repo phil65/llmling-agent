@@ -78,8 +78,10 @@ class Job[TDeps, TResult = str](Schema):
             return False
 
         # Check vision capabilities
-        if self.requires_vision:  # noqa: SIM102
-            if not await agent._provider.supports_feature("vision"):
+        if self.requires_vision:
+            from llmling_agent.utils.model_capabilities import supports_vision
+
+            if not await supports_vision(agent.model_name):
                 return False
 
         return True
