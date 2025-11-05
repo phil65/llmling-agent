@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING, Any
 from acp.schema import AvailableCommand
 from llmling_agent.log import get_logger
 from llmling_agent_acp.commands.acp_commands import ACPCommandContext
-from llmling_agent_acp.commands.mcp_commands import PromptCommand
 
 
 if TYPE_CHECKING:
@@ -36,10 +35,9 @@ class ACPCommandBridge:
         """
         self.command_store = command_store
         self._update_callbacks: list[Callable[[], None]] = []
-        self._mcp_prompt_commands: dict[str, PromptCommand] = {}
 
     def get_acp_commands(self, context: AgentContext[Any]) -> list[AvailableCommand]:
-        """Convert slashed commands to ACP format.
+        """Convert all slashed commands to ACP format.
 
         Args:
             context: Optional agent context to filter commands
@@ -47,7 +45,7 @@ class ACPCommandBridge:
         Returns:
             List of ACP AvailableCommand objects
         """
-        commands = [
+        return [
             AvailableCommand.create(
                 name=cmd.name,
                 description=cmd.description,
@@ -55,13 +53,9 @@ class ACPCommandBridge:
             )
             for cmd in self.command_store.list_commands()
         ]
-        commands.extend([
-            cmd.to_available_command() for cmd in self._mcp_prompt_commands.values()
-        ])
-        return commands
 
     async def execute_slash_command(self, command_text: str, session: ACPSession) -> None:
-        """Execute slash command and send results immediately as ACP notifications.
+        """Execute any slash command with unified handling.
 
         Args:
             command_text: Full command text (including slash)
@@ -70,26 +64,20 @@ class ACPCommandBridge:
         if match := SLASH_PATTERN.match(command_text.strip()):
             command_name = match.group(1)
             args = match.group(2) or ""
-            command_name, args = command_name, args.strip()
         else:
             logger.warning("Invalid slash command", command=command_text)
             return
 
-        # Check if it's an MCP prompt command first
-        if command_name in self._mcp_prompt_commands:
-            mcp_cmd = self._mcp_prompt_commands[command_name]
-            await mcp_cmd.execute(args, session)
-            return
+        # Single execution path for ALL commands
         if command_name in ACP_COMMANDS:
             # Use ACP context for ACP commands
-
             acp_ctx = ACPCommandContext(session)
             cmd_ctx: CommandContext = self.command_store.create_context(
                 data=acp_ctx,
                 output_writer=session.notifications.send_agent_text,
             )
         else:
-            # Use regular agent context for other commands
+            # Use regular agent context for other commands (including MCP prompts)
             cmd_ctx = self.command_store.create_context(
                 data=session.agent.context,
                 output_writer=session.notifications.send_agent_text,
@@ -110,14 +98,20 @@ class ACPCommandBridge:
         """
         self._update_callbacks.append(callback)
 
-    def add_mcp_prompt_commands(self, prompts: list[Prompt]) -> None:
-        """Add prompts as slash commands.
+    def register_mcp_prompts(self, prompts: list[Prompt], session: ACPSession) -> None:
+        """Register MCP prompts as regular slashed commands.
 
         Args:
-            prompts: List of Prompt instances from ToolManager
+            prompts: List of Prompt instances from MCP servers
+            session: ACP session for command execution context
         """
-        self._mcp_prompt_commands = {p.name: PromptCommand(p) for p in prompts}
-        self._notify_command_update()  # Notify about command updates
+        from llmling_agent_acp.mcp_command_factory import create_mcp_command
+
+        for prompt in prompts:
+            command = create_mcp_command(prompt, session)
+            self.command_store.register_command(command)
+
+        self._notify_command_update()
 
     def _notify_command_update(self) -> None:
         """Notify all registered callbacks about command updates."""

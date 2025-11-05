@@ -501,7 +501,7 @@ class ACPSession:
             # Get all prompts from the agent's ToolManager
             all_prompts = await self.agent.tools.list_prompts()
             if all_prompts:
-                self.command_bridge.add_mcp_prompt_commands(all_prompts)
+                self.command_bridge.register_mcp_prompts(all_prompts, self)
                 self.log.info(
                     "Registered MCP prompts as slash commands",
                     prompt_count=len(all_prompts),
