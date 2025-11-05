@@ -18,16 +18,13 @@ async def test_session_command_immediate_execution():
     def simple_callback(message: str) -> str:
         return f"Response: {message}"
 
-    # Set up agent and session
     agent = Agent.from_callback(name="test_agent", callback=simple_callback)
     agent_pool = AgentPool()
     agent_pool.register("test_agent", agent)
 
-    # Mock client and ACP agent
     mock_client = AsyncMock()
     mock_acp_agent = AsyncMock()
 
-    # Create session
     session = ACPSession(
         session_id="test_session",
         agent_pool=agent_pool,
@@ -38,18 +35,13 @@ async def test_session_command_immediate_execution():
         client_capabilities=ClientCapabilities(fs=None, terminal=False),
     )
 
-    # Capture messages sent via notifications
     sent_messages = []
 
     async def capture_message(message):
         sent_messages.append(message)
 
     session.notifications.send_agent_text = capture_message
-
-    # Test command execution
     await session.execute_slash_command("/help")
-
-    # Verify messages were sent immediately via notifications
     assert len(sent_messages) > 0
 
 
@@ -59,16 +51,13 @@ async def test_immediate_send_with_slow_command():
     def simple_callback(message: str) -> str:
         return f"Response: {message}"
 
-    # Set up agent and session
     agent = Agent.from_callback(name="test_agent", callback=simple_callback)
     agent_pool = AgentPool()
     agent_pool.register("test_agent", agent)
 
-    # Mock client and ACP agent
     mock_client = AsyncMock()
     mock_acp_agent = AsyncMock()
 
-    # Create session
     session = ACPSession(
         session_id="test_session",
         agent_pool=agent_pool,
@@ -101,14 +90,10 @@ async def test_immediate_send_with_slow_command():
         messages_with_time.append((message, current_time - start_time))
 
     session.notifications.send_agent_text = capture_with_time
-
-    # Execute command
     await session.execute_slash_command("/slow")
-
     # Verify we got multiple messages
     min_expected_messages = 3
     assert len(messages_with_time) >= min_expected_messages
-
     # Verify messages came at different times (immediate sending behavior)
     times = [time for _, time in messages_with_time]
     assert times[1] > times[0]  # Second message came after first
@@ -127,16 +112,11 @@ async def test_immediate_send_error_handling():
     def simple_callback(message: str) -> str:
         return f"Response: {message}"
 
-    # Set up agent and session
     agent = Agent.from_callback(name="test_agent", callback=simple_callback)
     agent_pool = AgentPool()
     agent_pool.register("test_agent", agent)
-
-    # Mock client and ACP agent
     mock_client = AsyncMock()
     mock_acp_agent = AsyncMock()
-
-    # Create session
     session = ACPSession(
         session_id="test_session",
         agent_pool=agent_pool,
@@ -163,7 +143,6 @@ async def test_immediate_send_error_handling():
         sent_messages.append(message)
 
     session.notifications.send_agent_text = capture_message
-
     # Execute failing command
     await session.execute_slash_command("/fail")
 
