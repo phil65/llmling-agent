@@ -315,7 +315,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         # init variables
         self._debug = debug
         self.parallel_init = parallel_init
-        self.name = name
+        self._name = name
         self._background_task: asyncio.Task[Any] | None = None
 
         # tool_used signal will be emitted directly in _run method
@@ -492,10 +492,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         """Get agent name."""
         return self._name or "llmling-agent"
 
-    @name.setter
-    def name(self, value: str):
-        self._name = value
-
     @property
     def context(self) -> AgentContext[TDeps]:
         """Get agent context."""
@@ -526,7 +522,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             tool_name: Optional override for tool name
             tool_description: Optional override for tool description
         """
-        logger.debug("Setting result type", output_type=output_type, agent_name=self.name)
+        self.log.debug("Setting result type", output_type=output_type)
         self._output_type = to_type(output_type)
 
     def to_structured[NewOutputDataT](
@@ -806,13 +802,8 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                 provider_details={},
             )
 
-            if self._debug:
-                import devtools
-
-                devtools.debug(response_msg)
-
         except Exception as e:
-            logger.exception("Agent run failed", agent_name=self.name)
+            self.log.exception("Agent run failed")
             self.run_failed.emit("Agent run failed", e)
             raise
         else:
@@ -960,7 +951,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             )
 
         except Exception as e:
-            logger.exception("Agent stream failed", agent_name=self.name)
+            self.log.exception("Agent stream failed")
             self.run_failed.emit("Agent stream failed", e)
             raise
 
@@ -1051,7 +1042,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                 return await self.run(await job.get_prompt(), store_history=store_history)
 
         except Exception as e:
-            logger.exception("Task execution failed", agent_name=self.name, error=str(e))
+            self.log.exception("Task execution failed", error=str(e))
             msg = f"Task execution failed: {e}"
             raise JobError(msg) from e
 
@@ -1073,11 +1064,12 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             **kwargs: Arguments passed to run()
         """
         self._infinite = max_count is None
-        log = logger.bind(agent_name=self.name, interval=interval)
 
         async def _continuous():
             count = 0
-            log.debug("Starting continuous run", max_count=max_count)
+            self.log.debug(
+                "Starting continuous run", max_count=max_count, interval=interval
+            )
             latest = None
             while max_count is None or count < max_count:
                 try:
@@ -1085,19 +1077,19 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                         call_with_context(p, self.context, **kwargs) if callable(p) else p
                         for p in prompt
                     ]
-                    log.debug("Generated prompt", iteration=count)
+                    self.log.debug("Generated prompt", iteration=count)
                     latest = await self.run(current_prompts, **kwargs)
-                    logger.debug("Run continuous result", iteration=count)
+                    self.log.debug("Run continuous result", iteration=count)
 
                     count += 1
                     await asyncio.sleep(interval)
                 except asyncio.CancelledError:
-                    logger.debug("Continuous run cancelled", agent_name=self.name)
+                    self.log.debug("Continuous run cancelled")
                     break
                 except Exception:
-                    logger.exception("Background run failed", agent_name=self.name)
+                    self.log.exception("Background run failed")
                     await asyncio.sleep(interval)
-            logger.debug("Continuous run completed", iterations=count)
+            self.log.debug("Continuous run completed", iterations=count)
             return latest
 
         # Cancel any existing background task
@@ -1110,7 +1102,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                 if not task.done():
                     task.cancel()
         else:
-            log.debug("Started background task", task_name=task.get_name())
+            self.log.debug("Started background task", task_name=task.get_name())
             self._background_task = task
             return None
 

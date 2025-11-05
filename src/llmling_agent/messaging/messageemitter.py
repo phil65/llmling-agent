@@ -10,6 +10,7 @@ from uuid import uuid4
 
 from psygnal import Signal
 
+from llmling_agent.log import get_logger
 from llmling_agent.messaging.messages import ChatMessage
 from llmling_agent.prompts.convert import convert_prompts
 from llmling_agent.talk.stats import AggregatedTalkStats
@@ -36,6 +37,9 @@ if TYPE_CHECKING:
     from llmling_agent.talk import Talk, TeamTalk
     from llmling_agent_config.forward_targets import ConnectionType
     from llmling_agent_config.mcp_server import MCPServerConfig
+
+
+logger = get_logger(__name__)
 
 
 class MessageEmitter[TDeps, TResult](ABC):
@@ -67,6 +71,8 @@ class MessageEmitter[TDeps, TResult](ABC):
 
         self.task_manager = TaskManager()
         self._name = name or self.__class__.__name__
+        self.log = logger.bind(agent_name=self._name)
+
         self.description = description
         self.connections = ConnectionManager(self)
         self._events = EventManager(self, enable_events=True)
