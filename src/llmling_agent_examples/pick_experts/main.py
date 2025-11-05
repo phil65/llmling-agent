@@ -32,11 +32,7 @@ async def run_example():
 
         # Multiple expert selection
         task = "Who should we assign to create a secure login page?"
-        multi_pick = await coordinator.talk.pick_multiple(
-            experts,
-            task=task,
-            min_picks=2,
-        )
+        multi_pick = await coordinator.talk.pick_multiple(experts, task=task, min_picks=2)
         # also here type-safe result
         selected = ", ".join(e.name for e in multi_pick.selections)
         print(f"Selected: {selected} Reason: {multi_pick.reason}")

@@ -178,23 +178,19 @@ class LLMlingACPAgent(ACPAgent):
             raise RuntimeError(msg)
 
         try:
-            agent_names = list(self.agent_pool.agents.keys())
-            if not agent_names:
+            names = list(self.agent_pool.agents.keys())
+            if not names:
                 logger.error("No agents available for session creation")
                 msg = "No agents available"
                 raise RuntimeError(msg)  # noqa: TRY301
 
             # Use specified default agent or fall back to first agent
-            if self.default_agent and self.default_agent in agent_names:
+            if self.default_agent and self.default_agent in names:
                 default_name = self.default_agent
             else:
-                default_name = agent_names[0]
+                default_name = names[0]
 
-            logger.info(
-                "Creating new session",
-                available_agents=agent_names,
-                default_agent=default_name,
-            )
+            logger.info("Creating new session", agents=names, default_agent=default_name)
             session_id = await self.session_manager.create_session(
                 agent_pool=self.agent_pool,
                 default_agent_name=default_name,
@@ -218,8 +214,7 @@ class LLMlingACPAgent(ACPAgent):
             raise
         else:
             # Schedule available commands update after session response is returned
-            session = self.session_manager.get_session(session_id)
-            if session:
+            if session := self.session_manager.get_session(session_id):
                 # Schedule task to run after response is sent
                 coro = session.send_available_commands_update()
                 coro_2 = session.init_project_context()

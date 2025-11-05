@@ -6,7 +6,7 @@ from collections.abc import Callable
 import os
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, ImportString
+from pydantic import ConfigDict, Field, ImportString
 from schemez import Schema
 import upath
 
@@ -30,7 +30,7 @@ class MessageContent(Schema):
     model_config = ConfigDict(frozen=True)
 
 
-class PromptParameter(BaseModel):
+class PromptParameter(Schema):
     """Prompt argument with validation information."""
 
     name: str
@@ -51,19 +51,18 @@ class PromptParameter(BaseModel):
     completion_function: ImportString | None = Field(default=None)
     """Optional function to provide argument completions."""
 
-    model_config = ConfigDict(use_attribute_docstrings=True)
 
-
-class PromptMessage(BaseModel):
+class PromptMessage(Schema):
     """A message in a prompt template."""
 
     role: MessageRole
+    """Role of the message."""
+
     content: str | MessageContent | list[MessageContent] = ""
+    """Content of the message."""
 
-    model_config = ConfigDict(frozen=True)
 
-
-class BasePrompt(BaseModel):
+class BasePrompt(Schema):
     """Base class for all prompts."""
 
     name: str
@@ -82,8 +81,6 @@ class BasePrompt(BaseModel):
     """Additional metadata for storing custom prompt information."""
     # messages: list[PromptMessage]
 
-    model_config = ConfigDict(extra="forbid", use_attribute_docstrings=True)
-
 
 class StaticPrompt(BasePrompt):
     """Static prompt defined by message list."""
@@ -93,8 +90,6 @@ class StaticPrompt(BasePrompt):
 
     type: Literal["text"] = Field("text", init=False)
     """Discriminator field identifying this as a static text prompt."""
-
-    model_config = ConfigDict(extra="forbid", use_attribute_docstrings=True)
 
 
 class DynamicPrompt(BasePrompt):
@@ -111,8 +106,6 @@ class DynamicPrompt(BasePrompt):
 
     type: Literal["function"] = Field("function", init=False)
     """Discriminator field identifying this as a function-based prompt."""
-
-    model_config = ConfigDict(extra="forbid", use_attribute_docstrings=True)
 
 
 class FilePrompt(BasePrompt):
@@ -134,8 +127,6 @@ class FilePrompt(BasePrompt):
 
     watch: bool = False
     """Whether to watch the file for changes and reload automatically."""
-
-    model_config = ConfigDict(extra="forbid", use_attribute_docstrings=True)
 
 
 # Type to use in configuration
