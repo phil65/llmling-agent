@@ -814,12 +814,8 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             messages if messages is not None else self.conversation.get_history()
         )
         try:
-            # Create pydantic-ai agent for this run
             agentlet = await self.get_agentlet(tools, model, final_type, self.deps_type)
-
-            # Convert prompts
-            converted_prompts = await convert_prompts(prompts)
-
+            content = await convert_prompts(prompts)
             # Initialize variables for final response
             usage = None
             model_name = None
@@ -830,14 +826,9 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             output = None
 
             # Create tool dict for signal emission
-            tool_dict = {i.name: i for i in tools}
-
-            # Stream events directly from pydantic-ai
+            converted = [i if isinstance(i, str) else i.to_pydantic_ai() for i in content]
             stream_events = agentlet.run_stream_events(
-                [
-                    i if isinstance(i, str) else i.to_pydantic_ai()
-                    for i in converted_prompts
-                ],
+                converted,
                 deps=deps,
                 message_history=[
                     m for run in message_history for m in run.to_pydantic_ai()
@@ -846,13 +837,14 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                 usage_limits=usage_limits,
             )
 
-            # Track tool call starts to combine with results later
-            pending_tool_calls: dict[str, dict[str, Any]] = {}
-
             # Stream events through merge_queue for progress events
             async with merge_queue_into_iterator(
                 stream_events, self._progress_queue
             ) as events:
+                # Track tool call starts to combine with results later
+                pending_tool_calls: dict[str, dict[str, Any]] = {}
+                tool_dict = {i.name: i for i in tools}
+
                 async for event in events:
                     # Process events and emit signals
                     match event:
