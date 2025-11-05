@@ -34,6 +34,7 @@ from pydantic_ai import (
     PartStartEvent,
     RunContext,
     ToolCallPart,
+    ToolReturnPart,
     models,
 )
 import pydantic_ai._function_schema
@@ -700,9 +701,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         try:
             # Create pydantic-ai agent for this run
             agentlet = await self.get_agentlet(tools, model, final_type, self.deps_type)
-
-            from llmling_agent.prompts.convert import convert_prompts
-
             converted_prompts = await convert_prompts(prompts)
 
             # Merge internal and external event handlers like the old provider did
@@ -855,8 +853,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                             pending_tool_calls[tool_part.tool_call_id] = {
                                 "tool_name": tool_part.tool_name,
                                 "tool_input": tool_part.args_as_dict(),
-                                "message_id": message_id,
-                                "agent_name": self.name,
                             }
                             yield event
                         case (
@@ -870,10 +866,10 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                                     tool_call_id=call_id,
                                     tool_input=call_info["tool_input"],
                                     tool_result=result_event.result.content
-                                    if hasattr(result_event.result, "content")
+                                    if isinstance(result_event.result, ToolReturnPart)
                                     else result_event.result,
-                                    agent_name=call_info["agent_name"],
-                                    message_id=call_info["message_id"],
+                                    agent_name=self.name,
+                                    message_id=message_id,
                                 )
                                 yield combined_event
                             yield event
