@@ -15,7 +15,6 @@ from llmling_agent_commands.connections import (
     ListConnectionsCommand,
     DisconnectAllCommand,
 )
-from llmling_agent_commands.env import OpenEnvFileCommand, SetEnvCommand
 from llmling_agent_commands.models import SetModelCommand
 from llmling_agent_commands.prompts import ListPromptsCommand, ShowPromptCommand
 from llmling_agent_commands.resources import (
@@ -53,7 +52,6 @@ def get_agent_commands() -> list[BaseCommand | type[SlashedCommand]]:
         CopyClipboardCommand,  # operates on current agent's history
         # Model/Environment
         SetModelCommand,
-        SetEnvCommand,
         # Tool management
         ListToolsCommand,
         ShowToolCommand,
@@ -90,7 +88,6 @@ def get_pool_commands() -> list[BaseCommand | type[SlashedCommand]]:
         ShowAgentCommand,  # Shows config from pool's manifest
         # SwitchAgentCommand,  # Changes active agent in pool
         # Pool configuration
-        OpenEnvFileCommand,  # Edits pool's environment config
         EditAgentFileCommand,  # Edits pool's manifest
     ]
 
