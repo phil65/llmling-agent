@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, overload
 
-from llmling_agent.resource_providers.base import ResourceProvider
+from llmling_agent.resource_providers import ResourceProvider
 
 
 if TYPE_CHECKING:

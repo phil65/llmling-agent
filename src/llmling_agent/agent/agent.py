@@ -51,8 +51,7 @@ from llmling_agent.agent.events import (
 )
 from llmling_agent.common_types import IndividualEventHandler
 from llmling_agent.log import get_logger
-from llmling_agent.messaging.messagenode import MessageNode
-from llmling_agent.messaging.messages import ChatMessage
+from llmling_agent.messaging import ChatMessage, MessageNode
 from llmling_agent.prompts.builtin_provider import RuntimePromptProvider
 from llmling_agent.prompts.convert import convert_prompts
 from llmling_agent.resource_providers.runtime import RuntimeResourceProvider
@@ -91,7 +90,7 @@ if TYPE_CHECKING:
         ToolType,
     )
     from llmling_agent.delegation import Team, TeamRun
-    from llmling_agent.resource_providers.base import ResourceProvider
+    from llmling_agent.resource_providers import ResourceProvider
     from llmling_agent_config.mcp_server import MCPServerConfig
     from llmling_agent_config.output_types import StructuredResponseConfig
     from llmling_agent_config.session import SessionQuery

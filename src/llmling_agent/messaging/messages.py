@@ -121,7 +121,7 @@ class TokenCost:
     """Total cost in USD"""
 
     @classmethod
-    async def from_usage(cls, usage: RunUsage | None, model: str) -> TokenCost | None:
+    async def from_usage(cls, usage: RunUsage, model: str) -> TokenCost | None:
         """Create result from usage data.
 
         Args:
@@ -132,13 +132,7 @@ class TokenCost:
         Returns:
             TokenCost if usage data available, None otherwise
         """
-        if not (
-            usage and usage.input_tokens is not None and usage.output_tokens is not None
-        ):
-            logger.debug("Missing token counts in Usage object")
-            return None
         logger.debug("Token usage", usage=usage)
-
         # return cls(token_usage=token_usage, total_cost=Decimal(total_cost))
         if model in {"None", "test"}:
             price = Decimal(0)

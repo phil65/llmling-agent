@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 
 if TYPE_CHECKING:
-    from llmling_agent.messaging.messages import ChatMessage
+    from llmling_agent.messaging import ChatMessage
     from llmling_agent.talk import Talk
 
 

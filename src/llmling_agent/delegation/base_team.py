@@ -11,8 +11,8 @@ from typing import TYPE_CHECKING, Any, Literal, Self, overload
 from psygnal.containers import EventedList
 
 from llmling_agent.log import get_logger
+from llmling_agent.messaging import MessageNode
 from llmling_agent.messaging.context import NodeContext
-from llmling_agent.messaging.messagenode import MessageNode
 from llmling_agent.models.manifest import AgentsManifest
 from llmling_agent.talk.stats import AggregatedMessageStats
 from llmling_agent.tools.base import Tool
@@ -33,7 +33,7 @@ if TYPE_CHECKING:
         ToolType,
     )
     from llmling_agent.delegation.teamrun import ExtendedTeamTalk, TeamRun
-    from llmling_agent.messaging.messages import ChatMessage, TeamResponse
+    from llmling_agent.messaging import ChatMessage, TeamResponse
     from llmling_agent.talk.stats import AggregatedTalkStats
     from llmling_agent_config.mcp_server import MCPServerConfig
     from llmling_agent_config.session import SessionQuery

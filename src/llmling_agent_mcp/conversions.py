@@ -8,7 +8,7 @@ import urllib.parse
 from mcp import types
 from pydantic import AnyUrl
 
-from llmling_agent.messaging.messages import ChatMessage
+from llmling_agent.messaging import ChatMessage
 from llmling_agent.models.content import AudioBase64Content, ImageBase64Content
 
 

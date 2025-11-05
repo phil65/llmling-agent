@@ -43,7 +43,7 @@ from llmling_agent_config.workers import WorkerConfig  # noqa: TC001
 
 
 if TYPE_CHECKING:
-    from llmling_agent.resource_providers.base import ResourceProvider
+    from llmling_agent.resource_providers import ResourceProvider
     from llmling_agent.tools.base import Tool
 
 

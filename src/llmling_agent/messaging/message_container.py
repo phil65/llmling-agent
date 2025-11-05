@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any, Literal
 from psygnal.containers import EventedList
 
 from llmling_agent.log import get_logger
-from llmling_agent.messaging.messages import ChatMessage
+from llmling_agent.messaging import ChatMessage
 from llmling_agent.utils.count_tokens import batch_count_tokens, count_tokens
 
 

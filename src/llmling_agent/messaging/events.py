@@ -9,7 +9,7 @@ from typing import Any, Literal, Self
 from pydantic import ConfigDict, Field
 from schemez import Schema
 
-from llmling_agent.messaging.messages import ChatMessage
+from llmling_agent.messaging import ChatMessage
 from llmling_agent.talk.talk import Talk
 from llmling_agent.utils.now import get_now
 from llmling_agent_config.events import (

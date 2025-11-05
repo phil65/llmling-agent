@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from llmling_agent.log import get_logger
-from llmling_agent.resource_providers.base import ResourceProvider
+from llmling_agent.resource_providers import ResourceProvider
 from llmling_agent.tools.base import Tool
 from llmling_agent_config.resources import ResourceInfo
 

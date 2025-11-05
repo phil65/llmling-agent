@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic_ai import AgentStreamEvent
 
-from llmling_agent.messaging.messages import ChatMessage  # noqa: TC001
+from llmling_agent.messaging import ChatMessage  # noqa: TC001
 
 
 if TYPE_CHECKING:

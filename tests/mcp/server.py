@@ -5,7 +5,9 @@ from pathlib import Path
 from typing import Literal
 
 from fastmcp import Context, FastMCP
-from mcp.types import ModelHint, ModelPreferences
+from fastmcp.tools.tool import ToolResult
+from fastmcp.utilities.types import Audio, File, Image
+from mcp.types import ModelHint, ModelPreferences, TextContent
 from pydantic import BaseModel
 
 
@@ -109,10 +111,6 @@ async def test_rich_content(  # noqa: D417
     Args:
         content_type: One of 'image', 'audio', 'file', 'mixed'
     """
-    from fastmcp.tools.tool import ToolResult
-    from fastmcp.utilities.types import Audio, File, Image
-    from mcp.types import TextContent
-
     if content_type == "image":
         # Return FastMCP Image - should convert to PydanticAI ImageUrl/BinaryContent
         # Use real PNG file from the test directory

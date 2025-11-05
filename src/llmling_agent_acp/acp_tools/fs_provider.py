@@ -12,7 +12,7 @@ from pydantic_ai import Agent as PydanticAgent, ModelRetry, RunContext  # noqa: 
 
 from acp.schema import ToolCallLocation
 from llmling_agent.log import get_logger
-from llmling_agent.resource_providers.base import ResourceProvider
+from llmling_agent.resource_providers import ResourceProvider
 from llmling_agent.tools.base import Tool
 from llmling_agent_acp.syntax_detection import format_zed_code_block
 from llmling_agent_toolsets.builtin.file_edit import replace_content

@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     from llmling_agent import Agent, MessageNode
     from llmling_agent.common_types import AnyCallable, ToolSource, ToolType
     from llmling_agent.mcp_server.manager import Prompt
-    from llmling_agent.resource_providers.base import ResourceProvider
+    from llmling_agent.resource_providers import ResourceProvider
     from llmling_agent.resource_providers.callable_provider import ResourceCallable
 
 
@@ -97,7 +97,7 @@ class ToolManager(BaseRegistry[str, Tool]):
                      returning tools. Callables are automatically wrapped.
             owner: Optional owner for the provider
         """
-        from llmling_agent.resource_providers.base import ResourceProvider
+        from llmling_agent.resource_providers import ResourceProvider
 
         if not isinstance(provider, ResourceProvider):
             # Wrap old-style callable in ResourceProvider
@@ -115,7 +115,7 @@ class ToolManager(BaseRegistry[str, Tool]):
         self, provider: ResourceProvider | ResourceCallable | ProviderName
     ):
         """Remove a resource provider."""
-        from llmling_agent.resource_providers.base import ResourceProvider
+        from llmling_agent.resource_providers import ResourceProvider
 
         match provider:
             case ResourceProvider():

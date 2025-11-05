@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any
 
 from schemez import create_schema
 
-from llmling_agent.resource_providers.base import ResourceProvider
+from llmling_agent.resource_providers import ResourceProvider
 from llmling_agent.tools.base import Tool
 
 

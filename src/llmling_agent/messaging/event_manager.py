@@ -29,7 +29,7 @@ if TYPE_CHECKING:
     from collections.abc import Coroutine, Sequence
     from datetime import datetime, timedelta
 
-    from llmling_agent.messaging.messageemitter import MessageEmitter
+    from llmling_agent.messaging import MessageEmitter
     from llmling_agent_config.events import EventConfig
     from llmling_agent_events.base import EventSource
     from llmling_agent_events.timed_watcher import TimeEventSource

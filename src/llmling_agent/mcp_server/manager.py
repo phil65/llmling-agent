@@ -6,13 +6,12 @@ import asyncio
 from contextlib import AsyncExitStack
 from typing import TYPE_CHECKING, Any, Self
 
-from pydantic_ai import UsageLimits
-from pydantic_ai.messages import SystemPromptPart, UserPromptPart
+from pydantic_ai import SystemPromptPart, UsageLimits, UserPromptPart
 
 from llmling_agent.log import get_logger
-from llmling_agent.mcp_server.client import MCPClient
+from llmling_agent.mcp_server import MCPClient
 from llmling_agent.models.content import AudioBase64Content, ImageBase64Content
-from llmling_agent.resource_providers.base import ResourceProvider
+from llmling_agent.resource_providers import ResourceProvider
 from llmling_agent_config.mcp_server import BaseMCPServerConfig
 from llmling_agent_config.resources import ResourceInfo
 

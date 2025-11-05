@@ -6,7 +6,7 @@ import logging
 import pytest
 
 from llmling_agent import Agent
-from llmling_agent.messaging.messages import AgentResponse
+from llmling_agent.messaging import AgentResponse
 from llmling_agent.talk.talk import Talk
 
 

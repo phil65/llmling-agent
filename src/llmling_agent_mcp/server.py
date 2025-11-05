@@ -29,7 +29,7 @@ if TYPE_CHECKING:
     from mcp.shared.context import LifespanContextT, RequestContext
     from mcp.types import CreateMessageRequestParams as SamplingParams
 
-    from llmling_agent.resource_providers.base import ResourceProvider
+    from llmling_agent.resource_providers import ResourceProvider
     from llmling_agent_config.pool_server import MCPPoolServerConfig
 
     LifespanHandler = Callable[

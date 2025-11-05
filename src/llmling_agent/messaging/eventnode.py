@@ -6,8 +6,7 @@ from abc import abstractmethod
 import asyncio
 from typing import TYPE_CHECKING, Any, Self
 
-from llmling_agent.messaging.messageemitter import MessageEmitter
-from llmling_agent.messaging.messages import ChatMessage
+from llmling_agent.messaging import ChatMessage, MessageEmitter
 from llmling_agent.talk.stats import MessageStats
 
 

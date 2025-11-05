@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from acp.schema import PlanEntry, PlanEntryPriority, PlanEntryStatus  # noqa: TC001
-from llmling_agent.resource_providers.base import ResourceProvider
+from llmling_agent.resource_providers import ResourceProvider
 from llmling_agent.tools.base import Tool
 
 

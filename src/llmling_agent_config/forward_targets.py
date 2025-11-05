@@ -16,7 +16,7 @@ from llmling_agent_config.conditions import Condition
 if TYPE_CHECKING:
     from pydantic_ai.models.function import FunctionModel
 
-    from llmling_agent.messaging.messages import ChatMessage
+    from llmling_agent.messaging import ChatMessage
 
 
 ConnectionType = Literal["run", "context", "forward"]

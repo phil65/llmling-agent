@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock
 
 import anyenv
+from openapi_spec_validator import validate
 import pytest
 
 from llmling_agent_toolsets.openapi import OpenAPITools
@@ -75,8 +76,6 @@ class MockResponse:
 @pytest.fixture
 def mock_openapi_spec(tmp_path):
     """Set up OpenAPI spec mocking and local file."""
-    from openapi_spec_validator import validate
-
     validate(PETSTORE_SPEC)
     local_spec = tmp_path / "openapi.json"  # Create local spec file
     local_spec.write_text(anyenv.dump_json(PETSTORE_SPEC))
@@ -86,8 +85,6 @@ def mock_openapi_spec(tmp_path):
 
 async def test_openapi_toolset_local(mock_openapi_spec):
     """Test OpenAPI toolset with local file."""
-    from openapi_spec_validator import validate
-
     local_path = mock_openapi_spec["local_path"]
     toolset = OpenAPITools(spec=local_path, base_url=BASE_URL)
     spec = await toolset._load_spec()  # Load and validate spec
@@ -98,8 +95,6 @@ async def test_openapi_toolset_local(mock_openapi_spec):
 
 async def test_openapi_toolset_remote(mock_openapi_spec, caplog, monkeypatch):
     """Test OpenAPI toolset with remote spec."""
-    from openapi_spec_validator import validate
-
     caplog.set_level("DEBUG")
     url = mock_openapi_spec["remote_url"]
     mock_response = MockResponse()

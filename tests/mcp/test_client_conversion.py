@@ -12,7 +12,7 @@ from pathlib import Path
 from pydantic_ai import BinaryContent, ToolReturn
 import pytest
 
-from llmling_agent.mcp_server.client import MCPClient
+from llmling_agent.mcp_server import MCPClient
 from llmling_agent_config.mcp_server import StdioMCPServerConfig
 
 

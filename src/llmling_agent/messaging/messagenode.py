@@ -7,8 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 from anyenv import method_spawner
 
-from llmling_agent.messaging.messageemitter import MessageEmitter
-from llmling_agent.messaging.messages import ChatMessage
+from llmling_agent.messaging import ChatMessage, MessageEmitter
 from llmling_agent.prompts.convert import convert_prompts
 
 

@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from mcp.shared.session import RequestResponder
     import mcp.types
 
-    from llmling_agent.mcp_server.client import MCPClient
+    from llmling_agent.mcp_server import MCPClient
 
 logger = get_logger(__name__)
 

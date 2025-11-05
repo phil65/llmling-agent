@@ -11,9 +11,9 @@ from uuid import uuid4
 from psygnal import Signal
 
 from llmling_agent.log import get_logger
-from llmling_agent.messaging.messages import ChatMessage
+from llmling_agent.messaging import ChatMessage
 from llmling_agent.prompts.convert import convert_prompts
-from llmling_agent.talk.stats import AggregatedTalkStats
+from llmling_agent.talk import AggregatedTalkStats
 from llmling_agent.utils.tasks import TaskManager
 
 
@@ -62,8 +62,8 @@ class MessageEmitter[TDeps, TResult](ABC):
         """Initialize message node."""
         super().__init__()
         from llmling_agent.mcp_server.manager import MCPManager
+        from llmling_agent.messaging import EventManager
         from llmling_agent.messaging.connection_manager import ConnectionManager
-        from llmling_agent.messaging.event_manager import EventManager
 
         self.task_manager = TaskManager()
         self._name = name or self.__class__.__name__
@@ -322,12 +322,8 @@ class MessageEmitter[TDeps, TResult](ABC):
         else:
             prompts = await convert_prompts(prompt)
             final_prompt = "\n\n".join(str(p) for p in prompts)
-            # use format_prompts?
-            user_msg = ChatMessage[str](
-                content=final_prompt,
-                role="user",
-                conversation_id=str(uuid4()),
-            )
+            id_ = str(uuid4())
+            user_msg = ChatMessage(content=final_prompt, role="user", conversation_id=id_)
         self.message_received.emit(user_msg)
         self.context.current_prompt = final_prompt
         return user_msg, prompts

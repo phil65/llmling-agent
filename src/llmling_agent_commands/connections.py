@@ -15,7 +15,7 @@ from llmling_agent_commands.completers import get_available_nodes
 
 
 if TYPE_CHECKING:
-    from llmling_agent.messaging.messageemitter import MessageEmitter
+    from llmling_agent.messaging import MessageEmitter
 
 
 logger = get_logger(__name__)

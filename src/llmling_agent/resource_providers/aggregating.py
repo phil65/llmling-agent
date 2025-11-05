@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from llmling_agent.resource_providers.base import ResourceProvider
+from llmling_agent.resource_providers import ResourceProvider
 
 
 if TYPE_CHECKING:
@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
     from llmling import BasePrompt
 
-    from llmling_agent.messaging.messages import ChatMessage
+    from llmling_agent.messaging import ChatMessage
     from llmling_agent.tools.base import Tool
     from llmling_agent_config.resources import ResourceInfo
 

@@ -14,7 +14,7 @@ from upath import UPath
 from upathtools import read_path
 
 from llmling_agent.log import get_logger
-from llmling_agent.resource_providers.base import ResourceProvider
+from llmling_agent.resource_providers import ResourceProvider
 from llmling_agent.tools.base import Tool
 
 

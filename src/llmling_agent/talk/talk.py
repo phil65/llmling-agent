@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Any, Self, overload
 from psygnal import Signal
 
 from llmling_agent.log import get_logger
-from llmling_agent.messaging.messages import ChatMessage
+from llmling_agent.messaging import ChatMessage
 from llmling_agent.talk.stats import AggregatedTalkStats, TalkStats
 from llmling_agent.utils.inspection import execute
 from llmling_agent.utils.now import get_now
@@ -28,9 +28,8 @@ if TYPE_CHECKING:
         PromptCompatible,
         QueueStrategy,
     )
+    from llmling_agent.messaging import MessageEmitter, MessageNode
     from llmling_agent.messaging.events import ConnectionEventData, EventData
-    from llmling_agent.messaging.messageemitter import MessageEmitter
-    from llmling_agent.messaging.messagenode import MessageNode
     from llmling_agent_config.events import ConnectionEventType
     from llmling_agent_config.forward_targets import ConnectionType
 

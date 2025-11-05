@@ -106,6 +106,4 @@ async def test_message_chain_through_routing():
 
 
 if __name__ == "__main__":
-    import pytest
-
     pytest.main([__file__])

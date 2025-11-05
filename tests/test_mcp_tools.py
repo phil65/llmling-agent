@@ -32,6 +32,4 @@ async def test_mcp_tool_call(default_model: str):
 
 
 if __name__ == "__main__":
-    import pytest
-
     pytest.main(["-v", __file__])

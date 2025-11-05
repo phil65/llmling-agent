@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 import pytest
@@ -94,8 +95,6 @@ async def test_execution_order(pool):
 
 async def test_parallel_execution(pool):
     """Test parallel function execution."""
-    import asyncio
-
     # Track execution times
     start_times: dict[str, float] = {}
     end_times: dict[str, float] = {}

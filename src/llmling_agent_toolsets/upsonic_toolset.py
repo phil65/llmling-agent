@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 from llmling.core.log import get_logger
 
-from llmling_agent.resource_providers.base import ResourceProvider
+from llmling_agent.resource_providers import ResourceProvider
 
 
 if TYPE_CHECKING:

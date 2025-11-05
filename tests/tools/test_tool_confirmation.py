@@ -3,8 +3,7 @@ from __future__ import annotations
 from pydantic_ai.models.test import TestModel
 import pytest
 
-from llmling_agent import Agent
-from llmling_agent.tools.base import Tool
+from llmling_agent import Agent, Tool
 from llmling_agent_input.mock_provider import MockInputProvider
 
 

@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any, Literal, cast, overload
 from schemez import Schema, create_constructor_schema
 
 from llmling_agent.log import get_logger
-from llmling_agent.messaging.messages import ChatMessage
+from llmling_agent.messaging import ChatMessage
 from llmling_agent.tools.base import Tool
 
 

@@ -9,6 +9,8 @@ from pydantic_ai.models.test import TestModel
 import pytest
 
 from llmling_agent import Agent
+from llmling_agent.agent.events import ToolCallProgressEvent
+from llmling_agent.mcp_server import MCPClient
 from llmling_agent_config.mcp_server import StdioMCPServerConfig
 
 
@@ -137,8 +139,6 @@ async def test_progress_handler_without_context():
 
 async def test_direct_mcp_client_progress():
     """Test contextual progress handler with direct MCP client call (no RunContext)."""
-    from llmling_agent.mcp_server.client import MCPClient
-
     progress_capture = ProgressCapture()
     server_path = Path(__file__).parent / "server.py"  # Get server path
     args = ["run", str(server_path)]
@@ -176,8 +176,6 @@ async def test_direct_mcp_client_progress():
 
 async def test_agent_stream_progress_events():
     """Test that ToolCallProgressEvent appears in agent stream."""
-    from llmling_agent.agent.events import ToolCallProgressEvent
-
     server_path = Path(__file__).parent / "server.py"
     args = ["run", str(server_path)]
     mcp_server = StdioMCPServerConfig(name="progress_test", command="uv", args=args)

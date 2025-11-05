@@ -17,8 +17,8 @@ from llmling_agent.delegation.message_flow_tracker import MessageFlowTracker
 from llmling_agent.delegation.team import Team
 from llmling_agent.delegation.teamrun import TeamRun
 from llmling_agent.log import get_logger
+from llmling_agent.messaging import MessageEmitter
 from llmling_agent.messaging.context import ProgressCallback
-from llmling_agent.messaging.messageemitter import MessageEmitter
 from llmling_agent.talk import Talk, TeamTalk
 from llmling_agent.talk.registry import ConnectionRegistry
 from llmling_agent.tasks import TaskRegistry

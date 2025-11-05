@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from llmling_agent import AgentPool
-    from llmling_agent.messaging.messageemitter import MessageEmitter
+    from llmling_agent.messaging import MessageEmitter
     from llmling_agent.models.manifest import AgentsManifest
     from llmling_agent.prompts.manager import PromptManager
     from llmling_agent.storage import StorageManager

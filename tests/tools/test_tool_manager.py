@@ -4,8 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from llmling_agent.tools import ToolError, ToolManager
-from llmling_agent.tools.base import Tool
+from llmling_agent.tools import Tool, ToolError, ToolManager
 
 
 def test_basic_tool_management():

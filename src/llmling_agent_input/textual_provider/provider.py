@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from textual.screen import ModalScreen
 
     from llmling_agent.agent.context import AgentContext, ConfirmationResult
-    from llmling_agent.messaging.messages import ChatMessage
+    from llmling_agent.messaging import ChatMessage
     from llmling_agent.tools.base import Tool
 
 

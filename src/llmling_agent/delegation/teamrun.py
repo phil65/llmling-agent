@@ -12,7 +12,7 @@ from uuid import uuid4
 from llmling_agent.delegation.base_team import BaseTeam
 from llmling_agent.delegation.team import normalize_stream_for_teams
 from llmling_agent.log import get_logger
-from llmling_agent.messaging.messages import AgentResponse, ChatMessage, TeamResponse
+from llmling_agent.messaging import AgentResponse, ChatMessage, TeamResponse
 from llmling_agent.talk.talk import Talk, TeamTalk
 from llmling_agent.utils.now import get_now
 

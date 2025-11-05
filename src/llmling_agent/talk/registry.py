@@ -14,7 +14,7 @@ from llmling_agent.talk.talk import Talk
 
 if TYPE_CHECKING:
     from llmling_agent import MessageNode
-    from llmling_agent.messaging.messages import ChatMessage
+    from llmling_agent.messaging import ChatMessage
     from llmling_agent.talk.stats import TalkStats
     from llmling_agent_config.conditions import ConnectionCondition
 

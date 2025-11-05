@@ -11,7 +11,7 @@ from sqlalchemy import JSON, Column, and_, or_
 from sqlalchemy.sql import expression
 from sqlmodel import select
 
-from llmling_agent.messaging.messages import ChatMessage, TokenCost
+from llmling_agent.messaging import ChatMessage, TokenCost
 from llmling_agent.storage import deserialize_messages
 from llmling_agent_storage.models import ConversationData
 from llmling_agent_storage.sql_provider.models import Conversation

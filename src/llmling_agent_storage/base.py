@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from pydantic_ai import FinishReason
 
     from llmling_agent.common_types import JsonValue
-    from llmling_agent.messaging.messages import ChatMessage, TokenCost
+    from llmling_agent.messaging import ChatMessage, TokenCost
     from llmling_agent_config.session import SessionQuery
     from llmling_agent_config.storage import BaseStorageProviderConfig
     from llmling_agent_storage.models import ConversationData, QueryFilters, StatsFilters

@@ -13,7 +13,7 @@ from upath import UPath  # noqa: TC002
 
 
 if TYPE_CHECKING:
-    from llmling_agent.resource_providers.base import ResourceProvider
+    from llmling_agent.resource_providers import ResourceProvider
 
 
 class BaseToolsetConfig(ConfigModel):
@@ -269,7 +269,7 @@ class CustomToolsetConfig(BaseToolsetConfig):
         """Create custom provider from import path."""
         from llmling.utils.importing import import_class
 
-        from llmling_agent.resource_providers.base import ResourceProvider
+        from llmling_agent.resource_providers import ResourceProvider
 
         provider_cls = import_class(self.import_path)
         if not issubclass(provider_cls, ResourceProvider):

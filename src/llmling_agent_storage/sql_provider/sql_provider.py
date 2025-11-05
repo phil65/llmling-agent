@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import SQLModel, desc, select
 
 from llmling_agent.log import get_logger
-from llmling_agent.messaging.messages import TokenCost
+from llmling_agent.messaging import TokenCost
 from llmling_agent.utils.now import get_now
 from llmling_agent.utils.parse_time import parse_time_period
 from llmling_agent_storage.base import StorageProvider
@@ -34,7 +34,7 @@ if TYPE_CHECKING:
     from datetime import datetime
 
     from llmling_agent.common_types import JsonValue
-    from llmling_agent.messaging.messages import ChatMessage
+    from llmling_agent.messaging import ChatMessage
     from llmling_agent_config.session import SessionQuery
     from llmling_agent_config.storage import SQLStorageConfig
     from llmling_agent_storage.models import ConversationData, StatsFilters

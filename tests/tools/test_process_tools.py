@@ -8,7 +8,7 @@ from anyenv.process_manager import ProcessManager, ProcessOutput
 from pydantic_ai import RunContext
 import pytest
 
-from llmling_agent.agent.context import AgentContext
+from llmling_agent import AgentContext
 from llmling_agent_toolsets.builtin import process_management
 
 

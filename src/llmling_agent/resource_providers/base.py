@@ -10,7 +10,7 @@ from llmling_agent.log import get_logger
 if TYPE_CHECKING:
     from llmling import BasePrompt
 
-    from llmling_agent.messaging.messages import ChatMessage
+    from llmling_agent.messaging import ChatMessage
     from llmling_agent.tools.base import Tool
     from llmling_agent_config.resources import ResourceInfo
 
@@ -69,7 +69,7 @@ class ResourceProvider:
             KeyError: If prompt not found
             ValueError: If formatting fails
         """
-        from llmling_agent.messaging.messages import ChatMessage
+        from llmling_agent.messaging import ChatMessage
 
         prompts = await self.get_prompts()
         prompt = next((p for p in prompts if p.name == name), None)

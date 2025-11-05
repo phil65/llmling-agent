@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import pytest
 
-from llmling_agent.messaging.event_manager import EventManager
+from llmling_agent.messaging import ChatMessage, EventManager
 from llmling_agent.messaging.events import EventData
-from llmling_agent.messaging.messages import ChatMessage
 from llmling_agent.utils.now import get_now
 from llmling_agent_config.events import TimeEventConfig
 

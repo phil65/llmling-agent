@@ -3,8 +3,18 @@
 from __future__ import annotations
 
 import tempfile
+from unittest.mock import Mock
 
 import pytest
+
+from acp.schema import ClientCapabilities, FileSystemCapability
+
+# Add another agent to the pool for switching
+from llmling_agent import Agent
+from llmling_agent.delegation import AgentPool
+from llmling_agent_acp import ACPServer
+from llmling_agent_acp.acp_tools import ACPFileSystemProvider
+from llmling_agent_acp.session import ACPSession
 
 
 class TestACPIntegration:
@@ -13,8 +23,6 @@ class TestACPIntegration:
     @pytest.fixture
     async def agent_pool(self):
         """Create a real agent pool from config."""
-        from llmling_agent import Agent
-        from llmling_agent.delegation import AgentPool
 
         # Create a simple test agent
         def simple_callback(message: str) -> str:
@@ -27,20 +35,12 @@ class TestACPIntegration:
 
     async def test_acp_server_creation(self, agent_pool):
         """Test that ACP server can be created from agent pool."""
-        from llmling_agent_acp import ACPServer
-
         server = ACPServer(agent_pool=agent_pool)
         assert server.agent_pool is agent_pool
         assert len(server.agent_pool.agents) > 0
 
     async def test_filesystem_provider_tool_creation(self, agent_pool, mock_acp_agent):
         """Test that filesystem provider creates tools correctly."""
-        from unittest.mock import Mock
-
-        from acp.schema import ClientCapabilities, FileSystemCapability
-        from llmling_agent_acp.acp_tools import ACPFileSystemProvider
-        from llmling_agent_acp.session import ACPSession
-
         # Set up session with file capabilities
         mock_client = Mock()
 
@@ -74,14 +74,6 @@ class TestACPIntegration:
 
     async def test_agent_switching_workflow(self, agent_pool, mock_acp_agent):
         """Test the complete agent switching workflow."""
-        from unittest.mock import Mock
-
-        from acp.schema import ClientCapabilities
-
-        # Add another agent to the pool for switching
-        from llmling_agent import Agent
-        from llmling_agent.delegation import AgentPool
-        from llmling_agent_acp.session import ACPSession
 
         def callback1(message: str) -> str:
             return f"Agent1 response: {message}"

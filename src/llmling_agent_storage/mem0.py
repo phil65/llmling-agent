@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any
 from mem0 import AsyncMemoryClient
 
 from llmling_agent.log import get_logger
-from llmling_agent.messaging.messages import ChatMessage
+from llmling_agent.messaging import ChatMessage
 from llmling_agent.utils.now import get_now
 from llmling_agent_storage.base import StorageProvider
 

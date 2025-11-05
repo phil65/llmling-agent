@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any
 from pydantic_ai import RunContext  # noqa: TC002
 
 from acp.schema import TerminalToolCallContent
-from llmling_agent.resource_providers.base import ResourceProvider
+from llmling_agent.resource_providers import ResourceProvider
 from llmling_agent.tools.base import Tool
 
 

@@ -7,7 +7,7 @@ from uuid import uuid4
 from pydantic_ai import RunUsage
 import pytest
 
-from llmling_agent.messaging.messages import TokenCost
+from llmling_agent.messaging import TokenCost
 from llmling_agent.utils.now import get_now
 from llmling_agent.utils.parse_time import parse_time_period
 from llmling_agent_config.storage import SQLStorageConfig

@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     from types import TracebackType
 
     from llmling_agent.common_types import JsonValue
-    from llmling_agent.messaging.messages import ChatMessage
+    from llmling_agent.messaging import ChatMessage
     from llmling_agent_config.session import SessionQuery
     from llmling_agent_config.storage import BaseStorageProviderConfig, StorageConfig
     from llmling_agent_storage.base import StorageProvider
