@@ -8,9 +8,8 @@ import re
 from typing import Any, ClassVar
 
 from llmling.core.baseregistry import BaseRegistry
-import yaml
 
-from .exceptions import ToolError
+from llmling_agent.tools.exceptions import ToolError
 
 
 SKILL_NAME_LIMIT = 64
@@ -115,10 +114,11 @@ class SkillsRegistry(BaseRegistry[str, Skill]):
         if not frontmatter_match:
             msg = f"No YAML frontmatter found in {skill_file}"
             raise ToolError(msg)
+        import yamling
 
         try:
-            metadata = yaml.safe_load(frontmatter_match.group(1))
-        except yaml.YAMLError as e:
+            metadata = yamling.load_yaml(frontmatter_match.group(1))
+        except yamling.YAMLError as e:
             msg = f"Invalid YAML frontmatter in {skill_file}: {e}"
             raise ToolError(msg) from e
 

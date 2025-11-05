@@ -13,6 +13,7 @@ from typing import (
     Any,
     Self,
     TypedDict,
+    get_origin,
     get_type_hints,
     overload,
 )
@@ -20,14 +21,29 @@ from uuid import uuid4
 
 from anyenv import MultiEventHandler, method_spawner
 from llmling import Config, RuntimeConfig, ToolError
-from llmling_models import function_to_model
+from llmling_models import function_to_model, infer_model
 import logfire
 from psygnal import Signal
 from pydantic import ValidationError
-from pydantic_ai import AgentRunResultEvent
+from pydantic._internal import _typing_extra
+from pydantic_ai import (
+    Agent as PydanticAgent,
+    AgentRunResultEvent,
+    FunctionToolCallEvent,
+    PartStartEvent,
+    RunContext,
+    ToolCallPart,
+    models,
+)
+import pydantic_ai._function_schema
+from pydantic_ai.models import Model
+from pydantic_ai.tools import GenerateToolJsonSchema
 from upath import UPath
 
-from llmling_agent.agent.events import StreamCompleteEvent, ToolCallProgressEvent
+from llmling_agent.agent.events import (
+    StreamCompleteEvent,
+    create_queuing_progress_handler,
+)
 from llmling_agent.common_types import IndividualEventHandler
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messagenode import MessageNode
@@ -36,9 +52,10 @@ from llmling_agent.prompts.builtin_provider import RuntimePromptProvider
 from llmling_agent.prompts.convert import convert_prompts
 from llmling_agent.resource_providers.runtime import RuntimeResourceProvider
 from llmling_agent.talk.stats import MessageStats
-from llmling_agent.tools.base import Tool
-from llmling_agent.tools.manager import ToolManager
-from llmling_agent.utils.inspection import call_with_context
+from llmling_agent.tasks import JobError
+from llmling_agent.tools import SkillsRegistry, Tool, ToolManager
+from llmling_agent.tools.tool_call_info import ToolCallInfo
+from llmling_agent.utils.inspection import call_with_context, has_argument_type
 from llmling_agent.utils.now import get_now
 from llmling_agent.utils.result_utils import to_type
 from llmling_agent.utils.streams import merge_queue_into_iterator
@@ -47,20 +64,19 @@ from llmling_agent_config.session import MemoryConfig
 
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator, Coroutine, Sequence
+    from collections.abc import AsyncIterable, AsyncIterator, Coroutine, Sequence
     from datetime import datetime
     from types import TracebackType
 
     from llmling.config.models import Resource
     from llmling.prompts import PromptType
-    from pydantic_ai import UsageLimits
+    from pydantic_ai import AgentStreamEvent, BuiltinToolCallPart, UsageLimits
     from pydantic_ai.output import OutputSpec
     from toprompt import AnyPromptType
     from upath.types import JoinablePathLike
 
-    from llmling_agent.agent import AgentContext
-    from llmling_agent.agent.events import RichAgentStreamEvent
-    from llmling_agent.agent.interactions import Interactions
+    from llmling_agent.agent import AgentContext, Interactions
+    from llmling_agent.agent.events import RichAgentStreamEvent, ToolCallProgressEvent
     from llmling_agent.common_types import (
         AgentName,
         EndStrategy,
@@ -70,8 +86,7 @@ if TYPE_CHECKING:
         SessionIdType,
         ToolType,
     )
-    from llmling_agent.delegation.team import Team
-    from llmling_agent.delegation.teamrun import TeamRun
+    from llmling_agent.delegation import Team, TeamRun
     from llmling_agent.resource_providers.base import ResourceProvider
     from llmling_agent_config.mcp_server import MCPServerConfig
     from llmling_agent_config.output_types import StructuredResponseConfig
@@ -82,6 +97,7 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 # OutputDataT = TypeVar('OutputDataT', default=str, covariant=True)
+NoneType = type(None)
 
 
 class AgentKwargs(TypedDict, total=False):
@@ -206,7 +222,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         from llmling_agent.agent import AgentContext
         from llmling_agent.agent.conversation import ConversationManager
         from llmling_agent.agent.interactions import Interactions
-        from llmling_agent.agent.pydanticai import PydanticAIProvider
         from llmling_agent.agent.sys_prompts import SystemPrompts
 
         self.task_manager = TaskManager()
@@ -238,13 +253,16 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             if isinstance(session, MemoryConfig)
             else MemoryConfig.from_value(session)
         )
+        # Initialize progress queue before super().__init__()
+        self._progress_queue: asyncio.Queue[ToolCallProgressEvent] = asyncio.Queue()
+
         super().__init__(
             name=name,
             context=ctx,
             description=description,
             enable_logging=memory_cfg.enable,
             mcp_servers=mcp_servers,
-            progress_handler=self._create_progress_handler(),
+            progress_handler=create_queuing_progress_handler(self._progress_queue),
         )
         # Initialize runtime
         match runtime:
@@ -278,23 +296,14 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         if ctx.config.knowledge:
             resources.extend(ctx.config.knowledge.get_resources())
         self.conversation = ConversationManager(self, memory_cfg, resources=resources)
-        # Initialize provider
 
+        # Store pydantic-ai configuration
         if model and not isinstance(model, str):
-            from pydantic_ai import models
-
             assert isinstance(model, models.Model)
-        self._provider = PydanticAIProvider(
-            model=model,
-            retries=retries,
-            end_strategy=end_strategy,
-            output_retries=output_retries,
-            debug=debug,
-            context=ctx,
-        )
-
-        # Initialize skills registry
-        from llmling_agent.tools.skills import SkillsRegistry
+        self._model = model
+        self._retries = retries
+        self._end_strategy = end_strategy
+        self._output_retries = output_retries
 
         self.skills_registry = SkillsRegistry()
 
@@ -308,10 +317,8 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         self.parallel_init = parallel_init
         self.name = name
         self._background_task: asyncio.Task[Any] | None = None
-        self._progress_queue: asyncio.Queue[ToolCallProgressEvent] = asyncio.Queue()
 
-        # Forward provider signals
-        self._provider.tool_used.connect(self.tool_used)
+        # tool_used signal will be emitted directly in _run method
         self.talk = Interactions(self)
 
         # Set up system prompts
@@ -325,7 +332,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
 
     def __repr__(self) -> str:
         desc = f", {self.description!r}" if self.description else ""
-        return f"Agent({self.name!r}, model={self._provider._model!r}{desc})"
+        return f"Agent({self.name!r}, model={self._model!r}{desc})"
 
     def __prompt__(self) -> str:
         typ = self.__class__.__name__
@@ -334,7 +341,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         if self.description:
             parts.append(f"Description: {self.description}")
         parts.extend([self.tools.__prompt__(), self.conversation.__prompt__()])
-
         return "\n".join(parts)
 
     async def __aenter__(self) -> Self:
@@ -349,10 +355,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                 self._owns_runtime = True
                 coros.append(runtime_ref.__aenter__())
 
-            # Events initialization
             coros.append(super().__aenter__())
-
-            # Get conversation init tasks directly
             coros.extend(self.conversation.get_initialization_tasks())
 
             # Execute coroutines either in parallel or sequentially
@@ -463,8 +466,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             name: Optional name for the agent
             kwargs: Additional arguments for agent
         """
-        from llmling_agent.agent.agent import Agent
-
         name = name or callback.__name__ or "processor"
 
         model = function_to_model(callback)
@@ -484,7 +485,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             name=name,
             output_type=return_type or str,
             **kwargs,
-        )  # type: ignore
+        )
 
     @property
     def name(self) -> str:
@@ -493,7 +494,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
 
     @name.setter
     def name(self, value: str):
-        self._provider.name = value
         self._name = value
 
     @property
@@ -504,7 +504,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
     @context.setter
     def context(self, value: AgentContext[TDeps]):
         """Set agent context and propagate to provider."""
-        self._provider.context = value
+        self._context = value
         self.mcp.context = value
         self._context = value
 
@@ -559,7 +559,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
     @property
     def model_name(self) -> str | None:
         """Get the model name in a consistent format."""
-        return self._provider.model_name
+        return self._model.model_name if isinstance(self._model, Model) else self._model
 
     def to_tool(
         self,
@@ -612,7 +612,73 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             description_override=docstring,
         )
 
-    @logfire.instrument("Calling Agent.run: {prompts}:")
+    async def get_agentlet(
+        self,
+        tools: list[Tool],
+        model: ModelType = None,
+        output_type: type[Any] = str,
+        deps_type: type[Any] | None = None,
+    ):
+        """Create pydantic-ai agent from current state."""
+        # Monkey patch pydantic-ai to recognize AgentContext
+        from llmling_agent.agent.context import AgentContext
+        from llmling_agent.agent.tool_wrapping import wrap_tool
+
+        def _is_call_ctx_patched(annotation):
+            if annotation is RunContext or (
+                _typing_extra.is_generic_alias(annotation)
+                and get_origin(annotation) is RunContext
+            ):
+                return True
+            return annotation is AgentContext or (
+                _typing_extra.is_generic_alias(annotation)
+                and get_origin(annotation) is AgentContext
+            )
+
+        original_is_call_ctx = pydantic_ai._function_schema._is_call_ctx
+        pydantic_ai._function_schema._is_call_ctx = _is_call_ctx_patched
+
+        actual_model = model or self._model
+        model_ = (
+            infer_model(actual_model) if isinstance(actual_model, str) else actual_model
+        )
+
+        agent = PydanticAgent(
+            model=model_,
+            instructions=await self.sys_prompts.format_system_prompt(self),
+            retries=self._retries,
+            end_strategy=self._end_strategy,
+            output_retries=self._output_retries,
+            deps_type=deps_type or NoneType,
+            output_type=output_type,
+        )
+
+        for tool in tools:
+            wrapped = (
+                wrap_tool(tool, self.context) if self.context else tool.callable.callable
+            )
+            if has_argument_type(wrapped, RunContext):
+                agent.tool(wrapped)
+            elif has_argument_type(wrapped, AgentContext):
+                agent._function_toolset.add_function(
+                    func=wrapped,
+                    takes_ctx=True,
+                    name=None,
+                    retries=1,
+                    prepare=None,
+                    docstring_format="auto",
+                    require_parameter_descriptions=False,
+                    schema_generator=GenerateToolJsonSchema,
+                    strict=None,
+                )
+            else:
+                agent.tool_plain(wrapped)
+
+        # Restore original function after agent creation
+        pydantic_ai._function_schema._is_call_ctx = original_is_call_ctx
+
+        return agent
+
     async def _run(
         self,
         *prompts: PromptCompatible | ChatMessage[Any],
@@ -655,54 +721,105 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         tools = await self.tools.get_tools(state="enabled", names=tool_choice)
         final_type = to_type(output_type) if output_type else self._output_type
         start_time = time.perf_counter()
-        sys_prompt = await self.sys_prompts.format_system_prompt(self)
 
         message_history = (
             messages if messages is not None else self.conversation.get_history()
         )
         try:
-            result = await self._provider.generate_response(
-                *await convert_prompts(prompts),
-                message_id=message_id,
-                dependency=deps,
-                message_history=message_history,
-                tools=tools,
-                output_type=final_type,
+            # Create pydantic-ai agent for this run
+            agentlet = await self.get_agentlet(tools, model, final_type, self.deps_type)
+
+            from llmling_agent.messaging.messages import TokenCost
+            from llmling_agent.prompts.convert import convert_prompts
+
+            # Convert prompts
+            converted_prompts = await convert_prompts(prompts)
+
+            # Create event handler for tool calls
+            tool_dict = {i.name: i for i in tools}
+
+            async def internal_tool_handler(ctx: RunContext, event: AgentStreamEvent):
+                if isinstance(event, FunctionToolCallEvent):
+                    call = event.part
+                    if call.tool_name in tool_dict:
+                        tc_info = _create_tool_call_info(
+                            call, tool_dict, message_id, self.name
+                        )
+                        self.tool_used.emit(tc_info)
+
+            # Merge internal and external event handlers like the old provider did
+            async def event_distributor(
+                ctx: RunContext, events: AsyncIterable[AgentStreamEvent]
+            ):
+                all_handlers: list[IndividualEventHandler] = [internal_tool_handler]
+                if self.event_handler:
+                    all_handlers.extend(self.event_handler._wrapped_handlers)
+
+                async for event in events:
+                    for handler in all_handlers:
+                        await handler(ctx, event)
+
+            # Run the agentlet
+            result = await agentlet.run(
+                [
+                    i if isinstance(i, str) else i.to_pydantic_ai()
+                    for i in converted_prompts
+                ],
+                deps=deps,
+                message_history=[
+                    m for run in message_history for m in run.to_pydantic_ai()
+                ],
+                output_type=final_type or str,
                 usage_limits=usage_limits,
-                model=model,
-                system_prompt=sys_prompt,
-                event_stream_handler=self.event_handler,
+                event_stream_handler=event_distributor,
             )
+
+            # Extract tool calls and build response
+            new_msgs = result.new_messages()
+            from llmling_agent.agent.utils import get_tool_calls
+
+            tool_calls = get_tool_calls(new_msgs, tool_dict, agent_name=self.name)
+            for call in tool_calls:
+                call.message_id = message_id
+
+            # Calculate costs
+            usage = result.usage()
+            cost_info = await TokenCost.from_usage(
+                model=result.response.model_name, usage=usage
+            )
+
+            response_msg = ChatMessage[OutputDataT](
+                content=result.output,
+                role="assistant",
+                name=self.name,
+                model_name=result.response.model_name,
+                finish_reason=result.response.finish_reason,
+                messages=new_msgs,
+                provider_response_id=result.response.provider_response_id,
+                usage=usage,
+                provider_name=result.response.provider_name,
+                message_id=message_id,
+                conversation_id=conversation_id,
+                tool_calls=tool_calls,
+                cost_info=cost_info,
+                response_time=time.perf_counter() - start_time,
+                provider_details={},
+            )
+
+            if self._debug:
+                import devtools
+
+                devtools.debug(response_msg)
+
         except Exception as e:
             logger.exception("Agent run failed", agent_name=self.name)
             self.run_failed.emit("Agent run failed", e)
             raise
         else:
-            response_msg = ChatMessage[OutputDataT](
-                content=result.content,
-                role="assistant",
-                name=self.name,
-                model_name=result.response.model_name,
-                finish_reason=result.response.finish_reason,
-                messages=result.messages,
-                provider_response_id=result.response.provider_response_id,
-                usage=result.response.usage,
-                provider_name=result.response.provider_name,
-                message_id=message_id,
-                conversation_id=conversation_id,
-                tool_calls=result.tool_calls,
-                cost_info=result.cost_and_usage,
-                response_time=time.perf_counter() - start_time,
-                provider_details=result.provider_details or {},
-            )
-            if self._debug:
-                import devtools
-
-                devtools.debug(response_msg)
             return response_msg
 
     @method_spawner
-    async def run_stream(
+    async def run_stream(  # noqa: PLR0915
         self,
         *prompt: PromptCompatible,
         output_type: type[OutputDataT] | None = None,
@@ -742,58 +859,82 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         user_msg, prompts = await self.pre_run(*prompt)
         final_type = to_type(output_type) if output_type else self._output_type
         start_time = time.perf_counter()
-        sys_prompt = await self.sys_prompts.format_system_prompt(self)
         tools = await self.tools.get_tools(state="enabled", names=tool_choice)
         message_history = (
             messages if messages is not None else self.conversation.get_history()
         )
         try:
+            # Create pydantic-ai agent for this run
+            agentlet = await self.get_agentlet(tools, model, final_type, self.deps_type)
+
+            # Convert prompts
+            converted_prompts = await convert_prompts(prompts)
+
+            # Initialize variables for final response
             usage = None
             model_name = None
-            output = None
+            new_msgs = []
             finish_reason = None
             provider_name = None
             provider_response_id = None
+            output = None
 
-            provider_stream = self._provider.stream_events(
-                *prompts,
-                message_id=message_id,
-                message_history=message_history,
-                output_type=final_type,
-                model=model,
-                tools=tools,
+            # Create tool dict for signal emission
+            tool_dict = {i.name: i for i in tools}
+
+            # Stream events directly from pydantic-ai
+            stream_events = agentlet.run_stream_events(
+                [
+                    i if isinstance(i, str) else i.to_pydantic_ai()
+                    for i in converted_prompts
+                ],
+                deps=deps,
+                message_history=[
+                    m for run in message_history for m in run.to_pydantic_ai()
+                ],
+                output_type=final_type or str,
                 usage_limits=usage_limits,
-                system_prompt=sys_prompt,
-                dependency=deps,
             )
 
+            # Stream events through merge_queue for progress events
             async with merge_queue_into_iterator(
-                provider_stream, self._progress_queue
+                stream_events, self._progress_queue
             ) as events:
                 async for event in events:
-                    # Pass through PydanticAI events and collect chunks
+                    # Process events and emit signals
                     match event:
-                        case AgentRunResultEvent(result=result):
+                        case (
+                            PartStartEvent(part=ToolCallPart() as tool_part)
+                            | FunctionToolCallEvent(part=tool_part)
+                        ) if tool_part.tool_name in tool_dict:
+                            tc_info = _create_tool_call_info(
+                                tool_part, tool_dict, message_id, self.name
+                            )
+                            self.tool_used.emit(tc_info)
+                            yield event
+                        case AgentRunResultEvent() as result_event:
+                            # Capture final result data
+                            result = result_event.result
                             usage = result.usage()
                             model_name = result.response.model_name
                             new_msgs = result.new_messages()
                             finish_reason = result.response.finish_reason
                             provider_name = result.response.provider_name
                             provider_response_id = result.response.provider_response_id
-
                             output = result.output
-                            # Don't yield AgentRunResultEvent,
-                            # we'll send our own final event
+                            # Yield the original AgentRunResultEvent
+                            yield event
                         case _:
-                            yield event  # Pass through other events
+                            # Yield all other events (including progress events)
+                            yield event
 
-            # Build final chat message
+            # Build final response message
             cost_info = None
             if model_name and usage and model_name != "test":
                 cost_info = await TokenCost.from_usage(usage, model_name)
 
             response_msg = ChatMessage[OutputDataT](
-                content=output,  # type: ignore
+                content=output,  # type: ignore[arg-type]
                 role="assistant",
                 name=self.name,
                 messages=new_msgs,
@@ -807,7 +948,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                 finish_reason=finish_reason,
             )
 
-            # Yield final event with embedded message
+            # Send additional enriched completion event
             yield StreamCompleteEvent(message=response_msg)
             self.message_sent.emit(response_msg)
             await self.log_message(response_msg)
@@ -822,29 +963,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             logger.exception("Agent stream failed", agent_name=self.name)
             self.run_failed.emit("Agent stream failed", e)
             raise
-
-    def _create_progress_handler(self):
-        """Create progress handler that converts to ToolCallProgressEvent."""
-
-        async def progress_handler(
-            progress: float,
-            total: float | None,
-            message: str | None,
-            tool_name: str | None = None,
-            tool_call_id: str | None = None,
-            tool_input: dict[str, Any] | None = None,
-        ) -> None:
-            event = ToolCallProgressEvent(
-                progress=int(progress) if progress is not None else 0,
-                total=int(total) if total is not None else 100,
-                message=message or "",
-                tool_name=tool_name or "",
-                tool_call_id=tool_call_id or "",
-                tool_input=tool_input,
-            )
-            await self._progress_queue.put(event)
-
-        return progress_handler
 
     async def run_iter(
         self,
@@ -907,8 +1025,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             JobError: If task execution fails
             ValueError: If task configuration is invalid
         """
-        from llmling_agent.tasks import JobError
-
         if job.required_dependency is not None:  # noqa: SIM102
             if not isinstance(self.context.data, job.required_dependency):
                 msg = (
@@ -1098,7 +1214,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             model: New model to use (name or instance)
 
         """
-        self._provider.set_model(model)
+        self._model = model
 
     async def reset(self):
         """Reset agent state (conversation history and tool states)."""
@@ -1157,7 +1273,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             pause_routing: Whether to pause message routing
             model: Temporary model override
         """
-        old_model = self._provider.model if hasattr(self._provider, "model") else None  # pyright: ignore
+        old_model = self._model
         if output_type:
             old_type = self._output_type
             self.set_output_type(output_type)  # type: ignore
@@ -1190,14 +1306,14 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
 
             # Model
             elif model is not None:
-                self._provider.set_model(model)
+                self._model = model
 
             try:
                 yield self
             finally:
                 # Restore model
                 if model is not None and old_model:
-                    self._provider.set_model(old_model)
+                    self._model = old_model
                 if output_type:
                     self.set_output_type(old_type)
 
@@ -1215,6 +1331,23 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             return False
         else:
             return True
+
+
+def _create_tool_call_info(
+    tool_part: ToolCallPart | BuiltinToolCallPart,
+    tool_dict: dict,
+    message_id: str,
+    agent_name: str,
+) -> ToolCallInfo:
+    """Create ToolCallInfo from tool call part."""
+    return ToolCallInfo(
+        tool_name=tool_part.tool_name,
+        args=tool_part.args_as_dict(),
+        result=None,  # Will be filled when tool execution completes
+        agent_name=agent_name,
+        tool_call_id=tool_part.tool_call_id,
+        message_id=message_id,
+    )
 
 
 if __name__ == "__main__":

@@ -3,11 +3,15 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic_ai import AgentStreamEvent
 
 from llmling_agent.messaging.messages import ChatMessage  # noqa: TC001
+
+
+if TYPE_CHECKING:
+    import asyncio
 
 
 @dataclass(kw_only=True)
@@ -70,3 +74,27 @@ type RichAgentStreamEvent[OutputDataT] = (
 type SlashedAgentStreamEvent[OutputDataT] = (
     RichAgentStreamEvent[OutputDataT] | CommandOutputEvent | CommandCompleteEvent
 )
+
+
+def create_queuing_progress_handler(queue: asyncio.Queue[ToolCallProgressEvent]):
+    """Create progress handler that converts to ToolCallProgressEvent."""
+
+    async def progress_handler(
+        progress: float,
+        total: float | None,
+        message: str | None,
+        tool_name: str | None = None,
+        tool_call_id: str | None = None,
+        tool_input: dict[str, Any] | None = None,
+    ) -> None:
+        event = ToolCallProgressEvent(
+            progress=int(progress) if progress is not None else 0,
+            total=int(total) if total is not None else 100,
+            message=message or "",
+            tool_name=tool_name or "",
+            tool_call_id=tool_call_id or "",
+            tool_input=tool_input,
+        )
+        await queue.put(event)
+
+    return progress_handler
