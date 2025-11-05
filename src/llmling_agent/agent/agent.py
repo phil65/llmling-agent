@@ -59,7 +59,6 @@ from llmling_agent.resource_providers.runtime import RuntimeResourceProvider
 from llmling_agent.talk.stats import MessageStats
 from llmling_agent.tasks import JobError
 from llmling_agent.tools import SkillsRegistry, Tool, ToolManager
-from llmling_agent.tools.tool_call_info import ToolCallInfo
 from llmling_agent.utils.inspection import call_with_context, has_argument_type
 from llmling_agent.utils.now import get_now
 from llmling_agent.utils.result_utils import to_type
@@ -75,7 +74,7 @@ if TYPE_CHECKING:
 
     from llmling.config.models import Resource
     from llmling.prompts import PromptType
-    from pydantic_ai import AgentStreamEvent, BuiltinToolCallPart, UsageLimits
+    from pydantic_ai import AgentStreamEvent, UsageLimits
     from pydantic_ai.output import OutputSpec
     from toprompt import AnyPromptType
     from upath.types import JoinablePathLike
@@ -1298,23 +1297,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             return False
         else:
             return True
-
-
-def _create_tool_call_info(
-    tool_part: ToolCallPart | BuiltinToolCallPart,
-    tool_dict: dict,
-    message_id: str,
-    agent_name: str,
-) -> ToolCallInfo:
-    """Create ToolCallInfo from tool call part."""
-    return ToolCallInfo(
-        tool_name=tool_part.tool_name,
-        args=tool_part.args_as_dict(),
-        result=None,  # Will be filled when tool execution completes
-        agent_name=agent_name,
-        tool_call_id=tool_part.tool_call_id,
-        message_id=message_id,
-    )
 
 
 if __name__ == "__main__":
