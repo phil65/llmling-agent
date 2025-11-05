@@ -1,4 +1,4 @@
-"""Tests for streaming command bridge functionality."""
+"""Tests for streaming command functionality in sessions."""
 
 from __future__ import annotations
 
@@ -6,14 +6,13 @@ import asyncio
 from unittest.mock import AsyncMock
 
 import pytest
-from slashed import CommandStore
 
+from acp.schema import ClientCapabilities
 from llmling_agent import Agent, AgentPool
-from llmling_agent_acp.command_bridge import ACPCommandBridge
 from llmling_agent_acp.session import ACPSession
 
 
-async def test_command_bridge_immediate_execution():
+async def test_session_command_immediate_execution():
     """Test that command execution sends updates immediately."""
 
     def simple_callback(message: str) -> str:
@@ -24,16 +23,20 @@ async def test_command_bridge_immediate_execution():
     agent_pool = AgentPool()
     agent_pool.register("test_agent", agent)
 
-    # Create command store and bridge
-    command_store = CommandStore()
-    command_bridge = ACPCommandBridge(command_store)
+    # Mock client and ACP agent
+    mock_client = AsyncMock()
+    mock_acp_agent = AsyncMock()
 
-    # Mock session with notifications
-    mock_session = AsyncMock(spec=ACPSession)
-    mock_session.session_id = "test_session"
-    mock_session.agent = AsyncMock()
-    mock_session.agent.context = None
-    mock_session.notifications = AsyncMock()
+    # Create session
+    session = ACPSession(
+        session_id="test_session",
+        agent_pool=agent_pool,
+        current_agent_name="test_agent",
+        cwd="/tmp",
+        client=mock_client,
+        acp_agent=mock_acp_agent,
+        client_capabilities=ClientCapabilities(fs=None, terminal=False),
+    )
 
     # Capture messages sent via notifications
     sent_messages = []
@@ -41,10 +44,10 @@ async def test_command_bridge_immediate_execution():
     async def capture_message(message):
         sent_messages.append(message)
 
-    mock_session.notifications.send_agent_text.side_effect = capture_message
+    session.notifications.send_agent_text = capture_message
 
     # Test command execution
-    await command_bridge.execute_slash_command("/help", mock_session)
+    await session.execute_slash_command("/help")
 
     # Verify messages were sent immediately via notifications
     assert len(sent_messages) > 0
@@ -52,6 +55,29 @@ async def test_command_bridge_immediate_execution():
 
 async def test_immediate_send_with_slow_command():
     """Test immediate sending works with commands that produce output over time."""
+
+    def simple_callback(message: str) -> str:
+        return f"Response: {message}"
+
+    # Set up agent and session
+    agent = Agent.from_callback(name="test_agent", callback=simple_callback)
+    agent_pool = AgentPool()
+    agent_pool.register("test_agent", agent)
+
+    # Mock client and ACP agent
+    mock_client = AsyncMock()
+    mock_acp_agent = AsyncMock()
+
+    # Create session
+    session = ACPSession(
+        session_id="test_session",
+        agent_pool=agent_pool,
+        current_agent_name="test_agent",
+        cwd="/tmp",
+        client=mock_client,
+        acp_agent=mock_acp_agent,
+        client_capabilities=ClientCapabilities(fs=None, terminal=False),
+    )
 
     # Create a command that outputs multiple lines with delays
     async def slow_command_func(ctx, args, kwargs):
@@ -61,20 +87,10 @@ async def test_immediate_send_with_slow_command():
         await asyncio.sleep(0.01)  # Small delay
         await ctx.print("Completed!")
 
-    # Set up command store
-    command_store = CommandStore()
-    command_store.add_command(
+    # Add the command to the session's command store
+    session.command_store.add_command(
         name="slow", fn=slow_command_func, description="A slow command for testing"
     )
-
-    command_bridge = ACPCommandBridge(command_store)
-
-    # Mock session with notifications
-    mock_session = AsyncMock(spec=ACPSession)
-    mock_session.session_id = "test_session"
-    mock_session.agent = AsyncMock()
-    mock_session.agent.context = None
-    mock_session.notifications = AsyncMock()
 
     # Collect messages with timestamps to verify immediate sending
     messages_with_time = []
@@ -84,10 +100,10 @@ async def test_immediate_send_with_slow_command():
         current_time = asyncio.get_event_loop().time()
         messages_with_time.append((message, current_time - start_time))
 
-    mock_session.notifications.send_agent_text.side_effect = capture_with_time
+    session.notifications.send_agent_text = capture_with_time
 
     # Execute command
-    await command_bridge.execute_slash_command("/slow", mock_session)
+    await session.execute_slash_command("/slow")
 
     # Verify we got multiple messages
     min_expected_messages = 3
@@ -108,24 +124,37 @@ async def test_immediate_send_with_slow_command():
 async def test_immediate_send_error_handling():
     """Test that errors in commands are properly sent immediately."""
 
+    def simple_callback(message: str) -> str:
+        return f"Response: {message}"
+
+    # Set up agent and session
+    agent = Agent.from_callback(name="test_agent", callback=simple_callback)
+    agent_pool = AgentPool()
+    agent_pool.register("test_agent", agent)
+
+    # Mock client and ACP agent
+    mock_client = AsyncMock()
+    mock_acp_agent = AsyncMock()
+
+    # Create session
+    session = ACPSession(
+        session_id="test_session",
+        agent_pool=agent_pool,
+        current_agent_name="test_agent",
+        cwd="/tmp",
+        client=mock_client,
+        acp_agent=mock_acp_agent,
+        client_capabilities=ClientCapabilities(fs=None, terminal=False),
+    )
+
     async def failing_command(ctx, args, kwargs):
         await ctx.print("Starting...")
         msg = "Command failed!"
         raise ValueError(msg)
 
-    command_store = CommandStore()
-    command_store.add_command(
+    session.command_store.add_command(
         name="fail", fn=failing_command, description="A failing command"
     )
-
-    command_bridge = ACPCommandBridge(command_store)
-
-    # Mock session with notifications
-    mock_session = AsyncMock(spec=ACPSession)
-    mock_session.session_id = "test_session"
-    mock_session.agent = AsyncMock()
-    mock_session.agent.context = None
-    mock_session.notifications = AsyncMock()
 
     # Collect all messages
     sent_messages = []
@@ -133,10 +162,10 @@ async def test_immediate_send_error_handling():
     async def capture_message(message):
         sent_messages.append(message)
 
-    mock_session.notifications.send_agent_text.side_effect = capture_message
+    session.notifications.send_agent_text = capture_message
 
     # Execute failing command
-    await command_bridge.execute_slash_command("/fail", mock_session)
+    await session.execute_slash_command("/fail")
 
     # Should get the initial output plus error message
     min_expected_messages = 2

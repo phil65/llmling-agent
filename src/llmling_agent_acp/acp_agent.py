@@ -5,8 +5,6 @@ from __future__ import annotations
 from importlib.metadata import version as _version
 from typing import TYPE_CHECKING, Any
 
-from slashed import CommandStore
-
 from acp import Agent as ACPAgent
 from acp.schema import (
     AgentMessageChunk,
@@ -26,12 +24,8 @@ from acp.schema import (
 )
 from llmling_agent.log import get_logger
 from llmling_agent.utils.tasks import TaskManager
-from llmling_agent_acp.command_bridge import ACPCommandBridge
-from llmling_agent_acp.commands.acp_commands import get_acp_commands
-from llmling_agent_acp.commands.debug_commands import get_debug_commands
 from llmling_agent_acp.converters import agent_to_mode
 from llmling_agent_acp.session_manager import ACPSessionManager
-from llmling_agent_commands import get_commands
 
 
 if TYPE_CHECKING:
@@ -128,17 +122,8 @@ class LLMlingACPAgent(ACPAgent):
         self.debug_commands = debug_commands
         self.default_agent = default_agent
         self.client_capabilities: ClientCapabilities | None = None
-        command_store = CommandStore(enable_system_commands=True)
-        command_store._initialize_sync()
 
-        commands_to_register = [*get_commands(), *get_acp_commands()]
-        if debug_commands:
-            commands_to_register.extend(get_debug_commands())
-
-        for command in commands_to_register:
-            command_store.register_command(command)
-        self.command_bridge = ACPCommandBridge(command_store)
-        self.session_manager = ACPSessionManager(command_bridge=self.command_bridge)
+        self.session_manager = ACPSessionManager()
         self.tasks = TaskManager()
 
         self._initialized = False

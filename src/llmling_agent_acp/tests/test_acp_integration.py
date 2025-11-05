@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import tempfile
-from unittest.mock import Mock
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -42,7 +42,7 @@ class TestACPIntegration:
     async def test_filesystem_provider_tool_creation(self, agent_pool, mock_acp_agent):
         """Test that filesystem provider creates tools correctly."""
         # Set up session with file capabilities
-        mock_client = Mock()
+        mock_client = AsyncMock()
 
         fs_cap = FileSystemCapability(read_text_file=True, write_text_file=True)
         capabilities = ClientCapabilities(fs=fs_cap, terminal=False)
@@ -87,7 +87,7 @@ class TestACPIntegration:
         multi_pool = AgentPool()
         multi_pool.register("agent1", agent1)
         multi_pool.register("agent2", agent2)
-        mock_client = Mock()
+        mock_client = AsyncMock()
         capabilities = ClientCapabilities(fs=None, terminal=False)
 
         session = ACPSession(

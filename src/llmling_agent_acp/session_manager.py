@@ -17,7 +17,6 @@ if TYPE_CHECKING:
     from acp.schema import ClientCapabilities, McpServer
     from llmling_agent import AgentPool
     from llmling_agent_acp.acp_agent import LLMlingACPAgent
-    from llmling_agent_acp.command_bridge import ACPCommandBridge
 
 
 logger = get_logger(__name__)
@@ -33,7 +32,7 @@ class ACPSessionManager:
     - Agent instance management
     """
 
-    def __init__(self, command_bridge: ACPCommandBridge) -> None:
+    def __init__(self) -> None:
         """Initialize session manager.
 
         Args:
@@ -41,13 +40,7 @@ class ACPSessionManager:
         """
         self._sessions: dict[str, ACPSession] = {}
         self._lock = asyncio.Lock()
-        self.command_bridge = command_bridge
         self._command_update_task: asyncio.Task[None] | None = None
-
-        # Register for command update notifications
-        if command_bridge:
-            command_bridge.register_update_callback(self._on_commands_updated)
-
         logger.info("Initialized ACP session manager")
 
     async def create_session(
@@ -94,11 +87,11 @@ class ACPSessionManager:
                 cwd=cwd,
                 client=client,
                 mcp_servers=mcp_servers,
-                command_bridge=self.command_bridge,
                 acp_agent=acp_agent,
                 client_capabilities=client_capabilities,
                 manager=self,
             )
+            session.register_update_callback(self._on_commands_updated)
 
             # Initialize MCP servers if any are provided
             #  TODO: perhaps move to ACPAgent.new_session?

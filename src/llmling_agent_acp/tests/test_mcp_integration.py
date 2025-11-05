@@ -6,14 +6,12 @@ import sys
 import tempfile
 
 import pytest
-from slashed import CommandStore
 
 from acp.schema import EnvVariable, StdioMcpServer
 from llmling_agent import Agent
 from llmling_agent.delegation import AgentPool
 from llmling_agent.log import get_logger
 from llmling_agent.tools.base import Tool
-from llmling_agent_acp.command_bridge import ACPCommandBridge
 from llmling_agent_acp.converters import convert_acp_mcp_server_to_config
 from llmling_agent_acp.session import ACPSession
 from llmling_agent_acp.session_manager import ACPSessionManager
@@ -50,8 +48,6 @@ async def test_session_with_mcp_servers(test_client, mock_acp_agent, client_capa
     agent = Agent.from_callback(name="test_agent", callback=simple_callback)
     agent_pool = AgentPool()
     agent_pool.register("test_agent", agent)
-    command_store = CommandStore()
-    command_bridge = ACPCommandBridge(command_store)
 
     # Sample MCP servers (these won't actually connect in the test)
     mcp_servers = [
@@ -76,7 +72,6 @@ async def test_session_with_mcp_servers(test_client, mock_acp_agent, client_capa
         cwd=tempfile.gettempdir(),
         client=test_client,
         mcp_servers=mcp_servers,
-        command_bridge=command_bridge,
         acp_agent=mock_acp_agent,
         client_capabilities=client_capabilities,
     )
@@ -97,9 +92,7 @@ async def test_session_with_mcp_servers(test_client, mock_acp_agent, client_capa
 @pytest.mark.skipif(sys.platform == "darwin", reason="macOS subprocess handling differs")
 async def test_session_manager_with_mcp(test_client, mock_acp_agent, client_capabilities):
     """Test session manager creating sessions with MCP servers."""
-    command_store = CommandStore()
-    command_bridge = ACPCommandBridge(command_store)
-    session_manager = ACPSessionManager(command_bridge)
+    session_manager = ACPSessionManager()
 
     def simple_callback(message: str) -> str:
         return f"Test response for: {message}"

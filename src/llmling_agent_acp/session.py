@@ -9,6 +9,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import AsyncGenerator
 from dataclasses import dataclass
+import re
 from typing import TYPE_CHECKING, Any
 
 from pydantic_ai import (
@@ -26,36 +27,44 @@ from pydantic_ai import (
     ToolReturnPart,
     UsageLimitExceeded,
 )
+from slashed import CommandStore
 
 from acp.filesystem import ACPFileSystem
 from acp.notifications import ACPNotifications
 from acp.requests import ACPRequests
+from acp.schema import AvailableCommand
 from acp.utils import to_acp_content_blocks
 from llmling_agent.agent import SlashedAgent
 from llmling_agent.agent.events import StreamCompleteEvent, ToolCallProgressEvent
 from llmling_agent.log import get_logger
 from llmling_agent_acp.acp_tools import get_acp_provider
-from llmling_agent_acp.command_bridge import SLASH_PATTERN
+from llmling_agent_acp.commands.acp_commands import ACPCommandContext, get_acp_commands
 from llmling_agent_acp.converters import (
     convert_acp_mcp_server_to_config,
     from_content_blocks,
 )
+from llmling_agent_commands import get_commands
 
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Callable, Sequence
 
     from pydantic_ai.messages import SystemPromptPart, UserPromptPart
+    from slashed import CommandContext
 
     from acp import Client
     from acp.schema import ClientCapabilities, ContentBlock, McpServer, StopReason
     from llmling_agent import Agent, AgentPool
+    from llmling_agent.agent.context import AgentContext
     from llmling_agent.agent.events import RichAgentStreamEvent
     from llmling_agent.models.content import BaseContent
     from llmling_agent.resource_providers.aggregating import AggregatingResourceProvider
     from llmling_agent_acp.acp_agent import LLMlingACPAgent
-    from llmling_agent_acp.command_bridge import ACPCommandBridge
     from llmling_agent_acp.session_manager import ACPSessionManager
+
+logger = get_logger(__name__)
+SLASH_PATTERN = re.compile(r"^/([\w-]+)(?:\s+(.*))?$")
+ACP_COMMANDS = {"list-sessions", "load-session", "save-session", "delete-session"}
 
 
 logger = get_logger(__name__)
@@ -102,9 +111,6 @@ class ACPSession:
     mcp_servers: Sequence[McpServer] | None = None
     """Optional MCP server configurations"""
 
-    command_bridge: ACPCommandBridge | None = None
-    """Optional command bridge for slash commands"""
-
     client_capabilities: ClientCapabilities | None = None
     """Client capabilities for tool registration"""
 
@@ -122,6 +128,16 @@ class ACPSession:
         self.fs = ACPFileSystem(self.client, session_id=self.session_id)
         self._acp_provider: AggregatingResourceProvider | None = None
         # Staged prompt parts for context building
+        self.command_store = CommandStore(enable_system_commands=True)
+        self.command_store._initialize_sync()
+
+        commands_to_register = [*get_commands(), *get_acp_commands()]
+        # if debug_commands:
+        #     commands_to_register.extend(get_debug_commands())
+
+        for command in commands_to_register:
+            self.command_store.register_command(command)
+        self._update_callbacks: list[Callable[[], None]] = []
 
         self._staged_parts: list[SystemPromptPart | UserPromptPart] = []
         self.notifications = ACPNotifications(
@@ -176,8 +192,7 @@ class ACPSession:
     @property
     def slashed_agent(self) -> SlashedAgent[Any, str]:
         """Get the wrapped slashed agent."""
-        store = self.command_bridge.command_store if self.command_bridge else None
-        return SlashedAgent(self.agent, command_store=store)
+        return SlashedAgent(self.agent, command_store=self.command_store)
 
     def get_cwd_context(self) -> str:
         """Get current working directory context for prompts."""
@@ -276,10 +291,10 @@ class ACPSession:
 
         async with self._task_lock:
             # Process commands if found
-            if commands and self.command_bridge:
+            if commands:
                 for command in commands:
                     self.log.info("Processing slash command", command=command)
-                    await self.command_bridge.execute_slash_command(command, self)
+                    await self.execute_slash_command(command)
 
                 # If only commands, end turn
                 if not non_command_content:
@@ -484,24 +499,25 @@ class ACPSession:
 
     async def send_available_commands_update(self) -> None:
         """Send current available commands to client."""
-        if not self.command_bridge:
-            return
         try:
-            commands = self.command_bridge.get_acp_commands(self.agent.context)
+            commands = self.get_acp_commands(self.agent.context)
             await self.notifications.update_commands(commands)
         except Exception:
             self.log.exception("Failed to send available commands update")
 
     async def _register_mcp_prompts_as_commands(self) -> None:
         """Register MCP prompts as slash commands."""
-        if not self.command_bridge:
-            return
-
         try:
             # Get all prompts from the agent's ToolManager
             all_prompts = await self.agent.tools.list_prompts()
             if all_prompts:
-                self.command_bridge.register_mcp_prompts(all_prompts, self)
+                from llmling_agent_acp.mcp_command_factory import create_mcp_command
+
+                for prompt in all_prompts:
+                    command = create_mcp_command(prompt, self)
+                    self.command_store.register_command(command)
+
+                self._notify_command_update()
                 self.log.info(
                     "Registered MCP prompts as slash commands",
                     prompt_count=len(all_prompts),
@@ -511,3 +527,73 @@ class ACPSession:
 
         except Exception:
             self.log.exception("Failed to register MCP prompts as commands")
+
+    def _notify_command_update(self) -> None:
+        """Notify all registered callbacks about command updates."""
+        for callback in self._update_callbacks:
+            try:
+                callback()
+            except Exception:
+                logger.exception("Command update callback failed")
+
+    def get_acp_commands(self, context: AgentContext[Any]) -> list[AvailableCommand]:
+        """Convert all slashed commands to ACP format.
+
+        Args:
+            context: Optional agent context to filter commands
+
+        Returns:
+            List of ACP AvailableCommand objects
+        """
+        return [
+            AvailableCommand.create(
+                name=cmd.name,
+                description=cmd.description,
+                input_hint=cmd.usage,
+            )
+            for cmd in self.command_store.list_commands()
+        ]
+
+    async def execute_slash_command(self, command_text: str) -> None:
+        """Execute any slash command with unified handling.
+
+        Args:
+            command_text: Full command text (including slash)
+            session: ACP session context
+        """
+        if match := SLASH_PATTERN.match(command_text.strip()):
+            command_name = match.group(1)
+            args = match.group(2) or ""
+        else:
+            logger.warning("Invalid slash command", command=command_text)
+            return
+
+        # Single execution path for ALL commands
+        if command_name in ACP_COMMANDS:
+            # Use ACP context for ACP commands
+            acp_ctx = ACPCommandContext(self)
+            cmd_ctx: CommandContext = self.command_store.create_context(
+                data=acp_ctx,
+                output_writer=self.notifications.send_agent_text,
+            )
+        else:
+            # Use regular agent context for other commands (including MCP prompts)
+            cmd_ctx = self.command_store.create_context(
+                data=self.agent.context,
+                output_writer=self.notifications.send_agent_text,
+            )
+
+        command_str = f"{command_name} {args}".strip()
+        try:
+            await self.command_store.execute_command(command_str, cmd_ctx)
+        except Exception as e:
+            logger.exception("Command execution failed")
+            await self.notifications.send_agent_text(f"❌ Command error: {e}")
+
+    def register_update_callback(self, callback: Callable[[], None]) -> None:
+        """Register callback for command updates.
+
+        Args:
+            callback: Function to call when commands are updated
+        """
+        self._update_callbacks.append(callback)
