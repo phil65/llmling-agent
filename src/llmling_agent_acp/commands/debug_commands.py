@@ -326,7 +326,6 @@ class DebugCreateTemplateCommand(SlashedCommand):
                 status="completed",
                 content=[
                     ContentToolCallContent(
-                        type="content",
                         content=TextContentBlock(text="Tool completed successfully!"),
                     )
                 ],
