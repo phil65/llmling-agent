@@ -52,7 +52,7 @@ from llmling_agent.agent.events import (
 from llmling_agent.common_types import IndividualEventHandler
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messagenode import MessageNode
-from llmling_agent.messaging.messages import ChatMessage, TokenCost
+from llmling_agent.messaging.messages import ChatMessage
 from llmling_agent.prompts.builtin_provider import RuntimePromptProvider
 from llmling_agent.prompts.convert import convert_prompts
 from llmling_agent.resource_providers.runtime import RuntimeResourceProvider
@@ -724,27 +724,13 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                 event_stream_handler=event_distributor,
             )
 
-            # Calculate costs
-            usage = result.usage()
-            cost_info = await TokenCost.from_usage(
-                model=result.response.model_name, usage=usage
-            )
-
-            response_msg = ChatMessage[OutputDataT](
-                content=result.output,
-                role="assistant",
-                name=self.name,
-                model_name=result.response.model_name,
-                finish_reason=result.response.finish_reason,
-                messages=result.new_messages(),
-                provider_response_id=result.response.provider_response_id,
-                usage=usage,
-                provider_name=result.response.provider_name,
+            response_time = time.perf_counter() - start_time
+            response_msg = await ChatMessage.from_run_result(
+                result,
+                agent_name=self.name,
                 message_id=message_id,
                 conversation_id=conversation_id,
-                cost_info=cost_info,
-                response_time=time.perf_counter() - start_time,
-                provider_details={},
+                response_time=response_time,
             )
 
         except Exception as e:
@@ -755,7 +741,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             return response_msg
 
     @method_spawner
-    async def run_stream(  # noqa: PLR0915
+    async def run_stream(
         self,
         *prompt: PromptCompatible,
         output_type: type[OutputDataT] | None = None,
@@ -803,14 +789,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             agentlet = await self.get_agentlet(tools, model, final_type, self.deps_type)
             content = await convert_prompts(prompts)
             # Initialize variables for final response
-            usage = None
-            model_name = None
-            new_msgs = []
-            finish_reason = None
-            provider_name = None
-            provider_response_id = None
-            output = None
-
+            response_msg = None
             # Create tool dict for signal emission
             converted = [i if isinstance(i, str) else i.to_pydantic_ai() for i in content]
             stream_events = agentlet.run_stream_events(
@@ -828,32 +807,27 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                 stream_events, self._progress_queue
             ) as events:
                 # Track tool call starts to combine with results later
-                pending_tool_calls: dict[str, dict[str, Any]] = {}
-                tool_dict = {i.name: i for i in tools}
-
+                pending_tcs: dict[str, ToolCallPart] = {}
                 async for event in events:
                     # Process events and emit signals
+                    yield event
                     match event:
                         case (
                             PartStartEvent(part=ToolCallPart() as tool_part)
                             | FunctionToolCallEvent(part=tool_part)
-                        ) if tool_part.tool_name in tool_dict:
+                        ):
                             # Store tool call start info for later combination with result
-                            pending_tool_calls[tool_part.tool_call_id] = {
-                                "tool_name": tool_part.tool_name,
-                                "tool_input": tool_part.args_as_dict(),
-                            }
-                            yield event
+                            pending_tcs[tool_part.tool_call_id] = tool_part
                         case (
                             FunctionToolResultEvent(tool_call_id=call_id) as result_event
                         ):
                             # Check if we have a pending tool call to combine with
-                            if call_info := pending_tool_calls.pop(call_id, None):
+                            if call_info := pending_tcs.pop(call_id, None):
                                 # Create and yield combined event
                                 combined_event = ToolCallCompleteEvent(
-                                    tool_name=call_info["tool_name"],
+                                    tool_name=call_info.tool_name,
                                     tool_call_id=call_id,
-                                    tool_input=call_info["tool_input"],
+                                    tool_input=call_info.args_as_dict(),
                                     tool_result=result_event.result.content
                                     if isinstance(result_event.result, ToolReturnPart)
                                     else result_event.result,
@@ -861,44 +835,20 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                                     message_id=message_id,
                                 )
                                 yield combined_event
-                            yield event
-                        case AgentRunResultEvent() as result_event:
+                        case AgentRunResultEvent():
                             # Capture final result data
-                            result = result_event.result
-                            usage = result.usage()
-                            model_name = result.response.model_name
-                            new_msgs = result.new_messages()
-                            finish_reason = result.response.finish_reason
-                            provider_name = result.response.provider_name
-                            provider_response_id = result.response.provider_response_id
-                            output = result.output
-                            # Yield the original AgentRunResultEvent
-                            yield event
-                        case _:
-                            # Yield all other events (including progress events)
-                            yield event
-
-            # Build final response message
-            cost_info = None
-            if model_name and usage and model_name != "test":
-                cost_info = await TokenCost.from_usage(usage, model_name)
-
-            response_msg = ChatMessage[OutputDataT](
-                content=output,  # type: ignore[arg-type]
-                role="assistant",
-                name=self.name,
-                messages=new_msgs,
-                model_name=model_name,
-                message_id=message_id,
-                conversation_id=user_msg.conversation_id,
-                cost_info=cost_info,
-                response_time=time.perf_counter() - start_time,
-                provider_response_id=provider_response_id,
-                provider_name=provider_name,
-                finish_reason=finish_reason,
-            )
+                            # Build final response message
+                            response_time = time.perf_counter() - start_time
+                            response_msg = await ChatMessage.from_run_result(
+                                event.result,
+                                agent_name=self.name,
+                                message_id=message_id,
+                                conversation_id=user_msg.conversation_id,
+                                response_time=response_time,
+                            )
 
             # Send additional enriched completion event
+            assert response_msg
             yield StreamCompleteEvent(message=response_msg)
             self.message_sent.emit(response_msg)
             await self.log_message(response_msg)
@@ -1227,42 +1177,36 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         old_model = self._model
         if output_type:
             old_type = self._output_type
-            self.set_output_type(output_type)  # type: ignore
+            self.set_output_type(output_type)
         async with AsyncExitStack() as stack:
-            # System prompts (async)
-            if system_prompts is not None:
+            if system_prompts is not None:  # System prompts (async)
                 await stack.enter_async_context(
                     self.sys_prompts.temporary_prompt(
                         system_prompts, exclusive=replace_prompts
                     )
                 )
 
-            # Tools (sync)
-            if tools is not None:
+            if tools is not None:  # Tools (sync)
                 stack.enter_context(
                     self.tools.temporary_tools(tools, exclusive=replace_tools)
                 )
 
-            # History (async)
-            if history is not None:
+            if history is not None:  # History (async)
                 await stack.enter_async_context(
                     self.conversation.temporary_state(
                         history, replace_history=replace_history
                     )
                 )
 
-            # Routing (async)
-            if pause_routing:
+            if pause_routing:  # Routing (async)
                 await stack.enter_async_context(self.connections.paused_routing())
 
-            # Model
-            elif model is not None:
+            elif model is not None:  # Model
                 self._model = model
 
             try:
                 yield self
-            finally:
-                # Restore model
+            finally:  # Restore model
                 if model is not None and old_model:
                     self._model = old_model
                 if output_type:

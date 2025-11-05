@@ -38,6 +38,7 @@ if TYPE_CHECKING:
     from datetime import datetime
 
     from pydantic_ai import (
+        AgentRunResult,
         FinishReason,
         ModelMessage,
         ModelRequestPart,
@@ -344,6 +345,52 @@ class ChatMessage[TContent]:
             case _:
                 msg = f"Unknown message kind: {message.kind}"
                 raise ValueError(msg)
+
+    @classmethod
+    async def from_run_result[OutputDataT](
+        cls,
+        result: AgentRunResult[OutputDataT],
+        *,
+        agent_name: str | None = None,
+        message_id: str | None = None,
+        conversation_id: str | None = None,
+        response_time: float,
+    ) -> ChatMessage[OutputDataT]:
+        """Create a ChatMessage from a PydanticAI run result.
+
+        Args:
+            result: The PydanticAI run result
+            agent_name: Name of the agent that generated this response
+            message_id: Unique message identifier
+            conversation_id: Conversation identifier
+            response_time: Total time taken for the response
+
+        Returns:
+            A ChatMessage with all fields populated from the result
+        """
+        # Calculate costs
+        run_usage = result.usage()
+        usage = result.response.usage
+        cost_info = await TokenCost.from_usage(
+            model=result.response.model_name or "", usage=run_usage
+        )
+
+        return ChatMessage[OutputDataT](
+            content=result.output,
+            role="assistant",
+            name=agent_name,
+            model_name=result.response.model_name,
+            finish_reason=result.response.finish_reason,
+            messages=result.new_messages(),
+            provider_response_id=result.response.provider_response_id,
+            usage=usage,
+            provider_name=result.response.provider_name,
+            message_id=message_id or str(uuid4()),
+            conversation_id=conversation_id,
+            cost_info=cost_info,
+            response_time=response_time,
+            provider_details={},
+        )
 
     def forwarded(self, previous_message: ChatMessage[Any]) -> Self:
         """Create new message showing it was forwarded from another message.
