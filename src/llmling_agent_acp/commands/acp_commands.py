@@ -2,122 +2,110 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from slashed import CommandContext, SlashedCommand  # noqa: TC002
 
-from slashed import SlashedCommand  # noqa: TC002
-
-
-if TYPE_CHECKING:
-    from llmling_agent_acp.session import ACPSession
+from llmling_agent.agent.context import AgentContext  # noqa: TC001
+from llmling_agent_acp.session import ACPSession  # noqa: TC001
 
 
-@dataclass
-class ACPCommandContext:
-    """Context for ACP-specific commands that includes session information."""
+class ListSessionsCommand(SlashedCommand):
+    """List all available ACP sessions.
 
-    session: ACPSession
-    """The ACP session associated with this command context."""
+    Shows:
+    - Session ID and status (active/stored)
+    - Agent name and working directory
+    - Creation time and message count
+    - Storage information
+    """
 
+    name = "list-sessions"
+    category = "acp"
 
-# class ListSessionsCommand(SlashedCommand):
-#     """List all available ACP sessions.
+    async def execute_command(
+        self,
+        ctx: CommandContext[AgentContext[ACPSession]],
+        *,
+        active: bool = False,
+        stored: bool = False,
+    ):
+        """List available ACP sessions.
 
-#     Shows:
-#     - Session ID and status (active/stored)
-#     - Agent name and working directory
-#     - Creation time and message count
-#     - Storage information
-#     """
+        Args:
+            ctx: Command context with ACP session
+            active: Show only active sessions
+            stored: Show only stored sessions
+        """
+        session = ctx.context.data
+        assert session
+        # Check if we have access to session manager
+        if not session.manager:
+            await ctx.print("❌ **Session manager not available**")
+            return
 
-#     name = "list-sessions"
-#     category = "acp"
+        # If no filter specified, show both
+        if not active and not stored:
+            active = stored = True
 
-#     async def execute_command(
-#         self,
-#         ctx: CommandContext[ACPCommandContext],
-#         *,
-#         active: bool = False,
-#         stored: bool = False,
-#     ):
-#         """List available ACP sessions.
+        try:
+            output_lines = ["## 📋 ACP Sessions\n"]
 
-#         Args:
-#             ctx: Command context with ACP session
-#             active: Show only active sessions
-#             stored: Show only stored sessions
-#         """
-#         session = ctx.context.session
+            # Show active sessions
+            if active:
+                output_lines.append("### 🟢 Active Sessions")
+                active_sessions = session.manager._sessions
 
-#         # Check if we have access to session manager
-#         if not session.manager:
-#             await ctx.print("❌ **Session manager not available**")
-#             return
+                if not active_sessions:
+                    output_lines.append("*No active sessions*\n")
+                else:
+                    for session_id, sess in active_sessions.items():
+                        agent_name = getattr(sess, "current_agent_name", "unknown")
+                        cwd = getattr(sess, "cwd", "unknown")
+                        msg_count = len(getattr(sess, "_conversation_history", []))
 
-#         # If no filter specified, show both
-#         if not active and not stored:
-#             active = stored = True
+                        output_lines.append(f"- **{session_id}**")
+                        output_lines.append(f"  - Agent: `{agent_name}`")
+                        output_lines.append(f"  - Directory: `{cwd}`")
+                        output_lines.append(f"  - Messages: {msg_count}")
+                    output_lines.append("")
 
-#         try:
-#             output_lines = ["## 📋 ACP Sessions\n"]
+            # # Show stored sessions
+            # if stored and session.manager._persistent_manager:
+            #     output_lines.append("### 💾 Stored Sessions")
 
-#             # Show active sessions
-#             if active:
-#                 output_lines.append("### 🟢 Active Sessions")
-#                 active_sessions = session.manager._sessions
+            #     try:
+            #         stored_sessions = (
+            #             await session.manager._persistent_manager.store.list_sessions()
+            #         )
 
-#                 if not active_sessions:
-#                     output_lines.append("*No active sessions*\n")
-#                 else:
-#                     for session_id, sess in active_sessions.items():
-#                         agent_name = getattr(sess, "current_agent_name", "unknown")
-#                         cwd = getattr(sess, "cwd", "unknown")
-#                         msg_count = len(getattr(sess, "_conversation_history", []))
+            #         if not stored_sessions:
+            #             output_lines.append("*No stored sessions*\n")
+            #         else:
+            #             for session_id in stored_sessions:
+            #                 store = session.manager._persistent_manager.store
+            #                 session_data = await store.load_session(session_id)
+            #                 if session_data:
+            #                     msg_count = len(session_data.conversation)
+            #                     created = session_data.metadata.get(
+            #                         "created_at", "unknown"
+            #                     )
 
-#                         output_lines.append(f"- **{session_id}**")
-#                         output_lines.append(f"  - Agent: `{agent_name}`")
-#                         output_lines.append(f"  - Directory: `{cwd}`")
-#                         output_lines.append(f"  - Messages: {msg_count}")
-#                     output_lines.append("")
+            #                     output_lines.append(f"- **{session_id}**")
+            #                     output_lines.append(
+            #                         f"  - Agent: `{session_data.agent_name or 'unknown'}`"  # noqa: E501
+            #                     )
+            #                     output_lines.append(
+            #                         f"  - Directory: `{session_data.cwd}`"
+            #                     )
+            #                     output_lines.append(f"  - Messages: {msg_count}")
+            #                     output_lines.append(f"  - Created: {created}")
+            #             output_lines.append("")
+            #     except Exception as e:
+            #         output_lines.append(f"*Error loading stored sessions: {e}*\n")
 
-#             # Show stored sessions
-#             if stored and session.manager._persistent_manager:
-#                 output_lines.append("### 💾 Stored Sessions")
+            await ctx.print("\n".join(output_lines))
 
-#                 try:
-#                     stored_sessions = (
-#                         await session.manager._persistent_manager.store.list_sessions()
-#                     )
-
-#                     if not stored_sessions:
-#                         output_lines.append("*No stored sessions*\n")
-#                     else:
-#                         for session_id in stored_sessions:
-#                             store = session.manager._persistent_manager.store
-#                             session_data = await store.load_session(session_id)
-#                             if session_data:
-#                                 msg_count = len(session_data.conversation)
-#                                 created = session_data.metadata.get(
-#                                     "created_at", "unknown"
-#                                 )
-
-#                                 output_lines.append(f"- **{session_id}**")
-#                                 output_lines.append(
-#                                     f"  - Agent: `{session_data.agent_name or 'unknown'}`"  # noqa: E501
-#                                 )
-#                                 output_lines.append(
-#                                     f"  - Directory: `{session_data.cwd}`"
-#                                 )
-#                                 output_lines.append(f"  - Messages: {msg_count}")
-#                                 output_lines.append(f"  - Created: {created}")
-#                         output_lines.append("")
-#                 except Exception as e:
-#                     output_lines.append(f"*Error loading stored sessions: {e}*\n")
-
-#             await ctx.print("\n".join(output_lines))
-
-#         except Exception as e:
-#             await ctx.print(f"❌ **Error listing sessions:** {e}")
+        except Exception as e:  # noqa: BLE001
+            await ctx.print(f"❌ **Error listing sessions:** {e}")
 
 
 # class LoadSessionCommand(SlashedCommand):
@@ -334,7 +322,7 @@ class ACPCommandContext:
 def get_acp_commands() -> list[type[SlashedCommand]]:
     """Get all ACP-specific slash commands."""
     return [
-        # ListSessionsCommand,
+        ListSessionsCommand,
         # LoadSessionCommand,
         # SaveSessionCommand,
         # DeleteSessionCommand,

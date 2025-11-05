@@ -38,7 +38,6 @@ from llmling_agent.agent import SlashedAgent
 from llmling_agent.agent.events import StreamCompleteEvent, ToolCallProgressEvent
 from llmling_agent.log import get_logger
 from llmling_agent_acp.acp_tools import get_acp_provider
-from llmling_agent_acp.commands.acp_commands import ACPCommandContext, get_acp_commands
 from llmling_agent_acp.converters import (
     convert_acp_mcp_server_to_config,
     from_content_blocks,
@@ -55,7 +54,6 @@ if TYPE_CHECKING:
     from acp import Client
     from acp.schema import ClientCapabilities, ContentBlock, McpServer, StopReason
     from llmling_agent import Agent, AgentPool
-    from llmling_agent.agent.context import AgentContext
     from llmling_agent.agent.events import RichAgentStreamEvent
     from llmling_agent.mcp_server.manager import Prompt
     from llmling_agent.models.content import BaseContent
@@ -131,6 +129,7 @@ class ACPSession:
         # Staged prompt parts for context building
         self.command_store = CommandStore(enable_system_commands=True)
         self.command_store._initialize_sync()
+        from llmling_agent_acp.commands.acp_commands import get_acp_commands
 
         commands_to_register = [*get_commands(), *get_acp_commands()]
         # if debug_commands:
@@ -501,7 +500,7 @@ class ACPSession:
     async def send_available_commands_update(self) -> None:
         """Send current available commands to client."""
         try:
-            commands = self.get_acp_commands(self.agent.context)
+            commands = self.get_acp_commands()
             await self.notifications.update_commands(commands)
         except Exception:
             self.log.exception("Failed to send available commands update")
@@ -533,7 +532,7 @@ class ACPSession:
             except Exception:
                 logger.exception("Command update callback failed")
 
-    def get_acp_commands(self, context: AgentContext[Any]) -> list[AvailableCommand]:
+    def get_acp_commands(self) -> list[AvailableCommand]:
         """Convert all slashed commands to ACP format.
 
         Args:
@@ -565,20 +564,11 @@ class ACPSession:
             logger.warning("Invalid slash command", command=command_text)
             return
 
-        # Single execution path for ALL commands
-        if command_name in ACP_COMMANDS:
-            # Use ACP context for ACP commands
-            acp_ctx = ACPCommandContext(self)
-            cmd_ctx: CommandContext = self.command_store.create_context(
-                data=acp_ctx,
-                output_writer=self.notifications.send_agent_text,
-            )
-        else:
-            # Use regular agent context for other commands (including MCP prompts)
-            cmd_ctx = self.command_store.create_context(
-                data=self.agent.context,
-                output_writer=self.notifications.send_agent_text,
-            )
+        self.agent.context.data = self
+        cmd_ctx = self.command_store.create_context(
+            data=self.agent.context,
+            output_writer=self.notifications.send_agent_text,
+        )
 
         command_str = f"{command_name} {args}".strip()
         try:

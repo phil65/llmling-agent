@@ -18,11 +18,11 @@ from acp.schema import (
     ToolCallKind,  # noqa: TC001
     ToolCallProgress,
     ToolCallStart,
-    ToolCallStatus,  # noqa: TC001
     UserMessageChunk,
 )
+from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.log import get_logger
-from llmling_agent_acp.commands.acp_commands import ACPCommandContext  # noqa: TC001
+from llmling_agent_acp.session import ACPSession  # noqa: TC001
 
 
 if TYPE_CHECKING:
@@ -43,7 +43,7 @@ class DebugSendTextCommand(SlashedCommand):
 
     async def execute_command(
         self,
-        ctx: CommandContext[ACPCommandContext],
+        ctx: CommandContext[AgentContext[ACPSession]],
         text: str,
         *,
         chunk_type: str = "agent",
@@ -55,7 +55,8 @@ class DebugSendTextCommand(SlashedCommand):
             text: Text content to send
             chunk_type: Type of chunk ('agent', 'user', 'thought')
         """
-        session = ctx.context.session
+        session = ctx.context.data
+        assert session
         try:
             content = TextContentBlock(text=text)
 
@@ -91,7 +92,7 @@ class DebugSendToolCallCommand(SlashedCommand):
 
     async def execute_command(
         self,
-        ctx: CommandContext[ACPCommandContext],
+        ctx: CommandContext[AgentContext[ACPSession]],
         title: str,
         *,
         kind: ToolCallKind = "other",
@@ -104,7 +105,8 @@ class DebugSendToolCallCommand(SlashedCommand):
             kind: Tool kind ('read', 'edit', 'delete', 'move', 'search',
                   'execute', 'think', 'fetch', 'other')
         """
-        session = ctx.context.session
+        session = ctx.context.data
+        assert session
         try:
             id_ = f"debug-{hash(title)}"
             await session.notifications.tool_call_start(id_, title=title, kind=kind)
@@ -114,51 +116,49 @@ class DebugSendToolCallCommand(SlashedCommand):
             await ctx.print(f"❌ **Failed to send tool call:** {e}")
 
 
-class DebugUpdateToolCallCommand(SlashedCommand):
-    """Send a tool call update notification for debugging.
+# class DebugUpdateToolCallCommand(SlashedCommand):
+#     """Send a tool call update notification for debugging.
 
-    Tests tool call progress updates and result display.
-    """
+#     Tests tool call progress updates and result display.
+#     """
 
-    name = "debug-update-tool"
-    category = "debug"
+#     name = "debug-update-tool"
+#     category = "debug"
 
-    async def execute_command(
-        self,
-        ctx: CommandContext[ACPCommandContext],
-        tool_call_id: str,
-        *,
-        status: ToolCallStatus = "completed",
-        content: str = "",
-    ):
-        """Send a tool call update notification.
+#     async def execute_command(
+#         self,
+#         ctx: CommandContext[AgentContext[ACPSession]],
+#         tool_call_id: str,
+#         *,
+#         status: ToolCallStatus = "completed",
+#         content: str = "",
+#     ):
+#         """Send a tool call update notification.
 
-        Args:
-            ctx: Command context
-            tool_call_id: ID of tool call to update
-            status: New status
-            content: Content to include in update
-        """
-        session = ctx.context.session
-        try:
-            tool_content = []
-            if content:
-                tool_content = [
-                    ContentToolCallContent(
-                        type="content",
-                        content=TextContentBlock(text=content),
-                    )
-                ]
-            await session.notifications.tool_call_progress(
-                tool_call_id,
-                status,
-                content=tool_content,
-            )
-            await ctx.print(f"✅ **Updated tool call {tool_call_id}:** {status}")
+#         Args:
+#             ctx: Command context
+#             tool_call_id: ID of tool call to update
+#             status: New status
+#             content: Content to include in update
+#         """
+#         session = ctx.context.data
+#         assert session
+#         try:
+#             tool_content = []
+#             if content:
+#                 tool_content = [
+#                     ContentToolCallContent(content=TextContentBlock(text=content))
+#                 ]
+#             await session.notifications.tool_call_progress(
+#                 tool_call_id,
+#                 status,
+#                 content=tool_content,
+#             )
+#             await ctx.print(f"✅ **Updated tool call {tool_call_id}:** {status}")
 
-        except Exception as e:
-            logger.exception("Failed to update debug tool call")
-            await ctx.print(f"❌ **Failed to update tool call:** {e}")
+#         except Exception as e:
+#             logger.exception("Failed to update debug tool call")
+#             await ctx.print(f"❌ **Failed to update tool call:** {e}")
 
 
 class DebugReplaySequenceCommand(SlashedCommand):
@@ -172,7 +172,7 @@ class DebugReplaySequenceCommand(SlashedCommand):
 
     async def execute_command(
         self,
-        ctx: CommandContext[ACPCommandContext],
+        ctx: CommandContext[AgentContext[ACPSession]],
         file_path: str,
     ):
         """Replay a sequence of ACP notifications from a JSON file.
@@ -181,7 +181,8 @@ class DebugReplaySequenceCommand(SlashedCommand):
             ctx: Command context
             file_path: Path to JSON file containing notification sequence
         """
-        session = ctx.context.session
+        session = ctx.context.data
+        assert session
         try:
             path = Path(file_path)
             if not path.exists():
@@ -259,9 +260,10 @@ class DebugSessionInfoCommand(SlashedCommand):
     name = "debug-session-info"
     category = "debug"
 
-    async def execute_command(self, ctx: CommandContext[ACPCommandContext]):
+    async def execute_command(self, ctx: CommandContext[AgentContext[ACPSession]]):
         """Show current ACP session debugging information."""
-        session = ctx.context.session
+        session = ctx.context.data
+        assert session
         try:
             info = {
                 "session_id": session.session_id,
@@ -294,7 +296,7 @@ class DebugCreateTemplateCommand(SlashedCommand):
 
     async def execute_command(
         self,
-        ctx: CommandContext[ACPCommandContext],
+        ctx: CommandContext[AgentContext[ACPSession]],
         *,
         file_path: str = "debug_replay_template.json",
     ):
@@ -305,8 +307,6 @@ class DebugCreateTemplateCommand(SlashedCommand):
             file_path: Path where to create the template file
         """
         try:
-            from acp.schema import ContentToolCallContent
-
             # Create proper BaseModel instances
             message_chunk = AgentMessageChunk(
                 content=TextContentBlock(text="Hello, this is a debug message!")
@@ -370,7 +370,7 @@ class DebugSendRawCommand(SlashedCommand):
 
     async def execute_command(
         self,
-        ctx: CommandContext[ACPCommandContext],
+        ctx: CommandContext[AgentContext[ACPSession]],
         notification_json: str,
     ):
         """Send a raw ACP notification from JSON string.
@@ -379,7 +379,8 @@ class DebugSendRawCommand(SlashedCommand):
             ctx: Command context
             notification_json: JSON string of the notification to send
         """
-        session = ctx.context.session
+        session = ctx.context.data
+        assert session
         try:
             data = anyenv.load_json(notification_json, return_type=dict)
 
@@ -404,7 +405,7 @@ def get_debug_commands() -> list[type[SlashedCommand]]:
     return [
         DebugSendTextCommand,
         DebugSendToolCallCommand,
-        DebugUpdateToolCallCommand,
+        # DebugUpdateToolCallCommand,
         DebugReplaySequenceCommand,
         DebugSessionInfoCommand,
         DebugCreateTemplateCommand,
