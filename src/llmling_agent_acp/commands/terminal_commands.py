@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
 import uuid
 
 from slashed import CommandContext, SlashedCommand  # noqa: TC002
@@ -10,6 +11,10 @@ from acp.schema import TerminalToolCallContent
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.log import get_logger
 from llmling_agent_acp.session import ACPSession  # noqa: TC001
+
+
+if TYPE_CHECKING:
+    from acp.schema import ToolCallStatus
 
 
 logger = get_logger(__name__)
@@ -60,7 +65,7 @@ class TerminalOutputCommand(SlashedCommand):
             # Determine status and title
             if output_response.exit_status:
                 exit_code = output_response.exit_status.exit_code or 0
-                status = "completed" if exit_code == 0 else "failed"
+                status: ToolCallStatus = "completed" if exit_code == 0 else "failed"
                 title = f"Terminal {terminal_id} - Exit Code: {exit_code}"
             else:
                 status = "in_progress"
