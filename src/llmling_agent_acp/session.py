@@ -130,11 +130,13 @@ class ACPSession:
         self.command_store = CommandStore(enable_system_commands=True)
         self.command_store._initialize_sync()
         from llmling_agent_acp.commands.acp_commands import get_acp_commands
+        from llmling_agent_acp.commands.docs_commands import get_docs_commands
         from llmling_agent_acp.commands.terminal_commands import get_terminal_commands
 
         commands_to_register = [
             *get_commands(),
             *get_acp_commands(),
+            *get_docs_commands(),
             *get_terminal_commands(),
         ]
         # if debug_commands:
