@@ -170,7 +170,6 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
 
         if isinstance(node, Agent):
             node.tools.remove_provider(self.mcp)
-        # node.tool_used.disconnect(self.tool_used)
 
     def __repr__(self) -> str:
         """Create readable representation."""

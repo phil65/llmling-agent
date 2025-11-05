@@ -30,6 +30,7 @@ from pydantic_ai import (
     Agent as PydanticAgent,
     AgentRunResultEvent,
     FunctionToolCallEvent,
+    FunctionToolResultEvent,
     PartStartEvent,
     RunContext,
     ToolCallPart,
@@ -41,10 +42,13 @@ from pydantic_ai.tools import GenerateToolJsonSchema
 from upath import UPath
 
 from llmling_agent.agent.events import (
+    RichAgentStreamEvent,
     StreamCompleteEvent,
+    ToolCallCompleteEvent,
     ToolCallProgressEvent,
     create_queuing_progress_handler,
 )
+from llmling_agent.agent.utils import get_tool_calls
 from llmling_agent.common_types import IndividualEventHandler
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.messagenode import MessageNode
@@ -294,7 +298,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         self._name = name
         self._background_task: asyncio.Task[Any] | None = None
 
-        # tool_used signal will be emitted directly in _run method
         self.talk = Interactions(self)
 
         # Set up system prompts
@@ -701,31 +704,14 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
 
             from llmling_agent.prompts.convert import convert_prompts
 
-            # Convert prompts
             converted_prompts = await convert_prompts(prompts)
-
-            # Create event handler for tool calls
-            tool_dict = {i.name: i for i in tools}
-
-            async def internal_tool_handler(ctx: RunContext, event: AgentStreamEvent):
-                if isinstance(event, FunctionToolCallEvent):
-                    call = event.part
-                    if call.tool_name in tool_dict:
-                        tc_info = _create_tool_call_info(
-                            call, tool_dict, message_id, self.name
-                        )
-                        self.tool_used.emit(tc_info)
 
             # Merge internal and external event handlers like the old provider did
             async def event_distributor(
                 ctx: RunContext, events: AsyncIterable[AgentStreamEvent]
             ):
-                all_handlers: list[IndividualEventHandler] = [internal_tool_handler]
-                if self.event_handler:
-                    all_handlers.extend(self.event_handler._wrapped_handlers)
-
                 async for event in events:
-                    for handler in all_handlers:
+                    for handler in self.event_handler._wrapped_handlers:
                         await handler(ctx, event)
 
             # Run the agentlet
@@ -745,8 +731,8 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
 
             # Extract tool calls and build response
             new_msgs = result.new_messages()
-            from llmling_agent.agent.utils import get_tool_calls
 
+            tool_dict = {i.name: i for i in tools}
             tool_calls = get_tool_calls(new_msgs, tool_dict, agent_name=self.name)
             for call in tool_calls:
                 call.message_id = message_id
@@ -860,6 +846,9 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                 usage_limits=usage_limits,
             )
 
+            # Track tool call starts to combine with results later
+            pending_tool_calls: dict[str, dict[str, Any]] = {}
+
             # Stream events through merge_queue for progress events
             async with merge_queue_into_iterator(
                 stream_events, self._progress_queue
@@ -871,10 +860,31 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                             PartStartEvent(part=ToolCallPart() as tool_part)
                             | FunctionToolCallEvent(part=tool_part)
                         ) if tool_part.tool_name in tool_dict:
-                            tc_info = _create_tool_call_info(
-                                tool_part, tool_dict, message_id, self.name
-                            )
-                            self.tool_used.emit(tc_info)
+                            # Store tool call start info for later combination with result
+                            pending_tool_calls[tool_part.tool_call_id] = {
+                                "tool_name": tool_part.tool_name,
+                                "tool_input": tool_part.args_as_dict(),
+                                "message_id": message_id,
+                                "agent_name": self.name,
+                            }
+                            yield event
+                        case (
+                            FunctionToolResultEvent(tool_call_id=call_id) as result_event
+                        ):
+                            # Check if we have a pending tool call to combine with
+                            if call_info := pending_tool_calls.pop(call_id, None):
+                                # Create and yield combined event
+                                combined_event = ToolCallCompleteEvent(
+                                    tool_name=call_info["tool_name"],
+                                    tool_call_id=call_id,
+                                    tool_input=call_info["tool_input"],
+                                    tool_result=result_event.result.content
+                                    if hasattr(result_event.result, "content")
+                                    else result_event.result,
+                                    agent_name=call_info["agent_name"],
+                                    message_id=call_info["message_id"],
+                                )
+                                yield combined_event
                             yield event
                         case AgentRunResultEvent() as result_event:
                             # Capture final result data
@@ -1327,9 +1337,5 @@ if __name__ == "__main__":
     async def handle_events(ctx, event):
         print(f"[EVENT] {type(event).__name__}: {event}")
 
-    def handle_tool_used(tc_info):
-        print(f"[SIGNAL] Tool used: {tc_info.tool_name} with args {tc_info.args}")
-
     agent = Agent(model=_model, tools=["webbrowser.open"], event_handlers=[handle_events])
-    agent.tool_used.connect(handle_tool_used)
     result = agent.run.sync(sys_prompt)

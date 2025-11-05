@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pydantic_ai import FunctionToolCallEvent
 import pytest
 
 from llmling_agent import Agent
@@ -16,16 +17,14 @@ async def test_mcp_tool_call(default_model: str):
     # Track tool usage
     tool_calls = []
 
-    def track_tool_usage(tool_name: str, **kwargs):
-        tool_calls.append((tool_name, kwargs))
+    def track_tool_usage(event: FunctionToolCallEvent, **kwargs):
+        tool_calls.append((event, kwargs))
 
     async with Agent(model=model, mcp_servers=["npx -y @upstash/context7-mcp"]) as agent:
-        agent.tool_used.connect(track_tool_usage)
-        result = await agent.run(sys_prompt)
-
-        # Verify we got a response
-        assert isinstance(result.data, str)
-        assert len(result.data) > 0
+        agent.run_stream[FunctionToolCallEvent].connect(track_tool_usage)
+        events = [i async for i in agent.run_stream(sys_prompt)]
+        assert events
+        assert len(tool_calls) > 0
 
         # Verify tools were called (MCP server should be available)
         # Note: This test might be flaky if the MCP server is unavailable

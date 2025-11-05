@@ -43,17 +43,8 @@ The main Agent class provides signals for monitoring core agent activities:
 ```python
 message_received = Signal(ChatMessage[str])  # New message received
 message_sent = Signal(ChatMessage)           # Agent sent a message
-tool_used = Signal(ToolCallInfo)            # Tool was called
 run_failed = Signal(str, Exception)         # Run operation failed
 agent_reset = Signal(AgentReset)            # Agent state was reset
-```
-
-## Provider Signals
-
-Base provider signals:
-
-```python
-tool_used = Signal(ToolCallInfo)        # Tool execution
 ```
 
 ## Conversation Manager Signals
@@ -83,7 +74,6 @@ class ConsoleUI:
     def __init__(self, agent: Agent):
         # Core agent activity
         agent.message_sent.connect(self.display_message)
-        agent.tool_used.connect(self.display_tool_usage)
 
         # Tool management
         agent.tools.events.added.connect(self.update_tool_display)
@@ -97,9 +87,7 @@ def setup_monitoring(pool: AgentPool):
     pool.events.added.connect(lambda name, agent: logger.info("Agent added: %s", name))
     pool.events.removed.connect(lambda name, agent: logger.info("Agent removed: %s", name))
 
-    # Monitor tool usage across all agents
-    for agent in pool.values():
-        agent.tool_used.connect(lambda tool: logger.info("Tool used: %s", tool.name))
+
 ```
 
 ### Provider Model Changes

@@ -433,7 +433,6 @@ if __name__ == "__main__":
                 toolsets=toolset_providers,
                 model="openai:gpt-5-nano",
             )
-            agent.tool_used.connect(print)
             result = await agent.run(user_prompt)
             print(result)
             result = await agent.run("Which tools does it have?")

@@ -6,12 +6,10 @@ from abc import abstractmethod
 from typing import TYPE_CHECKING, Any
 
 from anyenv import method_spawner
-from psygnal import Signal
 
 from llmling_agent.messaging.messageemitter import MessageEmitter
 from llmling_agent.messaging.messages import ChatMessage
 from llmling_agent.prompts.convert import convert_prompts
-from llmling_agent.tools import ToolCallInfo
 
 
 if TYPE_CHECKING:
@@ -24,9 +22,6 @@ if TYPE_CHECKING:
 
 class MessageNode[TDeps, TResult](MessageEmitter[TDeps, TResult]):
     """Base class for all message processing nodes."""
-
-    tool_used = Signal(ToolCallInfo)
-    """Signal emitted when node uses a tool."""
 
     async def pre_run(
         self,

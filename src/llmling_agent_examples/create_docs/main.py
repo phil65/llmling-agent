@@ -46,7 +46,6 @@ async def main():
         # Set up message logging
         for agent in (scanner, writer, checker):
             agent.message_sent.connect(lambda msg: rich.print(msg.format()))
-            agent.tool_used.connect(lambda call: rich.print(call.format()))
 
         # Setup chain: scanner -> writer -> console output
         scanner.connect_to(writer)

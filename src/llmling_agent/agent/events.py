@@ -66,8 +66,31 @@ class CommandCompleteEvent:
     """Event type identifier."""
 
 
+@dataclass(kw_only=True)
+class ToolCallCompleteEvent:
+    """Event indicating tool call is complete with both input and output."""
+
+    tool_name: str
+    """The name of the tool that was called."""
+    tool_call_id: str
+    """The ID of the tool call."""
+    tool_input: dict[str, Any]
+    """The input provided to the tool."""
+    tool_result: Any
+    """The result returned by the tool."""
+    agent_name: str
+    """The name of the agent that made the tool call."""
+    message_id: str
+    """The message ID associated with this tool call."""
+    event_kind: Literal["tool_call_complete"] = "tool_call_complete"
+    """Event type identifier."""
+
+
 type RichAgentStreamEvent[OutputDataT] = (
-    AgentStreamEvent | StreamCompleteEvent[OutputDataT] | ToolCallProgressEvent
+    AgentStreamEvent
+    | StreamCompleteEvent[OutputDataT]
+    | ToolCallProgressEvent
+    | ToolCallCompleteEvent
 )
 
 

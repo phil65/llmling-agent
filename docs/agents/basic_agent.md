@@ -50,9 +50,6 @@ The agent emits various signals that can be connected to:
 # Message signals
 agent.message_sent.connect(handle_message)
 agent.message_received.connect(handle_message)
-
-# Tool and model signals
-agent.tool_used.connect(handle_tool)
 ```
 
 ## Continuous Operation
