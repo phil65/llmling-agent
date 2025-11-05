@@ -209,7 +209,7 @@ class SlashedAgent[TDeps, OutputDataT]:
 
         for prompt in prompts:
             if isinstance(prompt, str) and self._is_slash_command(prompt):
-                logger.debug("Found slash command: %r", prompt)
+                logger.debug("Found slash command", command=prompt)
                 commands.append(prompt.strip())
             else:
                 regular_prompts.append(prompt)

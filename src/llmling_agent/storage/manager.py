@@ -73,7 +73,7 @@ class StorageManager:
                 await provider.__aexit__(exc_type, exc_val, exc_tb)
             except Exception as e:
                 errors.append(e)
-                logger.exception("Error cleaning up provider: %r", provider)
+                logger.exception("Error cleaning up provider", provider=provider)
 
         await self.task_manager.cleanup_tasks()
 
@@ -87,7 +87,7 @@ class StorageManager:
             try:
                 provider.cleanup()
             except Exception:
-                logger.exception("Error cleaning up provider: %r", provider)
+                logger.exception("Error cleaning up provider", provider=provider)
         self.providers.clear()
 
     def _create_provider(self, config: BaseStorageProviderConfig) -> StorageProvider:
@@ -311,8 +311,8 @@ class StorageManager:
             try:
                 return await provider.reset(agent_name=agent_name, hard=hard)
             except Exception:
-                msg = "Error resetting provider: %r"
-                logger.exception(msg, provider.__class__.__name__)
+                cls_name = provider.__class__.__name__
+                logger.exception("Error resetting provider", provider=cls_name)
                 return (0, 0)
 
         results = await asyncio.gather(

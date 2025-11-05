@@ -499,7 +499,7 @@ class AgentsManifest(Schema):
         agent_config = self.agents[agent_name]
         if not agent_config.output_type:
             return None
-        logger.debug("Building response model for %r", agent_config.output_type)
+        logger.debug("Building response model", type=agent_config.output_type)
         if isinstance(agent_config.output_type, str):
             response_def = self.responses[agent_config.output_type]
             return response_def.response_schema.get_schema()  # type: ignore

@@ -193,7 +193,9 @@ class ConnectionManager:
             else:
                 pool.connection_registry.register_auto(talk)
         else:
-            logger.debug("Could not register connection %r, no pool available", name)
+            logger.debug(
+                "Could not register connection. no pool available", connection=name
+            )
         return talk
 
     async def trigger_all(self) -> dict[AgentName, list[ChatMessage[Any]]]:

@@ -214,7 +214,7 @@ class AgentConfig(NodeConfig):
                     case BaseToolConfig():
                         static_tools.append(tool_config.get_tool())
             except Exception:
-                logger.exception("Failed to load tool %r", tool_config)
+                logger.exception("Failed to load tool", config=tool_config)
                 continue
 
         return StaticResourceProvider(name="builtin", tools=static_tools)

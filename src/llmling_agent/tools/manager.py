@@ -217,7 +217,9 @@ class ToolManager(BaseRegistry[str, Tool]):
 
             for provider, result in zip(self.providers, results, strict=False):
                 if isinstance(result, BaseException):
-                    logger.exception("Failed to get tools from provider: %r", provider)
+                    logger.exception(
+                        "Failed to get tools from provider", provider=provider
+                    )
                     continue
                 tools.extend(t for t in result if t.matches_filter(state))
         # Sort by priority if any have non-default priority
@@ -263,7 +265,9 @@ class ToolManager(BaseRegistry[str, Tool]):
                     prompts = await provider.list_prompts()
                     all_prompts.extend(prompts)
                 except Exception:
-                    logger.exception("Failed to get prompts from provider: %r", provider)
+                    logger.exception(
+                        "Failed to get prompts from provider", provider=provider
+                    )
 
         return all_prompts
 

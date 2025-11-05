@@ -26,7 +26,7 @@ class ResourceRegistry(BaseRegistry[str, AbstractFileSystem]):
 
     def register(self, name: str, item: Any, replace: bool = False):
         """Register a new resource."""
-        logger.debug("registering %r (%r)", name, item.__class__.__name__)
+        logger.debug("registering resource.", name=name, type=item.__class__.__name__)
         fsspec.register_implementation(name, item.__class__, clobber=True)
         super().register(name, item, replace=replace)
 
