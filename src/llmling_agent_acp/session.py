@@ -27,7 +27,7 @@ from pydantic_ai import (
     ToolReturnPart,
     UsageLimitExceeded,
 )
-from slashed import CommandStore
+from slashed import Command, CommandStore
 
 from acp.filesystem import ACPFileSystem
 from acp.notifications import ACPNotifications
@@ -57,6 +57,7 @@ if TYPE_CHECKING:
     from llmling_agent import Agent, AgentPool
     from llmling_agent.agent.context import AgentContext
     from llmling_agent.agent.events import RichAgentStreamEvent
+    from llmling_agent.mcp_server.manager import Prompt
     from llmling_agent.models.content import BaseContent
     from llmling_agent.resource_providers.aggregating import AggregatingResourceProvider
     from llmling_agent_acp.acp_agent import LLMlingACPAgent
@@ -509,14 +510,10 @@ class ACPSession:
         """Register MCP prompts as slash commands."""
         try:
             # Get all prompts from the agent's ToolManager
-            all_prompts = await self.agent.tools.list_prompts()
-            if all_prompts:
-                from llmling_agent_acp.mcp_command_factory import create_mcp_command
-
+            if all_prompts := await self.agent.tools.list_prompts():
                 for prompt in all_prompts:
-                    command = create_mcp_command(prompt, self)
+                    command = self.create_mcp_command(prompt)
                     self.command_store.register_command(command)
-
                 self._notify_command_update()
                 self.log.info(
                     "Registered MCP prompts as slash commands",
@@ -597,3 +594,57 @@ class ACPSession:
             callback: Function to call when commands are updated
         """
         self._update_callbacks.append(callback)
+
+    def create_mcp_command(self, prompt: Prompt) -> Command:
+        """Convert MCP prompt to slashed Command.
+
+        Args:
+            prompt: MCP prompt to wrap
+            session: ACP session for execution context
+
+        Returns:
+            Slashed Command that executes the prompt
+        """
+
+        async def execute_prompt(
+            ctx: CommandContext,
+            args: list[str],
+            kwargs: dict[str, str],
+        ) -> None:
+            """Execute the MCP prompt with parsed arguments."""
+            # Map parsed args to prompt parameters
+
+            result = {}
+            # Map positional args to prompt parameter names
+            for i, arg_value in enumerate(args):
+                if i < len(prompt.arguments):
+                    param_name = prompt.arguments[i]["name"]
+                    result[param_name] = arg_value
+            result.update(kwargs)
+            try:
+                # Get prompt components
+                components = await prompt.get_components(result or None)
+                self.add_staged_parts(components)
+
+                # Send confirmation
+                staged_count = self.get_staged_parts_count()
+                await ctx.print(
+                    f"✅ Prompt '{prompt.name}' staged ({staged_count} total parts)"
+                )
+
+            except Exception as e:
+                logger.exception("MCP prompt execution failed", prompt=prompt.name)
+                await ctx.print(f"❌ Prompt error: {e}")
+
+        usage_hint = (
+            " ".join(f"<{arg['name']}>" for arg in prompt.arguments)
+            if prompt.arguments
+            else None
+        )
+        return Command(
+            execute_func=execute_prompt,
+            name=prompt.name,
+            description=prompt.description or f"MCP prompt: {prompt.name}",
+            category="mcp",
+            usage=usage_hint,
+        )
