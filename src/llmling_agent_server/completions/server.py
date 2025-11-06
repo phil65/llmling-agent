@@ -39,6 +39,7 @@ class OpenAIServer(BaseServer):
         port: int = 8000,
         cors: bool = True,
         docs: bool = True,
+        api_key: str | None = None,
         raise_exceptions: bool = False,
     ):
         """Initialize OpenAI-compatible server.
@@ -50,11 +51,13 @@ class OpenAIServer(BaseServer):
             port: Port to bind server to
             cors: Whether to enable CORS middleware
             docs: Whether to enable API documentation endpoints
+            api_key: Optional API key for authentication
             raise_exceptions: Whether to raise exceptions during server start
         """
         super().__init__(pool, name=name, raise_exceptions=raise_exceptions)
         self.host = host
         self.port = port
+        self.api_key = api_key
         self.app = FastAPI()
         logfire.instrument_fastapi(self.app)
 
@@ -87,6 +90,8 @@ class OpenAIServer(BaseServer):
             raise HTTPException(401, "Missing API key")
         if not authorization.startswith("Bearer "):
             raise HTTPException(401, "Invalid authorization format")
+        if self.api_key and authorization != f"Bearer {self.api_key}":
+            raise HTTPException(401, "Invalid API key")
 
     async def list_models(self) -> dict[str, Any]:
         """List available agents as models."""
