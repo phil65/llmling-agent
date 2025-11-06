@@ -9,7 +9,6 @@ from uuid import UUID
 
 from llmling import (
     BasePrompt,
-    ConfigStore,
     PromptMessage,
     StaticPrompt,
 )
@@ -17,16 +16,11 @@ from pydantic import Field, model_validator
 from pydantic_ai import UsageLimits  # noqa: TC002
 from schemez import InlineSchemaDef
 from toprompt import render_prompt
-from upath import UPath
 
 from llmling_agent import log
 from llmling_agent.common_types import EndStrategy  # noqa: TC001
 from llmling_agent.resource_providers.static import StaticResourceProvider
 from llmling_agent.utils.importing import import_class
-from llmling_agent_config.environment import (
-    AgentEnvironment,  # noqa: TC001
-    FileEnvironment,
-)
 from llmling_agent_config.knowledge import Knowledge  # noqa: TC001
 from llmling_agent_config.models import AnyModelConfig  # noqa: TC001
 from llmling_agent_config.nodes import NodeConfig
@@ -73,9 +67,6 @@ class AgentConfig(NodeConfig):
 
     toolsets: list[ToolsetConfig] = Field(default_factory=list)
     """Toolset configurations for extensible tool collections."""
-
-    environment: str | AgentEnvironment | None = None
-    """Environments configuration (path or object)"""
 
     session: str | SessionQuery | MemoryConfig | None = None
     """Session configuration for conversation recovery."""
@@ -336,28 +327,6 @@ class AgentConfig(NodeConfig):
                     rendered_prompts.append(render_prompt(content, {"agent": context}))
 
         return rendered_prompts
-
-    def get_environment_path(self) -> str | None:
-        """Get environment file path if available."""
-        match self.environment:
-            case str() as path:
-                return self._resolve_environment_path(path, self.config_file_path)
-            case {"type": "file", "uri": uri} | FileEnvironment(uri=uri):
-                return uri
-            case _:
-                return None
-
-    @staticmethod
-    def _resolve_environment_path(env: str, config_file_path: str | None = None) -> str:
-        """Resolve environment path from config store or relative path."""
-        try:
-            config_store = ConfigStore()
-            return config_store.get_config(env)
-        except KeyError:
-            if config_file_path:
-                base_dir = UPath(config_file_path).parent
-                return str(base_dir / env)
-            return env
 
 
 if __name__ == "__main__":

@@ -5,18 +5,11 @@ from __future__ import annotations
 import pathlib
 from typing import Any
 
-from llmling import Config
 from pydantic import ValidationError
 import pytest
 import yamling
 
 from llmling_agent_config.environment import FileEnvironment, InlineEnvironment
-
-
-@pytest.fixture
-def sample_config() -> Config:
-    """Create a sample Config for testing."""
-    return Config()
 
 
 def test_file_environment_path_resolution(tmp_path: pathlib.Path):
@@ -76,17 +69,3 @@ def test_environment_types(
     env = expected_type.model_validate(env_data)
     assert isinstance(env, expected_type)
     assert env.get_file_path() == expected_path
-
-
-def test_environment_serialization(sample_config: Config):
-    """Test environment serialization."""
-    # File environment
-    file_env = FileEnvironment(uri="config.yml")
-    data = file_env.model_dump()
-    assert data["type"] == "file"
-    assert data["uri"] == "config.yml"
-
-    # Inline environment
-    inline_env = InlineEnvironment.from_config(sample_config)
-    data = inline_env.model_dump()
-    assert data["type"] == "inline"

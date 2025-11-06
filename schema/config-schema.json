@@ -35,7 +35,6 @@
           "items": {
             "discriminator": {
               "mapping": {
-                "connection": "#/$defs/ConnectionTriggerConfig",
                 "email": "#/$defs/EmailConfig",
                 "file": "#/$defs/FileWatchConfig",
                 "time": "#/$defs/TimeEventConfig",
@@ -55,9 +54,6 @@
               },
               {
                 "$ref": "#/$defs/TimeEventConfig"
-              },
-              {
-                "$ref": "#/$defs/ConnectionTriggerConfig"
               }
             ]
           },
@@ -135,37 +131,6 @@
           "default": null,
           "description": "Provider for human-input-handling.",
           "title": "Input Provider"
-        },
-        "provider": {
-          "anyOf": [
-            {
-              "discriminator": {
-                "mapping": {
-                  "human": "#/$defs/HumanProviderConfig",
-                  "pydantic_ai": "#/$defs/PydanticAIProviderConfig"
-                },
-                "propertyName": "type"
-              },
-              "oneOf": [
-                {
-                  "$ref": "#/$defs/PydanticAIProviderConfig"
-                },
-                {
-                  "$ref": "#/$defs/HumanProviderConfig"
-                }
-              ]
-            },
-            {
-              "enum": [
-                "pydantic_ai",
-                "human"
-              ],
-              "type": "string"
-            }
-          ],
-          "default": "pydantic_ai",
-          "description": "Provider configuration or shorthand type",
-          "title": "Provider"
         },
         "inherits": {
           "anyOf": [
@@ -296,14 +261,13 @@
                 "code": "#/$defs/CodeToolsetConfig",
                 "code_execution": "#/$defs/CodeExecutionToolsetConfig",
                 "composio": "#/$defs/ComposioToolSetConfig",
-                "custom": "#/$defs/llmling_agent_config__toolsets__CustomToolsetConfig",
-                "entry_points": "#/$defs/llmling_agent_config__toolsets__EntryPointToolsetConfig",
+                "custom": "#/$defs/CustomToolsetConfig",
+                "entry_points": "#/$defs/EntryPointToolsetConfig",
                 "file_access": "#/$defs/FileAccessToolsetConfig",
                 "history": "#/$defs/HistoryToolsetConfig",
                 "integrations": "#/$defs/IntegrationToolsetConfig",
-                "openapi": "#/$defs/llmling_agent_config__toolsets__OpenAPIToolsetConfig",
+                "openapi": "#/$defs/OpenAPIToolsetConfig",
                 "process_management": "#/$defs/ProcessManagementToolsetConfig",
-                "resource_access": "#/$defs/ResourceAccessToolsetConfig",
                 "tool_management": "#/$defs/ToolManagementToolsetConfig",
                 "upsonic": "#/$defs/UpsonicToolSetConfig",
                 "user_interaction": "#/$defs/UserInteractionToolsetConfig"
@@ -312,10 +276,10 @@
             },
             "oneOf": [
               {
-                "$ref": "#/$defs/llmling_agent_config__toolsets__OpenAPIToolsetConfig"
+                "$ref": "#/$defs/OpenAPIToolsetConfig"
               },
               {
-                "$ref": "#/$defs/llmling_agent_config__toolsets__EntryPointToolsetConfig"
+                "$ref": "#/$defs/EntryPointToolsetConfig"
               },
               {
                 "$ref": "#/$defs/ComposioToolSetConfig"
@@ -336,9 +300,6 @@
                 "$ref": "#/$defs/ProcessManagementToolsetConfig"
               },
               {
-                "$ref": "#/$defs/ResourceAccessToolsetConfig"
-              },
-              {
                 "$ref": "#/$defs/ToolManagementToolsetConfig"
               },
               {
@@ -354,42 +315,12 @@
                 "$ref": "#/$defs/CodeToolsetConfig"
               },
               {
-                "$ref": "#/$defs/llmling_agent_config__toolsets__CustomToolsetConfig"
+                "$ref": "#/$defs/CustomToolsetConfig"
               }
             ]
           },
           "title": "Toolsets",
           "type": "array"
-        },
-        "environment": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "discriminator": {
-                "mapping": {
-                  "file": "#/$defs/FileEnvironment",
-                  "inline": "#/$defs/InlineEnvironment"
-                },
-                "propertyName": "type"
-              },
-              "oneOf": [
-                {
-                  "$ref": "#/$defs/FileEnvironment"
-                },
-                {
-                  "$ref": "#/$defs/InlineEnvironment"
-                }
-              ]
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Environments configuration (path or object)",
-          "title": "Environment"
         },
         "session": {
           "anyOf": [
@@ -1152,6 +1083,55 @@
       "title": "CLIResource",
       "type": "object"
     },
+    "CallableCommandConfig": {
+      "additionalProperties": false,
+      "description": "Callable command that references a Python function.",
+      "properties": {
+        "type": {
+          "const": "callable",
+          "default": "callable",
+          "description": "Callable command configuration.",
+          "title": "Type",
+          "type": "string"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Command name (optional, can be inferred from key).",
+          "title": "Name"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional description of what this command does.",
+          "title": "Description"
+        },
+        "function": {
+          "description": "Python function import path (e.g., 'my.package.module.function_name').",
+          "title": "Function",
+          "type": "string"
+        }
+      },
+      "required": [
+        "function"
+      ],
+      "title": "CallableCommandConfig",
+      "type": "object"
+    },
     "CallableCondition": {
       "additionalProperties": false,
       "description": "Custom predicate function.",
@@ -1669,178 +1649,6 @@
       "title": "ConnectionCondition",
       "type": "object"
     },
-    "ConnectionContentCondition": {
-      "additionalProperties": false,
-      "description": "Simple content matching for connection events.",
-      "properties": {
-        "type": {
-          "const": "content",
-          "default": "content",
-          "description": "Content-based trigger.",
-          "title": "Type",
-          "type": "string"
-        },
-        "words": {
-          "description": "List of words to match.",
-          "items": {
-            "type": "string"
-          },
-          "title": "Words",
-          "type": "array"
-        },
-        "mode": {
-          "default": "any",
-          "description": "Matching mode.",
-          "enum": [
-            "any",
-            "all"
-          ],
-          "title": "Mode",
-          "type": "string"
-        }
-      },
-      "required": [
-        "words"
-      ],
-      "title": "ConnectionContentCondition",
-      "type": "object"
-    },
-    "ConnectionJinja2Condition": {
-      "additionalProperties": false,
-      "description": "Flexible Jinja2 condition for connection events.",
-      "properties": {
-        "type": {
-          "const": "jinja2",
-          "default": "jinja2",
-          "description": "Jinja2-based trigger configuration.",
-          "title": "Type",
-          "type": "string"
-        },
-        "template": {
-          "description": "Jinja2-Template (needs to return a \"boolean\" string).",
-          "title": "Template",
-          "type": "string"
-        }
-      },
-      "required": [
-        "template"
-      ],
-      "title": "ConnectionJinja2Condition",
-      "type": "object"
-    },
-    "ConnectionTriggerConfig": {
-      "additionalProperties": false,
-      "description": "Trigger config specifically for connection events.",
-      "properties": {
-        "type": {
-          "const": "connection",
-          "default": "connection",
-          "description": "Connection event trigger.",
-          "title": "Type",
-          "type": "string"
-        },
-        "name": {
-          "description": "Unique identifier for this event source.",
-          "title": "Name",
-          "type": "string"
-        },
-        "enabled": {
-          "default": true,
-          "description": "Whether this event source is active.",
-          "title": "Enabled",
-          "type": "boolean"
-        },
-        "template": {
-          "default": "\n{%- if include_timestamp %}at {{ timestamp }}{% endif %}\nEvent from {{ source }}:\n{%- if include_metadata %}\nMetadata:\n{% for key, value in metadata.items() %}\n{{ key }}: {{ value }}\n{% endfor %}\n{% endif %}\n{{ content }}\n",
-          "description": "Jinja2 template for formatting events.",
-          "title": "Template",
-          "type": "string"
-        },
-        "include_metadata": {
-          "default": true,
-          "description": "Control metadata visibility in template.",
-          "title": "Include Metadata",
-          "type": "boolean"
-        },
-        "include_timestamp": {
-          "default": true,
-          "description": "Control timestamp visibility in template.",
-          "title": "Include Timestamp",
-          "type": "boolean"
-        },
-        "source": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Connection source name.",
-          "title": "Source"
-        },
-        "target": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Connection to trigger.",
-          "title": "Target"
-        },
-        "event": {
-          "description": "Event type to trigger on.",
-          "enum": [
-            "message_received",
-            "message_processed",
-            "message_forwarded",
-            "queue_filled",
-            "queue_triggered"
-          ],
-          "title": "Event",
-          "type": "string"
-        },
-        "condition": {
-          "anyOf": [
-            {
-              "discriminator": {
-                "mapping": {
-                  "content": "#/$defs/ConnectionContentCondition",
-                  "jinja2": "#/$defs/ConnectionJinja2Condition"
-                },
-                "propertyName": "type"
-              },
-              "oneOf": [
-                {
-                  "$ref": "#/$defs/ConnectionContentCondition"
-                },
-                {
-                  "$ref": "#/$defs/ConnectionJinja2Condition"
-                }
-              ]
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Condition-based filter for the event.",
-          "title": "Condition"
-        }
-      },
-      "required": [
-        "name",
-        "event"
-      ],
-      "title": "ConnectionTriggerConfig",
-      "type": "object"
-    },
     "ConversionConfig": {
       "additionalProperties": false,
       "description": "Global conversion configuration.",
@@ -2091,6 +1899,18 @@
           "title": "Metadata",
           "type": "object"
         },
+        "hints": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ToolHints"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Hints for tool execution."
+        },
         "import_path": {
           "description": "Import path to CrewAI tool class.",
           "title": "Import Path",
@@ -2174,6 +1994,42 @@
         "endpoint"
       ],
       "title": "CustomObservabilityConfig",
+      "type": "object"
+    },
+    "CustomToolsetConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for custom toolsets.",
+      "properties": {
+        "namespace": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional namespace prefix for tool names",
+          "title": "Namespace"
+        },
+        "type": {
+          "const": "custom",
+          "default": "custom",
+          "description": "Custom toolset.",
+          "title": "Type",
+          "type": "string"
+        },
+        "import_path": {
+          "description": "Dotted import path to the custom toolset implementation class.",
+          "title": "Import Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "import_path"
+      ],
+      "title": "CustomToolsetConfig",
       "type": "object"
     },
     "DelegationModelConfig": {
@@ -2384,13 +2240,15 @@
           "type": "boolean"
         },
         "host": {
-          "description": "IMAP server hostname",
+          "description": "IMAP server hostname (e.g. 'imap.gmail.com')",
           "title": "Host",
           "type": "string"
         },
         "port": {
           "default": 993,
           "description": "Server port (defaults to 993 for IMAP SSL)",
+          "maximum": 65535,
+          "minimum": 1,
           "title": "Port",
           "type": "integer"
         },
@@ -2420,7 +2278,7 @@
         },
         "check_interval": {
           "default": 60,
-          "description": "Seconds between inbox checks",
+          "description": "How often to check for new emails (in seconds)",
           "exclusiveMinimum": 0,
           "title": "Check Interval",
           "type": "integer"
@@ -2435,13 +2293,14 @@
           "additionalProperties": {
             "type": "string"
           },
-          "description": "Email filtering criteria",
+          "description": "Filtering rules for emails (subject, from, etc)",
           "title": "Filters",
           "type": "object"
         },
         "max_size": {
           "anyOf": [
             {
+              "minimum": 0,
               "type": "integer"
             },
             {
@@ -2449,7 +2308,7 @@
             }
           ],
           "default": null,
-          "description": "Maximum email size in bytes",
+          "description": "Size limit for processed emails in bytes",
           "title": "Max Size"
         }
       },
@@ -2460,6 +2319,42 @@
         "password"
       ],
       "title": "EmailConfig",
+      "type": "object"
+    },
+    "EntryPointToolsetConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for entry point toolsets.",
+      "properties": {
+        "namespace": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional namespace prefix for tool names",
+          "title": "Namespace"
+        },
+        "type": {
+          "const": "entry_points",
+          "default": "entry_points",
+          "description": "Entry point toolset.",
+          "title": "Type",
+          "type": "string"
+        },
+        "module": {
+          "description": "Python module path to load tools from via entry points.",
+          "title": "Module",
+          "type": "string"
+        }
+      },
+      "required": [
+        "module"
+      ],
+      "title": "EntryPointToolsetConfig",
       "type": "object"
     },
     "FabricConfig": {
@@ -2537,6 +2432,61 @@
         }
       },
       "title": "FileAccessToolsetConfig",
+      "type": "object"
+    },
+    "FileCommandConfig": {
+      "additionalProperties": false,
+      "description": "File-based command that loads content from external file.",
+      "properties": {
+        "type": {
+          "const": "file",
+          "default": "file",
+          "description": "File-based command configuration.",
+          "title": "Type",
+          "type": "string"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Command name (optional, can be inferred from key).",
+          "title": "Name"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional description of what this command does.",
+          "title": "Description"
+        },
+        "path": {
+          "description": "Path to file containing the prompt template.",
+          "title": "Path",
+          "type": "string"
+        },
+        "encoding": {
+          "default": "utf-8",
+          "description": "File encoding to use when reading the file.",
+          "title": "Encoding",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "title": "FileCommandConfig",
       "type": "object"
     },
     "FileConnectionConfig": {
@@ -2800,43 +2750,6 @@
         "path"
       ],
       "title": "FileConnectionConfig",
-      "type": "object"
-    },
-    "FileEnvironment": {
-      "additionalProperties": false,
-      "description": "File-based environment configuration.\n\nLoads environment settings from external YAML files, supporting:\n- Reusable environment configurations\n- Separation of concerns\n- Environment sharing between agents\n- Version control of environment settings",
-      "properties": {
-        "type": {
-          "const": "file",
-          "default": "file",
-          "description": "File-based runtime config.",
-          "title": "Type",
-          "type": "string"
-        },
-        "uri": {
-          "description": "\"Path to environment file.",
-          "minLength": 1,
-          "title": "Uri",
-          "type": "string"
-        },
-        "config_file_path": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Path to agent config file for resolving relative paths",
-          "title": "Config File Path"
-        }
-      },
-      "required": [
-        "uri"
-      ],
-      "title": "FileEnvironment",
       "type": "object"
     },
     "FilePrompt": {
@@ -3189,7 +3102,6 @@
         "debounce": {
           "default": 1600,
           "description": "Minimum time (ms) between trigger events.",
-          "exclusiveMinimum": 0,
           "title": "Debounce",
           "type": "integer"
         }
@@ -3271,95 +3183,6 @@
       "title": "FunctionPromptConfig",
       "type": "object"
     },
-    "GlobalSettings": {
-      "additionalProperties": false,
-      "description": "Global settings that apply to all components.",
-      "properties": {
-        "timeout": {
-          "default": 30,
-          "description": "Maximum time in seconds to wait for operations",
-          "minimum": 0,
-          "title": "Timeout",
-          "type": "integer"
-        },
-        "max_retries": {
-          "default": 3,
-          "description": "Maximum number of retries for failed operations",
-          "minimum": 0,
-          "title": "Max Retries",
-          "type": "integer"
-        },
-        "requirements": {
-          "description": "List of package requirments for the functions used in this file.",
-          "items": {
-            "type": "string"
-          },
-          "title": "Requirements",
-          "type": "array"
-        },
-        "pip_index_url": {
-          "anyOf": [
-            {
-              "format": "uri",
-              "maxLength": 2083,
-              "minLength": 1,
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Alternative PyPI index URL for package installation",
-          "title": "Pip Index Url"
-        },
-        "extra_paths": {
-          "description": "Additional import paths",
-          "items": {
-            "type": "string"
-          },
-          "title": "Extra Paths",
-          "type": "array"
-        },
-        "scripts": {
-          "description": "PEP723 scripts (can be imported and will be scanned for dependencies)",
-          "items": {
-            "type": "string"
-          },
-          "title": "Scripts",
-          "type": "array"
-        },
-        "prefer_uv": {
-          "default": false,
-          "description": "Explicitely use uv for package installation / management ",
-          "title": "Prefer Uv",
-          "type": "boolean"
-        },
-        "log_level": {
-          "default": "INFO",
-          "description": "Log level for LLMling core.",
-          "enum": [
-            "DEBUG",
-            "INFO",
-            "WARNING",
-            "ERROR",
-            "CRITICAL"
-          ],
-          "title": "Log Level",
-          "type": "string"
-        },
-        "jinja_environment": {
-          "$ref": "#/$defs/Jinja2Config",
-          "description": "Jinja2 environment configuration"
-        },
-        "llm_capabilities": {
-          "$ref": "#/$defs/LLMCapabilitiesConfig",
-          "description": "Control which system capabilities are exposed to LLMs."
-        }
-      },
-      "title": "GlobalSettings",
-      "type": "object"
-    },
     "GoogleSpeechConfig": {
       "additionalProperties": false,
       "description": "Configuration for Google Cloud Speech-to-Text.",
@@ -3430,65 +3253,6 @@
         }
       },
       "title": "HistoryToolsetConfig",
-      "type": "object"
-    },
-    "HumanProviderConfig": {
-      "additionalProperties": false,
-      "description": "Configuration for human-in-the-loop provider.\n\nThis provider enables direct human interaction for responses and decisions.\nUseful for testing, training, and oversight of agent operations.",
-      "properties": {
-        "type": {
-          "const": "human",
-          "default": "human",
-          "description": "Human-input provider.",
-          "title": "Type",
-          "type": "string"
-        },
-        "name": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Optional name for the provider instance.",
-          "title": "Name"
-        },
-        "model_settings": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ModelSettings"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Optional settings to configure the LLM behavior."
-        },
-        "timeout": {
-          "anyOf": [
-            {
-              "type": "integer"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Timeout in seconds for human response. None means wait indefinitely.",
-          "title": "Timeout"
-        },
-        "show_context": {
-          "default": true,
-          "description": "Whether to show conversation context to human.",
-          "title": "Show Context",
-          "type": "boolean"
-        }
-      },
-      "title": "HumanProviderConfig",
       "type": "object"
     },
     "ImportModelConfig": {
@@ -3604,6 +3368,18 @@
           "title": "Metadata",
           "type": "object"
         },
+        "hints": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ToolHints"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Hints for tool execution."
+        },
         "import_path": {
           "description": "Import path to the tool function.",
           "title": "Import Path",
@@ -3650,169 +3426,6 @@
         "import_path"
       ],
       "title": "ImportedSchemaDef",
-      "type": "object"
-    },
-    "InlineEnvironment": {
-      "additionalProperties": true,
-      "description": "Direct environment configuration without external files.\n\nAllows embedding complete environment settings directly in the agent\nconfiguration instead of referencing external files. Useful for:\n- Self-contained configurations\n- Testing and development\n- Simple agent setups",
-      "properties": {
-        "version": {
-          "default": "1.0",
-          "description": "Version string for this configuration format.",
-          "title": "Version",
-          "type": "string"
-        },
-        "global_settings": {
-          "$ref": "#/$defs/GlobalSettings"
-        },
-        "context_processors": {
-          "additionalProperties": {
-            "$ref": "#/$defs/ProcessorConfig"
-          },
-          "description": "Content processors available for resource transformation.",
-          "title": "Context Processors",
-          "type": "object"
-        },
-        "resources": {
-          "additionalProperties": {
-            "discriminator": {
-              "mapping": {
-                "callable": "#/$defs/CallableResource",
-                "cli": "#/$defs/CLIResource",
-                "path": "#/$defs/PathResource",
-                "source": "#/$defs/SourceResource",
-                "text": "#/$defs/TextResource"
-              },
-              "propertyName": "type"
-            },
-            "oneOf": [
-              {
-                "$ref": "#/$defs/PathResource"
-              },
-              {
-                "$ref": "#/$defs/TextResource"
-              },
-              {
-                "$ref": "#/$defs/CLIResource"
-              },
-              {
-                "$ref": "#/$defs/SourceResource"
-              },
-              {
-                "$ref": "#/$defs/CallableResource"
-              }
-            ]
-          },
-          "description": "Resource definitions keyed by name.",
-          "title": "Resources",
-          "type": "object"
-        },
-        "resource_groups": {
-          "additionalProperties": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "description": "Groups of resources for logical organization.",
-          "title": "Resource Groups",
-          "type": "object"
-        },
-        "tools": {
-          "additionalProperties": {
-            "$ref": "#/$defs/ToolConfig"
-          },
-          "description": "Tool definitions keyed by name.",
-          "title": "Tools",
-          "type": "object"
-        },
-        "toolsets": {
-          "additionalProperties": {
-            "discriminator": {
-              "mapping": {
-                "custom": "#/$defs/llmling__config__models__CustomToolsetConfig",
-                "entry_points": "#/$defs/llmling__config__models__EntryPointToolsetConfig",
-                "openapi": "#/$defs/llmling__config__models__OpenAPIToolsetConfig"
-              },
-              "propertyName": "type"
-            },
-            "oneOf": [
-              {
-                "$ref": "#/$defs/llmling__config__models__OpenAPIToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/llmling__config__models__EntryPointToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/llmling__config__models__CustomToolsetConfig"
-              }
-            ]
-          },
-          "description": "Toolset configurations for extensible tool collections.",
-          "title": "Toolsets",
-          "type": "object"
-        },
-        "prompts": {
-          "additionalProperties": {
-            "discriminator": {
-              "mapping": {
-                "file": "#/$defs/FilePrompt",
-                "function": "#/$defs/DynamicPrompt",
-                "text": "#/$defs/StaticPrompt"
-              },
-              "propertyName": "type"
-            },
-            "oneOf": [
-              {
-                "$ref": "#/$defs/StaticPrompt"
-              },
-              {
-                "$ref": "#/$defs/DynamicPrompt"
-              },
-              {
-                "$ref": "#/$defs/FilePrompt"
-              }
-            ]
-          },
-          "description": "Prompt definitions keyed by name.",
-          "title": "Prompts",
-          "type": "object"
-        },
-        "type": {
-          "const": "inline",
-          "default": "inline",
-          "description": "Inline-defined runtime config.",
-          "title": "Type",
-          "type": "string"
-        },
-        "uri": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Optional identifier for this configuration",
-          "title": "Uri"
-        },
-        "config_file_path": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Path to agent config file for resolving relative paths",
-          "title": "Config File Path"
-        }
-      },
-      "title": "InlineEnvironment",
       "type": "object"
     },
     "InlineSchemaDef": {
@@ -3957,147 +3570,6 @@
       "title": "Jinja2Condition",
       "type": "object"
     },
-    "Jinja2Config": {
-      "additionalProperties": false,
-      "description": "Configuration for Jinja2 environment.\n\nSee: https://jinja.palletsprojects.com/en/3.1.x/api/#jinja2.Environment",
-      "properties": {
-        "block_start_string": {
-          "default": "{%",
-          "description": "String denoting the beginning of a block (default: '{%').",
-          "title": "Block Start String",
-          "type": "string"
-        },
-        "block_end_string": {
-          "default": "%}",
-          "description": "String denoting the end of a block (default: '%}').",
-          "title": "Block End String",
-          "type": "string"
-        },
-        "variable_start_string": {
-          "default": "{{",
-          "description": "String denoting the beginning of a variable (default: '{{').",
-          "title": "Variable Start String",
-          "type": "string"
-        },
-        "variable_end_string": {
-          "default": "}}",
-          "description": "String denoting the end of a variable (default: '}}').",
-          "title": "Variable End String",
-          "type": "string"
-        },
-        "comment_start_string": {
-          "default": "{#",
-          "description": "String denoting the beginning of a comment (default: '{#').",
-          "title": "Comment Start String",
-          "type": "string"
-        },
-        "comment_end_string": {
-          "default": "#}",
-          "description": "String denoting the end of a comment (default: '#}').",
-          "title": "Comment End String",
-          "type": "string"
-        },
-        "line_statement_prefix": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Prefix that begins a line-based statement (e.g., '#' for line statements).",
-          "title": "Line Statement Prefix"
-        },
-        "line_comment_prefix": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Prefix that begins a line-based comment.",
-          "title": "Line Comment Prefix"
-        },
-        "trim_blocks": {
-          "default": false,
-          "description": "Remove first newline after a block (affects whitespace control).",
-          "title": "Trim Blocks",
-          "type": "boolean"
-        },
-        "lstrip_blocks": {
-          "default": false,
-          "description": "Remove leading spaces and tabs from the start of a line to a block.",
-          "title": "Lstrip Blocks",
-          "type": "boolean"
-        },
-        "newline_sequence": {
-          "default": "\n",
-          "description": "Sequence that starts a newline (default: '\n').",
-          "enum": [
-            "\n",
-            "\r\n",
-            "\r"
-          ],
-          "title": "Newline Sequence",
-          "type": "string"
-        },
-        "keep_trailing_newline": {
-          "default": false,
-          "description": "Preserve the trailing newline when rendering templates.",
-          "title": "Keep Trailing Newline",
-          "type": "boolean"
-        },
-        "extensions": {
-          "description": "List of Jinja2 extensions to load (e.g., 'jinja2.ext.do').",
-          "items": {
-            "type": "string"
-          },
-          "title": "Extensions",
-          "type": "array"
-        },
-        "undefined": {
-          "default": "default",
-          "description": "Behavior when accessing undefined variables (default, strict, debug, chainable).",
-          "enum": [
-            "default",
-            "strict",
-            "debug",
-            "chainable"
-          ],
-          "title": "Undefined",
-          "type": "string"
-        },
-        "filters": {
-          "additionalProperties": {
-            "type": "string"
-          },
-          "description": "Custom filters as mapping of names to import paths.",
-          "title": "Filters",
-          "type": "object"
-        },
-        "tests": {
-          "additionalProperties": {
-            "type": "string"
-          },
-          "description": "Custom tests as mapping of names to import paths.",
-          "title": "Tests",
-          "type": "object"
-        },
-        "globals": {
-          "additionalProperties": true,
-          "description": "Global variables available to all templates.",
-          "title": "Globals",
-          "type": "object"
-        }
-      },
-      "title": "Jinja2Config",
-      "type": "object"
-    },
     "Job": {
       "additionalProperties": false,
       "description": "A task is a piece of work that can be executed by an agent.\n\nRequirements:\n- The agent must have compatible dependencies (required_dependency)\n- The agent must produce the specified result type (required_return_type)\n\nEquipment:\n- The task provides necessary tools for execution (tools)\n- Tools are temporarily available during task execution",
@@ -4185,7 +3657,7 @@
                 "type": "string"
               },
               {
-                "$ref": "#/$defs/ToolConfig"
+                "$ref": "#/$defs/ImportToolConfig"
               }
             ]
           },
@@ -4294,50 +3766,6 @@
       "title": "Knowledge",
       "type": "object"
     },
-    "LLMCapabilitiesConfig": {
-      "additionalProperties": false,
-      "description": "Configuration for LLM system capabilities.",
-      "properties": {
-        "load_resource": {
-          "default": false,
-          "description": "Whether the LLM can load and access resource content.",
-          "title": "Load Resource",
-          "type": "boolean"
-        },
-        "get_resources": {
-          "default": false,
-          "description": "Whether the LLM can discover available resources.",
-          "title": "Get Resources",
-          "type": "boolean"
-        },
-        "install_package": {
-          "default": false,
-          "description": "Whether the LLM can install new Python packages for future tools.",
-          "title": "Install Package",
-          "type": "boolean"
-        },
-        "register_tool": {
-          "default": false,
-          "description": "Whether the LLM can register importable functions as new tools.",
-          "title": "Register Tool",
-          "type": "boolean"
-        },
-        "register_code_tool": {
-          "default": false,
-          "description": "Whether the LLM can create new tools from provided Python code.",
-          "title": "Register Code Tool",
-          "type": "boolean"
-        },
-        "chain_tools": {
-          "default": false,
-          "description": "Whether the LLM gains capability to chain multiple tool calls into one.",
-          "title": "Chain Tools",
-          "type": "boolean"
-        }
-      },
-      "title": "LLMCapabilitiesConfig",
-      "type": "object"
-    },
     "LangChainToolConfig": {
       "additionalProperties": false,
       "description": "Configuration for LangChain tools.",
@@ -4419,6 +3847,18 @@
           "description": "Additional tool metadata.",
           "title": "Metadata",
           "type": "object"
+        },
+        "hints": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ToolHints"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Hints for tool execution."
         },
         "tool_name": {
           "description": "Name of LangChain tool to use.",
@@ -5234,142 +4674,6 @@
       "title": "MessageCountCondition",
       "type": "object"
     },
-    "ModelSettings": {
-      "additionalProperties": false,
-      "description": "Settings to configure an LLM.",
-      "properties": {
-        "max_output_tokens": {
-          "anyOf": [
-            {
-              "type": "integer"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "The maximum number of tokens to generate.",
-          "title": "Max Output Tokens"
-        },
-        "temperature": {
-          "anyOf": [
-            {
-              "maximum": 2.0,
-              "minimum": 0.0,
-              "type": "number"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Amount of randomness in the response (0.0 - 2.0).",
-          "title": "Temperature"
-        },
-        "top_p": {
-          "anyOf": [
-            {
-              "maximum": 1.0,
-              "minimum": 0.0,
-              "type": "number"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "An alternative to sampling with temperature, called nucleus sampling.",
-          "title": "Top P"
-        },
-        "timeout": {
-          "anyOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Override the client-level default timeout for a request, in seconds.",
-          "title": "Timeout"
-        },
-        "parallel_tool_calls": {
-          "anyOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Whether to allow parallel tool calls.",
-          "title": "Parallel Tool Calls"
-        },
-        "seed": {
-          "anyOf": [
-            {
-              "type": "integer"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "The random seed to use for the model.",
-          "title": "Seed"
-        },
-        "presence_penalty": {
-          "anyOf": [
-            {
-              "maximum": 2.0,
-              "minimum": -2.0,
-              "type": "number"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Penalize new tokens based on whether they have appeared in the text so far.",
-          "title": "Presence Penalty"
-        },
-        "frequency_penalty": {
-          "anyOf": [
-            {
-              "maximum": 2.0,
-              "minimum": -2.0,
-              "type": "number"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Penalize new tokens based on their existing frequency in the text so far.",
-          "title": "Frequency Penalty"
-        },
-        "logit_bias": {
-          "anyOf": [
-            {
-              "additionalProperties": {
-                "type": "integer"
-              },
-              "type": "object"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Modify the likelihood of specified tokens appearing in the completion.",
-          "title": "Logit Bias"
-        }
-      },
-      "title": "ModelSettings",
-      "type": "object"
-    },
     "NodeConnectionConfig": {
       "additionalProperties": false,
       "description": "Forward messages to another node.\n\nThis configuration defines how messages should flow from one node to another,\nincluding:\n- Basic routing (which node, what type of connection)\n- Message queueing and processing strategies\n- Timing controls (priority, delay)\n- Execution behavior (wait for completion)",
@@ -5678,18 +4982,70 @@
       "title": "ObservabilityConfig",
       "type": "object"
     },
-    "OpenLITConfig": {
+    "OpenAPIToolsetConfig": {
       "additionalProperties": false,
-      "description": "Configuration for OpenLIT prompt provider.",
+      "description": "Configuration for OpenAPI toolsets.",
       "properties": {
+        "namespace": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional namespace prefix for tool names",
+          "title": "Namespace"
+        },
         "type": {
-          "const": "openlit",
-          "default": "openlit",
-          "description": "Configuration for OpenLIT prompt provider.",
+          "const": "openapi",
+          "default": "openapi",
+          "description": "OpenAPI toolset.",
           "title": "Type",
           "type": "string"
         },
-        "url": {
+        "spec": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "path": {
+                  "title": "Path",
+                  "type": "string"
+                },
+                "protocol": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Protocol"
+                },
+                "storage_options": {
+                  "additionalProperties": true,
+                  "title": "Storage Options",
+                  "type": "object"
+                }
+              },
+              "required": [
+                "path"
+              ],
+              "type": "object"
+            }
+          ],
+          "description": "URL or path to the OpenAPI specification document.",
+          "title": "Spec"
+        },
+        "base_url": {
           "anyOf": [
             {
               "format": "uri",
@@ -5702,26 +5058,14 @@
             }
           ],
           "default": null,
-          "description": "URL of the OpenLIT API.",
-          "title": "Url"
-        },
-        "api_key": {
-          "anyOf": [
-            {
-              "format": "password",
-              "type": "string",
-              "writeOnly": true
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "API key for the OpenLIT API.",
-          "title": "Api Key"
+          "description": "Optional base URL for API requests, overrides the one in spec.",
+          "title": "Base Url"
         }
       },
-      "title": "OpenLITConfig",
+      "required": [
+        "spec"
+      ],
+      "title": "OpenAPIToolsetConfig",
       "type": "object"
     },
     "OrCondition": {
@@ -5953,72 +5297,6 @@
       "title": "ProcessingStep",
       "type": "object"
     },
-    "ProcessorConfig": {
-      "additionalProperties": false,
-      "description": "Configuration for content processors.",
-      "properties": {
-        "name": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Name"
-        },
-        "description": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Description"
-        },
-        "import_path": {
-          "title": "Import Path",
-          "type": "string"
-        },
-        "async_execution": {
-          "default": false,
-          "title": "Async Execution",
-          "type": "boolean"
-        },
-        "timeout": {
-          "anyOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Timeout"
-        },
-        "cache_results": {
-          "default": false,
-          "title": "Cache Results",
-          "type": "boolean"
-        },
-        "metadata": {
-          "additionalProperties": true,
-          "title": "Metadata",
-          "type": "object"
-        }
-      },
-      "required": [
-        "import_path"
-      ],
-      "title": "ProcessorConfig",
-      "type": "object"
-    },
     "PromptLayerConfig": {
       "additionalProperties": false,
       "description": "Configuration for PromptLayer prompt provider.",
@@ -6077,9 +5355,7 @@
                 "braintrust": "#/$defs/BraintrustConfig",
                 "fabric": "#/$defs/FabricConfig",
                 "langfuse": "#/$defs/LangfuseConfig",
-                "openlit": "#/$defs/OpenLITConfig",
-                "promptlayer": "#/$defs/PromptLayerConfig",
-                "traceloop": "#/$defs/TraceloopConfig"
+                "promptlayer": "#/$defs/PromptLayerConfig"
               },
               "propertyName": "type"
             },
@@ -6088,13 +5364,7 @@
                 "$ref": "#/$defs/PromptLayerConfig"
               },
               {
-                "$ref": "#/$defs/OpenLITConfig"
-              },
-              {
                 "$ref": "#/$defs/LangfuseConfig"
-              },
-              {
-                "$ref": "#/$defs/TraceloopConfig"
               },
               {
                 "$ref": "#/$defs/FabricConfig"
@@ -6213,162 +5483,6 @@
       "title": "PromptParameter",
       "type": "object"
     },
-    "PydanticAIProviderConfig": {
-      "additionalProperties": false,
-      "description": "Configuration for PydanticAI-based provider.\n\nThis provider uses PydanticAI for handling model interactions, tool calls,\nand structured outputs. It provides fine-grained control over model behavior\nand validation.",
-      "properties": {
-        "type": {
-          "const": "pydantic_ai",
-          "default": "pydantic_ai",
-          "description": "Pydantic-AI provider.",
-          "title": "Type",
-          "type": "string"
-        },
-        "name": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Optional name for the provider instance.",
-          "title": "Name"
-        },
-        "model_settings": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ModelSettings"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Optional settings to configure the LLM behavior."
-        },
-        "end_strategy": {
-          "default": "early",
-          "description": "How to handle tool calls when final result found:\n- early: Stop when valid result found\n- complete: Run all requested tools\n- confirm: Ask user what to do",
-          "enum": [
-            "early",
-            "exhaustive"
-          ],
-          "title": "End Strategy",
-          "type": "string"
-        },
-        "model": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "discriminator": {
-                "mapping": {
-                  "augmented": "#/$defs/AugmentedModelConfig",
-                  "cost-optimized": "#/$defs/CostOptimizedModelConfig",
-                  "delegation": "#/$defs/DelegationModelConfig",
-                  "fallback": "#/$defs/FallbackModelConfig",
-                  "function": "#/$defs/FunctionModelConfig",
-                  "import": "#/$defs/ImportModelConfig",
-                  "input": "#/$defs/InputModelConfig",
-                  "remote-input": "#/$defs/RemoteInputConfig",
-                  "remote-proxy": "#/$defs/RemoteProxyConfig",
-                  "string": "#/$defs/StringModelConfig",
-                  "test": "#/$defs/TestModelConfig",
-                  "token-optimized": "#/$defs/TokenOptimizedModelConfig",
-                  "user-select": "#/$defs/UserSelectModelConfig"
-                },
-                "propertyName": "type"
-              },
-              "oneOf": [
-                {
-                  "$ref": "#/$defs/AugmentedModelConfig"
-                },
-                {
-                  "$ref": "#/$defs/CostOptimizedModelConfig"
-                },
-                {
-                  "$ref": "#/$defs/DelegationModelConfig"
-                },
-                {
-                  "$ref": "#/$defs/FallbackModelConfig"
-                },
-                {
-                  "$ref": "#/$defs/FunctionModelConfig"
-                },
-                {
-                  "$ref": "#/$defs/ImportModelConfig"
-                },
-                {
-                  "$ref": "#/$defs/InputModelConfig"
-                },
-                {
-                  "$ref": "#/$defs/RemoteInputConfig"
-                },
-                {
-                  "$ref": "#/$defs/RemoteProxyConfig"
-                },
-                {
-                  "$ref": "#/$defs/TokenOptimizedModelConfig"
-                },
-                {
-                  "$ref": "#/$defs/StringModelConfig"
-                },
-                {
-                  "$ref": "#/$defs/TestModelConfig"
-                },
-                {
-                  "$ref": "#/$defs/UserSelectModelConfig"
-                }
-              ]
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Optional model name to use. If not specified, uses default model.",
-          "title": "Model"
-        },
-        "output_retries": {
-          "anyOf": [
-            {
-              "minimum": 0,
-              "type": "integer"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Maximum retries for result validation.\nNone means use the global retry setting.",
-          "title": "Output Retries"
-        },
-        "defer_model_check": {
-          "default": false,
-          "description": "Whether to defer model evaluation until first run.\nTrue can speed up initialization but might fail later.",
-          "title": "Defer Model Check",
-          "type": "boolean"
-        },
-        "validation_enabled": {
-          "default": true,
-          "description": "Whether to validate model outputs against schemas.",
-          "title": "Validation Enabled",
-          "type": "boolean"
-        },
-        "allow_text_fallback": {
-          "default": true,
-          "description": "Whether to accept plain text when structured output fails.",
-          "title": "Allow Text Fallback",
-          "type": "boolean"
-        }
-      },
-      "title": "PydanticAIProviderConfig",
-      "type": "object"
-    },
     "RemoteInputConfig": {
       "additionalProperties": false,
       "description": "Configuration for remote human input.",
@@ -6439,34 +5553,6 @@
         }
       },
       "title": "RemoteProxyConfig",
-      "type": "object"
-    },
-    "ResourceAccessToolsetConfig": {
-      "additionalProperties": false,
-      "description": "Configuration for resource access toolset.",
-      "properties": {
-        "namespace": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Optional namespace prefix for tool names",
-          "title": "Namespace"
-        },
-        "type": {
-          "const": "resource_access",
-          "default": "resource_access",
-          "description": "Resource access toolset.",
-          "title": "Type",
-          "type": "string"
-        }
-      },
-      "title": "ResourceAccessToolsetConfig",
       "type": "object"
     },
     "SQLStorageConfig": {
@@ -7142,6 +6228,55 @@
       "title": "SourceResourceConfig",
       "type": "object"
     },
+    "StaticCommandConfig": {
+      "additionalProperties": false,
+      "description": "Static command with inline content.",
+      "properties": {
+        "type": {
+          "const": "static",
+          "default": "static",
+          "description": "Static command configuration.",
+          "title": "Type",
+          "type": "string"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Command name (optional, can be inferred from key).",
+          "title": "Name"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional description of what this command does.",
+          "title": "Description"
+        },
+        "content": {
+          "description": "The prompt template content. Supports ${env.VAR} substitution.",
+          "title": "Content",
+          "type": "string"
+        }
+      },
+      "required": [
+        "content"
+      ],
+      "title": "StaticCommandConfig",
+      "type": "object"
+    },
     "StaticPrompt": {
       "additionalProperties": false,
       "description": "Static prompt defined by message list.",
@@ -7431,6 +6566,18 @@
           "description": "Whether to log additions to the context.",
           "title": "Log Context",
           "type": "boolean"
+        },
+        "title_generation_model": {
+          "default": "openai:gpt-5-nano",
+          "description": "Whether to log command executions.",
+          "title": "Title Generation Model",
+          "type": "string"
+        },
+        "title_generation_prompt": {
+          "default": "Create a short & consise title for this message. Only answer with that title.\n",
+          "description": "Whether to log additions to the context.",
+          "title": "Title Generation Prompt",
+          "type": "string"
         }
       },
       "title": "StorageConfig",
@@ -7657,7 +6804,6 @@
           "items": {
             "discriminator": {
               "mapping": {
-                "connection": "#/$defs/ConnectionTriggerConfig",
                 "email": "#/$defs/EmailConfig",
                 "file": "#/$defs/FileWatchConfig",
                 "time": "#/$defs/TimeEventConfig",
@@ -7677,9 +6823,6 @@
               },
               {
                 "$ref": "#/$defs/TimeEventConfig"
-              },
-              {
-                "$ref": "#/$defs/ConnectionTriggerConfig"
               }
             ]
           },
@@ -8246,58 +7389,6 @@
       "title": "TokenThresholdCondition",
       "type": "object"
     },
-    "ToolConfig": {
-      "additionalProperties": false,
-      "description": "Configuration for a tool.",
-      "properties": {
-        "import_path": {
-          "description": "Import path to the tool implementation (e.g. 'mymodule.tools.MyTool')",
-          "title": "Import Path",
-          "type": "string"
-        },
-        "name": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Optional override for the tool's display name",
-          "title": "Name"
-        },
-        "description": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Optional override for the tool's description",
-          "title": "Description"
-        },
-        "hints": {
-          "$ref": "#/$defs/ToolHints",
-          "default": {
-            "read_only": null,
-            "destructive": null,
-            "idempotent": null,
-            "open_world": null
-          },
-          "description": "Hints about the tool's behavior and execution characteristics"
-        }
-      },
-      "required": [
-        "import_path"
-      ],
-      "title": "ToolConfig",
-      "type": "object"
-    },
     "ToolHints": {
       "additionalProperties": false,
       "description": "Configuration for tool execution hints.",
@@ -8384,36 +7475,6 @@
         }
       },
       "title": "ToolManagementToolsetConfig",
-      "type": "object"
-    },
-    "TraceloopConfig": {
-      "additionalProperties": false,
-      "description": "Configuration for Traceloop prompt provider.",
-      "properties": {
-        "type": {
-          "const": "traceloop",
-          "default": "traceloop",
-          "description": "Configuration for Traceloop prompt provider.",
-          "title": "Type",
-          "type": "string"
-        },
-        "api_key": {
-          "anyOf": [
-            {
-              "format": "password",
-              "type": "string",
-              "writeOnly": true
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "API key for the Traceloop API.",
-          "title": "Api Key"
-        }
-      },
-      "title": "TraceloopConfig",
       "type": "object"
     },
     "UnionResourceConfig": {
@@ -8794,6 +7855,8 @@
         },
         "port": {
           "description": "Port to listen on.",
+          "maximum": 65535,
+          "minimum": 1,
           "title": "Port",
           "type": "integer"
         },
@@ -8805,7 +7868,9 @@
         "secret": {
           "anyOf": [
             {
-              "type": "string"
+              "format": "password",
+              "type": "string",
+              "writeOnly": true
             },
             {
               "type": "null"
@@ -9027,246 +8092,6 @@
       },
       "title": "YouTubeConverterConfig",
       "type": "object"
-    },
-    "llmling__config__models__CustomToolsetConfig": {
-      "additionalProperties": false,
-      "description": "Configuration for custom toolsets.",
-      "properties": {
-        "type": {
-          "const": "custom",
-          "default": "custom",
-          "description": "Discriminator field identifying this as a custom toolset.",
-          "title": "Type",
-          "type": "string"
-        },
-        "import_path": {
-          "description": "Dotted import path to the custom toolset implementation class.",
-          "title": "Import Path",
-          "type": "string"
-        }
-      },
-      "required": [
-        "import_path"
-      ],
-      "title": "CustomToolsetConfig",
-      "type": "object"
-    },
-    "llmling__config__models__EntryPointToolsetConfig": {
-      "additionalProperties": false,
-      "description": "Configuration for entry point toolsets.",
-      "properties": {
-        "type": {
-          "const": "entry_points",
-          "default": "entry_points",
-          "description": "Discriminator field identifying this as an entry point toolset.",
-          "title": "Type",
-          "type": "string"
-        },
-        "module": {
-          "description": "Python module path",
-          "title": "Module",
-          "type": "string"
-        }
-      },
-      "required": [
-        "module"
-      ],
-      "title": "EntryPointToolsetConfig",
-      "type": "object"
-    },
-    "llmling__config__models__OpenAPIToolsetConfig": {
-      "additionalProperties": false,
-      "description": "Configuration for OpenAPI toolsets.",
-      "properties": {
-        "type": {
-          "const": "openapi",
-          "default": "openapi",
-          "description": "Discriminator field identifying this as an OpenAPI toolset.",
-          "title": "Type",
-          "type": "string"
-        },
-        "spec": {
-          "description": "URL or path to the OpenAPI specification document.",
-          "title": "Spec",
-          "type": "string"
-        },
-        "base_url": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Optional base URL for API requests, overrides the one in spec.",
-          "title": "Base Url"
-        }
-      },
-      "required": [
-        "spec"
-      ],
-      "title": "OpenAPIToolsetConfig",
-      "type": "object"
-    },
-    "llmling_agent_config__toolsets__CustomToolsetConfig": {
-      "additionalProperties": false,
-      "description": "Configuration for custom toolsets.",
-      "properties": {
-        "namespace": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Optional namespace prefix for tool names",
-          "title": "Namespace"
-        },
-        "type": {
-          "const": "custom",
-          "default": "custom",
-          "description": "Custom toolset.",
-          "title": "Type",
-          "type": "string"
-        },
-        "import_path": {
-          "description": "Dotted import path to the custom toolset implementation class.",
-          "title": "Import Path",
-          "type": "string"
-        }
-      },
-      "required": [
-        "import_path"
-      ],
-      "title": "CustomToolsetConfig",
-      "type": "object"
-    },
-    "llmling_agent_config__toolsets__EntryPointToolsetConfig": {
-      "additionalProperties": false,
-      "description": "Configuration for entry point toolsets.",
-      "properties": {
-        "namespace": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Optional namespace prefix for tool names",
-          "title": "Namespace"
-        },
-        "type": {
-          "const": "entry_points",
-          "default": "entry_points",
-          "description": "Entry point toolset.",
-          "title": "Type",
-          "type": "string"
-        },
-        "module": {
-          "description": "Python module path to load tools from via entry points.",
-          "title": "Module",
-          "type": "string"
-        }
-      },
-      "required": [
-        "module"
-      ],
-      "title": "EntryPointToolsetConfig",
-      "type": "object"
-    },
-    "llmling_agent_config__toolsets__OpenAPIToolsetConfig": {
-      "additionalProperties": false,
-      "description": "Configuration for OpenAPI toolsets.",
-      "properties": {
-        "namespace": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Optional namespace prefix for tool names",
-          "title": "Namespace"
-        },
-        "type": {
-          "const": "openapi",
-          "default": "openapi",
-          "description": "OpenAPI toolset.",
-          "title": "Type",
-          "type": "string"
-        },
-        "spec": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "additionalProperties": false,
-              "properties": {
-                "path": {
-                  "title": "Path",
-                  "type": "string"
-                },
-                "protocol": {
-                  "anyOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ],
-                  "default": null,
-                  "title": "Protocol"
-                },
-                "storage_options": {
-                  "additionalProperties": true,
-                  "title": "Storage Options",
-                  "type": "object"
-                }
-              },
-              "required": [
-                "path"
-              ],
-              "type": "object"
-            }
-          ],
-          "description": "URL or path to the OpenAPI specification document.",
-          "title": "Spec"
-        },
-        "base_url": {
-          "anyOf": [
-            {
-              "format": "uri",
-              "maxLength": 2083,
-              "minLength": 1,
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Optional base URL for API requests, overrides the one in spec.",
-          "title": "Base Url"
-        }
-      },
-      "required": [
-        "spec"
-      ],
-      "title": "OpenAPIToolsetConfig",
-      "type": "object"
     }
   },
   "additionalProperties": false,
@@ -9403,6 +8228,39 @@
     },
     "prompts": {
       "$ref": "#/$defs/PromptLibraryConfig"
+    },
+    "commands": {
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "discriminator": {
+              "mapping": {
+                "callable": "#/$defs/CallableCommandConfig",
+                "file": "#/$defs/FileCommandConfig",
+                "static": "#/$defs/StaticCommandConfig"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/StaticCommandConfig"
+              },
+              {
+                "$ref": "#/$defs/FileCommandConfig"
+              },
+              {
+                "$ref": "#/$defs/CallableCommandConfig"
+              }
+            ]
+          },
+          {
+            "type": "string"
+          }
+        ]
+      },
+      "description": "Global command shortcuts for prompt injection.\n\nSupports both shorthand string syntax and full command configurations:\n    commands:\n      df: \"check disk space\"  # shorthand -> StaticCommandConfig\n      analyze:  # full config\n        type: file\n        path: \"./prompts/analysis.md\"",
+      "title": "Commands",
+      "type": "object"
     }
   },
   "title": "AgentsManifest",
