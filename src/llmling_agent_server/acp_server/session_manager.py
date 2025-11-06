@@ -12,6 +12,7 @@ from llmling_agent_server.acp_server.session import ACPSession
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
+    from types import TracebackType
 
     from acp import Client
     from acp.schema import ClientCapabilities, McpServer
@@ -155,7 +156,12 @@ class ACPSessionManager:
         """Async context manager entry."""
         return self
 
-    async def __aexit__(self, *exc: object):
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
         """Async context manager exit."""
         async with self._lock:
             sessions = list(self._sessions.values())

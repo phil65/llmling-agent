@@ -28,6 +28,7 @@ from llmling_agent.utils.now import get_now
 if TYPE_CHECKING:
     from collections.abc import Coroutine, Sequence
     from datetime import datetime, timedelta
+    from types import TracebackType
 
     from evented.base import EventSource
     from evented.configs import EventConfig
@@ -313,7 +314,12 @@ class EventManager:
 
         return self
 
-    async def __aexit__(self, *exc: object):
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
         """Clean up when exiting context."""
         await self.cleanup()
 

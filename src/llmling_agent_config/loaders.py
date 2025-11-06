@@ -273,7 +273,7 @@ class LangChainResourceLoader(BaseResourceLoaderConfig):
     #     Converts LangChain documents to Content objects.
     #     """
     #     from langchain.document_loaders import BaseLoader
-    #     from llmling.utils.importing import import_class
+    #     from llmling_agent.utils.importing import import_class
 
     #     # Import and initialize loader
     #     loader_cls = import_class(self.loader_class)

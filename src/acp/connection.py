@@ -34,6 +34,8 @@ from llmling_agent import log
 
 
 if TYPE_CHECKING:
+    from types import TracebackType
+
     from acp.task.sender import SenderFactory
 
 
@@ -128,7 +130,12 @@ class Connection:
     async def __aenter__(self) -> Self:
         return self
 
-    async def __aexit__(self, exc_type, exc, tb) -> None:
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
         await self.close()
 
     async def send_request(self, method: str, params: JsonValue | None = None) -> Any:

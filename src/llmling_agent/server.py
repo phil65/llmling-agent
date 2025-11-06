@@ -9,6 +9,8 @@ from llmling_agent.log import get_logger
 
 
 if TYPE_CHECKING:
+    from types import TracebackType
+
     from llmling_agent import AgentPool
 
 
@@ -103,7 +105,12 @@ class ServerBridge(abc.ABC):
         """
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ):
         """Async context manager exit.
 
         Default implementation calls shutdown() if server is running.

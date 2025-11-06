@@ -242,11 +242,9 @@ class StreamingFuzzyMatcher:
         if not self.query_lines:
             return []
 
-        matches = []
         query_len = len(self.query_lines)
 
         # Find all reasonable endpoints and score them
-        candidates = []
         min_cost = float("inf")
 
         for col in range(len(self.source_lines) + 1):
@@ -271,11 +269,7 @@ class StreamingFuzzyMatcher:
 
         # Sort by score and return best matches
         candidates.sort(key=lambda x: x[0])
-        matches: list[Range] = [
-            match for _, match in candidates[:5]
-        ]  # Limit to top 5 matches
-
-        return matches
+        return [match for _, match in candidates[:5]]  # Limit to top 5 matches
 
     def _backtrack_match(self, end_row: int, end_col: int) -> Range | None:
         """Backtrack through matrix to find match boundaries."""

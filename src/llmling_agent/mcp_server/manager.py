@@ -18,6 +18,7 @@ from llmling_agent_config.resources import ResourceInfo
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
+    from types import TracebackType
 
     from fastmcp.client.elicitation import ElicitResult
     from mcp import types
@@ -209,7 +210,12 @@ class MCPManager(ResourceProvider):
 
         return self
 
-    async def __aexit__(self, *exc):
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ):
         await self.cleanup()
 
     async def _elicitation_callback(

@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING, Any, Self
 
 
 if TYPE_CHECKING:
+    from types import TracebackType
+
     from acp.client.protocol import Client
     from acp.connection import StreamObserver
     from acp.schema import (
@@ -140,7 +142,12 @@ class ClientSideConnection(Agent):
     async def __aenter__(self) -> Self:
         return self
 
-    async def __aexit__(self, exc_type, exc, tb) -> None:
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
         await self.close()
 
 

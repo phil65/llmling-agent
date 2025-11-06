@@ -23,6 +23,7 @@ from llmling_agent_server.mcp_server.handlers import register_handlers
 if TYPE_CHECKING:
     from collections.abc import Callable
     from contextlib import AbstractAsyncContextManager
+    from types import TracebackType
     from typing import Any
 
     from fastmcp import SamplingMessage, ServerSession
@@ -133,6 +134,7 @@ class MCPServer(BaseServer):
 
     async def __aenter__(self) -> Self:
         """Enter async context and start server."""
+        await super().__aenter__()
         try:
             if self.config.transport == "stdio":
                 coro = self.fastmcp.run_async(transport=self.config.transport)
@@ -151,8 +153,14 @@ class MCPServer(BaseServer):
         else:
             return self
 
-    async def __aexit__(self, *exc: object):
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
         """Shutdown the server."""
+        await super().__aexit__(exc_type, exc_val, exc_tb)
         await self.shutdown()
 
     @property

@@ -42,6 +42,7 @@ from acp.task import DebuggingMessageStateStore
 if TYPE_CHECKING:
     import asyncio
     from collections.abc import Callable
+    from types import TracebackType
 
     from acp.agent.protocol import Agent
     from acp.connection import StreamObserver
@@ -168,7 +169,12 @@ class AgentSideConnection(Client):
     async def __aenter__(self) -> Self:
         return self
 
-    async def __aexit__(self, exc_type, exc, tb) -> None:
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
         await self.close()
 
 
