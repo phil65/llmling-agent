@@ -137,7 +137,15 @@ class ACPSession:
         )
 
         cmds = [
-            *get_commands(),
+            *get_commands(
+                enable_set_model=False,
+                enable_enable_tool=False,
+                enable_disable_tool=False,
+                enable_list_resources=False,
+                enable_add_resource=False,
+                enable_show_resource=False,
+                enable_copy_clipboard=False,
+            ),
             *get_acp_commands(),
             *get_docs_commands(),
             *get_terminal_commands(),
