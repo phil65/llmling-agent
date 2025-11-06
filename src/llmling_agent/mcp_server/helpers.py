@@ -52,10 +52,6 @@ def _create_tool_annotations_with_context(
 ) -> dict[str, Any]:
     """Create function annotations that include RunContext for first parameter.
 
-    Complements _create_tool_signature_with_context by ensuring the annotations
-    match the signature. This is required for proper type checking and PydanticAI's
-    introspection of tool functions.
-
     Args:
         base_annotations: Original annotations from MCP tool schema
 
