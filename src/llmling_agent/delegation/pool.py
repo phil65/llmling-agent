@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from asyncio import Lock
 from contextlib import AsyncExitStack, asynccontextmanager, suppress
 import os
 from typing import TYPE_CHECKING, Any, Self, Unpack, cast, overload
@@ -154,40 +155,47 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
         if connect_nodes:
             self._connect_nodes()
 
+        # Initialize async safety fields
+        self._enter_lock = Lock()
+        self._running_count = 0
+
     async def __aenter__(self) -> Self:
         """Enter async context and initialize all agents."""
-        try:
-            # Add MCP tool provider to all agents
-            agents = list(self.agents.values())
-            teams = list(self.teams.values())
-            for agent in agents:
-                agent.tools.add_provider(self.mcp)
+        async with self._enter_lock:
+            if self._running_count == 0:
+                try:
+                    # Add MCP tool provider to all agents
+                    agents = list(self.agents.values())
+                    teams = list(self.teams.values())
+                    for agent in agents:
+                        agent.tools.add_provider(self.mcp)
 
-            # Collect all components to initialize
-            components: list[AbstractAsyncContextManager[Any]] = [
-                self.mcp,
-                self.storage,
-                *agents,
-                *teams,
-            ]
+                    # Collect all components to initialize
+                    components: list[AbstractAsyncContextManager[Any]] = [
+                        self.mcp,
+                        self.storage,
+                        *agents,
+                        *teams,
+                    ]
 
-            # Add MCP server if configured
-            if self.server:
-                components.append(self.server)
-            # Initialize all components
-            if self.parallel_load:
-                await asyncio.gather(
-                    *(self.exit_stack.enter_async_context(c) for c in components)
-                )
-            else:
-                for component in components:
-                    await self.exit_stack.enter_async_context(component)
+                    # Add MCP server if configured
+                    if self.server:
+                        components.append(self.server)
+                    # Initialize all components
+                    if self.parallel_load:
+                        await asyncio.gather(
+                            *(self.exit_stack.enter_async_context(c) for c in components)
+                        )
+                    else:
+                        for component in components:
+                            await self.exit_stack.enter_async_context(component)
 
-        except Exception as e:
-            await self.cleanup()
-            msg = "Failed to initialize agent pool"
-            logger.exception(msg, exc_info=e)
-            raise RuntimeError(msg) from e
+                except Exception as e:
+                    await self.cleanup()
+                    msg = "Failed to initialize agent pool"
+                    logger.exception(msg, exc_info=e)
+                    raise RuntimeError(msg) from e
+            self._running_count += 1
         return self
 
     async def __aexit__(
@@ -197,11 +205,22 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
         exc_tb: TracebackType | None,
     ):
         """Exit async context."""
-        # Remove MCP tool provider from all agents
-        for agent in self.agents.values():
-            if self.mcp in agent.tools.providers:
-                agent.tools.remove_provider(self.mcp)
-        await self.cleanup()
+        if self._running_count == 0:
+            msg = "AgentPool.__aexit__ called more times than __aenter__"
+            raise ValueError(msg)
+        async with self._enter_lock:
+            self._running_count -= 1
+            if self._running_count == 0:
+                # Remove MCP tool provider from all agents
+                for agent in self.agents.values():
+                    if self.mcp in agent.tools.providers:
+                        agent.tools.remove_provider(self.mcp)
+                await self.cleanup()
+
+    @property
+    def is_running(self) -> bool:
+        """Check if the agent pool is running."""
+        return bool(self._running_count)
 
     async def cleanup(self):
         """Clean up all agents."""
