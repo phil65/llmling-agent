@@ -206,7 +206,7 @@ markers = [
 ]
 python_files = ["test_*.py"]
 pythonpath = ["src"]
-testpaths = ["tests", "src/llmling_agent_acp/tests"]
+testpaths = ["tests", "src/llmling_agent_server/acp_server/tests"]
 asyncio_default_fixture_loop_scope = "function"
 asyncio_mode = "auto"
 
@@ -353,7 +353,6 @@ default-groups = ["dev", "lint", "docs"]
 
 [tool.uv.build-backend]
 module-name = [
-  "llmling_agent_acp",
   "llmling_agent",
   "llmling_agent_config",
   "llmling_agent_cli",

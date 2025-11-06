@@ -9,7 +9,7 @@ import pytest
 
 from acp.schema import ClientCapabilities
 from llmling_agent import Agent, AgentPool
-from llmling_agent_acp.session import ACPSession
+from llmling_agent_server.acp_server.session import ACPSession
 
 
 async def test_session_command_immediate_execution():

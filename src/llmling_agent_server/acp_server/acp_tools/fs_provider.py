@@ -14,12 +14,12 @@ from acp.schema import ToolCallLocation
 from llmling_agent.log import get_logger
 from llmling_agent.resource_providers import ResourceProvider
 from llmling_agent.tools.base import Tool
-from llmling_agent_acp.syntax_detection import format_zed_code_block
+from llmling_agent_server.acp_server.syntax_detection import format_zed_code_block
 from llmling_agent_toolsets.builtin.file_edit import replace_content
 
 
 if TYPE_CHECKING:
-    from llmling_agent_acp.session import ACPSession
+    from llmling_agent_server.acp_server.session import ACPSession
 
 logger = get_logger(__name__)
 

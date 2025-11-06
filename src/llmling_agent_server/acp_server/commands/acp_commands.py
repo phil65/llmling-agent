@@ -5,7 +5,7 @@ from __future__ import annotations
 from slashed import CommandContext, SlashedCommand  # noqa: TC002
 
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
-from llmling_agent_acp.session import ACPSession  # noqa: TC001
+from llmling_agent_server.acp_server.session import ACPSession  # noqa: TC001
 
 
 class ListSessionsCommand(SlashedCommand):

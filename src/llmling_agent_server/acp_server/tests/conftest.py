@@ -16,7 +16,7 @@ from acp import (
     PromptResponse,
 )
 from acp.schema import ClientCapabilities, FileSystemCapability, Implementation
-from llmling_agent_acp.acp_agent import LLMlingACPAgent
+from llmling_agent_server.acp_server.acp_agent import LLMlingACPAgent
 
 
 if TYPE_CHECKING:

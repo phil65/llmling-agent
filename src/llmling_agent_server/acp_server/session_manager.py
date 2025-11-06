@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any, Self
 import uuid
 
 from llmling_agent.log import get_logger
-from llmling_agent_acp.session import ACPSession
+from llmling_agent_server.acp_server.session import ACPSession
 
 
 if TYPE_CHECKING:
@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from acp import Client
     from acp.schema import ClientCapabilities, McpServer
     from llmling_agent import AgentPool
-    from llmling_agent_acp.acp_agent import LLMlingACPAgent
+    from llmling_agent_server.acp_server.acp_agent import LLMlingACPAgent
 
 
 logger = get_logger(__name__)

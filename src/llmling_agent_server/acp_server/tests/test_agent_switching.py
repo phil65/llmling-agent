@@ -8,7 +8,7 @@ import pytest
 
 from acp.schema import SessionMode, SessionModeState
 from llmling_agent.models.manifest import AgentConfig, AgentsManifest
-from llmling_agent_acp import ACPServer, ACPSession
+from llmling_agent_server.acp_server import ACPServer, ACPSession
 
 
 if TYPE_CHECKING:

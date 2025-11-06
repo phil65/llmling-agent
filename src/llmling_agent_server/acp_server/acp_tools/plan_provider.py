@@ -10,7 +10,7 @@ from llmling_agent.tools.base import Tool
 
 
 if TYPE_CHECKING:
-    from llmling_agent_acp.session import ACPSession
+    from llmling_agent_server.acp_server.session import ACPSession
 
 
 class ACPPlanProvider(ResourceProvider):

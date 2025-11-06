@@ -24,8 +24,8 @@ from acp.schema import (
 )
 from llmling_agent.log import get_logger
 from llmling_agent.utils.tasks import TaskManager
-from llmling_agent_acp.converters import agent_to_mode
-from llmling_agent_acp.session_manager import ACPSessionManager
+from llmling_agent_server.acp_server.converters import agent_to_mode
+from llmling_agent_server.acp_server.session_manager import ACPSessionManager
 
 
 if TYPE_CHECKING:

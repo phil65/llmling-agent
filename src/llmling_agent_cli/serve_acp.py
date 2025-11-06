@@ -118,7 +118,7 @@ def acp_command(
         5. Client sends prompt requests
         6. Server streams responses via session updates
     """  # noqa: E501
-    from llmling_agent_acp import ACPServer
+    from llmling_agent_server.acp_server import ACPServer
 
     # Configure logging with structlog
     configure_logging(level=log_level)

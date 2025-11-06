@@ -9,7 +9,7 @@ from .terminal_provider import ACPTerminalProvider
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from llmling_agent_acp.session import ACPSession
+    from llmling_agent_server.acp_server.session import ACPSession
     from llmling_agent.resource_providers.aggregating import AggregatingResourceProvider
 
 

@@ -17,8 +17,8 @@ from acp.schema import (
     WriteTextFileResponse,
 )
 from llmling_agent import AgentPool
-from llmling_agent_acp.acp_agent import LLMlingACPAgent
-from llmling_agent_acp.acp_tools import ACPFileSystemProvider
+from llmling_agent_server.acp_server.acp_agent import LLMlingACPAgent
+from llmling_agent_server.acp_server.acp_tools import ACPFileSystemProvider
 
 
 CTX = RunContext(tool_call_id="test", deps=None, model=TestModel(), usage=RunUsage())
@@ -71,7 +71,7 @@ class TestClientFilesystemTools:
     async def session(self, acp_agent: LLMlingACPAgent, mock_connection):
         """Create test session."""
         from acp.schema import ClientCapabilities, FileSystemCapability
-        from llmling_agent_acp.session import ACPSession
+        from llmling_agent_server.acp_server.session import ACPSession
 
         fs_cap = FileSystemCapability(read_text_file=True, write_text_file=True)
         capabilities = ClientCapabilities(fs=fs_cap, terminal=False)

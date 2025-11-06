@@ -37,12 +37,12 @@ from acp.utils import to_acp_content_blocks
 from llmling_agent.agent import SlashedAgent
 from llmling_agent.agent.events import StreamCompleteEvent, ToolCallProgressEvent
 from llmling_agent.log import get_logger
-from llmling_agent_acp.acp_tools import get_acp_provider
-from llmling_agent_acp.converters import (
+from llmling_agent_commands import get_commands
+from llmling_agent_server.acp_server.acp_tools import get_acp_provider
+from llmling_agent_server.acp_server.converters import (
     convert_acp_mcp_server_to_config,
     from_content_blocks,
 )
-from llmling_agent_commands import get_commands
 
 
 if TYPE_CHECKING:
@@ -59,8 +59,8 @@ if TYPE_CHECKING:
     from llmling_agent.models.content import BaseContent
     from llmling_agent.prompts.manager import PromptManager
     from llmling_agent.resource_providers.aggregating import AggregatingResourceProvider
-    from llmling_agent_acp.acp_agent import LLMlingACPAgent
-    from llmling_agent_acp.session_manager import ACPSessionManager
+    from llmling_agent_server.acp_server.acp_agent import LLMlingACPAgent
+    from llmling_agent_server.acp_server.session_manager import ACPSessionManager
 
 logger = get_logger(__name__)
 SLASH_PATTERN = re.compile(r"^/([\w-]+)(?:\s+(.*))?$")
@@ -128,9 +128,13 @@ class ACPSession:
         self.fs = ACPFileSystem(self.client, session_id=self.session_id)
         self._acp_provider: AggregatingResourceProvider | None = None
         # Staged prompt parts for context building
-        from llmling_agent_acp.commands.acp_commands import get_acp_commands
-        from llmling_agent_acp.commands.docs_commands import get_docs_commands
-        from llmling_agent_acp.commands.terminal_commands import get_terminal_commands
+        from llmling_agent_server.acp_server.commands.acp_commands import get_acp_commands
+        from llmling_agent_server.acp_server.commands.docs_commands import (
+            get_docs_commands,
+        )
+        from llmling_agent_server.acp_server.commands.terminal_commands import (
+            get_terminal_commands,
+        )
 
         cmds = [
             *get_commands(),

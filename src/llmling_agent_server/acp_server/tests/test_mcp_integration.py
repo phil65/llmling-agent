@@ -12,9 +12,9 @@ from llmling_agent import Agent
 from llmling_agent.delegation import AgentPool
 from llmling_agent.log import get_logger
 from llmling_agent.tools.base import Tool
-from llmling_agent_acp.converters import convert_acp_mcp_server_to_config
-from llmling_agent_acp.session import ACPSession
-from llmling_agent_acp.session_manager import ACPSessionManager
+from llmling_agent_server.acp_server.converters import convert_acp_mcp_server_to_config
+from llmling_agent_server.acp_server.session import ACPSession
+from llmling_agent_server.acp_server.session_manager import ACPSessionManager
 
 
 logger = get_logger(__name__)

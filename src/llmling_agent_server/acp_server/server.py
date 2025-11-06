@@ -18,7 +18,7 @@ from acp.stdio import stdio_streams
 from llmling_agent import AgentPool
 from llmling_agent.log import get_logger
 from llmling_agent.models.manifest import AgentsManifest
-from llmling_agent_acp.acp_agent import LLMlingACPAgent
+from llmling_agent_server.acp_server.acp_agent import LLMlingACPAgent
 
 
 if TYPE_CHECKING:

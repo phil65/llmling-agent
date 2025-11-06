@@ -22,7 +22,7 @@ from acp.schema import (
 )
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.log import get_logger
-from llmling_agent_acp.session import ACPSession  # noqa: TC001
+from llmling_agent_server.acp_server.session import ACPSession  # noqa: TC001
 
 
 if TYPE_CHECKING:
