@@ -280,7 +280,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             assert isinstance(model, models.Model)
         self._model = model
         self._retries = retries
-        self._end_strategy = end_strategy
+        self._end_strategy: EndStrategy = end_strategy
         self._output_retries = output_retries
 
         self.skills_registry = SkillsRegistry()

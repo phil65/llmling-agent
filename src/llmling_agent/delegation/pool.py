@@ -650,7 +650,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
         agent = self.manifest.get_agent(name, deps=final_deps)
         # Override name if requested
         if name_override:
-            agent.name = name_override
+            agent._name = name_override
 
         # Set pool reference
         agent.context.pool = self
