@@ -73,7 +73,11 @@ class OpenAIServer(BaseServer):
             self.app.docs_url = None
             self.app.redoc_url = None
 
-        self.setup_routes()
+        self.app.get("/v1/models")(self.list_models)
+        dep = Depends(self.verify_api_key)
+        self.app.post("/v1/chat/completions", dependencies=[dep], response_model=None)(
+            self.create_chat_completion
+        )
 
     def verify_api_key(
         self, authorization: Annotated[str | None, Header(alias="Authorization")] = None
@@ -83,14 +87,6 @@ class OpenAIServer(BaseServer):
             raise HTTPException(401, "Missing API key")
         if not authorization.startswith("Bearer "):
             raise HTTPException(401, "Invalid authorization format")
-
-    def setup_routes(self):
-        """Configure API routes."""
-        self.app.get("/v1/models")(self.list_models)
-        dep = Depends(self.verify_api_key)
-        self.app.post("/v1/chat/completions", dependencies=[dep], response_model=None)(
-            self.create_chat_completion
-        )
 
     async def list_models(self) -> dict[str, Any]:
         """List available agents as models."""

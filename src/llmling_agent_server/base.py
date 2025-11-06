@@ -56,7 +56,7 @@ class BaseServer:
         self.task_manager = TaskManager()
         self._server_task: asyncio.Task[None] | None = None
         self._shutdown_event = asyncio.Event()
-        self.log = logger.bind(name=self.name)
+        self.log = logger.bind(server_name=self.name)
 
     async def __aenter__(self) -> Self:
         """Enter async context and initialize server resources (pool, etc.)."""

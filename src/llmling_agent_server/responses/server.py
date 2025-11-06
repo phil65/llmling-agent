@@ -45,7 +45,8 @@ class ResponsesServer(BaseServer):
         self.app = FastAPI()
         self.api_key = api_key
         logfire.instrument_fastapi(self.app)
-        self.setup_routes()
+        deps = Depends(self.verify_api_key)
+        self.app.post("/v1/responses", dependencies=[deps])(self.create_response)
 
     def verify_api_key(
         self,
@@ -58,11 +59,6 @@ class ResponsesServer(BaseServer):
             raise HTTPException(401, "Invalid authorization format")
         if self.api_key and authorization != f"Bearer {self.api_key}":
             raise HTTPException(401, "Invalid API key")
-
-    def setup_routes(self):
-        """Set up API routes."""
-        deps = Depends(self.verify_api_key)
-        self.app.post("/v1/responses", dependencies=[deps])(self.create_response)
 
     async def create_response(self, req_body: ResponseRequest) -> Response:
         """Handle response creation requests."""
