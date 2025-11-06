@@ -35,7 +35,7 @@ class BaseClient(Protocol):
     async def session_update(self, params: SessionNotification) -> None: ...
 
 
-class FileSystemCapability(Protocol):
+class FsCapability(Protocol):
     """Client capability for filesystem operations."""
 
     async def write_text_file(
@@ -79,9 +79,7 @@ class ExtensibilityCapability(Protocol):
     async def ext_notification(self, method: str, params: dict[str, Any]) -> None: ...
 
 
-class Client(
-    BaseClient, FileSystemCapability, TerminalCapability, ExtensibilityCapability
-):
+class Client(BaseClient, FsCapability, TerminalCapability, ExtensibilityCapability):
     """High-level client interface for interacting with an ACP server.
 
     Includes all client capabilities.

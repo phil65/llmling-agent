@@ -7,7 +7,7 @@ import tempfile
 
 import pytest
 
-from acp.schema import EnvVariable, StdioMcpServer
+from acp import EnvVariable, StdioMcpServer
 from llmling_agent import Agent
 from llmling_agent.delegation import AgentPool
 from llmling_agent.log import get_logger

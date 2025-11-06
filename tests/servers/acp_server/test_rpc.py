@@ -8,28 +8,26 @@ import anyenv
 import pytest
 
 from acp import (
+    AgentMessageChunk,
     AgentSideConnection,
+    AuthenticateRequest,
+    AuthenticateResponse,
     CancelNotification,
     ClientSideConnection,
     InitializeRequest,
     InitializeResponse,
+    LoadSessionRequest,
+    LoadSessionResponse,
     NewSessionRequest,
     ReadTextFileRequest,
     SessionNotification,
-    SetSessionModeRequest,
-    WriteTextFileRequest,
-)
-from acp.schema import (
-    AgentMessageChunk,
-    AuthenticateRequest,
-    AuthenticateResponse,
-    LoadSessionRequest,
-    LoadSessionResponse,
     SetSessionModelRequest,
     SetSessionModelResponse,
+    SetSessionModeRequest,
     SetSessionModeResponse,
     TextContentBlock,
     UserMessageChunk,
+    WriteTextFileRequest,
 )
 
 

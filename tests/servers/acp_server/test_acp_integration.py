@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from acp.schema import ClientCapabilities, FileSystemCapability
+from acp import ClientCapabilities, FileSystemCapability
 
 # Add another agent to the pool for switching
 from llmling_agent import Agent

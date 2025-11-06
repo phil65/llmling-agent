@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from acp.schema import ClientCapabilities
+from acp import ClientCapabilities
 from llmling_agent import Agent, AgentPool
 from llmling_agent_server.acp_server.session import ACPSession
 

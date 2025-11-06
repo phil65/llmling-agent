@@ -8,8 +8,8 @@ from pydantic_ai import RunContext, RunUsage
 from pydantic_ai.models.test import TestModel
 import pytest
 
-from acp import AgentSideConnection
-from acp.schema import (
+from acp import (
+    AgentSideConnection,
     ClientCapabilities,
     FileSystemCapability,
     InitializeRequest,
