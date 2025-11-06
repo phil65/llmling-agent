@@ -18,6 +18,7 @@ from acp.stdio import stdio_streams
 from llmling_agent import AgentPool
 from llmling_agent.log import get_logger
 from llmling_agent.models.manifest import AgentsManifest
+from llmling_agent_server import BaseServer
 from llmling_agent_server.acp_server.acp_agent import LLMlingACPAgent
 
 
@@ -31,7 +32,7 @@ logger = get_logger(__name__)
 
 
 @dataclass
-class ACPServer:
+class ACPServer(BaseServer):
     """ACP (Agent Client Protocol) server for llmling-agent using external library.
 
     Provides a bridge between llmling-agent's Agent system and the standard ACP
@@ -77,6 +78,9 @@ class ACPServer:
         self._running = False
         self._available_models: list[ModelInfo] = []
         self._models_initialized = False
+
+        # Initialize base class
+        super().__init__(self.agent_pool)
 
     @classmethod
     def from_config(

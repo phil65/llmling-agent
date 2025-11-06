@@ -1,6 +1,6 @@
 """MCP protocol server implementation for LLMling."""
 
-from llmling_agent_server.mcp_server.server import LLMLingServer
+from llmling_agent_server.mcp_server.server import MCPServer
 
 
-__all__ = ["LLMLingServer"]
+__all__ = ["MCPServer"]

@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Annotated
 from fastapi import Depends, FastAPI, Header, HTTPException
 import logfire
 
+from llmling_agent_server import BaseServer
 from llmling_agent_server.responses.helpers import handle_request
 from llmling_agent_server.responses.models import Response, ResponseRequest  # noqa: TC001
 
@@ -15,11 +16,11 @@ if TYPE_CHECKING:
     from llmling_agent import AgentPool
 
 
-class ResponsesServer:
+class ResponsesServer(BaseServer):
     """OpenAI-compatible /v1/responses endpoint."""
 
     def __init__(self, pool: AgentPool):
-        self.pool = pool
+        super().__init__(pool)
         self.app = FastAPI()
         logfire.instrument_fastapi(self.app)
         self.setup_routes()

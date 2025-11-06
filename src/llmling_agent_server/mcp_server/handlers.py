@@ -14,13 +14,13 @@ from llmling_agent.mcp_server import constants, conversions
 if TYPE_CHECKING:
     from pydantic import AnyUrl
 
-    from llmling_agent_server.mcp_server.server import LLMLingServer
+    from llmling_agent_server.mcp_server.server import MCPServer
 
 
 logger = get_logger(__name__)
 
 
-def register_handlers(llm_server: LLMLingServer):  # noqa: PLR0915
+def register_handlers(llm_server: MCPServer):  # noqa: PLR0915
     """Register all MCP protocol handlers.
 
     Args:

@@ -10,6 +10,7 @@ from fastapi.responses import StreamingResponse
 import logfire
 
 from llmling_agent.log import get_logger
+from llmling_agent_server import BaseServer
 from llmling_agent_server.completions.helpers import stream_response
 from llmling_agent_server.completions.models import (
     ChatCompletionResponse,
@@ -26,11 +27,11 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-class OpenAIServer:
+class OpenAIServer(BaseServer):
     """OpenAI-compatible API server backed by LLMling agents."""
 
     def __init__(self, pool: AgentPool, *, cors: bool = True, docs: bool = True):
-        self.pool = pool
+        super().__init__(pool)
         self.app = FastAPI()
         logfire.instrument_fastapi(self.app)
 

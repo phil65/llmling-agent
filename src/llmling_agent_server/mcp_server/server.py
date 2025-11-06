@@ -16,12 +16,14 @@ import platformdirs
 import llmling_agent
 from llmling_agent.log import get_logger
 from llmling_agent.utils.tasks import TaskManager
+from llmling_agent_server import BaseServer
 from llmling_agent_server.mcp_server.handlers import register_handlers
 
 
 if TYPE_CHECKING:
     from collections.abc import Callable
     from contextlib import AbstractAsyncContextManager
+    from typing import Any
 
     from fastmcp import SamplingMessage, ServerSession
     import mcp
@@ -29,7 +31,7 @@ if TYPE_CHECKING:
     from mcp.shared.context import LifespanContextT, RequestContext
     from mcp.types import CreateMessageRequestParams as SamplingParams
 
-    from llmling_agent.resource_providers import ResourceProvider
+    from llmling_agent import AgentPool
     from llmling_agent_config.pool_server import MCPPoolServerConfig
 
     LifespanHandler = Callable[
@@ -46,30 +48,32 @@ store = DiskStore(directory=llmling_dir)
 middleware = ResponseCachingMiddleware(cache_storage=store)
 
 
-class LLMLingServer:
+class MCPServer(BaseServer):
     """MCP protocol server implementation."""
 
     def __init__(
         self,
-        provider: ResourceProvider,
+        pool: AgentPool[Any],
         config: MCPPoolServerConfig,
         lifespan: (LifespanHandler | None) = None,
         instructions: str | None = None,
         name: str = "llmling-server",
     ):
-        """Initialize server with resource provider.
+        """Initialize server with agent pool.
 
         Args:
-            provider: Resource provider to expose through MCP
+            pool: AgentPool to expose through MCP
             config: Server configuration
             name: Server name for MCP protocol
             lifespan: Lifespan context manager
             instructions: Instructions for Server usage
         """
-        super().__init__()
+        from llmling_agent.resource_providers.pool import PoolResourceProvider
+
+        super().__init__(pool)
+        self.provider = PoolResourceProvider(pool, zed_mode=config.zed_mode)
         self.name = name
         self.task_manager = TaskManager()
-        self.provider = provider
         self.config = config
 
         # Handle Zed mode if enabled
