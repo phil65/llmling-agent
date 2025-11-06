@@ -9,8 +9,7 @@ from pydantic_ai import BinaryContent, FileUrl, SystemPromptPart, TextPart, User
 
 
 if TYPE_CHECKING:
-    from llmling import BasePrompt, PromptParameter
-    from mcp.types import Prompt, PromptArgument, PromptMessage
+    from mcp.types import PromptMessage
     from pydantic_ai import ModelRequestPart, ModelResponsePart
 
 
@@ -56,23 +55,3 @@ def to_mcp_messages(
                 )
             )
     return messages
-
-
-def to_mcp_argument(arg: PromptParameter) -> PromptArgument:
-    """Convert to MCP PromptArgument."""
-    from mcp.types import PromptArgument
-
-    return PromptArgument(
-        name=arg.name, description=arg.description, required=arg.required
-    )
-
-
-def to_mcp_prompt(prompt: BasePrompt) -> Prompt:
-    """Convert to MCP Prompt."""
-    from mcp.types import Prompt
-
-    if prompt.name is None:
-        msg = "Prompt name not set. This should be set during registration."
-        raise ValueError(msg)
-    args = [to_mcp_argument(arg) for arg in prompt.arguments]
-    return Prompt(name=prompt.name, description=prompt.description, arguments=args)

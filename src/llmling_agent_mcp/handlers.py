@@ -79,8 +79,7 @@ def register_handlers(llm_server: LLMLingServer):  # noqa: PLR0915
     @llm_server.server.list_prompts()
     async def handle_list_prompts() -> list[types.Prompt]:
         """Handle prompts/list request."""
-        prompts = await llm_server.provider.get_prompts()
-        return [conversions.to_mcp_prompt(p) for p in prompts]
+        return [p.to_mcp_prompt() for p in await llm_server.provider.get_prompts()]
 
     async def handle_get_prompt(
         name: str,
