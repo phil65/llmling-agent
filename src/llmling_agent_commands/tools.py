@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from llmling.utils.importing import import_callable
 from slashed import (  # noqa: TC002
     CommandContext,
     CommandError,
@@ -13,6 +12,7 @@ from slashed.completers import CallbackCompleter
 
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.log import get_logger
+from llmling_agent.utils.importing import import_callable
 from llmling_agent_commands.markdown_utils import format_table
 
 

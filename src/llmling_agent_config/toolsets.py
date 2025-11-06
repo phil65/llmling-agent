@@ -7,9 +7,10 @@ from typing import TYPE_CHECKING, Annotated, Literal
 
 from llmling import ConfigModel
 from llmling.tools.toolsets import ToolSet
-from llmling.utils.importing import import_class
 from pydantic import EmailStr, Field, HttpUrl, SecretStr, field_validator  # noqa: TC002
 from upath import UPath  # noqa: TC002
+
+from llmling_agent.utils.importing import import_class
 
 
 if TYPE_CHECKING:
@@ -267,8 +268,6 @@ class CustomToolsetConfig(BaseToolsetConfig):
 
     def get_provider(self) -> ResourceProvider:
         """Create custom provider from import path."""
-        from llmling.utils.importing import import_class
-
         from llmling_agent.resource_providers import ResourceProvider
 
         provider_cls = import_class(self.import_path)

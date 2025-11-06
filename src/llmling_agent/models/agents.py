@@ -16,7 +16,6 @@ from llmling import (
     PromptMessage,
     StaticPrompt,
 )
-from llmling.utils.importing import import_class
 from pydantic import Field, model_validator
 from pydantic_ai import UsageLimits  # noqa: TC002
 from schemez import InlineSchemaDef
@@ -26,6 +25,7 @@ from upath import UPath
 from llmling_agent import log
 from llmling_agent.common_types import EndStrategy  # noqa: TC001
 from llmling_agent.resource_providers.static import StaticResourceProvider
+from llmling_agent.utils.importing import import_class
 from llmling_agent_config.environment import (
     AgentEnvironment,  # noqa: TC001
     FileEnvironment,

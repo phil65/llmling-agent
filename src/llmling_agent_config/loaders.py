@@ -9,12 +9,12 @@ import warnings
 
 from llmling.config.base import ConfigModel
 from llmling.core.log import get_logger
-from llmling.utils.importing import import_callable
 from llmling.utils.paths import guess_mime_type
 from pydantic import ConfigDict, Field, SecretStr, model_validator
 from schemez import Schema
 
 from llmling_agent.common_types import JsonObject
+from llmling_agent.utils.importing import import_callable
 
 
 logger = get_logger(__name__)
