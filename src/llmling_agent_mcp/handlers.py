@@ -7,8 +7,8 @@ from typing import TYPE_CHECKING, Any
 import mcp
 from mcp import types
 
-from llmling_agent_mcp import constants, conversions
-from llmling_agent_mcp.log import get_logger
+from llmling_agent.log import get_logger
+from llmling_agent.mcp_server import constants, conversions
 
 
 if TYPE_CHECKING:
@@ -72,7 +72,7 @@ def register_handlers(llm_server: LLMLingServer):  # noqa: PLR0915
             result = await tool.execute(**args)
             return [types.TextContent(type="text", text=str(result))]
         except Exception as exc:
-            logger.exception("Tool execution failed: %s", name)
+            logger.exception("Tool execution failed", name=name)
             error_msg = f"Tool execution failed: {exc}"
             return [types.TextContent(type="text", text=error_msg)]
 
@@ -105,15 +105,20 @@ def register_handlers(llm_server: LLMLingServer):  # noqa: PLR0915
         message: str | None = None,
     ):
         """Handle progress notifications from client."""
-        msg = "Progress notification: %s %.1f/%.1f"
-        logger.debug(msg, token, progress, total or 0.0, message)
+        logger.debug(
+            "Progress notification",
+            token=token,
+            progress=progress,
+            total=total,
+            message=message,
+        )
 
     @llm_server.server.subscribe_resource()
     async def handle_subscribe(uri: AnyUrl):
         """Subscribe to resource updates."""
         uri_str = str(uri)
         llm_server._subscriptions[uri_str].add(llm_server.current_session)
-        logger.debug("Added subscription for %s", uri)
+        logger.debug("Added subscription", uri=uri)
 
     @llm_server.server.unsubscribe_resource()
     async def handle_unsubscribe(uri: AnyUrl):
@@ -122,5 +127,5 @@ def register_handlers(llm_server: LLMLingServer):  # noqa: PLR0915
             llm_server._subscriptions[uri_str].discard(llm_server.current_session)
             if not llm_server._subscriptions[uri_str]:
                 del llm_server._subscriptions[uri_str]
-            msg = "Removed subscription for %s: %s"
-            logger.debug(msg, uri, llm_server.current_session)
+            msg = "Removed subscription"
+            logger.debug(msg, uri=uri, session=llm_server.current_session)

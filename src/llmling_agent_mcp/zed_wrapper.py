@@ -7,8 +7,8 @@ from typing import TYPE_CHECKING, Any
 
 from llmling import DynamicPrompt, PromptParameter
 
+from llmling_agent.log import get_logger
 from llmling_agent.utils.importing import import_callable
-from llmling_agent_mcp.log import get_logger
 
 
 if TYPE_CHECKING:
@@ -114,13 +114,13 @@ def prepare_prompts_for_zed(prompts: Sequence[BasePrompt]) -> list[BasePrompt]:
             )
             result.append(new_prompt)
             logger.debug(
-                "Wrapped prompt %r (%d args) for Zed mode",
-                prompt.name,
-                len(prompt.arguments),
+                "Wrapped prompt for Zed mode",
+                name=prompt.name,
+                num_args=len(prompt.arguments),
             )
 
         except Exception:
-            logger.exception("Failed to wrap function for prompt %r", prompt.name)
+            logger.exception("Failed to wrap function for prompt", name=prompt.name)
             result.append(prompt)
 
     return result

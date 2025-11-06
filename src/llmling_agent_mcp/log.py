@@ -8,7 +8,7 @@ import queue
 import sys
 from typing import TYPE_CHECKING, Any
 
-from llmling_agent_mcp import constants
+from llmling_agent.mcp_server import constants
 
 
 if TYPE_CHECKING:
