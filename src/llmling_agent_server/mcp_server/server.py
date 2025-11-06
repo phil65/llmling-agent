@@ -70,9 +70,8 @@ class MCPServer(BaseServer):
         """
         from llmling_agent.resource_providers.pool import PoolResourceProvider
 
-        super().__init__(pool, raise_exceptions=raise_exceptions)
+        super().__init__(pool, name=name, raise_exceptions=raise_exceptions)
         self.provider = PoolResourceProvider(pool, zed_mode=config.zed_mode)
-        self.name = name
         self.config = config
 
         # Handle Zed mode if enabled
@@ -164,15 +163,15 @@ class MCPServer(BaseServer):
         try:
             self.task_manager.create_task(self.current_session.send_tool_list_changed())
         except RuntimeError:
-            logger.debug("No active session for notification")
+            self.log.debug("No active session for notification")
         except Exception:
-            logger.exception("Failed to send tool list change notification")
+            self.log.exception("Failed to send tool list change notification")
 
     async def notify_prompt_list_changed(self):
         """Notify clients about prompt list changes."""
         try:
             self.task_manager.create_task(self.current_session.send_prompt_list_changed())
         except RuntimeError:
-            logger.debug("No active session for notification")
+            self.log.debug("No active session for notification")
         except Exception:
-            logger.exception("Failed to send prompt list change notification")
+            self.log.exception("Failed to send prompt list change notification")

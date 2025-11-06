@@ -35,20 +35,28 @@ class BaseServer:
     """
 
     def __init__(
-        self, pool: AgentPool[Any], *, raise_exceptions: bool = False, **kwargs: Any
+        self,
+        pool: AgentPool[Any],
+        *,
+        name: str | None = None,
+        raise_exceptions: bool = False,
+        **kwargs: Any,
     ) -> None:
         """Initialize base server with agent pool.
 
         Args:
             pool: AgentPool containing available agents
+            name: Optional Server name (auto-generated from class name if None)
             raise_exceptions: Whether to raise exceptions during server start
             **kwargs: Additional arguments (for subclass compatibility)
         """
         self.pool = pool
+        self.name = name or f"{self.__class__.__name__}-{id(self):x}"
         self.raise_exceptions = raise_exceptions
         self.task_manager = TaskManager()
         self._server_task: asyncio.Task[None] | None = None
         self._shutdown_event = asyncio.Event()
+        self.log = logger.bind(name=self.name)
 
     async def __aenter__(self) -> Self:
         """Enter async context and initialize server resources (pool, etc.)."""
@@ -87,11 +95,12 @@ class BaseServer:
         _start_async() instead of overriding this method.
         """
         try:
+            self.log.info("Starting server")
             await self._start_async()
         except Exception as e:
             if self.raise_exceptions:
                 raise
-            logger.exception("Server error", exc_info=e)
+            self.log.exception("Server error", exc_info=e)
         finally:
             await self.shutdown()
 
@@ -104,9 +113,10 @@ class BaseServer:
         try:
             await self.task_manager.cleanup_tasks()
         except Exception:
-            logger.exception("Error during server shutdown")
+            self.log.exception("Error during server shutdown")
         finally:
             self._shutdown_event.set()
+            self.log.info("Server shutdown complete")
 
     def start_background(self) -> None:
         """Start server in background task (non-blocking).
@@ -120,7 +130,7 @@ class BaseServer:
 
         self._shutdown_event.clear()
         self._server_task = self.task_manager.create_task(
-            self._run_with_shutdown(), name=f"{self.__class__.__name__}-server"
+            self._run_with_shutdown(), name=f"{self.name}-task"
         )
 
     async def _run_with_shutdown(self) -> None:

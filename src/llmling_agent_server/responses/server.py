@@ -23,6 +23,7 @@ class ResponsesServer(BaseServer):
         self,
         pool: AgentPool,
         *,
+        name: str | None = None,
         host: str = "0.0.0.0",
         port: int = 8000,
         api_key: str | None = None,
@@ -32,12 +33,13 @@ class ResponsesServer(BaseServer):
 
         Args:
             pool: AgentPool containing available agents
+            name: Optional Server name (auto-generated if None)
             host: Host to bind server to
             port: Port to bind server to
             api_key: Optional API key for authentication
             raise_exceptions: Whether to raise exceptions during server start
         """
-        super().__init__(pool, raise_exceptions=raise_exceptions)
+        super().__init__(pool, name=name, raise_exceptions=raise_exceptions)
         self.host = host
         self.port = port
         self.app = FastAPI()

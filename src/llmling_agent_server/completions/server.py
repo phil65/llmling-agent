@@ -34,6 +34,7 @@ class OpenAIServer(BaseServer):
         self,
         pool: AgentPool,
         *,
+        name: str | None = None,
         host: str = "0.0.0.0",
         port: int = 8000,
         cors: bool = True,
@@ -44,13 +45,14 @@ class OpenAIServer(BaseServer):
 
         Args:
             pool: AgentPool containing available agents
+            name: Optional Server name (auto-generated if None)
             host: Host to bind server to
             port: Port to bind server to
             cors: Whether to enable CORS middleware
             docs: Whether to enable API documentation endpoints
             raise_exceptions: Whether to raise exceptions during server start
         """
-        super().__init__(pool, raise_exceptions=raise_exceptions)
+        super().__init__(pool, name=name, raise_exceptions=raise_exceptions)
         self.host = host
         self.port = port
         self.app = FastAPI()
@@ -125,7 +127,7 @@ class OpenAIServer(BaseServer):
             json = completion_response.model_dump_json()
             return Response(content=json, media_type="application/json")
         except Exception as e:
-            logger.exception("Error processing chat completion")
+            self.log.exception("Error processing chat completion")
             raise HTTPException(500, f"Error: {e!s}") from e
 
     async def _start_async(self) -> None:

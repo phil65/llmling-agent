@@ -44,6 +44,7 @@ class ACPServer(BaseServer):
         self,
         pool: AgentPool[Any],
         *,
+        name: str | None = None,
         file_access: bool = True,
         terminal_access: bool = True,
         providers: list[ProviderType] | None = None,
@@ -56,6 +57,7 @@ class ACPServer(BaseServer):
 
         Args:
             pool: AgentPool containing available agents
+            name: Optional Server name (auto-generated if None)
             file_access: Whether to support file access operations
             terminal_access: Whether to support terminal access operations
             providers: List of providers to use for model discovery (None = openrouter)
@@ -64,7 +66,7 @@ class ACPServer(BaseServer):
             debug_commands: Whether to enable debug slash commands for testing
             agent: Optional specific agent name to use (defaults to first agent)
         """
-        super().__init__(pool, raise_exceptions=True)
+        super().__init__(pool, name=name, raise_exceptions=True)
         self.file_access = file_access
         self.terminal_access = terminal_access
         self.providers = providers or ["openrouter"]
@@ -73,7 +75,6 @@ class ACPServer(BaseServer):
         self.debug_commands = debug_commands
         self.agent = agent
 
-        self._running = False
         self._available_models: list[ModelInfo] = []
         self._models_initialized = False
 
@@ -111,9 +112,9 @@ class ACPServer(BaseServer):
             pool,
             file_access=file_access,
             terminal_access=terminal_access,
-            providers=providers,
+            providers=providers,  # type: ignore[arg-type] # pyright: ignore[reportArgumentType]
             debug_messages=debug_messages,
-            debug_file=debug_file,
+            debug_file=debug_file or "acp-debug.jsonl" if debug_messages else None,
             debug_commands=debug_commands,
             agent=agent,
         )
@@ -127,59 +128,49 @@ class ACPServer(BaseServer):
             )
             raise ValueError(msg)
 
-        logger.info("Created ACP server with agent pool", agent_names=agent_names)
+        server.log.info("Created ACP server with agent pool", agent_names=agent_names)
         if agent:
-            logger.info("ACP session agent", agent=agent)
+            server.log.info("ACP session agent", agent=agent)
         return server
 
     async def _start_async(self) -> None:
         """Start the ACP server (blocking async - runs until stopped)."""
-        if self._running:
-            msg = "Server is already running"
-            raise RuntimeError(msg)
-        self._running = True
         agent_names = list(self.pool.agents.keys())
-        msg = "Starting ACP server on stdio"
-        logger.info(msg, num_agents=len(agent_names), agent_names=agent_names)
-        try:
-            await self._initialize_models()  # Initialize models on first run
-            create_acp_agent = functools.partial(
-                LLMlingACPAgent,
-                agent_pool=self.pool,
-                available_models=self._available_models,
-                file_access=self.file_access,
-                terminal_access=self.terminal_access,
-                debug_commands=self.debug_commands,
-                default_agent=self.agent,
-            )
-            reader, writer = await stdio_streams()
-            file = self.debug_file if self.debug_messages else None
-            conn = AgentSideConnection(create_acp_agent, writer, reader, debug_file=file)
-            logger.info(
-                "ACP server started",
-                file_access=self.file_access,
-                terminal_access=self.terminal_access,
-            )
-            try:  # Keep the connection alive
-                while self._running:
-                    await asyncio.sleep(0.1)
-            except KeyboardInterrupt:
-                logger.info("ACP server shutdown requested")
-            except Exception:
-                logger.exception("Connection receive task failed")
-            finally:
-                await conn.close()
-        except Exception:
-            logger.exception("Error running ACP server")
+        self.log.info(
+            "Starting ACP server on stdio",
+            num_agents=len(agent_names),
+            agent_names=agent_names,
+        )
+        await self._initialize_models()  # Initialize models on first run
+        create_acp_agent = functools.partial(
+            LLMlingACPAgent,
+            agent_pool=self.pool,
+            available_models=self._available_models,
+            file_access=self.file_access,
+            terminal_access=self.terminal_access,
+            debug_commands=self.debug_commands,
+            default_agent=self.agent,
+        )
+        reader, writer = await stdio_streams()
+        file = self.debug_file if self.debug_messages else None
+        conn = AgentSideConnection(create_acp_agent, writer, reader, debug_file=file)
+        self.log.info(
+            "ACP server started",
+            file_access=self.file_access,
+            terminal_access=self.terminal_access,
+        )
+        try:  # Keep the connection alive
+            while not self._shutdown_event.is_set():
+                await asyncio.sleep(0.1)
+        except asyncio.CancelledError:
+            self.log.info("ACP server shutdown requested")
             raise
+        except KeyboardInterrupt:
+            self.log.info("ACP server shutdown requested")
+        except Exception:
+            self.log.exception("Connection receive task failed")
         finally:
-            await self.shutdown()
-
-    async def shutdown(self) -> None:
-        """Shutdown the ACP server and cleanup resources."""
-        self._running = False
-        logger.info("ACP server shutdown complete")
-        await super().shutdown()
+            await conn.close()
 
     @logfire.instrument("ACP: Initializing models.")
     async def _initialize_models(self) -> None:
@@ -189,12 +180,12 @@ class ACPServer(BaseServer):
         if self._models_initialized:
             return
         try:
-            logger.info("Discovering available models...")
+            self.log.info("Discovering available models...")
             self._available_models = await get_all_models(providers=self.providers)
             self._models_initialized = True
-            logger.info("Discovered %d models", len(self._available_models))
+            self.log.info("Discovered models", count=len(self._available_models))
         except Exception:
-            logger.exception("Failed to discover models")
+            self.log.exception("Failed to discover models")
             self._available_models = []
         finally:
             self._models_initialized = True
