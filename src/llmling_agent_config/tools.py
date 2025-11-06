@@ -43,11 +43,31 @@ class BaseToolConfig(Schema):
     metadata: dict[str, str] = Field(default_factory=dict)
     """Additional tool metadata."""
 
+    hints: ToolHints | None = None
+    """Hints for tool execution."""
+
     model_config = ConfigDict(frozen=True)
 
     def get_tool(self) -> Tool:
         """Convert config to Tool instance."""
         raise NotImplementedError
+
+
+class ToolHints(Schema):
+    """Configuration for tool execution hints."""
+
+    read_only: bool | None = None
+    """Hints that this tool only reads data without modifying anything"""
+
+    destructive: bool | None = None
+    """Hints that this tool performs destructive operations that cannot be undone"""
+
+    idempotent: bool | None = None
+    """Hints that this tool has idempotent behaviour"""
+
+    open_world: bool | None = None
+    """Hints that this tool can access / interact with external resources beyond the
+    current system"""
 
 
 class ImportToolConfig(BaseToolConfig):

@@ -5,12 +5,12 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from llmling import BasePrompt
-from llmling.config.models import ToolConfig
 from pydantic import ConfigDict, Field, ImportString
 from schemez import Schema
 
 from llmling_agent.tools.base import Tool
 from llmling_agent_config.knowledge import Knowledge
+from llmling_agent_config.tools import ImportToolConfig
 
 
 if TYPE_CHECKING:
@@ -29,7 +29,7 @@ class Job[TDeps, TResult = str](Schema):
     - Tools are temporarily available during task execution
     """
 
-    name: str | None = Field(None)
+    name: str | None = None
     """Technical identifier (automatically set from config key during registration)"""
 
     description: str | None = None
@@ -58,7 +58,7 @@ class Job[TDeps, TResult = str](Schema):
     - Prompt templates
     """
 
-    tools: list[ImportString | ToolConfig] = Field(default_factory=list)
+    tools: list[ImportString | ImportToolConfig] = Field(default_factory=list)
     """Tools needed for this task."""
 
     min_context_tokens: int | None = None
@@ -87,10 +87,12 @@ class Job[TDeps, TResult = str](Schema):
         return True
 
     @property
-    def tool_configs(self) -> list[ToolConfig]:
+    def tool_configs(self) -> list[ImportToolConfig]:
         """Get all tools as ToolConfig instances."""
         return [
-            tool if isinstance(tool, ToolConfig) else ToolConfig(import_path=str(tool))
+            tool
+            if isinstance(tool, ImportToolConfig)
+            else ImportToolConfig(import_path=tool)
             for tool in self.tools
         ]
 
@@ -107,8 +109,8 @@ class Job[TDeps, TResult = str](Schema):
             match tool:
                 case str():
                     tools.append(Tool.from_callable(tool))
-                case ToolConfig(import_path=import_path):
-                    tools.append(Tool.from_callable(import_path))
+                case ImportToolConfig() as config:
+                    tools.append(config.get_tool())
                 case Tool():
                     tools.append(tool)
                 case _:
