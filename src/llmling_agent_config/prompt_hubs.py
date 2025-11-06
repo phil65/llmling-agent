@@ -63,16 +63,6 @@ class LangfuseConfig(BasePromptHubConfig):
     """Timeout for fetching responses in seconds."""
 
 
-class TraceloopConfig(BasePromptHubConfig):
-    """Configuration for Traceloop prompt provider."""
-
-    type: Literal["traceloop"] = Field("traceloop", init=False)
-    """Configuration for Traceloop prompt provider."""
-
-    api_key: SecretStr | None = None  # Optional, defaults to TRACELOOP_API_KEY env var
-    """API key for the Traceloop API."""
-
-
 class BraintrustConfig(BasePromptHubConfig):
     """Configuration for Braintrust prompt provider."""
 
@@ -94,11 +84,6 @@ class FabricConfig(BasePromptHubConfig):
 
 
 PromptHubConfig = Annotated[
-    PromptLayerConfig
-    | OpenLITConfig
-    | LangfuseConfig
-    | TraceloopConfig
-    | FabricConfig
-    | BraintrustConfig,
+    PromptLayerConfig | OpenLITConfig | LangfuseConfig | FabricConfig | BraintrustConfig,
     Field(discriminator="type"),
 ]
