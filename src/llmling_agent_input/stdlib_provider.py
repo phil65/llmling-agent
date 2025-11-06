@@ -5,10 +5,10 @@ from __future__ import annotations
 from textwrap import dedent
 from typing import TYPE_CHECKING, Any
 
-from llmling import ToolError
 from mcp import types
 
 from llmling_agent.log import get_logger
+from llmling_agent.tools.exceptions import ToolError
 from llmling_agent_input.base import InputProvider
 
 
