@@ -160,17 +160,3 @@ def get_commands(
         *get_agent_commands(**agent_kwargs),
         *get_pool_commands(**pool_kwargs),
     ]
-
-
-def create_default_command_store() -> CommandStore:
-    """Create command store with built-in commands.
-
-    Returns:
-        CommandStore with all built-in commands registered
-    """
-    from slashed import CommandStore
-
-    store = CommandStore()
-    for cmd in get_commands():
-        store.register_command(cmd)
-    return store
