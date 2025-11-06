@@ -25,19 +25,6 @@ class PromptLayerConfig(BasePromptHubConfig):
     """API key for the PromptLayer API."""
 
 
-class OpenLITConfig(BasePromptHubConfig):
-    """Configuration for OpenLIT prompt provider."""
-
-    type: Literal["openlit"] = Field("openlit", init=False)
-    """Configuration for OpenLIT prompt provider."""
-
-    url: HttpUrl | None = None  # Optional, defaults to OPENLIT_URL env var
-    """URL of the OpenLIT API."""
-
-    api_key: SecretStr | None = None  # Optional, defaults to OPENLIT_API_KEY env var
-    """API key for the OpenLIT API."""
-
-
 class LangfuseConfig(BasePromptHubConfig):
     """Configuration for Langfuse prompt provider."""
 
@@ -84,6 +71,6 @@ class FabricConfig(BasePromptHubConfig):
 
 
 PromptHubConfig = Annotated[
-    PromptLayerConfig | OpenLITConfig | LangfuseConfig | FabricConfig | BraintrustConfig,
+    PromptLayerConfig | LangfuseConfig | FabricConfig | BraintrustConfig,
     Field(discriminator="type"),
 ]

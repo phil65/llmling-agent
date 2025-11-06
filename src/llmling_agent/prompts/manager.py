@@ -12,7 +12,6 @@ from llmling_agent.prompts.builtin_provider import BuiltinPromptProvider
 from llmling_agent.utils.tasks import TaskManager
 from llmling_agent_config.prompt_hubs import (
     LangfuseConfig,
-    OpenLITConfig,
     PromptLayerConfig,
 )
 
@@ -90,10 +89,7 @@ class PromptManager:
                     from llmling_agent_prompts.langfuse_hub import LangfusePromptHub
 
                     self.providers["langfuse"] = LangfusePromptHub(provider_config)
-                case OpenLITConfig():
-                    from llmling_agent_prompts.openlit_provider import OpenLITProvider
 
-                    self.providers["openlit"] = OpenLITProvider(provider_config)
                 case PromptLayerConfig():
                     from llmling_agent_prompts.promptlayer import PromptLayerProvider
 
@@ -153,7 +149,6 @@ class PromptManager:
         Examples:
             await prompts.get("error_handler")  # Builtin prompt
             await prompts.get("langfuse:code_review@v2?style=detailed")
-            await prompts.get("openlit:explain?context=web,detail=high")
         """
         provider_name, id_, version, vars_ = parse_prompt_reference(reference)
         prov = provider_name if provider_name != "builtin" else None

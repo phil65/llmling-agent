@@ -13,7 +13,6 @@ class ShowPromptCommand(SlashedCommand):
 
     Usage examples:
       /prompt role.reviewer            # Use builtin prompt
-      /prompt openlit:code_review     # Use specific provider
       /prompt langfuse:explain@v2     # Use specific version
       /prompt some_prompt[var=value]  # With variables
     """
