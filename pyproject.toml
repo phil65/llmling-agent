@@ -93,6 +93,7 @@ events = [
 ]
 git = ["pygit2"]  # for fsspec git support
 image = ["pillow"]
+langfuse = ["langfuse"]
 litellm = ["litellm; python_version < '3.14'"]
 mcp_run = ["mcpx-py>=0.7.0"]
 mem0 = ["mem0ai>=0.1.48"]
