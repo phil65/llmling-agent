@@ -29,7 +29,7 @@ class OpenAPIToolsetConfig(BaseToolsetConfig):
     type: Literal["openapi"] = Field("openapi", init=False)
     """OpenAPI toolset."""
 
-    spec: UPath = Field(...)
+    spec: UPath
     """URL or path to the OpenAPI specification document."""
 
     base_url: HttpUrl | None = None
@@ -39,10 +39,8 @@ class OpenAPIToolsetConfig(BaseToolsetConfig):
         """Create OpenAPI tools provider from this config."""
         from llmling_agent_toolsets.openapi import OpenAPITools
 
-        return OpenAPITools(
-            spec=self.spec,
-            base_url=str(self.base_url) if self.base_url else "",
-        )
+        base_url = str(self.base_url) if self.base_url else ""
+        return OpenAPITools(spec=self.spec, base_url=base_url)
 
 
 class EntryPointToolsetConfig(BaseToolsetConfig):
@@ -51,7 +49,7 @@ class EntryPointToolsetConfig(BaseToolsetConfig):
     type: Literal["entry_points"] = Field("entry_points", init=False)
     """Entry point toolset."""
 
-    module: str = Field(...)
+    module: str
     """Python module path to load tools from via entry points."""
 
     def get_provider(self) -> ResourceProvider:
@@ -107,9 +105,8 @@ class UpsonicToolSetConfig(BaseToolsetConfig):
         """Create provider from this config."""
         from llmling_agent_toolsets.upsonic_toolset import UpsonicTools
 
-        return UpsonicTools(
-            base_url=str(self.base_url) if self.base_url else None, api_key=self.api_key
-        )
+        base_url = str(self.base_url) if self.base_url else None
+        return UpsonicTools(base_url=base_url, api_key=self.api_key)
 
 
 class AgentManagementToolsetConfig(BaseToolsetConfig):
@@ -248,7 +245,7 @@ class CustomToolsetConfig(BaseToolsetConfig):
     type: Literal["custom"] = Field("custom", init=False)
     """Custom toolset."""
 
-    import_path: str = Field(...)
+    import_path: str
     """Dotted import path to the custom toolset implementation class."""
 
     def get_provider(self) -> ResourceProvider:
