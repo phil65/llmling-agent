@@ -184,18 +184,6 @@ storage:
       log_context: true
 ```
 
-### Mem0 Storage
-Stores data in mem0 service.
-
-```yaml
-storage:
-  providers:
-    - type: "mem0"
-      api_key: "${MEM0_API_KEY}"   # API key (optional)
-      page_size: 100               # Number of results per page
-      output_format: "v1.1"        # API output format version
-```
-
 ### Memory Storage
 In-memory storage for testing.
 
@@ -240,8 +228,6 @@ storage:
       path: "data/history.json"
       agents: null  # Log everything
 
-    - type: "mem0"  # Memory storage service
-      api_key: "${MEM0_API_KEY}"
 ```
 
 ## Provider Selection

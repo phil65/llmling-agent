@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Annotated, Final, Literal
 
 from platformdirs import user_data_dir
-from pydantic import ConfigDict, Field, SecretStr
+from pydantic import ConfigDict, Field
 from pydantic_ai import Agent
 from schemez import Schema
 
@@ -137,28 +137,8 @@ class MemoryStorageConfig(BaseStorageProviderConfig):
     """In-memory storage configuration for testing."""
 
 
-class Mem0Config(BaseStorageProviderConfig):
-    """Configuration for mem0 storage."""
-
-    type: Literal["mem0"] = Field("mem0", init=False)
-    """Mem0 storage config."""
-
-    api_key: SecretStr | None = None
-    """API key for mem0 service."""
-
-    page_size: int = Field(default=100, ge=1)
-    """Number of results per page when retrieving paginated data."""
-
-    output_format: Literal["v1.0", "v1.1"] = "v1.1"
-    """API output format version. 1.1 is recommended and provides enhanced details."""
-
-
 StorageProviderConfig = Annotated[
-    SQLStorageConfig
-    | FileStorageConfig
-    | TextLogConfig
-    | MemoryStorageConfig
-    | Mem0Config,
+    SQLStorageConfig | FileStorageConfig | TextLogConfig | MemoryStorageConfig,
     Field(discriminator="type"),
 ]
 

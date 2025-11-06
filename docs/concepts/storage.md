@@ -93,28 +93,6 @@ storage:
 Provides temporary storage without persistence, ideal for testing and development.
 
 
-### Mem0 Storage
-The mem0 provider offers semantic-powered conversation history with cloud persistence:
-
-```yaml
-storage:
-  providers:
-    - type: mem0
-      api_key: "your-mem0-api-key"  # Required if no MEM0_API_KEY env var set
-      page_size: 100                # Results per page for queries
-      output_format: "v1.1"         # API version format
-```
-Features:
-
-- Semantic search capabilities
-- Long-term memory persistence
-- Cloud-hosted (no local setup)
-- Automatic context management
-- Advanced filtering options
-- API version selection (v1.0/v1.1)
-
-
-
 ## Provider Capabilities
 
 History Providers (SQL, File):
