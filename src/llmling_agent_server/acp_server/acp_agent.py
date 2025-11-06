@@ -91,7 +91,6 @@ class LLMlingACPAgent(ACPAgent):
         agent_pool: AgentPool[Any],
         *,
         available_models: list[TokoModelInfo] | None = None,
-        session_support: bool = True,
         file_access: bool = True,
         terminal_access: bool = True,
         debug_commands: bool = False,
@@ -103,7 +102,6 @@ class LLMlingACPAgent(ACPAgent):
             connection: ACP connection for client communication
             agent_pool: AgentPool containing available agents
             available_models: List of available tokonomics TokoModelInfo objects
-            session_support: Whether agent supports session loading
             file_access: Whether agent can access filesystem
             terminal_access: Whether agent can use terminal
             debug_commands: Whether to enable debug slash commands for testing
@@ -112,7 +110,6 @@ class LLMlingACPAgent(ACPAgent):
         self.connection = connection
         self.agent_pool = agent_pool
         self.available_models: Sequence[TokoModelInfo] = available_models or []
-        self.session_support = session_support
         self.file_access = file_access
         self.terminal_access = terminal_access
         self.client: Client = connection
@@ -143,7 +140,7 @@ class LLMlingACPAgent(ACPAgent):
             name="llmling-agent",
             title="LLMLing-Agent",
             version=_version("llmling-agent"),
-            load_session=self.session_support,
+            load_session=True,
             http_mcp_servers=True,
             sse_mcp_servers=True,
             audio_prompts=True,
