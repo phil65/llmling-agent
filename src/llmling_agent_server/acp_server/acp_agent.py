@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, Any
 
 from acp import Agent as ACPAgent
 from acp.schema import (
-    AgentMessageChunk,
     InitializeResponse,
     LoadSessionResponse,
     ModelInfo as ACPModelInfo,
@@ -15,12 +14,10 @@ from acp.schema import (
     PromptResponse,
     SessionModelState,
     SessionModeState,
-    SessionNotification,
     SetSessionModelRequest,
     SetSessionModelResponse,
     SetSessionModeRequest,
     SetSessionModeResponse,
-    TextContentBlock,
 )
 from llmling_agent.log import get_logger
 from llmling_agent.utils.tasks import TaskManager
@@ -248,20 +245,19 @@ class LLMlingACPAgent(ACPAgent):
                 raise ValueError(msg)  # noqa: TRY301
             stop_reason = await session.process_prompt(params.prompt)
             # Return the actual stop reason from the session
-            response = PromptResponse(stop_reason=stop_reason)
-            logger.info("Returning PromptResponse", stop_reason=stop_reason)
         except Exception as e:
             logger.exception("Failed to process prompt", session_id=params.session_id)
             msg = f"Error processing prompt: {e}"
-            chunk = AgentMessageChunk(content=TextContentBlock(text=msg))
-            notification = SessionNotification(session_id=params.session_id, update=chunk)
             try:
-                await self.connection.session_update(notification)
+                assert session
+                await session.notifications.send_agent_text(msg)
             except Exception:
                 logger.exception("Failed to send error update")
 
             return PromptResponse(stop_reason="refusal")
         else:
+            response = PromptResponse(stop_reason=stop_reason)
+            logger.info("Returning PromptResponse", stop_reason=stop_reason)
             return response
 
     async def cancel(self, params: CancelNotification) -> None:
