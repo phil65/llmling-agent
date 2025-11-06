@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from promptlayer import PromptLayer  # pyright: ignore
+from promptlayer import PromptLayer
 
 from llmling_agent.prompts.base import BasePromptProvider
 
