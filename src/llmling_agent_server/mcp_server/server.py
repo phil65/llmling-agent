@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-import asyncio
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Self
+from typing import TYPE_CHECKING, Any
 
 from fastmcp import FastMCP
 from fastmcp.server.middleware.caching import ResponseCachingMiddleware
@@ -15,7 +14,6 @@ import platformdirs
 
 import llmling_agent
 from llmling_agent.log import get_logger
-from llmling_agent.utils.tasks import TaskManager
 from llmling_agent_server import BaseServer
 from llmling_agent_server.mcp_server.handlers import register_handlers
 
@@ -23,7 +21,6 @@ from llmling_agent_server.mcp_server.handlers import register_handlers
 if TYPE_CHECKING:
     from collections.abc import Callable
     from contextlib import AbstractAsyncContextManager
-    from types import TracebackType
     from typing import Any
 
     from fastmcp import SamplingMessage, ServerSession
@@ -73,12 +70,10 @@ class MCPServer(BaseServer):
         """
         from llmling_agent.resource_providers.pool import PoolResourceProvider
 
-        super().__init__(pool)
+        super().__init__(pool, raise_exceptions=raise_exceptions)
         self.provider = PoolResourceProvider(pool, zed_mode=config.zed_mode)
         self.name = name
-        self.task_manager = TaskManager()
         self.config = config
-        self.raise_exceptions = raise_exceptions
 
         # Handle Zed mode if enabled
         if config.zed_mode:
@@ -87,7 +82,6 @@ class MCPServer(BaseServer):
             # prepare_runtime_for_zed(runtime)
 
         self._subscriptions: defaultdict[str, set[mcp.ServerSession]] = defaultdict(set)
-        self._tasks: set[asyncio.Task[Any]] = set()
 
         self.fastmcp = FastMCP(
             instructions=instructions,
@@ -112,47 +106,16 @@ class MCPServer(BaseServer):
             model="test",
         )
 
-    async def start(self) -> None:
+    async def _start_async(self) -> None:
         """Start the server (blocking async - runs until stopped)."""
-        try:
-            if self.config.transport == "stdio":
-                await self.fastmcp.run_async(transport=self.config.transport)
-            else:
-                await self.fastmcp.run_async(
-                    transport=self.config.transport,
-                    host=self.config.host,
-                    port=self.config.port,
-                )
-        except Exception as e:
-            if self.raise_exceptions:
-                raise
-            logger.exception("Error starting MCP server", exc_info=e)
-        finally:
-            await self.shutdown()
-
-    async def shutdown(self):
-        """Shutdown the server."""
-        try:
-            for task in self._tasks:
-                task.cancel()
-            await asyncio.gather(*self._tasks, return_exceptions=True)
-        finally:
-            self._tasks.clear()
-
-    async def __aenter__(self) -> Self:
-        """Enter async context and initialize server resources."""
-        await super().__aenter__()
-        return self
-
-    async def __aexit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_val: BaseException | None,
-        exc_tb: TracebackType | None,
-    ) -> None:
-        """Cleanup server resources."""
-        await self.shutdown()
-        await super().__aexit__(exc_type, exc_val, exc_tb)
+        if self.config.transport == "stdio":
+            await self.fastmcp.run_async(transport=self.config.transport)
+        else:
+            await self.fastmcp.run_async(
+                transport=self.config.transport,
+                host=self.config.host,
+                port=self.config.port,
+            )
 
     @property
     def current_session(self) -> mcp.ServerSession:

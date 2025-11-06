@@ -26,6 +26,7 @@ class ResponsesServer(BaseServer):
         host: str = "0.0.0.0",
         port: int = 8000,
         api_key: str | None = None,
+        raise_exceptions: bool = False,
     ):
         """Initialize responses server.
 
@@ -34,8 +35,9 @@ class ResponsesServer(BaseServer):
             host: Host to bind server to
             port: Port to bind server to
             api_key: Optional API key for authentication
+            raise_exceptions: Whether to raise exceptions during server start
         """
-        super().__init__(pool)
+        super().__init__(pool, raise_exceptions=raise_exceptions)
         self.host = host
         self.port = port
         self.app = FastAPI()
@@ -68,7 +70,7 @@ class ResponsesServer(BaseServer):
         except Exception as e:
             raise HTTPException(500, str(e)) from e
 
-    async def start(self) -> None:
+    async def _start_async(self) -> None:
         """Start the server (blocking async - runs until stopped)."""
         import uvicorn
 

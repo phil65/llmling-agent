@@ -64,7 +64,7 @@ class ACPServer(BaseServer):
             debug_commands: Whether to enable debug slash commands for testing
             agent: Optional specific agent name to use (defaults to first agent)
         """
-        super().__init__(pool)
+        super().__init__(pool, raise_exceptions=True)
         self.file_access = file_access
         self.terminal_access = terminal_access
         self.providers = providers or ["openrouter"]
@@ -132,7 +132,7 @@ class ACPServer(BaseServer):
             logger.info("ACP session agent", agent=agent)
         return server
 
-    async def start(self) -> None:
+    async def _start_async(self) -> None:
         """Start the ACP server (blocking async - runs until stopped)."""
         if self._running:
             msg = "Server is already running"
@@ -179,6 +179,7 @@ class ACPServer(BaseServer):
         """Shutdown the ACP server and cleanup resources."""
         self._running = False
         logger.info("ACP server shutdown complete")
+        await super().shutdown()
 
     @logfire.instrument("ACP: Initializing models.")
     async def _initialize_models(self) -> None:

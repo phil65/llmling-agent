@@ -38,6 +38,7 @@ class OpenAIServer(BaseServer):
         port: int = 8000,
         cors: bool = True,
         docs: bool = True,
+        raise_exceptions: bool = False,
     ):
         """Initialize OpenAI-compatible server.
 
@@ -47,8 +48,9 @@ class OpenAIServer(BaseServer):
             port: Port to bind server to
             cors: Whether to enable CORS middleware
             docs: Whether to enable API documentation endpoints
+            raise_exceptions: Whether to raise exceptions during server start
         """
-        super().__init__(pool)
+        super().__init__(pool, raise_exceptions=raise_exceptions)
         self.host = host
         self.port = port
         self.app = FastAPI()
@@ -126,7 +128,7 @@ class OpenAIServer(BaseServer):
             logger.exception("Error processing chat completion")
             raise HTTPException(500, f"Error: {e!s}") from e
 
-    async def start(self) -> None:
+    async def _start_async(self) -> None:
         """Start the server (blocking async - runs until stopped)."""
         import uvicorn
 

@@ -6,27 +6,48 @@ import asyncio
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, Any, Self
 
+from llmling_agent.log import get_logger
+from llmling_agent.utils.tasks import TaskManager
+
 
 if TYPE_CHECKING:
     from types import TracebackType
 
     from llmling_agent import AgentPool
 
+logger = get_logger(__name__)
+
 
 class BaseServer:
     """Base class for all LLMLing Agent servers.
 
     Provides standardized interface for server lifecycle management:
-    - async def start() - blocking server execution (implemented by subclasses)
+    - async def _start_async() - blocking server execution (implemented by subclasses)
     - def start_background() - non-blocking server start via background task
     - def stop() - stop background server task
     - async with run_context() - automatic server start/stop management
+
+    Features:
+    - Centralized task management via TaskManager
+    - Configurable exception handling via raise_exceptions parameter
+    - Automatic pool lifecycle management
+    - Background task lifecycle management
     """
 
-    def __init__(self, pool: AgentPool[Any], *args: Any, **kwargs: Any) -> None:
-        """Initialize base server with agent pool."""
+    def __init__(
+        self, pool: AgentPool[Any], *, raise_exceptions: bool = False, **kwargs: Any
+    ) -> None:
+        """Initialize base server with agent pool.
+
+        Args:
+            pool: AgentPool containing available agents
+            raise_exceptions: Whether to raise exceptions during server start
+            **kwargs: Additional arguments (for subclass compatibility)
+        """
         self.pool = pool
-        self._task: asyncio.Task[None] | None = None
+        self.raise_exceptions = raise_exceptions
+        self.task_manager = TaskManager()
+        self._server_task: asyncio.Task[None] | None = None
         self._shutdown_event = asyncio.Event()
 
     async def __aenter__(self) -> Self:
@@ -41,16 +62,51 @@ class BaseServer:
         exc_tb: TracebackType | None,
     ) -> None:
         """Exit async context and cleanup server resources."""
+        # Cleanup any pending tasks
+        await self.task_manager.cleanup_tasks()
+        # Cleanup pool
         await self.pool.__aexit__(exc_type, exc_val, exc_tb)
 
-    async def start(self) -> None:
+    async def _start_async(self) -> None:
         """Start the server (blocking async - runs until stopped).
 
         This method must be implemented by subclasses and should run
         the server until it's stopped or encounters an error.
+
+        This is the internal implementation that subclasses override.
+        The public start() method handles exception management.
         """
-        msg = "Subclasses must implement start()"
+        msg = "Subclasses must implement _start_async()"
         raise NotImplementedError(msg)
+
+    async def start(self) -> None:
+        """Start the server (blocking async - runs until stopped).
+
+        This is the public interface that handles exception management
+        based on the raise_exceptions setting. Subclasses should implement
+        _start_async() instead of overriding this method.
+        """
+        try:
+            await self._start_async()
+        except Exception as e:
+            if self.raise_exceptions:
+                raise
+            logger.exception("Server error", exc_info=e)
+        finally:
+            await self.shutdown()
+
+    async def shutdown(self) -> None:
+        """Shutdown server resources.
+
+        This method can be overridden by subclasses to add specific
+        cleanup logic. The base implementation handles task cleanup.
+        """
+        try:
+            await self.task_manager.cleanup_tasks()
+        except Exception:
+            logger.exception("Error during server shutdown")
+        finally:
+            self._shutdown_event.set()
 
     def start_background(self) -> None:
         """Start server in background task (non-blocking).
@@ -58,12 +114,14 @@ class BaseServer:
         Creates a background task that runs start() method.
         Server will run in the background until stop() is called.
         """
-        if self._task is not None and not self._task.done():
+        if self._server_task is not None and not self._server_task.done():
             msg = "Server is already running in background"
             raise RuntimeError(msg)
 
         self._shutdown_event.clear()
-        self._task = asyncio.create_task(self._run_with_shutdown())
+        self._server_task = self.task_manager.create_task(
+            self._run_with_shutdown(), name=f"{self.__class__.__name__}-server"
+        )
 
     async def _run_with_shutdown(self) -> None:
         """Internal wrapper that handles shutdown signaling."""
@@ -74,28 +132,29 @@ class BaseServer:
 
     def stop(self) -> None:
         """Stop the background server task (non-blocking)."""
-        if self._task is not None and not self._task.done():
-            self._task.cancel()
+        if self._server_task is not None and not self._server_task.done():
+            self._server_task.cancel()
 
     async def wait_until_stopped(self) -> None:
         """Wait until the server stops (either by stop() or natural completion)."""
-        if self._task is None:
+        if self._server_task is None:
             return
 
         # Wait for either task completion or shutdown event
         await self._shutdown_event.wait()
 
         # Ensure task is cleaned up
-        if not self._task.done():
-            self._task.cancel()
+        if self._server_task and not self._server_task.done():
+            self._server_task.cancel()
 
-        await asyncio.gather(self._task, return_exceptions=True)
-        self._task = None
+        if self._server_task:
+            await asyncio.gather(self._server_task, return_exceptions=True)
+            self._server_task = None
 
     @property
     def is_running(self) -> bool:
         """Check if server is currently running in background."""
-        return self._task is not None and not self._task.done()
+        return self._server_task is not None and not self._server_task.done()
 
     @asynccontextmanager
     async def run_context(self):
