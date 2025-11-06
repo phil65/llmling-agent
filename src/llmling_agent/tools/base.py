@@ -17,6 +17,7 @@ from llmling_agent_config.tools import ToolHints  # noqa: TC001
 if TYPE_CHECKING:
     from collections.abc import Callable
 
+    from mcp.types import Tool as MCPTool
     from schemez.typedefs import Property, ToolParameters
 
     from llmling_agent.agent import AgentContext
@@ -336,6 +337,24 @@ class Tool:
             description_override=description,
             schema_override=schema_override,
             **kwargs,
+        )
+
+    def to_mcp_tool(self) -> MCPTool:
+        """Convert internal Tool to MCP Tool."""
+        schema = self.schema
+        from mcp.types import Tool as MCPTool, ToolAnnotations
+
+        return MCPTool(
+            name=schema["function"]["name"],
+            description=schema["function"]["description"],
+            inputSchema=schema["function"]["parameters"],  # pyright: ignore
+            annotations=ToolAnnotations(
+                title=self.name,
+                readOnlyHint=self.hints.read_only if self.hints else None,
+                destructiveHint=self.hints.destructive if self.hints else None,
+                idempotentHint=self.hints.idempotent if self.hints else None,
+                openWorldHint=self.hints.open_world if self.hints else None,
+            ),
         )
 
 

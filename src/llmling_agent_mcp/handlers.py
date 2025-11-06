@@ -50,7 +50,7 @@ def register_handlers(llm_server: LLMLingServer):  # noqa: PLR0915
     async def handle_list_tools() -> list[types.Tool]:
         """Handle tools/list request."""
         tools = await llm_server.provider.get_tools()
-        return [conversions.to_mcp_tool(tool) for tool in tools]
+        return [tool.to_mcp_tool() for tool in tools]
 
     @llm_server.server.call_tool()
     async def handle_call_tool(
@@ -98,107 +98,6 @@ def register_handlers(llm_server: LLMLingServer):  # noqa: PLR0915
         except Exception as exc:
             error_data = mcp.ErrorData(code=types.INTERNAL_ERROR, message=str(exc))
             raise mcp.McpError(error_data) from exc
-
-    # @llm_server.server.list_resources()
-    # async def handle_list_resources() -> list[types.Resource]:
-    #     """Handle resources/list request."""
-    #     resources: list[types.Resource] = []
-    #     for name in llm_server.runtime.list_resource_names():
-    #         try:
-    #             uri = llm_server.runtime.get_resource_uri(name)
-    #             mcp_uri = conversions.to_mcp_uri(uri)
-    #             dsc = llm_server.runtime._config.resources[name].description
-    #             mime = "text/plain"  # Default, could be made more specific
-    #             res = types.Resource(
-    #                 uri=mcp_uri, name=name, description=dsc, mimeType=mime
-    #             )
-    #             resources.append(res)
-    #         except Exception:
-    #             error_msg = "Failed to create resource listing for %r. Config: %r"
-    #             cfg = llm_server.runtime._config.resources.get(name)
-    #             logger.exception(error_msg, name, cfg)
-    #             continue
-
-    #     return resources
-
-    # @llm_server.server.list_resource_templates()
-    # async def handle_list_resource_templates() -> list[types.ResourceTemplate]:
-    #     """Handle resource template listing request."""
-    #     templates: list[types.ResourceTemplate] = []
-    #     for resource in llm_server.runtime.get_resources():
-    #         if not resource.is_templated():
-    #             continue
-
-    #         # Get the loader for proper URI template creation
-    #         loader = llm_server.runtime.get_resource_loader(resource)
-    #         uri_template = loader.get_uri_template()
-    #         templ = types.ResourceTemplate(
-    #             uriTemplate=uri_template,
-    #             name=resource.uri or "",  # this is fishy, we need display name?
-    #             description=resource.description,
-    #             mimeType=resource.mime_type,
-    #         )
-    #         templates.append(templ)
-
-    #     return templates
-
-    # @llm_server.server.read_resource()
-    # async def handle_read_resource(uri: AnyUrl) -> str | bytes:
-    #     """Handle direct resource content requests."""
-    #     try:
-    #         internal_uri = conversions.from_mcp_uri(str(uri))
-    #         logger.debug("Loading resource from internal URI: %s", internal_uri)
-
-    #         if "://" not in internal_uri:
-    #             resource = await llm_server.runtime.load_resource(internal_uri)
-    #         else:
-    #             resource = await llm_server.runtime.load_resource_by_uri(internal_uri)
-
-    #         if resource.metadata.mime_type.startswith("text/"):
-    #             return resource.content
-    #         return resource.content_items[0].content.encode()
-
-    #     except Exception as exc:
-    #         error_msg = f"Failed to read resource: {exc}"
-    #         logger.exception(error_msg)
-    #         error_data = mcp.ErrorData(
-    #             message=error_msg, code=types.INTERNAL_ERROR, data=exc
-    #         )
-    #         error = mcp.McpError(error_data)
-    #         raise error from exc
-
-    # @llm_server.server.completion()
-    # async def handle_completion(
-    #     ref: types.PromptReference | types.ResourceReference,
-    #     argument: types.CompletionArgument,
-    # ) -> types.Completion:
-    #     """Handle completion requests."""
-    #     try:
-    #         match ref:
-    #             case types.PromptReference():
-    #                 values = await llm_server.runtime.get_prompt_completions(
-    #                     current_value=argument.value,
-    #                     argument_name=argument.name,
-    #                     prompt_name=ref.name,
-    #                 )
-    #             case types.ResourceReference():
-    #                 values = await llm_server.runtime.get_resource_completions(
-    #                     uri=ref.uri,
-    #                     current_value=argument.value,
-    #                     argument_name=argument.name,
-    #                 )
-    #             case _:
-    #                 msg = f"Invalid reference type: {type(ref)}"
-    #                 raise ValueError(msg)
-
-    #         return types.Completion(
-    #             values=values[:100],
-    #             total=len(values),
-    #             hasMore=len(values) > 100,
-    #         )
-    #     except Exception:
-    #         logger.exception("Completion failed")
-    #         return types.Completion(values=[], total=0, hasMore=False)
 
     @llm_server.server.progress_notification()
     async def handle_progress(
