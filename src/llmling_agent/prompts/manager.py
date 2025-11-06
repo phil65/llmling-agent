@@ -11,6 +11,8 @@ from llmling_agent.log import get_logger
 from llmling_agent.prompts.builtin_provider import BuiltinPromptProvider
 from llmling_agent.utils.tasks import TaskManager
 from llmling_agent_config.prompt_hubs import (
+    BraintrustConfig,
+    FabricConfig,
     LangfuseConfig,
     PromptLayerConfig,
 )
@@ -89,6 +91,16 @@ class PromptManager:
                     from llmling_agent_prompts.langfuse_hub import LangfusePromptHub
 
                     self.providers["langfuse"] = LangfusePromptHub(provider_config)
+
+                case FabricConfig():
+                    from llmling_agent_prompts.fabric import FabricPromptHub
+
+                    self.providers["fabric"] = FabricPromptHub(provider_config)
+
+                case BraintrustConfig():
+                    from llmling_agent_prompts.braintrust_hub import BraintrustPromptHub
+
+                    self.providers["braintrust"] = BraintrustPromptHub(provider_config)
 
                 case PromptLayerConfig():
                     from llmling_agent_prompts.promptlayer import PromptLayerProvider

@@ -203,8 +203,10 @@ class LLMlingACPAgent(ACPAgent):
                 # Schedule task to run after response is sent
                 coro = session.send_available_commands_update()
                 coro_2 = session.init_project_context()
+                coro_3 = session._register_prompt_hub_commands()
                 self.tasks.create_task(coro, name=f"send_commands_update_{session_id}")
                 self.tasks.create_task(coro_2, name=f"init_project_context_{session_id}")
+                self.tasks.create_task(coro_3, name=f"init_prompthub_cmds_{session_id}")
             logger.info("Created session", session_id=session_id, agent_count=len(modes))
             return NewSessionResponse(session_id=session_id, modes=state, models=models)
 

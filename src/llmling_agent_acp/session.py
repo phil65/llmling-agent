@@ -57,6 +57,7 @@ if TYPE_CHECKING:
     from llmling_agent.agent.events import RichAgentStreamEvent
     from llmling_agent.mcp_server.manager import Prompt
     from llmling_agent.models.content import BaseContent
+    from llmling_agent.prompts.manager import PromptManager
     from llmling_agent.resource_providers.aggregating import AggregatingResourceProvider
     from llmling_agent_acp.acp_agent import LLMlingACPAgent
     from llmling_agent_acp.session_manager import ACPSessionManager
@@ -526,6 +527,35 @@ class ACPSession:
         except Exception:
             self.log.exception("Failed to register MCP prompts as commands")
 
+    async def _register_prompt_hub_commands(self) -> None:
+        """Register prompt hub prompts as slash commands."""
+        try:
+            prompt_manager = self.agent_pool.manifest.prompt_manager
+            all_prompts = await prompt_manager.list_prompts()
+            command_count = 0
+            for provider_name, prompt_names in all_prompts.items():
+                if not prompt_names:  # Skip empty providers
+                    continue
+
+                for prompt_name in prompt_names:
+                    command = self.create_prompt_hub_command(
+                        provider_name, prompt_name, prompt_manager
+                    )
+                    self.command_store.register_command(command)
+                    command_count += 1
+
+            if command_count > 0:
+                self._notify_command_update()
+                self.log.info(
+                    "Registered prompt hub prompts as slash commands",
+                    command_count=command_count,
+                )
+                # Send updated command list to client
+                await self.send_available_commands_update()
+
+        except Exception:
+            self.log.exception("Failed to register prompt hub prompts as commands")
+
     def _notify_command_update(self) -> None:
         """Notify all registered callbacks about command updates."""
         for callback in self._update_callbacks:
@@ -639,4 +669,64 @@ class ACPSession:
             description=prompt.description or f"MCP prompt: {prompt.name}",
             category="mcp",
             usage=usage_hint,
+        )
+
+    def create_prompt_hub_command(
+        self, provider: str, name: str, manager: PromptManager
+    ) -> Command:
+        """Convert prompt hub prompt to slash command.
+
+        Args:
+            provider: Provider name (e.g., 'langfuse', 'builtin')
+            name: Prompt name
+            manager: PromptManager instance
+
+        Returns:
+            Command that executes the prompt hub prompt
+        """
+
+        async def execute_prompt(
+            ctx: CommandContext,
+            args: list[str],
+            kwargs: dict[str, str],
+        ) -> None:
+            """Execute the prompt hub prompt with parsed arguments."""
+            try:
+                # Build reference string
+                reference = f"{provider}:{name}" if provider != "builtin" else name
+
+                # Add variables as query parameters if provided
+                if kwargs:
+                    params = "&".join(f"{k}={v}" for k, v in kwargs.items())
+                    reference = f"{reference}?{params}"
+
+                # Get the rendered prompt
+                result = await manager.get(reference)
+
+                # Convert string result to message parts and stage them
+                from pydantic_ai.messages import UserPromptPart
+
+                self.add_staged_parts([UserPromptPart(content=result)])
+
+                # Send confirmation
+                staged_count = self.get_staged_parts_count()
+                await ctx.print(
+                    f"✅ Prompt {name!r} from {provider} staged ({staged_count} total parts)"  # noqa: E501
+                )
+
+            except Exception as e:
+                logger.exception(
+                    "Prompt hub execution failed", prompt=name, provider=provider
+                )
+                await ctx.print(f"❌ Prompt error: {e}")
+
+        # Create command name - prefix with provider if not builtin
+        command_name = f"{provider}_{name}" if provider != "builtin" else name
+
+        return Command(
+            execute_func=execute_prompt,
+            name=command_name,
+            description=f"Prompt hub: {provider}:{name}",
+            category="prompts",
+            usage="[key=value ...]",  # Generic since we don't have parameter schemas
         )
