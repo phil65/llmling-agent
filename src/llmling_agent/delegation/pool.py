@@ -8,7 +8,6 @@ import os
 from typing import TYPE_CHECKING, Any, Self, Unpack, cast, overload
 
 from anyenv import MultiEventHandler
-from llmling import BaseRegistry, LLMLingError
 from upath import UPath
 
 from llmling_agent.agent import Agent
@@ -22,6 +21,7 @@ from llmling_agent.messaging.context import ProgressCallback
 from llmling_agent.talk import Talk, TeamTalk
 from llmling_agent.talk.registry import ConnectionRegistry
 from llmling_agent.tasks import TaskRegistry
+from llmling_agent.utils.baseregistry import BaseRegistry
 from llmling_agent_config.forward_targets import (
     CallableConnectionConfig,
     FileConnectionConfig,
@@ -421,11 +421,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
     def node_events(self) -> DictEvents:
         """Get node events."""
         return self._items.events
-
-    @property
-    def _error_class(self) -> type[LLMLingError]:
-        """Error class for agent operations."""
-        return LLMLingError
 
     def _validate_item(
         self, item: MessageEmitter[Any, Any] | Any

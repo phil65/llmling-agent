@@ -5,11 +5,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Literal
 
-from llmling import BaseRegistry, LLMLingError
 from psygnal import Signal
 
 from llmling_agent.log import get_logger
 from llmling_agent.talk.talk import Talk
+from llmling_agent.utils.baseregistry import BaseRegistry, LLMLingError
 
 
 if TYPE_CHECKING:

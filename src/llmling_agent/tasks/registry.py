@@ -4,9 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from llmling.core.baseregistry import BaseRegistry
-
 from llmling_agent.tasks.exceptions import JobRegistrationError
+from llmling_agent.utils.baseregistry import BaseRegistry
 from llmling_agent_config.task import Job
 
 

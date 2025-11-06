@@ -7,9 +7,8 @@ from pathlib import Path
 import re
 from typing import Any, ClassVar
 
-from llmling.core.baseregistry import BaseRegistry
-
 from llmling_agent.tools.exceptions import ToolError
+from llmling_agent.utils.baseregistry import BaseRegistry
 
 
 SKILL_NAME_LIMIT = 64

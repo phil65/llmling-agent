@@ -4,11 +4,11 @@ from typing import TYPE_CHECKING, Any
 
 import fsspec
 from fsspec import AbstractFileSystem
-from llmling import BaseRegistry, LLMLingError
 from upath import UPath
 from upathtools import UnionFileSystem
 
 from llmling_agent.log import get_logger
+from llmling_agent.utils.baseregistry import BaseRegistry
 
 
 if TYPE_CHECKING:
@@ -19,10 +19,6 @@ logger = get_logger(__name__)
 
 class ResourceRegistry(BaseRegistry[str, AbstractFileSystem]):
     """Registry for filesystem resources."""
-
-    @property
-    def _error_class(self) -> type[LLMLingError]:
-        return LLMLingError
 
     def register(self, name: str, item: Any, replace: bool = False):
         """Register a new resource."""
