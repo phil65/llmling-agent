@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Literal
 
-from llmling import ConfigModel
-from pydantic import BaseModel, Field  # noqa: TC002
+from pydantic import BaseModel, Field
+from schemez import Schema
 
-from llmling_agent_config.tools import ToolConfig  # noqa: TC001
+from llmling_agent_config.tools import ToolConfig
 
 
 if TYPE_CHECKING:
@@ -18,7 +18,7 @@ UndefinedBehaviour = Literal["default", "strict", "debug", "chainable", "lax"]
 NewLineType = Literal["\n", "\r\n", "\r"]
 
 
-class Jinja2EnvironmentConfig(ConfigModel):
+class Jinja2EnvironmentConfig(Schema):
     """Configuration for Jinja2 environment.
 
     See: https://jinja.palletsprojects.com/en/3.1.x/api/#jinja2.Environment
@@ -114,7 +114,7 @@ class Jinja2EnvironmentConfig(ConfigModel):
         return kwargs
 
 
-class Jinja2Template(ConfigModel):
+class Jinja2Template(Schema):
     """Template with environment configuration."""
 
     template: str
