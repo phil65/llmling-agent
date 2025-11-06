@@ -23,17 +23,16 @@ if TYPE_CHECKING:
 def to_mcp_tool(tool: Tool) -> types.Tool:
     """Convert internal Tool to MCP Tool."""
     schema = tool.schema
-    llm_tool = tool.callable
     return types.Tool(
         name=schema["function"]["name"],
         description=schema["function"]["description"],
         inputSchema=schema["function"]["parameters"],  # pyright: ignore
         annotations=types.ToolAnnotations(
             title=tool.name,
-            readOnlyHint=llm_tool.hints.read_only if llm_tool.hints else None,
-            destructiveHint=llm_tool.hints.destructive if llm_tool.hints else None,
-            idempotentHint=llm_tool.hints.idempotent if llm_tool.hints else None,
-            openWorldHint=llm_tool.hints.open_world if llm_tool.hints else None,
+            readOnlyHint=tool.hints.read_only if tool.hints else None,
+            destructiveHint=tool.hints.destructive if tool.hints else None,
+            idempotentHint=tool.hints.idempotent if tool.hints else None,
+            openWorldHint=tool.hints.open_world if tool.hints else None,
         ),
     )
 

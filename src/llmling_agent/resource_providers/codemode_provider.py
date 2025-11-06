@@ -57,7 +57,7 @@ def _infer_parameter_type(tool: Tool, param_name: str, param_info: Property) -> 
 
     # For 'object' type, try to infer from function signature
     try:
-        callable_func = tool.callable.callable
+        callable_func = tool.callable
         sig = inspect.signature(callable_func)
 
         if param_name in sig.parameters:
@@ -92,7 +92,7 @@ def _infer_parameter_type(tool: Tool, param_name: str, param_info: Property) -> 
 def _get_return_model_name(tool: Tool) -> str:
     """Get the return model name for a tool."""
     try:
-        callable_func = tool.callable.callable
+        callable_func = tool.callable
         schema = create_schema(callable_func)
         return_schema = schema.returns
 
@@ -120,7 +120,7 @@ def _generate_return_models(all_tools: list[Tool]) -> str:
 
     for tool in all_tools:
         try:
-            callable_func = tool.callable.callable
+            callable_func = tool.callable
             schema = create_schema(callable_func)
 
             if schema.returns.get("type") not in {"object", "array"}:

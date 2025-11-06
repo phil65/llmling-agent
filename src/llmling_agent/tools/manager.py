@@ -8,7 +8,6 @@ from contextlib import contextmanager
 from dataclasses import dataclass, field, fields
 from typing import TYPE_CHECKING, Any, Literal
 
-from llmling import LLMCallableTool
 from psygnal import Signal
 
 from llmling_agent.log import get_logger
@@ -292,7 +291,7 @@ class ToolManager(BaseRegistry[str, Tool]):
         """Register a new tool with custom settings.
 
         Args:
-            tool: Tool to register (callable, LLMCallableTool, or import path)
+            tool: Tool to register (callable, or import path)
             enabled: Whether tool is initially enabled
             name_override: Optional name override for the tool
             description_override: Optional description override for the tool
@@ -307,36 +306,25 @@ class ToolManager(BaseRegistry[str, Tool]):
         """
         # First convert to basic Tool
         match tool:
-            case LLMCallableTool():
-                llm_tool = tool
-                llm_tool.name = name_override or llm_tool.name
-                llm_tool.description = description_override or llm_tool.description
             case Tool():
-                llm_tool = tool.callable
-                llm_tool.description = description_override or llm_tool.description
-                llm_tool.name = name_override or llm_tool.name
+                tool.description = description_override or tool.description
+                tool.name = name_override or tool.name
             case _:
-                llm_tool = LLMCallableTool.from_callable(
+                tool = Tool.from_callable(
                     tool,
+                    enabled=enabled,
+                    source=source,
                     name_override=name_override,
                     description_override=description_override,
+                    priority=priority,
+                    requires_confirmation=requires_confirmation,
+                    requires_capability=requires_capability,
+                    metadata=metadata or {},
                 )
 
-        if llm_tool.description and len(llm_tool.description) > MAX_LEN_DESCRIPTION:
-            msg = f"Too long description for {tool}"
-            raise ToolError(msg)
-        tool_info = Tool(
-            llm_tool,
-            enabled=enabled,
-            source=source,
-            priority=priority,
-            requires_confirmation=requires_confirmation,
-            requires_capability=requires_capability,
-            metadata=metadata or {},
-        )
         # Register the tool
-        self.register(tool_info.name, tool_info)
-        return tool_info
+        self.register(tool.name, tool)
+        return tool
 
     def register_worker(
         self,

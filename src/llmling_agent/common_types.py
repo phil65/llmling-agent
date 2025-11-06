@@ -6,7 +6,6 @@ from collections.abc import Awaitable, Callable
 from typing import Any, ClassVar, Literal, get_args, get_origin
 from uuid import UUID
 
-from llmling import LLMCallableTool
 from pydantic import BaseModel, ConfigDict, field_validator
 from pydantic_ai import AgentStreamEvent, RunContext
 from pydantic_ai.models import Model
@@ -43,7 +42,7 @@ AnyFilterFn = Callable[..., bool | Awaitable[bool]]
 type AnyTransformFn[T] = Callable[[T], T | Awaitable[T]]
 type OptionalAwaitable[T] = T | Awaitable[T]
 
-type ToolType = str | AnyCallable | LLMCallableTool
+type ToolType = str | AnyCallable
 
 # Event handler types for composable event processing
 # Individual event handler for composability - takes single events

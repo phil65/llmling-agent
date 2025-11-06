@@ -6,12 +6,12 @@ from dataclasses import dataclass, field
 import inspect
 from typing import TYPE_CHECKING, Any, Literal, Self
 
-from llmling import LLMCallableTool
 import logfire
-import schemez  # noqa: TC002
+import schemez
 
 from llmling_agent.log import get_logger
 from llmling_agent.utils.inspection import execute
+from llmling_agent_config.tools import ToolHints  # noqa: TC001
 
 
 if TYPE_CHECKING:
@@ -78,8 +78,18 @@ class ToolContext:
 class Tool:
     """Information about a registered tool."""
 
-    callable: LLMCallableTool
+    callable: Callable
     """The actual tool implementation"""
+
+    name: str
+
+    description: str = ""
+
+    schema_override: schemez.OpenAIFunctionDefinition | None = None
+
+    hints: ToolHints | None = None
+
+    import_path: str | None = None
 
     enabled: bool = True
     """Whether the tool is currently enabled"""
@@ -111,17 +121,12 @@ class Tool:
     @property
     def schema(self) -> schemez.OpenAIFunctionTool:
         """Get the OpenAI function schema for the tool."""
-        return self.callable.get_schema()
-
-    @property
-    def name(self) -> str:
-        """Get tool name."""
-        return self.callable.name
-
-    @property
-    def description(self) -> str | None:
-        """Get tool description."""
-        return self.callable.description
+        schema = schemez.create_schema(self.callable).model_dump_openai()
+        schema["function"]["name"] = self.name
+        schema["function"]["description"] = self.description
+        if self.schema_override:
+            schema["function"] = self.schema_override
+        return schema
 
     def matches_filter(self, state: ToolState) -> bool:
         """Check if tool matches state filter."""
@@ -166,7 +171,7 @@ class Tool:
     @logfire.instrument("Executing tool {self.name} with args={args}, kwargs={kwargs}")
     async def execute(self, *args: Any, **kwargs: Any) -> Any:
         """Execute tool, handling both sync and async cases."""
-        return await execute(self.callable.callable, *args, **kwargs, use_thread=True)
+        return await execute(self.callable, *args, **kwargs, use_thread=True)
 
     @classmethod
     def from_code(
@@ -194,15 +199,35 @@ class Tool:
         name_override: str | None = None,
         description_override: str | None = None,
         schema_override: schemez.OpenAIFunctionDefinition | None = None,
+        hints: ToolHints | None = None,
         **kwargs: Any,
     ) -> Self:
-        tool = LLMCallableTool.from_callable(
-            fn,
-            name_override=name_override,
-            description_override=description_override,
+        if isinstance(fn, str):
+            import_path = fn
+            from llmling_agent.utils import importing
+
+            callable_obj = importing.import_callable(fn)
+            name = getattr(callable_obj, "__name__", "unknown")
+            import_path = fn
+        else:
+            callable_obj = fn
+            module = fn.__module__
+            if hasattr(fn, "__qualname__"):  # Regular function
+                name = fn.__name__
+                import_path = f"{module}.{fn.__qualname__}"
+            else:  # Instance with __call__ method
+                name = fn.__class__.__name__
+                import_path = f"{module}.{fn.__class__.__qualname__}"
+
+        return cls(
+            callable=callable_obj,
+            name=name_override or name,
+            description=description_override or inspect.getdoc(callable_obj) or "",
+            import_path=import_path,
             schema_override=schema_override,
+            hints=hints,
+            **kwargs,
         )
-        return cls(tool, **kwargs)
 
     @classmethod
     def from_crewai_tool(

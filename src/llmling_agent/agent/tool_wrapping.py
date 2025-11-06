@@ -37,7 +37,7 @@ def wrap_tool(
     RunContext. In order to migitate this, we "fallback" to the AgentContext, which
     at least provides some information.
     """
-    original_tool = tool.callable.callable
+    original_tool = tool.callable
     if has_argument_type(original_tool, RunContext):
 
         async def wrapped(ctx: RunContext[AgentContext], *args, **kwargs):  # pyright: ignore

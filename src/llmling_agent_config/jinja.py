@@ -103,9 +103,9 @@ class Jinja2EnvironmentConfig(Schema):
         try:
             # Convert filters - use tool name as filter name
             tools = [cfg.get_tool() for cfg in self.filters]
-            kwargs["filters"] = {tool.name: tool.callable.callable for tool in tools}
+            kwargs["filters"] = {tool.name: tool.callable for tool in tools}
             tools = [cfg.get_tool() for cfg in self.tests]
-            kwargs["tests"] = {tool.name: tool.callable.callable for tool in tools}
+            kwargs["tests"] = {tool.name: tool.callable for tool in tools}
 
         except Exception as exc:
             msg = f"Failed to import Jinja2 filters/tests: {exc}"
