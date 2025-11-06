@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from llmling import LLMLingError
+from llmling_agent.utils.baseregistry import LLMLingError
 
 
 class ToolError(LLMLingError):

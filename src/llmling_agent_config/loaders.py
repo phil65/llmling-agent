@@ -7,8 +7,6 @@ import inspect
 from typing import Annotated, Literal
 import warnings
 
-from llmling.config.base import ConfigModel
-from llmling.utils.paths import guess_mime_type
 from pydantic import ConfigDict, Field, SecretStr, model_validator
 from schemez import Schema
 
@@ -110,7 +108,10 @@ class PathResourceLoaderConfig(BaseResourceLoaderConfig):
     @property
     def mime_type(self) -> str:
         """Get MIME type based on file extension."""
-        return guess_mime_type(self.path)
+        import mimetypes
+
+        mime_type, _ = mimetypes.guess_type(str(self.path))
+        return mime_type or "application/octet-stream"
 
 
 class TextResourceLoaderConfig(BaseResourceLoaderConfig):
@@ -301,7 +302,7 @@ Resource = Annotated[
 ]
 
 
-class WatchConfig(ConfigModel):
+class WatchConfig(Schema):
     """Watch configuration for resources."""
 
     enabled: bool = False

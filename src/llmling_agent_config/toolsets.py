@@ -6,8 +6,7 @@ import os
 from typing import TYPE_CHECKING, Annotated, Literal
 
 from llmling import ConfigModel
-from llmling.tools.toolsets import ToolSet
-from pydantic import EmailStr, Field, HttpUrl, SecretStr, field_validator  # noqa: TC002
+from pydantic import EmailStr, Field, HttpUrl, SecretStr  # noqa: TC002
 from upath import UPath  # noqa: TC002
 
 from llmling_agent.utils.importing import import_class
@@ -251,20 +250,6 @@ class CustomToolsetConfig(BaseToolsetConfig):
 
     import_path: str = Field(...)
     """Dotted import path to the custom toolset implementation class."""
-
-    @field_validator("import_path", mode="after")
-    @classmethod
-    def validate_import_path(cls, v: str) -> str:
-        # v is already confirmed to be a str here
-        try:
-            cls = import_class(v)
-            if not issubclass(cls, ToolSet):
-                msg = f"{v} must be a ToolSet class"
-                raise ValueError(msg)  # noqa: TRY004, TRY301
-        except Exception as exc:
-            msg = f"Invalid toolset class: {v}"
-            raise ValueError(msg) from exc
-        return v
 
     def get_provider(self) -> ResourceProvider:
         """Create custom provider from import path."""

@@ -15,9 +15,8 @@ from pathlib import Path
 import sys
 from typing import Any
 
-from llmling.core.log import get_logger
-
 from llmling_agent import AgentsManifest
+from llmling_agent.log import get_logger
 
 
 logger = get_logger(__name__)

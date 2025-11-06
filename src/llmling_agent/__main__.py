@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from llmling.cli.utils import get_command_help
+from llmling.config.store import config_store
 import typer as t
 
 from llmling_agent_cli.agent import add_agent_file, list_agents, set_active_file
@@ -16,6 +16,14 @@ from llmling_agent_cli.watch import watch_command
 
 
 MAIN_HELP = "🤖 LLMling Agent CLI - Run and manage LLM agents"
+
+
+def get_command_help(base_help: str) -> str:
+    """Get command help text with active config information."""
+    if active := config_store.get_active():
+        return f"{base_help}\n\n(Using config: {active})"
+    return f"{base_help}\n\n(No active config set)"
+
 
 # Create CLI app
 help_text = get_command_help(MAIN_HELP)

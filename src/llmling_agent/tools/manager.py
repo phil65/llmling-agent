@@ -8,7 +8,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass, field, fields
 from typing import TYPE_CHECKING, Any, Literal
 
-from llmling import LLMCallableTool, ToolError
+from llmling import LLMCallableTool
 from psygnal import Signal
 
 from llmling_agent.log import get_logger
@@ -16,7 +16,7 @@ from llmling_agent.resource_providers.callable_provider import (
     CallableResourceProvider,
 )
 from llmling_agent.tools.base import Tool
-from llmling_agent.utils.baseregistry import BaseRegistry
+from llmling_agent.utils.baseregistry import BaseRegistry, LLMLingError
 from llmling_agent.utils.importing import import_class
 from llmling_agent.utils.now import get_now
 
@@ -38,6 +38,10 @@ MAX_LEN_DESCRIPTION = 2000
 ToolState = Literal["all", "enabled", "disabled"]
 ProviderName = str
 OwnerType = Literal["pool", "team", "node"]
+
+
+class ToolError(LLMLingError):
+    """Base exception for tool-related errors."""
 
 
 class ToolManager(BaseRegistry[str, Tool]):
