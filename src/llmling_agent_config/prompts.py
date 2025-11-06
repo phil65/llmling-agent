@@ -62,7 +62,7 @@ class PromptMessage(Schema):
     """Content of the message."""
 
 
-class BasePrompt(Schema):
+class BasePromptConfig(Schema):
     """Base class for all prompts."""
 
     name: str
@@ -82,7 +82,7 @@ class BasePrompt(Schema):
     # messages: list[PromptMessage]
 
 
-class StaticPrompt(BasePrompt):
+class StaticPromptConfig(BasePromptConfig):
     """Static prompt defined by message list."""
 
     messages: list[PromptMessage]
@@ -92,7 +92,7 @@ class StaticPrompt(BasePrompt):
     """Discriminator field identifying this as a static text prompt."""
 
 
-class DynamicPrompt(BasePrompt):
+class DynamicPromptConfig(BasePromptConfig):
     """Dynamic prompt loaded from callable."""
 
     import_path: str | Callable
@@ -108,7 +108,7 @@ class DynamicPrompt(BasePrompt):
     """Discriminator field identifying this as a function-based prompt."""
 
 
-class FilePrompt(BasePrompt):
+class FilePromptConfig(BasePromptConfig):
     """Prompt loaded from a file.
 
     This type of prompt loads its content from a file, allowing for longer or more
@@ -130,6 +130,7 @@ class FilePrompt(BasePrompt):
 
 
 # Type to use in configuration
-PromptType = Annotated[
-    StaticPrompt | DynamicPrompt | FilePrompt, Field(discriminator="type")
+PromptConfig = Annotated[
+    StaticPromptConfig | DynamicPromptConfig | FilePromptConfig,
+    Field(discriminator="type"),
 ]
