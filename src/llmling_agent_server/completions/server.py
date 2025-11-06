@@ -30,8 +30,27 @@ logger = get_logger(__name__)
 class OpenAIServer(BaseServer):
     """OpenAI-compatible API server backed by LLMling agents."""
 
-    def __init__(self, pool: AgentPool, *, cors: bool = True, docs: bool = True):
+    def __init__(
+        self,
+        pool: AgentPool,
+        *,
+        host: str = "0.0.0.0",
+        port: int = 8000,
+        cors: bool = True,
+        docs: bool = True,
+    ):
+        """Initialize OpenAI-compatible server.
+
+        Args:
+            pool: AgentPool containing available agents
+            host: Host to bind server to
+            port: Port to bind server to
+            cors: Whether to enable CORS middleware
+            docs: Whether to enable API documentation endpoints
+        """
         super().__init__(pool)
+        self.host = host
+        self.port = port
         self.app = FastAPI()
         logfire.instrument_fastapi(self.app)
 
@@ -107,12 +126,21 @@ class OpenAIServer(BaseServer):
             logger.exception("Error processing chat completion")
             raise HTTPException(500, f"Error: {e!s}") from e
 
+    async def start(self) -> None:
+        """Start the server (blocking async - runs until stopped)."""
+        import uvicorn
+
+        config = uvicorn.Config(
+            self.app, host=self.host, port=self.port, log_level="info"
+        )
+        server = uvicorn.Server(config)
+        await server.serve()
+
 
 if __name__ == "__main__":
     import asyncio
 
     import httpx
-    import uvicorn
 
     from llmling_agent import AgentPool
 
@@ -148,13 +176,13 @@ if __name__ == "__main__":
         """Run server and test client."""
         pool = AgentPool()
         await pool.add_agent("gpt-5-mini", model="openai:gpt-5-mini")
-        async with pool:  # Ensure pool is properly initialized
-            server = OpenAIServer(pool)
-            config = uvicorn.Config(
-                server.app, host="0.0.0.0", port=8000, log_level="info"
-            )
-            server_instance = uvicorn.Server(config)
-            await server_instance.serve()
+        async with (
+            OpenAIServer(pool, host="0.0.0.0", port=8000) as server,
+            server.run_context(),
+        ):  # Server initializes pool and starts in background
+            await asyncio.sleep(1)  # Wait for server to start
+            await test_client()
+        # Server automatically stopped
 
     fmt = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     asyncio.run(main())

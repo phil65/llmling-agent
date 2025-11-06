@@ -7,7 +7,6 @@ the Agent Client Protocol.
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass
 import functools
 from typing import TYPE_CHECKING, Any, Self
 
@@ -31,7 +30,6 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-@dataclass
 class ACPServer(BaseServer):
     """ACP (Agent Client Protocol) server for llmling-agent using external library.
 
@@ -39,45 +37,45 @@ class ACPServer(BaseServer):
     JSON-RPC protocol using the external acp library for robust communication.
 
     The actual client communication happens via the AgentSideConnection created
-    when run() is called, which communicates with the external process over stdio.
+    when start() is called, which communicates with the external process over stdio.
     """
 
-    agent_pool: AgentPool[Any]
-    """AgentPool containing available agents"""
+    def __init__(
+        self,
+        pool: AgentPool[Any],
+        *,
+        file_access: bool = True,
+        terminal_access: bool = True,
+        providers: list[ProviderType] | None = None,
+        debug_messages: bool = False,
+        debug_file: str | None = None,
+        debug_commands: bool = False,
+        agent: str | None = None,
+    ) -> None:
+        """Initialize ACP server with configuration.
 
-    file_access: bool = True
-    """Whether to support file access operations"""
-
-    terminal_access: bool = True
-    """Whether to support terminal access operations"""
-
-    providers: list[ProviderType] | None = None
-    """List of providers to use for model discovery (None = openrouter)"""
-
-    debug_messages: bool = False
-    """Whether to enable debug message logging"""
-
-    debug_file: str | None = None
-    """File path for debug message logging"""
-
-    debug_commands: bool = False
-    """Whether to enable debug slash commands for testing"""
-
-    agent: str | None = None
-    """Optional specific agent name to use (defaults to first agent)"""
-
-    def __post_init__(self) -> None:
-        """Initialize server configuration."""
-        # Set default providers if None
-        if self.providers is None:
-            self.providers = ["openrouter"]
+        Args:
+            pool: AgentPool containing available agents
+            file_access: Whether to support file access operations
+            terminal_access: Whether to support terminal access operations
+            providers: List of providers to use for model discovery (None = openrouter)
+            debug_messages: Whether to enable debug message logging
+            debug_file: File path for debug message logging
+            debug_commands: Whether to enable debug slash commands for testing
+            agent: Optional specific agent name to use (defaults to first agent)
+        """
+        super().__init__(pool)
+        self.file_access = file_access
+        self.terminal_access = terminal_access
+        self.providers = providers or ["openrouter"]
+        self.debug_messages = debug_messages
+        self.debug_file = debug_file
+        self.debug_commands = debug_commands
+        self.agent = agent
 
         self._running = False
         self._available_models: list[ModelInfo] = []
         self._models_initialized = False
-
-        # Initialize base class
-        super().__init__(self.agent_pool)
 
     @classmethod
     def from_config(
@@ -110,7 +108,7 @@ class ACPServer(BaseServer):
         manifest = AgentsManifest.from_file(config_path)
         pool = AgentPool(manifest=manifest)
         server = cls(
-            agent_pool=pool,
+            pool,
             file_access=file_access,
             terminal_access=terminal_access,
             providers=providers,
@@ -119,7 +117,7 @@ class ACPServer(BaseServer):
             debug_commands=debug_commands,
             agent=agent,
         )
-        agent_names = list(server.agent_pool.agents.keys())
+        agent_names = list(server.pool.agents.keys())
 
         # Validate specified agent exists if provided
         if agent and agent not in agent_names:
@@ -134,20 +132,20 @@ class ACPServer(BaseServer):
             logger.info("ACP session agent", agent=agent)
         return server
 
-    async def run(self) -> None:
-        """Run the ACP server."""
+    async def start(self) -> None:
+        """Start the ACP server (blocking async - runs until stopped)."""
         if self._running:
             msg = "Server is already running"
             raise RuntimeError(msg)
         self._running = True
-        agent_names = list(self.agent_pool.agents.keys())
+        agent_names = list(self.pool.agents.keys())
         msg = "Starting ACP server on stdio"
         logger.info(msg, num_agents=len(agent_names), agent_names=agent_names)
         try:
             await self._initialize_models()  # Initialize models on first run
             create_acp_agent = functools.partial(
                 LLMlingACPAgent,
-                agent_pool=self.agent_pool,
+                agent_pool=self.pool,
                 available_models=self._available_models,
                 file_access=self.file_access,
                 terminal_access=self.terminal_access,
@@ -179,10 +177,6 @@ class ACPServer(BaseServer):
 
     async def shutdown(self) -> None:
         """Shutdown the ACP server and cleanup resources."""
-        if not self._running:
-            msg = "Server is not running"
-            raise RuntimeError(msg)
-
         self._running = False
         logger.info("ACP server shutdown complete")
 

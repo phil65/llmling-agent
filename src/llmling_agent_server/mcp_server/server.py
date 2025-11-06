@@ -59,6 +59,7 @@ class MCPServer(BaseServer):
         lifespan: (LifespanHandler | None) = None,
         instructions: str | None = None,
         name: str = "llmling-server",
+        raise_exceptions: bool = False,
     ):
         """Initialize server with agent pool.
 
@@ -68,6 +69,7 @@ class MCPServer(BaseServer):
             name: Server name for MCP protocol
             lifespan: Lifespan context manager
             instructions: Instructions for Server usage
+            raise_exceptions: Whether to raise exceptions during server start
         """
         from llmling_agent.resource_providers.pool import PoolResourceProvider
 
@@ -76,6 +78,7 @@ class MCPServer(BaseServer):
         self.name = name
         self.task_manager = TaskManager()
         self.config = config
+        self.raise_exceptions = raise_exceptions
 
         # Handle Zed mode if enabled
         if config.zed_mode:
@@ -109,8 +112,8 @@ class MCPServer(BaseServer):
             model="test",
         )
 
-    async def start(self, *, raise_exceptions: bool = False):
-        """Start the server."""
+    async def start(self) -> None:
+        """Start the server (blocking async - runs until stopped)."""
         try:
             if self.config.transport == "stdio":
                 await self.fastmcp.run_async(transport=self.config.transport)
@@ -120,6 +123,10 @@ class MCPServer(BaseServer):
                     host=self.config.host,
                     port=self.config.port,
                 )
+        except Exception as e:
+            if self.raise_exceptions:
+                raise
+            logger.exception("Error starting MCP server", exc_info=e)
         finally:
             await self.shutdown()
 
@@ -133,25 +140,9 @@ class MCPServer(BaseServer):
             self._tasks.clear()
 
     async def __aenter__(self) -> Self:
-        """Enter async context and start server."""
+        """Enter async context and initialize server resources."""
         await super().__aenter__()
-        try:
-            if self.config.transport == "stdio":
-                coro = self.fastmcp.run_async(transport=self.config.transport)
-            else:
-                coro = self.fastmcp.run_async(
-                    transport=self.config.transport,
-                    host=self.config.host,
-                    port=self.config.port,
-                )
-            self.task_manager.create_task(coro)
-        except Exception as e:
-            await self.shutdown()
-            msg = "Failed to start server"
-            logger.exception(msg, exc_info=e)
-            raise RuntimeError(msg) from e
-        else:
-            return self
+        return self
 
     async def __aexit__(
         self,
@@ -159,9 +150,9 @@ class MCPServer(BaseServer):
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
     ) -> None:
-        """Shutdown the server."""
-        await super().__aexit__(exc_type, exc_val, exc_tb)
+        """Cleanup server resources."""
         await self.shutdown()
+        await super().__aexit__(exc_type, exc_val, exc_tb)
 
     @property
     def current_session(self) -> mcp.ServerSession:

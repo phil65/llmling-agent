@@ -136,7 +136,7 @@ def acp_command(
         agent=agent,
     )
     # Configure agent capabilities
-    agent_count = len(acp_server.agent_pool.agents)
+    agent_count = len(acp_server.pool.agents)
     if agent_count == 0:
         logger.error("No agents found in configuration")
         raise t.Exit(1)
@@ -151,8 +151,8 @@ def acp_command(
 
     async def run_acp_server():
         try:
-            async with acp_server.agent_pool:
-                await acp_server.run()
+            async with acp_server:
+                await acp_server.start()
         except KeyboardInterrupt:
             logger.info("ACP server shutdown requested")
         except Exception as e:

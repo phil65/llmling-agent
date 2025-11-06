@@ -19,8 +19,25 @@ if TYPE_CHECKING:
 class ResponsesServer(BaseServer):
     """OpenAI-compatible /v1/responses endpoint."""
 
-    def __init__(self, pool: AgentPool, api_key: str | None = None):
+    def __init__(
+        self,
+        pool: AgentPool,
+        *,
+        host: str = "0.0.0.0",
+        port: int = 8000,
+        api_key: str | None = None,
+    ):
+        """Initialize responses server.
+
+        Args:
+            pool: AgentPool containing available agents
+            host: Host to bind server to
+            port: Port to bind server to
+            api_key: Optional API key for authentication
+        """
         super().__init__(pool)
+        self.host = host
+        self.port = port
         self.app = FastAPI()
         self.api_key = api_key
         logfire.instrument_fastapi(self.app)
@@ -51,18 +68,21 @@ class ResponsesServer(BaseServer):
         except Exception as e:
             raise HTTPException(500, str(e)) from e
 
-    async def serve(self, host: str = "0.0.0.0", port: int = 8000):
-        """Start the server."""
-        config = uvicorn.Config(self.app, host=host, port=port, log_level="info")
-        server_instance = uvicorn.Server(config)
-        await server_instance.serve()
+    async def start(self) -> None:
+        """Start the server (blocking async - runs until stopped)."""
+        import uvicorn
+
+        config = uvicorn.Config(
+            self.app, host=self.host, port=self.port, log_level="info"
+        )
+        server = uvicorn.Server(config)
+        await server.serve()
 
 
 if __name__ == "__main__":
     import asyncio
 
     import httpx
-    import uvicorn
 
     from llmling_agent import AgentPool
 
@@ -87,14 +107,12 @@ if __name__ == "__main__":
         """Run server and test client."""
         pool = AgentPool()
         await pool.add_agent("gpt-5-nano", model="openai:gpt-5-nano")
-        async with ResponsesServer(pool) as server:
-            server_task = asyncio.create_task(server.serve())
-            await asyncio.sleep(1)
+        async with (
+            ResponsesServer(pool, host="0.0.0.0", port=8000) as server,
+            server.run_context(),
+        ):  # Server initializes pool and starts in background
+            await asyncio.sleep(1)  # Wait for server to start
             await test_client()
-            server_task.cancel()
-            try:
-                await server_task
-            except asyncio.CancelledError:
-                print("Server task cancelled.")
+        # Server automatically stopped
 
     asyncio.run(main())
