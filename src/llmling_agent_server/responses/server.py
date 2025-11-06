@@ -19,9 +19,10 @@ if TYPE_CHECKING:
 class ResponsesServer(BaseServer):
     """OpenAI-compatible /v1/responses endpoint."""
 
-    def __init__(self, pool: AgentPool):
+    def __init__(self, pool: AgentPool, api_key: str | None = None):
         super().__init__(pool)
         self.app = FastAPI()
+        self.api_key = api_key
         logfire.instrument_fastapi(self.app)
         self.setup_routes()
 
@@ -34,6 +35,8 @@ class ResponsesServer(BaseServer):
             raise HTTPException(401, "Missing API key")
         if not authorization.startswith("Bearer "):
             raise HTTPException(401, "Invalid authorization format")
+        if self.api_key and authorization != f"Bearer {self.api_key}":
+            raise HTTPException(401, "Invalid API key")
 
     def setup_routes(self):
         """Set up API routes."""
@@ -84,12 +87,10 @@ if __name__ == "__main__":
         """Run server and test client."""
         pool = AgentPool()
         await pool.add_agent("gpt-5-nano", model="openai:gpt-5-nano")
-        async with pool:
-            server = ResponsesServer(pool)
+        async with ResponsesServer(pool) as server:
             server_task = asyncio.create_task(server.serve())
             await asyncio.sleep(1)
             await test_client()
-
             server_task.cancel()
             try:
                 await server_task
