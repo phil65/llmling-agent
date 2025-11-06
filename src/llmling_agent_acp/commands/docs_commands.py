@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 import uuid
 
 import httpx
@@ -252,6 +253,282 @@ class GitDiffCommand(SlashedCommand):
 
         except Exception as e:
             logger.exception("Unexpected error fetching git diff", commit=commit)
+            await session.notifications.tool_call_progress(
+                tool_call_id=tool_call_id,
+                status="failed",
+                title=f"Error: {e}",
+            )
+
+
+class GetSchemaCommand(SlashedCommand):
+    """Get Python code from Pydantic model schema.
+
+    Supports both dot notation paths to BaseModel classes and URLs to OpenAPI schemas.
+    Uses datamodel-codegen to generate clean Python code from schemas.
+    """
+
+    name = "get-schema"
+    category = "docs"
+
+    async def execute_command(  # noqa: PLR0911, PLR0915
+        self,
+        ctx: CommandContext[AgentContext[ACPSession]],
+        input_path: str,
+        *,
+        class_name: str | None = None,
+        cwd: str | None = None,
+    ):
+        """Get Python code from Pydantic model schema.
+
+        Args:
+            ctx: Command context with ACP session
+            input_path: Dot notation path to BaseModel or URL to OpenAPI schema
+            class_name: Optional custom class name for generated code
+            cwd: Working directory to run in (defaults to session cwd)
+        """
+        session = ctx.context.data
+        assert session
+
+        # Generate tool call ID
+        tool_call_id = f"get-schema-{uuid.uuid4().hex[:8]}"
+
+        try:
+            # Check if we have terminal access
+            if not (
+                session.client_capabilities
+                and session.client_capabilities.terminal
+                and session.acp_agent.terminal_access
+            ):
+                await session.notifications.send_agent_text(
+                    "❌ **Terminal access not available for schema generation**"
+                )
+                return
+
+            # Determine if input is URL or dot path
+            is_url = input_path.startswith(("http://", "https://"))
+
+            # Start tool call
+            display_title = (
+                f"Generating schema from URL: {input_path}"
+                if is_url
+                else f"Generating schema from model: {input_path}"
+            )
+            await session.notifications.tool_call_start(
+                tool_call_id=tool_call_id,
+                title=display_title,
+                kind="read",
+            )
+
+            if is_url:
+                # Direct URL approach - use datamodel-codegen with URL
+                import subprocess
+                import tempfile
+
+                args = [
+                    "datamodel-codegen",
+                    "--url",
+                    input_path,
+                    "--input-file-type",
+                    "openapi",
+                    "--disable-timestamp",
+                    "--use-union-operator",
+                    "--use-schema-description",
+                    "--enum-field-as-literal",
+                    "all",
+                ]
+                if class_name:
+                    args.extend(["--class-name", class_name])
+
+                # Run datamodel-codegen server-side
+                result = subprocess.run(
+                    args,
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
+                )
+
+                if result.returncode != 0:
+                    await session.notifications.tool_call_progress(
+                        tool_call_id=tool_call_id,
+                        status="failed",
+                        title=f"Failed to generate from URL: {result.stderr.strip()}",
+                    )
+                    return
+
+                generated_code = result.stdout.strip()
+
+            else:
+                # Dot path approach - hybrid client/server
+                # Step 1: CLIENT-SIDE - Extract schema via terminal
+                import llmling_agent.utils.importing
+
+                importing_py_path = llmling_agent.utils.importing.__file__
+
+                create_response = await session.requests.create_terminal(
+                    command="uv",
+                    args=["run", importing_py_path, input_path],
+                    cwd=cwd or session.cwd,
+                    env={},
+                )
+                terminal_id = create_response.terminal_id
+
+                # Wait for schema extraction to complete
+                exit_result = await session.requests.wait_for_terminal_exit(terminal_id)
+                output_response = await session.requests.terminal_output(terminal_id)
+                await session.requests.release_terminal(terminal_id)
+
+                if exit_result.exit_code != 0:
+                    error_msg = (
+                        output_response.output.strip()
+                        or f"Exit code: {exit_result.exit_code}"
+                    )
+                    await session.notifications.tool_call_progress(
+                        tool_call_id=tool_call_id,
+                        status="failed",
+                        title=f"Failed to import model: {error_msg}",
+                    )
+                    return
+
+                # We don't get source code from importing.py, we need schema
+                # Let's create a simple schema extraction script instead
+                schema_script = f'''
+import sys
+import json
+import importlib
+import inspect
+
+def import_callable(path):
+    """Simple import_callable implementation."""
+    parts = path.split(".")
+    for i in range(len(parts), 0, -1):
+        try:
+            module_path = ".".join(parts[:i])
+            module = importlib.import_module(module_path)
+            obj = module
+            for part in parts[i:]:
+                obj = getattr(obj, part)
+            return obj
+        except (ImportError, AttributeError):
+            continue
+    raise ImportError(f"Could not import: {{path}}")
+
+try:
+    model_class = import_callable("{input_path}")
+    schema = model_class.model_json_schema()
+    print(json.dumps(schema, indent=2))
+except Exception as e:
+    print(f"Error: {{e}}", file=sys.stderr)
+    sys.exit(1)
+'''
+
+                # Run schema extraction client-side
+                create_response = await session.requests.create_terminal(
+                    command="python",
+                    args=["-c", schema_script],
+                    cwd=cwd or session.cwd,
+                    env={},
+                )
+                terminal_id = create_response.terminal_id
+
+                exit_result = await session.requests.wait_for_terminal_exit(terminal_id)
+                output_response = await session.requests.terminal_output(terminal_id)
+                await session.requests.release_terminal(terminal_id)
+
+                if exit_result.exit_code != 0:
+                    error_msg = (
+                        output_response.output.strip()
+                        or f"Exit code: {exit_result.exit_code}"
+                    )
+                    await session.notifications.tool_call_progress(
+                        tool_call_id=tool_call_id,
+                        status="failed",
+                        title=f"Failed to extract schema: {error_msg}",
+                    )
+                    return
+
+                schema_json = output_response.output.strip()
+                if not schema_json:
+                    await session.notifications.tool_call_progress(
+                        tool_call_id=tool_call_id,
+                        status="failed",
+                        title="No schema extracted from model",
+                    )
+                    return
+
+                # Step 2: SERVER-SIDE - Generate code from schema
+                import subprocess
+                import tempfile
+
+                with tempfile.NamedTemporaryFile(
+                    mode="w", suffix=".json", delete=False
+                ) as f:
+                    f.write(schema_json)
+                    schema_file = f.name
+
+                try:
+                    args = [
+                        "datamodel-codegen",
+                        "--input",
+                        schema_file,
+                        "--input-file-type",
+                        "jsonschema",
+                        "--disable-timestamp",
+                        "--use-union-operator",
+                        "--use-schema-description",
+                        "--enum-field-as-literal",
+                        "all",
+                        "--class-name",
+                        class_name or input_path.split(".")[-1],
+                    ]
+
+                    result = subprocess.run(
+                        args,
+                        capture_output=True,
+                        text=True,
+                        timeout=30,
+                    )
+
+                    if result.returncode != 0:
+                        await session.notifications.tool_call_progress(
+                            tool_call_id=tool_call_id,
+                            status="failed",
+                            title=f"Failed to generate code: {result.stderr.strip()}",
+                        )
+                        return
+
+                    generated_code = result.stdout.strip()
+
+                finally:
+                    # Cleanup temp schema file
+                    Path(schema_file).unlink(missing_ok=True)
+
+            if not generated_code:
+                await session.notifications.tool_call_progress(
+                    tool_call_id=tool_call_id,
+                    status="completed",
+                    title="No code generated from schema",
+                )
+                return
+
+            # Stage the generated code for use in agent context
+            staged_part = UserPromptPart(
+                content=f"Generated Python code from {input_path}:\n\n{generated_code}"
+            )
+            session.add_staged_parts([staged_part])
+
+            # Send successful result - wrap in code block for proper display
+            staged_count = session.get_staged_parts_count()
+            await session.notifications.tool_call_progress(
+                tool_call_id=tool_call_id,
+                status="completed",
+                title=f"Schema code generated and staged ({staged_count} total parts)",
+                content=[f"```python\n{generated_code}\n```"],
+            )
+
+        except Exception as e:
+            logger.exception(
+                "Unexpected error generating schema code", input_path=input_path
+            )
             await session.notifications.tool_call_progress(
                 tool_call_id=tool_call_id,
                 status="failed",
@@ -526,6 +803,7 @@ def get_docs_commands() -> list[type[SlashedCommand]]:
     """Get all documentation-related slash commands."""
     return [
         GetSourceCommand,
+        GetSchemaCommand,
         GitDiffCommand,
         FetchRepoCommand,
         UrlToMarkdownCommand,
