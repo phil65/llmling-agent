@@ -33,7 +33,6 @@ agents:
         model: "openai:gpt-5"
         system_prompts: [...]
         toolsets: [...]
-        environment: {...}
   planner:
     model: "anthropic:claude-sonnet-4-0"
     ...

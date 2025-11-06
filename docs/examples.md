@@ -11,7 +11,6 @@ Create a simple agent that opens websites in your browser:
 agents:
   url_opener:
     model: openai:gpt-5-mini
-    environment: env_web.yml
     system_prompts:
       - |
         You help users open websites. Use the open_url tool to open URLs.
@@ -88,7 +87,6 @@ agents:
   code_reviewer:
     model: openai:gpt-5
     output_type: CodeReview  # Use structured response
-    environment: env_code.yml
     system_prompts:
       - "You review Python code and provide structured feedback."
 ```
@@ -102,7 +100,6 @@ Create an agent that interacts with the file system:
 agents:
   file_manager:
     model: openai:gpt-5
-    environment: env_files.yml
     system_prompts:
       - "You help users manage their files and directories."
       - |

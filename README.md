@@ -172,20 +172,6 @@ agents:
       - type: agent_management  # Enables delegation
       - type: resource_access   # Enables resource loading
 
-    # Environment configuration
-    environment:
-      type: "inline"  # or "file" for external config
-      tools:
-        analyze_complexity:
-          import_path: "radon.complexity"
-          description: "Calculate code complexity"
-        run_linter:
-          import_path: "pylint.lint"
-          description: "Run code linting"
-      resources:
-        coding_standards:
-          type: "text"
-          content: "PEP8 guidelines..."
 
     # Knowledge sources
     knowledge:

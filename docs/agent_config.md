@@ -137,32 +137,6 @@ responses:
             le: 5
 ```
 
-### Inline Environment Configuration
-
-Complete environment definition within agent config:
-
-```yaml
-agents:
-  web_assistant:
-    environment:
-      type: inline
-      tools:
-        open_browser:
-          import_path: webbrowser.open
-          description: "Open URL in browser"
-        get_user:
-          import_path: getpass.getuser
-          description: "Get current system username"
-
-      resources:
-        bookmarks:
-          type: text
-          content: |
-            Python Website: https://python.org
-            Documentation: https://docs.python.org
-          description: "Common Python URLs"
-```
-
 ### Model Settings
 
 Basic model configuration options:

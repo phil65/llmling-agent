@@ -48,10 +48,6 @@ agents:
       - type: agent_management  # Enables delegation
       - type: resource_access   # Enables resource loading
 
-    # Environment & Resources
-    environment:
-      type: "file"  # or "inline"
-      uri: "environments/analyzer.yml"
 
     # Knowledge configuration
     knowledge:

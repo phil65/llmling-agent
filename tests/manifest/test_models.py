@@ -65,7 +65,6 @@ agents:
         name: test
         model: test
         output_type: BasicResult
-        environment: env.yml  # Relative path
 """
 
 
