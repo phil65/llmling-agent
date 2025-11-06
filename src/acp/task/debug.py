@@ -9,13 +9,13 @@ import logging
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
-from .state import InMemoryMessageStateStore
+from acp.task.state import InMemoryMessageStateStore
 
 
 if TYPE_CHECKING:
     import asyncio
 
-    from .state import IncomingMessage
+    from acp.task.state import IncomingMessage
 
 
 __all__ = ["DebugEntry", "DebuggingMessageStateStore"]

@@ -13,8 +13,7 @@ from llmling_agent.models.content import AudioBase64Content, ImageBase64Content
 
 
 if TYPE_CHECKING:
-    from llmling.prompts.models import BasePrompt, PromptMessage, PromptParameter
-    from llmling.resources.models import LoadedResource
+    from llmling import BasePrompt, LoadedResource, PromptMessage, PromptParameter
 
     from llmling_agent.models.content import BaseContent
     from llmling_agent.tools.base import Tool

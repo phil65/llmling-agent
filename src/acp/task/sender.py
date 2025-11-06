@@ -10,7 +10,7 @@ import json
 import logging
 from typing import Any
 
-from .supervisor import TaskSupervisor
+from acp.task.supervisor import TaskSupervisor
 
 
 __all__ = ["MessageSender", "SenderFactory"]

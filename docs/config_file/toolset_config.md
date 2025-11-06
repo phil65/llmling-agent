@@ -54,37 +54,6 @@ agents:
         entity_id: "default"  # Entity ID to use
 ```
 
-## Custom Toolset
-Creates tools from a custom Python class implementation.
-
-```yaml
-agents:
-  custom-agent:
-    toolsets:
-      - type: "custom"
-        namespace: "aws"  # optional namespace prefix
-        import_path: "myapp.toolsets.AWSToolSet"  # path to toolset class
-```
-
-## Toolset Class Example
-Example of implementing a custom toolset:
-
-```python
-from llmling.tools.toolsets import ToolSet
-from llmling_agent.tools.base import Tool
-
-class MyToolSet(ToolSet):
-    """Custom toolset implementation."""
-
-    def __init__(self, namespace: str | None = None):
-        super().__init__(namespace=namespace)
-
-    async def get_tools(self) -> list[Tool]:
-        """Return list of tools in this set."""
-        tools = []
-        # Create and return tools
-        return tools
-```
 
 ## Configuration Notes
 
