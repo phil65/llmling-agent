@@ -206,7 +206,7 @@ markers = [
 ]
 python_files = ["test_*.py"]
 pythonpath = ["src"]
-testpaths = ["tests", "src/llmling_agent_server/acp_server/tests"]
+testpaths = ["tests"]
 asyncio_default_fixture_loop_scope = "function"
 asyncio_mode = "auto"
 
