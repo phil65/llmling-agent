@@ -4,45 +4,27 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from acp.schema import (
-    KillTerminalCommandResponse,
-    ReleaseTerminalResponse,
-    TerminalOutputResponse,
-    WaitForTerminalExitResponse,
-)
-
 
 if TYPE_CHECKING:
-    from acp.connection import Connection
+    from acp.requests import ACPRequests
+    from acp.schema import TerminalOutputResponse, WaitForTerminalExitResponse
 
 
 class TerminalHandle:
     """Handle for a terminal session."""
 
-    def __init__(self, terminal_id: str, session_id: str, conn: Connection) -> None:
-        self.id = terminal_id
-        self._session_id = session_id
-        self._conn = conn
+    def __init__(self, terminal_id: str, requests: ACPRequests) -> None:
+        self.terminal_id = terminal_id
+        self._requests = requests
 
     async def current_output(self) -> TerminalOutputResponse:
-        dct = {"sessionId": self._session_id, "terminalId": self.id}
-        resp = await self._conn.send_request("terminal/output", dct)
-        return TerminalOutputResponse.model_validate(resp)
+        return await self._requests.terminal_output(self.terminal_id)
 
     async def wait_for_exit(self) -> WaitForTerminalExitResponse:
-        dct = {"sessionId": self._session_id, "terminalId": self.id}
-        method = "terminal/wait_for_exit"
-        resp = await self._conn.send_request(method, dct)
-        return WaitForTerminalExitResponse.model_validate(resp)
+        return await self._requests.wait_for_terminal_exit(self.terminal_id)
 
-    async def kill(self) -> KillTerminalCommandResponse:
-        dct = {"sessionId": self._session_id, "terminalId": self.id}
-        resp = await self._conn.send_request("terminal/kill", dct)
-        payload = resp if isinstance(resp, dict) else {}
-        return KillTerminalCommandResponse.model_validate(payload)
+    async def kill(self) -> None:
+        return await self._requests.kill_terminal(self.terminal_id)
 
-    async def release(self) -> ReleaseTerminalResponse:
-        dct = {"sessionId": self._session_id, "terminalId": self.id}
-        resp = await self._conn.send_request("terminal/release", dct)
-        payload = resp if isinstance(resp, dict) else {}
-        return ReleaseTerminalResponse.model_validate(payload)
+    async def release(self) -> None:
+        return await self._requests.release_terminal(self.terminal_id)

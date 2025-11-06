@@ -40,7 +40,7 @@ from llmling_agent_commands.utils import CopyClipboardCommand, EditAgentFileComm
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from slashed import BaseCommand, SlashedCommand, CommandStore
+    from slashed import BaseCommand, SlashedCommand
 
 
 def get_agent_commands(**kwargs) -> list[BaseCommand | type[SlashedCommand]]:

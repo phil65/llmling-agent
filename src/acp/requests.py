@@ -1,4 +1,4 @@
-"""ACP request helper for clean session request API."""
+"""ACP request utilities for simplified client interactions."""
 
 from __future__ import annotations
 
@@ -18,13 +18,13 @@ from acp.schema import (
     WaitForTerminalExitRequest,
     WriteTextFileRequest,
 )
+from acp.terminal_handle import TerminalHandle
 from llmling_agent.log import get_logger
 
 
 if TYPE_CHECKING:
     from acp import Client
     from acp.schema import (
-        CreateTerminalResponse,
         RequestPermissionResponse,
         TerminalOutputResponse,
         WaitForTerminalExitResponse,
@@ -121,7 +121,7 @@ class ACPRequests:
         cwd: str | None = None,
         env: dict[str, str] | None = None,
         output_byte_limit: int | None = None,
-    ) -> CreateTerminalResponse:
+    ) -> TerminalHandle:
         """Create a new terminal session.
 
         Args:
@@ -132,7 +132,7 @@ class ACPRequests:
             output_byte_limit: Maximum bytes to capture from output
 
         Returns:
-            Terminal creation response with terminal_id
+            Terminal handle for managing the terminal session
         """
         request = CreateTerminalRequest(
             session_id=self.id,
@@ -142,7 +142,8 @@ class ACPRequests:
             env=[EnvVariable(name=k, value=v) for k, v in (env or {}).items()],
             output_byte_limit=output_byte_limit,
         )
-        return await self.client.create_terminal(request)
+        response = await self.client.create_terminal(request)
+        return TerminalHandle(terminal_id=response.terminal_id, requests=self)
 
     async def terminal_output(self, terminal_id: str) -> TerminalOutputResponse:
         """Get output from a terminal session.
@@ -215,14 +216,14 @@ class ACPRequests:
         Returns:
             Tuple of (output, exit_code)
         """
-        terminal_response = await self.create_terminal(
+        terminal_handle = await self.create_terminal(
             command=command,
             args=args,
             cwd=cwd,
             env=env,
             output_byte_limit=output_byte_limit,
         )
-        terminal_id = terminal_response.terminal_id
+        terminal_id = terminal_handle.terminal_id
 
         try:
             if timeout_seconds:  # Wait for completion (with optional timeout)
