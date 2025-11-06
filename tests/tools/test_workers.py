@@ -11,8 +11,6 @@ from llmling_agent import AgentPool, AgentsManifest
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from llmling_agent import Agent
-
 
 BASIC_WORKERS = """\
 agents:
@@ -84,7 +82,7 @@ async def test_basic_worker_setup(tmp_path: Path):
     manifest = AgentsManifest.from_file(config_path)
 
     async with AgentPool(manifest) as pool:
-        main_agent: Agent[None] = pool.get_agent("main")
+        main_agent = pool.get_agent("main")
 
         # Verify workers were registered as tools
         assert "ask_worker" in main_agent.tools
@@ -149,7 +147,7 @@ async def test_worker_independence(tmp_path: Path):
     config_path = write_config(BASIC_WORKERS, tmp_path)
     manifest = AgentsManifest.from_file(config_path)
     async with AgentPool(manifest) as pool:
-        main_agent: Agent[None] = pool.get_agent("main")
+        main_agent = pool.get_agent("main")
 
         # Create history in main agent
         await main_agent.run("Remember X equals 42")
@@ -164,9 +162,9 @@ async def test_multiple_workers_same_prompt(tmp_path: Path):
     config_path = write_config(BASIC_WORKERS, tmp_path)
     manifest = AgentsManifest.from_file(config_path)
     async with AgentPool(manifest) as pool:
-        main_agent: Agent[None] = pool.get_agent("main")
-        worker: Agent[None] = pool.get_agent("worker")
-        specialist: Agent[None] = pool.get_agent("specialist")
+        main_agent = pool.get_agent("main")
+        worker = pool.get_agent("worker")
+        specialist = pool.get_agent("specialist")
 
         # Configure test models
         main_model = TestModel(call_tools=["ask_worker", "ask_specialist"])

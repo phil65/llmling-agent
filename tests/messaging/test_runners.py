@@ -11,7 +11,7 @@ from llmling_agent import AgentPool, AgentsManifest
 
 
 if TYPE_CHECKING:
-    from llmling_agent import Agent, ChatMessage
+    from llmling_agent import ChatMessage
 
 
 class ConversationOutput(BaseModel):
@@ -123,7 +123,7 @@ async def test_agent_pool_cleanup():
     # Use context manager to ensure proper cleanup
     async with AgentPool(manifest) as pool:
         # Add some agents
-        agent: Agent[None] = pool.get_agent("test_agent")
+        agent = pool.get_agent("test_agent")
         assert "test_agent" in pool.agents
 
         # Get runtime reference to check cleanup
@@ -141,7 +141,7 @@ async def test_agent_pool_context_cleanup():
     runtime_ref = None
 
     async with AgentPool(manifest) as pool:
-        agent: Agent[None] = pool.get_agent("test_agent")
+        agent = pool.get_agent("test_agent")
         runtime_ref = agent.runtime
         assert "test_agent" in pool.agents
         assert runtime_ref is not None
