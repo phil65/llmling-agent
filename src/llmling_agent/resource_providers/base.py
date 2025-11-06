@@ -4,13 +4,17 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Self
 
+from llmling.core.typedefs import MessageContent
+from pydantic_ai import BinaryContent, SystemPromptPart, UserPromptPart
+from pydantic_ai.messages import ImageUrl
+
 from llmling_agent.log import get_logger
 
 
 if TYPE_CHECKING:
     from llmling import BasePrompt
+    from pydantic_ai import ModelRequestPart
 
-    from llmling_agent.messaging import ChatMessage
     from llmling_agent.tools.base import Tool
     from llmling_agent_config.resources import ResourceInfo
 
@@ -53,9 +57,9 @@ class ResourceProvider:
         """Get available resources. Override to provide resources."""
         return []
 
-    async def get_formatted_prompt(
+    async def get_request_parts(
         self, name: str, arguments: dict[str, str] | None = None
-    ) -> ChatMessage[str]:
+    ) -> list[ModelRequestPart]:
         """Get a prompt formatted with arguments.
 
         Args:
@@ -69,8 +73,6 @@ class ResourceProvider:
             KeyError: If prompt not found
             ValueError: If formatting fails
         """
-        from llmling_agent.messaging import ChatMessage
-
         prompts = await self.get_prompts()
         prompt = next((p for p in prompts if p.name == name), None)
         if not prompt:
@@ -82,17 +84,32 @@ class ResourceProvider:
             msg = f"Prompt {name!r} produced no messages"
             raise ValueError(msg)
 
-        # Use role from first message (usually system)
-        role = messages[0].role
-        # Merge all message contents
-        content = "\n\n".join(msg.get_text_content() for msg in messages)
+        parts: list[ModelRequestPart] = []
+        for prompt_msg in messages:
+            match prompt_msg.role:
+                case "system":
+                    parts.append(SystemPromptPart(str(prompt_msg.content)))
+                case "user":
+                    match prompt_msg.content:
+                        case str():
+                            parts.append(UserPromptPart(prompt_msg.content))
+                        case MessageContent():
+                            parts.append(to_pydantic(prompt_msg.content))
+                        case list():
+                            items = [to_pydantic(i) for i in prompt_msg.content]
+                            parts.extend(items)
+        return parts
 
-        return ChatMessage(
-            content=content,
-            role=role,  # type: ignore
-            name=self.name,
-            metadata={
-                "prompt_name": name,
-                "arguments": arguments or {},  # type: ignore
-            },
-        )
+
+def to_pydantic(content: MessageContent) -> UserPromptPart:
+    """Convert MessageContent to Pydantic model."""
+    if content.type == "text":
+        return UserPromptPart(content.content)
+    if content.type == "image_url":
+        return UserPromptPart([ImageUrl(content.content)])
+    if content.type == "image_base64":
+        return UserPromptPart([
+            BinaryContent(content.content.encode(), media_type="image/jpeg")
+        ])
+    msg = "Unsupported content type"
+    raise ValueError(msg)

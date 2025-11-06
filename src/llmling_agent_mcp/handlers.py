@@ -88,10 +88,9 @@ def register_handlers(llm_server: LLMLingServer):  # noqa: PLR0915
     ) -> types.GetPromptResult:
         """Handle prompts/get request."""
         try:
-            message = await llm_server.provider.get_formatted_prompt(name, arguments)
-            mcp_msg = conversions.to_mcp_message(message)
-            desc = message.metadata.get("prompt_name")
-            return types.GetPromptResult(messages=[mcp_msg], description=desc)  # type: ignore
+            parts = await llm_server.provider.get_request_parts(name, arguments)
+            messages = [msg for p in parts for msg in conversions.to_mcp_messages(p)]
+            return types.GetPromptResult(messages=messages, description=name)
         except KeyError as exc:
             error_data = mcp.ErrorData(code=types.INVALID_PARAMS, message=str(exc))
             raise mcp.McpError(error_data) from exc

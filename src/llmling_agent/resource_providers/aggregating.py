@@ -11,8 +11,8 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from llmling import BasePrompt
+    from pydantic_ai import ModelRequestPart
 
-    from llmling_agent.messaging import ChatMessage
     from llmling_agent.tools.base import Tool
     from llmling_agent_config.resources import ResourceInfo
 
@@ -51,13 +51,13 @@ class AggregatingResourceProvider(ResourceProvider):
             resources.extend(await provider.get_resources())
         return resources
 
-    async def get_formatted_prompt(
+    async def get_request_parts(
         self, name: str, arguments: dict[str, str] | None = None
-    ) -> ChatMessage[str]:
+    ) -> list[ModelRequestPart]:
         """Try to get prompt from first provider that has it."""
         for provider in self.providers:
             try:
-                return await provider.get_formatted_prompt(name, arguments)
+                return await provider.get_request_parts(name, arguments)
             except KeyError:
                 continue
         msg = f"Prompt {name!r} not found in any provider"

@@ -2,35 +2,77 @@
 
 from __future__ import annotations
 
+import base64
 from typing import TYPE_CHECKING
 
-from mcp import types
+from pydantic_ai import BinaryContent, FileUrl, SystemPromptPart, TextPart, UserPromptPart
 
 
 if TYPE_CHECKING:
     from llmling import BasePrompt, PromptParameter
+    from mcp.types import Prompt, PromptArgument, PromptMessage
+    from pydantic_ai import ModelRequestPart, ModelResponsePart
 
-    from llmling_agent.messaging import ChatMessage
 
-
-def to_mcp_message(msg: ChatMessage) -> types.PromptMessage:
+def to_mcp_messages(
+    part: ModelRequestPart | ModelResponsePart,
+) -> list[PromptMessage]:
     """Convert internal PromptMessage to MCP PromptMessage."""
-    role: types.Role = "assistant" if msg.role == "assistant" else "user"
-    content = types.TextContent(type="text", text=msg.content)
-    return types.PromptMessage(role=role, content=content)
+    from mcp.types import AudioContent, ImageContent, PromptMessage, TextContent
+
+    messages = []
+    match part:
+        case UserPromptPart(content=str() as c):
+            content = TextContent(type="text", text=c)
+            messages.append(PromptMessage(role="user", content=content))
+        case UserPromptPart(content=content_items):
+            for item in content_items:
+                match item:
+                    case BinaryContent():
+                        if item.is_audio:
+                            encoded = base64.b64encode(item.data).decode("utf-8")
+                            audio = AudioContent(
+                                type="audio", data=encoded, mimeType=item.media_type
+                            )
+                            messages.append(PromptMessage(role="user", content=audio))
+                        elif item.is_image:
+                            encoded = base64.b64encode(item.data).decode("utf-8")
+                            image = ImageContent(
+                                type="image", data=encoded, mimeType=item.media_type
+                            )
+                        messages.append(PromptMessage(role="user", content=image))
+                    case FileUrl(url=url):
+                        content = TextContent(type="text", text=url)
+                        messages.append(PromptMessage(role="user", content=content))
+
+        case SystemPromptPart(content=msg):
+            messages.append(
+                PromptMessage(role="user", content=TextContent(type="text", text=msg))
+            )
+        case TextPart(content=msg):
+            messages.append(
+                PromptMessage(
+                    role="assistant", content=TextContent(type="text", text=msg)
+                )
+            )
+    return messages
 
 
-def to_mcp_argument(arg: PromptParameter) -> types.PromptArgument:
+def to_mcp_argument(arg: PromptParameter) -> PromptArgument:
     """Convert to MCP PromptArgument."""
-    return types.PromptArgument(
+    from mcp.types import PromptArgument
+
+    return PromptArgument(
         name=arg.name, description=arg.description, required=arg.required
     )
 
 
-def to_mcp_prompt(prompt: BasePrompt) -> types.Prompt:
+def to_mcp_prompt(prompt: BasePrompt) -> Prompt:
     """Convert to MCP Prompt."""
+    from mcp.types import Prompt
+
     if prompt.name is None:
         msg = "Prompt name not set. This should be set during registration."
         raise ValueError(msg)
     args = [to_mcp_argument(arg) for arg in prompt.arguments]
-    return types.Prompt(name=prompt.name, description=prompt.description, arguments=args)
+    return Prompt(name=prompt.name, description=prompt.description, arguments=args)
