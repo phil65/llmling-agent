@@ -5,8 +5,6 @@ from __future__ import annotations
 import os
 from typing import TYPE_CHECKING
 
-from llmling.core.log import get_logger
-
 from llmling_agent.resource_providers import ResourceProvider
 
 
@@ -14,9 +12,6 @@ if TYPE_CHECKING:
     from pydantic import SecretStr
 
     from llmling_agent.tools.base import Tool
-
-
-logger = get_logger(__name__)
 
 
 class UpsonicTools(ResourceProvider):

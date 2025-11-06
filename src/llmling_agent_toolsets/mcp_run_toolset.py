@@ -4,13 +4,8 @@ from __future__ import annotations
 
 import os
 
-from llmling.core.log import get_logger
-
 from llmling_agent.resource_providers import ResourceProvider
 from llmling_agent.tools.base import Tool
-
-
-logger = get_logger(__name__)
 
 
 class McpRunTools(ResourceProvider):
