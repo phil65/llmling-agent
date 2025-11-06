@@ -25,7 +25,7 @@ agent.tools.register_tool(
     name_override="custom_name",     # Optional name override
     description_override="Does X",    # Optional description
     enabled=True,                    # Initial state
-    source="runtime",                # Tool source
+    source="source",                # Tool source
     requires_confirmation=False,     # Whether to confirm execution
     metadata={"custom": "data"}      # Additional metadata
 )

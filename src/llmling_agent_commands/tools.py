@@ -98,7 +98,7 @@ class ShowToolCommand(SlashedCommand):
                 extra_info.append(f"Required Capability: {tool_info.requires_capability}")
             if tool_info.requires_confirmation:
                 extra_info.append("Requires Confirmation: Yes")
-            if tool_info.source != "runtime":  # Only show if not default
+            if tool_info.source != "dynamic":  # Only show if not default
                 extra_info.append(f"Source: {tool_info.source}")
             if tool_info.priority != 100:  # Only show if not default  # noqa: PLR2004
                 extra_info.append(f"Priority: {tool_info.priority}")

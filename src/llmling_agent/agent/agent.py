@@ -549,6 +549,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             wrapped_tool,
             name_override=tool_name,
             description_override=docstring,
+            source="agent",
         )
 
     async def get_agentlet(

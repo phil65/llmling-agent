@@ -282,7 +282,7 @@ class ToolManager(BaseRegistry[str, Tool]):
         name_override: str | None = None,
         description_override: str | None = None,
         enabled: bool = True,
-        source: ToolSource = "runtime",
+        source: ToolSource = "dynamic",
         priority: int = 100,
         requires_confirmation: bool = False,
         requires_capability: str | None = None,
@@ -309,6 +309,9 @@ class ToolManager(BaseRegistry[str, Tool]):
             case Tool():
                 tool.description = description_override or tool.description
                 tool.name = name_override or tool.name
+                tool.source = source
+                tool.metadata = tool.metadata | (metadata or {})
+
             case _:
                 tool = Tool.from_callable(
                     tool,
@@ -434,7 +437,7 @@ class ToolManager(BaseRegistry[str, Tool]):
         *,
         description: str | None = None,
         enabled: bool = True,
-        source: ToolSource = "runtime",
+        source: ToolSource = "dynamic",
         priority: int = 100,
         requires_confirmation: bool = False,
         requires_capability: str | None = None,

@@ -94,7 +94,7 @@ class Tool:
     enabled: bool = True
     """Whether the tool is currently enabled"""
 
-    source: ToolSource = "runtime"
+    source: ToolSource = "dynamic"
     """Where the tool came from."""
 
     priority: int = 100
