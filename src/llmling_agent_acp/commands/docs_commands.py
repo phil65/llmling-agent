@@ -77,30 +77,16 @@ class GetSourceCommand(SlashedCommand):
                 kind="read",
             )
 
-            # Create terminal to run importing.py as script
-            create_response = await session.requests.create_terminal(
+            # Run importing.py as script
+            output, exit_code = await session.requests.run_command(
                 command="uv",
                 args=["run", importing_py_path, dot_path],
                 cwd=cwd or session.cwd,
-                env={},
             )
-            terminal_id = create_response.terminal_id
-
-            # Wait for command to complete
-            exit_result = await session.requests.wait_for_terminal_exit(terminal_id)
-
-            # Get the source output
-            output_response = await session.requests.terminal_output(terminal_id)
-
-            # Release terminal
-            await session.requests.release_terminal(terminal_id)
 
             # Check if command succeeded
-            if exit_result.exit_code != 0:
-                error_msg = (
-                    output_response.output.strip()
-                    or f"Exit code: {exit_result.exit_code}"
-                )
+            if exit_code != 0:
+                error_msg = output.strip() or f"Exit code: {exit_code}"
                 await session.notifications.tool_call_progress(
                     tool_call_id=tool_call_id,
                     status="failed",
@@ -108,7 +94,7 @@ class GetSourceCommand(SlashedCommand):
                 )
                 return
 
-            source_content = output_response.output.strip()
+            source_content = output.strip()
             if not source_content:
                 await session.notifications.tool_call_progress(
                     tool_call_id=tool_call_id,
@@ -200,34 +186,23 @@ class GitDiffCommand(SlashedCommand):
                 kind="execute",
             )
 
-            # Create terminal to run git diff
-            create_response = await session.requests.create_terminal(
+            # Run git diff command
+            output, exit_code = await session.requests.run_command(
                 command=git_command[0],
                 args=git_command[1:],
                 cwd=cwd or session.cwd,
-                env={},
             )
-            terminal_id = create_response.terminal_id
-
-            # Wait for git diff to complete
-            exit_result = await session.requests.wait_for_terminal_exit(terminal_id)
-
-            # Get the diff output
-            output_response = await session.requests.terminal_output(terminal_id)
-
-            # Release terminal
-            await session.requests.release_terminal(terminal_id)
 
             # Check if git command succeeded
-            if exit_result.exit_code != 0:
+            if exit_code != 0:
                 await session.notifications.tool_call_progress(
                     tool_call_id=tool_call_id,
                     status="failed",
-                    title=f"Git diff failed (exit code: {exit_result.exit_code})",
+                    title=f"Git diff failed (exit code: {exit_code})",
                 )
                 return
 
-            diff_content = output_response.output.strip()
+            diff_content = output.strip()
             if not diff_content:
                 await session.notifications.tool_call_progress(
                     tool_call_id=tool_call_id,
@@ -422,23 +397,14 @@ except Exception as e:
 '''
 
                 # Run schema extraction client-side
-                create_response = await session.requests.create_terminal(
+                output, exit_code = await session.requests.run_command(
                     command="python",
                     args=["-c", schema_script],
                     cwd=cwd or session.cwd,
-                    env={},
                 )
-                terminal_id = create_response.terminal_id
 
-                exit_result = await session.requests.wait_for_terminal_exit(terminal_id)
-                output_response = await session.requests.terminal_output(terminal_id)
-                await session.requests.release_terminal(terminal_id)
-
-                if exit_result.exit_code != 0:
-                    error_msg = (
-                        output_response.output.strip()
-                        or f"Exit code: {exit_result.exit_code}"
-                    )
+                if exit_code != 0:
+                    error_msg = output.strip() or f"Exit code: {exit_code}"
                     await session.notifications.tool_call_progress(
                         tool_call_id=tool_call_id,
                         status="failed",
@@ -446,7 +412,7 @@ except Exception as e:
                     )
                     return
 
-                schema_json = output_response.output.strip()
+                schema_json = output.strip()
                 if not schema_json:
                     await session.notifications.tool_call_progress(
                         tool_call_id=tool_call_id,
