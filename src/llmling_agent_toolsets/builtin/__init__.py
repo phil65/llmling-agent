@@ -11,7 +11,6 @@ from llmling_agent_toolsets.builtin.history import create_history_tools
 from llmling_agent_toolsets.builtin.process_management import (
     create_process_management_tools,
 )
-from llmling_agent_toolsets.builtin.resource_access import create_resource_access_tools
 from llmling_agent_toolsets.builtin.tool_management import create_tool_management_tools
 from llmling_agent_toolsets.builtin.user_interaction import create_user_interaction_tools
 
@@ -23,7 +22,6 @@ from llmling_agent_toolsets.builtin.file_access import FileAccessTools
 from llmling_agent_toolsets.builtin.history import HistoryTools
 from llmling_agent_toolsets.builtin.integration import IntegrationTools
 from llmling_agent_toolsets.builtin.process_management import ProcessManagementTools
-from llmling_agent_toolsets.builtin.resource_access import ResourceAccessTools
 from llmling_agent_toolsets.builtin.tool_management import ToolManagementTools
 from llmling_agent_toolsets.builtin.user_interaction import UserInteractionTools
 
@@ -37,7 +35,6 @@ __all__ = [
     "HistoryTools",
     "IntegrationTools",
     "ProcessManagementTools",
-    "ResourceAccessTools",
     "ToolManagementTools",
     "UserInteractionTools",
     # Factory functions
@@ -47,7 +44,6 @@ __all__ = [
     "create_file_access_tools",
     "create_history_tools",
     "create_process_management_tools",
-    "create_resource_access_tools",
     "create_tool_management_tools",
     "create_user_interaction_tools",
 ]

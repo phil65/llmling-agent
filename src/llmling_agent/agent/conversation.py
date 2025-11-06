@@ -9,7 +9,6 @@ from typing import TYPE_CHECKING, Any, Self, overload
 from uuid import UUID, uuid4
 
 from llmling import BasePrompt
-from llmling.config.models import BaseResource
 from psygnal import Signal
 from upathtools import read_path
 
@@ -217,8 +216,6 @@ class ConversationManager:
             match source:
                 case str():
                     await self.add_context_from_path(source)
-                case BaseResource():
-                    await self.add_context_from_resource(source)
                 case BasePrompt():
                     await self.add_context_from_prompt(source)
         except Exception:
@@ -455,30 +452,6 @@ class ConversationManager:
             content = await read_path(path)
             source = f"{path_obj.protocol}:{path_obj.name}"
         self.add_context_message(content, source=source, **metadata)
-
-    async def add_context_from_resource(self, resource: Resource | str):
-        """Add content from a LLMling resource."""
-        if not self._agent.runtime:
-            msg = "No runtime available"
-            raise RuntimeError(msg)
-
-        if isinstance(resource, str):
-            content = await self._agent.runtime.load_resource(resource)
-            self.add_context_message(
-                str(content.content),
-                source=f"Resource {resource}",
-                mime_type=content.metadata.mime_type,
-                **content.metadata.extra,
-            )
-        else:
-            loader = self._agent.runtime._loader_registry.get_loader(resource)
-            async for content in loader.load(resource):
-                self.add_context_message(
-                    str(content.content),
-                    source=f"{resource.type}:{resource.uri}",
-                    mime_type=content.metadata.mime_type,
-                    **content.metadata.extra,
-                )
 
     async def add_context_from_prompt(
         self,

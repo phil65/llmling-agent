@@ -3,11 +3,9 @@
 from __future__ import annotations
 
 from slashed import CommandContext, CommandError, SlashedCommand  # noqa: TC002
-from slashed.completers import CallbackCompleter
 
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.log import get_logger
-from llmling_agent_commands.completers import get_resource_names
 from llmling_agent_commands.markdown_utils import format_table
 
 
@@ -136,10 +134,6 @@ class ShowResourceCommand(SlashedCommand):
         except Exception as e:  # noqa: BLE001
             await ctx.print(f"❌ **Error accessing resource:** {e}")
 
-    def get_completer(self):
-        """Get completer for resource names."""
-        return CallbackCompleter(get_resource_names)
-
 
 class AddResourceCommand(SlashedCommand):
     """Add content from a resource to the next message.
@@ -212,7 +206,3 @@ class AddResourceCommand(SlashedCommand):
             msg = f"Error loading resource: {e}"
             logger.exception(msg)
             raise CommandError(msg) from e
-
-    def get_completer(self):
-        """Get completer for resource names."""
-        return CallbackCompleter(get_resource_names)

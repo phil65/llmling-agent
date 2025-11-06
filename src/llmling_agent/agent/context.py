@@ -11,7 +11,6 @@ from llmling_agent.prompts.conversion_manager import ConversionManager
 
 
 if TYPE_CHECKING:
-    from llmling import RuntimeConfig
     from mcp import types
 
     from llmling_agent import AgentPool
@@ -39,9 +38,6 @@ class AgentContext[TDeps = Any](NodeContext[TDeps]):
 
     data: TDeps | None = None
     """Custom context data."""
-
-    runtime: RuntimeConfig | None = None
-    """Reference to the runtime configuration."""
 
     @classmethod
     def create_default(

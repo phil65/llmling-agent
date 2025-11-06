@@ -23,7 +23,6 @@ resources:
 Create and use an agent:
 
 ```python
-from llmling import RuntimeConfig
 from llmling_agent import Agent
 from pydantic import BaseModel
 

@@ -30,18 +30,6 @@ def get_available_nodes(ctx: CompletionContext[NodeContext[Any]]) -> list[str]:
     return list(ctx.command_context.context.pool.nodes.keys())
 
 
-def get_resource_names(ctx: CompletionContext[AgentContext[Any]]) -> list[str]:
-    """Get available resource names."""
-    resources = ctx.command_context.context.agent.runtime.get_resources()
-    return [r.name or "" for r in resources]
-
-
-def get_prompt_names(ctx: CompletionContext[AgentContext[Any]]) -> list[str]:
-    """Get available prompt names."""
-    prompts = ctx.command_context.context.agent.runtime.get_prompts()
-    return [p.name or "" for p in prompts]
-
-
 def get_model_names(ctx: CompletionContext[AgentContext[Any]]) -> list[str]:
     """Get available model names from pydantic-ai and current configuration.
 

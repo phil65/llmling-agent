@@ -2,18 +2,12 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from pydantic import ValidationError
 import pytest
 from schemez import InlineSchemaDef
 import yamling
 
 from llmling_agent import AgentsManifest
-
-
-if TYPE_CHECKING:
-    from pathlib import Path
 
 
 VALID_AGENT_CONFIG = """\
@@ -90,21 +84,3 @@ def test_missing_referenced_response():
     config = yamling.load_yaml(INVALID_RESPONSE_CONFIG)
     with pytest.raises(ValidationError):
         AgentsManifest.model_validate(config)
-
-
-def test_environment_path_resolution(tmp_path: Path):
-    """Test that environment paths are resolved relative to config file."""
-    # Create a mock environment config with valid structure
-    env_file = tmp_path / "env.yml"
-    env_file.write_text(ENV_CONFIG)
-    # Create agent config referencing the environment
-    config_file = tmp_path / "agents.yml"
-    config_file.write_text(ENV_AGENT)
-
-    # Load the config and verify path resolution
-    agent_def = AgentsManifest.from_file(config_file)
-    test_agent = agent_def.agents["test_agent"]
-
-    # The environment path should now be resolved
-    config = test_agent.get_config()
-    assert config is not None  # Just verify it loads without error

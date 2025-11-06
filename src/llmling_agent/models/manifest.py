@@ -374,20 +374,16 @@ class AgentsManifest(Schema):
         self, name: str, deps: TAgentDeps | None = None
     ) -> Agent[TAgentDeps, Any]:
         # TODO: Make this method async to support async function prompts
-        from llmling import RuntimeConfig
 
         from llmling_agent import Agent, AgentContext
 
         config = self.agents[name]
-        cfg = config.get_config()
-        runtime = RuntimeConfig.from_config(cfg)  # Create runtime without async context
         # Create context with config path and capabilities
         context = AgentContext[TAgentDeps](
             node_name=name,
             data=deps,
             definition=self,
             config=config,
-            runtime=runtime,
             # pool=self,
             # confirmation_callback=confirmation_callback,
         )
@@ -435,7 +431,6 @@ class AgentsManifest(Schema):
                     sys_prompts.append(content)
         # Create agent with runtime and context
         return Agent(
-            runtime=runtime,
             context=context,
             model=config.model
             if isinstance(config.model, str) or config.model is None

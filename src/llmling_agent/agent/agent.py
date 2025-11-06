@@ -6,7 +6,6 @@ import asyncio
 from collections.abc import Awaitable, Callable
 from contextlib import AsyncExitStack, asynccontextmanager
 from dataclasses import dataclass, field
-from os import PathLike
 import time
 from typing import (
     TYPE_CHECKING,
@@ -20,7 +19,7 @@ from typing import (
 from uuid import uuid4
 
 from anyenv import MultiEventHandler, method_spawner
-from llmling import Config, RuntimeConfig, ToolError
+from llmling import ToolError
 from llmling_models import function_to_model, infer_model
 import logfire
 from psygnal import Signal
@@ -40,7 +39,6 @@ from pydantic_ai import (
 import pydantic_ai._function_schema
 from pydantic_ai.models import Model
 from pydantic_ai.tools import GenerateToolJsonSchema
-from upath import UPath
 
 from llmling_agent.agent.events import (
     RichAgentStreamEvent,
@@ -52,9 +50,7 @@ from llmling_agent.agent.events import (
 from llmling_agent.common_types import IndividualEventHandler
 from llmling_agent.log import get_logger
 from llmling_agent.messaging import ChatMessage, MessageNode
-from llmling_agent.prompts.builtin_provider import RuntimePromptProvider
 from llmling_agent.prompts.convert import convert_prompts
-from llmling_agent.resource_providers.runtime import RuntimeResourceProvider
 from llmling_agent.talk.stats import MessageStats
 from llmling_agent.tasks import JobError
 from llmling_agent.tools import SkillsRegistry, Tool, ToolManager
@@ -76,7 +72,6 @@ if TYPE_CHECKING:
     from pydantic_ai import AgentStreamEvent, UsageLimits
     from pydantic_ai.output import OutputSpec
     from toprompt import AnyPromptType
-    from upath.types import JoinablePathLike
 
     from llmling_agent.agent import AgentContext
     from llmling_agent.agent.events import RichAgentStreamEvent
@@ -109,7 +104,6 @@ class AgentKwargs(TypedDict, total=False):
     description: str | None
     model: ModelType
     system_prompt: str | Sequence[str]
-    runtime: RuntimeConfig | Config | JoinablePathLike | None
     tools: Sequence[ToolType | Tool] | None
     toolsets: Sequence[ResourceProvider] | None
     mcp_servers: Sequence[str | MCPServerConfig] | None
@@ -141,7 +135,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
     run_failed = Signal(str, Exception)
     agent_reset = Signal(AgentReset)
 
-    def __init__(  # noqa: PLR0915
+    def __init__(
         # we dont use AgentKwargs here so that we can work with explicit ones in the ctor
         self,
         name: str = "llmling-agent",
@@ -149,7 +143,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         deps_type: type[TDeps] | None = None,
         model: ModelType = None,
         output_type: OutputSpec[OutputDataT] | StructuredResponseConfig | str = str,  # type: ignore[assignment]
-        runtime: RuntimeConfig | Config | JoinablePathLike | None = None,
         context: AgentContext[TDeps] | None = None,
         session: SessionIdType | SessionQuery | MemoryConfig | bool | int = None,
         system_prompt: AnyPromptType | Sequence[AnyPromptType] = (),
@@ -166,14 +159,13 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         debug: bool = False,
         event_handlers: Sequence[IndividualEventHandler] | None = None,
     ):
-        """Initialize agent with runtime configuration.
+        """Initialize agent.
 
         Args:
             name: Name of the agent for logging and identification
             deps_type: Type of dependencies to use
             model: The default model to use (defaults to GPT-5)
             output_type: The default output type to use (defaults to str)
-            runtime: Runtime configuration providing access to resources/tools
             context: Agent context with configuration
             session: Memory configuration.
                 - None: Default memory config
@@ -207,7 +199,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         self.task_manager = TaskManager()
         self._infinite = False
         # save some stuff for asnyc init
-        self._owns_runtime = False
         self.deps_type = deps_type
         # match output_type:
         #     case type() | str():
@@ -244,20 +235,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             mcp_servers=mcp_servers,
             progress_handler=create_queuing_progress_handler(self._progress_queue),
         )
-        # Initialize runtime
-        match runtime:
-            case None:
-                ctx.runtime = RuntimeConfig.from_config(Config())
-            case Config() | str() | PathLike() | UPath():
-                ctx.runtime = RuntimeConfig.from_config(runtime)
-            case RuntimeConfig():
-                ctx.runtime = runtime
-            case _:
-                msg = f"Invalid runtime type: {type(runtime)}"
-                raise TypeError(msg)
 
-        runtime_provider = RuntimePromptProvider(ctx.runtime)
-        ctx.definition.prompt_manager.providers["runtime"] = runtime_provider
         # Initialize tool manager
         self.event_handler = MultiEventHandler[IndividualEventHandler](event_handlers)
         all_tools = list(tools or [])
@@ -326,12 +304,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             # Collect all coroutines that need to be run
             coros: list[Coroutine[Any, Any, Any]] = []
 
-            # Runtime initialization if needed
-            runtime_ref = self.context.runtime
-            if runtime_ref and not runtime_ref._initialized:
-                self._owns_runtime = True
-                coros.append(runtime_ref.__aenter__())
-
             coros.append(super().__aenter__())
             coros.extend(self.conversation.get_initialization_tasks())
 
@@ -341,14 +313,10 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             else:
                 for coro in coros:
                     await coro
-            if runtime_ref:
-                self.tools.add_provider(RuntimeResourceProvider(runtime_ref))
+
             for provider in self.context.config.get_toolsets():
                 self.tools.add_provider(provider)
         except Exception as e:
-            # Clean up in reverse order
-            if self._owns_runtime and runtime_ref and self.context.runtime == runtime_ref:
-                await runtime_ref.__aexit__(type(e), e, e.__traceback__)
             msg = "Failed to initialize agent"
             raise RuntimeError(msg) from e
         else:
@@ -365,9 +333,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         try:
             await self.mcp.__aexit__(exc_type, exc_val, exc_tb)
         finally:
-            if self._owns_runtime and self.context.runtime:
-                self.tools.remove_provider("runtime")
-                await self.context.runtime.__aexit__(exc_type, exc_val, exc_tb)
+            pass
             # for provider in await self.context.config.get_toolsets():
             #     self.tools.remove_provider(provider.name)
 
@@ -1039,7 +1005,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         target: Agent[TDeps, Any],
         *,
         tools: list[str] | None = None,
-        resources: list[str] | None = None,
         history: bool | int | None = None,  # bool or number of messages
         token_limit: int | None = None,
     ):
@@ -1048,7 +1013,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         Args:
             target: Agent to share with
             tools: List of tool names to share
-            resources: List of resource names to share
             history: Share conversation history:
                     - True: Share full history
                     - int: Number of most recent messages to share
@@ -1067,18 +1031,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             else:
                 msg = f"Tool not found: {name}"
                 raise ValueError(msg)
-
-        # Share resources if requested
-        if resources:
-            if not self.runtime:
-                msg = "No runtime available for sharing resources"
-                raise RuntimeError(msg)
-            for name in resources:
-                if resource := self.runtime.get_resource(name):
-                    await target.conversation.load_context_source(resource)  # type: ignore
-                else:
-                    msg = f"Resource not found: {name}"
-                    raise ValueError(msg)
 
         # Share history if requested
         if history:
@@ -1129,17 +1081,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             new_tools=new_tools,
         )
         self.agent_reset.emit(event)
-
-    @property
-    def runtime(self) -> RuntimeConfig:
-        """Get runtime configuration from context."""
-        assert self.context.runtime
-        return self.context.runtime
-
-    @runtime.setter
-    def runtime(self, value: RuntimeConfig):
-        """Set runtime configuration and update context."""
-        self.context.runtime = value
 
     async def get_stats(self) -> MessageStats:
         """Get message statistics (async version)."""

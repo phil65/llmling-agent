@@ -123,28 +123,8 @@ async def test_agent_pool_cleanup():
     # Use context manager to ensure proper cleanup
     async with AgentPool(manifest) as pool:
         # Add some agents
-        agent = pool.get_agent("test_agent")
+        _agent = pool.get_agent("test_agent")
         assert "test_agent" in pool.agents
 
-        # Get runtime reference to check cleanup
-        runtime = agent.runtime
-        assert runtime is not None
-
-        # Test manual cleanup
         await pool.cleanup()
         assert not pool.agents  # Should be empty after cleanup
-
-
-async def test_agent_pool_context_cleanup():
-    """Test cleanup through context manager."""
-    manifest = AgentsManifest.from_yaml(TEST_CONFIG)
-    runtime_ref = None
-
-    async with AgentPool(manifest) as pool:
-        agent = pool.get_agent("test_agent")
-        runtime_ref = agent.runtime
-        assert "test_agent" in pool.agents
-        assert runtime_ref is not None
-
-    # After context exit
-    assert not pool.agents

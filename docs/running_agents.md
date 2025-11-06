@@ -111,7 +111,6 @@ async with Agent(...) as agent:
 
     # Add context for next message
     await agent.conversation.add_context_from_file("data.txt")
-    await agent.conversation.add_context_from_resource("api_docs")
 
 ```
 

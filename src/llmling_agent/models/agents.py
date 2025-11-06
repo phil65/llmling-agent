@@ -9,10 +9,7 @@ from uuid import UUID
 
 from llmling import (
     BasePrompt,
-    Config,
     ConfigStore,
-    GlobalSettings,
-    LLMCapabilitiesConfig,
     PromptMessage,
     StaticPrompt,
 )
@@ -29,7 +26,6 @@ from llmling_agent.utils.importing import import_class
 from llmling_agent_config.environment import (
     AgentEnvironment,  # noqa: TC001
     FileEnvironment,
-    InlineEnvironment,
 )
 from llmling_agent_config.knowledge import Knowledge  # noqa: TC001
 from llmling_agent_config.models import AnyModelConfig  # noqa: TC001
@@ -340,33 +336,6 @@ class AgentConfig(NodeConfig):
                     rendered_prompts.append(render_prompt(content, {"agent": context}))
 
         return rendered_prompts
-
-    def get_config(self) -> Config:
-        """Get configuration for this agent."""
-        match self.environment:
-            case None:
-                # Create minimal config
-                caps = LLMCapabilitiesConfig()
-                global_settings = GlobalSettings(llm_capabilities=caps)
-                return Config(global_settings=global_settings)
-            case str() as path:
-                # Backward compatibility: treat as file path
-                resolved = self._resolve_environment_path(path, self.config_file_path)
-                return Config.from_file(resolved)
-            case FileEnvironment(uri=uri) as env:
-                # Handle FileEnvironment instance
-                resolved = env.get_file_path()
-                return Config.from_file(resolved)
-            case {"type": "file", "uri": uri}:
-                # Handle raw dict matching file environment structure
-                return Config.from_file(uri)
-            case {"type": "inline", "config": config}:
-                return config
-            case InlineEnvironment() as config:
-                return config
-            case _:
-                msg = f"Invalid environment configuration: {self.environment}"
-                raise ValueError(msg)
 
     def get_environment_path(self) -> str | None:
         """Get environment file path if available."""

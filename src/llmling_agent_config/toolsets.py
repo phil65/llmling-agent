@@ -161,19 +161,6 @@ class ProcessManagementToolsetConfig(BaseToolsetConfig):
         return ProcessManagementTools(name="process_management")
 
 
-class ResourceAccessToolsetConfig(BaseToolsetConfig):
-    """Configuration for resource access toolset."""
-
-    type: Literal["resource_access"] = Field("resource_access", init=False)
-    """Resource access toolset."""
-
-    def get_provider(self) -> ResourceProvider:
-        """Create resource access tools provider."""
-        from llmling_agent_toolsets.builtin import ResourceAccessTools
-
-        return ResourceAccessTools(name="resource_access")
-
-
 class ToolManagementToolsetConfig(BaseToolsetConfig):
     """Configuration for tool management toolset."""
 
@@ -269,7 +256,6 @@ ToolsetConfig = Annotated[
     | FileAccessToolsetConfig
     | CodeExecutionToolsetConfig
     | ProcessManagementToolsetConfig
-    | ResourceAccessToolsetConfig
     | ToolManagementToolsetConfig
     | UserInteractionToolsetConfig
     | HistoryToolsetConfig

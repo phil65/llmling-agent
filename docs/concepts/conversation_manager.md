@@ -43,7 +43,6 @@ conversation.add_context_message(
 # Load context from sources
 await conversation.load_context_source("docs/api.md")
 await conversation.add_context_from_prompt(system_prompt)
-await conversation.add_context_from_resource(resource)
 
 # Format history for context
 history_text = await conversation.format_history(
