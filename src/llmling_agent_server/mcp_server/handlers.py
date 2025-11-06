@@ -14,7 +14,7 @@ from llmling_agent.mcp_server import constants, conversions
 if TYPE_CHECKING:
     from pydantic import AnyUrl
 
-    from llmling_agent_mcp.server import LLMLingServer
+    from llmling_agent_server.mcp_server.server import LLMLingServer
 
 
 logger = get_logger(__name__)

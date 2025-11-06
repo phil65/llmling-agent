@@ -16,7 +16,7 @@ import platformdirs
 import llmling_agent
 from llmling_agent.log import get_logger
 from llmling_agent.utils.tasks import TaskManager
-from llmling_agent_mcp.handlers import register_handlers
+from llmling_agent_server.mcp_server.handlers import register_handlers
 
 
 if TYPE_CHECKING:

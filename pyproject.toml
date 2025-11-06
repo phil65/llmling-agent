@@ -363,7 +363,6 @@ module-name = [
   "llmling_agent_docs",
   "llmling_agent_converters",
   "llmling_agent_prompts",
-  "llmling_agent_mcp",
   "llmling_agent_input",
   "llmling_agent_server",
   "llmling_agent_toolsets",

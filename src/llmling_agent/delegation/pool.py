@@ -129,7 +129,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
         self.pool_talk = TeamTalk[Any].from_nodes(list(self.nodes.values()))
         if self.manifest.pool_server and self.manifest.pool_server.enabled:
             from llmling_agent.resource_providers.pool import PoolResourceProvider
-            from llmling_agent_mcp.server import LLMLingServer
+            from llmling_agent_server.mcp_server.server import LLMLingServer
 
             provider = PoolResourceProvider(
                 self, zed_mode=self.manifest.pool_server.zed_mode
