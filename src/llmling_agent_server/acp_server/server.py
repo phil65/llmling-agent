@@ -45,9 +45,6 @@ class ACPServer(BaseServer):
     agent_pool: AgentPool[Any]
     """AgentPool containing available agents"""
 
-    session_support: bool = True
-    """Whether to support session-based operations"""
-
     file_access: bool = True
     """Whether to support file access operations"""
 
@@ -87,7 +84,6 @@ class ACPServer(BaseServer):
         cls,
         config_path: JoinablePathLike,
         *,
-        session_support: bool = True,
         file_access: bool = True,
         terminal_access: bool = True,
         providers: list[ProviderType] | None = None,
@@ -100,7 +96,6 @@ class ACPServer(BaseServer):
 
         Args:
             config_path: Path to llmling-agent YAML config file
-            session_support: Enable session loading support
             file_access: Enable file system access
             terminal_access: Enable terminal access
             providers: List of provider types to use for model discovery
@@ -116,7 +111,6 @@ class ACPServer(BaseServer):
         pool = AgentPool(manifest=manifest)
         server = cls(
             agent_pool=pool,
-            session_support=session_support,
             file_access=file_access,
             terminal_access=terminal_access,
             providers=providers,
@@ -155,7 +149,6 @@ class ACPServer(BaseServer):
                 LLMlingACPAgent,
                 agent_pool=self.agent_pool,
                 available_models=self._available_models,
-                session_support=self.session_support,
                 file_access=self.file_access,
                 terminal_access=self.terminal_access,
                 debug_commands=self.debug_commands,
@@ -168,7 +161,6 @@ class ACPServer(BaseServer):
                 "ACP server started",
                 file_access=self.file_access,
                 terminal_access=self.terminal_access,
-                session_support=self.session_support,
             )
             try:  # Keep the connection alive
                 while self._running:

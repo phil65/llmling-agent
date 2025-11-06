@@ -9,24 +9,26 @@ import pytest
 
 from acp import (
     Agent,
+    ClientCapabilities,
     DefaultACPClient,
+    FileSystemCapability,
+    Implementation,
     InitializeResponse,
     LoadSessionResponse,
     NewSessionResponse,
     PromptResponse,
 )
-from acp.schema import ClientCapabilities, FileSystemCapability, Implementation
 from llmling_agent_server.acp_server.acp_agent import LLMlingACPAgent
 
 
 if TYPE_CHECKING:
     from acp import (
+        CancelNotification,
         InitializeRequest,
         LoadSessionRequest,
         NewSessionRequest,
         PromptRequest,
     )
-    from acp.schema import CancelNotification
 
 
 class TestAgent(Agent):
@@ -112,23 +114,14 @@ def mock_agent_pool():
 @pytest.fixture
 def client_capabilities():
     """Create client capabilities for testing."""
-    return ClientCapabilities(
-        fs=FileSystemCapability(read_text_file=True, write_text_file=True),
-        terminal=True,
-    )
+    fs_caps = FileSystemCapability(read_text_file=True, write_text_file=True)
+    return ClientCapabilities(fs=fs_caps, terminal=True)
 
 
 @pytest.fixture
 def mock_acp_agent(mock_connection, mock_agent_pool, client_capabilities):
     """Create a mock ACP agent for testing."""
-    return LLMlingACPAgent(
-        connection=mock_connection,
-        agent_pool=mock_agent_pool,
-        available_models=[],
-        session_support=True,
-        file_access=True,
-        terminal_access=True,
-    )
+    return LLMlingACPAgent(connection=mock_connection, agent_pool=mock_agent_pool)
 
 
 @pytest.fixture

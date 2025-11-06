@@ -32,11 +32,6 @@ def acp_command(
         "--terminal-access/--no-terminal-access",
         help="Enable terminal access for agents",
     ),
-    session_support: bool = t.Option(
-        True,
-        "--session-support/--no-session-support",
-        help="Enable session loading support",
-    ),
     show_messages: bool = t.Option(
         False, "--show-messages", help="Show message activity in logs"
     ),
@@ -132,7 +127,6 @@ def acp_command(
 
     acp_server = ACPServer.from_config(
         config_path,
-        session_support=session_support,
         file_access=file_access,
         terminal_access=terminal_access,
         providers=providers,  # type: ignore[arg-type] # pyright: ignore[reportArgumentType]
