@@ -78,9 +78,11 @@ class SlashedAgent[TDeps, OutputDataT]:
 
             from llmling_agent_commands import get_commands
 
-            self.command_store = CommandStore(event_handler=self._bridge_events_to_queue)
-            for cmd in get_commands():
-                self.command_store.register_command(cmd)
+            self.command_store = CommandStore(
+                event_handler=self._bridge_events_to_queue,
+                commands=get_commands(),
+            )
+
         else:
             self.command_store = command_store
 

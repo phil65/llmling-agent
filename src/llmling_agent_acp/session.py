@@ -127,23 +127,18 @@ class ACPSession:
         self.fs = ACPFileSystem(self.client, session_id=self.session_id)
         self._acp_provider: AggregatingResourceProvider | None = None
         # Staged prompt parts for context building
-        self.command_store = CommandStore(enable_system_commands=True)
-        self.command_store._initialize_sync()
         from llmling_agent_acp.commands.acp_commands import get_acp_commands
         from llmling_agent_acp.commands.docs_commands import get_docs_commands
         from llmling_agent_acp.commands.terminal_commands import get_terminal_commands
 
-        commands_to_register = [
+        cmds = [
             *get_commands(),
             *get_acp_commands(),
             *get_docs_commands(),
             *get_terminal_commands(),
         ]
-        # if debug_commands:
-        #     commands_to_register.extend(get_debug_commands())
-
-        for command in commands_to_register:
-            self.command_store.register_command(command)
+        self.command_store = CommandStore(enable_system_commands=True, commands=cmds)
+        self.command_store._initialize_sync()
         self._update_callbacks: list[Callable[[], None]] = []
 
         self._staged_parts: list[SystemPromptPart | UserPromptPart] = []
