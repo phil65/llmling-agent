@@ -597,12 +597,11 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         )
 
         # If input_provider override is provided, create modified context
-        if input_provider is not None:
-            context_for_tools = dataclasses.replace(
-                self.context, input_provider=input_provider
-            )
-        else:
-            context_for_tools = self.context
+        context_for_tools = (
+            self.context
+            if input_provider is None
+            else dataclasses.replace(self.context, input_provider=input_provider)
+        )
 
         for tool in tools:
             wrapped = wrap_tool(tool, context_for_tools)
@@ -612,13 +611,10 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                 agent._function_toolset.add_function(
                     func=wrapped,
                     takes_ctx=True,
-                    name=None,
                     retries=1,
-                    prepare=None,
                     docstring_format="auto",
                     require_parameter_descriptions=False,
                     schema_generator=GenerateToolJsonSchema,
-                    strict=None,
                 )
             else:
                 agent.tool_plain(wrapped)
