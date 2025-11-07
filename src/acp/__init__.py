@@ -4,21 +4,8 @@ from acp.client import DefaultACPClient, ClientSideConnection
 from acp.agent import AgentSideConnection
 from acp.debug_server import cli
 from acp.filesystem import ACPFileSystem, ACPPath
-from acp.agent.protocol import (
-    Agent,
-    AgentExtensibilityCapability,
-    BaseAgent,
-    SessionModeCapability,
-    SessionModelCapability,
-    SessionPersistenceCapability,
-)
-from acp.client.protocol import (
-    BaseClient,
-    Client,
-    ExtensibilityCapability,
-    FsCapability,
-    TerminalCapability,
-)
+from acp.agent.protocol import Agent
+from acp.client.protocol import Client
 from acp.terminal_handle import TerminalHandle
 from acp.schema import (
     AuthenticateRequest,
@@ -91,7 +78,6 @@ __all__ = [  # noqa: RUF022
     "SseMcpServer",
     "NewSessionRequest",
     "AgentMessageChunk",
-    "FsCapability",
     "UserMessageChunk",
     "TextContentBlock",
     "NewSessionResponse",
@@ -140,15 +126,7 @@ __all__ = [  # noqa: RUF022
     "DefaultACPClient",
     "TerminalHandle",
     # split protocols
-    "BaseAgent",
-    "SessionPersistenceCapability",
-    "SessionModeCapability",
-    "SessionModelCapability",
-    "AgentExtensibilityCapability",
-    "BaseClient",
     "FileSystemCapability",
-    "TerminalCapability",
-    "ExtensibilityCapability",
     # stdio helper
     "stdio_streams",
     # filesystem

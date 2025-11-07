@@ -84,14 +84,7 @@ class HeadlessACPClient(Client):
     async def request_permission(
         self, params: RequestPermissionRequest
     ) -> RequestPermissionResponse:
-        """Handle permission requests.
-
-        Args:
-            params: Permission request parameters
-
-        Returns:
-            Permission response - grants if auto_grant_permissions is True
-        """
+        """Handle permission requests. Grants if auto_grant_permissions is True."""
         self.permission_requests.append(params)
 
         tool_name = params.tool_call.title or "operation"
@@ -107,11 +100,7 @@ class HeadlessACPClient(Client):
         return RequestPermissionResponse(outcome=DeniedOutcome())
 
     async def session_update(self, params: SessionNotification) -> None:
-        """Handle session update notifications.
-
-        Args:
-            params: Session update notification
-        """
+        """Handle session update notifications."""
         logger.debug(
             "Session update",
             session_id=params.session_id,
@@ -120,18 +109,7 @@ class HeadlessACPClient(Client):
         self.notifications.append(params)
 
     async def read_text_file(self, params: ReadTextFileRequest) -> ReadTextFileResponse:
-        """Read text from file.
-
-        Args:
-            params: File read request parameters
-
-        Returns:
-            File content response
-
-        Raises:
-            RuntimeError: If file operations not allowed
-            FileNotFoundError: If file doesn't exist
-        """
+        """Read text from file."""
         if not self.allow_file_operations:
             msg = "File operations not allowed"
             raise RuntimeError(msg)
@@ -162,17 +140,7 @@ class HeadlessACPClient(Client):
     async def write_text_file(
         self, params: WriteTextFileRequest
     ) -> WriteTextFileResponse:
-        """Write text to file.
-
-        Args:
-            params: File write request parameters
-
-        Returns:
-            Empty write response
-
-        Raises:
-            RuntimeError: If file operations not allowed
-        """
+        """Write text to file."""
         if not self.allow_file_operations:
             msg = "File operations not allowed"
             raise RuntimeError(msg)
@@ -192,14 +160,7 @@ class HeadlessACPClient(Client):
     async def create_terminal(
         self, params: CreateTerminalRequest
     ) -> CreateTerminalResponse:
-        """Create a new terminal session using ProcessManager.
-
-        Args:
-            params: Terminal creation parameters
-
-        Returns:
-            Terminal creation response with terminal_id
-        """
+        """Create a new terminal session using ProcessManager."""
         try:
             process_id = await self.process_manager.start_process(
                 command=params.command,
@@ -225,17 +186,7 @@ class HeadlessACPClient(Client):
     async def terminal_output(
         self, params: TerminalOutputRequest
     ) -> TerminalOutputResponse:
-        """Get output from terminal.
-
-        Args:
-            params: Terminal output request parameters
-
-        Returns:
-            Terminal output response
-
-        Raises:
-            ValueError: If terminal not found
-        """
+        """Get output from terminal."""
         terminal_id = params.terminal_id
 
         if terminal_id not in self.terminals:
@@ -255,17 +206,7 @@ class HeadlessACPClient(Client):
     async def wait_for_terminal_exit(
         self, params: WaitForTerminalExitRequest
     ) -> WaitForTerminalExitResponse:
-        """Wait for terminal process to exit.
-
-        Args:
-            params: Terminal wait parameters
-
-        Returns:
-            Terminal exit response with exit code
-
-        Raises:
-            ValueError: If terminal not found
-        """
+        """Wait for terminal process to exit."""
         terminal_id = params.terminal_id
 
         if terminal_id not in self.terminals:
@@ -284,17 +225,7 @@ class HeadlessACPClient(Client):
     async def kill_terminal(
         self, params: KillTerminalCommandRequest
     ) -> KillTerminalCommandResponse | None:
-        """Kill terminal process.
-
-        Args:
-            params: Terminal kill parameters
-
-        Returns:
-            Empty kill response
-
-        Raises:
-            ValueError: If terminal not found
-        """
+        """Kill terminal process."""
         terminal_id = params.terminal_id
 
         if terminal_id not in self.terminals:
@@ -315,17 +246,7 @@ class HeadlessACPClient(Client):
     async def release_terminal(
         self, params: ReleaseTerminalRequest
     ) -> ReleaseTerminalResponse | None:
-        """Release terminal resources.
-
-        Args:
-            params: Terminal release parameters
-
-        Returns:
-            Empty release response
-
-        Raises:
-            ValueError: If terminal not found
-        """
+        """Release terminal resources."""
         terminal_id = params.terminal_id
 
         if terminal_id not in self.terminals:

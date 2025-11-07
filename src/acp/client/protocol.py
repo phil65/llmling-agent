@@ -25,18 +25,14 @@ if TYPE_CHECKING:
     )
 
 
-class BaseClient(Protocol):
-    """Base client interface for ACP - always required."""
+class Client(Protocol):
+    """Base client interface for ACP."""
 
     async def request_permission(
         self, params: RequestPermissionRequest
     ) -> RequestPermissionResponse: ...
 
     async def session_update(self, params: SessionNotification) -> None: ...
-
-
-class FsCapability(Protocol):
-    """Client capability for filesystem operations."""
 
     async def write_text_file(
         self, params: WriteTextFileRequest
@@ -45,10 +41,6 @@ class FsCapability(Protocol):
     async def read_text_file(
         self, params: ReadTextFileRequest
     ) -> ReadTextFileResponse: ...
-
-
-class TerminalCapability(Protocol):
-    """Client capability for terminal operations."""
 
     async def create_terminal(
         self, params: CreateTerminalRequest
@@ -70,18 +62,6 @@ class TerminalCapability(Protocol):
         self, params: KillTerminalCommandRequest
     ) -> KillTerminalCommandResponse | None: ...
 
-
-class ExtensibilityCapability(Protocol):
-    """Client capability for extension methods."""
-
     async def ext_method(self, method: str, params: dict[str, Any]) -> dict[str, Any]: ...
 
     async def ext_notification(self, method: str, params: dict[str, Any]) -> None: ...
-
-
-class Client(BaseClient, FsCapability, TerminalCapability, ExtensibilityCapability):
-    """High-level client interface for interacting with an ACP server.
-
-    Includes all client capabilities.
-    New implementations should inherit from specific capability protocols instead.
-    """
