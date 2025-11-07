@@ -11,12 +11,41 @@ from llmling_agent_input.base import InputProvider
 
 
 if TYPE_CHECKING:
+    from acp.schema import PermissionOption
     from llmling_agent.agent.context import AgentContext, ConfirmationResult
     from llmling_agent.messaging import ChatMessage
     from llmling_agent.tools.base import Tool
     from llmling_agent_server.acp_server.session import ACPSession
 
 logger = get_logger(__name__)
+
+
+def _create_permission_options() -> list[PermissionOption]:
+    """Create all 4 permission options for tool confirmation."""
+    from acp.schema import PermissionOption
+
+    return [
+        PermissionOption(
+            option_id="allow-once",
+            name="Allow once",
+            kind="allow_once",
+        ),
+        PermissionOption(
+            option_id="allow-always",
+            name="Allow always",
+            kind="allow_always",
+        ),
+        PermissionOption(
+            option_id="reject-once",
+            name="Reject once",
+            kind="reject_once",
+        ),
+        PermissionOption(
+            option_id="reject-always",
+            name="Reject always",
+            kind="reject_always",
+        ),
+    ]
 
 
 class ACPInputProvider(InputProvider):
@@ -34,6 +63,8 @@ class ACPInputProvider(InputProvider):
             session: Active ACP session for handling requests
         """
         self.session = session
+        # Track tool approval state: tool_name -> "allow_always" | "reject_always"
+        self._tool_approvals: dict[str, str] = {}
 
     async def get_tool_confirmation(
         self,
@@ -57,6 +88,16 @@ class ACPInputProvider(InputProvider):
             Confirmation result indicating whether to allow, skip, or abort
         """
         try:
+            # Check if we have a standing approval/rejection for this tool
+            if tool.name in self._tool_approvals:
+                standing_decision = self._tool_approvals[tool.name]
+                if standing_decision == "allow_always":
+                    logger.debug(f"Auto-allowing tool '{tool.name}' (allow_always)")
+                    return "allow"
+                if standing_decision == "reject_always":
+                    logger.debug(f"Auto-rejecting tool '{tool.name}' (reject_always)")
+                    return "skip"
+
             # Create a descriptive title for the permission request
             args_str = ", ".join(f"{k}={v}" for k, v in args.items())
             title = f"Execute tool '{tool.name}' with args: {args_str}"
@@ -64,15 +105,21 @@ class ACPInputProvider(InputProvider):
             # Use a unique tool call ID (could be more sophisticated)
             tool_call_id = f"{tool.name}_{hash(frozenset(args.items()))}"
 
+            # Create all 4 permission options
+            options = _create_permission_options()
+
             # Request permission from the client
             response = await self.session.requests.request_permission(
                 tool_call_id=tool_call_id,
                 title=title,
+                options=options,
             )
 
             # Map ACP permission response to our confirmation result
             if response.outcome.outcome == "selected":
-                return "allow"
+                return self._handle_permission_response(
+                    response.outcome.option_id, tool.name
+                )
             if response.outcome.outcome == "cancelled":
                 return "skip"
             # Handle other outcomes
@@ -83,6 +130,27 @@ class ACPInputProvider(InputProvider):
             logger.exception(f"Failed to get tool confirmation: {e}")
             # Default to abort on error to be safe
             return "abort_run"
+
+    def _handle_permission_response(
+        self, option_id: str, tool_name: str
+    ) -> ConfirmationResult:
+        """Handle permission response and update tool approval state."""
+        match option_id:
+            case "allow-once":
+                return "allow"
+            case "allow-always":
+                self._tool_approvals[tool_name] = "allow_always"
+                logger.info(f"Tool '{tool_name}' set to always allow")
+                return "allow"
+            case "reject-once":
+                return "skip"
+            case "reject-always":
+                self._tool_approvals[tool_name] = "reject_always"
+                logger.info(f"Tool '{tool_name}' set to always reject")
+                return "skip"
+            case _:
+                logger.warning(f"Unknown permission option: {option_id}")
+                return "abort_run"
 
     async def get_elicitation(
         self,
@@ -112,17 +180,36 @@ class ACPInputProvider(InputProvider):
             tool_call_id = f"elicit_{hash(params.message)}"
             title = f"Elicitation: {params.message}"
 
+            # Use simple options for elicitation (not the full tool approval set)
+            from acp.schema import PermissionOption
+
+            options = [
+                PermissionOption(
+                    option_id="accept",
+                    name="Accept",
+                    kind="allow_once",
+                ),
+                PermissionOption(
+                    option_id="decline",
+                    name="Decline",
+                    kind="reject_once",
+                ),
+            ]
+
             response = await self.session.requests.request_permission(
                 tool_call_id=tool_call_id,
                 title=title,
+                options=options,
             )
 
             # Convert permission response to elicitation result
             if response.outcome.outcome == "selected":
-                # For dummy implementation, return acceptance with empty content
-                return types.ElicitResult(action="accept", content={})
-            if response.outcome.outcome == "cancelled":
+                if response.outcome.option_id == "accept":
+                    # For dummy implementation, return acceptance with empty content
+                    return types.ElicitResult(action="accept", content={})
                 return types.ElicitResult(action="decline")
+            if response.outcome.outcome == "cancelled":
+                return types.ElicitResult(action="cancel")
             return types.ElicitResult(action="cancel")
 
         except Exception as e:
@@ -130,3 +217,21 @@ class ACPInputProvider(InputProvider):
             return types.ErrorData(
                 code=types.INTERNAL_ERROR, message=f"Elicitation failed: {e}"
             )
+
+    def clear_tool_approvals(self) -> None:
+        """Clear all stored tool approval decisions.
+
+        This resets the "allow_always" and "reject_always" states,
+        so tools will ask for permission again.
+        """
+        self._tool_approvals.clear()
+        logger.info("Cleared all tool approval decisions")
+
+    def get_tool_approval_state(self) -> dict[str, str]:
+        """Get current tool approval state for debugging/inspection.
+
+        Returns:
+            Dictionary mapping tool names to their approval state
+            ("allow_always" or "reject_always")
+        """
+        return self._tool_approvals.copy()

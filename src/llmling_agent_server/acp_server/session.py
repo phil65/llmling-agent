@@ -161,6 +161,7 @@ class ACPSession:
             session_id=self.session_id,
         )
         self.requests = ACPRequests(client=self.client, session_id=self.session_id)
+        self.input_provider = ACPInputProvider(self)
 
         if self.client_capabilities:
             self._acp_provider = get_acp_provider(self)
@@ -321,10 +322,9 @@ class ACPSession:
             self._current_tool_inputs.clear()  # Reset tool inputs for new stream
 
             try:
-                # Create ACP input provider for this session
-                input_provider = ACPInputProvider(self)
+                # Use the session's persistent input provider
                 async for event in self.agent.run_stream(
-                    *non_command_content, input_provider=input_provider
+                    *non_command_content, input_provider=self.input_provider
                 ):
                     if self._cancelled:
                         return "cancelled"
