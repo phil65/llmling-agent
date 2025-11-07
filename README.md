@@ -603,24 +603,7 @@ Extensive slash commands available in all interfaces:
 ### Storage & Analytics
 
 All interaction is tracked using (multiple) configurable storage providers.
-Information can get fetched programmatically or via CLI.
-
-```python
-# Query conversation history
-messages = await agent.conversation.filter_messages(
-    SessionQuery(
-        since="1h",
-        contains="error",
-        roles={"user", "assistant"},
-    )
-)
-
-# Get usage statistics
-stats = await agent.context.storage.get_conversation_stats(
-    group_by="model",
-    period="24h",
-)
-```
+Information can get fetched  via CLI.
 
 
 ```bash
