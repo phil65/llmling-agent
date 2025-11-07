@@ -32,8 +32,6 @@ agents:
     output_type: BasicResult
     system_prompts:
       - You are a test agent.
-    user_prompts:
-      - Hello!
 """
 
 

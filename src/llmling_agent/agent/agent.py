@@ -19,7 +19,6 @@ from typing import (
 from uuid import uuid4
 
 from anyenv import MultiEventHandler, method_spawner
-from llmling import ToolError
 from llmling_models import function_to_model, infer_model
 import logfire
 from psygnal import Signal
@@ -54,6 +53,7 @@ from llmling_agent.prompts.convert import convert_prompts
 from llmling_agent.talk.stats import MessageStats
 from llmling_agent.tasks import JobError
 from llmling_agent.tools import SkillsRegistry, Tool, ToolManager
+from llmling_agent.tools.exceptions import ToolError
 from llmling_agent.utils.inspection import call_with_context, get_argument_key
 from llmling_agent.utils.now import get_now
 from llmling_agent.utils.result_utils import to_type

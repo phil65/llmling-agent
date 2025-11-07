@@ -7,11 +7,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 from uuid import UUID
 
-from llmling import (
-    BasePrompt,
-    PromptMessage,
-    StaticPrompt,
-)
+from llmling import BasePrompt, PromptMessage, StaticPrompt
 from pydantic import Field, model_validator
 from pydantic_ai import UsageLimits  # noqa: TC002
 from schemez import InlineSchemaDef
@@ -94,9 +90,6 @@ class AgentConfig(NodeConfig):
 
     system_prompts: Sequence[str | PromptConfig] = Field(default_factory=list)
     """System prompts for the agent. Can be strings or structured prompt configs."""
-
-    user_prompts: list[str] = Field(default_factory=list)
-    """Default user prompts for the agent"""
 
     # context_sources: list[ContextSource] = Field(default_factory=list)
     # """Initial context sources to load"""
