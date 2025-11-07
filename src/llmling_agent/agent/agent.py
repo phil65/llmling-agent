@@ -558,9 +558,12 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         model: ModelType = None,
         output_type: type[Any] = str,
         deps_type: type[Any] | None = None,
+        input_provider: InputProvider | None = None,
     ):
         """Create pydantic-ai agent from current state."""
         # Monkey patch pydantic-ai to recognize AgentContext
+        import dataclasses
+
         from llmling_agent.agent.context import AgentContext
         from llmling_agent.agent.tool_wrapping import wrap_tool
 
@@ -593,8 +596,16 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             output_type=output_type,
         )
 
+        # If input_provider override is provided, create modified context
+        if input_provider is not None:
+            context_for_tools = dataclasses.replace(
+                self.context, input_provider=input_provider
+            )
+        else:
+            context_for_tools = self.context
+
         for tool in tools:
-            wrapped = wrap_tool(tool, self.context)
+            wrapped = wrap_tool(tool, context_for_tools)
             if has_argument_type(wrapped, RunContext):
                 agent.tool(wrapped)
             elif has_argument_type(wrapped, AgentContext):
@@ -629,6 +640,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         conversation_id: str | None = None,
         messages: list[ChatMessage[Any]] | None = None,
         deps: TDeps | None = None,
+        input_provider: InputProvider | None = None,
         wait_for_connections: bool | None = None,
     ) -> ChatMessage[OutputDataT]:
         """Run agent with prompt and get response.
@@ -646,6 +658,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             conversation_id: Optional conversation id for the returned message.
             messages: Optional list of messages to replace the conversation history
             deps: Optional dependencies for the agent
+            input_provider: Optional input provider for the agent
             wait_for_connections: Whether to wait for connected agents to complete
 
         Returns:
@@ -665,7 +678,9 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         )
         try:
             # Create pydantic-ai agent for this run
-            agentlet = await self.get_agentlet(tools, model, final_type, self.deps_type)
+            agentlet = await self.get_agentlet(
+                tools, model, final_type, self.deps_type, input_provider
+            )
             converted_prompts = await convert_prompts(prompts)
 
             # Merge internal and external event handlers like the old provider did
@@ -718,6 +733,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         message_id: str | None = None,
         conversation_id: str | None = None,
         messages: list[ChatMessage[Any]] | None = None,
+        input_provider: InputProvider | None = None,
         wait_for_connections: bool | None = None,
         deps: TDeps | None = None,
     ) -> AsyncIterator[RichAgentStreamEvent[OutputDataT]]:
@@ -735,6 +751,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                         Automatically generated if not provided.
             conversation_id: Optional conversation id for the returned message.
             messages: Optional list of messages to replace the conversation history
+            input_provider: Optional input provider for the agent
             wait_for_connections: Whether to wait for connected agents to complete
             deps: Optional dependencies for the agent
         Returns:
@@ -752,7 +769,9 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             messages if messages is not None else self.conversation.get_history()
         )
         try:
-            agentlet = await self.get_agentlet(tools, model, final_type, self.deps_type)
+            agentlet = await self.get_agentlet(
+                tools, model, final_type, self.deps_type, input_provider
+            )
             content = await convert_prompts(prompts)
             # Initialize variables for final response
             response_msg = None
