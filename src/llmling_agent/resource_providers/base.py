@@ -4,10 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Self
 
-from pydantic_ai import SystemPromptPart, UserPromptPart
-
 from llmling_agent.log import get_logger
-from llmling_agent.prompts.prompts import MessageContent
 
 
 if TYPE_CHECKING:
@@ -90,18 +87,4 @@ class ResourceProvider:
             msg = f"Prompt {name!r} produced no messages"
             raise ValueError(msg)
 
-        parts: list[ModelRequestPart] = []
-        for prompt_msg in messages:
-            match prompt_msg.role:
-                case "system":
-                    parts.append(SystemPromptPart(str(prompt_msg.content)))
-                case "user":
-                    match prompt_msg.content:
-                        case str():
-                            parts.append(UserPromptPart(prompt_msg.content))
-                        case MessageContent():
-                            parts.append(prompt_msg.content.to_pydantic())
-                        case list():
-                            items = [i.to_pydantic() for i in prompt_msg.content]
-                            parts.extend(items)
-        return parts
+        return [p for prompt_msg in messages for p in prompt_msg.to_pydantic_parts()]

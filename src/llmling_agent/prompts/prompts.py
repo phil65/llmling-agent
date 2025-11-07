@@ -12,7 +12,7 @@ from fastmcp.prompts.prompt import (
     PromptArgument as FastMCPArgument,
 )
 from pydantic import BaseModel, ConfigDict, Field, ImportString
-from pydantic_ai import BinaryContent, UserPromptPart
+from pydantic_ai import BinaryContent, SystemPromptPart, UserPromptPart
 from pydantic_ai.messages import ImageUrl
 from schemez import Schema
 import upath
@@ -27,6 +27,7 @@ if TYPE_CHECKING:
 
     from fastmcp.prompts.prompt import FunctionPrompt
     from mcp.types import Prompt as MCPPrompt, PromptArgument
+    from pydantic_ai import ModelRequestPart
 
 
 logger = get_logger(__name__)
@@ -118,6 +119,20 @@ class PromptMessage(BaseModel):
                 return " ".join(text_items) if text_items else ""
             case _:
                 return ""
+
+    def to_pydantic_parts(self) -> list[ModelRequestPart]:
+        match self.role:
+            case "system":
+                return [SystemPromptPart(str(self.content))]
+            case "user":
+                match self.content:
+                    case str():
+                        return [UserPromptPart(self.content)]
+                    case MessageContent():
+                        return [self.content.to_pydantic()]
+                    case list():
+                        return [i.to_pydantic() for i in self.content]
+        return []
 
 
 class BasePrompt(BaseModel):
