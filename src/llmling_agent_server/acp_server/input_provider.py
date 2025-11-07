@@ -183,13 +183,18 @@ class ACPInputProvider(InputProvider):
             Elicit result with user's response or error data
         """
         try:
-            logger.info("Elicitation request", message=params.message)
+            schema = params.requestedSchema
+            logger.info(
+                "Elicitation request",
+                message=params.message,
+                schema=schema,
+                schema_type=schema.get("type") if schema else None,
+            )
 
             tool_call_id = f"elicit_{hash(params.message)}"
             title = f"Elicitation: {params.message}"
 
             # Check what type of schema we're dealing with
-            schema = getattr(params, "requestedSchema", {})
             if self._is_boolean_schema(schema):
                 options: list[PermissionOption] | None = (
                     self._create_boolean_elicitation_options()
@@ -199,7 +204,7 @@ class ACPInputProvider(InputProvider):
                     title=title,
                     options=options,
                 )
-                return self._handle_boolean_elicitation_response(response)
+                return self._handle_boolean_elicitation_response(response, schema)
             if self._is_enum_schema(schema):
                 options = self._create_enum_elicitation_options(schema)
                 if options:  # Only proceed if we have valid enum options
@@ -250,7 +255,18 @@ class ACPInputProvider(InputProvider):
 
     def _is_boolean_schema(self, schema: dict[str, Any]) -> bool:
         """Check if the elicitation schema is requesting a boolean value."""
-        return schema.get("type") == "boolean"
+        # Direct boolean type
+        if schema.get("type") == "boolean":
+            return True
+
+        # Check if it's an object with a single boolean property (common pattern)
+        if schema.get("type") == "object":
+            properties = schema.get("properties", {})
+            if len(properties) == 1:
+                prop_schema = next(iter(properties.values()))
+                return prop_schema.get("type") == "boolean"
+
+        return False
 
     def _is_enum_schema(self, schema: dict[str, Any]) -> bool:
         """Check if the elicitation schema is requesting an enum value."""
@@ -278,16 +294,32 @@ class ACPInputProvider(InputProvider):
             ),
         ]
 
-    def _handle_boolean_elicitation_response(
-        self, response: RequestPermissionResponse
+    def _handle_boolean_elicitation_response(  # noqa: PLR0911
+        self, response: RequestPermissionResponse, schema: dict[str, Any]
     ) -> types.ElicitResult | types.ErrorData:
         """Handle ACP response for boolean elicitation."""
         from mcp import types
 
         if response.outcome.outcome == "selected":
             if response.outcome.option_id == "true":
+                # Check if we need to wrap in object structure
+                if schema.get("type") == "object":
+                    properties = schema.get("properties", {})
+                    if len(properties) == 1:
+                        prop_name = next(iter(properties.keys()))
+                        return types.ElicitResult(
+                            action="accept", content={prop_name: True}
+                        )
                 return types.ElicitResult(action="accept", content=True)
             if response.outcome.option_id == "false":
+                # Check if we need to wrap in object structure
+                if schema.get("type") == "object":
+                    properties = schema.get("properties", {})
+                    if len(properties) == 1:
+                        prop_name = next(iter(properties.keys()))
+                        return types.ElicitResult(
+                            action="accept", content={prop_name: False}
+                        )
                 return types.ElicitResult(action="accept", content=False)
             if response.outcome.option_id == "cancel":
                 return types.ElicitResult(action="cancel")
