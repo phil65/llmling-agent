@@ -52,7 +52,7 @@ class ConversationManager:
         agent: Agent[Any, Any],
         session_config: MemoryConfig | None = None,
         *,
-        resources: Sequence[Resource | PromptType | str] = (),
+        resources: Sequence[PromptType | str] = (),
     ):
         """Initialize conversation manager.
 
