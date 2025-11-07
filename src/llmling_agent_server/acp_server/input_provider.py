@@ -11,7 +11,7 @@ from llmling_agent_input.base import InputProvider
 
 
 if TYPE_CHECKING:
-    from acp.schema import PermissionOption
+    from acp.schema import PermissionOption, RequestPermissionResponse
     from llmling_agent.agent.context import AgentContext, ConfirmationResult
     from llmling_agent.messaging import ChatMessage
     from llmling_agent.tools.base import Tool
@@ -92,10 +92,14 @@ class ACPInputProvider(InputProvider):
             if tool.name in self._tool_approvals:
                 standing_decision = self._tool_approvals[tool.name]
                 if standing_decision == "allow_always":
-                    logger.debug("Auto-allowing tool (allow_always)", name=tool.name)
+                    logger.debug(
+                        "Auto-allowing tool", tool_name=tool.name, reason="allow_always"
+                    )
                     return "allow"
                 if standing_decision == "reject_always":
-                    logger.debug("Auto-rejecting tool (reject_always)", name=tool.name)
+                    logger.debug(
+                        "Auto-rejecting tool", tool_name=tool.name, reason="reject_always"
+                    )
                     return "skip"
 
             # Create a descriptive title for the permission request
@@ -127,8 +131,8 @@ class ACPInputProvider(InputProvider):
                 "Unexpected permission outcome", outcome=response.outcome.outcome
             )
 
-        except Exception as e:
-            logger.exception("Failed to get tool confirmation", error=e)
+        except Exception:
+            logger.exception("Failed to get tool confirmation")
             # Default to abort on error to be safe
             return "abort_run"
         else:
@@ -143,29 +147,32 @@ class ACPInputProvider(InputProvider):
                 return "allow"
             case "allow-always":
                 self._tool_approvals[tool_name] = "allow_always"
-                logger.info("Tool set to always allow", name=tool_name)
+                logger.info(
+                    "Tool approval set", tool_name=tool_name, approval="allow_always"
+                )
                 return "allow"
             case "reject-once":
                 return "skip"
             case "reject-always":
                 self._tool_approvals[tool_name] = "reject_always"
-                logger.info("Tool set to always reject", name=tool_name)
+                logger.info(
+                    "Tool approval set", tool_name=tool_name, approval="reject_always"
+                )
                 return "skip"
             case _:
                 logger.warning("Unknown permission option", option_id=option_id)
                 return "abort_run"
 
-    async def get_elicitation(
+    async def get_elicitation(  # noqa: PLR0911
         self,
         context: AgentContext[Any],
         params: types.ElicitRequestParams,
         message_history: list[ChatMessage] | None = None,
     ) -> types.ElicitResult | types.ErrorData:
-        """Get user response to elicitation request.
+        """Get user response to elicitation request with basic schema support.
 
-        This is a dummy implementation for experimentation.
-        Uses the same ACP permission mechanism as a placeholder
-        for actual elicitation functionality.
+        Currently supports boolean schemas via ACP permission options.
+        Other schemas fall back to accept/decline options.
 
         Args:
             context: Current agent context
@@ -176,14 +183,34 @@ class ACPInputProvider(InputProvider):
             Elicit result with user's response or error data
         """
         try:
-            # For now, use request_permission as a dummy mechanism
-            # In a real implementation, this would use a proper elicitation endpoint
             logger.info("Elicitation request", message=params.message)
 
             tool_call_id = f"elicit_{hash(params.message)}"
             title = f"Elicitation: {params.message}"
 
-            # Use simple options for elicitation (not the full tool approval set)
+            # Check what type of schema we're dealing with
+            schema = getattr(params, "requestedSchema", {})
+            if self._is_boolean_schema(schema):
+                options: list[PermissionOption] | None = (
+                    self._create_boolean_elicitation_options()
+                )
+                response = await self.session.requests.request_permission(
+                    tool_call_id=tool_call_id,
+                    title=title,
+                    options=options,
+                )
+                return self._handle_boolean_elicitation_response(response)
+            if self._is_enum_schema(schema):
+                options = self._create_enum_elicitation_options(schema)
+                if options:  # Only proceed if we have valid enum options
+                    response = await self.session.requests.request_permission(
+                        tool_call_id=tool_call_id,
+                        title=title,
+                        options=options,
+                    )
+                    return self._handle_enum_elicitation_response(response, schema)
+
+            # Fall back to simple accept/decline for other schemas
             from acp.schema import PermissionOption
 
             options = [
@@ -208,7 +235,7 @@ class ACPInputProvider(InputProvider):
             # Convert permission response to elicitation result
             if response.outcome.outcome == "selected":
                 if response.outcome.option_id == "accept":
-                    # For dummy implementation, return acceptance with empty content
+                    # For non-boolean schemas, return empty content
                     return types.ElicitResult(action="accept", content={})
                 return types.ElicitResult(action="decline")
             if response.outcome.outcome == "cancelled":
@@ -216,10 +243,141 @@ class ACPInputProvider(InputProvider):
             return types.ElicitResult(action="cancel")
 
         except Exception as e:
-            logger.exception("Failed to handle elicitation", error=e)
+            logger.exception("Failed to handle elicitation")
             return types.ErrorData(
                 code=types.INTERNAL_ERROR, message=f"Elicitation failed: {e}"
             )
+
+    def _is_boolean_schema(self, schema: dict[str, Any]) -> bool:
+        """Check if the elicitation schema is requesting a boolean value."""
+        return schema.get("type") == "boolean"
+
+    def _is_enum_schema(self, schema: dict[str, Any]) -> bool:
+        """Check if the elicitation schema is requesting an enum value."""
+        return schema.get("type") == "string" and "enum" in schema
+
+    def _create_boolean_elicitation_options(self) -> list[PermissionOption]:
+        """Create permission options for boolean elicitation (Yes/No)."""
+        from acp.schema import PermissionOption
+
+        return [
+            PermissionOption(
+                option_id="true",
+                name="Yes",
+                kind="allow_once",
+            ),
+            PermissionOption(
+                option_id="false",
+                name="No",
+                kind="reject_once",
+            ),
+            PermissionOption(
+                option_id="cancel",
+                name="Cancel",
+                kind="reject_always",
+            ),
+        ]
+
+    def _handle_boolean_elicitation_response(
+        self, response: RequestPermissionResponse
+    ) -> types.ElicitResult | types.ErrorData:
+        """Handle ACP response for boolean elicitation."""
+        from mcp import types
+
+        if response.outcome.outcome == "selected":
+            if response.outcome.option_id == "true":
+                return types.ElicitResult(action="accept", content=True)
+            if response.outcome.option_id == "false":
+                return types.ElicitResult(action="accept", content=False)
+            if response.outcome.option_id == "cancel":
+                return types.ElicitResult(action="cancel")
+
+        # Handle cancelled outcome
+        if response.outcome.outcome == "cancelled":
+            return types.ElicitResult(action="cancel")
+
+        return types.ElicitResult(action="cancel")
+
+    def _create_enum_elicitation_options(
+        self, schema: dict[str, Any]
+    ) -> list[PermissionOption] | None:
+        """Create permission options for enum elicitation.
+
+        max 4 options to fit ACP UX.
+        """
+        from acp.schema import PermissionOption
+
+        enum_values = schema.get("enum", [])
+        enum_names = schema.get("enumNames", enum_values)  # Use enumNames if available
+
+        # Limit to 3 choices + cancel to keep ACP UI reasonable
+        if len(enum_values) > 3:  # noqa: PLR2004
+            logger.warning(
+                "Enum truncated for UI", enum_count=len(enum_values), showing_count=3
+            )
+            enum_values = enum_values[:3]
+            enum_names = enum_names[:3]
+
+        if not enum_values:
+            return None
+
+        options = []
+        for i, (value, name) in enumerate(zip(enum_values, enum_names, strict=False)):
+            options.append(
+                PermissionOption(
+                    option_id=f"enum_{i}_{value}",
+                    name=str(name),
+                    kind="allow_once",
+                )
+            )
+
+        # Add cancel option
+        options.append(
+            PermissionOption(
+                option_id="cancel",
+                name="Cancel",
+                kind="reject_always",
+            )
+        )
+
+        return options
+
+    def _handle_enum_elicitation_response(
+        self, response: RequestPermissionResponse, schema: dict[str, Any]
+    ) -> types.ElicitResult | types.ErrorData:
+        """Handle ACP response for enum elicitation."""
+        from mcp import types
+
+        if response.outcome.outcome == "selected":
+            option_id = response.outcome.option_id
+
+            if option_id == "cancel":
+                return types.ElicitResult(action="cancel")
+
+            # Extract enum value from option_id format: "enum_{index}_{value}"
+            if option_id.startswith("enum_"):
+                try:
+                    parts = option_id.split("_", 2)  # Split into ["enum", index, value]
+                    if len(parts) >= 3:  # noqa: PLR2004
+                        enum_index = int(parts[1])
+                        enum_values = schema.get("enum", [])
+                        if 0 <= enum_index < len(enum_values):
+                            selected_value = enum_values[enum_index]
+                            return types.ElicitResult(
+                                action="accept", content=selected_value
+                            )
+                except (ValueError, IndexError):
+                    pass
+
+            # Fallback if parsing fails
+            logger.warning("Failed to parse enum option_id", option_id=option_id)
+            return types.ElicitResult(action="cancel")
+
+        # Handle cancelled outcome
+        if response.outcome.outcome == "cancelled":
+            return types.ElicitResult(action="cancel")
+
+        return types.ElicitResult(action="cancel")
 
     def clear_tool_approvals(self) -> None:
         """Clear all stored tool approval decisions.
@@ -227,8 +385,9 @@ class ACPInputProvider(InputProvider):
         This resets the "allow_always" and "reject_always" states,
         so tools will ask for permission again.
         """
+        approval_count = len(self._tool_approvals)
         self._tool_approvals.clear()
-        logger.info("Cleared all tool approval decisions")
+        logger.info("Cleared tool approval decisions", count=approval_count)
 
     def get_tool_approval_state(self) -> dict[str, str]:
         """Get current tool approval state for debugging/inspection.
