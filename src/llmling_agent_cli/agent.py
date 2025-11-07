@@ -4,12 +4,16 @@ from __future__ import annotations
 
 import shutil
 
-from llmling.cli.utils import OutputFormat, format_output
 import typer as t
 
 from llmling_agent.utils.inspection import validate_import
 from llmling_agent_cli import agent_store, resolve_agent_config
-from llmling_agent_cli.common import output_format_opt, verbose_opt
+from llmling_agent_cli.common import (
+    OutputFormat,
+    format_output,
+    output_format_opt,
+    verbose_opt,
+)
 
 
 agent_cli = t.Typer(help="Agent management commands", no_args_is_help=True)

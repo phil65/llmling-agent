@@ -3,13 +3,15 @@
 from __future__ import annotations
 
 from datetime import datetime
+import json
 import logging
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 import sys
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Literal
 
 import platformdirs
+from pydantic import TypeAdapter
 import typer as t
 
 from llmling_agent_cli.store import config_store
@@ -18,6 +20,7 @@ from llmling_agent_cli.store import config_store
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
+OutputFormat = Literal["text", "json", "yaml"]
 
 CONFIG_HELP = "Path to config file or name of stored config"
 OUTPUT_FORMAT_HELP = "Output format. One of: text, json, yaml"
@@ -119,3 +122,54 @@ output_format_opt = t.Option(
     autocompletion=complete_output_formats,
 )
 verbose_opt = t.Option(False, *VERBOSE_CMDS, help=VERBOSE_HELP, callback=verbose_callback)
+
+
+def format_output(
+    result: Any,
+    output_format: OutputFormat = "text",
+) -> None:
+    """Format and print data in the requested format using TypeAdapter.
+
+    Args:
+        result: Any object to format
+        output_format: One of: text, json, yaml
+    """
+    # Use TypeAdapter for consistent serialization
+    adapter = TypeAdapter(type(result))
+    data = adapter.dump_python(result)
+
+    from rich.console import Console
+
+    console = Console()
+    match output_format:
+        case "json":
+            print(json.dumps(data, indent=2, default=str))
+        case "yaml":
+            import yamling
+
+            print(yamling.dump_yaml(data))
+        case "text":
+            console.print(data)
+        case _:
+            msg = f"Unknown format: {output_format}"
+            raise ValueError(msg)
+
+
+if __name__ == "__main__":
+    from dataclasses import dataclass
+
+    @dataclass
+    class Person:
+        """Test class."""
+
+        name: str
+        age: int
+
+    people = [Person("Alice", 30), Person("Bob", 25)]
+
+    print("=== JSON ===")
+    format_output(people, "json")
+    print("\n=== YAML ===")
+    format_output(people, "yaml")
+    print("\n=== TEXT ===")
+    format_output(people, "text")
