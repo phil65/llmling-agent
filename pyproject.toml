@@ -55,6 +55,7 @@ dependencies = [
   "toprompt>=0.0.1",
   "typer",
   "upathtools>=0.1.0",
+  "yamling>=2.0.2",
 ]
 
 [project.urls]
