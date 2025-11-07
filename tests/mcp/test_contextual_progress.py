@@ -5,6 +5,8 @@ import contextlib
 from pathlib import Path
 from typing import Any
 
+from llmling_models import infer_model
+from pydantic_ai import RunContext, RunUsage
 from pydantic_ai.models.test import TestModel
 import pytest
 
@@ -157,7 +159,12 @@ async def test_direct_mcp_client_progress():
         await client.call_tool(
             name="test_progress",
             arguments={"message": test_message},
-            tool_call_id="test-call-123",
+            run_context=RunContext(
+                tool_call_id="test-call-123",
+                deps=None,
+                model=infer_model("openai:gpt-5-nano"),
+                usage=RunUsage(),
+            ),
         )
 
         # Wait for progress to complete

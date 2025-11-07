@@ -324,12 +324,7 @@ class MCPClient:
                 for k, v in kwargs.items()
                 if k in required_props or (k in schema_props and v is not None)
             }
-            return await self.call_tool(
-                tool.name,
-                filtered_kwargs,
-                tool_call_id=ctx.tool_call_id if ctx else None,
-                run_context=ctx,
-            )
+            return await self.call_tool(tool.name, ctx, filtered_kwargs)
 
         # Set proper signature and annotations with RunContext support
         tool_callable.__signature__ = _create_tool_signature_with_context(sig)  # type: ignore
@@ -358,9 +353,8 @@ class MCPClient:
     async def call_tool(
         self,
         name: str,
+        run_context: RunContext,
         arguments: dict | None = None,
-        tool_call_id: str | None = None,
-        run_context: RunContext | None = None,
     ) -> ToolReturn | str | Any:
         """Call an MCP tool with full PydanticAI return type support."""
         if not self._client or not self._connected:
@@ -381,7 +375,7 @@ class MCPClient:
             else:
                 # Fallback to using passed arguments (direct tool call)
                 progress_handler = self._create_final_progress_handler(
-                    name, tool_call_id or "", arguments or {}
+                    name, run_context.tool_call_id or "", arguments or {}
                 )
         try:
             result = await self._client.call_tool(
