@@ -69,8 +69,8 @@ class Job[TDeps, TResult = str](Schema):
     async def can_be_executed_by(self, agent: Agent[Any, Any]) -> bool:
         """Check if agent meets all requirements for this task."""
         # Check dependencies
-        if self.required_dependency and not isinstance(
-            agent.deps_type, self.required_dependency
+        if self.required_dependency and not issubclass(
+            agent.deps_type or type(None), self.required_dependency
         ):
             return False
 

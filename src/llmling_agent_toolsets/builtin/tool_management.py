@@ -90,16 +90,8 @@ async def register_code_tool(  # noqa: D417
 def create_tool_management_tools() -> list[Tool]:
     """Create tools for tool management operations."""
     return [
-        Tool.from_callable(
-            register_tool,
-            source="builtin",
-            category="other",
-        ),
-        Tool.from_callable(
-            register_code_tool,
-            source="builtin",
-            category="other",
-        ),
+        Tool.from_callable(register_tool, source="builtin", category="other"),
+        Tool.from_callable(register_code_tool, source="builtin", category="other"),
     ]
 
 
