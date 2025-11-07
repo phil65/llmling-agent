@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Any
-
 from pydantic_ai import RunContext
 import pytest
 
@@ -48,13 +46,7 @@ async def test_tool_context_injection(default_model: str):
         deps_received = ctx.deps
         return f"Got arg: {arg}"
 
-    # Create minimal config
-    # Create agent with dependencies
-    test_deps = {"key": "value"}
-    context = AgentContext[Any].create_default("test")
-    context.data = test_deps
     async with Agent(model=default_model, deps_type=bool) as agent:
-        agent.context = context
         # Register our test tool
         agent.tools.register_tool(test_tool, enabled=True)
         # Run agent which should trigger tool
@@ -80,7 +72,6 @@ async def test_plain_tool_no_context(default_model: str):
         return f"Got arg: {arg}"
 
     async with Agent(model=default_model) as agent:
-        agent.context = AgentContext.create_default("test")
         agent.tools.register_tool(plain_tool, enabled=True)
         # Should work without error
         await agent.run("Use the plain_tool with arg='test'")

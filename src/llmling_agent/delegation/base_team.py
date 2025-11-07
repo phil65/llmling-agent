@@ -397,7 +397,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
         team_config: TeamConfig | None = None
 
         for agent in self.iter_agents():
-            if agent.context and agent.context.pool:
+            if agent.context.pool:
                 pool_id = id(agent.context.pool)
                 if pool_id not in pool_ids:
                     pool_ids.add(pool_id)

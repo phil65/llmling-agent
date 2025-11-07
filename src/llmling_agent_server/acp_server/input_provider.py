@@ -6,14 +6,14 @@ from typing import TYPE_CHECKING, Any
 
 from mcp import types
 
-from acp.schema import PermissionOption
+from acp import PermissionOption
 from acp.utils import DEFAULT_PERMISSION_OPTIONS
 from llmling_agent.log import get_logger
 from llmling_agent_input.base import InputProvider
 
 
 if TYPE_CHECKING:
-    from acp.schema import RequestPermissionResponse
+    from acp import RequestPermissionResponse
     from llmling_agent.agent.context import AgentContext, ConfirmationResult
     from llmling_agent.messaging import ChatMessage
     from llmling_agent.tools.base import Tool
