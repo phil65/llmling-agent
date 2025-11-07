@@ -13,8 +13,8 @@ from fsspec.asyn import AsyncFileSystem, sync_wrapper
 from fsspec.spec import AbstractBufferedFile
 from upath import UPath
 
+from acp.acp_requests import ACPRequests
 from acp.notifications import ACPNotifications
-from acp.requests import ACPRequests
 
 
 if TYPE_CHECKING:

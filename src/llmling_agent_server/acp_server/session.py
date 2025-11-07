@@ -29,9 +29,9 @@ from pydantic_ai import (
 )
 from slashed import Command, CommandStore
 
+from acp.acp_requests import ACPRequests
 from acp.filesystem import ACPFileSystem
 from acp.notifications import ACPNotifications
-from acp.requests import ACPRequests
 from acp.schema import AvailableCommand
 from acp.utils import to_acp_content_blocks
 from llmling_agent.agent import SlashedAgent
