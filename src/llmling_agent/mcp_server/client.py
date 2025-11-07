@@ -127,7 +127,10 @@ class MCPClient:
 
         except Exception as first_error:
             # OAuth fallback for HTTP/SSE if not already using OAuth
-            if _should_try_oauth_fallback(self.config):
+            if (
+                not isinstance(self.config, StdioMCPServerConfig)
+                and not self.config.auth.oauth
+            ):
                 try:
                     with contextlib.suppress(Exception):
                         await self._client.__aexit__(None, None, None)
@@ -407,9 +410,3 @@ class MCPClient:
                     contents.append(str(block))  # Convert anything else to string
 
         return contents
-
-
-def _should_try_oauth_fallback(config: MCPServerConfig) -> bool:
-    """Check if OAuth fallback should be attempted."""
-    # No fallback for stdio or if OAuth already configured
-    return not isinstance(config, StdioMCPServerConfig) and not config.auth.oauth

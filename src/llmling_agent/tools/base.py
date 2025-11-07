@@ -18,9 +18,8 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
     from mcp.types import Tool as MCPTool
-    from schemez.typedefs import Property, ToolParameters
+    from schemez.typedefs import Property
 
-    from llmling_agent.agent import AgentContext
     from llmling_agent.common_types import ToolSource
     from llmling_agent.tools.manager import ToolState
 
@@ -38,41 +37,6 @@ ToolKind = Literal[
     "switch_mode",
     "other",
 ]
-
-
-@dataclass(frozen=True)
-class ToolContext:
-    """Context for tool execution confirmation."""
-
-    name: str
-    """Name of the tool being executed"""
-
-    args: dict[str, Any]
-    """Arguments being passed to the tool"""
-
-    schema: schemez.OpenAIFunctionTool
-    """Complete OpenAI function schema"""
-
-    runtime_ctx: AgentContext
-    """Runtime context from agent"""
-
-    @property
-    def description(self) -> str | None:
-        """Get tool description from schema."""
-        return self.schema["function"].get("description")
-
-    @property
-    def parameters(self) -> ToolParameters:
-        """Get parameter definitions from schema."""
-        return self.schema["function"].get("parameters", {})  # type: ignore
-
-    def __str__(self) -> str:
-        """Format tool context for logging/display."""
-        return (
-            f"Tool: {self.name}\n"
-            f"Arguments: {self.args}\n"
-            f"Description: {self.description or 'N/A'}"
-        )
 
 
 @dataclass
