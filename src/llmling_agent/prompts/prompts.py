@@ -156,13 +156,6 @@ class BasePrompt(BaseModel):
 
     model_config = ConfigDict(extra="forbid", use_attribute_docstrings=True)
 
-    def get_messages(self) -> list[PromptMessage]:
-        """Get the messages for this prompt."""
-        if not hasattr(self, "messages"):
-            msg = f"{self.__class__.__name__} must implement 'messages' attribute"
-            raise NotImplementedError(msg)
-        return self.messages  # pyright: ignore
-
     def validate_arguments(self, provided: dict[str, Any]) -> None:
         """Validate that required arguments are provided."""
         required = {arg.name for arg in self.arguments if arg.required}
@@ -335,19 +328,8 @@ class DynamicPrompt(BasePrompt):
         """Format this prompt with given arguments."""
         args = arguments or {}
         self.validate_arguments(args)
-
         try:
-            if isinstance(self.import_path, str):
-                callable_obj = importing.import_callable(self.import_path)
-                result = await execute(callable_obj, **args)
-            elif inspect.iscoroutinefunction(self.import_path):
-                result = await self.import_path(**args)
-            elif inspect.isfunction(self.import_path):
-                result = self.import_path(**args)
-            else:
-                msg = "Invalid result type"
-                raise ValueError(msg)  # noqa: TRY301
-            # Use result directly in template
+            result = await execute(self.fn(**args))
             template = self.template or "{result}"
             msg = template.format(result=result)
             content = MessageContent(type="text", content=msg)
