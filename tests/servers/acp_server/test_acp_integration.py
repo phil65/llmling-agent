@@ -35,9 +35,9 @@ class TestACPIntegration:
 
     async def test_acp_server_creation(self, agent_pool):
         """Test that ACP server can be created from agent pool."""
-        server = ACPServer(agent_pool=agent_pool)
-        assert server.agent_pool is agent_pool
-        assert len(server.agent_pool.agents) > 0
+        server = ACPServer(pool=agent_pool)
+        assert server.pool is agent_pool
+        assert len(server.pool.agents) > 0
 
     async def test_filesystem_provider_tool_creation(self, agent_pool, mock_acp_agent):
         """Test that filesystem provider creates tools correctly."""

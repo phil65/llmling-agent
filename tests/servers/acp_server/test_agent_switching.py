@@ -49,10 +49,10 @@ async def agent_pool(test_manifest: AgentsManifest):
 
 def test_server_agent_pool_setup(agent_pool: AgentPool[Any]):
     """Test that server correctly stores agent pool."""
-    server = ACPServer(agent_pool=agent_pool)
+    server = ACPServer(pool=agent_pool)
 
-    assert server.agent_pool is agent_pool
-    agent_names = list(server.agent_pool.agents.keys())
+    assert server.pool is agent_pool
+    agent_names = list(server.pool.agents.keys())
     assert len(agent_names) == 3  # noqa: PLR2004
     assert "coding-agent" in agent_names
     assert "research-agent" in agent_names
