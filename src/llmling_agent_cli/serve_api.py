@@ -10,6 +10,7 @@ import typer as t
 from llmling_agent.log import get_logger
 from llmling_agent_cli import resolve_agent_config
 from llmling_agent_cli.cli_types import LogLevel  # noqa: TC001
+from llmling_agent_server.openai_api_server.server import OpenAIAPIServer
 
 
 if TYPE_CHECKING:
@@ -45,7 +46,6 @@ def api_command(
     import uvicorn
 
     from llmling_agent import AgentPool, AgentsManifest
-    from llmling_agent_server.completions.server import OpenAIServer
 
     level = getattr(logging, log_level.upper())
     logging.basicConfig(level=level)
@@ -65,7 +65,7 @@ def api_command(
         for agent in pool.agents.values():
             agent.message_sent.connect(on_message)
 
-    server = OpenAIServer(pool, cors=cors, docs=docs)
+    server = OpenAIAPIServer(pool, cors=cors, docs=docs)
 
     uvicorn.run(server.app, host=host, port=port, log_level=log_level.lower())
 
