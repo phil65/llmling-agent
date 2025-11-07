@@ -79,6 +79,7 @@ llmling_agent = "llmling_agent.utils:setup_env"
 acp = "acp.filesystem:ACPPath"
 
 [project.optional-dependencies]
+a2a = ["fasta2a"]
 braintrust = ["braintrust", "autoevals"]
 clipboard = ["clipman"]
 composio = ["composio"]
