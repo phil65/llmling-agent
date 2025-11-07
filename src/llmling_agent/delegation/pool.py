@@ -129,9 +129,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
         # Create requested agents immediately
         for name in self.manifest.agents:
             agent = self.manifest.get_agent(
-                name,
-                deps=shared_deps,
-                input_provider=self._input_provider,
+                name, deps=shared_deps, input_provider=self._input_provider, pool=self
             )
             self.register(name, agent)
 
@@ -651,7 +649,12 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
 
         # Use Manifest.get_agent for proper initialization
         final_deps = deps if deps is not None else self.shared_deps
-        agent = self.manifest.get_agent(name, deps=final_deps)
+        agent = self.manifest.get_agent(
+            name,
+            deps=final_deps,
+            pool=self,
+            input_provider=self._input_provider,
+        )
         # Override name if requested
         if name_override:
             agent._name = name_override

@@ -376,21 +376,18 @@ class AgentsManifest(Schema):
         name: str,
         deps: TAgentDeps | None = None,
         input_provider: InputProvider | None = None,
+        pool: AgentPool[Any] | None = None,
     ) -> Agent[TAgentDeps, Any]:
-        # TODO: Make this method async to support async function prompts
-
         from llmling_agent import Agent, AgentContext
 
         config = self.agents[name]
-        # Create context with config path and capabilities
         context = AgentContext[TAgentDeps](
             node_name=name,
             data=deps,
             definition=self,
             config=config,
             input_provider=input_provider,
-            # pool=self,
-            # confirmation_callback=confirmation_callback,
+            pool=pool,
         )
 
         # Resolve system prompts with new PromptConfig types
