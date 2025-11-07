@@ -4,19 +4,19 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Self
 
-from llmling.core.typedefs import MessageContent
 from pydantic_ai import BinaryContent, SystemPromptPart, UserPromptPart
 from pydantic_ai.messages import ImageUrl
 
 from llmling_agent.log import get_logger
+from llmling_agent.prompts.prompts import MessageContent
 
 
 if TYPE_CHECKING:
     from types import TracebackType
 
-    from llmling import BasePrompt
     from pydantic_ai import ModelRequestPart
 
+    from llmling_agent.prompts.prompts import BasePrompt
     from llmling_agent.tools.base import Tool
     from llmling_agent_config.resources import ResourceInfo
 

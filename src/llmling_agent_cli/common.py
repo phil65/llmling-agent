@@ -46,7 +46,7 @@ def setup_logging(
     format_string: str | None = None,
     log_to_file: bool = True,
 ) -> None:
-    """Configure logging for llmling.
+    """Configure logging.
 
     Args:
         level: The logging level for console output

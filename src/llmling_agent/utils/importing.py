@@ -69,7 +69,6 @@ def import_callable(path: str) -> Callable[..., Any]:
 
     Examples:
         >>> import_callable("os.path.join")
-        >>> import_callable("llmling.testing:processors.failing_processor")
         >>> import_callable("builtins.str.upper")
         >>> import_callable("sqlalchemy.orm:Session.query")
 

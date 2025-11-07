@@ -36,7 +36,6 @@ dependencies = [
   "fastmcp>=2.12.4",
   "griffe>=1.5.4",
   "jinjarope",
-  "llmling>=1.1.5",
   "llmling-models>=0.2.0",
   "logfire",
   "mcp>=1.2.0",

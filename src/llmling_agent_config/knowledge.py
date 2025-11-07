@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from llmling.prompts import PromptType
 from pydantic import ConfigDict, Field
 from schemez import Schema
+
+from llmling_agent.prompts.prompts import PromptType
 
 
 class Knowledge(Schema):

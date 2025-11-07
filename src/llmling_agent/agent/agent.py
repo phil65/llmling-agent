@@ -67,7 +67,6 @@ if TYPE_CHECKING:
     from datetime import datetime
     from types import TracebackType
 
-    from llmling.prompts import PromptType
     from pydantic_ai import AgentStreamEvent, UsageLimits
     from pydantic_ai.output import OutputSpec
     from toprompt import AnyPromptType
@@ -84,6 +83,7 @@ if TYPE_CHECKING:
         ToolType,
     )
     from llmling_agent.delegation import Team, TeamRun
+    from llmling_agent.prompts.prompts import PromptType
     from llmling_agent.resource_providers import ResourceProvider
     from llmling_agent_config.mcp_server import MCPServerConfig
     from llmling_agent_config.output_types import StructuredResponseConfig

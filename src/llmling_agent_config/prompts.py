@@ -1,4 +1,4 @@
-"""Prompt models for LLMling."""
+"""Prompt models for LLMling-Agent."""
 
 from __future__ import annotations
 

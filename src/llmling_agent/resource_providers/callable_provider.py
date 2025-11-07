@@ -10,8 +10,7 @@ from llmling_agent.utils.inspection import execute
 
 
 if TYPE_CHECKING:
-    from llmling import BasePrompt
-
+    from llmling_agent.prompts.prompts import BasePrompt
     from llmling_agent.tools.base import Tool
     from llmling_agent_config.resources import ResourceInfo
 

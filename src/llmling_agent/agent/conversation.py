@@ -8,12 +8,12 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Self, overload
 from uuid import UUID, uuid4
 
-from llmling import BasePrompt
 from psygnal import Signal
 from upathtools import read_path
 
 from llmling_agent.log import get_logger
 from llmling_agent.messaging import ChatMessage, ChatMessageContainer
+from llmling_agent.prompts.prompts import BasePrompt
 from llmling_agent.utils.count_tokens import count_tokens
 from llmling_agent.utils.now import get_now
 from llmling_agent_config.session import SessionQuery
@@ -24,12 +24,12 @@ if TYPE_CHECKING:
     from datetime import datetime
     from types import TracebackType
 
-    from llmling.prompts import PromptType
     from toprompt import AnyPromptType
     from upath.types import JoinablePathLike
 
     from llmling_agent.agent.agent import Agent
     from llmling_agent.common_types import MessageRole, SessionIdType
+    from llmling_agent.prompts.prompts import PromptType
     from llmling_agent_config.session import MemoryConfig
 
 logger = get_logger(__name__)

@@ -5,16 +5,15 @@ from __future__ import annotations
 from functools import wraps
 from typing import TYPE_CHECKING, Any
 
-from llmling import DynamicPrompt, PromptParameter
-
 from llmling_agent.log import get_logger
+from llmling_agent.prompts.prompts import DynamicPrompt, PromptParameter
 from llmling_agent.utils.importing import import_callable
 
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from llmling import BasePrompt
+    from llmling_agent.prompts.prompts import BasePrompt
 
 
 logger = get_logger(__name__)

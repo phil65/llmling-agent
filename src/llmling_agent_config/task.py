@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from llmling import BasePrompt
 from pydantic import ConfigDict, Field, ImportString
 from schemez import Schema
 
+from llmling_agent.prompts.prompts import BasePrompt
 from llmling_agent.tools.base import Tool
 from llmling_agent_config.knowledge import Knowledge
 from llmling_agent_config.tools import ImportToolConfig
