@@ -128,16 +128,8 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
 
         self.process_manager = ProcessManager()
         self.pool_talk = TeamTalk[Any].from_nodes(list(self.nodes.values()))
-        if self.manifest.pool_server and self.manifest.pool_server.enabled:
-            from llmling_agent_server.mcp_server.server import MCPServer
-
-            self.server: MCPServer | None = MCPServer(
-                pool=self,
-                config=self.manifest.pool_server,
-            )
-            self.progress_handlers.add_handler(self.server.report_progress)
-        else:
-            self.server = None
+        # MCP server is now managed externally
+        self.server = None
         # Create requested agents immediately
         for name in self.manifest.agents:
             agent = self.manifest.get_agent(name, deps=shared_deps)
@@ -174,9 +166,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
                         *teams,
                     ]
 
-                    # Add MCP server if configured
-                    if self.server:
-                        components.append(self.server)
+                    # MCP server is now managed externally - removed from pool
                     # Initialize all components
                     if self.parallel_load:
                         await asyncio.gather(

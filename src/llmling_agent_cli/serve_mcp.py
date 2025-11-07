@@ -49,16 +49,24 @@ def serve_command(
         print(message.format(style="simple"))
 
     async def run_server():
-        # Override/set server config before creating pool
+        # Load manifest and create pool (without server config)
         manifest = AgentsManifest.from_file(config)
-        manifest.pool_server = MCPPoolServerConfig(
+        pool = AgentPool(manifest)
+
+        # Create server config and server externally
+        server_config = MCPPoolServerConfig(
             enabled=True,
             transport=transport,
             host=host,
             port=port,
             zed_mode=zed_mode,
         )
-        async with AgentPool(manifest) as pool:
+
+        from llmling_agent_server.mcp_server.server import MCPServer
+
+        server = MCPServer(pool, server_config)
+
+        async with pool, server, server.run_context():
             if show_messages:
                 for agent in pool.agents.values():
                     agent.message_sent.connect(on_message)
