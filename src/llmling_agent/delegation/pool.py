@@ -743,14 +743,15 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
             ValueError: If configuration is invalid
         """
         from llmling_agent.agent import Agent
-        from llmling_agent.agent.context import AgentContext
 
         # Get base agent
         base = agent if isinstance(agent, Agent) else self.agents[agent]
 
         # Setup context and dependencies
-        if base.context is None:
-            base.context = AgentContext[Any].create_default(base.name)
+        # if base.context is None:
+        #     base.context = AgentContext[Any].create_default(
+        #         base.name, input_provider=self._input_provider
+        #     )
 
         # Use custom deps if provided, otherwise use shared deps
         # base.context.data = deps if deps is not None else self.shared_deps
