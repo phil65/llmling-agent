@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from collections.abc import Callable
 import inspect
-import os
 from typing import TYPE_CHECKING, Annotated, Any, Literal, get_type_hints
 
 from fastmcp.prompts.prompt import (
@@ -15,7 +14,7 @@ from pydantic import BaseModel, ConfigDict, Field, ImportString
 from pydantic_ai import BinaryContent, SystemPromptPart, UserPromptPart
 from pydantic_ai.messages import ImageUrl
 from schemez import Schema
-import upath
+from upath.types import JoinablePathLike
 
 from llmling_agent.log import get_logger
 from llmling_agent.utils import importing
@@ -62,7 +61,7 @@ class MessageContent(Schema):
         raise ValueError(msg)
 
 
-class PromptParameter(BaseModel):
+class PromptParameter(Schema):
     """Prompt argument with validation information."""
 
     name: str
@@ -83,8 +82,6 @@ class PromptParameter(BaseModel):
     completion_function: ImportString | None = Field(default=None)
     """Optional function to provide argument completions."""
 
-    model_config = ConfigDict(use_attribute_docstrings=True)
-
     def to_mcp_argument(self) -> PromptArgument:
         """Convert to MCP PromptArgument."""
         from mcp.types import PromptArgument
@@ -94,13 +91,11 @@ class PromptParameter(BaseModel):
         )
 
 
-class PromptMessage(BaseModel):
+class PromptMessage(Schema):
     """A message in a prompt template."""
 
     role: MessageRole
     content: str | MessageContent | list[MessageContent] = ""
-
-    model_config = ConfigDict(frozen=True)
 
     def get_text_content(self) -> str:
         """Get text content of message."""
@@ -432,7 +427,7 @@ class FilePrompt(BasePrompt):
     and parsed according to the specified format.
     """
 
-    path: str | os.PathLike[str] | upath.UPath
+    path: JoinablePathLike
     """Path to the file containing the prompt content."""
 
     fmt: Literal["text", "markdown", "jinja2"] = Field("text", alias="format")
