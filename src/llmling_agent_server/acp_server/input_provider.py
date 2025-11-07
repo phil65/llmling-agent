@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any
 from mcp import types
 
 from acp.schema import PermissionOption
+from acp.utils import DEFAULT_PERMISSION_OPTIONS
 from llmling_agent.log import get_logger
 from llmling_agent_input.base import InputProvider
 
@@ -21,50 +22,12 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-def _create_permission_options() -> list[PermissionOption]:
-    """Create all 4 permission options for tool confirmation."""
-    return [
-        PermissionOption(
-            option_id="allow-once",
-            name="Allow once",
-            kind="allow_once",
-        ),
-        PermissionOption(
-            option_id="allow-always",
-            name="Allow always",
-            kind="allow_always",
-        ),
-        PermissionOption(
-            option_id="reject-once",
-            name="Reject once",
-            kind="reject_once",
-        ),
-        PermissionOption(
-            option_id="reject-always",
-            name="Reject always",
-            kind="reject_always",
-        ),
-    ]
-
-
 def _create_boolean_elicitation_options() -> list[PermissionOption]:
     """Create permission options for boolean elicitation (Yes/No)."""
     return [
-        PermissionOption(
-            option_id="true",
-            name="Yes",
-            kind="allow_once",
-        ),
-        PermissionOption(
-            option_id="false",
-            name="No",
-            kind="reject_once",
-        ),
-        PermissionOption(
-            option_id="cancel",
-            name="Cancel",
-            kind="reject_always",
-        ),
+        PermissionOption(option_id="true", name="Yes", kind="allow_once"),
+        PermissionOption(option_id="false", name="No", kind="reject_once"),
+        PermissionOption(option_id="cancel", name="Cancel", kind="reject_always"),
     ]
 
 
@@ -124,21 +87,12 @@ class ACPInputProvider(InputProvider):
 
             # Create a descriptive title for the permission request
             args_str = ", ".join(f"{k}={v}" for k, v in args.items())
-            title = f"Execute tool {tool.name!r} with args: {args_str}"
-
-            # Use a unique tool call ID (could be more sophisticated)
-            tool_call_id = f"{tool.name}_{hash(frozenset(args.items()))}"
-
-            # Create all 4 permission options
-            options = _create_permission_options()
-
             # Request permission from the client
             response = await self.session.requests.request_permission(
-                tool_call_id=tool_call_id,
-                title=title,
-                options=options,
+                tool_call_id=f"{tool.name}_{hash(frozenset(args.items()))}",
+                title=f"Execute tool {tool.name!r} with args: {args_str}",
+                options=DEFAULT_PERMISSION_OPTIONS,
             )
-
             # Map ACP permission response to our confirmation result
             if response.outcome.outcome == "selected":
                 return self._handle_permission_response(
@@ -225,9 +179,8 @@ class ACPInputProvider(InputProvider):
                     options=options,
                 )
                 return self._handle_boolean_elicitation_response(response, schema)
-            if self._is_enum_schema(schema):
-                options = self._create_enum_elicitation_options(schema)
-                if options:  # Only proceed if we have valid enum options
+            if self._is_enum_schema(schema):  # noqa: SIM102
+                if options := self._create_enum_elicitation_options(schema):
                     response = await self.session.requests.request_permission(
                         tool_call_id=tool_call_id,
                         title=title,
@@ -236,18 +189,9 @@ class ACPInputProvider(InputProvider):
                     return self._handle_enum_elicitation_response(response, schema)
 
             options = [
-                PermissionOption(
-                    option_id="accept",
-                    name="Accept",
-                    kind="allow_once",
-                ),
-                PermissionOption(
-                    option_id="decline",
-                    name="Decline",
-                    kind="reject_once",
-                ),
+                PermissionOption(option_id="accept", name="Accept", kind="allow_once"),
+                PermissionOption(option_id="decline", name="Decline", kind="reject_once"),
             ]
-
             response = await self.session.requests.request_permission(
                 tool_call_id=tool_call_id,
                 title=title,

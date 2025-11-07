@@ -5,6 +5,8 @@ from __future__ import annotations
 import base64
 from typing import TYPE_CHECKING
 
+from pydantic_ai import BinaryContent, FileUrl, ToolReturn
+
 from acp.schema import (
     AudioContentBlock,
     BlobResourceContents,
@@ -20,7 +22,7 @@ from llmling_agent.log import get_logger
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from pydantic_ai import ToolReturn, UserContent
+    from pydantic_ai import UserContent
 
     from acp.schema import ContentBlock, ToolCallKind
 
@@ -52,8 +54,6 @@ def to_acp_content_blocks(  # noqa: PLR0911
     Returns:
         List of ContentBlock objects
     """
-    from pydantic_ai import BinaryContent, FileUrl, ToolReturn
-
     if tool_output is None:
         return []
 

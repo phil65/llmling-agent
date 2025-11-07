@@ -23,8 +23,8 @@ from llmling_agent.log import get_logger
 
 
 if TYPE_CHECKING:
-    from acp import Client
-    from acp.schema import (
+    from acp import (
+        Client,
         RequestPermissionResponse,
         TerminalOutputResponse,
         WaitForTerminalExitResponse,
