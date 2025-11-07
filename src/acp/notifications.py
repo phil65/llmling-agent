@@ -322,7 +322,7 @@ class ACPNotifications:
             message: Text message to send
         """
         update = UserMessageChunk(content=TextContentBlock(text=message))
-        notification = SessionNotification[Any](session_id=self.id, update=update)
+        notification = SessionNotification(session_id=self.id, update=update)
         await self.client.session_update(notification)
 
     async def send_user_image(
@@ -348,7 +348,7 @@ class ACPNotifications:
             annotations=annotations,
         )
         update = UserMessageChunk(content=content)
-        notification = SessionNotification[Any](session_id=self.id, update=update)
+        notification = SessionNotification(session_id=self.id, update=update)
         await self.client.session_update(notification)
 
     async def send_user_audio(
@@ -371,7 +371,7 @@ class ACPNotifications:
             annotations=annotations,
         )
         update = UserMessageChunk(content=content)
-        notification = SessionNotification[Any](session_id=self.id, update=update)
+        notification = SessionNotification(session_id=self.id, update=update)
         await self.client.session_update(notification)
 
     async def send_user_resource(
@@ -406,7 +406,7 @@ class ACPNotifications:
             annotations=annotations,
         )
         update = UserMessageChunk(content=content)
-        notification = SessionNotification[Any](session_id=self.id, update=update)
+        notification = SessionNotification(session_id=self.id, update=update)
         await self.client.session_update(notification)
 
     async def replay(self, messages: Sequence[ModelRequest | ModelResponse]) -> None:

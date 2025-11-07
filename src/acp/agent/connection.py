@@ -95,7 +95,7 @@ class AgentSideConnection(Client):
         )
 
     # client-bound methods (agent -> client)
-    async def session_update(self, params: SessionNotification[Any]) -> None:
+    async def session_update(self, params: SessionNotification) -> None:
         dct = params.model_dump(by_alias=True, exclude_none=True)
         await self._conn.send_notification("session/update", dct)
 

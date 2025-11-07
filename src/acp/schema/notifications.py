@@ -8,10 +8,16 @@ from acp.schema.base import AnnotatedObject
 from acp.schema.session_updates import SessionUpdate
 
 
-TSessionUpdate = TypeVar("TSessionUpdate", infer_variance=True)
+TSessionUpdate_co = TypeVar(
+    "TSessionUpdate_co",
+    covariant=True,
+    bound=SessionUpdate,
+)
 
 
-class SessionNotification[TSessionUpdate: SessionUpdate = SessionUpdate](AnnotatedObject):
+class SessionNotification[TSessionUpdate_co: SessionUpdate = SessionUpdate](
+    AnnotatedObject
+):
     """Notification containing a session update from the agent.
 
     Used to stream real-time progress and results during prompt processing.
@@ -22,7 +28,7 @@ class SessionNotification[TSessionUpdate: SessionUpdate = SessionUpdate](Annotat
     session_id: str
     """The ID of the session this update pertains to."""
 
-    update: TSessionUpdate
+    update: TSessionUpdate_co
     """The session update data."""
 
 
