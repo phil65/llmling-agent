@@ -102,7 +102,6 @@ agents:
 **Provides tools:**
 - `register_tool` - Register importable functions as tools
 - `register_code_tool` - Create tools from code
-- `install_package` - Install Python packages
 
 ### User Interaction (`user_interaction`)
 Direct interaction with users:

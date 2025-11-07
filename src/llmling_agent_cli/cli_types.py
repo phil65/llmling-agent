@@ -14,7 +14,6 @@ DetailLevel = Literal["simple", "detailed", "markdown"]
 # Statistics grouping options
 GroupBy = Literal["agent", "model", "hour", "day"]
 
-# Output formats (from llmling.cli.constants)
 OutputFormat = Literal["json", "yaml", "table", "text"]
 
 # Provider types

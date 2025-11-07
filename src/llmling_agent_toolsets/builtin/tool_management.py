@@ -29,11 +29,6 @@ def create_tool_management_tools(runtime: RuntimeConfig | None = None) -> list[T
                 source="builtin",
                 category="other",
             ),
-            Tool.from_callable(
-                runtime.install_package,
-                source="builtin",
-                category="execute",
-            ),
         ])
 
     return tools
