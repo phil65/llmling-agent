@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, Self, TypeVar
 import uuid
 
 from fasta2a.schema import (
@@ -25,18 +25,22 @@ from starlette.routing import Route
 import uvicorn
 
 from llmling_agent.log import get_logger
+from llmling_agent.messaging.messages import ChatMessage
 from llmling_agent_server import BaseServer
+from llmling_agent_server.a2a_server.storage import SimpleStorage
 
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Sequence
 
+    from fasta2a.schema import A2AResponse, AgentProvider, Skill
     from starlette.middleware import Middleware
     from starlette.requests import Request
     from starlette.routing import Route
     from starlette.types import ExceptionHandler, Receive, Scope, Send
 
     from llmling_agent import Agent, AgentPool
+    from llmling_agent_server.a2a_server.a2a_types import A2ARequest
 
 
 logger = get_logger(__name__)
@@ -55,21 +59,21 @@ class FastA2A(Starlette):
     def __init__(
         self,
         *,
-        storage,
-        broker,
+        storage: SimpleStorage,
+        broker: SimpleBroker,
         # Agent card
         name: str | None = None,
         url: str = "http://localhost:8000",
         version: str = "1.0.0",
         description: str | None = None,
-        provider=None,
-        skills=None,
+        provider: AgentProvider | None = None,
+        skills: list[Skill] | None = None,
         # Starlette
         debug: bool = False,
         routes: Sequence[Route] | None = None,
         middleware: Sequence[Middleware] | None = None,
         exception_handlers: dict[Any, ExceptionHandler] | None = None,
-        lifespan=None,
+        lifespan: Any = None,
     ):
         if lifespan is None:
             lifespan = _default_lifespan
@@ -178,19 +182,24 @@ class FastA2A(Starlette):
 class TaskManager:
     """Task manager for A2A server."""
 
-    def __init__(self, *, broker, storage):
+    def __init__(self, *, broker: SimpleBroker, storage: SimpleStorage) -> None:
         self.broker = broker
         self.storage = storage
         self.is_running = False
 
-    async def __aenter__(self):
+    async def __aenter__(self) -> Self:
         self.is_running = True
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: object,
+    ) -> None:
         self.is_running = False
 
-    async def send_message(self, request):
+    async def send_message(self, request: A2ARequest) -> A2AResponse:
         """Handle message/send requests."""
         task_id = str(uuid.uuid4())
         # Store task in storage for processing
@@ -202,19 +211,39 @@ class TaskManager:
             "result": {"status": "submitted", "task_id": task_id},
         }
 
-    async def get_task(self, request):
+    async def get_task(self, request: A2ARequest) -> A2AResponse:
         """Handle tasks/get requests."""
         task_id = request.get("params", {}).get("task_id")
+        if not task_id or not isinstance(task_id, str):
+            return {
+                "jsonrpc": "2.0",
+                "id": request.get("id"),
+                "result": {
+                    "status": "invalid_request",
+                    "result": None,
+                    "error": "Missing task_id",
+                },
+            }
         task_status = await self.storage.get_task_status(task_id)
         return {
             "jsonrpc": "2.0",
             "id": request.get("id"),
-            "result": task_status,
+            "result": {
+                "status": task_status["status"],
+                "result": task_status["result"],
+                "error": task_status["error"],
+            },
         }
 
-    async def cancel_task(self, request):
+    async def cancel_task(self, request: A2ARequest) -> A2AResponse:
         """Handle tasks/cancel requests."""
         task_id = request.get("params", {}).get("task_id")
+        if not task_id or not isinstance(task_id, str):
+            return {
+                "jsonrpc": "2.0",
+                "id": request.get("id"),
+                "result": {"status": "invalid_request"},
+            }
         await self.storage.cancel_task(task_id)
         return {
             "jsonrpc": "2.0",
@@ -223,69 +252,21 @@ class TaskManager:
         }
 
 
-class SimpleStorage:
-    """Simple in-memory storage for A2A tasks."""
-
-    def __init__(self):
-        self.tasks = {}
-
-    async def store_task(self, task_id: str, task_data):
-        """Store a task."""
-        self.tasks[task_id] = {
-            "id": task_id,
-            "status": "submitted",
-            "data": task_data,
-            "result": None,
-            "error": None,
-        }
-
-    async def get_task(self, task_id: str):
-        """Get task data."""
-        task = self.tasks.get(task_id)
-        return task["data"] if task else None
-
-    async def get_task_status(self, task_id: str):
-        """Get task status."""
-        task = self.tasks.get(task_id)
-        if not task:
-            return {"status": "not_found"}
-        return {
-            "status": task["status"],
-            "result": task["result"],
-            "error": task["error"],
-        }
-
-    async def update_task_status(
-        self, task_id: str, status: str, result=None, error=None
-    ):
-        """Update task status."""
-        if task_id in self.tasks:
-            self.tasks[task_id]["status"] = status
-            if result is not None:
-                self.tasks[task_id]["result"] = result
-            if error is not None:
-                self.tasks[task_id]["error"] = error
-
-    async def cancel_task(self, task_id: str):
-        """Cancel a task."""
-        await self.update_task_status(task_id, "cancelled")
-
-
 class SimpleBroker:
     """Simple in-memory broker for A2A tasks."""
 
-    def __init__(self, worker=None):
+    def __init__(self, worker: AgentWorker | None = None) -> None:
         self.worker = worker
-        self.tasks = []
+        self.tasks: list[str] = []
 
-    async def submit_task(self, task_id: str):
+    async def submit_task(self, task_id: str) -> None:
         """Submit a task for processing."""
         self.tasks.append(task_id)
         if self.worker:
             # Process immediately for simplicity
             await self.worker.run_task(task_id)
 
-    def set_worker(self, worker):
+    def set_worker(self, worker: AgentWorker) -> None:
         """Set the worker for this broker."""
         self.worker = worker
 
@@ -310,17 +291,22 @@ class AgentWorker:
     """A worker that uses an agent to execute tasks."""
 
     agent: Agent[AgentDepsT, OutputDataT]
-    storage: Any
-    broker: Any = None
+    storage: SimpleStorage
+    broker: SimpleBroker | None = None
 
-    async def run(self):
+    async def run(self) -> AgentWorker:
         """Run the worker."""
         return self
 
-    async def __aenter__(self):
+    async def __aenter__(self) -> Self:
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: object,
+    ) -> None:
         pass
 
     async def run_task(self, task_id: str) -> None:
@@ -330,17 +316,29 @@ class AgentWorker:
             msg = f"Task {task_id} not found"
             raise ValueError(msg)
 
+        context_id = task_data["context_id"]
         await self.storage.update_task_status(task_id, "working")
 
         try:
-            # Extract message content from A2A request
-            message_content = self._extract_message_content(task_data)
+            # Load conversation history as ChatMessages
+            if context_id:
+                message_history = await self.storage.load_context(context_id)
+            else:
+                message_history = []
 
-            # Run the agent
-            result = await self.agent.run(message_content)
+            # Convert A2A message to ChatMessage and add to history
+            new_message = self._a2a_to_chat_message(task_data["data"])
+            message_history.append(new_message)
+
+            # Run the agent with full message history
+            result = await self.agent.run(message_history=message_history)
+
+            message_history.append(result)
+            if context_id:
+                await self.storage.update_context(context_id, message_history)
 
             # Convert result to A2A format
-            a2a_result = self._convert_result_to_a2a(result)
+            a2a_result = self._chat_message_to_a2a(result)
 
             await self.storage.update_task_status(task_id, "completed", result=a2a_result)
         except Exception as e:  # noqa: BLE001
@@ -350,19 +348,25 @@ class AgentWorker:
         """Cancel a task."""
         await self.storage.update_task_status(task_id, "cancelled")
 
-    def _extract_message_content(self, task_data) -> str:
-        """Extract message content from A2A task data."""
-        # Simple implementation - extract text from first message part
+    def _a2a_to_chat_message(self, task_data: A2ARequest) -> ChatMessage:
+        """Convert A2A task data to ChatMessage."""
+        # Extract message content from A2A request
         messages = task_data.get("params", {}).get("messages", [])
+        content = ""
         if messages:
             parts = messages[0].get("parts", [])
             for part in parts:
                 if part.get("kind") == "text":
-                    return part.get("text", "")
-        return ""
+                    content = part.get("text", "")
+                    break
 
-    def _convert_result_to_a2a(self, result) -> dict:
-        """Convert agent result to A2A format."""
+        return ChatMessage.user_prompt(
+            message=content,
+            conversation_id=task_data.get("params", {}).get("context_id"),
+        )
+
+    def _chat_message_to_a2a(self, message: ChatMessage) -> dict[str, Any]:
+        """Convert ChatMessage to A2A format."""
         return {
             "messages": [
                 {
@@ -370,7 +374,7 @@ class AgentWorker:
                     "parts": [
                         {
                             "kind": "text",
-                            "text": str(result.content),
+                            "text": str(message.content),
                         }
                     ],
                 }
@@ -464,7 +468,7 @@ class A2AServer(BaseServer):
         await server.serve()
 
     @property
-    def app(self):
+    def app(self) -> FastA2A:
         """Get the underlying FastA2A application."""
         return self._app
 
