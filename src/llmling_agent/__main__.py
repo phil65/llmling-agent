@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from llmling.config.store import config_store
 import typer as t
 
 from llmling_agent_cli.agent import add_agent_file, list_agents, set_active_file
@@ -11,6 +10,7 @@ from llmling_agent_cli.run import run_command
 from llmling_agent_cli.serve_acp import acp_command
 from llmling_agent_cli.serve_api import api_command
 from llmling_agent_cli.serve_mcp import serve_command
+from llmling_agent_cli.store import config_store
 from llmling_agent_cli.task import task_command
 from llmling_agent_cli.watch import watch_command
 

@@ -6,12 +6,12 @@ import asyncio
 import traceback
 from typing import TYPE_CHECKING, Any
 
-from llmling.cli.constants import verbose_opt
 import typer as t
 
 from llmling_agent import AgentPool
 from llmling_agent_cli import resolve_agent_config
 from llmling_agent_cli.cli_types import DetailLevel  # noqa: TC001
+from llmling_agent_cli.common import verbose_opt
 
 
 if TYPE_CHECKING:
