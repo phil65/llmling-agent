@@ -8,7 +8,7 @@ from contextlib import AsyncExitStack, asynccontextmanager, suppress
 import os
 from typing import TYPE_CHECKING, Any, Self, Unpack, cast, overload
 
-from anyenv import MultiEventHandler
+from anyenv import MultiEventHandler, ProcessManager
 from upath import UPath
 
 from llmling_agent.agent import Agent
@@ -122,10 +122,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
         # Register tasks from manifest
         for name, task in self.manifest.jobs.items():
             self._tasks.register(name, task)
-
-        # Initialize process manager for background processes
-        from anyenv import ProcessManager
-
         self.process_manager = ProcessManager()
         self.pool_talk = TeamTalk[Any].from_nodes(list(self.nodes.values()))
         # MCP server is now managed externally
@@ -133,7 +129,9 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
         # Create requested agents immediately
         for name in self.manifest.agents:
             agent = self.manifest.get_agent(
-                name, deps=shared_deps, input_provider=self._input_provider
+                name,
+                deps=shared_deps,
+                input_provider=self._input_provider,
             )
             self.register(name, agent)
 
@@ -145,8 +143,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
         if connect_nodes:
             self._connect_nodes()
 
-        # Initialize async safety fields
-        self._enter_lock = Lock()
+        self._enter_lock = Lock()  # Initialize async safety fields
         self._running_count = 0
 
     async def __aenter__(self) -> Self:
