@@ -20,6 +20,7 @@ from llmling_agent_converters.base import DocumentConverter
 
 if TYPE_CHECKING:
     from upath.types import JoinablePathLike
+    from youtube_transcript_api.formatters import Formatter
 
 
 logger = get_logger(__name__)
@@ -51,7 +52,7 @@ class YouTubeTranscriptConverter(DocumentConverter):
         # Initialize formatter based on format
         match self.config.format:
             case "text":
-                self.formatter = TextFormatter()
+                self.formatter: Formatter = TextFormatter()
             case "json":
                 self.formatter = JSONFormatter()
             case "vtt":
