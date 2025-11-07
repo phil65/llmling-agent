@@ -13,7 +13,6 @@ from __future__ import annotations
 import base64
 from collections.abc import Callable
 import contextlib
-import inspect
 import logging
 from typing import TYPE_CHECKING, Any, Self
 
@@ -63,20 +62,16 @@ if TYPE_CHECKING:
 
     from fastmcp.client import ClientTransport
     from fastmcp.client.client import ProgressHandler
-    from fastmcp.client.elicitation import ElicitationHandler, ElicitResult
+    from fastmcp.client.elicitation import ElicitationHandler
     from fastmcp.client.logging import LogMessage
     from fastmcp.client.messages import MessageHandler, MessageHandlerT
     from fastmcp.client.sampling import ClientSamplingHandler
     import mcp
-    from mcp.client.session import RequestContext
     from mcp.types import (
         BlobResourceContents,
         ContentBlock,
-        CreateMessageRequestParams,
-        ElicitRequestParams,
         Prompt as MCPPrompt,
         Resource as MCPResource,
-        SamplingMessage,
         TextResourceContents,
         Tool as MCPTool,
     )
@@ -168,47 +163,6 @@ class MCPClient:
         level = LEVEL_MAP.get(message.level.lower(), logging.INFO)
         logger.log(level, "MCP Server: ", data=message.data)
 
-    async def _elicitation_handler_impl(
-        self,
-        message: str,
-        response_type: type,
-        params: ElicitRequestParams,
-        context: RequestContext,
-    ) -> ElicitResult[dict[str, Any]] | dict[str, Any] | None:
-        """Handle elicitation requests from server."""
-        if not self._elicitation_callback:
-            return None
-
-        try:
-            # Direct FastMCP callback - no compatibility layer
-            return await self._elicitation_callback(
-                message, response_type, params, context
-            )
-        except Exception:
-            logger.exception("Elicitation handler failed")
-            from fastmcp.client.elicitation import ElicitResult
-
-            return ElicitResult(action="cancel")
-
-    async def _sampling_handler_impl(
-        self,
-        messages: list[SamplingMessage],
-        params: CreateMessageRequestParams,
-        context: RequestContext,
-    ) -> str:
-        """Handle sampling requests from server."""
-        if not self._sampling_callback:
-            return "Sampling not supported"
-
-        try:
-            result = self._sampling_callback(messages, params, context)
-            if inspect.iscoroutine(result):
-                result = await result
-            return str(result)
-        except Exception as e:
-            logger.exception("Sampling handler failed")
-            return f"Sampling failed: {e}"
-
     def _get_client(self, config: MCPServerConfig, force_oauth: bool = False):
         """Create FastMCP client based on config."""
         import fastmcp
@@ -244,8 +198,8 @@ class MCPClient:
             log_handler=self._log_handler,
             roots=self._accessible_roots,
             timeout=config.timeout,
-            elicitation_handler=self._elicitation_handler_impl,
-            sampling_handler=self._sampling_handler_impl,
+            elicitation_handler=self._elicitation_callback,
+            sampling_handler=self._sampling_callback,
             message_handler=msg_handler,
             auth="oauth" if (force_oauth or oauth) else None,
         )
@@ -364,7 +318,7 @@ class MCPClient:
         # Create progress handler if we have handler
         progress_handler = None
         if self._progress_handler:
-            if run_context and run_context.tool_call_id and run_context.tool_name:
+            if run_context.tool_call_id and run_context.tool_name:
                 # Extract tool args from message history
                 tool_input = extract_tool_call_args(
                     run_context.messages, run_context.tool_call_id
