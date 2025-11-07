@@ -455,14 +455,6 @@
           "title": "System Prompts",
           "type": "array"
         },
-        "user_prompts": {
-          "description": "Default user prompts for the agent",
-          "items": {
-            "type": "string"
-          },
-          "title": "User Prompts",
-          "type": "array"
-        },
         "config_file_path": {
           "anyOf": [
             {
@@ -965,124 +957,6 @@
       "title": "BraintrustConfig",
       "type": "object"
     },
-    "CLIResource": {
-      "additionalProperties": false,
-      "description": "Resource from CLI command execution.",
-      "properties": {
-        "type": {
-          "const": "cli",
-          "default": "cli",
-          "description": "Discriminator field identifying this as a CLI-based resource.",
-          "title": "Type",
-          "type": "string"
-        },
-        "description": {
-          "default": "",
-          "description": "Human-readable description of the resource.",
-          "title": "Description",
-          "type": "string"
-        },
-        "uri": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Canonical URI for this resource, set during registration if unset.",
-          "title": "Uri"
-        },
-        "processors": {
-          "description": "Processing steps to apply when loading this resource.",
-          "items": {
-            "$ref": "#/$defs/ProcessingStep"
-          },
-          "title": "Processors",
-          "type": "array"
-        },
-        "watch": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/WatchConfig"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Configuration for file system watching, if supported."
-        },
-        "name": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Technical identifier (automatically set from config key during registration).",
-          "title": "Name"
-        },
-        "command": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "items": {
-                "type": "string"
-              },
-              "type": "array"
-            }
-          ],
-          "description": "Command to execute (string or sequence of arguments).",
-          "title": "Command"
-        },
-        "shell": {
-          "default": false,
-          "description": "Whether to run the command through a shell.",
-          "title": "Shell",
-          "type": "boolean"
-        },
-        "cwd": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Working directory for command execution.",
-          "title": "Cwd"
-        },
-        "timeout": {
-          "anyOf": [
-            {
-              "minimum": 0,
-              "type": "number"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Maximum time in seconds to wait for command completion.",
-          "title": "Timeout"
-        }
-      },
-      "required": [
-        "command"
-      ],
-      "title": "CLIResource",
-      "type": "object"
-    },
     "CallableCommandConfig": {
       "additionalProperties": false,
       "description": "Callable command that references a Python function.",
@@ -1423,87 +1297,6 @@
         "callable"
       ],
       "title": "CallableConnectionConfig",
-      "type": "object"
-    },
-    "CallableResource": {
-      "additionalProperties": false,
-      "description": "Resource from executing a Python callable.",
-      "properties": {
-        "type": {
-          "const": "callable",
-          "default": "callable",
-          "description": "Discriminator field identifying this as a callable-based resource.",
-          "title": "Type",
-          "type": "string"
-        },
-        "description": {
-          "default": "",
-          "description": "Human-readable description of the resource.",
-          "title": "Description",
-          "type": "string"
-        },
-        "uri": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Canonical URI for this resource, set during registration if unset.",
-          "title": "Uri"
-        },
-        "processors": {
-          "description": "Processing steps to apply when loading this resource.",
-          "items": {
-            "$ref": "#/$defs/ProcessingStep"
-          },
-          "title": "Processors",
-          "type": "array"
-        },
-        "watch": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/WatchConfig"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Configuration for file system watching, if supported."
-        },
-        "name": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Technical identifier (automatically set from config key during registration).",
-          "title": "Name"
-        },
-        "import_path": {
-          "description": "Dotted import path to the callable to execute.",
-          "title": "Import Path",
-          "type": "string"
-        },
-        "keyword_args": {
-          "additionalProperties": true,
-          "description": "Keyword arguments to pass to the callable.",
-          "title": "Keyword Args",
-          "type": "object"
-        }
-      },
-      "required": [
-        "import_path"
-      ],
-      "title": "CallableResource",
       "type": "object"
     },
     "CodeExecutionToolsetConfig": {
@@ -3696,40 +3489,6 @@
           "title": "Paths",
           "type": "array"
         },
-        "resources": {
-          "description": "Rich resource definitions supporting:\n- PathResource: Complex file patterns, watching\n- TextResource: Raw content\n- CLIResource: Command output\n- RepositoryResource: Git repos\n- SourceResource: Python source\n- CallableResource: Function results",
-          "items": {
-            "discriminator": {
-              "mapping": {
-                "callable": "#/$defs/CallableResource",
-                "cli": "#/$defs/CLIResource",
-                "path": "#/$defs/PathResource",
-                "source": "#/$defs/SourceResource",
-                "text": "#/$defs/TextResource"
-              },
-              "propertyName": "type"
-            },
-            "oneOf": [
-              {
-                "$ref": "#/$defs/PathResource"
-              },
-              {
-                "$ref": "#/$defs/TextResource"
-              },
-              {
-                "$ref": "#/$defs/CLIResource"
-              },
-              {
-                "$ref": "#/$defs/SourceResource"
-              },
-              {
-                "$ref": "#/$defs/CallableResource"
-              }
-            ]
-          },
-          "title": "Resources",
-          "type": "array"
-        },
         "prompts": {
           "description": "Prompts for dynamic content generation:\n- StaticPrompt: Fixed message templates\n- DynamicPrompt: Python function-based\n- FilePrompt: File-based with template support",
           "items": {
@@ -4380,94 +4139,6 @@
       "title": "MarkItDownConfig",
       "type": "object"
     },
-    "Mem0Config": {
-      "additionalProperties": false,
-      "description": "Configuration for mem0 storage.",
-      "properties": {
-        "type": {
-          "const": "mem0",
-          "default": "mem0",
-          "description": "Mem0 storage config.",
-          "title": "Type",
-          "type": "string"
-        },
-        "log_messages": {
-          "default": true,
-          "description": "Whether to log messages",
-          "title": "Log Messages",
-          "type": "boolean"
-        },
-        "agents": {
-          "anyOf": [
-            {
-              "items": {
-                "type": "string"
-              },
-              "type": "array",
-              "uniqueItems": true
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Optional set of agent names to include. If None, logs all agents.",
-          "title": "Agents"
-        },
-        "log_conversations": {
-          "default": true,
-          "description": "Whether to log conversations",
-          "title": "Log Conversations",
-          "type": "boolean"
-        },
-        "log_commands": {
-          "default": true,
-          "description": "Whether to log command executions",
-          "title": "Log Commands",
-          "type": "boolean"
-        },
-        "log_context": {
-          "default": true,
-          "description": "Whether to log context messages.",
-          "title": "Log Context",
-          "type": "boolean"
-        },
-        "api_key": {
-          "anyOf": [
-            {
-              "format": "password",
-              "type": "string",
-              "writeOnly": true
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "API key for mem0 service.",
-          "title": "Api Key"
-        },
-        "page_size": {
-          "default": 100,
-          "description": "Number of results per page when retrieving paginated data.",
-          "minimum": 1,
-          "title": "Page Size",
-          "type": "integer"
-        },
-        "output_format": {
-          "default": "v1.1",
-          "description": "API output format version. 1.1 is recommended and provides enhanced details.",
-          "enum": [
-            "v1.0",
-            "v1.1"
-          ],
-          "title": "Output Format",
-          "type": "string"
-        }
-      },
-      "title": "Mem0Config",
-      "type": "object"
-    },
     "MemoryConfig": {
       "additionalProperties": false,
       "description": "Configuration for agent memory and history handling.",
@@ -5107,89 +4778,6 @@
       "title": "OrCondition",
       "type": "object"
     },
-    "PathResource": {
-      "additionalProperties": false,
-      "description": "Resource loaded from a file or URL.",
-      "properties": {
-        "type": {
-          "const": "path",
-          "default": "path",
-          "description": "Discriminator field identifying this as a path-based resource.",
-          "title": "Type",
-          "type": "string"
-        },
-        "description": {
-          "default": "",
-          "description": "Human-readable description of the resource.",
-          "title": "Description",
-          "type": "string"
-        },
-        "uri": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Canonical URI for this resource, set during registration if unset.",
-          "title": "Uri"
-        },
-        "processors": {
-          "description": "Processing steps to apply when loading this resource.",
-          "items": {
-            "$ref": "#/$defs/ProcessingStep"
-          },
-          "title": "Processors",
-          "type": "array"
-        },
-        "watch": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/WatchConfig"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Configuration for watching the file for changes."
-        },
-        "name": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Technical identifier (automatically set from config key during registration).",
-          "title": "Name"
-        },
-        "path": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "format": "path",
-              "type": "string"
-            }
-          ],
-          "description": "Path to the file or URL to load.",
-          "title": "Path"
-        }
-      },
-      "required": [
-        "path"
-      ],
-      "title": "PathResource",
-      "type": "object"
-    },
     "PlainConverterConfig": {
       "additionalProperties": false,
       "description": "Configuration for plain text fallback converter.",
@@ -5265,36 +4853,6 @@
         }
       },
       "title": "ProcessManagementToolsetConfig",
-      "type": "object"
-    },
-    "ProcessingStep": {
-      "additionalProperties": false,
-      "description": "Configuration for a processing step.",
-      "properties": {
-        "name": {
-          "title": "Name",
-          "type": "string"
-        },
-        "parallel": {
-          "default": false,
-          "title": "Parallel",
-          "type": "boolean"
-        },
-        "required": {
-          "default": true,
-          "title": "Required",
-          "type": "boolean"
-        },
-        "kwargs": {
-          "additionalProperties": true,
-          "title": "Kwargs",
-          "type": "object"
-        }
-      },
-      "required": [
-        "name"
-      ],
-      "title": "ProcessingStep",
       "type": "object"
     },
     "PromptLayerConfig": {
@@ -6093,93 +5651,6 @@
       "title": "SessionQuery",
       "type": "object"
     },
-    "SourceResource": {
-      "additionalProperties": false,
-      "description": "Resource from Python source code.",
-      "properties": {
-        "type": {
-          "const": "source",
-          "default": "source",
-          "description": "Discriminator field identifying this as a source code resource.",
-          "title": "Type",
-          "type": "string"
-        },
-        "description": {
-          "default": "",
-          "description": "Human-readable description of the resource.",
-          "title": "Description",
-          "type": "string"
-        },
-        "uri": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Canonical URI for this resource, set during registration if unset.",
-          "title": "Uri"
-        },
-        "processors": {
-          "description": "Processing steps to apply when loading this resource.",
-          "items": {
-            "$ref": "#/$defs/ProcessingStep"
-          },
-          "title": "Processors",
-          "type": "array"
-        },
-        "watch": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/WatchConfig"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Configuration for file system watching, if supported."
-        },
-        "name": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Technical identifier (automatically set from config key during registration).",
-          "title": "Name"
-        },
-        "import_path": {
-          "description": "Dotted import path to the Python module or object.",
-          "title": "Import Path",
-          "type": "string"
-        },
-        "recursive": {
-          "default": false,
-          "description": "Whether to include submodules recursively.",
-          "title": "Recursive",
-          "type": "boolean"
-        },
-        "include_tests": {
-          "default": false,
-          "description": "Whether to include test files and directories.",
-          "title": "Include Tests",
-          "type": "boolean"
-        }
-      },
-      "required": [
-        "import_path"
-      ],
-      "title": "SourceResource",
-      "type": "object"
-    },
     "SourceResourceConfig": {
       "additionalProperties": false,
       "description": "Configuration for a single filesystem source.",
@@ -6468,7 +5939,6 @@
                 "discriminator": {
                   "mapping": {
                     "file": "#/$defs/FileStorageConfig",
-                    "mem0": "#/$defs/Mem0Config",
                     "memory": "#/$defs/MemoryStorageConfig",
                     "sql": "#/$defs/SQLStorageConfig",
                     "text_file": "#/$defs/TextLogConfig"
@@ -6487,9 +5957,6 @@
                   },
                   {
                     "$ref": "#/$defs/MemoryStorageConfig"
-                  },
-                  {
-                    "$ref": "#/$defs/Mem0Config"
                   }
                 ]
               },
@@ -7107,81 +6574,6 @@
       "title": "TextLogConfig",
       "type": "object"
     },
-    "TextResource": {
-      "additionalProperties": false,
-      "description": "Raw text resource.",
-      "properties": {
-        "type": {
-          "const": "text",
-          "default": "text",
-          "description": "Discriminator field identifying this as a text-based resource.",
-          "title": "Type",
-          "type": "string"
-        },
-        "description": {
-          "default": "",
-          "description": "Human-readable description of the resource.",
-          "title": "Description",
-          "type": "string"
-        },
-        "uri": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Canonical URI for this resource, set during registration if unset.",
-          "title": "Uri"
-        },
-        "processors": {
-          "description": "Processing steps to apply when loading this resource.",
-          "items": {
-            "$ref": "#/$defs/ProcessingStep"
-          },
-          "title": "Processors",
-          "type": "array"
-        },
-        "watch": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/WatchConfig"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Configuration for file system watching, if supported."
-        },
-        "name": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Technical identifier (automatically set from config key during registration).",
-          "title": "Name"
-        },
-        "content": {
-          "description": "The actual text content of the resource.",
-          "title": "Content",
-          "type": "string"
-        }
-      },
-      "required": [
-        "content"
-      ],
-      "title": "TextResource",
-      "type": "object"
-    },
     "TimeCondition": {
       "additionalProperties": false,
       "description": "Disconnect after time period.",
@@ -7768,49 +7160,6 @@
         "models"
       ],
       "title": "UserSelectModelConfig",
-      "type": "object"
-    },
-    "WatchConfig": {
-      "additionalProperties": false,
-      "description": "Watch configuration for resources.",
-      "properties": {
-        "enabled": {
-          "default": false,
-          "description": "Whether the watch is enabled",
-          "title": "Enabled",
-          "type": "boolean"
-        },
-        "patterns": {
-          "anyOf": [
-            {
-              "items": {
-                "type": "string"
-              },
-              "type": "array"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "List of pathspec patterns (.gitignore style)",
-          "title": "Patterns"
-        },
-        "ignore_file": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Path to .gitignore-style file",
-          "title": "Ignore File"
-        }
-      },
-      "title": "WatchConfig",
       "type": "object"
     },
     "WebhookConfig": {
