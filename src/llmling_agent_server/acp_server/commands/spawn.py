@@ -21,7 +21,6 @@ from pydantic_ai import (
 )
 from slashed import CommandContext, CommandError, SlashedCommand  # noqa: TC002
 
-from acp.schema import ContentToolCallContent, TextContentBlock
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.agent.events import StreamCompleteEvent, ToolCallProgressEvent
 from llmling_agent.log import get_logger
@@ -70,11 +69,9 @@ class SpawnSubagentCommand(SlashedCommand):
         try:
             # Check if agent exists in pool
             if not session.agent_pool or agent_name not in session.agent_pool.agents:
-                available = (
-                    list(session.agent_pool.agents.keys()) if session.agent_pool else []
-                )
+                available = list(session.agent_pool.agents.keys())
                 error_msg = (
-                    f"Agent '{agent_name}' not found. Available agents: {available}"
+                    f"Agent {agent_name!r} not found. Available agents: {available}"
                 )
                 await ctx.print(f"❌ {error_msg}")
                 return
@@ -108,15 +105,8 @@ class SpawnSubagentCommand(SlashedCommand):
                 await session.notifications.tool_call_progress(
                     tool_call_id=tool_call_id,
                     status="completed",
-                    content=[
-                        ContentToolCallContent(
-                            content=TextContentBlock(text=final_content)
-                        )
-                    ]
-                    if final_content
-                    else None,
+                    content=[final_content] if final_content else None,
                 )
-
             except Exception as e:
                 error_msg = f"Subagent execution failed: {e}"
                 logger.exception("Subagent execution error", error=str(e))
@@ -152,18 +142,12 @@ class SpawnSubagentCommand(SlashedCommand):
                 | PartDeltaEvent(delta=TextPartDelta(content_delta=delta))
             ):
                 # Subagent text output → accumulate and update progress
-                if delta:
-                    aggregated_content.append(delta)
-                    current_content = "".join(aggregated_content)
-                    await session.notifications.tool_call_progress(
-                        tool_call_id=tool_call_id,
-                        status="in_progress",
-                        content=[
-                            ContentToolCallContent(
-                                content=TextContentBlock(text=current_content)
-                            )
-                        ],
-                    )
+                aggregated_content.append(delta)
+                await session.notifications.tool_call_progress(
+                    tool_call_id=tool_call_id,
+                    status="in_progress",
+                    content=["".join(aggregated_content)],
+                )
 
             case (
                 PartStartEvent(part=ThinkingPart(content=delta))
@@ -173,30 +157,20 @@ class SpawnSubagentCommand(SlashedCommand):
                 if delta:
                     thinking_text = f"💭 {delta}"
                     aggregated_content.append(thinking_text)
-                    current_content = "".join(aggregated_content)
                     await session.notifications.tool_call_progress(
                         tool_call_id=tool_call_id,
                         status="in_progress",
-                        content=[
-                            ContentToolCallContent(
-                                content=TextContentBlock(text=current_content)
-                            )
-                        ],
+                        content=["".join(aggregated_content)],
                     )
 
             case FunctionToolCallEvent(part=part):
                 # Subagent calls a tool → show nested tool call
                 tool_text = f"\n🔧 Using tool: {part.tool_name}\n"
                 aggregated_content.append(tool_text)
-                current_content = "".join(aggregated_content)
                 await session.notifications.tool_call_progress(
                     tool_call_id=tool_call_id,
                     status="in_progress",
-                    content=[
-                        ContentToolCallContent(
-                            content=TextContentBlock(text=current_content)
-                        )
-                    ],
+                    content=["".join(aggregated_content)],
                 )
 
             case FunctionToolResultEvent(
@@ -205,15 +179,10 @@ class SpawnSubagentCommand(SlashedCommand):
                 # Subagent tool completes → show tool result
                 result_text = f"✅ {tool_name}: {content}\n"
                 aggregated_content.append(result_text)
-                current_content = "".join(aggregated_content)
                 await session.notifications.tool_call_progress(
                     tool_call_id=tool_call_id,
                     status="in_progress",
-                    content=[
-                        ContentToolCallContent(
-                            content=TextContentBlock(text=current_content)
-                        )
-                    ],
+                    content=["".join(aggregated_content)],
                 )
 
             case FunctionToolResultEvent(
@@ -223,15 +192,10 @@ class SpawnSubagentCommand(SlashedCommand):
                 error_message = result.model_response()
                 error_text = f"❌ {tool_name or 'unknown'}: Error: {error_message}\n"
                 aggregated_content.append(error_text)
-                current_content = "".join(aggregated_content)
                 await session.notifications.tool_call_progress(
                     tool_call_id=tool_call_id,
                     status="in_progress",
-                    content=[
-                        ContentToolCallContent(
-                            content=TextContentBlock(text=current_content)
-                        )
-                    ],
+                    content=["".join(aggregated_content)],
                 )
 
             case ToolCallProgressEvent(
@@ -242,15 +206,10 @@ class SpawnSubagentCommand(SlashedCommand):
                 if message:
                     progress_text = f"🔄 {tool_name}: {message}\n"
                     aggregated_content.append(progress_text)
-                    current_content = "".join(aggregated_content)
                     await session.notifications.tool_call_progress(
                         tool_call_id=tool_call_id,
                         status="in_progress",
-                        content=[
-                            ContentToolCallContent(
-                                content=TextContentBlock(text=current_content)
-                            )
-                        ],
+                        content=["".join(aggregated_content)],
                     )
 
             case (
