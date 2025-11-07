@@ -20,7 +20,7 @@ from dataclasses import dataclass
 import os
 
 from llmling_agent import AgentPool, AgentsManifest
-from llmling_agent_examples.utils import get_config_path, is_pyodide, run
+from llmling_agent_docs.examples.utils import get_config_path, is_pyodide, run
 
 
 # set your OpenAI API key here

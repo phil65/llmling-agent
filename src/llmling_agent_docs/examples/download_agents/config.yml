@@ -26,7 +26,7 @@ agents:
         2. Cheer them on with over-the-top supportive messages considering the situation.
         3. Never stop believing in your team! 🎉
     tools:
-      - llmling_agent_examples.download_agents.main.cheer
+      - llmling_agent_docs/examples.download_agents.main.cheer
 
   file_getter_1:
     name: "Mr. File Downloader"

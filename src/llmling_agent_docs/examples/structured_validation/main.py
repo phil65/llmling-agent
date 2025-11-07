@@ -10,7 +10,7 @@ from pydantic import Field
 from schemez import Schema
 
 from llmling_agent import Agent
-from llmling_agent_examples.utils import run
+from llmling_agent_docs.examples.utils import run
 
 
 class MovieReview(Schema):

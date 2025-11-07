@@ -9,7 +9,7 @@ from llmling_agent_docs import (
     cli,
     configuration,
     core_concepts,
-    examples,
+    example_section,
     getting_started,
 )
 
@@ -43,7 +43,7 @@ class Build:
         nav += getting_started.nav
         nav += core_concepts.nav
         nav += configuration.nav
-        nav += examples.nav
+        nav += example_section.nav
         nav += advanced_features.nav
         nav.add_doc(section_name="API", flatten_nav=True, recursive=True)
         nav += cli.nav

@@ -25,7 +25,7 @@ def create_example_doc(name: str, *, style: DocStyle = "full") -> mk.MkContainer
     Returns:
         Container with all documentation elements
     """
-    path = Path("src/llmling_agent_examples") / name
+    path = Path("src/llmling_agent_docs/examples") / name
     if not path.exists():
         msg = f"Example {name} not found"
         raise FileNotFoundError(msg)

@@ -88,8 +88,7 @@ src/
 ├── llmling_agent_commands/     # Slash command system
 ├── llmling_agent_config/       # Configuration schemas and loaders
 ├── llmling_agent_converters/   # Content conversion (audio, video, etc.)
-├── llmling_agent_docs/         # Documentation generation
-├── llmling_agent_examples/     # Usage examples and demos
+├── llmling_agent_docs/         # Documentation generation + examples
 ├── llmling_agent_input/        # Input providers (human, textual, etc.)
 ├── llmling_agent_prompts/      # Prompt hub integrations
 ├── llmling_agent_resources/    # Resource management

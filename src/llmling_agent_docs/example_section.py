@@ -7,7 +7,7 @@ import pathlib
 import mknodes as mk
 
 from llmling_agent.agent.agent import Agent
-from llmling_agent_examples.utils import iter_examples
+from llmling_agent_docs.examples.utils import iter_examples
 
 
 nav = mk.MkNav("Examples")

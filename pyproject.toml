@@ -333,7 +333,7 @@ combine-as-imports = true
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["E402", "I001"]
 "scripts/*" = ["INP001"]
-"src/llmling_agent_examples/**/*.py" = [
+"src/llmling_agent_docs/examples/**/*.py" = [
   "TC001",
 ]  # Examples don't need TYPE_CHECKING imports
 "*tests/*" = ["D100"]
@@ -357,7 +357,6 @@ module-name = [
   "llmling_agent_config",
   "llmling_agent_cli",
   "llmling_agent_commands",
-  "llmling_agent_examples",
   "llmling_agent_storage",
   "llmling_agent_docs",
   "llmling_agent_converters",

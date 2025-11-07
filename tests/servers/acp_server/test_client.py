@@ -139,7 +139,7 @@ def main() -> int:  # noqa: PLR0915
         "run",
         "llmling-agent",
         "serve-acp",
-        "/home/phil65/dev/oss/llmling-agent/src/llmling_agent_examples/pick_experts/config.yml",
+        "/home/phil65/dev/oss/llmling-agent/src/llmling_agent_docs/examples/pick_experts/config.yml",
     ]
 
     client = ACPClient(server_cmd)

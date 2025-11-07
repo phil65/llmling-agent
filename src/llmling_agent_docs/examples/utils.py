@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from collections.abc import Awaitable, Iterator
 
 
-EXAMPLES_DIR = Path("src/llmling_agent_examples")
+EXAMPLES_DIR = Path("src/llmling_agent_docs/examples")
 
 
 def is_pyodide() -> bool:
@@ -113,7 +113,7 @@ def iter_examples(root: Path | str | None = None) -> Iterator[Example]:
     """Iterate over all available examples.
 
     Args:
-        root: Optional root directory (defaults to llmling_agent_examples)
+        root: Optional root directory (defaults to llmling_agent_docs/examples)
     """
     root = Path(root) if root else EXAMPLES_DIR
 

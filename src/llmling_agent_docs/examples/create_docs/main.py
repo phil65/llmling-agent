@@ -20,7 +20,7 @@ from mypy import api
 import rich
 
 from llmling_agent import AgentPool, AgentsManifest
-from llmling_agent_examples.utils import run
+from llmling_agent_docs.examples.utils import run
 
 
 # set your OpenAI API key here

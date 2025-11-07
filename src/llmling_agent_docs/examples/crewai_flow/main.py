@@ -10,7 +10,7 @@ import os
 
 from llmling_agent import Agent, AgentsManifest
 from llmling_agent.running import node_function, run_nodes_async
-from llmling_agent_examples.utils import get_config_path, is_pyodide, run
+from llmling_agent_docs.examples.utils import get_config_path, is_pyodide, run
 
 
 # set your OpenAI API key here
