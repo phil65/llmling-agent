@@ -92,15 +92,15 @@ class ACPInputProvider(InputProvider):
             if tool.name in self._tool_approvals:
                 standing_decision = self._tool_approvals[tool.name]
                 if standing_decision == "allow_always":
-                    logger.debug(f"Auto-allowing tool '{tool.name}' (allow_always)")
+                    logger.debug("Auto-allowing tool (allow_always)", name=tool.name)
                     return "allow"
                 if standing_decision == "reject_always":
-                    logger.debug(f"Auto-rejecting tool '{tool.name}' (reject_always)")
+                    logger.debug("Auto-rejecting tool (reject_always)", name=tool.name)
                     return "skip"
 
             # Create a descriptive title for the permission request
             args_str = ", ".join(f"{k}={v}" for k, v in args.items())
-            title = f"Execute tool '{tool.name}' with args: {args_str}"
+            title = f"Execute tool {tool.name!r} with args: {args_str}"
 
             # Use a unique tool call ID (could be more sophisticated)
             tool_call_id = f"{tool.name}_{hash(frozenset(args.items()))}"
@@ -123,12 +123,15 @@ class ACPInputProvider(InputProvider):
             if response.outcome.outcome == "cancelled":
                 return "skip"
             # Handle other outcomes
-            logger.warning(f"Unexpected permission outcome: {response.outcome.outcome}")
-            return "abort_run"
+            logger.warning(
+                "Unexpected permission outcome", outcome=response.outcome.outcome
+            )
 
         except Exception as e:
-            logger.exception(f"Failed to get tool confirmation: {e}")
+            logger.exception("Failed to get tool confirmation", error=e)
             # Default to abort on error to be safe
+            return "abort_run"
+        else:
             return "abort_run"
 
     def _handle_permission_response(
@@ -140,16 +143,16 @@ class ACPInputProvider(InputProvider):
                 return "allow"
             case "allow-always":
                 self._tool_approvals[tool_name] = "allow_always"
-                logger.info(f"Tool '{tool_name}' set to always allow")
+                logger.info("Tool set to always allow", name=tool_name)
                 return "allow"
             case "reject-once":
                 return "skip"
             case "reject-always":
                 self._tool_approvals[tool_name] = "reject_always"
-                logger.info(f"Tool '{tool_name}' set to always reject")
+                logger.info("Tool set to always reject", name=tool_name)
                 return "skip"
             case _:
-                logger.warning(f"Unknown permission option: {option_id}")
+                logger.warning("Unknown permission option", option_id=option_id)
                 return "abort_run"
 
     async def get_elicitation(
@@ -175,7 +178,7 @@ class ACPInputProvider(InputProvider):
         try:
             # For now, use request_permission as a dummy mechanism
             # In a real implementation, this would use a proper elicitation endpoint
-            logger.info(f"Elicitation request: {params.message}")
+            logger.info("Elicitation request", message=params.message)
 
             tool_call_id = f"elicit_{hash(params.message)}"
             title = f"Elicitation: {params.message}"
@@ -213,7 +216,7 @@ class ACPInputProvider(InputProvider):
             return types.ElicitResult(action="cancel")
 
         except Exception as e:
-            logger.exception(f"Failed to handle elicitation: {e}")
+            logger.exception("Failed to handle elicitation", error=e)
             return types.ErrorData(
                 code=types.INTERNAL_ERROR, message=f"Elicitation failed: {e}"
             )
