@@ -49,6 +49,7 @@ if TYPE_CHECKING:
     from acp.schema.tool_call import ToolCallContent
 
     ContentType = Sequence[ToolCallContent | str]
+
 logger = get_logger(__name__)
 
 
@@ -68,6 +69,7 @@ class ACPNotifications:
         """
         self.client = client
         self.id = session_id
+        self.log = logger.bind(session_id=session_id)
         self._tool_call_inputs: dict[str, dict] = {}
 
     async def tool_call(
@@ -423,11 +425,10 @@ class ACPNotifications:
                     case ModelResponse():
                         await self._replay_response(message)
                     case _:
-                        logger.debug(
-                            "Unhandled message type", message_type=type(message).__name__
-                        )
+                        typ = type(message).__name__
+                        self.log.debug("Unhandled message type", message_type=typ)
             except Exception as e:
-                logger.exception("Failed to replay message", error=str(e))
+                self.log.exception("Failed to replay message", error=str(e))
 
     async def _replay_request(self, request: ModelRequest) -> None:
         """Replay a ModelRequest by converting it to appropriate ACP notifications."""
@@ -512,9 +513,8 @@ class ACPNotifications:
                     self._tool_call_inputs.pop(tool_call_id, None)
 
                 case _:
-                    logger.debug(
-                        "Unhandled request part type", part_type=type(part).__name__
-                    )
+                    typ = type(part).__name__
+                    self.log.debug("Unhandled request part type", part_type=typ)
 
     async def _replay_response(self, response: ModelResponse) -> None:
         """Replay a ModelResponse by converting it to appropriate ACP notifications."""
@@ -536,9 +536,8 @@ class ACPNotifications:
                     # tool call state
 
                 case _:
-                    logger.debug(
-                        "Unhandled response part type", part_type=type(part).__name__
-                    )
+                    typ = type(part).__name__
+                    self.log.debug("Unhandled response part type", part_type=typ)
 
     async def send_agent_image(
         self,
