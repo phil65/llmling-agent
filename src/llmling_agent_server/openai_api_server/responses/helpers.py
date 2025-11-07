@@ -7,7 +7,7 @@ from uuid import uuid4
 
 from fastapi import HTTPException
 
-from llmling_agent_server.responses.models import (
+from llmling_agent_server.openai_api_server.responses.models import (
     Response,
     ResponseMessage,
     ResponseOutputText,
@@ -18,7 +18,7 @@ from llmling_agent_server.responses.models import (
 
 if TYPE_CHECKING:
     from llmling_agent.agent import Agent
-    from llmling_agent_server.responses.models import ResponseRequest
+    from llmling_agent_server.openai_api_server.responses.models import ResponseRequest
 
 
 async def handle_request(request: ResponseRequest, agent: Agent[Any, Any]):

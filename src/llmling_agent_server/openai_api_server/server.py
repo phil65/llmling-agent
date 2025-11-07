@@ -11,24 +11,34 @@ import logfire
 
 from llmling_agent.log import get_logger
 from llmling_agent_server import BaseServer
-from llmling_agent_server.completions.helpers import stream_response
-from llmling_agent_server.completions.models import (
+from llmling_agent_server.openai_api_server.completions.helpers import stream_response
+from llmling_agent_server.openai_api_server.completions.models import (
     ChatCompletionResponse,
     Choice,
     OpenAIMessage,
     OpenAIModelInfo,
 )
+from llmling_agent_server.openai_api_server.responses.helpers import handle_request
 
 
 if TYPE_CHECKING:
     from llmling_agent import AgentPool
-    from llmling_agent_server.completions.models import ChatCompletionRequest
+    from llmling_agent_server.openai_api_server.completions.models import (
+        ChatCompletionRequest,
+    )
+    from llmling_agent_server.openai_api_server.responses.models import (
+        Response as ResponsesResponse,
+        ResponseRequest,
+    )
 
 logger = get_logger(__name__)
 
 
-class OpenAIServer(BaseServer):
-    """OpenAI-compatible API server backed by LLMling agents."""
+class OpenAIAPIServer(BaseServer):
+    """OpenAI-compatible API server backed by LLMling agents.
+
+    Provides both chat completions and responses endpoints.
+    """
 
     def __init__(
         self,
@@ -76,11 +86,13 @@ class OpenAIServer(BaseServer):
             self.app.docs_url = None
             self.app.redoc_url = None
 
-        self.app.get("/v1/models")(self.list_models)
+        # Add routes with authentication dependency
         dep = Depends(self.verify_api_key)
+        self.app.get("/v1/models")(self.list_models)
         self.app.post("/v1/chat/completions", dependencies=[dep], response_model=None)(
             self.create_chat_completion
         )
+        self.app.post("/v1/responses", dependencies=[dep])(self.create_response)
 
     def verify_api_key(
         self, authorization: Annotated[str | None, Header(alias="Authorization")] = None
@@ -131,6 +143,16 @@ class OpenAIServer(BaseServer):
             self.log.exception("Error processing chat completion")
             raise HTTPException(500, f"Error: {e!s}") from e
 
+    async def create_response(self, req_body: ResponseRequest) -> ResponsesResponse:
+        """Handle response creation requests."""
+        try:
+            agent = self.pool.agents[req_body.model]
+            return await handle_request(req_body, agent)
+        except KeyError:
+            raise HTTPException(404, f"Model {req_body.model} not found") from None
+        except Exception as e:
+            raise HTTPException(500, str(e)) from e
+
     async def _start_async(self) -> None:
         """Start the server (blocking async - runs until stopped)."""
         import uvicorn
@@ -149,8 +171,8 @@ if __name__ == "__main__":
 
     from llmling_agent import AgentPool
 
-    async def test_client():
-        """Test the API with a direct HTTP request."""
+    async def test_completions():
+        """Test the chat completions API."""
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 "http://localhost:8000/v1/chat/completions",
@@ -160,7 +182,7 @@ if __name__ == "__main__":
                     "messages": [{"role": "user", "content": "Tell me a joke"}],
                     "stream": True,
                 },
-                timeout=30.0,  # Longer timeout for streaming
+                timeout=30.0,
             )
 
             if response.is_success:
@@ -175,19 +197,37 @@ if __name__ == "__main__":
                             print(delta["content"], end="", flush=True)
                 print("\n")
             else:
-                print("Response error:", response.text)
+                print("Completions error:", response.text)
+
+    async def test_responses():
+        """Test the responses API."""
+        timeout = httpx.Timeout(30.0, connect=5.0)
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            response = await client.post(
+                "http://localhost:8000/v1/responses",
+                headers={"Authorization": "Bearer dummy"},
+                json={
+                    "model": "gpt-5-mini",
+                    "input": "Tell me a three sentence bedtime story about a unicorn.",
+                },
+            )
+            print("Responses result:", response.text)
+
+            if not response.is_success:
+                print("Responses error:", response.text)
 
     async def main():
-        """Run server and test client."""
+        """Run server and test both endpoints."""
         pool = AgentPool()
         await pool.add_agent("gpt-5-mini", model="openai:gpt-5-mini")
         async with (
-            OpenAIServer(pool, host="0.0.0.0", port=8000) as server,
+            OpenAIAPIServer(pool, host="0.0.0.0", port=8000) as server,
             server.run_context(),
-        ):  # Server initializes pool and starts in background
+        ):
             await asyncio.sleep(1)  # Wait for server to start
-            await test_client()
-        # Server automatically stopped
+            print("Testing completions endpoint...")
+            await test_completions()
+            print("\nTesting responses endpoint...")
+            await test_responses()
 
-    fmt = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     asyncio.run(main())
