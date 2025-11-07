@@ -44,6 +44,7 @@ if TYPE_CHECKING:
 
     from llmling_agent import Agent, AgentPool
     from llmling_agent.prompts.manager import PromptManager
+    from llmling_agent_input.base import InputProvider
 
 
 logger = log.get_logger(__name__)
@@ -371,7 +372,10 @@ class AgentsManifest(Schema):
     #     return self
 
     def get_agent[TAgentDeps](
-        self, name: str, deps: TAgentDeps | None = None
+        self,
+        name: str,
+        deps: TAgentDeps | None = None,
+        input_provider: InputProvider | None = None,
     ) -> Agent[TAgentDeps, Any]:
         # TODO: Make this method async to support async function prompts
 
@@ -384,6 +388,7 @@ class AgentsManifest(Schema):
             data=deps,
             definition=self,
             config=config,
+            input_provider=input_provider,
             # pool=self,
             # confirmation_callback=confirmation_callback,
         )

@@ -132,7 +132,9 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
         self.server = None
         # Create requested agents immediately
         for name in self.manifest.agents:
-            agent = self.manifest.get_agent(name, deps=shared_deps)
+            agent = self.manifest.get_agent(
+                name, deps=shared_deps, input_provider=self._input_provider
+            )
             self.register(name, agent)
 
         # Then set up worker relationships
