@@ -70,7 +70,7 @@ class Job[TDeps, TResult = str](Schema):
         """Check if agent meets all requirements for this task."""
         # Check dependencies
         if self.required_dependency and not isinstance(
-            agent.context.data, self.required_dependency
+            agent.deps_type, self.required_dependency
         ):
             return False
 
