@@ -93,27 +93,6 @@ class TextualInputProvider(InputProvider):
             raise UserCancelledError(msg)
         return app_result
 
-    async def get_code_input(
-        self,
-        context: AgentContext,
-        template: str | None = None,
-        language: str = "python",
-        description: str | None = None,
-    ) -> str:
-        if self.app:
-            modal = CodeInputModal(template, language=language, description=description)
-            result = await self.app.push_screen_wait(modal)
-            if result is None:
-                msg = "Code input cancelled"
-                raise UserCancelledError(msg)
-            return result
-        app = CodeInputApp(template, language, description)
-        app_result = await app.run_async()
-        if app_result is None:
-            msg = "Code input cancelled"
-            raise UserCancelledError(msg)
-        return app_result
-
     async def get_tool_confirmation(
         self,
         context: AgentContext,

@@ -91,20 +91,3 @@ class InputProvider(ABC):
             params: MCP elicit request parameters
             message_history: Optional conversation history
         """
-
-    @abstractmethod
-    def get_code_input(
-        self,
-        context: AgentContext[Any],
-        template: str | None = None,
-        language: str = "python",
-        description: str | None = None,
-    ) -> Coroutine[Any, Any, str]:
-        """Get multi-line code input.
-
-        Args:
-            context: Current agent context
-            template: Optional template code
-            language: Programming language (for syntax highlighting)
-            description: Optional description of expected code
-        """

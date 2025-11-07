@@ -127,19 +127,6 @@ class StdlibInputProvider(InputProvider):
                 code=types.INVALID_REQUEST, message=f"Elicitation failed: {e}"
             )
 
-    async def get_code_input(
-        self,
-        context: AgentContext,
-        template: str | None = None,
-        language: str = "python",
-        description: str | None = None,
-    ) -> str:
-        msg = (
-            "Multi-line code input not supported in stdlib provider. "
-            "Use prompt-toolkit or textual provider instead."
-        )
-        raise NotImplementedError(msg)
-
 
 async def _get_promptantic_result(output_type: type[BaseModel]) -> BaseModel | None:
     """Helper to get structured input via promptantic.

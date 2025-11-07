@@ -19,7 +19,6 @@ InputMethod = Literal[
     "get_input",
     "get_streaming_input",
     "get_tool_confirmation",
-    "get_code_input",
     "get_elicitation",
 ]
 
@@ -42,12 +41,10 @@ class MockInputProvider(InputProvider):
         *,
         input_response: str = "mock response",
         tool_confirmation: ConfirmationResult = "allow",
-        code_response: str = "mock code",
         elicitation_response: dict[str, Any] | None = None,
     ):
         self.input_response = input_response
         self.tool_confirmation = tool_confirmation
-        self.code_response = code_response
         self.elicitation_response = elicitation_response or {"response": "mock response"}
         self.calls: list[InputCall] = []
 
@@ -77,18 +74,6 @@ class MockInputProvider(InputProvider):
         call = InputCall("get_tool_confirmation", args_, kwargs, result=result)
         self.calls.append(call)
         return result  # pyright: ignore
-
-    async def get_code_input(
-        self,
-        context: AgentContext,
-        template: str | None = None,
-        language: str = "python",
-        description: str | None = None,
-    ) -> str:
-        kwargs = {"template": template, "language": language, "description": description}
-        call = InputCall("get_code_input", (context,), kwargs, result=self.code_response)
-        self.calls.append(call)
-        return self.code_response
 
     async def get_elicitation(
         self,
