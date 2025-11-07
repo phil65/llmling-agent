@@ -4,17 +4,18 @@ from __future__ import annotations
 
 from collections.abc import Callable
 import inspect
+import os
 from typing import TYPE_CHECKING, Annotated, Any, Literal, get_type_hints
 
 from fastmcp.prompts.prompt import (
     Prompt as FastMCPPrompt,
     PromptArgument as FastMCPArgument,
 )
-from pydantic import BaseModel, ConfigDict, Field, ImportString
+from pydantic import Field, ImportString
 from pydantic_ai import BinaryContent, SystemPromptPart, UserPromptPart
 from pydantic_ai.messages import ImageUrl
 from schemez import Schema
-from upath.types import JoinablePathLike
+import upath
 
 from llmling_agent.log import get_logger
 from llmling_agent.utils import importing
@@ -46,8 +47,6 @@ class MessageContent(Schema):
     content: str  # The actual content (text/uri/url/base64)
     alt_text: str | None = None  # For images or resource descriptions
 
-    model_config = ConfigDict(frozen=True)
-
     def to_pydantic(self) -> UserPromptPart:
         """Convert MessageContent to Pydantic model."""
         if self.type == "text":
@@ -73,13 +72,10 @@ class PromptParameter(Schema):
     required: bool = False
     """Whether this argument must be provided when formatting the prompt."""
 
-    type_hint: ImportString = Field(default="str")
-    """Type annotation for the argument, defaults to str."""
-
     default: Any | None = None
     """Default value if argument is optional."""
 
-    completion_function: ImportString | None = Field(default=None)
+    completion_function: ImportString | None = None
     """Optional function to provide argument completions."""
 
     def to_mcp_argument(self) -> PromptArgument:
@@ -130,7 +126,7 @@ class PromptMessage(Schema):
         return []
 
 
-class BasePrompt(BaseModel):
+class BasePrompt(Schema):
     """Base class for all prompts."""
 
     name: str | None = Field(None, exclude=True)
@@ -148,8 +144,6 @@ class BasePrompt(BaseModel):
     metadata: dict[str, Any] = Field(default_factory=dict)
     """Additional metadata for storing custom prompt information."""
     # messages: list[PromptMessage]
-
-    model_config = ConfigDict(extra="forbid", use_attribute_docstrings=True)
 
     def validate_arguments(self, provided: dict[str, Any]) -> None:
         """Validate that required arguments are provided."""
@@ -194,8 +188,6 @@ class StaticPrompt(BasePrompt):
 
     type: Literal["text"] = Field("text", init=False)
     """Discriminator field identifying this as a static text prompt."""
-
-    model_config = ConfigDict(extra="forbid", use_attribute_docstrings=True)
 
     def to_fastmcp_prompt(self) -> FastMCPPrompt:
         params = [
@@ -268,8 +260,6 @@ class DynamicPrompt(BasePrompt):
 
     type: Literal["function"] = Field("function", init=False)
     """Discriminator field identifying this as a function-based prompt."""
-
-    model_config = ConfigDict(extra="forbid", use_attribute_docstrings=True)
 
     @property
     def messages(self) -> list[PromptMessage]:
@@ -396,13 +386,11 @@ class DynamicPrompt(BasePrompt):
             if param.kind in (param.VAR_POSITIONAL, param.VAR_KEYWORD):
                 continue
 
-            type_hint = hints.get(param_name, Any)
             required = param.default == param.empty
             arg = PromptParameter(
                 name=param_name,
                 description=arg_docs.get(param_name),
                 required=required,
-                type_hint=type_hint,
                 default=None if param.default is param.empty else param.default,
                 completion_function=completions.get(param_name),
             )
@@ -427,7 +415,7 @@ class FilePrompt(BasePrompt):
     and parsed according to the specified format.
     """
 
-    path: JoinablePathLike
+    path: str | os.PathLike[str] | upath.UPath
     """Path to the file containing the prompt content."""
 
     fmt: Literal["text", "markdown", "jinja2"] = Field("text", alias="format")
@@ -438,8 +426,6 @@ class FilePrompt(BasePrompt):
 
     watch: bool = False
     """Whether to watch the file for changes and reload automatically."""
-
-    model_config = ConfigDict(extra="forbid", use_attribute_docstrings=True)
 
     @property
     def messages(self) -> list[PromptMessage]:
