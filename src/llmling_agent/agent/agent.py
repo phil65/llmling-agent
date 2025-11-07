@@ -67,7 +67,6 @@ if TYPE_CHECKING:
     from datetime import datetime
     from types import TracebackType
 
-    from llmling.config.models import Resource
     from llmling.prompts import PromptType
     from pydantic_ai import AgentStreamEvent, UsageLimits
     from pydantic_ai.output import OutputSpec
@@ -150,7 +149,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         tools: Sequence[ToolType | Tool] | None = None,
         toolsets: Sequence[ResourceProvider] | None = None,
         mcp_servers: Sequence[str | MCPServerConfig] | None = None,
-        resources: Sequence[Resource | PromptType | str] = (),
+        resources: Sequence[PromptType | str] = (),
         retries: int = 1,
         output_retries: int | None = None,
         end_strategy: EndStrategy = "early",
@@ -917,10 +916,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         # Load task knowledge
         if job.knowledge:
             # Add knowledge sources to context
-            resources: list[Resource | str] = list(job.knowledge.paths) + list(
-                job.knowledge.resources
-            )
-            for source in resources:
+            for source in list(job.knowledge.paths):
                 await self.conversation.load_context_source(source)
             for prompt in job.knowledge.prompts:
                 await self.conversation.load_context_source(prompt)

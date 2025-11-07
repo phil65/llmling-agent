@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from llmling.config.models import Resource
 from llmling.prompts import PromptType
 from pydantic import ConfigDict, Field
 from schemez import Schema
@@ -18,16 +17,6 @@ class Knowledge(Schema):
     paths: list[str] = Field(default_factory=list)
     """Quick access to files and URLs."""
 
-    resources: list[Resource] = Field(default_factory=list)
-    """Rich resource definitions supporting:
-    - PathResource: Complex file patterns, watching
-    - TextResource: Raw content
-    - CLIResource: Command output
-    - RepositoryResource: Git repos
-    - SourceResource: Python source
-    - CallableResource: Function results
-    """
-
     prompts: list[PromptType] = Field(default_factory=list)
     """Prompts for dynamic content generation:
     - StaticPrompt: Fixed message templates
@@ -40,6 +29,6 @@ class Knowledge(Schema):
 
     model_config = ConfigDict(frozen=True)
 
-    def get_resources(self) -> list[Resource | PromptType | str]:
+    def get_resources(self) -> list[PromptType | str]:
         """Get all resources."""
-        return self.resources + self.prompts + self.paths
+        return self.prompts + self.paths

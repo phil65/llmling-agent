@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 from datetime import UTC, datetime
 
-from llmling.cli.constants import output_format_opt
 from llmling.cli.utils import OutputFormat, format_output
 import typer as t
 
@@ -13,6 +12,7 @@ from llmling_agent import AgentsManifest, log
 from llmling_agent.utils.parse_time import parse_time_period
 from llmling_agent_cli import resolve_agent_config
 from llmling_agent_cli.cli_types import GroupBy
+from llmling_agent_cli.common import output_format_opt
 
 
 logger = log.get_logger(__name__)

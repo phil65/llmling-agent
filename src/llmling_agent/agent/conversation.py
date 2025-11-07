@@ -24,7 +24,6 @@ if TYPE_CHECKING:
     from datetime import datetime
     from types import TracebackType
 
-    from llmling.config.models import Resource
     from llmling.prompts import PromptType
     from toprompt import AnyPromptType
     from upath.types import JoinablePathLike
@@ -210,7 +209,7 @@ class ConversationManager:
 
         return "\n".join(messages)
 
-    async def load_context_source(self, source: Resource | PromptType | str):
+    async def load_context_source(self, source: PromptType | str):
         """Load context from a single source."""
         try:
             match source:
