@@ -6,12 +6,13 @@ from typing import TYPE_CHECKING, Any
 
 from mcp import types
 
+from acp.schema import PermissionOption
 from llmling_agent.log import get_logger
 from llmling_agent_input.base import InputProvider
 
 
 if TYPE_CHECKING:
-    from acp.schema import PermissionOption, RequestPermissionResponse
+    from acp.schema import RequestPermissionResponse
     from llmling_agent.agent.context import AgentContext, ConfirmationResult
     from llmling_agent.messaging import ChatMessage
     from llmling_agent.tools.base import Tool
@@ -22,8 +23,6 @@ logger = get_logger(__name__)
 
 def _create_permission_options() -> list[PermissionOption]:
     """Create all 4 permission options for tool confirmation."""
-    from acp.schema import PermissionOption
-
     return [
         PermissionOption(
             option_id="allow-once",
@@ -43,6 +42,27 @@ def _create_permission_options() -> list[PermissionOption]:
         PermissionOption(
             option_id="reject-always",
             name="Reject always",
+            kind="reject_always",
+        ),
+    ]
+
+
+def _create_boolean_elicitation_options() -> list[PermissionOption]:
+    """Create permission options for boolean elicitation (Yes/No)."""
+    return [
+        PermissionOption(
+            option_id="true",
+            name="Yes",
+            kind="allow_once",
+        ),
+        PermissionOption(
+            option_id="false",
+            name="No",
+            kind="reject_once",
+        ),
+        PermissionOption(
+            option_id="cancel",
+            name="Cancel",
             kind="reject_always",
         ),
     ]
@@ -197,7 +217,7 @@ class ACPInputProvider(InputProvider):
             # Check what type of schema we're dealing with
             if self._is_boolean_schema(schema):
                 options: list[PermissionOption] | None = (
-                    self._create_boolean_elicitation_options()
+                    _create_boolean_elicitation_options()
                 )
                 response = await self.session.requests.request_permission(
                     tool_call_id=tool_call_id,
@@ -214,9 +234,6 @@ class ACPInputProvider(InputProvider):
                         options=options,
                     )
                     return self._handle_enum_elicitation_response(response, schema)
-
-            # Fall back to simple accept/decline for other schemas
-            from acp.schema import PermissionOption
 
             options = [
                 PermissionOption(
@@ -272,34 +289,10 @@ class ACPInputProvider(InputProvider):
         """Check if the elicitation schema is requesting an enum value."""
         return schema.get("type") == "string" and "enum" in schema
 
-    def _create_boolean_elicitation_options(self) -> list[PermissionOption]:
-        """Create permission options for boolean elicitation (Yes/No)."""
-        from acp.schema import PermissionOption
-
-        return [
-            PermissionOption(
-                option_id="true",
-                name="Yes",
-                kind="allow_once",
-            ),
-            PermissionOption(
-                option_id="false",
-                name="No",
-                kind="reject_once",
-            ),
-            PermissionOption(
-                option_id="cancel",
-                name="Cancel",
-                kind="reject_always",
-            ),
-        ]
-
     def _handle_boolean_elicitation_response(  # noqa: PLR0911
         self, response: RequestPermissionResponse, schema: dict[str, Any]
     ) -> types.ElicitResult | types.ErrorData:
         """Handle ACP response for boolean elicitation."""
-        from mcp import types
-
         if response.outcome.outcome == "selected":
             if response.outcome.option_id == "true":
                 # Check if we need to wrap in object structure
@@ -310,7 +303,7 @@ class ACPInputProvider(InputProvider):
                         return types.ElicitResult(
                             action="accept", content={prop_name: True}
                         )
-                return types.ElicitResult(action="accept", content=True)
+                return types.ElicitResult(action="accept", content={"value": True})
             if response.outcome.option_id == "false":
                 # Check if we need to wrap in object structure
                 if schema.get("type") == "object":
@@ -320,7 +313,7 @@ class ACPInputProvider(InputProvider):
                         return types.ElicitResult(
                             action="accept", content={prop_name: False}
                         )
-                return types.ElicitResult(action="accept", content=False)
+                return types.ElicitResult(action="accept", content={"value": False})
             if response.outcome.option_id == "cancel":
                 return types.ElicitResult(action="cancel")
 
@@ -337,8 +330,6 @@ class ACPInputProvider(InputProvider):
 
         max 4 options to fit ACP UX.
         """
-        from acp.schema import PermissionOption
-
         enum_values = schema.get("enum", [])
         enum_names = schema.get("enumNames", enum_values)  # Use enumNames if available
 
@@ -403,10 +394,6 @@ class ACPInputProvider(InputProvider):
 
             # Fallback if parsing fails
             logger.warning("Failed to parse enum option_id", option_id=option_id)
-            return types.ElicitResult(action="cancel")
-
-        # Handle cancelled outcome
-        if response.outcome.outcome == "cancelled":
             return types.ElicitResult(action="cancel")
 
         return types.ElicitResult(action="cancel")
