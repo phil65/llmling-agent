@@ -20,7 +20,7 @@ from llmling_agent.tasks.exceptions import (
     RunAbortedError,
     ToolSkippedError,
 )
-from llmling_agent.utils.inspection import execute, has_argument_type
+from llmling_agent.utils.inspection import execute, get_argument_key
 
 
 def wrap_tool(
@@ -38,9 +38,9 @@ def wrap_tool(
     at least provides some information.
     """
     original_tool = tool.callable
-    if has_argument_type(original_tool, RunContext):
+    if get_argument_key(original_tool, RunContext):
 
-        async def wrapped(ctx: RunContext[AgentContext], *args, **kwargs):  # pyright: ignore
+        async def wrapped(ctx: RunContext, *args, **kwargs):  # pyright: ignore
             result = await agent_ctx.handle_confirmation(tool, kwargs)
             # if agent_ctx.report_progress:
             #     await agent_ctx.report_progress(ctx.run_step, None)
@@ -57,7 +57,7 @@ def wrap_tool(
                     msg = "Agent chain aborted by user"
                     raise ChainAbortedError(msg)
 
-    elif has_argument_type(original_tool, AgentContext):
+    elif get_argument_key(original_tool, AgentContext):
 
         async def wrapped(ctx: AgentContext, *args, **kwargs):  # pyright: ignore
             result = await agent_ctx.handle_confirmation(tool, kwargs)

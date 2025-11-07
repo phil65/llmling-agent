@@ -8,6 +8,7 @@ from types import UnionType
 from typing import (
     TYPE_CHECKING,
     Any,
+    Literal,
     TypeAliasType,
     TypeGuard,
     Union,
@@ -42,12 +43,12 @@ async def execute[T](
     return func(*args, **kwargs)  # type: ignore
 
 
-def has_argument_type(
+def get_argument_key(
     func: Callable[..., Any],
     arg_type: type | str | UnionType | Sequence[type | str | UnionType],
     include_return: bool = False,
-) -> bool:
-    """Check if function has any argument of specified type(s).
+) -> Literal[False] | str:
+    """Check if function has any argument of specified type(s) and return the key.
 
     Args:
         func: Function to check
@@ -60,14 +61,14 @@ def has_argument_type(
 
     Examples:
         >>> def func(x: int | str, y: list[int]): ...
-        >>> has_argument_type(func, int | str)  # True
-        >>> has_argument_type(func, int)        # True
-        >>> has_argument_type(func, list)       # True
-        >>> has_argument_type(func, float)      # False
-        >>> has_argument_type(func, (int, str)) # True
+        >>> get_argument_key(func, int | str)  # True
+        >>> get_argument_key(func, int)        # True
+        >>> get_argument_key(func, list)       # True
+        >>> get_argument_key(func, float)      # False
+        >>> get_argument_key(func, (int, str)) # True
 
     Returns:
-        True if any argument matches any of the target types
+        key of argument if any argument matches any of the target types
     """
     # Convert target type(s) to set of normalized strings
     if isinstance(arg_type, Sequence) and not isinstance(arg_type, str | bytes):
@@ -81,14 +82,14 @@ def has_argument_type(
         hints.pop("return", None)
 
     # Check each parameter's type annotation
-    for param_type in hints.values():
+    for key, param_type in hints.items():
         # Handle type aliases
         if isinstance(param_type, TypeAliasType):
             param_type = param_type.__value__
 
         # Check for direct match
         if _type_to_string(param_type) in target_types:
-            return True
+            return key
 
         # Handle Union types (both | and Union[...])
         origin = get_origin(param_type)
@@ -96,20 +97,20 @@ def has_argument_type(
             union_members = get_args(param_type)
             # Check each union member
             if any(_type_to_string(t) in target_types for t in union_members):
-                return True
+                return key
             # Also check if the complete union type matches
             if _type_to_string(param_type) in target_types:
-                return True
+                return key
 
         # Handle generic types (list[str], dict[str, int], etc)
         if origin is not None:
             # Check if the generic type (e.g., list) matches
             if _type_to_string(origin) in target_types:
-                return True
+                return key
             # Check type arguments (e.g., str in list[str])
             args = get_args(param_type)
             if any(_type_to_string(arg) in target_types for arg in args):
-                return True
+                return key
 
     return False
 
@@ -200,10 +201,10 @@ def call_with_context[T](
     from llmling_agent.agent import AgentContext
 
     if inspect.ismethod(func):
-        if has_argument_type(func, AgentContext):
+        if get_argument_key(func, AgentContext):
             return func(context)
         return func()
-    if has_argument_type(func, AgentContext):
+    if get_argument_key(func, AgentContext):
         return func(context, **kwargs)
     return func(context.data)
 

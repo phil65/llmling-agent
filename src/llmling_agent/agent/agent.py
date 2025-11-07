@@ -54,7 +54,7 @@ from llmling_agent.prompts.convert import convert_prompts
 from llmling_agent.talk.stats import MessageStats
 from llmling_agent.tasks import JobError
 from llmling_agent.tools import SkillsRegistry, Tool, ToolManager
-from llmling_agent.utils.inspection import call_with_context, has_argument_type
+from llmling_agent.utils.inspection import call_with_context, get_argument_key
 from llmling_agent.utils.now import get_now
 from llmling_agent.utils.result_utils import to_type
 from llmling_agent.utils.streams import merge_queue_into_iterator
@@ -605,9 +605,9 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
 
         for tool in tools:
             wrapped = wrap_tool(tool, context_for_tools)
-            if has_argument_type(wrapped, RunContext):
+            if get_argument_key(wrapped, RunContext):
                 agent.tool(wrapped)
-            elif has_argument_type(wrapped, AgentContext):
+            elif get_argument_key(wrapped, AgentContext):
                 agent._function_toolset.add_function(
                     func=wrapped,
                     takes_ctx=True,
