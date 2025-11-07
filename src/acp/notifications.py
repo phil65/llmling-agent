@@ -38,15 +38,15 @@ if TYPE_CHECKING:
 
     from pydantic_ai import ModelRequest, ModelResponse
 
-    from acp import Client
-    from acp.schema import (
+    from acp import (
         Annotations,
         AvailableCommand,
+        Client,
         PlanEntry,
+        ToolCallContent,
         ToolCallKind,
         ToolCallStatus,
     )
-    from acp.schema.tool_call import ToolCallContent
 
     ContentType = Sequence[ToolCallContent | str]
 

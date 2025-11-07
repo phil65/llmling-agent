@@ -57,6 +57,12 @@ from acp.schema import (
     PROTOCOL_VERSION,
     AgentMethod,
     ClientMethod,
+    Annotations,
+    AvailableCommand,
+    PlanEntry,
+    ToolCallContent,
+    ToolCallKind,
+    ToolCallStatus,
 )
 from acp.stdio import stdio_streams
 from acp.exceptions import RequestError
@@ -70,6 +76,12 @@ __all__ = [  # noqa: RUF022
     "AgentMethod",
     "ClientMethod",
     # types
+    "Annotations",
+    "AvailableCommand",
+    "PlanEntry",
+    "ToolCallContent",
+    "ToolCallKind",
+    "ToolCallStatus",
     "InitializeRequest",
     "InitializeResponse",
     "EnvVariable",
