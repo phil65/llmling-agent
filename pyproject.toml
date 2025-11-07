@@ -81,7 +81,6 @@ acp = "acp.filesystem:ACPPath"
 [project.optional-dependencies]
 braintrust = ["braintrust", "autoevals"]
 clipboard = ["clipman"]
-# markitdown = ["markitdown; python_version < '3.14'"]
 composio = ["composio"]
 default = [
   "pydantic-ai-slim[openai,google,anthropic,mistral,retries]>=1.0.0",
@@ -95,6 +94,7 @@ git = ["pygit2"]  # for fsspec git support
 image = ["pillow"]
 langfuse = ["langfuse"]
 litellm = ["litellm; python_version < '3.14'"]
+markitdown = ["markitdown"]
 mcp_run = ["mcpx-py>=0.7.0"]
 oauth = ["keyring>=25.6.0"]
 promptlayer = ["promptlayer"]
