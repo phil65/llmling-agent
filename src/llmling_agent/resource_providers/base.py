@@ -4,8 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Self
 
-from pydantic_ai import BinaryContent, SystemPromptPart, UserPromptPart
-from pydantic_ai.messages import ImageUrl
+from pydantic_ai import SystemPromptPart, UserPromptPart
 
 from llmling_agent.log import get_logger
 from llmling_agent.prompts.prompts import MessageContent
@@ -101,22 +100,8 @@ class ResourceProvider:
                         case str():
                             parts.append(UserPromptPart(prompt_msg.content))
                         case MessageContent():
-                            parts.append(to_pydantic(prompt_msg.content))
+                            parts.append(prompt_msg.content.to_pydantic())
                         case list():
-                            items = [to_pydantic(i) for i in prompt_msg.content]
+                            items = [i.to_pydantic() for i in prompt_msg.content]
                             parts.extend(items)
         return parts
-
-
-def to_pydantic(content: MessageContent) -> UserPromptPart:
-    """Convert MessageContent to Pydantic model."""
-    if content.type == "text":
-        return UserPromptPart(content.content)
-    if content.type == "image_url":
-        return UserPromptPart([ImageUrl(content.content)])
-    if content.type == "image_base64":
-        return UserPromptPart([
-            BinaryContent(content.content.encode(), media_type="image/jpeg")
-        ])
-    msg = "Unsupported content type"
-    raise ValueError(msg)

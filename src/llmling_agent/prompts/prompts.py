@@ -12,6 +12,8 @@ from fastmcp.prompts.prompt import (
     PromptArgument as FastMCPArgument,
 )
 from pydantic import BaseModel, ConfigDict, Field, ImportString
+from pydantic_ai import BinaryContent, UserPromptPart
+from pydantic_ai.messages import ImageUrl
 from schemez import Schema
 import upath
 
@@ -45,6 +47,18 @@ class MessageContent(Schema):
     alt_text: str | None = None  # For images or resource descriptions
 
     model_config = ConfigDict(frozen=True)
+
+    def to_pydantic(self) -> UserPromptPart:
+        """Convert MessageContent to Pydantic model."""
+        if self.type == "text":
+            return UserPromptPart(self.content)
+        if self.type == "image_url":
+            return UserPromptPart([ImageUrl(self.content)])
+        if self.type == "image_base64":
+            bin_content = BinaryContent(self.content.encode(), media_type="image/jpeg")
+            return UserPromptPart([bin_content])
+        msg = "Unsupported content type"
+        raise ValueError(msg)
 
 
 class PromptParameter(BaseModel):
