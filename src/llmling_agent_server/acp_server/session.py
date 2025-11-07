@@ -43,6 +43,7 @@ from llmling_agent_server.acp_server.converters import (
     convert_acp_mcp_server_to_config,
     from_content_blocks,
 )
+from llmling_agent_server.acp_server.input_provider import ACPInputProvider
 
 
 if TYPE_CHECKING:
@@ -320,7 +321,11 @@ class ACPSession:
             self._current_tool_inputs.clear()  # Reset tool inputs for new stream
 
             try:
-                async for event in self.agent.run_stream(*non_command_content):
+                # Create ACP input provider for this session
+                input_provider = ACPInputProvider(self)
+                async for event in self.agent.run_stream(
+                    *non_command_content, input_provider=input_provider
+                ):
                     if self._cancelled:
                         return "cancelled"
 
