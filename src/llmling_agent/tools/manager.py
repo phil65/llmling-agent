@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Callable, Sequence
-from contextlib import contextmanager
+from contextlib import asynccontextmanager
 from dataclasses import dataclass, field, fields
 from typing import TYPE_CHECKING, Any, Literal
 
@@ -21,7 +21,7 @@ from llmling_agent.utils.now import get_now
 
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import AsyncIterator
     from datetime import datetime
 
     from llmling_agent import Agent, MessageNode
@@ -375,13 +375,13 @@ class ToolManager(BaseRegistry[str, Tool]):
         event = self.ToolStateReset(old_tools, new_tools)
         self.tool_states_reset.emit(event)
 
-    @contextmanager
-    def temporary_tools(
+    @asynccontextmanager
+    async def temporary_tools(
         self,
         tools: ToolType | Tool | Sequence[ToolType | Tool],
         *,
         exclusive: bool = False,
-    ) -> Iterator[list[Tool]]:
+    ) -> AsyncIterator[list[Tool]]:
         """Temporarily register tools.
 
         Args:

@@ -42,12 +42,12 @@ One of the most powerful features is the ability to temporarily modify available
 
 ```python
 # Temporarily add tools
-with agent.tools.temporary_tools([tool1, tool2]) as temp_tools:
+async with agent.tools.temporary_tools([tool1, tool2]) as temp_tools:
     # tool1 and tool2 are available in addition to the agents tools
     ...
 
 # Temporarily add tools and disable all others
-with agent.tools.temporary_tools([special_tool], exclusive=True):
+async with agent.tools.temporary_tools([special_tool], exclusive=True):
     # Only special_tool is available here
     ...
 

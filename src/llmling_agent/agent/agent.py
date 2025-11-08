@@ -923,7 +923,9 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         try:
             # Register task tools temporarily
             tools = job.get_tools()
-            with self.tools.temporary_tools(tools, exclusive=not include_agent_tools):
+            async with self.tools.temporary_tools(
+                tools, exclusive=not include_agent_tools
+            ):
                 # Execute job with job-specific tools
                 return await self.run(await job.get_prompt(), store_history=store_history)
 
@@ -1131,26 +1133,26 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             old_type = self._output_type
             self.set_output_type(output_type)
         async with AsyncExitStack() as stack:
-            if system_prompts is not None:  # System prompts (async)
+            if system_prompts is not None:  # System prompts
                 await stack.enter_async_context(
                     self.sys_prompts.temporary_prompt(
                         system_prompts, exclusive=replace_prompts
                     )
                 )
 
-            if tools is not None:  # Tools (sync)
-                stack.enter_context(
+            if tools is not None:  # Tools
+                await stack.enter_async_context(
                     self.tools.temporary_tools(tools, exclusive=replace_tools)
                 )
 
-            if history is not None:  # History (async)
+            if history is not None:  # History
                 await stack.enter_async_context(
                     self.conversation.temporary_state(
                         history, replace_history=replace_history
                     )
                 )
 
-            if pause_routing:  # Routing (async)
+            if pause_routing:  # Routing
                 await stack.enter_async_context(self.connections.paused_routing())
 
             elif model is not None:  # Model

@@ -278,7 +278,7 @@ class Team[TDeps = None](BaseTeam[TDeps, Any]):
             async def _run(agent: MessageNode[TDeps, TJobResult]):
                 assert isinstance(agent, Agent)
                 try:
-                    with agent.tools.temporary_tools(
+                    async with agent.tools.temporary_tools(
                         job.get_tools(), exclusive=not include_agent_tools
                     ):
                         start = perf_counter()

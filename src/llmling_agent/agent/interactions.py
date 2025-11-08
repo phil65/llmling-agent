@@ -429,7 +429,7 @@ List your selections, one per line, followed by your reasoning."""
             description_override=schema["description"],
             # schema_override=schema,
         )
-        with self.agent.tools.temporary_tools(tool, exclusive=not include_tools):
+        async with self.agent.tools.temporary_tools(tool, exclusive=not include_tools):
             result = await self.agent.run(final_prompt, output_type=item_model)  # type: ignore
         return result.content  # type: ignore
 
