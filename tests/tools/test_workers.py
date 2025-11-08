@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from pydantic import BaseModel
 from pydantic_ai.models.test import TestModel
 import pytest
 
@@ -10,6 +11,13 @@ from llmling_agent import AgentPool, AgentsManifest
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+
+class StructuredResponse(BaseModel):
+    """Test model for structured output."""
+
+    message: str
+    value: int
 
 
 BASIC_WORKERS = """\
@@ -68,6 +76,21 @@ agents:
       - nonexistent
 """
 
+STRUCTURED_WORKER = """\
+agents:
+  main:
+    model: test
+    name: Main Agent
+    workers:
+      - structured_worker
+
+  structured_worker:
+    model: test
+    name: Structured Worker
+    system_prompts:
+      - "You are a worker that returns structured data."
+"""
+
 
 def write_config(content: str, path: Path) -> Path:
     """Write config content to a file."""
@@ -83,11 +106,9 @@ async def test_basic_worker_setup(tmp_path: Path):
 
     async with AgentPool(manifest) as pool:
         main_agent = pool.get_agent("main")
-
         # Verify workers were registered as tools
         assert "ask_worker" in main_agent.tools
         assert "ask_specialist" in main_agent.tools
-
         worker_tool = main_agent.tools["ask_worker"]
         assert worker_tool.source == "agent"
         assert worker_tool.metadata["agent"] == "worker"
@@ -100,12 +121,10 @@ async def test_history_sharing(tmp_path: Path):
     async with AgentPool(manifest) as pool:
         main_agent = pool.get_agent("main")
         worker = pool.get_agent("worker")
-
         # Configure models: real model for main agent, TestModel for worker
         main_agent.set_model("openai:gpt-5-nano")
         worker_model = TestModel(custom_output_text="The value is 42")
         worker.set_model(worker_model)
-
         # Create some conversation history
         result = await main_agent.run("Remember X equals 42")
         # Worker should have access to history
@@ -120,11 +139,8 @@ async def test_context_sharing(tmp_path: Path):
     async with AgentPool(manifest) as pool:
         main_agent = pool.get_agent("main", deps_type=dict)
         specialist = pool.get_agent("specialist")
-
-        # Configure test models
         main_model = TestModel(call_tools=["ask_specialist"])
         specialist_model = TestModel(custom_output_text="I can see context value: 123")
-
         main_agent.set_model(main_model)
         specialist.set_model(specialist_model)
         prompt = "Ask specialist: What's in the context?"
@@ -136,7 +152,6 @@ async def test_invalid_worker(tmp_path: Path):
     """Test error when using non-existent worker."""
     config_path = write_config(INVALID_WORKERS, tmp_path)
     manifest = AgentsManifest.from_file(config_path)
-
     with pytest.raises(ValueError, match=r"Worker agent.*not found"):
         async with AgentPool(manifest):
             pass
@@ -148,10 +163,8 @@ async def test_worker_independence(tmp_path: Path):
     manifest = AgentsManifest.from_file(config_path)
     async with AgentPool(manifest) as pool:
         main_agent = pool.get_agent("main")
-
         # Create history in main agent
         await main_agent.run("Remember X equals 42")
-
         # Worker should not see this history
         result = await main_agent.run("Ask worker: What is X?")
         assert "42" not in result.data
@@ -165,23 +178,49 @@ async def test_multiple_workers_same_prompt(tmp_path: Path):
         main_agent = pool.get_agent("main")
         worker = pool.get_agent("worker")
         specialist = pool.get_agent("specialist")
-
-        # Configure test models
         main_model = TestModel(call_tools=["ask_worker", "ask_specialist"])
         worker_model = TestModel(custom_output_text="I am a helpful worker assistant")
         specialist_model = TestModel(custom_output_text="I am a domain specialist")
-
         main_agent.set_model(main_model)
         worker.set_model(worker_model)
         specialist.set_model(specialist_model)
-
         responses = []
         main_agent.message_sent.connect(lambda msg: responses.append(msg.content))
-
         await main_agent.run("Ask both workers: introduce yourselves")
-
         assert len(responses) > 0
         assert any("helpful worker" in r.lower() for r in responses)
+
+
+async def test_structured_worker_output():
+    """Test that agents with BaseModel output    convert correctly when used as tools."""
+    from llmling_agent import Agent
+
+    # Create structured agent with BaseModel output
+    structured_agent = Agent(
+        name="structured_agent",
+        model="openai:gpt-5-nano",
+        output_type=StructuredResponse,
+    )
+
+    # Create main agent that will use the structured agent as a tool
+    main_agent = Agent(name="main_agent", model="openai:gpt-5-nano")
+    # Convert structured agent to tool and register with main agent
+    tool = structured_agent.to_tool()
+    # Verify that return type annotation is set correctly
+    assert tool.callable.__annotations__.get("return") == StructuredResponse
+    main_agent.tools.register_tool(tool, enabled=True)
+    # Test that both agents work together
+    async with structured_agent, main_agent:
+        result = await main_agent.run(
+            "Ask structured_agent: return a message 'test' with value 42"
+        )
+        tool_calls = result.get_tool_calls()
+        assert len(tool_calls) > 0
+        # Verify pydantic-ai properly converted the result to StructuredResponse
+        structured_result = tool_calls[0].result
+        assert isinstance(structured_result, StructuredResponse)
+        assert structured_result.message
+        assert structured_result.value
 
 
 if __name__ == "__main__":

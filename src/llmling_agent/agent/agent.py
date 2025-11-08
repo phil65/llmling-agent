@@ -513,7 +513,10 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         """
         tool_name = name or f"ask_{self.name}"
 
-        async def wrapped_tool(prompt: str) -> Any:
+        # Create wrapper function with correct return type annotation
+        output_type = self._output_type or Any
+
+        async def wrapped_tool(prompt: str):
             if pass_message_history and not parent:
                 msg = "Parent agent required for message history sharing"
                 raise ToolError(msg)
@@ -530,6 +533,9 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             if history:
                 self.conversation.set_history(old)
             return result.data
+
+        # Set the correct return annotation dynamically
+        wrapped_tool.__annotations__ = {"prompt": str, "return": output_type}
 
         normalized_name = self.name.replace("_", " ").title()
         docstring = f"Get expert answer from specialized agent: {normalized_name}"
