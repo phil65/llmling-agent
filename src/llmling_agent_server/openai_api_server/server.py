@@ -5,9 +5,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Annotated, Any
 
 import anyenv
-from fastapi import Depends, FastAPI, Header, HTTPException, Response
-from fastapi.responses import StreamingResponse
-import logfire
 
 from llmling_agent.log import get_logger
 from llmling_agent_server import BaseServer
@@ -22,6 +19,8 @@ from llmling_agent_server.openai_api_server.responses.helpers import handle_requ
 
 
 if TYPE_CHECKING:
+    from fastapi import Header, Response
+
     from llmling_agent import AgentPool
     from llmling_agent_server.openai_api_server.completions.models import (
         ChatCompletionRequest,
@@ -30,7 +29,6 @@ if TYPE_CHECKING:
         Response as ResponsesResponse,
         ResponseRequest,
     )
-
 logger = get_logger(__name__)
 
 
@@ -64,6 +62,9 @@ class OpenAIAPIServer(BaseServer):
             api_key: Optional API key for authentication
             raise_exceptions: Whether to raise exceptions during server start
         """
+        from fastapi import Depends, FastAPI
+        import logfire
+
         super().__init__(pool, name=name, raise_exceptions=raise_exceptions)
         self.host = host
         self.port = port
@@ -98,6 +99,8 @@ class OpenAIAPIServer(BaseServer):
         self, authorization: Annotated[str | None, Header(alias="Authorization")] = None
     ):
         """Verify API key if configured."""
+        from fastapi import HTTPException
+
         if not authorization:
             raise HTTPException(401, "Missing API key")
         if not authorization.startswith("Bearer "):
@@ -115,6 +118,9 @@ class OpenAIAPIServer(BaseServer):
 
     async def create_chat_completion(self, request: ChatCompletionRequest) -> Response:
         """Handle chat completion requests."""
+        from fastapi import HTTPException, Response
+        from fastapi.responses import StreamingResponse
+
         try:
             agent = self.pool.agents[request.model]
         except KeyError:
@@ -145,6 +151,8 @@ class OpenAIAPIServer(BaseServer):
 
     async def create_response(self, req_body: ResponseRequest) -> ResponsesResponse:
         """Handle response creation requests."""
+        from fastapi import HTTPException
+
         try:
             agent = self.pool.agents[req_body.model]
             return await handle_request(req_body, agent)
