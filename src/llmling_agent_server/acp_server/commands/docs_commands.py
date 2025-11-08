@@ -37,14 +37,14 @@ def import_callable(path):
             return obj
         except (ImportError, AttributeError):
             continue
-    raise ImportError(f"Could not import: {path}")
+    raise ImportError(f"Could not import %s" % path)
 
 try:
     model_class = import_callable("{input_path}")
     schema = model_class.model_json_schema()
     print(json.dumps(schema, indent=2))
 except Exception as e:
-    print(f"Error: {e}", file=sys.stderr)
+    print(f"Error: %s" % e, file=sys.stderr)
     sys.exit(1)
 """
 
@@ -287,11 +287,6 @@ class GetSchemaCommand(SlashedCommand):
             class_name: Optional custom class name for generated code
             cwd: Working directory to run in (defaults to session cwd)
         """
-        from datamodel_code_generator import DataModelType, LiteralType, PythonVersion
-        from datamodel_code_generator.model import get_data_model_types
-        from datamodel_code_generator.parser.jsonschema import JsonSchemaParser
-        from datamodel_code_generator.parser.openapi import OpenAPIParser
-
         session = ctx.context.data
         assert session
 
@@ -327,27 +322,10 @@ class GetSchemaCommand(SlashedCommand):
 
             if is_url:
                 # Direct URL approach - use OpenAPIParser directly
-                def _generate_from_url():
-                    data_model_types = get_data_model_types(
-                        DataModelType.PydanticV2BaseModel,
-                        target_python_version=PythonVersion.PY_312,
-                    )
-                    parser = OpenAPIParser(
-                        source=input_path,
-                        data_model_type=data_model_types.data_model,
-                        data_model_root_type=data_model_types.root_model,
-                        data_model_field_type=data_model_types.field_model,
-                        data_type_manager_type=data_model_types.data_type_manager,
-                        dump_resolve_reference_action=data_model_types.dump_resolve_reference_action,
-                        class_name=class_name,
-                        use_union_operator=True,
-                        use_schema_description=True,
-                        enum_field_as_literal=LiteralType.All,
-                    )
-                    return parser.parse()
-
                 try:
-                    generated_code = await asyncio.to_thread(_generate_from_url)
+                    generated_code = await asyncio.to_thread(
+                        _generate_from_url, input_path=input_path, class_name=class_name
+                    )
                 except Exception as e:  # noqa: BLE001
                     await session.notifications.tool_call_progress(
                         tool_call_id=tool_call_id,
@@ -389,27 +367,14 @@ class GetSchemaCommand(SlashedCommand):
                     return
 
                 # Step 2: SERVER-SIDE - Generate code from schema using JsonSchemaParser
-                def _generate_from_schema():
-                    data_model_types = get_data_model_types(
-                        DataModelType.PydanticV2BaseModel,
-                        target_python_version=PythonVersion.PY_312,
-                    )
-                    parser = JsonSchemaParser(
-                        source=schema_json,
-                        data_model_type=data_model_types.data_model,
-                        data_model_root_type=data_model_types.root_model,
-                        data_model_field_type=data_model_types.field_model,
-                        data_type_manager_type=data_model_types.data_type_manager,
-                        dump_resolve_reference_action=data_model_types.dump_resolve_reference_action,
-                        class_name=class_name or input_path.split(".")[-1],
-                        use_union_operator=True,
-                        use_schema_description=True,
-                        enum_field_as_literal=LiteralType.All,
-                    )
-                    return parser.parse()
 
                 try:
-                    generated_code = await asyncio.to_thread(_generate_from_schema)
+                    generated_code = await asyncio.to_thread(
+                        _generate_from_schema,
+                        schema_json=schema_json,
+                        class_name=class_name,
+                        input_path=input_path,
+                    )
                 except Exception as e:  # noqa: BLE001
                     await session.notifications.tool_call_progress(
                         tool_call_id=tool_call_id,
@@ -717,6 +682,59 @@ class FetchRepoCommand(SlashedCommand):
             )
 
 
+def _generate_from_url(input_path: str, class_name: str | None = None) -> str:
+    """Generate Pydantic model code from an OpenAPI specification URL."""
+    from datamodel_code_generator import DataModelType, LiteralType, PythonVersion
+    from datamodel_code_generator.model import get_data_model_types
+    from datamodel_code_generator.parser.openapi import OpenAPIParser
+
+    data_model_types = get_data_model_types(
+        DataModelType.PydanticV2BaseModel,
+        target_python_version=PythonVersion.PY_312,
+    )
+    parser = OpenAPIParser(
+        source=input_path,
+        data_model_type=data_model_types.data_model,
+        data_model_root_type=data_model_types.root_model,
+        data_model_field_type=data_model_types.field_model,
+        data_type_manager_type=data_model_types.data_type_manager,
+        dump_resolve_reference_action=data_model_types.dump_resolve_reference_action,
+        class_name=class_name,
+        use_union_operator=True,
+        use_schema_description=True,
+        enum_field_as_literal=LiteralType.All,
+    )
+    return parser.parse()
+
+
+def _generate_from_schema(
+    schema_json: str,
+    class_name: str | None = None,
+    input_path: str | None = None,
+):
+    from datamodel_code_generator import DataModelType, LiteralType, PythonVersion
+    from datamodel_code_generator.model import get_data_model_types
+    from datamodel_code_generator.parser.jsonschema import JsonSchemaParser
+
+    data_model_types = get_data_model_types(
+        DataModelType.PydanticV2BaseModel,
+        target_python_version=PythonVersion.PY_312,
+    )
+    parser = JsonSchemaParser(
+        source=schema_json,
+        data_model_type=data_model_types.data_model,
+        data_model_root_type=data_model_types.root_model,
+        data_model_field_type=data_model_types.field_model,
+        data_type_manager_type=data_model_types.data_type_manager,
+        dump_resolve_reference_action=data_model_types.dump_resolve_reference_action,
+        class_name=class_name or (input_path or "DefaultClass").split(".")[-1],
+        use_union_operator=True,
+        use_schema_description=True,
+        enum_field_as_literal=LiteralType.All,
+    )
+    return parser.parse()
+
+
 def get_docs_commands() -> list[type[SlashedCommand]]:
     """Get all documentation-related slash commands."""
     return [
@@ -726,14 +744,3 @@ def get_docs_commands() -> list[type[SlashedCommand]]:
         FetchRepoCommand,
         UrlToMarkdownCommand,
     ]
-
-
-if __name__ == "__main__":
-    from slashed import CommandStore
-
-    cmd = GetSchemaCommand()
-    store = CommandStore()
-    store.register_command(GetSchemaCommand())
-
-    async def main():
-        await store.execute_command_with_context("get-schema")
