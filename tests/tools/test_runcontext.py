@@ -34,6 +34,13 @@ async def no_ctx_tool(arg: str) -> str:
     return f"No context tool got: {arg}"
 
 
+async def dual_ctx_tool(run_ctx: RunContext, agent_ctx: AgentContext, arg: str) -> str:
+    """Tool expecting both RunContext and AgentContext."""
+    assert isinstance(run_ctx, RunContext)
+    assert isinstance(agent_ctx, AgentContext)
+    return f"Dual context tool got: {arg} (agent: {agent_ctx.node_name})"
+
+
 async def test_tool_context_injection(default_model: str):
     """Test that tools receive correct context."""
     context_received = None
@@ -177,6 +184,22 @@ async def test_context_sharing(default_model: str):
             call.result == "Data from AgentContext: {'key': 'value'}"
             for call in result2.get_tool_calls()
         )
+
+
+async def test_dual_context_tool(default_model: str):
+    """Test tool that requires both RunContext and AgentContext."""
+    async with Agent(model=default_model, name="dual-agent") as agent:
+        agent.tools.register_tool(dual_ctx_tool)
+
+        # This should work if dual context injection is implemented
+        result = await agent.run("Use dual_ctx_tool with argument 'test'")
+
+        # Should successfully call the tool with both contexts
+        tool_calls = result.get_tool_calls()
+        assert len(tool_calls) > 0
+
+        expected_result = "Dual context tool got: test (agent: dual-agent)"
+        assert any(call.result == expected_result for call in tool_calls)
 
 
 if __name__ == "__main__":
