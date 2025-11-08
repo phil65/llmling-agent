@@ -91,7 +91,7 @@ class ToolManager(BaseRegistry[str, Tool]):
 
     def add_provider(
         self,
-        provider: ResourceProvider | ResourceCallable,
+        provider: ResourceProvider,
         owner: str | None = None,
     ):
         """Add a resource provider or tool callable.
