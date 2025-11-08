@@ -20,12 +20,19 @@ resources:
             auto_mkdir: true
 """
 
+GITHUB_CONFIG = """
+resources:
+    docs:
+        type: source
+        uri: "github://phil65:mknodes@main/pyproject.toml"
+"""
 
-async def test_resource_registry():
-    """Test resource registry and unified filesystem access."""
+
+async def test_vfs_registry():
+    """Test VFS registry and unified filesystem access."""
     # Setup
     manifest = AgentsManifest.model_validate(yamling.load_yaml(MANIFEST_CONFIG))
-    fs = manifest.resource_registry.get_fs()
+    fs = manifest.vfs_registry.get_fs()
 
     # Test root listing shows protocols
     root_listing = await fs._ls("/", detail=False)
@@ -52,7 +59,7 @@ async def test_resource_registry():
 # async def test_resource_path():
 #     """Test UPath-based resource access."""
 #     manifest = AgentsManifest.model_validate(yamling.load_yaml(MANIFEST_CONFIG))
-#     registry = manifest.resource_registry
+#     registry = manifest.vfs_registry
 
 #     # Get path object
 #     path = registry.get_path("docs")
@@ -84,4 +91,4 @@ async def test_resource_registry():
 
 
 if __name__ == "__main__":
-    pytest.main([__file__, "-v"])
+    pytest.main([__file__, "-vv"])

@@ -17,8 +17,8 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-class ResourceRegistry(BaseRegistry[str, AbstractFileSystem]):
-    """Registry for filesystem resources."""
+class VFSRegistry(BaseRegistry[str, AbstractFileSystem]):
+    """Registry for virtual filesystems."""
 
     def register(self, name: str, item: Any, replace: bool = False):
         """Register a new resource."""
@@ -166,6 +166,6 @@ class ResourceRegistry(BaseRegistry[str, AbstractFileSystem]):
 
 
 if __name__ == "__main__":
-    registry = ResourceRegistry()
+    registry = VFSRegistry()
     p = registry.get_upath()
     print(p, type(p))

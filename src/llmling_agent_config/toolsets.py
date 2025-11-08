@@ -226,6 +226,43 @@ class CodeToolsetConfig(BaseToolsetConfig):
         return CodeTools(name="code")
 
 
+class FSSpecToolsetConfig(BaseToolsetConfig):
+    """Configuration for FSSpec filesystem toolsets."""
+
+    type: Literal["fsspec"] = Field("fsspec", init=False)
+    """FSSpec filesystem toolset."""
+
+    url: str
+    """Filesystem URL or protocol (e.g., 'file', 's3://bucket-name', etc.)."""
+
+    storage_options: dict[str, str] = Field(default_factory=dict)
+    """Additional options to pass to the filesystem constructor."""
+
+    def get_provider(self) -> ResourceProvider:
+        """Create FSSpec filesystem tools provider."""
+        import fsspec
+
+        from llmling_agent_toolsets.fsspec_toolset import FSSpecTools
+
+        fs, _url_path = fsspec.url_to_fs(self.url, **self.storage_options)
+        # Extract protocol name for the provider name
+        protocol = self.url.split("://")[0] if "://" in self.url else self.url
+        return FSSpecTools(fs, name=f"fsspec_{protocol}")
+
+
+class VFSToolsetConfig(BaseToolsetConfig):
+    """Configuration for VFS registry filesystem toolset."""
+
+    type: Literal["vfs"] = Field("vfs", init=False)
+    """VFS registry filesystem toolset."""
+
+    def get_provider(self) -> ResourceProvider:
+        """Create VFS registry filesystem tools provider."""
+        from llmling_agent_toolsets.vfs_toolset import VFSTools
+
+        return VFSTools(name="vfs")
+
+
 class CustomToolsetConfig(BaseToolsetConfig):
     """Configuration for custom toolsets."""
 
@@ -261,6 +298,8 @@ ToolsetConfig = Annotated[
     | HistoryToolsetConfig
     | IntegrationToolsetConfig
     | CodeToolsetConfig
+    | FSSpecToolsetConfig
+    | VFSToolsetConfig
     | CustomToolsetConfig,
     Field(discriminator="type"),
 ]

@@ -11,7 +11,7 @@ from schemez.schema import Schema
 
 from llmling_agent import log
 from llmling_agent.models.agents import AgentConfig  # noqa: TC001
-from llmling_agent.resource_registry import ResourceRegistry
+from llmling_agent.vfs_registry import VFSRegistry
 from llmling_agent_config.commands import (  # noqa: TC001
     CommandConfig,
     StaticCommandConfig,
@@ -193,9 +193,9 @@ class AgentsManifest(Schema):
         return data
 
     @cached_property
-    def resource_registry(self) -> ResourceRegistry:
-        """Get registry with all configured resources."""
-        registry = ResourceRegistry()
+    def vfs_registry(self) -> VFSRegistry:
+        """Get registry with all configured VFS resources."""
+        registry = VFSRegistry()
         for name, config in self.resources.items():
             if isinstance(config, str):
                 # Convert URI shorthand to SourceResourceConfig
