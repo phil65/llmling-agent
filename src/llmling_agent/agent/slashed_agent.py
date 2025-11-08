@@ -23,6 +23,7 @@ if TYPE_CHECKING:
 
     from llmling_agent.agent.agent import Agent
     from llmling_agent.agent.events import SlashedAgentStreamEvent
+    from llmling_agent.common_types import PromptCompatible
 
 
 logger = get_logger(__name__)
@@ -36,12 +37,12 @@ def _parse_slash_command(command_text: str) -> tuple[str, str] | None:
         command_text: Full command text
 
     Returns:
-        Tuple of (command_name, args) or None if invalid
+        Tuple of (cmd_name, args) or None if invalid
     """
     if match := SLASH_PATTERN.match(command_text.strip()):
-        command_name = match.group(1)
+        cmd_name = match.group(1)
         args = match.group(2) or ""
-        return command_name, args.strip()
+        return cmd_name, args.strip()
     return None
 
 
@@ -119,42 +120,36 @@ class SlashedAgent[TDeps, OutputDataT]:
             yield CommandCompleteEvent(command="unknown", success=False)
             return
 
-        command_name, args = parsed
+        cmd_name, args = parsed
 
         # Set up event queue for this command execution
         self._event_queue = asyncio.Queue()
+        context_data = (  # Create command context
+            self._context_data_factory()
+            if self._context_data_factory
+            else self.agent.context
+        )
 
+        cmd_ctx = self.command_store.create_context(data=context_data)
+        command_str = f"{cmd_name} {args}".strip()
+        execute_task = asyncio.create_task(
+            self.command_store.execute_command(command_str, cmd_ctx)
+        )
+
+        success = True
         try:
-            # Create command context
-            context_data = (
-                self._context_data_factory()
-                if self._context_data_factory
-                else self.agent.context
-            )
-
-            cmd_ctx = self.command_store.create_context(data=context_data)
-
-            # Start command execution
-            command_str = f"{command_name} {args}".strip()
-            execute_task = asyncio.create_task(
-                self.command_store.execute_command(command_str, cmd_ctx)
-            )
-
-            success = True
-
             # Yield events from queue as command runs
             while not execute_task.done():
                 try:
                     # Wait for events with short timeout to check task completion
                     event = await asyncio.wait_for(self._event_queue.get(), timeout=0.1)
-
                     # Convert store events to our stream events
                     match event:
                         case SlashedCommandOutputEvent(output=output):
-                            yield CommandOutputEvent(command=command_name, output=output)
+                            yield CommandOutputEvent(command=cmd_name, output=output)
                         case CommandExecutedEvent(success=False, error=error) if error:
                             yield CommandOutputEvent(
-                                command=command_name,
+                                command=cmd_name,
                                 output=f"Command error: {error}",
                             )
                             success = False
@@ -167,31 +162,30 @@ class SlashedAgent[TDeps, OutputDataT]:
             try:
                 await execute_task
             except Exception as e:
-                logger.exception("Command execution failed", command=command_name)
+                logger.exception("Command execution failed", command=cmd_name)
                 success = False
-                yield CommandOutputEvent(
-                    command=command_name, output=f"Command error: {e}"
-                )
+                yield CommandOutputEvent(command=cmd_name, output=f"Command error: {e}")
 
             # Drain any remaining events from queue
             while not self._event_queue.empty():
                 try:
-                    event = self._event_queue.get_nowait()
-                    match event:
+                    match self._event_queue.get_nowait():
                         case SlashedCommandOutputEvent(output=output):
-                            yield CommandOutputEvent(command=command_name, output=output)
+                            yield CommandOutputEvent(command=cmd_name, output=output)
                 except asyncio.QueueEmpty:
                     break
 
             # Always yield completion event
-            yield CommandCompleteEvent(command=command_name, success=success)
+            yield CommandCompleteEvent(command=cmd_name, success=success)
 
         finally:
             # Clean up event queue
             self._event_queue = None
 
     async def run_stream(
-        self, *prompts: Any, **kwargs: Any
+        self,
+        *prompts: PromptCompatible,
+        **kwargs: Any,
     ) -> AsyncGenerator[SlashedAgentStreamEvent[OutputDataT]]:
         """Run agent with slash command support.
 

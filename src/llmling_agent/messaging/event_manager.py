@@ -10,12 +10,7 @@ from functools import wraps
 import inspect
 from typing import TYPE_CHECKING, Any, Self, overload
 
-from evented.configs import (
-    EmailConfig,
-    FileWatchConfig,
-    TimeEventConfig,
-    WebhookConfig,
-)
+from evented.configs import EmailConfig, FileWatchConfig, TimeEventConfig, WebhookConfig
 from evented.event_data import EventData, FunctionResultEventData
 from psygnal import Signal
 from pydantic import SecretStr

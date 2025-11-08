@@ -118,9 +118,7 @@ class ChatMessageContainer(EventedList[ChatMessage[Any]]):
             List of messages with matching role
         """
         messages = [msg for msg in self if msg.role == role]
-        if max_messages:
-            messages = messages[-max_messages:]
-        return messages
+        return messages[-max_messages:] if max_messages else messages
 
     def get_between(
         self,

@@ -41,12 +41,7 @@ class ResourceRegistry(BaseRegistry[str, AbstractFileSystem]):
         match config:
             case SourceResourceConfig(uri=uri):
                 # Extract base path from URI if present
-                protocol, path = uri.split("://", 1) if "://" in uri else (uri, "")
-                if path:
-                    config.storage_options["root"] = path
-
-                fs = fsspec.filesystem(protocol, **config.storage_options)
-
+                fs, _url_path = fsspec.url_to_fs(uri, **config.storage_options)
                 if config.path:
                     fs = fsspec.filesystem("dir", fs=fs, path=config.path)
                 if config.cached:
