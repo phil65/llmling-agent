@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import contextlib
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 from llmling_agent.resource_providers.codemode.namespace_callable import NamespaceCallable
@@ -17,25 +18,18 @@ if TYPE_CHECKING:
     from llmling_agent.tools.base import Tool
 
 
+@dataclass
 class ToolsetCodeGenerator:
     """Generates code artifacts for multiple tools."""
 
-    def __init__(
-        self,
-        tools: Sequence[Tool],
-        include_signatures: bool = True,
-        include_docstrings: bool = True,
-    ):
-        """Initialize toolset generator.
+    tools: Sequence[Tool]
+    """Tools to generate code for."""
 
-        Args:
-            tools: Tools to generate code for
-            include_signatures: Include function signatures in documentation
-            include_docstrings: Include function docstrings in documentation
-        """
-        self.tools = list(tools)
-        self.include_signatures = include_signatures
-        self.include_docstrings = include_docstrings
+    include_signatures: bool = True
+    """Include function signatures in documentation."""
+
+    include_docstrings: bool = True
+    """Include function docstrings in documentation."""
 
     def generate_tool_description(self) -> str:
         """Generate comprehensive tool description with available functions."""
