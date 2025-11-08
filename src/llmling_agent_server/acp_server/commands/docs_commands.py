@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import asyncio
 import os
-from pathlib import Path
 import uuid
 
 import httpx
+from pydantic_ai import UserPromptPart
 from slashed import CommandContext, SlashedCommand  # noqa: TC002
 
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
@@ -14,13 +15,38 @@ from llmling_agent.log import get_logger
 from llmling_agent_server.acp_server.session import ACPSession  # noqa: TC001
 
 
-try:
-    from pydantic_ai.messages import UserPromptPart
-except ImportError:
-    from pydantic_ai import UserPromptPart
-
-
 logger = get_logger(__name__)
+
+
+# Script constants for client-side execution
+SCHEMA_EXTRACTION_SCRIPT = """
+import sys
+import json
+import importlib
+
+def import_callable(path):
+    \"\"\"Simple import_callable implementation.\"\"\"
+    parts = path.split(".")
+    for i in range(len(parts), 0, -1):
+        try:
+            module_path = ".".join(parts[:i])
+            module = importlib.import_module(module_path)
+            obj = module
+            for part in parts[i:]:
+                obj = getattr(obj, part)
+            return obj
+        except (ImportError, AttributeError):
+            continue
+    raise ImportError(f"Could not import: {path}")
+
+try:
+    model_class = import_callable("{input_path}")
+    schema = model_class.model_json_schema()
+    print(json.dumps(schema, indent=2))
+except Exception as e:
+    print(f"Error: {e}", file=sys.stderr)
+    sys.exit(1)
+"""
 
 
 class GetSourceCommand(SlashedCommand):
@@ -245,7 +271,7 @@ class GetSchemaCommand(SlashedCommand):
     name = "get-schema"
     category = "docs"
 
-    async def execute_command(  # noqa: PLR0911, PLR0915
+    async def execute_command(
         self,
         ctx: CommandContext[AgentContext[ACPSession]],
         input_path: str,
@@ -261,6 +287,11 @@ class GetSchemaCommand(SlashedCommand):
             class_name: Optional custom class name for generated code
             cwd: Working directory to run in (defaults to session cwd)
         """
+        from datamodel_code_generator import DataModelType, LiteralType, PythonVersion
+        from datamodel_code_generator.model import get_data_model_types
+        from datamodel_code_generator.parser.jsonschema import JsonSchemaParser
+        from datamodel_code_generator.parser.openapi import OpenAPIParser
+
         session = ctx.context.data
         assert session
 
@@ -295,111 +326,47 @@ class GetSchemaCommand(SlashedCommand):
             )
 
             if is_url:
-                # Direct URL approach - use datamodel-codegen with URL
-                import subprocess
-                import tempfile
+                # Direct URL approach - use OpenAPIParser directly
+                def _generate_from_url():
+                    data_model_types = get_data_model_types(
+                        DataModelType.PydanticV2BaseModel,
+                        target_python_version=PythonVersion.PY_312,
+                    )
+                    parser = OpenAPIParser(
+                        source=input_path,
+                        data_model_type=data_model_types.data_model,
+                        data_model_root_type=data_model_types.root_model,
+                        data_model_field_type=data_model_types.field_model,
+                        data_type_manager_type=data_model_types.data_type_manager,
+                        dump_resolve_reference_action=data_model_types.dump_resolve_reference_action,
+                        class_name=class_name,
+                        use_union_operator=True,
+                        use_schema_description=True,
+                        enum_field_as_literal=LiteralType.All,
+                    )
+                    return parser.parse()
 
-                args = [
-                    "datamodel-codegen",
-                    "--url",
-                    input_path,
-                    "--input-file-type",
-                    "openapi",
-                    "--disable-timestamp",
-                    "--use-union-operator",
-                    "--use-schema-description",
-                    "--enum-field-as-literal",
-                    "all",
-                ]
-                if class_name:
-                    args.extend(["--class-name", class_name])
-
-                # Run datamodel-codegen server-side
-                result = subprocess.run(
-                    args,
-                    capture_output=True,
-                    text=True,
-                    timeout=30,
-                )
-
-                if result.returncode != 0:
+                try:
+                    generated_code = await asyncio.to_thread(_generate_from_url)
+                except Exception as e:  # noqa: BLE001
                     await session.notifications.tool_call_progress(
                         tool_call_id=tool_call_id,
                         status="failed",
-                        title=f"Failed to generate from URL: {result.stderr.strip()}",
+                        title=f"Failed to generate from URL: {e!s}",
                     )
                     return
 
-                generated_code = result.stdout.strip()
+                generated_code = generated_code.strip()
 
             else:
-                # Dot path approach - hybrid client/server
-                # Step 1: CLIENT-SIDE - Extract schema via terminal
-                import llmling_agent.utils.importing
+                # Dot path approach - client-side schema extraction
+                # Step 1: CLIENT-SIDE - Extract schema via inline script
+                schema_script = SCHEMA_EXTRACTION_SCRIPT.format(input_path=input_path)
 
-                importing_py_path = llmling_agent.utils.importing.__file__
-
-                create_response = await session.requests.create_terminal(
-                    command="uv",
-                    args=["run", importing_py_path, input_path],
-                    cwd=cwd or session.cwd,
-                    env={},
-                )
-                terminal_id = create_response.terminal_id
-
-                # Wait for schema extraction to complete
-                exit_result = await session.requests.wait_for_terminal_exit(terminal_id)
-                output_response = await session.requests.terminal_output(terminal_id)
-                await session.requests.release_terminal(terminal_id)
-
-                if exit_result.exit_code != 0:
-                    error_msg = (
-                        output_response.output.strip()
-                        or f"Exit code: {exit_result.exit_code}"
-                    )
-                    await session.notifications.tool_call_progress(
-                        tool_call_id=tool_call_id,
-                        status="failed",
-                        title=f"Failed to import model: {error_msg}",
-                    )
-                    return
-
-                # We don't get source code from importing.py, we need schema
-                # Let's create a simple schema extraction script instead
-                schema_script = f'''
-import sys
-import json
-import importlib
-import inspect
-
-def import_callable(path):
-    """Simple import_callable implementation."""
-    parts = path.split(".")
-    for i in range(len(parts), 0, -1):
-        try:
-            module_path = ".".join(parts[:i])
-            module = importlib.import_module(module_path)
-            obj = module
-            for part in parts[i:]:
-                obj = getattr(obj, part)
-            return obj
-        except (ImportError, AttributeError):
-            continue
-    raise ImportError(f"Could not import: {{path}}")
-
-try:
-    model_class = import_callable("{input_path}")
-    schema = model_class.model_json_schema()
-    print(json.dumps(schema, indent=2))
-except Exception as e:
-    print(f"Error: {{e}}", file=sys.stderr)
-    sys.exit(1)
-'''
-
-                # Run schema extraction client-side
+                # Run schema extraction client-side using uv run python -c
                 output, exit_code = await session.requests.run_command(
-                    command="python",
-                    args=["-c", schema_script],
+                    command="uv",
+                    args=["run", "python", "-c", schema_script],
                     cwd=cwd or session.cwd,
                 )
 
@@ -421,52 +388,37 @@ except Exception as e:
                     )
                     return
 
-                # Step 2: SERVER-SIDE - Generate code from schema
-                import subprocess
-                import tempfile
-
-                with tempfile.NamedTemporaryFile(
-                    mode="w", suffix=".json", delete=False
-                ) as f:
-                    f.write(schema_json)
-                    schema_file = f.name
+                # Step 2: SERVER-SIDE - Generate code from schema using JsonSchemaParser
+                def _generate_from_schema():
+                    data_model_types = get_data_model_types(
+                        DataModelType.PydanticV2BaseModel,
+                        target_python_version=PythonVersion.PY_312,
+                    )
+                    parser = JsonSchemaParser(
+                        source=schema_json,
+                        data_model_type=data_model_types.data_model,
+                        data_model_root_type=data_model_types.root_model,
+                        data_model_field_type=data_model_types.field_model,
+                        data_type_manager_type=data_model_types.data_type_manager,
+                        dump_resolve_reference_action=data_model_types.dump_resolve_reference_action,
+                        class_name=class_name or input_path.split(".")[-1],
+                        use_union_operator=True,
+                        use_schema_description=True,
+                        enum_field_as_literal=LiteralType.All,
+                    )
+                    return parser.parse()
 
                 try:
-                    args = [
-                        "datamodel-codegen",
-                        "--input",
-                        schema_file,
-                        "--input-file-type",
-                        "jsonschema",
-                        "--disable-timestamp",
-                        "--use-union-operator",
-                        "--use-schema-description",
-                        "--enum-field-as-literal",
-                        "all",
-                        "--class-name",
-                        class_name or input_path.split(".")[-1],
-                    ]
-
-                    result = subprocess.run(
-                        args,
-                        capture_output=True,
-                        text=True,
-                        timeout=30,
+                    generated_code = await asyncio.to_thread(_generate_from_schema)
+                except Exception as e:  # noqa: BLE001
+                    await session.notifications.tool_call_progress(
+                        tool_call_id=tool_call_id,
+                        status="failed",
+                        title=f"Failed to generate code: {e!s}",
                     )
+                    return
 
-                    if result.returncode != 0:
-                        await session.notifications.tool_call_progress(
-                            tool_call_id=tool_call_id,
-                            status="failed",
-                            title=f"Failed to generate code: {result.stderr.strip()}",
-                        )
-                        return
-
-                    generated_code = result.stdout.strip()
-
-                finally:
-                    # Cleanup temp schema file
-                    Path(schema_file).unlink(missing_ok=True)
+                generated_code = generated_code.strip()
 
             if not generated_code:
                 await session.notifications.tool_call_progress(
@@ -774,3 +726,14 @@ def get_docs_commands() -> list[type[SlashedCommand]]:
         FetchRepoCommand,
         UrlToMarkdownCommand,
     ]
+
+
+if __name__ == "__main__":
+    from slashed import CommandStore
+
+    cmd = GetSchemaCommand()
+    store = CommandStore()
+    store.register_command(GetSchemaCommand())
+
+    async def main():
+        await store.execute_command_with_context("get-schema")

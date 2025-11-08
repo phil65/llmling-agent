@@ -32,6 +32,7 @@ dependencies = [
   "aioitertools>=0.12.0",
   "anyenv[httpx]>=0.3.0",
   "bigtree>=0.23.1",
+  "datamodel-code-generator>=0.35.0",
   "docstring-parser>=0.17.0",
   "evented>=1.0.5",
   "fastmcp>=2.12.4",
