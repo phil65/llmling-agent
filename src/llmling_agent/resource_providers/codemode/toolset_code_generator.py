@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import contextlib
-import inspect
 from typing import TYPE_CHECKING, Any
 
+from llmling_agent.resource_providers.codemode.namespace_callable import NamespaceCallable
 from llmling_agent.resource_providers.codemode.tool_code_generator import (
     ToolCodeGenerator,
 )
@@ -85,8 +85,12 @@ class ToolsetCodeGenerator:
             "- DO NOT import asyncio or other modules - tools are already available",
             "- Example:",
             "    async def main():",
-            "        result = await open(url='https://example.com', new=2)",
-            "        return result",
+            "        for i in range(5):",
+            "            await report_progress(i, 5, f'Step {i+1} for {name}')",
+            "            should_continue = await ask_user('Continue?', 'bool')",
+            "            if not should_continue:",
+            "                break",
+            "        return f'Completed for {name}'",
         ])
 
         return "\n".join(parts)
@@ -100,30 +104,7 @@ class ToolsetCodeGenerator:
 
         # Add tool functions
         for tool in self.tools:
-
-            def make_tool_func(t: Tool):
-                async def tool_func(*args, **kwargs):
-                    try:
-                        result = await t.execute(*args, **kwargs)
-                        # Handle coroutines that weren't properly awaited
-                        if inspect.iscoroutine(result):
-                            result = await result
-                        # Ensure we return a serializable value
-
-                    except Exception as e:  # noqa: BLE001
-                        return f"Error executing {t.name}: {e!s}"
-                    else:
-                        return (
-                            result
-                            if result is not None
-                            else "Operation completed successfully"
-                        )
-
-                tool_func.__name__ = t.name
-                tool_func.__doc__ = t.description
-                return tool_func
-
-            namespace[tool.name] = make_tool_func(tool)
+            namespace[tool.name] = NamespaceCallable.from_tool(tool)
 
         # Add generated model classes to namespace
         models_code = self.generate_return_models()
@@ -143,3 +124,17 @@ class ToolsetCodeGenerator:
                 model_parts.append(code)
 
         return "\n\n".join(model_parts) if model_parts else ""
+
+
+# if __name__ == "__main__":
+#     import webbrowser
+
+#     from llmling_agent.tools.base import Tool
+
+#     t = Tool.from_callable(webbrowser.open)
+
+#     generator = ToolsetCodeGenerator([t])
+#     models = generator.generate_return_models()
+#     print(models)
+#     namespace = generator.generate_execution_namespace()
+#     print(namespace)
