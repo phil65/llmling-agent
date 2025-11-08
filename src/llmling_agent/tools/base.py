@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 import inspect
-from typing import TYPE_CHECKING, Any, Literal, Self
+from typing import TYPE_CHECKING, Any, Literal
 
 import logfire
 import schemez
@@ -15,7 +15,7 @@ from llmling_agent_config.tools import ToolHints  # noqa: TC001
 
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Awaitable, Callable
 
     from mcp.types import Tool as MCPTool
     from schemez.typedefs import Property
@@ -40,10 +40,10 @@ ToolKind = Literal[
 
 
 @dataclass
-class Tool:
+class Tool[TOutputType = Any]:
     """Information about a registered tool."""
 
-    callable: Callable
+    callable: Callable[..., TOutputType]
     """The actual tool implementation"""
 
     name: str
@@ -144,7 +144,7 @@ class Tool:
         code: str,
         name: str | None = None,
         description: str | None = None,
-    ) -> Self:
+    ) -> Tool[Any]:
         """Create a tool from a code string."""
         namespace: dict[str, Any] = {}
         exec(code, namespace)
@@ -153,20 +153,22 @@ class Tool:
             msg = "No callable found in provided code"
             raise ValueError(msg)
         return cls.from_callable(
-            func, name_override=name, description_override=description
+            func,  # pyright: ignore[reportArgumentType]
+            name_override=name,
+            description_override=description,
         )
 
     @classmethod
     def from_callable(
         cls,
-        fn: Callable[..., Any] | str,
+        fn: Callable[..., TOutputType | Awaitable[TOutputType]] | str,
         *,
         name_override: str | None = None,
         description_override: str | None = None,
         schema_override: schemez.OpenAIFunctionDefinition | None = None,
         hints: ToolHints | None = None,
         **kwargs: Any,
-    ) -> Self:
+    ) -> Tool[TOutputType]:
         if isinstance(fn, str):
             import_path = fn
             from llmling_agent.utils import importing
@@ -185,7 +187,7 @@ class Tool:
                 import_path = f"{module}.{fn.__class__.__qualname__}"
 
         return cls(
-            callable=callable_obj,
+            callable=callable_obj,  # pyright: ignore[reportArgumentType]
             name=name_override or name,
             description=description_override or inspect.getdoc(callable_obj) or "",
             import_path=import_path,
@@ -203,7 +205,7 @@ class Tool:
         description_override: str | None = None,
         schema_override: schemez.OpenAIFunctionDefinition | None = None,
         **kwargs: Any,
-    ) -> Self:
+    ) -> Tool[Any]:
         """Allows importing crewai tools."""
         # vaidate_import("crewai_tools", "crewai")
         try:
@@ -233,7 +235,7 @@ class Tool:
         description_override: str | None = None,
         schema_override: schemez.OpenAIFunctionDefinition | None = None,
         **kwargs: Any,
-    ) -> Self:
+    ) -> Tool[Any]:
         """Create a tool from a LangChain tool."""
         # vaidate_import("langchain_core", "langchain")
         try:
@@ -265,7 +267,7 @@ class Tool:
         description_override: str | None = None,
         schema_override: schemez.OpenAIFunctionDefinition | None = None,
         **kwargs: Any,
-    ) -> Self:
+    ) -> Tool[Any]:
         """Create a tool from a AutoGen tool."""
         # vaidate_import("autogen_core", "autogen")
         try:
@@ -337,3 +339,9 @@ class ToolParameter:
         type_str = f": {self.type_info}" if self.type_info else ""
         desc = f" - {self.description}" if self.description else ""
         return f"{self.name}{req}{type_str}{desc}"
+
+
+if __name__ == "__main__":
+    import webbrowser
+
+    t = Tool.from_callable(webbrowser.open)

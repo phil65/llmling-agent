@@ -502,7 +502,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         reset_history_on_run: bool = True,
         pass_message_history: bool = False,
         parent: Agent[Any, Any] | None = None,
-    ) -> Tool:
+    ) -> Tool[OutputDataT]:
         """Create a tool from this agent.
 
         Args:
@@ -514,7 +514,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         tool_name = name or f"ask_{self.name}"
 
         # TODO: should probably make output type configurable
-        async def wrapped_tool(prompt: str) -> Any:
+        async def wrapped_tool(prompt: str) -> OutputDataT:
             if pass_message_history and not parent:
                 msg = "Parent agent required for message history sharing"
                 raise ToolError(msg)
