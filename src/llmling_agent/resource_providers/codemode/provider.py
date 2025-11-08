@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import inspect
 from typing import TYPE_CHECKING, Any
 
+from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.resource_providers import ResourceProvider
 from llmling_agent.resource_providers.codemode.fix_code import fix_code
 from llmling_agent.resource_providers.codemode.toolset_code_generator import (
@@ -55,8 +57,11 @@ class CodeModeResourceProvider(ResourceProvider):
             Tool.from_callable(self.execute_codemode, description_override=description)
         ]
 
-    async def execute_codemode(
-        self, python_code: str, context_vars: dict[str, Any] | None = None
+    async def execute_codemode(  # noqa: D417
+        self,
+        ctx: AgentContext,
+        python_code: str,
+        context_vars: dict[str, Any] | None = None,
     ) -> Any:
         """Execute Python code with all wrapped tools available as functions.
 
@@ -67,9 +72,70 @@ class CodeModeResourceProvider(ResourceProvider):
         Returns:
             Result of the last expression or explicit return value
         """
+        # Handle RunContext wrapper
+        # if isinstance(ctx, RunContext):
+        #     ctx = ctx.deps
         # Build execution namespace
         toolset_generator = await self._get_toolset_generator()
         namespace = toolset_generator.generate_execution_namespace()
+
+        # Add progress reporting if context is available
+        if ctx.report_progress:
+
+            async def report_progress(current: int, total: int, message: str = ""):
+                """Report progress during code execution."""
+                assert ctx.report_progress
+                await ctx.report_progress(current, total, message)
+
+            namespace["report_progress"] = report_progress
+
+        # async def ask_user(
+        #     message: str, response_type: str = "string"
+        # ) -> str | bool | int | float | dict:
+        #     """Ask the user for input during code execution.
+
+        #     Args:
+        #         message: Question to ask the user
+        #         response_type: Type of response
+        #                         expected ("string", "bool", "int", "float", "json")
+
+        #     Returns:
+        #         User's response in the requested type
+        #     """
+        #     from mcp import types
+
+        #     # Map string types to Python types for elicitation
+        #     type_mapping = {
+        #         "string": str,
+        #         "str": str,
+        #         "bool": bool,
+        #         "boolean": bool,
+        #         "int": int,
+        #         "integer": int,
+        #         "float": float,
+        #         "number": float,
+        #         "json": dict,
+        #         "dict": dict,
+        #     }
+
+        #     python_type = type_mapping.get(response_type.lower(), str)
+
+        #     params = types.ElicitRequestParams(
+        #         message=message,
+        #         response_type=python_type.__name__,
+        #     )
+
+        #     result = await ctx.handle_elicitation(params)
+
+        #     if isinstance(result, types.ElicitResult) and result.action == "accept":
+        #         return result.content if result.content is not None else ""
+        #     if isinstance(result, types.ErrorData):
+        #         msg = f"Elicitation failed: {result.message}"
+        #         raise RuntimeError(msg)
+        #     msg = "User declined to provide input"
+        #     raise RuntimeError(msg)
+
+        # namespace["ask_user"] = ask_user
 
         if context_vars:
             namespace.update(context_vars)
@@ -77,11 +143,24 @@ class CodeModeResourceProvider(ResourceProvider):
         try:
             exec(python_code, namespace)
             result = await namespace["main"]()
-            # Ensure we return something meaningful instead of None
+
+            # Handle edge cases with coroutines and return values
+            if inspect.iscoroutine(result):
+                result = await result
+
+            # Ensure we return a serializable value
+            if result is None:
+                return "Code executed successfully"
+            if hasattr(result, "__dict__") and not isinstance(
+                result, (str, int, float, bool, list, dict)
+            ):
+                # Handle complex objects that might not serialize well
+                return f"Operation completed. Result type: {type(result).__name__}"
+
         except Exception as e:  # noqa: BLE001
             return f"Error executing code: {e!s}"
         else:
-            return result if result is not None else "Code executed successfully"
+            return result
 
     async def _get_toolset_generator(self) -> ToolsetCodeGenerator:
         """Get cached toolset generator."""
@@ -106,30 +185,62 @@ class CodeModeResourceProvider(ResourceProvider):
                 provider_tools = await provider.get_tools()
             all_tools.extend(provider_tools)
 
-        self._tools_cache = all_tools
-        return all_tools
+        # Validate tools for common async issues
+        validated_tools = []
+        for tool in all_tools:
+            if inspect.iscoroutinefunction(tool.callable):
+                # Check if async function has proper return type hints
+                sig = inspect.signature(tool.callable)
+                if sig.return_annotation == inspect.Signature.empty:
+                    # Add warning in tool description about missing return type
+                    tool.description = f"{tool.description}\n\nNote: This async function should explicitly return a value."  # noqa: E501
+            validated_tools.append(tool)
+
+        self._tools_cache = validated_tools
+        return validated_tools
 
 
 if __name__ == "__main__":
     import asyncio
     import logging
     import sys
-    import webbrowser
 
     from llmling_agent import Agent
     from llmling_agent.resource_providers.static import StaticResourceProvider
 
-    logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
-    static_provider = StaticResourceProvider(tools=[Tool.from_callable(webbrowser.open)])
+    class Counter:
+        """Counter class for incrementing a count."""
+
+        def __init__(self):
+            self.count = 0
+
+        async def increment(self):
+            """Increment the counter by 1."""
+            self.count += 1
+            return self.count
+
+    counter = Counter()
+    logging.basicConfig(level=logging.INFO, stream=sys.stdout)
+    static_provider = StaticResourceProvider(
+        tools=[Tool.from_callable(counter.increment)]
+    )
 
     async def main():
         provider = CodeModeResourceProvider([static_provider])
+        print("Available tools:")
+        for tool in await provider.get_tools():
+            print(f"- {tool.name}: {tool.description[:100]}...")
+
         async with Agent(model="openai:gpt-4o-mini") as agent:
             agent.tools.add_provider(provider)
+
+            # Test elicitation functionality
+            print("\n=== Testing Elicitation (User Input) ===")
             result = await agent.run(
-                "Use the available open() function to open a web browser "
-                "with URL https://www.google.com."
+                "Write code that asks the user for their name using ask_user(), "
+                "then asks if they want to continue (boolean), and if yes, "
+                "asks for their age (integer). Print all the responses."
             )
-            print(result)
+            print(f"Result: {result}")
 
     asyncio.run(main())

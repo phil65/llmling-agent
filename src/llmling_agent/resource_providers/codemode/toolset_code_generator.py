@@ -60,9 +60,8 @@ class ToolsetCodeGenerator:
             ])
 
         for tool in self.tools:
-            generator = ToolCodeGenerator.from_tool(tool)
-
             if self.include_signatures:
+                generator = ToolCodeGenerator.from_tool(tool)
                 signature = generator.get_function_signature()
                 parts.append(f"async def {signature}:")
             else:
@@ -79,6 +78,9 @@ class ToolsetCodeGenerator:
             "- All tool functions are async, use 'await'",
             "- Use 'return' statements to return values from main()",
             "- Generated model classes are available for type checking",
+            "- Use 'await report_progress(current, total, message)' for long-running operations",  # noqa: E501
+            # "- Use 'await ask_user(message, response_type)' to get user input during execution",  # noqa: E501
+            # "  - response_type can be: 'string', 'bool', 'int', 'float', 'json'",
             "- DO NOT call asyncio.run() or try to run the main function yourself",
             "- DO NOT import asyncio or other modules - tools are already available",
             "- Example:",
