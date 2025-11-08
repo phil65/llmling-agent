@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from pydantic_ai import RunContext
-
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.resource_providers.static import StaticResourceProvider
 from llmling_agent.tools.base import Tool
@@ -33,9 +31,6 @@ async def register_tool(  # noqa: D417
     Returns:
         Confirmation message with registered tool name
     """
-    if isinstance(ctx, RunContext):
-        ctx = ctx.deps
-
     # Create tool from callable/import path
     tool_obj = Tool.from_callable(
         tool,
@@ -69,9 +64,6 @@ async def register_code_tool(  # noqa: D417
     Returns:
         Confirmation message with registered tool name
     """
-    if isinstance(ctx, RunContext):
-        ctx = ctx.deps
-
     # Create tool from code
     tool_obj = Tool.from_code(
         code,

@@ -6,8 +6,6 @@ import asyncio
 import contextlib
 import io
 
-from pydantic_ai import RunContext
-
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.resource_providers.static import StaticResourceProvider
 from llmling_agent.tools.base import Tool
@@ -15,8 +13,6 @@ from llmling_agent.tools.base import Tool
 
 async def execute_python(ctx: AgentContext, code: str) -> str:
     """Execute Python code directly."""
-    if isinstance(ctx, RunContext):
-        ctx = ctx.deps
     try:
         # Capture output
         with io.StringIO() as buf, contextlib.redirect_stdout(buf):
@@ -41,8 +37,6 @@ async def execute_command(  # noqa: D417
     """
     import os
 
-    if isinstance(ctx, RunContext):
-        ctx = ctx.deps
     try:
         # Prepare environment
         proc_env = dict(os.environ)

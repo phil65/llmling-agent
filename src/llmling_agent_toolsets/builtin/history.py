@@ -5,8 +5,6 @@ from __future__ import annotations
 from datetime import timedelta
 from typing import Literal
 
-from pydantic_ai import RunContext
-
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.resource_providers.static import StaticResourceProvider
 from llmling_agent.tools.base import Tool
@@ -21,9 +19,6 @@ async def search_history(
 ) -> str:
     """Search conversation history."""
     from llmling_agent_storage.formatters import format_output
-
-    if isinstance(ctx, RunContext):
-        ctx = ctx.deps
 
     provider = ctx.storage.get_history_provider()
     results = await provider.get_filtered_conversations(
@@ -43,8 +38,6 @@ async def show_statistics(
     from llmling_agent_storage.formatters import format_output
     from llmling_agent_storage.models import StatsFilters
 
-    if isinstance(ctx, RunContext):
-        ctx = ctx.deps
     cutoff = get_now() - timedelta(hours=hours)
     filters = StatsFilters(cutoff=cutoff, group_by=group_by)
 

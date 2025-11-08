@@ -7,7 +7,7 @@ from datetime import timedelta
 from typing import TYPE_CHECKING, Any, Literal
 from uuid import uuid4
 
-from pydantic_ai import ModelRetry, RunContext
+from pydantic_ai import ModelRetry
 
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.log import get_logger
@@ -39,8 +39,6 @@ async def delegate_to(  # noqa: D417
     Returns:
         The result of the delegated task
     """
-    if isinstance(ctx, RunContext):
-        ctx = ctx.deps
     if not ctx.pool:
         msg = "Agent needs to be in a pool to delegate tasks"
         raise ToolError(msg)
@@ -72,8 +70,6 @@ async def list_available_agents(  # noqa: D417
     Returns:
         List of agent names that you can use with delegate_to
     """
-    if isinstance(ctx, RunContext):
-        ctx = ctx.deps
     if not ctx.pool:
         msg = "Agent needs to be in a pool to list agents"
         raise ToolError(msg)
@@ -111,8 +107,6 @@ async def list_available_teams(  # noqa: D417
     """
     from llmling_agent import TeamRun
 
-    if isinstance(ctx, RunContext):
-        ctx = ctx.deps
     if not ctx.pool:
         msg = "No agent pool available"
         raise ToolError(msg)
@@ -148,8 +142,6 @@ async def create_worker_agent[TDeps](
     """
     from llmling_agent import Agent
 
-    if isinstance(ctx, RunContext):
-        ctx = ctx.deps
     if not ctx.pool:
         msg = "Agent needs to be in a pool to list agents"
         raise ToolError(msg)
@@ -175,8 +167,6 @@ async def spawn_delegate[TDeps](
     """
     from llmling_agent import Agent
 
-    if isinstance(ctx, RunContext):
-        ctx = ctx.deps
     if not ctx.pool:
         msg = "No agent pool available"
         raise ToolError(msg)
@@ -218,8 +208,6 @@ async def add_agent(  # noqa: D417
     Returns:
         Confirmation message about the created agent
     """
-    if isinstance(ctx, RunContext):
-        ctx = ctx.deps
     assert ctx.pool, "No agent pool available"
     try:
         agent: Agent[Any, Any] = await ctx.pool.add_agent(
@@ -250,8 +238,6 @@ async def add_team(  # noqa: D417
             - parallel: Agents process simultaneously
         name: Optional name for the team
     """
-    if isinstance(ctx, RunContext):
-        ctx = ctx.deps
     if not ctx.pool:
         msg = "No agent pool available"
         raise ToolError(msg)
@@ -291,8 +277,6 @@ async def ask_agent(  # noqa: D417
     Returns:
         The agent's response
     """
-    if isinstance(ctx, RunContext):
-        ctx = ctx.deps
     assert ctx.pool, "No agent pool available"
     if agent_name not in ctx.pool.nodes:
         msg = (
@@ -346,8 +330,6 @@ async def connect_nodes(  # noqa: D417
     Returns:
         Description of the created connection
     """
-    if isinstance(ctx, RunContext):
-        ctx = ctx.deps
     if not ctx.pool:
         msg = "No agent pool available"
         raise ToolError(msg)

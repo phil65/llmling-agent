@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Awaitable, Callable
 from contextlib import AsyncExitStack, asynccontextmanager
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 import time
 from typing import (
     TYPE_CHECKING,
@@ -513,8 +513,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         """
         tool_name = name or f"ask_{self.name}"
 
-        # TODO: should probably make output type configurable
-        async def wrapped_tool(prompt: str) -> OutputDataT:
+        async def wrapped_tool(prompt: str) -> Any:
             if pass_message_history and not parent:
                 msg = "Parent agent required for message history sharing"
                 raise ToolError(msg)
@@ -557,7 +556,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
     ):
         """Create pydantic-ai agent from current state."""
         # Monkey patch pydantic-ai to recognize AgentContext
-        import dataclasses
 
         from llmling_agent.agent.tool_wrapping import wrap_tool
 
@@ -580,7 +578,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         context_for_tools = (
             self.context
             if input_provider is None
-            else dataclasses.replace(self.context, input_provider=input_provider)
+            else replace(self.context, input_provider=input_provider)
         )
 
         for tool in tools:

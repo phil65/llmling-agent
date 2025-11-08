@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Literal
 
 from pydantic import HttpUrl
-from pydantic_ai import RunContext
 
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.resource_providers import ResourceProvider
@@ -37,9 +36,6 @@ async def add_local_mcp_server(  # noqa: D417
     """
     from llmling_agent_config.mcp_server import StdioMCPServerConfig
 
-    if isinstance(ctx, RunContext):
-        ctx = ctx.deps
-
     env = env_vars or {}
     config = StdioMCPServerConfig(name=name, command=command, args=args or [], env=env)
     ctx.agent.mcp.add_server_config(config)
@@ -69,9 +65,6 @@ async def add_remote_mcp_server(  # noqa: D417
         StreamableHTTPMCPServerConfig,
     )
 
-    if isinstance(ctx, RunContext):
-        ctx = ctx.deps
-
     match transport:
         case "sse":
             config: MCPServerConfig = SSEMCPServerConfig(name=name, url=HttpUrl(url))
@@ -93,9 +86,6 @@ async def load_skill(ctx: AgentContext, skill_name: str) -> str:  # noqa: D417
     Returns:
         The full skill instructions for execution
     """
-    if isinstance(ctx, RunContext):
-        ctx = ctx.deps
-
     registry = ctx.agent.skills_registry
     await registry.discover_skills()
 

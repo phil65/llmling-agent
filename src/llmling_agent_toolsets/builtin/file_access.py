@@ -6,8 +6,6 @@ import asyncio
 import time
 from urllib.parse import urlparse
 
-from pydantic_ai import RunContext
-
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.log import get_logger
 from llmling_agent.resource_providers.static import StaticResourceProvider
@@ -40,9 +38,6 @@ async def read_file(  # noqa: D417
         File content, optionally converted to markdown
     """
     from upathtools import read_path
-
-    if isinstance(ctx, RunContext):
-        ctx = ctx.deps
 
     try:
         # First try to read raw content

@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from pydantic_ai import RunContext
-
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.resource_providers.static import StaticResourceProvider
 from llmling_agent.tools.base import Tool
@@ -29,9 +27,6 @@ async def start_process(  # noqa: D417
     Returns:
         Process ID for tracking the background process
     """
-    if isinstance(ctx, RunContext):
-        ctx = ctx.deps
-
     try:
         process_id = await ctx.process_manager.start_process(
             command=command,
@@ -55,9 +50,6 @@ async def get_process_output(ctx: AgentContext, process_id: str) -> str:  # noqa
     Returns:
         Current process output (stdout + stderr)
     """
-    if isinstance(ctx, RunContext):
-        ctx = ctx.deps
-
     try:
         output = await ctx.process_manager.get_output(process_id)
         result = f"Process {process_id}:\n"
@@ -85,9 +77,6 @@ async def wait_for_process(ctx: AgentContext, process_id: str) -> str:  # noqa: 
     Returns:
         Final process output and exit code
     """
-    if isinstance(ctx, RunContext):
-        ctx = ctx.deps
-
     try:
         exit_code = await ctx.process_manager.wait_for_exit(process_id)
         output = await ctx.process_manager.get_output(process_id)
@@ -115,9 +104,6 @@ async def kill_process(ctx: AgentContext, process_id: str) -> str:  # noqa: D417
     Returns:
         Confirmation message
     """
-    if isinstance(ctx, RunContext):
-        ctx = ctx.deps
-
     try:
         await ctx.process_manager.kill_process(process_id)
     except ValueError as e:
@@ -137,9 +123,6 @@ async def release_process(ctx: AgentContext, process_id: str) -> str:  # noqa: D
     Returns:
         Confirmation message
     """
-    if isinstance(ctx, RunContext):
-        ctx = ctx.deps
-
     try:
         await ctx.process_manager.release_process(process_id)
     except ValueError as e:
@@ -156,9 +139,6 @@ async def list_processes(ctx: AgentContext) -> str:
     Returns:
         List of process IDs and basic information
     """
-    if isinstance(ctx, RunContext):
-        ctx = ctx.deps
-
     try:
         process_ids = ctx.process_manager.list_processes()
         if not process_ids:

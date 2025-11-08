@@ -5,7 +5,6 @@ from __future__ import annotations
 from unittest.mock import MagicMock
 
 from anyenv.process_manager import ProcessManager, ProcessOutput
-from pydantic_ai import RunContext
 import pytest
 
 from llmling_agent import AgentContext
@@ -323,8 +322,8 @@ async def test_runcontext_handling():
 
     mock_deps.process_manager.start_process = mock_start_process
 
-    mock_run_context = MagicMock(spec=RunContext)
-    mock_run_context.deps = mock_deps
+    mock_run_context = MagicMock(spec=AgentContext)
+    mock_run_context.process_manager = mock_deps.process_manager
 
     result = await process_management.start_process(mock_run_context, command="echo")
 
