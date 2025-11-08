@@ -9,7 +9,7 @@ real-time code editing and location resolution.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Literal
 
 
@@ -19,6 +19,7 @@ DELETION_COST = 10
 
 LINE_HINT_TOLERANCE = 200
 THRESHOLD = 0.8
+SearchDirection = Literal["up", "left", "diagonal"]
 
 
 @dataclass(frozen=True, slots=True)
@@ -27,9 +28,6 @@ class Range:
 
     start: int
     end: int
-
-
-SearchDirection = Literal["up", "left", "diagonal"]
 
 
 @dataclass(slots=True)
@@ -43,13 +41,13 @@ class SearchState:
         self.cost = max(self.cost, 0)
 
 
+@dataclass
 class SearchMatrix:
     """Dynamic programming matrix for edit distance computation."""
 
-    def __init__(self, cols: int):
-        self.cols: int = cols
-        self.rows: int = 0
-        self.data: list[SearchState] = []
+    cols: int
+    rows: int = 0
+    data: list[SearchState] = field(default_factory=list)
 
     def resize_rows(self, new_rows: int) -> None:
         """Resize matrix to accommodate more query lines."""
@@ -58,8 +56,6 @@ class SearchMatrix:
 
         old_size = self.rows * self.cols
         new_size = new_rows * self.cols
-
-        # Extend data array
         self.data.extend([SearchState(0, "diagonal") for _ in range(new_size - old_size)])
         self.rows = new_rows
 

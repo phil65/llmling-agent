@@ -91,18 +91,11 @@ class ToolsetCodeGenerator:
 
     def generate_execution_namespace(self) -> dict[str, Any]:
         """Build Python namespace with tool functions and generated models."""
-        namespace = {
-            "__builtins__": __builtins__,
-            "_result": None,
-        }
-
-        # Add tool functions
-        for tool in self.tools:
+        namespace: dict[str, Any] = {"__builtins__": __builtins__, "_result": None}
+        for tool in self.tools:  # Add tool functions
             namespace[tool.name] = NamespaceCallable.from_tool(tool)
-
         # Add generated model classes to namespace
-        models_code = self.generate_return_models()
-        if models_code:
+        if models_code := self.generate_return_models():
             with contextlib.suppress(Exception):
                 exec(models_code, namespace)
 
@@ -111,7 +104,6 @@ class ToolsetCodeGenerator:
     def generate_return_models(self) -> str:
         """Generate Pydantic models for tool return types."""
         model_parts = []
-
         for tool in self.tools:
             generator = ToolCodeGenerator.from_tool(tool)
             if code := generator.generate_return_model():
