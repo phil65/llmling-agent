@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import contextlib
+import inspect
 from typing import TYPE_CHECKING, Any
 
 from llmling_agent.resource_providers.codemode.tool_code_generator import (
@@ -100,7 +101,21 @@ class ToolsetCodeGenerator:
 
             def make_tool_func(t: Tool):
                 async def tool_func(*args, **kwargs):
-                    return await t.execute(*args, **kwargs)
+                    try:
+                        result = await t.execute(*args, **kwargs)
+                        # Handle coroutines that weren't properly awaited
+                        if inspect.iscoroutine(result):
+                            result = await result
+                        # Ensure we return a serializable value
+
+                    except Exception as e:  # noqa: BLE001
+                        return f"Error executing {t.name}: {e!s}"
+                    else:
+                        return (
+                            result
+                            if result is not None
+                            else "Operation completed successfully"
+                        )
 
                 tool_func.__name__ = t.name
                 tool_func.__doc__ = t.description
