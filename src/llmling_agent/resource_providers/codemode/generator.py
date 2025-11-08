@@ -134,11 +134,28 @@ class CodeGenerator:
         except Exception:  # noqa: BLE001
             return self._extract_basic_signature("Any")
 
+    def generate_return_model(self) -> str | None:
+        try:
+            callable_func = self.callable
+            schema = create_schema(callable_func)
+
+            if schema.returns.get("type") not in {"object", "array"}:
+                return None
+
+            class_name = f"{self.name.title()}Response"
+            model_code = schema.to_pydantic_model_code(class_name=class_name)
+
+            if model_code.strip():
+                return model_code.strip()
+
+        except Exception:  # noqa: BLE001
+            return None
+
 
 if __name__ == "__main__":
     import webbrowser
 
-    tool = Tool.from_callable(webbrowser.open)
-    generator = CodeGenerator.from_tool(tool)
+    t = Tool.from_callable(webbrowser.open)
+    generator = CodeGenerator.from_tool(t)
     sig = generator.get_function_signature()
     print(sig)

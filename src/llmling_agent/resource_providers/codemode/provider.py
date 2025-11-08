@@ -5,8 +5,6 @@ from __future__ import annotations
 import contextlib
 from typing import TYPE_CHECKING, Any
 
-from schemez import create_schema
-
 from llmling_agent.resource_providers import ResourceProvider
 from llmling_agent.resource_providers.codemode import CodeGenerator
 from llmling_agent.tools.base import Tool
@@ -188,27 +186,13 @@ class CodeModeResourceProvider(ResourceProvider):
         return all_tools
 
 
-def _generate_return_models(all_tools: list[Tool]) -> str:
-    """Generate Pydantic models for tool return types using schemez."""
-    model_parts = []
-
-    for tool in all_tools:
-        try:
-            callable_func = tool.callable
-            schema = create_schema(callable_func)
-
-            if schema.returns.get("type") not in {"object", "array"}:
-                continue
-
-            class_name = f"{tool.name.title()}Response"
-            model_code = schema.to_pydantic_model_code(class_name=class_name)
-
-            if model_code.strip():
-                model_parts.append(model_code.strip())
-
-        except Exception:  # noqa: BLE001
-            continue
-
+def _generate_return_models(tools: list[Tool]) -> str:
+    """Generate Pydantic models for tool return types."""
+    model_parts = [
+        code
+        for t in tools
+        if (code := CodeGenerator.from_tool(t).generate_return_model())
+    ]
     return "\n\n".join(model_parts) if model_parts else ""
 
 
