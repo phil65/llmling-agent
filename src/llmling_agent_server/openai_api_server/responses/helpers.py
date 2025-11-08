@@ -5,8 +5,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
-from fastapi import HTTPException
-
 from llmling_agent_server.openai_api_server.responses.models import (
     Response,
     ResponseMessage,
@@ -22,6 +20,8 @@ if TYPE_CHECKING:
 
 
 async def handle_request(request: ResponseRequest, agent: Agent[Any, Any]):
+    from fastapi import HTTPException
+
     match request.input:
         case str():
             content = request.input
