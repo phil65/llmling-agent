@@ -11,9 +11,6 @@ from typing import TYPE_CHECKING, Any, Literal
 from psygnal import Signal
 
 from llmling_agent.log import get_logger
-from llmling_agent.resource_providers.callable_provider import (
-    CallableResourceProvider,
-)
 from llmling_agent.tools.base import Tool
 from llmling_agent.utils.baseregistry import BaseRegistry, LLMLingError
 from llmling_agent.utils.importing import import_class
@@ -28,7 +25,6 @@ if TYPE_CHECKING:
     from llmling_agent.common_types import AnyCallable, ToolSource, ToolType
     from llmling_agent.mcp_server.manager import Prompt
     from llmling_agent.resource_providers import ResourceProvider
-    from llmling_agent.resource_providers.callable_provider import ResourceCallable
 
 
 logger = get_logger(__name__)
@@ -101,37 +97,17 @@ class ToolManager(BaseRegistry[str, Tool]):
                      returning tools. Callables are automatically wrapped.
             owner: Optional owner for the provider
         """
-        from llmling_agent.resource_providers import ResourceProvider
-
-        if not isinstance(provider, ResourceProvider):
-            # Wrap old-style callable in ResourceProvider
-            prov: ResourceProvider = CallableResourceProvider(
-                name=provider.__name__,
-                tool_callable=provider,
-            )
-        else:
-            prov = provider
         if owner:
-            prov.owner = owner
-        self.providers.append(prov)
+            provider.owner = owner
+        self.providers.append(provider)
 
-    def remove_provider(
-        self, provider: ResourceProvider | ResourceCallable | ProviderName
-    ):
+    def remove_provider(self, provider: ResourceProvider | ProviderName):
         """Remove a resource provider."""
         from llmling_agent.resource_providers import ResourceProvider
 
         match provider:
             case ResourceProvider():
                 self.providers.remove(provider)
-            case Callable():
-                # Find and remove wrapped callable
-                for p in self.providers:
-                    if (
-                        isinstance(p, CallableResourceProvider)
-                        and p.tool_callable == provider
-                    ):
-                        self.providers.remove(p)
             case str():
                 for p in self.providers:
                     if p.name == provider:
