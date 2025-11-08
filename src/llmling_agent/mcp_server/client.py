@@ -66,10 +66,10 @@ if TYPE_CHECKING:
     from fastmcp.client.logging import LogMessage
     from fastmcp.client.messages import MessageHandler, MessageHandlerT
     from fastmcp.client.sampling import ClientSamplingHandler
-    import mcp
     from mcp.types import (
         BlobResourceContents,
         ContentBlock,
+        GetPromptResult,
         Prompt as MCPPrompt,
         Resource as MCPResource,
         TextResourceContents,
@@ -160,6 +160,12 @@ class MCPClient:
         finally:
             self._connected = False
             self._available_tools = []
+
+    def get_resource_fs(self):
+        """Get a filesystem for accessing MCP resources."""
+        from upathtools.filesystems.mcp_fs import MCPFileSystem
+
+        return MCPFileSystem(self._client)
 
     async def _log_handler(self, message: LogMessage) -> None:
         """Handle server log messages."""
@@ -253,7 +259,7 @@ class MCPClient:
 
     async def get_prompt(
         self, name: str, arguments: dict[str, str] | None = None
-    ) -> mcp.types.GetPromptResult:
+    ) -> GetPromptResult:
         """Get a specific prompt's content."""
         if not self._client or not self._connected:
             msg = "Not connected to MCP server"
@@ -410,3 +416,22 @@ class MCPClient:
                     contents.append(str(block))  # Convert anything else to string
 
         return contents
+
+
+if __name__ == "__main__":
+    import asyncio
+
+    path = "/home/phil65/dev/oss/llmling-agent/tests/mcp/server.py"
+    # path = Path(__file__).parent / "test_mcp_server.py"
+    config = StdioMCPServerConfig(
+        command="uv",
+        args=["run", str(path)],
+    )
+
+    async def main():
+        async with MCPClient(config=config) as mcp_client:
+            # Create MCP filesystem
+            fs = mcp_client.get_resource_fs()
+            print(await fs._ls(""))
+
+    asyncio.run(main())

@@ -147,5 +147,11 @@ async def test_rich_content(  # noqa: D417
     )
 
 
+@mcp.resource("resource://greeting")
+def get_greeting() -> str:
+    """Provides a simple greeting message."""
+    return "Hello from FastMCP Resources!"
+
+
 if __name__ == "__main__":
     mcp.run(show_banner=False, log_level="error")
