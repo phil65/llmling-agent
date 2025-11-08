@@ -92,7 +92,6 @@ class CodeModeResourceProvider(ResourceProvider):
 
             namespace["report_progress"] = NamespaceCallable(
                 report_progress,
-                "report_progress",
             )
 
         # async def ask_user(
