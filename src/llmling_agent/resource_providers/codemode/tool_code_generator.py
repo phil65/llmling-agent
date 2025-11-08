@@ -6,6 +6,7 @@ from dataclasses import dataclass
 import inspect
 from typing import TYPE_CHECKING
 
+from pydantic_ai import RunContext
 from schemez import create_schema
 
 from llmling_agent.tools.base import Tool
@@ -58,6 +59,10 @@ class ToolCodeGenerator:
 
         param_strs = []
         for name, param_info in params.items():
+            # Skip context parameters that should be hidden from users
+            if self._is_context_parameter(name):
+                continue
+
             # Use improved type inference
             type_hint = self._infer_parameter_type(name, param_info)
 
@@ -79,7 +84,10 @@ class ToolCodeGenerator:
         # For 'object' type, try to infer from function signature
         try:
             callable_func = self.callable
-            sig = inspect.signature(callable_func)
+            # Use wrapped signature if available (for context parameter hiding)
+            sig = getattr(callable_func, "__signature__", None) or inspect.signature(
+                callable_func
+            )
 
             if param_name in sig.parameters:
                 param = sig.parameters[param_name]
@@ -130,6 +138,44 @@ class ToolCodeGenerator:
             return self._extract_basic_signature(return_model_name)
         except Exception:  # noqa: BLE001
             return self._extract_basic_signature("Any")
+
+    def _get_callable_signature(self) -> inspect.Signature:
+        """Get signature from callable, respecting wrapped signatures."""
+        # Use wrapped signature if available (for context parameter hiding)
+        return getattr(self.callable, "__signature__", None) or inspect.signature(
+            self.callable
+        )
+
+    def _is_context_parameter(self, param_name: str) -> bool:  # noqa: PLR0911
+        """Check if a parameter is a context parameter that should be hidden."""
+        try:
+            sig = self._get_callable_signature()
+            if param_name not in sig.parameters:
+                return False
+
+            param = sig.parameters[param_name]
+            if param.annotation == inspect.Parameter.empty:
+                return False
+
+            # Check if parameter is RunContext or AgentContext
+            annotation = param.annotation
+            annotation_str = str(annotation)
+
+            # Handle RunContext (including parameterized like RunContext[None])
+            if annotation is RunContext:
+                return True
+
+            # Check for parameterized RunContext using string matching
+            if "RunContext" in annotation_str:
+                return True
+
+            # Handle AgentContext
+            if hasattr(annotation, "__name__") and annotation.__name__ == "AgentContext":
+                return True
+        except Exception:  # noqa: BLE001
+            return False
+        else:
+            return "AgentContext" in annotation_str
 
     def generate_return_model(self) -> str | None:
         try:
