@@ -12,7 +12,6 @@ from typing import (
     Any,
     Self,
     TypedDict,
-    get_origin,
     get_type_hints,
     overload,
 )
@@ -23,7 +22,6 @@ from llmling_models import function_to_model, infer_model
 import logfire
 from psygnal import Signal
 from pydantic import ValidationError
-from pydantic._internal import _typing_extra
 from pydantic_ai import (
     Agent as PydanticAgent,
     AgentRunResultEvent,
@@ -35,9 +33,7 @@ from pydantic_ai import (
     ToolReturnPart,
     models,
 )
-import pydantic_ai._function_schema
 from pydantic_ai.models import Model
-from pydantic_ai.tools import GenerateToolJsonSchema
 
 from llmling_agent.agent.events import (
     RichAgentStreamEvent,
@@ -563,22 +559,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         # Monkey patch pydantic-ai to recognize AgentContext
         import dataclasses
 
-        from llmling_agent.agent.context import AgentContext
         from llmling_agent.agent.tool_wrapping import wrap_tool
-
-        def _is_call_ctx_patched(annotation):
-            if annotation is RunContext or (
-                _typing_extra.is_generic_alias(annotation)
-                and get_origin(annotation) is RunContext
-            ):
-                return True
-            return annotation is AgentContext or (
-                _typing_extra.is_generic_alias(annotation)
-                and get_origin(annotation) is AgentContext
-            )
-
-        original_is_call_ctx = pydantic_ai._function_schema._is_call_ctx
-        pydantic_ai._function_schema._is_call_ctx = _is_call_ctx_patched
 
         actual_model = model or self._model
         model_ = (
@@ -606,20 +587,8 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             wrapped = wrap_tool(tool, context_for_tools)
             if get_argument_key(wrapped, RunContext):
                 agent.tool(wrapped)
-            elif get_argument_key(wrapped, AgentContext):
-                agent._function_toolset.add_function(
-                    func=wrapped,
-                    takes_ctx=True,
-                    retries=1,
-                    docstring_format="auto",
-                    require_parameter_descriptions=False,
-                    schema_generator=GenerateToolJsonSchema,
-                )
             else:
                 agent.tool_plain(wrapped)
-
-        # Restore original function after agent creation
-        pydantic_ai._function_schema._is_call_ctx = original_is_call_ctx
 
         return agent
 
