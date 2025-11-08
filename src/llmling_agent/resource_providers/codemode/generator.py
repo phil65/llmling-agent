@@ -114,15 +114,12 @@ class CodeGenerator:
     def _get_return_model_name(self) -> str:
         """Get the return model name for a tool."""
         try:
-            callable_func = self.callable
-            schema = create_schema(callable_func)
-            return_schema = schema.returns
-
-            if return_schema.get("type") == "object":
+            schema = create_schema(self.callable)
+            if schema.returns.get("type") == "object":
                 return f"{self.name.title()}Response"
-            if return_schema.get("type") == "array":
+            if schema.returns.get("type") == "array":
                 return f"list[{self.name.title()}Item]"
-            return TYPE_MAP.get(return_schema.get("type", "string"), "Any")
+            return TYPE_MAP.get(schema.returns.get("type", "string"), "Any")
         except Exception:  # noqa: BLE001
             return "Any"
 
@@ -136,17 +133,13 @@ class CodeGenerator:
 
     def generate_return_model(self) -> str | None:
         try:
-            callable_func = self.callable
-            schema = create_schema(callable_func)
-
+            schema = create_schema(self.callable)
             if schema.returns.get("type") not in {"object", "array"}:
                 return None
 
             class_name = f"{self.name.title()}Response"
             model_code = schema.to_pydantic_model_code(class_name=class_name)
-
-            if model_code.strip():
-                return model_code.strip()
+            return model_code.strip() or None
 
         except Exception:  # noqa: BLE001
             return None
