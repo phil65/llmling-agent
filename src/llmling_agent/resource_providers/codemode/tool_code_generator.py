@@ -28,8 +28,8 @@ TYPE_MAP = {
 
 
 @dataclass
-class CodeGenerator:
-    """Meta-resource provider that exposes tools through Python execution."""
+class ToolCodeGenerator:
+    """Generates code artifacts for a single tool."""
 
     schema: OpenAIFunctionTool
     """Schema of the tool."""
@@ -41,8 +41,8 @@ class CodeGenerator:
     """Name of the tool."""
 
     @classmethod
-    def from_tool(cls, tool: Tool) -> CodeGenerator:
-        """Create a CodeGenerator from a Tool."""
+    def from_tool(cls, tool: Tool) -> ToolCodeGenerator:
+        """Create a ToolCodeGenerator from a Tool."""
         return cls(schema=tool.schema, callable=tool.callable, name_override=tool.name)
 
     @property
@@ -149,6 +149,6 @@ if __name__ == "__main__":
     import webbrowser
 
     t = Tool.from_callable(webbrowser.open)
-    generator = CodeGenerator.from_tool(t)
+    generator = ToolCodeGenerator.from_tool(t)
     sig = generator.get_function_signature()
     print(sig)

@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-import contextlib
 from typing import TYPE_CHECKING, Any
 
 from llmling_agent.resource_providers import ResourceProvider
-from llmling_agent.resource_providers.codemode import CodeGenerator
+from llmling_agent.resource_providers.codemode.toolset_code_generator import (
+    ToolsetCodeGenerator,
+)
 from llmling_agent.tools.base import Tool
 
 
@@ -42,19 +43,15 @@ class CodeModeResourceProvider(ResourceProvider):
 
         # Cache for expensive operations
         self._tools_cache: list[Tool] | None = None
-        self._description_cache: str | None = None
-        self._namespace_cache: dict[str, Any] | None = None
-        self._models_code_cache: str | None = None
+        self._toolset_generator: ToolsetCodeGenerator | None = None
 
     async def get_tools(self) -> list[Tool]:
         """Return single meta-tool for Python execution with available tools."""
-        if self._description_cache is None:
-            self._description_cache = await self._build_tool_description()
+        toolset_generator = await self._get_toolset_generator()
+        description = toolset_generator.generate_tool_description()
 
         return [
-            Tool.from_callable(
-                self.execute_codemode, description_override=self._description_cache
-            )
+            Tool.from_callable(self.execute_codemode, description_override=description)
         ]
 
     async def execute_codemode(
@@ -69,106 +66,63 @@ class CodeModeResourceProvider(ResourceProvider):
         Returns:
             Result of the last expression or explicit return value
         """
-        # Build execution namespace with caching
-        if self._namespace_cache is None:
-            self._namespace_cache = await self._build_execution_namespace()
+        # Build execution namespace
+        toolset_generator = await self._get_toolset_generator()
+        namespace = toolset_generator.generate_execution_namespace()
 
-        # Create a copy to avoid modifying the cache
-        namespace = self._namespace_cache.copy()
         if context_vars:
             namespace.update(context_vars)
 
         # Simplified execution: require main() function pattern
         if "async def main(" not in python_code:
-            # Auto-wrap code in main function
-            python_code = f"""async def main():
-{chr(10).join("    " + line for line in python_code.splitlines())}"""
-
-        exec(python_code, namespace)
-        return await namespace["main"]()
-
-    async def _build_tool_description(self) -> str:
-        """Generate comprehensive tool description with available functions."""
-        all_tools = await self._collect_all_tools()
-
-        if not all_tools:
-            return "Execute Python code (no tools available)"
-
-        # Generate return type models if available
-        return_models = _generate_return_models(all_tools)
-
-        parts = [
-            "Execute Python code with the following tools available as async functions:",
-            "",
-        ]
-
-        if return_models:
-            parts.extend([
-                "# Generated return type models",
-                return_models,
-                "",
-                "# Available functions:",
-                "",
-            ])
-
-        for tool in all_tools:
-            if self.include_signatures:
-                signature = CodeGenerator.from_tool(tool).get_function_signature()
-                parts.append(f"async def {signature}:")
+            # Auto-wrap code in main function, ensuring last expression is returned
+            lines = python_code.strip().splitlines()
+            if lines:
+                # Check if last line is an expression (not a statement)
+                last_line = lines[-1].strip()
+                if last_line and not any(
+                    last_line.startswith(kw)
+                    for kw in [
+                        "import ",
+                        "from ",
+                        "def ",
+                        "class ",
+                        "if ",
+                        "for ",
+                        "while ",
+                        "try ",
+                        "with ",
+                        "async def ",
+                    ]
+                ):
+                    # Last line looks like an expression, add return
+                    lines[-1] = f"    return {last_line}"
+                    indented_lines = [f"    {line}" for line in lines[:-1]] + [lines[-1]]
+                else:
+                    indented_lines = [f"    {line}" for line in lines]
+                python_code = "async def main():\n" + "\n".join(indented_lines)
             else:
-                parts.append(f"async def {tool.name}(...):")
+                python_code = "async def main():\n    pass"
 
-            if self.include_docstrings and tool.description:
-                indented_desc = "    " + tool.description.replace("\n", "\n    ")
-                parts.append(f'    """{indented_desc}"""')
-            parts.append("")
+        try:
+            exec(python_code, namespace)
+            result = await namespace["main"]()
+            # Ensure we return something meaningful instead of None
+        except Exception as e:  # noqa: BLE001
+            return f"Error executing code: {e!s}"
+        else:
+            return result if result is not None else "Code executed successfully"
 
-        parts.extend([
-            "Usage notes:",
-            "- Write your code inside an 'async def main():' function",
-            "- All tool functions are async, use 'await'",
-            "- Use 'return' statements to return values from main()",
-            "- Generated model classes are available for type checking",
-            "- DO NOT call asyncio.run() or try to run the main function yourself",
-            "- DO NOT import asyncio or other modules - tools are already available",
-            "- Example:",
-            "    async def main():",
-            "        result = await open(url='https://example.com', new=2)",
-            "        return result",
-        ])
-
-        return "\n".join(parts)
-
-    async def _build_execution_namespace(self) -> dict[str, Any]:
-        """Build Python namespace with tool functions and generated models."""
-        namespace = {
-            "__builtins__": __builtins__,
-            "_result": None,
-        }
-
-        # Add tool functions
-        for tool in await self._collect_all_tools():
-
-            def make_tool_func(t: Tool):
-                async def tool_func(*args, **kwargs):
-                    return await t.execute(*args, **kwargs)
-
-                tool_func.__name__ = t.name
-                tool_func.__doc__ = t.description
-                return tool_func
-
-            namespace[tool.name] = make_tool_func(tool)
-
-        # Add generated model classes to namespace
-        if self._models_code_cache is None:
-            self._models_code_cache = _generate_return_models(
-                await self._collect_all_tools()
+    async def _get_toolset_generator(self) -> ToolsetCodeGenerator:
+        """Get cached toolset generator."""
+        if self._toolset_generator is None:
+            all_tools = await self._collect_all_tools()
+            self._toolset_generator = ToolsetCodeGenerator(
+                tools=all_tools,
+                include_signatures=self.include_signatures,
+                include_docstrings=self.include_docstrings,
             )
-
-        if self._models_code_cache:
-            with contextlib.suppress(Exception):
-                exec(self._models_code_cache, namespace)
-        return namespace
+        return self._toolset_generator
 
     async def _collect_all_tools(self) -> list[Tool]:
         """Collect all tools from providers and direct tools with caching."""
@@ -184,16 +138,6 @@ class CodeModeResourceProvider(ResourceProvider):
 
         self._tools_cache = all_tools
         return all_tools
-
-
-def _generate_return_models(tools: list[Tool]) -> str:
-    """Generate Pydantic models for tool return types."""
-    model_parts = [
-        code
-        for t in tools
-        if (code := CodeGenerator.from_tool(t).generate_return_model())
-    ]
-    return "\n\n".join(model_parts) if model_parts else ""
 
 
 if __name__ == "__main__":
