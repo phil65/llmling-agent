@@ -1,41 +1,35 @@
-"""Orchestrates code generation for multiple tools."""
+"""Namespace callable wrapper for tools."""
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 import inspect
 from typing import TYPE_CHECKING, Any
 
-from llmling_agent.resource_providers.codemode.tool_code_generator import (
-    ToolCodeGenerator,
-)
-
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from llmling_agent.resource_providers.codemode.tool_code_generator import (
+        ToolCodeGenerator,
+    )
     from llmling_agent.tools.base import Tool
 
 
+@dataclass
 class NamespaceCallable:
     """Wrapper for tool functions with proper repr and call interface."""
 
-    def __init__(
-        self,
-        tool: Tool,
-        *,
-        name_override: str | None = None,
-        description_override: str | None = None,
-    ) -> None:
-        """Initialize tool callable wrapper.
+    callable: Callable
+    """The callable function to execute."""
 
-        Args:
-            tool: The tool to wrap
-            name_override: Override the tool name
-            description_override: Override the tool description
-        """
-        self._tool = tool
-        self._name_override = name_override
-        self._description_override = description_override
-        self.__name__ = name_override or tool.name
-        self.__doc__ = description_override or tool.description
+    name: str
+    """Name of the callable."""
+
+    def __post_init__(self) -> None:
+        """Set function attributes for introspection."""
+        self.__name__ = self.name
+        self.__doc__ = self.callable.__doc__ or ""
 
     @classmethod
     def from_tool(cls, tool: Tool) -> NamespaceCallable:
@@ -47,41 +41,52 @@ class NamespaceCallable:
         Returns:
             NamespaceCallable instance
         """
-        return cls(tool)
+        return cls(tool.callable, tool.name)
+
+    @classmethod
+    def from_generator(cls, generator: ToolCodeGenerator) -> NamespaceCallable:
+        """Create a NamespaceCallable from a ToolCodeGenerator.
+
+        Args:
+            generator: The generator to wrap
+
+        Returns:
+            NamespaceCallable instance
+        """
+        return cls(generator.callable, generator.name)
 
     async def __call__(self, *args, **kwargs) -> Any:
-        """Execute the wrapped tool."""
+        """Execute the wrapped callable."""
         try:
-            result = await self._tool.execute(*args, **kwargs)
+            # Check if callable is async
+            if inspect.iscoroutinefunction(self.callable):
+                result = await self.callable(*args, **kwargs)
+            else:
+                result = self.callable(*args, **kwargs)
+
             # Handle coroutines that weren't properly awaited
             if inspect.iscoroutine(result):
                 result = await result
             # Ensure we return a serializable value
         except Exception as e:  # noqa: BLE001
-            return f"Error executing {self._tool.name}: {e!s}"
+            return f"Error executing {self.name}: {e!s}"
         else:
             return result if result is not None else "Operation completed successfully"
 
     def __repr__(self) -> str:
         """Return detailed representation for debugging."""
-        return f"NamespaceCallable(name='{self._tool.name}', description='{self._tool.description[:50]}...')"  # noqa: E501
+        return f"NamespaceCallable(name='{self.name}')"
 
     def __str__(self) -> str:
         """Return readable string representation."""
-        return f"<tool: {self._tool.name}>"
-
-    @property
-    def name(self) -> str:
-        """Get tool name."""
-        return self._name_override or self._tool.name
-
-    @property
-    def description(self) -> str:
-        """Get tool description."""
-        return self._description_override or self._tool.description
+        return f"<tool: {self.name}>"
 
     @property
     def signature(self) -> str:
         """Get function signature for debugging."""
-        generator = ToolCodeGenerator.from_tool(self._tool)
-        return generator.get_function_signature()
+        try:
+            sig = inspect.signature(self.callable)
+        except (ValueError, TypeError):
+            return f"{self.name}(...)"
+        else:
+            return f"{self.name}{sig}"

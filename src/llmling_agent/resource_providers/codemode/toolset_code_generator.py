@@ -22,8 +22,8 @@ if TYPE_CHECKING:
 class ToolsetCodeGenerator:
     """Generates code artifacts for multiple tools."""
 
-    tools: Sequence[Tool]
-    """Tools to generate code for."""
+    generators: Sequence[ToolCodeGenerator]
+    """ToolCodeGenerator instances for each tool."""
 
     include_signatures: bool = True
     """Include function signatures in documentation."""
@@ -31,9 +31,29 @@ class ToolsetCodeGenerator:
     include_docstrings: bool = True
     """Include function docstrings in documentation."""
 
+    @classmethod
+    def from_tools(
+        cls,
+        tools: Sequence[Tool],
+        include_signatures: bool = True,
+        include_docstrings: bool = True,
+    ) -> ToolsetCodeGenerator:
+        """Create a ToolsetCodeGenerator from a sequence of Tools.
+
+        Args:
+            tools: Tools to generate code for
+            include_signatures: Include function signatures in documentation
+            include_docstrings: Include function docstrings in documentation
+
+        Returns:
+            ToolsetCodeGenerator instance
+        """
+        generators = [ToolCodeGenerator.from_tool(tool) for tool in tools]
+        return cls(generators, include_signatures, include_docstrings)
+
     def generate_tool_description(self) -> str:
         """Generate comprehensive tool description with available functions."""
-        if not self.tools:
+        if not self.generators:
             return "Execute Python code (no tools available)"
 
         # Generate return type models if available
@@ -53,16 +73,17 @@ class ToolsetCodeGenerator:
                 "",
             ])
 
-        for tool in self.tools:
+        for generator in self.generators:
             if self.include_signatures:
-                generator = ToolCodeGenerator.from_tool(tool)
                 signature = generator.get_function_signature()
                 parts.append(f"async def {signature}:")
             else:
-                parts.append(f"async def {tool.name}(...):")
+                parts.append(f"async def {generator.name}(...):")
 
-            if self.include_docstrings and tool.description:
-                indented_desc = "    " + tool.description.replace("\n", "\n    ")
+            if self.include_docstrings and generator.callable.__doc__:
+                indented_desc = "    " + generator.callable.__doc__.replace(
+                    "\n", "\n    "
+                )
                 parts.append(f'    """{indented_desc}"""')
             parts.append("")
 
@@ -92,8 +113,11 @@ class ToolsetCodeGenerator:
     def generate_execution_namespace(self) -> dict[str, Any]:
         """Build Python namespace with tool functions and generated models."""
         namespace: dict[str, Any] = {"__builtins__": __builtins__, "_result": None}
-        for tool in self.tools:  # Add tool functions
-            namespace[tool.name] = NamespaceCallable.from_tool(tool)
+
+        # Add tool functions
+        for generator in self.generators:
+            namespace[generator.name] = NamespaceCallable.from_generator(generator)
+
         # Add generated model classes to namespace
         if models_code := self.generate_return_models():
             with contextlib.suppress(Exception):
@@ -103,12 +127,9 @@ class ToolsetCodeGenerator:
 
     def generate_return_models(self) -> str:
         """Generate Pydantic models for tool return types."""
-        model_parts = []
-        for tool in self.tools:
-            generator = ToolCodeGenerator.from_tool(tool)
-            if code := generator.generate_return_model():
-                model_parts.append(code)
-
+        model_parts = [
+            code for g in self.generators if (code := g.generate_return_model())
+        ]
         return "\n\n".join(model_parts) if model_parts else ""
 
 

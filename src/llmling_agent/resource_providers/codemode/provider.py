@@ -8,6 +8,9 @@ from typing import TYPE_CHECKING, Any
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.resource_providers import ResourceProvider
 from llmling_agent.resource_providers.codemode.fix_code import fix_code
+from llmling_agent.resource_providers.codemode.namespace_callable import (
+    NamespaceCallable,
+)
 from llmling_agent.resource_providers.codemode.toolset_code_generator import (
     ToolsetCodeGenerator,
 )
@@ -87,7 +90,10 @@ class CodeModeResourceProvider(ResourceProvider):
                 assert ctx.report_progress
                 await ctx.report_progress(current, total, message)
 
-            namespace["report_progress"] = report_progress
+            namespace["report_progress"] = NamespaceCallable(
+                report_progress,
+                "report_progress",
+            )
 
         # async def ask_user(
         #     message: str, response_type: str = "string"
@@ -166,8 +172,8 @@ class CodeModeResourceProvider(ResourceProvider):
         """Get cached toolset generator."""
         if self._toolset_generator is None:
             all_tools = await self._collect_all_tools()
-            self._toolset_generator = ToolsetCodeGenerator(
-                tools=all_tools,
+            self._toolset_generator = ToolsetCodeGenerator.from_tools(
+                all_tools,
                 include_signatures=self.include_signatures,
                 include_docstrings=self.include_docstrings,
             )
