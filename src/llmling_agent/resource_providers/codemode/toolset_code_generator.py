@@ -26,7 +26,7 @@ Usage notes:
 - All tool functions are async, use 'await'
 - Use 'return' statements to return values from main()
 - Generated model classes are available for type checking
-- Use 'await report_progress(current, total, message)' for long-running operations  # noqa: E501
+- Use 'await report_progress(current, total, message)' for long-running operations
 - DO NOT call asyncio.run() or try to run the main function yourself
 - DO NOT import asyncio or other modules - tools are already available
 - Example:

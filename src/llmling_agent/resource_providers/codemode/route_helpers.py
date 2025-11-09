@@ -10,10 +10,11 @@ from schemez.schema import json_schema_to_base_model
 if TYPE_CHECKING:
     from collections.abc import Callable
 
+    from pydantic import BaseModel
     from pydantic.fields import FieldInfo
 
 
-def create_param_model(parameters_schema: dict[str, Any]) -> type | None:
+def create_param_model(parameters_schema: dict[str, Any]) -> type[BaseModel] | None:
     """Create Pydantic model for parameter validation using schemez.
 
     Args:

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Annotated, Literal
 
+from anyenv.code_execution.models import Language
 from pydantic import Field, SecretStr
 from schemez import Schema
 
@@ -17,7 +18,7 @@ if TYPE_CHECKING:
     from anyenv.code_execution.e2b_provider import E2bExecutionEnvironment
     from anyenv.code_execution.local_provider import LocalExecutionEnvironment
     from anyenv.code_execution.mcp_python_provider import McpPythonExecutionEnvironment
-    from anyenv.code_execution.models import Language, ServerInfo
+    from anyenv.code_execution.models import ServerInfo
     from anyenv.code_execution.subprocess_provider import SubprocessExecutionEnvironment
 
 
