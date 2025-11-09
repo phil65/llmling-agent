@@ -231,30 +231,21 @@ async def report_progress(current: int, total: int, message: str = "") -> None:
 
 if __name__ == "__main__":
     import asyncio
+    import logging
+    import sys
+    import webbrowser
 
+    from llmling_agent import Agent
     from llmling_agent.resource_providers.static import StaticResourceProvider
     from llmling_agent_config.execution_environments import (
         LocalExecutionEnvironmentConfig,
     )
 
-    def add_numbers(x: int, y: int) -> int:
-        """Add two numbers together."""
-        return x + y
-
-    def greet(name: str, greeting: str = "Hello") -> str:
-        """Greet someone."""
-        return f"{greeting}, {name}!"
+    logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
     async def main():
-        # Create tools
-        static_provider = StaticResourceProvider(
-            tools=[
-                Tool.from_callable(add_numbers),
-                Tool.from_callable(greet),
-            ]
-        )
-
-        # Create secure execution provider
+        tools = [Tool.from_callable(webbrowser.open)]
+        static_provider = StaticResourceProvider(tools=tools)
         config = LocalExecutionEnvironmentConfig(timeout=30.0)
         provider = SecureCodeModeResourceProvider(
             wrapped_providers=[static_provider],
@@ -264,33 +255,13 @@ if __name__ == "__main__":
 
         print("Available tools:")
         for tool in await provider.get_tools():
-            print(f"- {tool.name}")
-            print(f"  Description: {tool.description[:200]}...")
+            print(f"- {tool.name}: {tool.description[:100]}...")
 
-        # Test execution
-        test_code = """
-async def main():
-    # Test tool access via HTTP
-    result1 = await add_numbers(x=5, y=3)
-    result2 = await greet(name="World", greeting="Hi")
-
-    await report_progress(1, 2, "Called add_numbers")
-    await report_progress(2, 2, "Called greet")
-
-    return f"Results: {result1}, {result2}"
-"""
-
-        print("\n=== Testing secure code execution ===")
-
-        # Create mock context
-        class MockAgentContext:
-            node_name = "test-agent"
-            report_progress = None
-
-        ctx = MockAgentContext()
-
-        async with provider:
-            result = await provider.execute_secure_code(ctx, test_code)
-            print(f"Execution result: {result}")
+        async with Agent(model="openai:gpt-5-nano") as agent:
+            agent.tools.add_provider(provider)
+            result = await agent.run(
+                "Use code execution to open google.com in the browser."
+            )
+            print(f"Result: {result}")
 
     asyncio.run(main())

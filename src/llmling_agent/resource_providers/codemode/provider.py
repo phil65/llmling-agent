@@ -209,26 +209,13 @@ if __name__ == "__main__":
     import asyncio
     import logging
     import sys
+    import webbrowser
 
     from llmling_agent import Agent
     from llmling_agent.resource_providers.static import StaticResourceProvider
 
-    class Counter:
-        """Counter class for incrementing a count."""
-
-        def __init__(self):
-            self.count = 0
-
-        async def increment(self):
-            """Increment the counter by 1."""
-            self.count += 1
-            return self.count
-
-    counter = Counter()
     logging.basicConfig(level=logging.INFO, stream=sys.stdout)
-    static_provider = StaticResourceProvider(
-        tools=[Tool.from_callable(counter.increment)]
-    )
+    static_provider = StaticResourceProvider(tools=[Tool.from_callable(webbrowser.open)])
 
     async def main():
         provider = CodeModeResourceProvider([static_provider])
@@ -241,11 +228,7 @@ if __name__ == "__main__":
 
             # Test elicitation functionality
             print("\n=== Testing Elicitation (User Input) ===")
-            result = await agent.run(
-                "Write code that asks the user for their name using ask_user(), "
-                "then asks if they want to continue (boolean), and if yes, "
-                "asks for their age (integer). Print all the responses."
-            )
+            result = await agent.run("Open google.com in a new tab.")
             print(f"Result: {result}")
 
     asyncio.run(main())
