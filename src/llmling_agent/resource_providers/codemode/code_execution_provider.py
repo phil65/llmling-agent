@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import asyncio
 import contextlib
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
+from anyenv.code_execution.models import ServerInfo
 from fastapi import FastAPI
 
+from llmling_agent.log import get_logger
 from llmling_agent.resource_providers.codemode.helpers import tools_to_codegen
 
 
@@ -16,12 +19,35 @@ if TYPE_CHECKING:
     import socket
 
     from anyenv.code_execution.base import ExecutionEnvironment
-    from anyenv.code_execution.models import ServerInfo
     from schemez import ToolsetCodeGenerator
     import uvicorn
 
     from llmling_agent.tools.base import Tool
     from llmling_agent_config.execution_environments import ExecutionEnvironmentConfig
+
+
+logger = get_logger(__name__)
+
+
+def _create_socket(preferred_port: int) -> tuple[socket.socket, int]:
+    """Create a socket bound to a free port.
+
+    Returns:
+        A tuple containing the socket and the port it is bound to.
+    """
+    import socket
+
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    try:
+        # Try preferred port first
+        sock.bind(("127.0.0.1", preferred_port))
+    except OSError:
+        # Fall back to any available port
+        sock.bind(("127.0.0.1", 0))
+        return sock, sock.getsockname()[1]
+    else:
+        return sock, preferred_port
 
 
 @dataclass
@@ -75,7 +101,6 @@ class CodeExecutionProvider:
 
         # Create execution environment with server lifecycle
         execution_env = env_config.get_provider(server_handler)
-
         return cls(toolset_generator, execution_env)
 
     def get_tool_description(self) -> str:
@@ -120,78 +145,41 @@ class ToolServerLifecycleHandler:
         self._server_task: asyncio.Task | None = None
         self._socket: socket.socket | None = None
 
-    def _create_socket(self, preferred_port: int) -> socket.socket:
-        """Create a socket bound to a free port."""
-        import socket
-
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        try:
-            # Try preferred port first
-            sock.bind(("127.0.0.1", preferred_port))
-            self.port = preferred_port
-        except OSError:
-            # Fall back to any available port
-            sock.bind(("127.0.0.1", 0))
-            self.port = sock.getsockname()[1]
-        return sock
-
     async def __aenter__(self) -> ServerInfo:
         """Start FastAPI server with tool routes."""
         if self.server is not None:
-            # Already running
-            from anyenv.code_execution.models import ServerInfo
-
-            return ServerInfo(
-                url=f"http://{self.host}:{self.port}", port=self.port, tools={}
-            )
-
+            return ServerInfo(url=f"http://{self.host}:{self.port}", port=self.port)
         # Create socket and get actual port
-        self._socket = self._create_socket(self.port)
-
+        self._socket, self.port = _create_socket(self.port)
         # Create FastAPI app
         self.app = FastAPI(title="Tool Server", description="Generated tool endpoints")
 
         # Add tool routes
         self.toolset_generator.add_all_routes(self.app, "/tools")
 
-        # Start server
-        try:
-            import asyncio
+        import uvicorn
 
-            import uvicorn
+        config = uvicorn.Config(
+            self.app,
+            log_level="error",  # Reduce log noise
+            access_log=False,
+            host=self.host,
+            port=self.port,
+        )
+        self.server = uvicorn.Server(config)
 
-            config = uvicorn.Config(
-                self.app,
-                log_level="error",  # Reduce log noise
-                access_log=False,
-                host=self.host,
-                port=self.port,
-            )
-            self.server = uvicorn.Server(config)
-
-            # Start server in background with our socket
-            self._server_task = asyncio.create_task(self.server.serve([self._socket]))
-            print(f"Started tool server on http://{self.host}:{self.port}")
-
-            # Wait for server to start properly
+        # Start server in background with our socket
+        self._server_task = asyncio.create_task(self.server.serve([self._socket]))
+        logger.info("Started tool server", host=self.host, port=self.port)
+        await asyncio.sleep(0.1)  # Wait for server to start properly
+        # Verify server is running
+        max_retries = 10
+        for _ in range(max_retries):
+            if self.server.started:
+                break
             await asyncio.sleep(0.1)
 
-            # Verify server is running
-            max_retries = 10
-            for _ in range(max_retries):
-                if self.server.started:
-                    break
-                await asyncio.sleep(0.1)
-
-        except ImportError:
-            # Fallback if uvicorn not available
-            pass
-
-        # Return server info for execution environment
-        from anyenv.code_execution.models import ServerInfo
-
-        return ServerInfo(url=f"http://{self.host}:{self.port}", port=self.port, tools={})
+        return ServerInfo(url=f"http://{self.host}:{self.port}", port=self.port)
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """Stop FastAPI server."""
@@ -223,8 +211,6 @@ class ToolServerLifecycleHandler:
 
 
 if __name__ == "__main__":
-    import asyncio
-
     from llmling_agent.tools.base import Tool
     from llmling_agent_config.execution_environments import (
         LocalExecutionEnvironmentConfig,
