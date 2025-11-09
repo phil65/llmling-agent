@@ -5,22 +5,18 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Callable, Sequence
 from contextlib import asynccontextmanager
-from dataclasses import dataclass, field, fields
+from dataclasses import fields
 from typing import TYPE_CHECKING, Any, Literal
-
-from psygnal import Signal
 
 from llmling_agent.log import get_logger
 from llmling_agent.resource_providers.static import StaticResourceProvider
 from llmling_agent.tools.base import Tool
 from llmling_agent.utils.baseregistry import BaseRegistry, LLMLingError
 from llmling_agent.utils.importing import import_class
-from llmling_agent.utils.now import get_now
 
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
-    from datetime import datetime
 
     from llmling_agent import Agent, MessageNode
     from llmling_agent.common_types import AnyCallable, ToolSource, ToolType
@@ -52,16 +48,6 @@ class ToolManager(BaseRegistry[str, Tool]):
     - State check: manager.is_empty, manager.has_item()
     - Async iteration: async for name, tool in manager: ...
     """
-
-    @dataclass(frozen=True)
-    class ToolStateReset:
-        """Emitted when tool states are reset."""
-
-        previous_tools: dict[str, bool]
-        new_tools: dict[str, bool]
-        timestamp: datetime = field(default_factory=get_now)
-
-    tool_states_reset = Signal(ToolStateReset)
 
     def __init__(
         self,
@@ -340,15 +326,6 @@ class ToolManager(BaseRegistry[str, Tool]):
         logger.debug(msg, worker_name=worker.name, tool_name=tool.name)
         self.worker_provider.add_tool(tool)
         return tool
-
-    def reset(self):
-        """Reset tool states."""
-        old_tools = {i.name: i.enabled for i in self._items.values()}
-        self.reset_states()
-        new_tools = {i.name: i.enabled for i in self._items.values()}
-
-        event = self.ToolStateReset(old_tools, new_tools)
-        self.tool_states_reset.emit(event)
 
     @asynccontextmanager
     async def temporary_tools(

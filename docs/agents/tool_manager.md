@@ -110,10 +110,7 @@ manager.events.added.connect(lambda name, info: print(f"Tool added: {name}"))
 manager.events.removed.connect(lambda name: print(f"Tool removed: {name}"))
 manager.events.changed.connect(lambda name, info: print(f"Tool changed: {name}"))
 
-# State reset event
-manager.tool_states_reset.connect(
-    lambda evt: print(f"Tools reset: {evt.previous_tools} -> {evt.new_tools}")
-)
+
 ```
 
 ## Tool Information
