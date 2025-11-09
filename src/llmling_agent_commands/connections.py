@@ -130,7 +130,7 @@ class DisconnectAllCommand(SlashedCommand):
             ctx: Command context
         """
         if not ctx.context.node.connections.get_targets():
-            await ctx.print("ℹ️ **No active connections**")
+            await ctx.print("ℹ️ **No active connections**")  # noqa: RUF001
             return
         source = ctx.context.node_name
         await ctx.context.node.disconnect_all()
@@ -156,7 +156,7 @@ class ListConnectionsCommand(SlashedCommand):
             ctx: Command context
         """
         if not ctx.context.node.connections.get_targets():
-            await ctx.print("ℹ️ **No active connections**")
+            await ctx.print("ℹ️ **No active connections**")  # noqa: RUF001
             return
 
         # Create tree visualization
