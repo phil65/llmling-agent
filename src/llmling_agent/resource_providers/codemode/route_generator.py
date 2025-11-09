@@ -11,6 +11,8 @@ from schemez.schema import json_schema_to_base_model
 if TYPE_CHECKING:
     from collections.abc import Callable
 
+    from pydantic.fields import FieldInfo
+
     from llmling_agent.tools.base import Tool
 
 
@@ -59,21 +61,7 @@ def _add_tool_route(app: FastAPI, tool: Tool) -> None:
     if param_cls:
         # Get field information from the generated model
         model_fields = param_cls.model_fields
-        route_params = []
-        for name, field_info in model_fields.items():
-            field_type = field_info.annotation
-            if field_info.is_required():
-                route_params.append(f"{name}: {field_type.__name__}")  # type: ignore
-            else:
-                route_params.append(f"{name}: {field_type.__name__} = None")  # type: ignore
-
-        # Create function signature dynamically
-        param_str = ", ".join(route_params)
-        func_code = f"""
-async def dynamic_handler({param_str}) -> dict[str, Any]:
-    kwargs = {{{", ".join(f'"{name}": {name}' for name in model_fields)}}}
-    return await route_handler(**kwargs)
-"""
+        func_code = generate_func_code(model_fields)
         # Execute the dynamic function creation
         namespace = {"route_handler": route_handler, "Any": Any}
         exec(func_code, namespace)
@@ -104,6 +92,24 @@ async def _execute_tool(tool: Tool, **kwargs) -> Any:
         return f"Executed {tool.name} with params: {kwargs}"
     except Exception as e:  # noqa: BLE001
         return f"Error executing {tool.name}: {e!s}"
+
+
+def generate_func_code(model_fields: dict[str, FieldInfo]) -> str:
+    route_params = []
+    for name, field_info in model_fields.items():
+        field_type = field_info.annotation
+        if field_info.is_required():
+            route_params.append(f"{name}: {field_type.__name__}")  # type: ignore
+        else:
+            route_params.append(f"{name}: {field_type.__name__} = None")  # type: ignore
+
+    # Create function signature dynamically
+    param_str = ", ".join(route_params)
+    return f"""
+async def dynamic_handler({param_str}) -> dict[str, Any]:
+kwargs = {{{", ".join(f'"{name}": {name}' for name in model_fields)}}}
+return await route_handler(**kwargs)
+"""
 
 
 if __name__ == "__main__":
