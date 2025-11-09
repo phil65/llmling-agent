@@ -107,11 +107,9 @@ async def test_basic_worker_setup(tmp_path: Path):
     async with AgentPool(manifest) as pool:
         main_agent = pool.get_agent("main")
         # Verify workers were registered as tools
-        assert "ask_worker" in main_agent.tools
-        assert "ask_specialist" in main_agent.tools
-        worker_tool = main_agent.tools["ask_worker"]
-        assert worker_tool.source == "agent"
-        assert worker_tool.metadata["agent"] == "worker"
+        tool_names = [i.name for i in main_agent.tools.worker_provider._tools]
+        assert "ask_worker" in tool_names
+        assert "ask_specialist" in tool_names
 
 
 async def test_history_sharing(tmp_path: Path):

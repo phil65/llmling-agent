@@ -186,11 +186,6 @@ class ToolManager(BaseRegistry[str, Tool]):
     ) -> list[Tool]:
         """Get tool objects based on filters."""
         tools = [t for t in self.values() if t.matches_filter(state)]
-        match names:
-            case str():
-                tools = [t for t in tools if t.name == names]
-            case list():
-                tools = [t for t in tools if t.name in names]
         # Get tools from providers concurrently
         providers = [*self.providers, self.worker_provider]
         provider_coroutines = [provider.get_tools() for provider in providers]
@@ -201,6 +196,11 @@ class ToolManager(BaseRegistry[str, Tool]):
                 continue
             tools.extend(t for t in result if t.matches_filter(state))
         # Sort by priority if any have non-default priority
+        match names:
+            case str():
+                tools = [t for t in tools if t.name == names]
+            case list():
+                tools = [t for t in tools if t.name in names]
         if any(t.priority != 100 for t in tools):  # noqa: PLR2004
             tools.sort(key=lambda t: t.priority)
         return tools
