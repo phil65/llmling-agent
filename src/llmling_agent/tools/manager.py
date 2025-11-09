@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Any, Literal
 from llmling_agent.log import get_logger
 from llmling_agent.resource_providers.static import StaticResourceProvider
 from llmling_agent.tools.base import Tool
-from llmling_agent.utils.baseregistry import BaseRegistry, LLMLingError
+from llmling_agent.utils.baseregistry import LLMLingError
 from llmling_agent.utils.importing import import_class
 
 
@@ -36,7 +36,7 @@ class ToolError(LLMLingError):
     """Base exception for tool-related errors."""
 
 
-class ToolManager(BaseRegistry[str, Tool]):
+class ToolManager:
     """Manages tool registration, enabling/disabling and access.
 
     Inherits from BaseRegistry providing:
@@ -145,7 +145,6 @@ class ToolManager(BaseRegistry[str, Tool]):
             msg = f"Tool not found: {tool_name}"
             raise ToolError(msg)
         tool_info.enabled = True
-        self.events.changed(tool_name, tool_info)
         logger.debug("Enabled tool", tool_name=tool_name)
 
     async def disable_tool(self, tool_name: str):
@@ -155,7 +154,6 @@ class ToolManager(BaseRegistry[str, Tool]):
             msg = f"Tool not found: {tool_name}"
             raise ToolError(msg)
         tool_info.enabled = False
-        self.events.changed(tool_name, tool_info)
         logger.debug("Disabled tool", tool_name=tool_name)
 
     async def list_tools(self) -> dict[str, bool]:
