@@ -100,19 +100,6 @@ await agent.tools.setup_mcp_servers([
 Note: By default the tool manager is already initialzed with MCP server tools from the config when the agent itself enters the async context
 
 
-## Events
-
-The manager emits events for tool state changes:
-
-```python
-# Tool events
-manager.events.added.connect(lambda name, info: print(f"Tool added: {name}"))
-manager.events.removed.connect(lambda name: print(f"Tool removed: {name}"))
-manager.events.changed.connect(lambda name, info: print(f"Tool changed: {name}"))
-
-
-```
-
 ## Tool Information
 
 Each registered tool provides rich metadata through `Tool`:
