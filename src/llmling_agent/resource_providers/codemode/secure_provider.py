@@ -11,7 +11,7 @@ from llmling_agent.resource_providers import ResourceProvider
 from llmling_agent.resource_providers.codemode.code_execution_provider import (
     CodeExecutionProvider,
 )
-from llmling_agent.resource_providers.codemode.fix_code import fix_code
+from llmling_agent.resource_providers.codemode.helpers import fix_code
 from llmling_agent.tools.base import Tool
 
 
