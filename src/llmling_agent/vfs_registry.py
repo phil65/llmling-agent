@@ -60,9 +60,10 @@ class VFSRegistry(BaseRegistry[str, AbstractFileSystem]):
 
     def get_upath(self, resource_name: str | None = None) -> UPath:
         """Get a UPath object for accessing a resource."""
-        return UPath("union://")
+        path = UPath(resource_name or "")
+        path._fs_cached = self.get_fs()  # pyright: ignore[reportAttributeAccessIssue]
         # path._fs_cached = self.get_fs()
-        # return path
+        return path
 
     async def get_content(
         self,

@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+import fsspec
 import pytest
+from upathtools import UnionFileSystem
 import yamling
 
 from llmling_agent.models import AgentsManifest
 
+
+fsspec.register_implementation("union", UnionFileSystem, clobber=True)
 
 MANIFEST_CONFIG = """
 resources:
@@ -22,9 +26,9 @@ resources:
 
 GITHUB_CONFIG = """
 resources:
-    docs:
+    mknodes_docs:
         type: source
-        uri: "github://phil65:mknodes@main/pyproject.toml"
+        uri: "github://phil65:mknodes@main"
 """
 
 
@@ -56,16 +60,24 @@ async def test_vfs_registry():
     assert info["size"] == len(test_content)
 
 
-# async def test_resource_path():
-#     """Test UPath-based resource access."""
-#     manifest = AgentsManifest.model_validate(yamling.load_yaml(MANIFEST_CONFIG))
-#     registry = manifest.vfs_registry
+async def test_resource_path():
+    """Test UPath-based resource access."""
+    manifest = AgentsManifest.model_validate(yamling.load_yaml(MANIFEST_CONFIG))
+    # TODO: which behviour do we wnt here?
+    path = manifest.vfs_registry.get_upath("docs")
+    print(list(path.iterdir()))
+    assert str(path) == "docs"
+    assert path.fs == manifest.vfs_registry.get_fs()
 
-#     # Get path object
-#     path = registry.get_path("docs")
-#     assert isinstance(path, UPath)
-#     assert str(path) == "docs://"
-#     assert path.fs == registry.get_fs()
+
+# async def test_github_path():
+#     """Test UPath-based resource access."""
+#     manifest = AgentsManifest.model_validate(yamling.load_yaml(GITHUB_CONFIG))
+#     # TODO: which behviour do we wnt here?
+#     path = manifest.vfs_registry.get_upath("mknodes_docs")
+#     print(list(path.iterdir()))
+#     assert str(path) == "mknodes_dsocs"
+
 
 #     # Test write/read
 #     test_content = "test content"
