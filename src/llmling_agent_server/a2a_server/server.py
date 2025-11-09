@@ -496,7 +496,7 @@ if __name__ == "__main__":
     async def main():
         """Run server and test client."""
         pool = AgentPool()
-        await pool.add_agent("test-agent", model="openai:gpt-4o-mini")
+        await pool.add_agent("test-agent", model="openai:gpt-5-nano")
 
         async with (
             A2AServer(

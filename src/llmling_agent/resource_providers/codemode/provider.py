@@ -236,7 +236,7 @@ if __name__ == "__main__":
         for tool in await provider.get_tools():
             print(f"- {tool.name}: {tool.description[:100]}...")
 
-        async with Agent(model="openai:gpt-4o-mini") as agent:
+        async with Agent(model="openai:gpt-5-nano") as agent:
             agent.tools.add_provider(provider)
 
             # Test elicitation functionality
