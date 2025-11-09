@@ -25,10 +25,10 @@ def format_node_name(node: MessageEmitter[Any, Any], current: bool = False) -> s
     """Format node name for display."""
     name = node.name
     if current:
-        return f"[bold blue]{name}[/]"
+        return f"► {name} (current)"
     if node.connections.get_targets():
-        return f"[green]{name}[/]"
-    return f"[dim]{name}[/]"
+        return f"● {name}"
+    return f"○ {name}"
 
 
 class ConnectCommand(SlashedCommand):
@@ -133,7 +133,7 @@ class DisconnectAllCommand(SlashedCommand):
             ctx: Command context
         """
         if not ctx.context.node.connections.get_targets():
-            await ctx.print("ℹ️ **No active connections**")  #  noqa: RUF001
+            await ctx.print("ℹ️ **No active connections**")
             return
         source = ctx.context.node_name
         await ctx.context.node.disconnect_all()
@@ -159,7 +159,7 @@ class ListConnectionsCommand(SlashedCommand):
             ctx: Command context
         """
         if not ctx.context.node.connections.get_targets():
-            await ctx.print("ℹ️ **No active connections**")  #  noqa: RUF001
+            await ctx.print("ℹ️ **No active connections**")
             return
 
         # Create tree visualization

@@ -61,7 +61,6 @@ class ChatMessageContainer(EventedList[ChatMessage[Any]]):
         """
         # Use cost_info if available
         total = sum(m.cost_info.token_usage.total_tokens for m in self if m.cost_info)
-
         # For messages without cost_info, estimate using tiktoken
         if msgs := [msg for msg in self if not msg.cost_info]:
             if fallback_model:

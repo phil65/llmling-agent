@@ -137,7 +137,7 @@ class ACPFileSystem(AsyncFileSystem):
             msg = f"Could not read file {path}: {e}"
             raise FileNotFoundError(msg) from e
 
-    cat_file = sync_wrapper(_cat_file)
+    cat_file = sync_wrapper(_cat_file)  # pyright: ignore[reportAssignmentType]
 
     async def _put_file(self, path: str, content: str | bytes, **kwargs: Any) -> None:
         """Write file content via ACP session.
@@ -305,7 +305,7 @@ class ACPFileSystem(AsyncFileSystem):
                 output, exit_code if exit_code is not None else 1
             )
 
-    exists = sync_wrapper(_exists)
+    exists = sync_wrapper(_exists)  # pyright: ignore[reportAssignmentType]
 
     async def _isdir(self, path: str, **kwargs: Any) -> bool:
         """Check if path is a directory via test command.
