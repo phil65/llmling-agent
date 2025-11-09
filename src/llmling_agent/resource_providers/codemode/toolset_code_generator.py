@@ -15,6 +15,8 @@ from llmling_agent.resource_providers.codemode.tool_code_generator import (
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
+    from fastapi import FastAPI
+
     from llmling_agent.tools.base import Tool
 
 
@@ -56,9 +58,7 @@ class ToolsetCodeGenerator:
         if not self.generators:
             return "Execute Python code (no tools available)"
 
-        # Generate return type models if available
         return_models = self.generate_return_models()
-
         parts = [
             "Execute Python code with the following tools available as async functions:",
             "",
@@ -131,6 +131,16 @@ class ToolsetCodeGenerator:
             code for g in self.generators if (code := g.generate_return_model())
         ]
         return "\n\n".join(model_parts) if model_parts else ""
+
+    def add_all_routes(self, app: FastAPI, path_prefix: str = "/tools") -> None:
+        """Add FastAPI routes for all tools.
+
+        Args:
+            app: FastAPI application instance
+            path_prefix: Path prefix for routes
+        """
+        for generator in self.generators:
+            generator.add_route_to_app(app, path_prefix)
 
 
 # if __name__ == "__main__":

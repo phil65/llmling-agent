@@ -4,17 +4,23 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import inspect
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from pydantic_ai import RunContext
 from schemez import create_schema
 
+from llmling_agent.resource_providers.codemode.route_helpers import (
+    create_param_model,
+    create_route_handler,
+    generate_func_code,
+)
 from llmling_agent.tools.base import Tool
 
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
+    from fastapi import FastAPI
     from schemez.typedefs import OpenAIFunctionTool, Property
 
 
@@ -55,7 +61,7 @@ class ToolCodeGenerator:
         """Fallback signature extraction from tool schema."""
         schema = self.schema["function"]
         params = schema.get("parameters", {}).get("properties", {})
-        required = set(schema.get("required", []))  # type: ignore
+        required = set(schema.get("parameters", {}).get("required", []))
 
         param_strs = []
         for name, param_info in params.items():
@@ -63,7 +69,6 @@ class ToolCodeGenerator:
             if self._is_context_parameter(name):
                 continue
 
-            # Use improved type inference
             type_hint = self._infer_parameter_type(name, param_info)
 
             if name not in required:
@@ -172,12 +177,18 @@ class ToolCodeGenerator:
             # Handle AgentContext
             if hasattr(annotation, "__name__") and annotation.__name__ == "AgentContext":
                 return True
+
+            # Check for AgentContext in string representation
+            if "AgentContext" in annotation_str:
+                return True
+
         except Exception:  # noqa: BLE001
-            return False
-        else:
-            return "AgentContext" in annotation_str
+            pass
+
+        return False
 
     def generate_return_model(self) -> str | None:
+        """Generate Pydantic model code for the tool's return type."""
         try:
             schema = create_schema(self.callable)
             if schema.returns.get("type") not in {"object", "array"}:
@@ -189,6 +200,57 @@ class ToolCodeGenerator:
 
         except Exception:  # noqa: BLE001
             return None
+
+    # Route generation methods
+    def generate_route_handler(self) -> Callable:
+        """Generate FastAPI route handler for this tool.
+
+        Returns:
+            Async route handler function
+        """
+        # Extract parameter schema
+        schema = self.schema["function"]
+        parameters_schema = schema.get("parameters", {})
+
+        # Create parameter model
+        param_cls = create_param_model(dict(parameters_schema))
+
+        # Create route handler
+        return create_route_handler(self.callable, param_cls)
+
+    def add_route_to_app(self, app: FastAPI, path_prefix: str = "/tools") -> None:
+        """Add this tool's route to FastAPI app.
+
+        Args:
+            app: FastAPI application instance
+            path_prefix: Path prefix for the route
+        """
+        # Extract parameter schema
+        schema = self.schema["function"]
+        parameters_schema = schema.get("parameters", {})
+
+        # Create parameter model
+        param_cls = create_param_model(dict(parameters_schema))
+
+        # Create the route handler
+        route_handler = self.generate_route_handler()
+
+        # Set up the route with proper parameter annotations for FastAPI
+        if param_cls:
+            # Get field information from the generated model
+            model_fields = param_cls.model_fields
+            func_code = generate_func_code(model_fields)
+            # Execute the dynamic function creation
+            namespace = {"route_handler": route_handler, "Any": Any}
+            exec(func_code, namespace)
+            dynamic_handler: Callable = namespace["dynamic_handler"]  # type: ignore
+        else:
+
+            async def dynamic_handler() -> dict[str, Any]:
+                return await route_handler()
+
+        # Add route to FastAPI app
+        app.get(f"{path_prefix}/{self.name}")(dynamic_handler)
 
 
 if __name__ == "__main__":
