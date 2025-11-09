@@ -113,15 +113,7 @@ class RemoveWorkerCommand(SlashedCommand):
             if tool_name not in ctx.context.agent.tools:
                 msg = f"No worker tool found for agent: {worker_name}"
                 raise CommandError(msg)  # noqa: TRY301
-
-            # Check if it's actually a worker tool
-            tool_info = ctx.context.agent.tools[tool_name]
-            if tool_info.source != "agent":
-                msg = f"{tool_name} is not a worker tool"
-                raise CommandError(msg)  # noqa: TRY301
-
-            # Remove the tool
-            del ctx.context.agent.tools[tool_name]
+            ctx.context.agent.tools.worker_provider.remove_tool(tool_name)
             await ctx.print(f"🗑️ **Removed worker tool:** `{tool_name}`")
 
         except Exception as e:
@@ -155,25 +147,20 @@ class ListWorkersCommand(SlashedCommand):
             ctx: Command context
         """
         # Filter tools by source="agent"
-        worker_tools = [
-            i for i in ctx.context.agent.tools.values() if i.source == "agent"
-        ]
-
+        worker_tools = await ctx.context.agent.tools.worker_provider.get_tools()
         if not worker_tools:
             await ctx.print("ℹ️ **No worker tools registered**")  #  noqa: RUF001
             return
 
-        rows = []
-        for tool_info in worker_tools:
-            # Extract settings from metadata
-            agent_name = tool_info.metadata.get("agent", "unknown")
-            rows.append({
+        rows = [
+            {
                 "Status": "✅" if tool_info.enabled else "❌",
-                "Agent": agent_name,
+                "Agent": tool_info.agent_name,
                 "Tool": tool_info.name,
                 "Description": tool_info.description or "",
-            })
-
+            }
+            for tool_info in worker_tools
+        ]
         headers = ["Status", "Agent", "Tool", "Description"]
         table = format_table(headers, rows)
         await ctx.print(f"## 👥 Registered Workers\n\n{table}")

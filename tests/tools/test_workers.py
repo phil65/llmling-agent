@@ -132,7 +132,7 @@ async def test_history_sharing(tmp_path: Path):
         assert "42" in result.content
 
 
-async def test_context_sharing(tmp_path: Path):
+async def test_worker_context_sharing(tmp_path: Path):
     """Test context sharing between agents."""
     config_path = write_config(WORKERS_WITH_SHARING, tmp_path)
     manifest = AgentsManifest.from_file(config_path)

@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Any, Literal
 from psygnal import Signal
 
 from llmling_agent.log import get_logger
+from llmling_agent.resource_providers.static import StaticResourceProvider
 from llmling_agent.tools.base import Tool
 from llmling_agent.utils.baseregistry import BaseRegistry, LLMLingError
 from llmling_agent.utils.importing import import_class
@@ -73,7 +74,7 @@ class ToolManager(BaseRegistry[str, Tool]):
         """
         super().__init__()
         self.providers: list[ResourceProvider] = []
-
+        self.worker_provider = StaticResourceProvider(name="workers")
         # Register initial tools
         for tool in tools or []:
             t = self._validate_item(tool)
@@ -191,17 +192,14 @@ class ToolManager(BaseRegistry[str, Tool]):
             case list():
                 tools = [t for t in tools if t.name in names]
         # Get tools from providers concurrently
-        if self.providers:
-            provider_coroutines = [provider.get_tools() for provider in self.providers]
-            results = await asyncio.gather(*provider_coroutines, return_exceptions=True)
-
-            for provider, result in zip(self.providers, results, strict=False):
-                if isinstance(result, BaseException):
-                    logger.exception(
-                        "Failed to get tools from provider", provider=provider
-                    )
-                    continue
-                tools.extend(t for t in result if t.matches_filter(state))
+        providers = [*self.providers, self.worker_provider]
+        provider_coroutines = [provider.get_tools() for provider in providers]
+        results = await asyncio.gather(*provider_coroutines, return_exceptions=True)
+        for provider, result in zip(providers, results, strict=False):
+            if isinstance(result, BaseException):
+                logger.exception("Failed to get tools from provider", provider=provider)
+                continue
+            tools.extend(t for t in result if t.matches_filter(state))
         # Sort by priority if any have non-default priority
         if any(t.priority != 100 for t in tools):  # noqa: PLR2004
             tools.sort(key=lambda t: t.priority)
@@ -340,7 +338,8 @@ class ToolManager(BaseRegistry[str, Tool]):
                 raise ValueError(msg)
         msg = "Registering worker as tool"
         logger.debug(msg, worker_name=worker.name, tool_name=tool.name)
-        return self.register_tool(tool, source="agent", metadata={"agent": worker.name})
+        self.worker_provider.add_tool(tool)
+        return tool
 
     def reset(self):
         """Reset tool states."""
