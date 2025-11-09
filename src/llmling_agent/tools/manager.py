@@ -137,7 +137,7 @@ class ToolManager(BaseRegistry[str, Tool]):
                 msg = f"Item must be Tool or callable. Got {typ}"
                 raise ToolError(msg)
 
-    def enable_tool(self, tool_name: str):
+    async def enable_tool(self, tool_name: str):
         """Enable a previously disabled tool."""
         if tool_name not in self:
             msg = f"Tool not found: {tool_name}"
@@ -147,7 +147,7 @@ class ToolManager(BaseRegistry[str, Tool]):
         self.events.changed(tool_name, tool_info)
         logger.debug("Enabled tool", tool_name=tool_name)
 
-    def disable_tool(self, tool_name: str):
+    async def disable_tool(self, tool_name: str):
         """Disable a tool."""
         if tool_name not in self:
             msg = f"Tool not found: {tool_name}"

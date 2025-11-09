@@ -47,7 +47,7 @@ class StaticResourceProvider(ResourceProvider):
         """Get pre-configured tools."""
         return self._tools
 
-    async def get_tool(self, name: str) -> Tool:
+    async def get_tool(self, name: str) -> Tool | None:
         """Get tool by name."""
         return next((tool for tool in self._tools if tool.name == name), None)
 

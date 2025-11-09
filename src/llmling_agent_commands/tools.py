@@ -141,7 +141,7 @@ class EnableToolCommand(SlashedCommand):
             name: Tool name to enable
         """
         try:
-            ctx.context.agent.tools.enable_tool(name)
+            await ctx.context.agent.tools.enable_tool(name)
             await ctx.print(f"✅ **Tool** `{name}` **enabled**")
         except ValueError as e:
             msg = f"Failed to enable tool: {e}"
@@ -175,7 +175,7 @@ class DisableToolCommand(SlashedCommand):
             name: Tool name to disable
         """
         try:
-            ctx.context.agent.tools.disable_tool(name)
+            await ctx.context.agent.tools.disable_tool(name)
             await ctx.print(f"❌ **Tool** `{name}` **disabled**")
         except ValueError as e:
             msg = f"Failed to disable tool: {e}"

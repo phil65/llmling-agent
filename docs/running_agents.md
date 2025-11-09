@@ -101,8 +101,8 @@ async with Agent(...) as agent:
         print(chunk)  # pydantic-ai event
 
     # Managing tools
-    agent.tools.enable_tool("search")  # Enable specific tool
-    agent.tools.disable_tool("edit")   # Disable specific tool
+    await agent.tools.enable_tool("search")  # Enable specific tool
+    await agent.tools.disable_tool("edit")   # Disable specific tool
     print(await agent.tools.list_tools())    # See all tools and their states
 
     # Working with conversation history
