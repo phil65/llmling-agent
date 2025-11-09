@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any
 from schemez.code_generation.namespace_callable import NamespaceCallable
 
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
-from llmling_agent.resource_providers import ResourceProvider
+from llmling_agent.resource_providers import AggregatingResourceProvider
 from llmling_agent.resource_providers.codemode.helpers import fix_code, tools_to_codegen
 from llmling_agent.tools.base import Tool
 
@@ -18,14 +18,15 @@ if TYPE_CHECKING:
 
     from schemez.code_generation import ToolsetCodeGenerator
 
+    from llmling_agent.resource_providers import ResourceProvider
 
-class CodeModeResourceProvider(ResourceProvider):
+
+class CodeModeResourceProvider(AggregatingResourceProvider):
     """Provider that wraps tools into a single Python execution environment."""
 
     def __init__(
         self,
-        wrapped_providers: Sequence[ResourceProvider] | None = None,
-        wrapped_tools: Sequence[Tool] | None = None,
+        providers: Sequence[ResourceProvider],
         name: str = "meta_tools",
         include_signatures: bool = True,
         include_docstrings: bool = True,
@@ -33,30 +34,22 @@ class CodeModeResourceProvider(ResourceProvider):
         """Initialize meta provider.
 
         Args:
-            wrapped_providers: Providers whose tools to wrap
-            wrapped_tools: Individual tools to wrap
+            providers: Providers whose tools to wrap
             name: Provider name
             include_signatures: Include function signatures in documentation
             include_docstrings: Include function docstrings in documentation
         """
-        super().__init__(name=name)
-        self.wrapped_providers = list(wrapped_providers or [])
-        self.wrapped_tools = list(wrapped_tools or [])
+        super().__init__(providers=providers, name=name)
         self.include_signatures = include_signatures
         self.include_docstrings = include_docstrings
-
-        # Cache for expensive operations
         self._tools_cache: list[Tool] | None = None
         self._toolset_generator: ToolsetCodeGenerator | None = None
 
     async def get_tools(self) -> list[Tool]:
         """Return single meta-tool for Python execution with available tools."""
         toolset_generator = await self._get_toolset_generator()
-        description = toolset_generator.generate_tool_description()
-
-        return [
-            Tool.from_callable(self.execute_codemode, description_override=description)
-        ]
+        desc = toolset_generator.generate_tool_description()
+        return [Tool.from_callable(self.execute_codemode, description_override=desc)]
 
     async def execute_codemode(  # noqa: D417
         self,
@@ -88,9 +81,7 @@ class CodeModeResourceProvider(ResourceProvider):
                 assert ctx.report_progress
                 await ctx.report_progress(current, total, message)
 
-            namespace["report_progress"] = NamespaceCallable(
-                report_progress,
-            )
+            namespace["report_progress"] = NamespaceCallable(report_progress)
 
         # async def ask_user(
         #     message: str, response_type: str = "string"
@@ -146,11 +137,9 @@ class CodeModeResourceProvider(ResourceProvider):
         try:
             exec(python_code, namespace)
             result = await namespace["main"]()
-
             # Handle edge cases with coroutines and return values
             if inspect.iscoroutine(result):
                 result = await result
-
             # Ensure we return a serializable value
             if result is None:
                 return "Code executed successfully"
@@ -181,13 +170,7 @@ class CodeModeResourceProvider(ResourceProvider):
         if self._tools_cache is not None:
             return self._tools_cache
 
-        all_tools = list(self.wrapped_tools)
-        for provider in self.wrapped_providers:
-            async with provider:
-                provider_tools = await provider.get_tools()
-            all_tools.extend(provider_tools)
-
-        # Validate tools for common async issues
+        all_tools = [t for provider in self.providers for t in await provider.get_tools()]
         validated_tools = []
         for tool in all_tools:
             if inspect.iscoroutinefunction(tool.callable):
@@ -213,18 +196,15 @@ if __name__ == "__main__":
 
     logging.basicConfig(level=logging.INFO, stream=sys.stdout)
     static_provider = StaticResourceProvider(tools=[Tool.from_callable(webbrowser.open)])
+    provider = CodeModeResourceProvider([static_provider])
 
     async def main():
-        provider = CodeModeResourceProvider([static_provider])
         print("Available tools:")
         for tool in await provider.get_tools():
-            print(f"- {tool.name}: {tool.description[:100]}...")
+            print(f"- {tool.name}: {tool.description}")
 
         async with Agent(model="openai:gpt-5-nano") as agent:
             agent.tools.add_provider(provider)
-
-            # Test elicitation functionality
-            print("\n=== Testing Elicitation (User Input) ===")
             result = await agent.run("Open google.com in a new tab.")
             print(f"Result: {result}")
 

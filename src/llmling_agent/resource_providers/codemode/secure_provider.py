@@ -7,27 +7,36 @@ import contextlib
 from typing import TYPE_CHECKING, Any
 
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
-from llmling_agent.resource_providers import ResourceProvider
+from llmling_agent.resource_providers import AggregatingResourceProvider
 from llmling_agent.resource_providers.codemode.code_execution_provider import (
     CodeExecutionProvider,
 )
 from llmling_agent.resource_providers.codemode.helpers import fix_code
 from llmling_agent.tools.base import Tool
+from llmling_agent_config.execution_environments import LocalExecutionEnvironmentConfig
 
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
+    from llmling_agent.resource_providers import ResourceProvider
     from llmling_agent_config.execution_environments import ExecutionEnvironmentConfig
 
 
-class SecureCodeModeResourceProvider(ResourceProvider):
+PROGRESS_HELPER = """
+async def report_progress(current: int, total: int, message: str = "") -> None:
+    '''Report progress during execution'''
+    percentage = (current / total) * 100 if total > 0 else 0
+    print(f"Progress: {percentage:.1f}% ({current}/{total}) {message}")
+"""
+
+
+class SecureCodeModeResourceProvider(AggregatingResourceProvider):
     """Provider that executes code in secure isolation with tool access via server."""
 
     def __init__(
         self,
-        wrapped_providers: Sequence[ResourceProvider] | None = None,
-        wrapped_tools: Sequence[Tool] | None = None,
+        providers: Sequence[ResourceProvider],
         execution_config: ExecutionEnvironmentConfig | None = None,
         name: str = "secure_code_executor",
         include_signatures: bool = True,
@@ -38,8 +47,7 @@ class SecureCodeModeResourceProvider(ResourceProvider):
         """Initialize secure code execution provider.
 
         Args:
-            wrapped_providers: Providers whose tools to expose
-            wrapped_tools: Individual tools to expose
+            providers: Providers whose tools to expose
             execution_config: Execution environment configuration
             name: Provider name
             include_signatures: Include function signatures in documentation
@@ -47,16 +55,12 @@ class SecureCodeModeResourceProvider(ResourceProvider):
             server_host: Host for tool server
             server_port: Port for tool server
         """
-        super().__init__(name=name)
-        self.wrapped_providers = list(wrapped_providers or [])
-        self.wrapped_tools = list(wrapped_tools or [])
-        self.execution_config = execution_config
+        super().__init__(providers=providers, name=name)
+        self.execution_config = execution_config or LocalExecutionEnvironmentConfig()
         self.include_signatures = include_signatures
         self.include_docstrings = include_docstrings
         self.server_host = server_host
         self.server_port = server_port
-
-        # Cache for expensive operations
         self._tools_cache: list[Tool] | None = None
         self._code_execution_provider: CodeExecutionProvider | None = None
         self._provider_lock = asyncio.Lock()
@@ -64,11 +68,8 @@ class SecureCodeModeResourceProvider(ResourceProvider):
     async def get_tools(self) -> list[Tool]:
         """Return single secure code execution tool."""
         code_provider = await self._get_code_execution_provider()
-        description = code_provider.get_tool_description()
-
-        return [
-            Tool.from_callable(self.execute_secure_code, description_override=description)
-        ]
+        desc = code_provider.get_tool_description()
+        return [Tool.from_callable(self.execute_secure_code, description_override=desc)]
 
     async def execute_secure_code(  # noqa: D417
         self,
@@ -85,21 +86,9 @@ class SecureCodeModeResourceProvider(ResourceProvider):
         Returns:
             Result of the code execution
         """
-        # Get code execution provider
         code_provider = await self._get_code_execution_provider()
-
-        # Add progress reporting helper to code
-        progress_helper = """
-async def report_progress(current: int, total: int, message: str = "") -> None:
-    '''Report progress during execution'''
-    percentage = (current / total) * 100 if total > 0 else 0
-    print(f"Progress: {percentage:.1f}% ({current}/{total}) {message}")
-"""
-
-        # Fix and prepare code
         python_code = fix_code(python_code)
-        full_code = f"{progress_helper}\n\n{python_code}"
-
+        full_code = f"{PROGRESS_HELPER}\n\n{python_code}"
         # Add context variables if provided
         if context_vars:
             ctx_assignments = []
@@ -113,12 +102,10 @@ async def report_progress(current: int, total: int, message: str = "") -> None:
 
             if ctx_assignments:
                 ctx_code = "# Context variables:\n" + "\n".join(ctx_assignments) + "\n\n"
-                full_code = f"{progress_helper}\n{ctx_code}\n{python_code}"
+                full_code = f"{PROGRESS_HELPER}\n{ctx_code}\n{python_code}"
 
         try:
-            # Execute using the shared provider
             result = await code_provider.execution_environment.execute(full_code)
-
             if result.success:
                 if result.result is None:
                     return "Code executed successfully"
@@ -130,15 +117,9 @@ async def report_progress(current: int, total: int, message: str = "") -> None:
 
     async def _get_code_execution_provider(self) -> CodeExecutionProvider:
         """Get cached code execution provider with thread-safe initialization."""
-        from llmling_agent_config.execution_environments import (
-            LocalExecutionEnvironmentConfig,
-        )
-
         async with self._provider_lock:
             if self._code_execution_provider is None:
                 all_tools = await self._collect_all_tools()
-                if self.execution_config is None:
-                    self.execution_config = LocalExecutionEnvironmentConfig()
                 self._code_execution_provider = (
                     CodeExecutionProvider.from_tools_and_config(
                         all_tools,
@@ -160,12 +141,7 @@ async def report_progress(current: int, total: int, message: str = "") -> None:
         if self._tools_cache is not None:
             return self._tools_cache
 
-        all_tools = list(self.wrapped_tools)
-        for provider in self.wrapped_providers:
-            async with provider:
-                provider_tools = await provider.get_tools()
-            all_tools.extend(provider_tools)
-
+        all_tools = [t for provider in self.providers for t in await provider.get_tools()]
         self._tools_cache = all_tools
         return all_tools
 
@@ -215,7 +191,7 @@ if __name__ == "__main__":
         static_provider = StaticResourceProvider(tools=tools)
         config = LocalExecutionEnvironmentConfig(timeout=30.0)
         provider = SecureCodeModeResourceProvider(
-            wrapped_providers=[static_provider],
+            providers=[static_provider],
             execution_config=config,
             server_port=9999,
         )
