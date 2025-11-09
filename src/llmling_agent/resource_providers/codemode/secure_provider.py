@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+import contextlib
 from typing import TYPE_CHECKING, Any
 
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
@@ -57,6 +59,7 @@ class SecureCodeModeResourceProvider(ResourceProvider):
         # Cache for expensive operations
         self._tools_cache: list[Tool] | None = None
         self._code_execution_provider: CodeExecutionProvider | None = None
+        self._provider_lock = asyncio.Lock()
 
     async def get_tools(self) -> list[Tool]:
         """Return single secure code execution tool."""
@@ -97,66 +100,6 @@ async def report_progress(current: int, total: int, message: str = "") -> None:
         python_code = fix_code(python_code)
         full_code = f"{progress_helper}\n\n{python_code}"
 
-        # Add context variables if provided (limited support in isolated environments)
-        if context_vars:
-            ctx_assignments = []
-            for key, value in context_vars.items():
-                if isinstance(value, (str, int, float, bool, list, dict)):
-                    ctx_assignments.append(f"{key} = {value!r}")
-                else:
-                    ctx_assignments.append(
-                        f"# {key} = <non-serializable: {type(value).__name__}>"
-                    )
-
-            if ctx_assignments:
-                ctx_code = "# Context variables:\n" + "\n".join(ctx_assignments) + "\n\n"
-                full_code = f"{progress_helper}\n{ctx_code}\n{python_code}"
-
-        try:
-            # Execute in secure environment
-            async with code_provider:
-                result = await code_provider.execute_code(full_code)
-
-                if result.success:
-                    if result.result is None:
-                        return "Code executed successfully"
-                    return result.result
-                return f"Error executing code: {result.error}"
-
-        except Exception as e:  # noqa: BLE001
-            return f"Error in secure execution: {e!s}"
-
-    async def execute_secure_code_stream(
-        self,
-        ctx: AgentContext,
-        python_code: str,
-        context_vars: dict[str, Any] | None = None,
-    ):
-        """Execute Python code with streaming output.
-
-        Args:
-            ctx: Agent context
-            python_code: Python code to execute
-            context_vars: Additional variables to make available
-
-        Yields:
-            Lines of output as they are produced
-        """
-        # Get code execution provider
-        code_provider = await self._get_code_execution_provider()
-
-        # Add progress reporting helper
-        progress_helper = """
-async def report_progress(current: int, total: int, message: str = "") -> None:
-    '''Report progress during execution'''
-    percentage = (current / total) * 100 if total > 0 else 0
-    print(f"Progress: {percentage:.1f}% ({current}/{total}) {message}")
-"""
-
-        # Fix and prepare code
-        python_code = fix_code(python_code)
-        full_code = f"{progress_helper}\n\n{python_code}"
-
         # Add context variables if provided
         if context_vars:
             ctx_assignments = []
@@ -173,37 +116,47 @@ async def report_progress(current: int, total: int, message: str = "") -> None:
                 full_code = f"{progress_helper}\n{ctx_code}\n{python_code}"
 
         try:
-            # Execute with streaming
-            async with code_provider:
-                async for line in code_provider.execute_code_stream(full_code):
-                    yield line
+            # Execute using the shared provider
+            result = await code_provider.execution_environment.execute(full_code)
 
+            if result.success:
+                if result.result is None:
+                    return "Code executed successfully"
+                return result.result
         except Exception as e:  # noqa: BLE001
-            yield f"Error in secure execution: {e!s}"
+            return f"Error in secure execution: {e!s}"
+        else:
+            return f"Error executing code: {result.error}"
 
     async def _get_code_execution_provider(self) -> CodeExecutionProvider:
-        """Get cached code execution provider."""
-        if self._code_execution_provider is None:
-            all_tools = await self._collect_all_tools()
+        """Get cached code execution provider with thread-safe initialization."""
+        async with self._provider_lock:
+            if self._code_execution_provider is None:
+                all_tools = await self._collect_all_tools()
 
-            if self.execution_config is None:
-                # Default to local execution if no config provided
-                from llmling_agent_config.execution_environments import (
-                    LocalExecutionEnvironmentConfig,
+                if self.execution_config is None:
+                    # Default to local execution if no config provided
+                    from llmling_agent_config.execution_environments import (
+                        LocalExecutionEnvironmentConfig,
+                    )
+
+                    self.execution_config = LocalExecutionEnvironmentConfig()
+
+                self._code_execution_provider = (
+                    CodeExecutionProvider.from_tools_and_config(
+                        all_tools,
+                        self.execution_config,
+                        server_host=self.server_host,
+                        server_port=self.server_port,
+                        include_signatures=self.include_signatures,
+                        include_docstrings=self.include_docstrings,
+                    )
                 )
 
-                self.execution_config = LocalExecutionEnvironmentConfig()
+                # Initialize the provider and start server
+                await self._code_execution_provider.__aenter__()
 
-            self._code_execution_provider = CodeExecutionProvider.from_tools_and_config(
-                all_tools,
-                self.execution_config,
-                server_host=self.server_host,
-                server_port=self.server_port,
-                include_signatures=self.include_signatures,
-                include_docstrings=self.include_docstrings,
-            )
-
-        return self._code_execution_provider
+            return self._code_execution_provider
 
     async def _collect_all_tools(self) -> list[Tool]:
         """Collect all tools from providers and direct tools with caching."""
@@ -226,7 +179,11 @@ async def report_progress(current: int, total: int, message: str = "") -> None:
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """Async context manager exit."""
-        # Cleanup is handled by the code execution provider
+        # Clean up the code execution provider if it exists
+        if self._code_execution_provider is not None:
+            with contextlib.suppress(Exception):
+                await self._code_execution_provider.__aexit__(exc_type, exc_val, exc_tb)
+            self._code_execution_provider = None
 
 
 if __name__ == "__main__":
@@ -243,8 +200,22 @@ if __name__ == "__main__":
 
     logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
+    def open_browser(url: str, new: int = 0, autoraise: bool = True) -> bool:
+        """Display url using the default browser.
+
+        If possible, open url in a location determined by new.
+        - 0: the same browser window (the default).
+        - 1: a new browser window.
+        - 2: a new browser page ("tab").
+        If possible, autoraise raises the window (the default) or not.
+
+        If opening the browser succeeds, return True.
+        If there is a problem, return False.
+        """
+        return webbrowser.open(url, new, autoraise)
+
     async def main():
-        tools = [Tool.from_callable(webbrowser.open)]
+        tools = [Tool.from_callable(open_browser)]
         static_provider = StaticResourceProvider(tools=tools)
         config = LocalExecutionEnvironmentConfig(timeout=30.0)
         provider = SecureCodeModeResourceProvider(

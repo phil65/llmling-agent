@@ -90,26 +90,7 @@ class CodeExecutionProvider:
         Returns:
             Execution result from the environment
         """
-        async with self.execution_environment:
-            return await self.execution_environment.execute(code)
-
-    async def execute_code_stream(self, code: str):
-        """Execute code and stream output.
-
-        Args:
-            code: Python code to execute
-
-        Yields:
-            Lines of output as they are produced
-        """
-        async with self.execution_environment:
-            if hasattr(self.execution_environment, "execute_stream"):
-                async for line in self.execution_environment.execute_stream(code):
-                    yield line
-            else:
-                # Fallback to regular execution if streaming not supported
-                result = await self.execution_environment.execute(code)
-                yield str(result.result) if result.success else f"Error: {result.error}"
+        return await self.execution_environment.execute(code)
 
     async def __aenter__(self):
         """Async context manager entry."""
@@ -144,12 +125,26 @@ class ToolServerLifecycleHandler:
 
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        sock.bind(("127.0.0.1", 0))
-        self.port = sock.getsockname()[1]
+        try:
+            # Try preferred port first
+            sock.bind(("127.0.0.1", preferred_port))
+            self.port = preferred_port
+        except OSError:
+            # Fall back to any available port
+            sock.bind(("127.0.0.1", 0))
+            self.port = sock.getsockname()[1]
         return sock
 
     async def __aenter__(self) -> ServerInfo:
         """Start FastAPI server with tool routes."""
+        if self.server is not None:
+            # Already running
+            from anyenv.code_execution.models import ServerInfo
+
+            return ServerInfo(
+                url=f"http://{self.host}:{self.port}", port=self.port, tools={}
+            )
+
         # Create socket and get actual port
         self._socket = self._create_socket(self.port)
 
@@ -161,19 +156,32 @@ class ToolServerLifecycleHandler:
 
         # Start server
         try:
+            import asyncio
+
             import uvicorn
 
-            config = uvicorn.Config(self.app, log_level="warning")
+            config = uvicorn.Config(
+                self.app,
+                log_level="error",  # Reduce log noise
+                access_log=False,
+                host=self.host,
+                port=self.port,
+            )
             self.server = uvicorn.Server(config)
 
             # Start server in background with our socket
-            import asyncio
-
             self._server_task = asyncio.create_task(self.server.serve([self._socket]))
             print(f"Started tool server on http://{self.host}:{self.port}")
 
-            # Wait for server to start
-            await asyncio.sleep(0.5)
+            # Wait for server to start properly
+            await asyncio.sleep(0.1)
+
+            # Verify server is running
+            max_retries = 10
+            for _ in range(max_retries):
+                if self.server.started:
+                    break
+                await asyncio.sleep(0.1)
 
         except ImportError:
             # Fallback if uvicorn not available
@@ -186,22 +194,31 @@ class ToolServerLifecycleHandler:
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """Stop FastAPI server."""
+        import asyncio
+
+        # Stop server gracefully
         if self.server:
             with contextlib.suppress(Exception):
                 self.server.should_exit = True
-                import asyncio
+                if hasattr(self.server, "force_exit"):
+                    self.server.force_exit = True
 
-                await asyncio.sleep(0.1)
-
+        # Cancel server task
         if self._server_task and not self._server_task.done():
-            with contextlib.suppress(Exception):
-                self._server_task.cancel()
-                with contextlib.suppress(asyncio.CancelledError):
-                    await self._server_task
+            self._server_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError, Exception):
+                await asyncio.wait_for(self._server_task, timeout=1.0)
 
+        # Close socket
         if self._socket:
             with contextlib.suppress(Exception):
                 self._socket.close()
+
+        # Reset state
+        self.server = None
+        self._server_task = None
+        self._socket = None
+        self.app = None
 
 
 if __name__ == "__main__":

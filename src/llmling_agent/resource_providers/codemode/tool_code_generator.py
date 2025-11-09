@@ -72,7 +72,15 @@ class ToolCodeGenerator:
             type_hint = self._infer_parameter_type(name, param_info)
 
             if name not in required:
-                param_strs.append(f"{name}: {type_hint} = None")
+                # Check for actual default value in schema
+                default_value = param_info.get("default")
+                if default_value is not None:
+                    if isinstance(default_value, str):
+                        param_strs.append(f"{name}: {type_hint} = {default_value!r}")
+                    else:
+                        param_strs.append(f"{name}: {type_hint} = {default_value}")
+                else:
+                    param_strs.append(f"{name}: {type_hint} = None")
             else:
                 param_strs.append(f"{name}: {type_hint}")
 
