@@ -271,13 +271,13 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         desc = f", {self.description!r}" if self.description else ""
         return f"Agent({self.name!r}, model={self._model!r}{desc})"
 
-    def __prompt__(self) -> str:
+    async def __prompt__(self) -> str:
         typ = self.__class__.__name__
         model = self.model_name or "default"
         parts = [f"Agent: {self.name}", f"Type: {typ}", f"Model: {model}"]
         if self.description:
             parts.append(f"Description: {self.description}")
-        parts.extend([self.tools.__prompt__(), self.conversation.__prompt__()])
+        parts.extend([await self.tools.__prompt__(), self.conversation.__prompt__()])
         return "\n".join(parts)
 
     async def __aenter__(self) -> Self:
@@ -1046,7 +1046,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         """Reset agent state (conversation history and tool states)."""
         old_tools = await self.tools.list_tools()
         self.conversation.clear()
-        self.tools.reset_states()
+        await self.tools.reset_states()
         new_tools = await self.tools.list_tools()
 
         event = self.AgentReset(

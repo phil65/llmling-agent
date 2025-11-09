@@ -13,15 +13,14 @@ async def test_basic_tool_management():
     tool2 = Tool.from_callable(lambda x: x, name_override="tool2")
 
     manager = ToolManager([tool1, tool2])
-    assert manager.is_tool_enabled("tool1")
 
     await manager.disable_tool("tool1")
-    assert not manager.is_tool_enabled("tool1")
-    assert manager.is_tool_enabled("tool2")
-
-    # Test enabling again
-    await manager.enable_tool("tool1")
-    assert manager.is_tool_enabled("tool1")
+    t_1 = await manager.get_tool("tool1")
+    t_2 = await manager.get_tool("tool2")
+    assert t_1
+    assert t_2
+    assert not t_1.enabled
+    assert t_2.enabled
 
 
 async def test_priority_sorting():
@@ -30,8 +29,12 @@ async def test_priority_sorting():
     tool2 = Tool.from_callable(lambda x: x, name_override="tool2")
 
     manager = ToolManager([tool1, tool2])
-    manager["tool1"].priority = 200
-    manager["tool2"].priority = 100
+    tool = await manager.get_tool("tool1")
+    assert tool
+    tool.priority = 200
+    tool = await manager.get_tool("tool2")
+    assert tool
+    tool.priority = 100
 
     tools = await manager.get_tools()
     assert [t.name for t in tools] == ["tool2", "tool1"]

@@ -30,7 +30,7 @@ async def test_tool_confirmation():
     model = TestModel(call_tools=[tool_info_with.name])
 
     agent = Agent("test-agent", model=model, input_provider=mock)
-    agent.tools.register(tool_info_with.name, tool_info_with)
+    agent.tools.register_tool(tool_info_with)
 
     # Run agent - should trigger confirmation for the tool
     await agent.run("test")
@@ -46,7 +46,7 @@ async def test_tool_confirmation():
     model = TestModel(call_tools=[tool_info_without.name])
 
     agent = Agent("test-agent", model=model, input_provider=mock)
-    agent.tools.register(tool_info_without.name, tool_info_without)
+    agent.tools.register_tool(tool_info_without)
 
     # Run agent - should NOT trigger confirmation
     await agent.run("test")

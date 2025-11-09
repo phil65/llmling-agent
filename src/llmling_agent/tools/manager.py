@@ -61,13 +61,14 @@ class ToolManager(BaseRegistry[str, Tool]):
         super().__init__()
         self.providers: list[ResourceProvider] = []
         self.worker_provider = StaticResourceProvider(name="workers")
+        self.builtin_provider = StaticResourceProvider(name="builtin")
         # Register initial tools
         for tool in tools or []:
             t = self._validate_item(tool)
-            self.register(t.name, t)
+            self.builtin_provider.add_tool(t)
 
-    def __prompt__(self) -> str:
-        enabled_tools = [t.name for t in self.values() if t.enabled]
+    async def __prompt__(self) -> str:
+        enabled_tools = [t.name for t in await self.get_tools() if t.enabled]
         if not enabled_tools:
             return "No tools available"
         return f"Available tools: {', '.join(enabled_tools)}"
@@ -103,9 +104,9 @@ class ToolManager(BaseRegistry[str, Tool]):
                 msg = f"Invalid provider type: {type(provider)}"
                 raise ValueError(msg)
 
-    def reset_states(self):
+    async def reset_states(self) -> None:
         """Reset all tools to their default enabled states."""
-        for info in self.values():
+        for info in await self.get_tools():
             info.enabled = True
 
     @property
@@ -139,27 +140,23 @@ class ToolManager(BaseRegistry[str, Tool]):
 
     async def enable_tool(self, tool_name: str):
         """Enable a previously disabled tool."""
-        if tool_name not in self:
+        tool_info = await self.get_tool(tool_name)
+        if not tool_info:
             msg = f"Tool not found: {tool_name}"
             raise ToolError(msg)
-        tool_info = self[tool_name]
         tool_info.enabled = True
         self.events.changed(tool_name, tool_info)
         logger.debug("Enabled tool", tool_name=tool_name)
 
     async def disable_tool(self, tool_name: str):
         """Disable a tool."""
-        if tool_name not in self:
+        tool_info = await self.get_tool(tool_name)
+        if not tool_info:
             msg = f"Tool not found: {tool_name}"
             raise ToolError(msg)
-        tool_info = self[tool_name]
         tool_info.enabled = False
         self.events.changed(tool_name, tool_info)
         logger.debug("Disabled tool", tool_name=tool_name)
-
-    def is_tool_enabled(self, tool_name: str) -> bool:
-        """Check if a tool is currently enabled."""
-        return self[tool_name].enabled if tool_name in self else False
 
     async def list_tools(self) -> dict[str, bool]:
         """Get a mapping of all tools and their enabled status."""
@@ -171,9 +168,9 @@ class ToolManager(BaseRegistry[str, Tool]):
         names: str | list[str] | None = None,
     ) -> list[Tool]:
         """Get tool objects based on filters."""
-        tools = [t for t in self.values() if t.matches_filter(state)]
+        tools: list[Tool] = []
         # Get tools from providers concurrently
-        providers = [*self.providers, self.worker_provider]
+        providers = [*self.providers, self.worker_provider, self.builtin_provider]
         provider_coroutines = [provider.get_tools() for provider in providers]
         results = await asyncio.gather(*provider_coroutines, return_exceptions=True)
         for provider, result in zip(providers, results, strict=False):
@@ -202,9 +199,6 @@ class ToolManager(BaseRegistry[str, Tool]):
         Returns:
             Tool instance if found, None otherwise
         """
-        # Early exit for "local" tools
-        if name in self:
-            return self[name]
         all_tools = await self.get_tools()
         return next((tool for tool in all_tools if tool.name == name), None)
 
@@ -286,7 +280,7 @@ class ToolManager(BaseRegistry[str, Tool]):
                 )
 
         # Register the tool
-        self.register(tool.name, tool)
+        self.builtin_provider.add_tool(tool)
         return tool
 
     def register_worker(
@@ -357,11 +351,12 @@ class ToolManager(BaseRegistry[str, Tool]):
         )
 
         # Store original tool states if exclusive
+        tools = await self.get_tools()
         original_states: dict[str, bool] = {}
         if exclusive:
-            original_states = {name: tool.enabled for name, tool in self.items()}
+            original_states = {t.name: t.enabled for t in tools}
             # Disable all existing tools
-            for t in self.values():
+            for t in tools:
                 t.enabled = False
 
         # Register all tools
@@ -375,13 +370,13 @@ class ToolManager(BaseRegistry[str, Tool]):
         finally:
             # Remove temporary tools
             for tool_info in registered_tools:
-                del self[tool_info.name]
+                self.builtin_provider.remove_tool(tool_info.name)
 
             # Restore original tool states if exclusive
             if exclusive:
                 for name_, was_enabled in original_states.items():
-                    if t := self.get(name_):
-                        t.enabled = was_enabled
+                    if t_ := await self.get_tool(name_):
+                        t_.enabled = was_enabled
 
     def tool(
         self,
