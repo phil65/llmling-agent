@@ -20,6 +20,27 @@ if TYPE_CHECKING:
     from llmling_agent.tools.base import Tool
 
 
+USAGE = """\
+Usage notes:
+- Write your code inside an 'async def main():' function
+- All tool functions are async, use 'await'
+- Use 'return' statements to return values from main()
+- Generated model classes are available for type checking
+- Use 'await report_progress(current, total, message)' for long-running operations  # noqa: E501
+- DO NOT call asyncio.run() or try to run the main function yourself
+- DO NOT import asyncio or other modules - tools are already available
+- Example:
+    async def main():
+        for i in range(5):
+            await report_progress(i, 5, f'Step {i+1} for {name}')
+            should_continue = await ask_user('Continue?', 'bool')
+            if not should_continue:
+                break
+        return f'Completed for {name}'
+
+"""
+
+
 @dataclass
 class ToolsetCodeGenerator:
     """Generates code artifacts for multiple tools."""
@@ -87,26 +108,7 @@ class ToolsetCodeGenerator:
                 parts.append(f'    """{indented_desc}"""')
             parts.append("")
 
-        parts.extend([
-            "Usage notes:",
-            "- Write your code inside an 'async def main():' function",
-            "- All tool functions are async, use 'await'",
-            "- Use 'return' statements to return values from main()",
-            "- Generated model classes are available for type checking",
-            "- Use 'await report_progress(current, total, message)' for long-running operations",  # noqa: E501
-            # "- Use 'await ask_user(message, response_type)' to get user input during execution",  # noqa: E501
-            # "  - response_type can be: 'string', 'bool', 'int', 'float', 'json'",
-            "- DO NOT call asyncio.run() or try to run the main function yourself",
-            "- DO NOT import asyncio or other modules - tools are already available",
-            "- Example:",
-            "    async def main():",
-            "        for i in range(5):",
-            "            await report_progress(i, 5, f'Step {i+1} for {name}')",
-            "            should_continue = await ask_user('Continue?', 'bool')",
-            "            if not should_continue:",
-            "                break",
-            "        return f'Completed for {name}'",
-        ])
+        parts.append(USAGE)
 
         return "\n".join(parts)
 
@@ -143,15 +145,14 @@ class ToolsetCodeGenerator:
             generator.add_route_to_app(app, path_prefix)
 
 
-# if __name__ == "__main__":
-#     import webbrowser
+if __name__ == "__main__":
+    import webbrowser
 
-#     from llmling_agent.tools.base import Tool
+    from llmling_agent.tools.base import Tool
 
-#     t = Tool.from_callable(webbrowser.open)
-
-#     generator = ToolsetCodeGenerator([t])
-#     models = generator.generate_return_models()
-#     print(models)
-#     namespace = generator.generate_execution_namespace()
-#     print(namespace)
+    t = Tool.from_callable(webbrowser.open)
+    generator = ToolsetCodeGenerator.from_tools([t])
+    models = generator.generate_return_models()
+    print(models)
+    namespace = generator.generate_execution_namespace()
+    print(namespace)
