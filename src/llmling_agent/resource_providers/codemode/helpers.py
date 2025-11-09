@@ -8,9 +8,8 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from llmling_agent.resource_providers.codemode.toolset_code_generator import (
-        ToolsetCodeGenerator,
-    )
+    from schemez import ToolsetCodeGenerator
+
     from llmling_agent.tools import Tool
 
 
@@ -64,12 +63,8 @@ def tools_to_codegen(
     Returns:
         ToolsetCodeGenerator instance
     """
-    from llmling_agent.resource_providers.codemode.tool_code_generator import (
-        ToolCodeGenerator,
-    )
-    from llmling_agent.resource_providers.codemode.toolset_code_generator import (
-        ToolsetCodeGenerator,
-    )
+    from schemez import ToolsetCodeGenerator
+    from schemez.code_generation.tool_code_generator import ToolCodeGenerator
 
     generators = [
         ToolCodeGenerator(schema=t.schema, callable=t.callable, name_override=t.name)
