@@ -48,8 +48,8 @@ def generate_func_code(model_fields: dict[str, FieldInfo]) -> str:
     param_str = ", ".join(route_params)
     return f"""
 async def dynamic_handler({param_str}) -> dict[str, Any]:
-kwargs = {{{", ".join(f'"{name}": {name}' for name in model_fields)}}}
-return await route_handler(**kwargs)
+    kwargs = {{{", ".join(f'"{name}": {name}' for name in model_fields)}}}
+    return await route_handler(**kwargs)
 """
 
 

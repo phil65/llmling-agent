@@ -9,7 +9,16 @@ from schemez import Schema
 
 
 if TYPE_CHECKING:
-    from anyenv.code_execution.models import Language
+    from contextlib import AbstractAsyncContextManager
+
+    from anyenv.code_execution.beam_provider import BeamExecutionEnvironment
+    from anyenv.code_execution.daytona_provider import DaytonaExecutionEnvironment
+    from anyenv.code_execution.docker_provider import DockerExecutionEnvironment
+    from anyenv.code_execution.e2b_provider import E2bExecutionEnvironment
+    from anyenv.code_execution.local_provider import LocalExecutionEnvironment
+    from anyenv.code_execution.mcp_python_provider import McpPythonExecutionEnvironment
+    from anyenv.code_execution.models import Language, ServerInfo
+    from anyenv.code_execution.subprocess_provider import SubprocessExecutionEnvironment
 
 
 class BaseExecutionEnvironmentConfig(Schema):
@@ -33,6 +42,18 @@ class LocalExecutionEnvironmentConfig(BaseExecutionEnvironmentConfig):
 
     type: Literal["local"] = Field("local", init=False)
 
+    def get_provider(
+        self, lifespan_handler: AbstractAsyncContextManager[ServerInfo] | None = None
+    ) -> LocalExecutionEnvironment:
+        """Create local execution environment instance."""
+        from anyenv.code_execution.local_provider import LocalExecutionEnvironment
+
+        return LocalExecutionEnvironment(
+            lifespan_handler=lifespan_handler,
+            dependencies=self.dependencies,
+            timeout=self.timeout,
+        )
+
 
 class SubprocessExecutionEnvironmentConfig(BaseExecutionEnvironmentConfig):
     """Subprocess execution environment configuration.
@@ -47,6 +68,22 @@ class SubprocessExecutionEnvironmentConfig(BaseExecutionEnvironmentConfig):
 
     language: Language = "python"
     """Programming language to use."""
+
+    def get_provider(
+        self, lifespan_handler: AbstractAsyncContextManager[ServerInfo] | None = None
+    ) -> SubprocessExecutionEnvironment:
+        """Create subprocess execution environment instance."""
+        from anyenv.code_execution.subprocess_provider import (
+            SubprocessExecutionEnvironment,
+        )
+
+        return SubprocessExecutionEnvironment(
+            lifespan_handler=lifespan_handler,
+            dependencies=self.dependencies,
+            executable=self.executable,
+            timeout=self.timeout,
+            language=self.language,
+        )
 
 
 class DockerExecutionEnvironmentConfig(BaseExecutionEnvironmentConfig):
@@ -65,6 +102,20 @@ class DockerExecutionEnvironmentConfig(BaseExecutionEnvironmentConfig):
 
     timeout: float = 60.0
     """Execution timeout in seconds."""
+
+    def get_provider(
+        self, lifespan_handler: AbstractAsyncContextManager[ServerInfo] | None = None
+    ) -> DockerExecutionEnvironment:
+        """Create Docker execution environment instance."""
+        from anyenv.code_execution.docker_provider import DockerExecutionEnvironment
+
+        return DockerExecutionEnvironment(
+            lifespan_handler=lifespan_handler,
+            dependencies=self.dependencies,
+            image=self.image,
+            timeout=self.timeout,
+            language=self.language,
+        )
 
 
 class E2bExecutionEnvironmentConfig(BaseExecutionEnvironmentConfig):
@@ -86,6 +137,21 @@ class E2bExecutionEnvironmentConfig(BaseExecutionEnvironmentConfig):
 
     timeout: float = 300.0
     """Execution timeout in seconds."""
+
+    def get_provider(
+        self, lifespan_handler: AbstractAsyncContextManager[ServerInfo] | None = None
+    ) -> E2bExecutionEnvironment:
+        """Create E2B execution environment instance."""
+        from anyenv.code_execution.e2b_provider import E2bExecutionEnvironment
+
+        return E2bExecutionEnvironment(
+            lifespan_handler=lifespan_handler,
+            dependencies=self.dependencies,
+            template=self.template,
+            timeout=self.timeout,
+            keep_alive=self.keep_alive,
+            language=self.language,
+        )
 
 
 class BeamExecutionEnvironmentConfig(BaseExecutionEnvironmentConfig):
@@ -110,6 +176,22 @@ class BeamExecutionEnvironmentConfig(BaseExecutionEnvironmentConfig):
 
     timeout: float = 300.0
     """Execution timeout in seconds."""
+
+    def get_provider(
+        self, lifespan_handler: AbstractAsyncContextManager[ServerInfo] | None = None
+    ) -> BeamExecutionEnvironment:
+        """Create Beam execution environment instance."""
+        from anyenv.code_execution.beam_provider import BeamExecutionEnvironment
+
+        return BeamExecutionEnvironment(
+            lifespan_handler=lifespan_handler,
+            dependencies=self.dependencies,
+            cpu=self.cpu,
+            memory=self.memory,
+            keep_warm_seconds=self.keep_warm_seconds,
+            timeout=self.timeout,
+            language=self.language,
+        )
 
 
 class DaytonaExecutionEnvironmentConfig(BaseExecutionEnvironmentConfig):
@@ -138,6 +220,24 @@ class DaytonaExecutionEnvironmentConfig(BaseExecutionEnvironmentConfig):
     timeout: float = 300.0
     """Execution timeout in seconds."""
 
+    def get_provider(
+        self, lifespan_handler: AbstractAsyncContextManager[ServerInfo] | None = None
+    ) -> DaytonaExecutionEnvironment:
+        """Create Daytona execution environment instance."""
+        from anyenv.code_execution.daytona_provider import DaytonaExecutionEnvironment
+
+        api_key_str = self.api_key.get_secret_value() if self.api_key else None
+        return DaytonaExecutionEnvironment(
+            lifespan_handler=lifespan_handler,
+            dependencies=self.dependencies,
+            api_url=self.api_url,
+            api_key=api_key_str,
+            target=self.target,
+            image=self.image,
+            timeout=self.timeout,
+            keep_alive=self.keep_alive,
+        )
+
 
 class McpPythonExecutionEnvironmentConfig(BaseExecutionEnvironmentConfig):
     """MCP Python execution environment configuration.
@@ -149,6 +249,21 @@ class McpPythonExecutionEnvironmentConfig(BaseExecutionEnvironmentConfig):
 
     allow_networking: bool = True
     """Allow network access."""
+
+    def get_provider(
+        self, lifespan_handler: AbstractAsyncContextManager[ServerInfo] | None = None
+    ) -> McpPythonExecutionEnvironment:
+        """Create MCP Python execution environment instance."""
+        from anyenv.code_execution.mcp_python_provider import (
+            McpPythonExecutionEnvironment,
+        )
+
+        return McpPythonExecutionEnvironment(
+            lifespan_handler=lifespan_handler,
+            dependencies=self.dependencies,
+            allow_networking=self.allow_networking,
+            timeout=self.timeout,
+        )
 
 
 # Union type for all execution environment configurations

@@ -1,9 +1,12 @@
-"""Code execution provider that combines tool code generation with execution environments."""
+"""Code execution provider with secure tool isolation via FastAPI server."""
 
 from __future__ import annotations
 
+import contextlib
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
+
+from fastapi import FastAPI
 
 from llmling_agent.resource_providers.codemode.toolset_code_generator import (
     ToolsetCodeGenerator,
@@ -14,7 +17,7 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from anyenv.code_execution.base import ExecutionEnvironment
-    from fastapi import FastAPI
+    from anyenv.code_execution.models import ServerInfo
 
     from llmling_agent.tools.base import Tool
     from llmling_agent_config.execution_environments import ExecutionEnvironmentConfig
@@ -22,10 +25,12 @@ if TYPE_CHECKING:
 
 @dataclass
 class CodeExecutionProvider:
-    """Provides code execution capabilities with tool integration.
+    """Provides secure code execution with tool access via FastAPI server.
 
-    Combines tool code generation with configurable execution environments
-    to provide a complete code execution solution.
+    Architecture:
+    - FastAPI server runs in HOST environment with tool routes
+    - User code runs in SANDBOX environment (Docker, E2B, etc.)
+    - Sandbox makes HTTP calls to server for tool execution
     """
 
     toolset_generator: ToolsetCodeGenerator
@@ -39,6 +44,8 @@ class CodeExecutionProvider:
         cls,
         tools: Sequence[Tool],
         env_config: ExecutionEnvironmentConfig,
+        server_host: str = "localhost",
+        server_port: int = 8000,
         include_signatures: bool = True,
         include_docstrings: bool = True,
     ) -> CodeExecutionProvider:
@@ -47,6 +54,8 @@ class CodeExecutionProvider:
         Args:
             tools: Tools to make available for code execution
             env_config: Execution environment configuration
+            server_host: Host for FastAPI server
+            server_port: Port for FastAPI server
             include_signatures: Include function signatures in documentation
             include_docstrings: Include function docstrings in documentation
 
@@ -58,47 +67,22 @@ class CodeExecutionProvider:
             tools, include_signatures, include_docstrings
         )
 
-        # Create execution environment from config
-        execution_env = _create_execution_environment(env_config)
+        # Create server lifecycle handler
+        server_handler = ToolServerLifecycleHandler(
+            toolset_generator, server_host, server_port
+        )
+
+        # Create execution environment with server lifecycle
+        execution_env = env_config.get_provider(server_handler)
 
         return cls(toolset_generator, execution_env)
 
-    @classmethod
-    def from_tools_and_environment(
-        cls,
-        tools: Sequence[Tool],
-        execution_environment: ExecutionEnvironment,
-        include_signatures: bool = True,
-        include_docstrings: bool = True,
-    ) -> CodeExecutionProvider:
-        """Create provider from tools and execution environment instance.
-
-        Args:
-            tools: Tools to make available for code execution
-            execution_environment: Pre-configured execution environment
-            include_signatures: Include function signatures in documentation
-            include_docstrings: Include function docstrings in documentation
-
-        Returns:
-            CodeExecutionProvider instance
-        """
-        toolset_generator = ToolsetCodeGenerator.from_tools(
-            tools, include_signatures, include_docstrings
-        )
-
-        return cls(toolset_generator, execution_environment)
-
     def get_tool_description(self) -> str:
-        """Get comprehensive description of available tools and execution environment."""
-        base_description = self.toolset_generator.generate_tool_description()
-
-        # Add execution environment info
-        env_info = f"\nExecution Environment: {type(self.execution_environment).__name__}"
-
-        return base_description + env_info
+        """Get comprehensive description of available tools."""
+        return self.toolset_generator.generate_tool_description()
 
     async def execute_code(self, code: str) -> Any:
-        """Execute code with tools available in the namespace.
+        """Execute code with tools available via HTTP API.
 
         Args:
             code: Python code to execute
@@ -106,27 +90,11 @@ class CodeExecutionProvider:
         Returns:
             Execution result from the environment
         """
-        # Get the execution namespace with tools
-        namespace = self.toolset_generator.generate_execution_namespace()
-
-        # Inject namespace into the execution environment if supported
-        if hasattr(self.execution_environment, "set_namespace"):
-            self.execution_environment.set_namespace(namespace)
-
-        # For environments that don't support namespace injection,
-        # we need to modify the code to include tool definitions
-        if not hasattr(self.execution_environment, "set_namespace"):
-            # Prepend tool definitions to the code
-            tool_code = self._generate_tool_code_prefix()
-            full_code = f"{tool_code}\n\n{code}"
-        else:
-            full_code = code
-
         async with self.execution_environment:
-            return await self.execution_environment.execute(full_code)
+            return await self.execution_environment.execute(code)
 
     async def execute_code_stream(self, code: str):
-        """Execute code with tools and stream output.
+        """Execute code and stream output.
 
         Args:
             code: Python code to execute
@@ -134,87 +102,14 @@ class CodeExecutionProvider:
         Yields:
             Lines of output as they are produced
         """
-        # Get the execution namespace with tools
-        namespace = self.toolset_generator.generate_execution_namespace()
-
-        # Inject namespace into the execution environment if supported
-        if hasattr(self.execution_environment, "set_namespace"):
-            self.execution_environment.set_namespace(namespace)
-
-        # For environments that don't support namespace injection,
-        # we need to modify the code to include tool definitions
-        if not hasattr(self.execution_environment, "set_namespace"):
-            # Prepend tool definitions to the code
-            tool_code = self._generate_tool_code_prefix()
-            full_code = f"{tool_code}\n\n{code}"
-        else:
-            full_code = code
-
         async with self.execution_environment:
             if hasattr(self.execution_environment, "execute_stream"):
-                async for line in self.execution_environment.execute_stream(full_code):
+                async for line in self.execution_environment.execute_stream(code):
                     yield line
             else:
                 # Fallback to regular execution if streaming not supported
-                result = await self.execution_environment.execute(full_code)
+                result = await self.execution_environment.execute(code)
                 yield str(result.result) if result.success else f"Error: {result.error}"
-
-    def add_routes_to_app(self, app: FastAPI, path_prefix: str = "/tools") -> None:
-        """Add FastAPI routes for all tools to the app.
-
-        Args:
-            app: FastAPI application instance
-            path_prefix: Path prefix for routes
-        """
-        self.toolset_generator.add_all_routes(app, path_prefix)
-
-    def _generate_tool_code_prefix(self) -> str:
-        """Generate code that defines tool functions for injection into execution.
-
-        This is used for execution environments that don't support namespace injection.
-
-        Returns:
-            Python code that defines all tool functions
-        """
-        code_parts = []
-
-        # Add necessary imports
-        code_parts.append("import asyncio")
-        code_parts.append("from typing import Any")
-        code_parts.append("")
-
-        # Add tool function definitions
-        for generator in self.toolset_generator.generators:
-            func_name = generator.name
-
-            # Create a wrapper function that calls the actual tool
-            wrapper_code = f"""
-async def {func_name}(*args, **kwargs) -> Any:
-    '''Tool wrapper for {func_name}'''
-    try:
-        # This would need to be implemented to actually call the tool
-        # For now, return a placeholder
-        return f"Called {func_name} with args={{args}} kwargs={{kwargs}}"
-    except Exception as e:
-        return f"Error in {func_name}: {{e}}"
-"""
-            code_parts.append(wrapper_code)
-
-        # Add helper functions
-        helper_code = """
-async def report_progress(current: int, total: int, message: str = "") -> None:
-    '''Report progress during execution'''
-    percentage = (current / total) * 100 if total > 0 else 0
-    print(f"Progress: {percentage:.1f}% ({current}/{total}) {message}")
-
-async def ask_user(message: str, response_type: str = "string") -> Any:
-    '''Ask user for input (placeholder implementation)'''
-    print(f"User input requested: {message} (type: {response_type})")
-    return f"mock_{response_type}_response"
-"""
-        code_parts.append(helper_code)
-
-        return "\n".join(code_parts)
 
     async def __aenter__(self):
         """Async context manager entry."""
@@ -226,100 +121,87 @@ async def ask_user(message: str, response_type: str = "string") -> Any:
         return await self.execution_environment.__aexit__(exc_type, exc_val, exc_tb)
 
 
-def _create_execution_environment(
-    config: ExecutionEnvironmentConfig,
-) -> ExecutionEnvironment:
-    """Create execution environment from configuration.
+class ToolServerLifecycleHandler:
+    """Manages FastAPI server lifecycle for tool access."""
 
-    Args:
-        config: Execution environment configuration
+    def __init__(
+        self,
+        toolset_generator: ToolsetCodeGenerator,
+        host: str = "localhost",
+        port: int = 8000,
+    ):
+        self.toolset_generator = toolset_generator
+        self.host = host
+        self.port = port  # Will be set when socket is created
+        self.app: FastAPI | None = None
+        self.server: Any = None
+        self._server_task: Any = None
+        self._socket: Any = None
 
-    Returns:
-        Configured execution environment instance
+    def _create_socket(self, preferred_port: int):
+        """Create a socket bound to a free port."""
+        import socket
 
-    Raises:
-        ValueError: If environment type is not supported
-    """
-    if config.type == "local":
-        from anyenv.code_execution.local_provider import LocalExecutionEnvironment
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        sock.bind(("127.0.0.1", 0))
+        self.port = sock.getsockname()[1]
+        return sock
 
-        return LocalExecutionEnvironment(
-            dependencies=config.dependencies,
-            timeout=config.timeout,
-        )
+    async def __aenter__(self) -> ServerInfo:
+        """Start FastAPI server with tool routes."""
+        # Create socket and get actual port
+        self._socket = self._create_socket(self.port)
 
-    if config.type == "subprocess":
-        from anyenv.code_execution.subprocess_provider import (
-            SubprocessExecutionEnvironment,
-        )
+        # Create FastAPI app
+        self.app = FastAPI(title="Tool Server", description="Generated tool endpoints")
 
-        return SubprocessExecutionEnvironment(
-            dependencies=config.dependencies,
-            executable=config.executable,
-            timeout=config.timeout,
-            language=config.language,
-        )
+        # Add tool routes
+        self.toolset_generator.add_all_routes(self.app, "/tools")
 
-    if config.type == "docker":
-        from anyenv.code_execution.docker_provider import DockerExecutionEnvironment
+        # Start server
+        try:
+            import uvicorn
 
-        return DockerExecutionEnvironment(
-            dependencies=config.dependencies,
-            image=config.image,
-            timeout=config.timeout,
-            language=config.language,
-        )
+            config = uvicorn.Config(self.app, log_level="warning")
+            self.server = uvicorn.Server(config)
 
-    if config.type == "e2b":
-        from anyenv.code_execution.e2b_provider import E2bExecutionEnvironment
+            # Start server in background with our socket
+            import asyncio
 
-        return E2bExecutionEnvironment(
-            dependencies=config.dependencies,
-            template=config.template,
-            timeout=config.timeout,
-            keep_alive=config.keep_alive,
-            language=config.language,
-        )
+            self._server_task = asyncio.create_task(self.server.serve([self._socket]))
+            print(f"Started tool server on http://{self.host}:{self.port}")
 
-    if config.type == "beam":
-        from anyenv.code_execution.beam_provider import BeamExecutionEnvironment
+            # Wait for server to start
+            await asyncio.sleep(0.5)
 
-        return BeamExecutionEnvironment(
-            dependencies=config.dependencies,
-            cpu=config.cpu,
-            memory=config.memory,
-            keep_warm_seconds=config.keep_warm_seconds,
-            timeout=config.timeout,
-            language=config.language,
-        )
+        except ImportError:
+            # Fallback if uvicorn not available
+            pass
 
-    if config.type == "daytona":
-        from anyenv.code_execution.daytona_provider import DaytonaExecutionEnvironment
+        # Return server info for execution environment
+        from anyenv.code_execution.models import ServerInfo
 
-        api_key_str = config.api_key.get_secret_value() if config.api_key else None
+        return ServerInfo(url=f"http://{self.host}:{self.port}", port=self.port, tools={})
 
-        return DaytonaExecutionEnvironment(
-            dependencies=config.dependencies,
-            api_url=config.api_url,
-            api_key=api_key_str,
-            target=config.target,
-            image=config.image,
-            timeout=config.timeout,
-            keep_alive=config.keep_alive,
-        )
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """Stop FastAPI server."""
+        if self.server:
+            with contextlib.suppress(Exception):
+                self.server.should_exit = True
+                import asyncio
 
-    if config.type == "mcp_python":
-        from anyenv.code_execution.mcp_python_provider import (
-            McpPythonExecutionEnvironment,
-        )
+                await asyncio.sleep(0.1)
 
-        return McpPythonExecutionEnvironment(
-            dependencies=config.dependencies,
-            allow_networking=config.allow_networking,
-            timeout=config.timeout,
-        )
+        if self._server_task and not self._server_task.done():
+            with contextlib.suppress(Exception):
+                self._server_task.cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    await self._server_task
 
-    raise ValueError(f"Unsupported execution environment type: {config.type}")
+        if self._socket:
+            with contextlib.suppress(Exception):
+                self._socket.close()
 
 
 if __name__ == "__main__":
@@ -331,40 +213,17 @@ if __name__ == "__main__":
     )
 
     def add_numbers(x: int, y: int) -> int:
-        """Add two numbers together."""
+        """Add two numbers."""
         return x + y
 
-    def greet(name: str, greeting: str = "Hello") -> str:
-        """Greet someone."""
-        return f"{greeting}, {name}!"
-
     async def main():
-        # Create tools
-        tools = [
-            Tool.from_callable(add_numbers),
-            Tool.from_callable(greet),
-        ]
-
-        # Create execution environment config
-        env_config = LocalExecutionEnvironmentConfig()
-
-        # Create code execution provider
-        provider = CodeExecutionProvider.from_tools_and_config(tools, env_config)
-
-        print("Tool Description:")
-        print(provider.get_tool_description())
-        print("\n" + "=" * 50 + "\n")
-
-        # Test code execution
-        test_code = """
-async def main():
-    result1 = await add_numbers(5, 3)
-    result2 = await greet("World", "Hi")
-    return f"Results: {result1}, {result2}"
-"""
-
+        tools = [Tool.from_callable(add_numbers)]
+        config = LocalExecutionEnvironmentConfig()
+        provider = CodeExecutionProvider.from_tools_and_config(
+            tools, config, server_port=9876
+        )
         async with provider:
-            result = await provider.execute_code(test_code)
-            print(f"Execution result: {result}")
+            result = await provider.execute_code("_result = await add_numbers(5, 3)")
+            print(f"Result: {result.result}")
 
     asyncio.run(main())
