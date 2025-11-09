@@ -9,13 +9,13 @@ from evented.configs import DEFAULT_TEMPLATE, EventConfig
 from pydantic import ConfigDict, Field, ImportString
 from schemez import Schema
 
+from llmling_agent.ui.base import InputProvider
 from llmling_agent_config.forward_targets import ForwardingTarget
 from llmling_agent_config.mcp_server import (
     BaseMCPServerConfig,
     MCPServerConfig,
     StdioMCPServerConfig,
 )
-from llmling_agent_input.base import InputProvider
 
 
 if TYPE_CHECKING:

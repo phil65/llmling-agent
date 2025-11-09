@@ -46,10 +46,10 @@ if TYPE_CHECKING:
     from llmling_agent.messaging.eventnode import EventNode
     from llmling_agent.messaging.messagenode import MessageNode
     from llmling_agent.models.manifest import AgentsManifest
+    from llmling_agent.ui.base import InputProvider
     from llmling_agent_config.output_types import StructuredResponseConfig
     from llmling_agent_config.session import SessionQuery
     from llmling_agent_config.task import Job
-    from llmling_agent_input.base import InputProvider
 
 
 logger = get_logger(__name__)

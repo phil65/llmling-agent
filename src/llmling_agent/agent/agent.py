@@ -81,11 +81,11 @@ if TYPE_CHECKING:
     from llmling_agent.delegation import Team, TeamRun
     from llmling_agent.prompts.prompts import PromptType
     from llmling_agent.resource_providers import ResourceProvider
+    from llmling_agent.ui.base import InputProvider
     from llmling_agent_config.mcp_server import MCPServerConfig
     from llmling_agent_config.output_types import StructuredResponseConfig
     from llmling_agent_config.session import SessionQuery
     from llmling_agent_config.task import Job
-    from llmling_agent_input.base import InputProvider
 
 
 logger = get_logger(__name__)

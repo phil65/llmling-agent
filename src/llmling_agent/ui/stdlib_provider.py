@@ -9,7 +9,7 @@ from mcp import types
 
 from llmling_agent.log import get_logger
 from llmling_agent.tools.exceptions import ToolError
-from llmling_agent_input.base import InputProvider
+from llmling_agent.ui.base import InputProvider
 
 
 if TYPE_CHECKING:

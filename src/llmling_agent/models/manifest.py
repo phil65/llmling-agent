@@ -44,7 +44,7 @@ if TYPE_CHECKING:
 
     from llmling_agent import Agent, AgentPool
     from llmling_agent.prompts.manager import PromptManager
-    from llmling_agent_input.base import InputProvider
+    from llmling_agent.ui.base import InputProvider
 
 
 logger = log.get_logger(__name__)

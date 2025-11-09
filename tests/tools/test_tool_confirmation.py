@@ -4,7 +4,7 @@ from pydantic_ai.models.test import TestModel
 import pytest
 
 from llmling_agent import Agent, Tool
-from llmling_agent_input.mock_provider import MockInputProvider
+from llmling_agent.ui.mock_provider import MockInputProvider
 
 
 async def test_tool_confirmation():

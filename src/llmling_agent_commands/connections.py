@@ -58,20 +58,17 @@ class ConnectCommand(SlashedCommand):
             node_name: Name of the node to connect to
             wait: Whether to wait for responses (default: True)
         """
-        source = ctx.context.node_name
-
         try:
             assert ctx.context.pool
             target_node = ctx.context.pool[node_name]
             assert isinstance(target_node, MessageNode)
             ctx.context.node.connect_to(target_node)
             ctx.context.node.connections.set_wait_state(node_name, wait)
-
-            wait_text = "*(waiting for responses)*" if wait else "*(async)*"
-            msg = f"🔗 **Connected:** `{source}` → `{node_name}` {wait_text}"
+            text = "*(waiting for responses)*" if wait else "*(async)*"
+            msg = f"🔗 **Connected:** `{ctx.context.node_name}` → `{node_name}` {text}"
             await ctx.print(msg)
         except Exception as e:
-            msg = f"Failed to connect {source!r} to {node_name!r}: {e}"
+            msg = f"Failed to connect {ctx.context.node_name!r} to {node_name!r}: {e}"
             raise CommandError(msg) from e
 
     def get_completer(self):

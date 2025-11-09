@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from llmling_agent.agent import Agent
     from llmling_agent.models.agents import AgentConfig
     from llmling_agent.tools.base import Tool
-    from llmling_agent_input.base import InputProvider
+    from llmling_agent.ui.base import InputProvider
 
 
 ConfirmationResult = Literal["allow", "skip", "abort_run", "abort_chain"]

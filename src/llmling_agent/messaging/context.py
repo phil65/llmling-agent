@@ -14,8 +14,8 @@ if TYPE_CHECKING:
     from llmling_agent.models.manifest import AgentsManifest
     from llmling_agent.prompts.manager import PromptManager
     from llmling_agent.storage import StorageManager
+    from llmling_agent.ui.base import InputProvider
     from llmling_agent_config.nodes import NodeConfig
-    from llmling_agent_input.base import InputProvider
 
 
 ProgressCallback = Callable[[float, float | None, str], Awaitable[None]]
@@ -47,7 +47,7 @@ class NodeContext[TDeps]:
     """Provider for human-input-handling."""
 
     def get_input_provider(self) -> InputProvider:
-        from llmling_agent_input.stdlib_provider import StdlibInputProvider
+        from llmling_agent.ui.stdlib_provider import StdlibInputProvider
 
         if self.input_provider:
             return self.input_provider

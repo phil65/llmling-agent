@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Literal
 
-from llmling_agent_input.base import InputProvider
+from llmling_agent.ui.base import InputProvider
 
 
 if TYPE_CHECKING:
