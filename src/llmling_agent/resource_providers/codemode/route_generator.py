@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from fastapi import FastAPI
-from pydantic import create_model
+from schemez.schema import json_schema_to_base_model
 
 
 if TYPE_CHECKING:
@@ -34,21 +34,11 @@ def _add_tool_route(app: FastAPI, tool: Tool) -> None:
     """
     # Extract parameter information from tool schema
     schema = tool.schema["function"]
-    params = schema.get("parameters", {}).get("properties", {})
-    required = set(schema.get("parameters", {}).get("required", []))
+    parameters_schema = schema.get("parameters", {})
 
-    # Build Pydantic model fields
-    model_fields: dict[str, tuple[type, Any]] = {}
-    for name, param_info in params.items():
-        python_type = _get_python_type(param_info)  # type: ignore[arg-type]
-        if name in required:
-            model_fields[name] = (python_type, ...)
-        else:
-            model_fields[name] = (python_type, None)
-
-    # Create Pydantic model for parameter validation
-    if model_fields:
-        param_cls = create_model(f"{tool.name.title()}Params", **model_fields)  # type: ignore
+    # Create Pydantic model for parameter validation using schemez
+    if parameters_schema.get("properties"):
+        param_cls = json_schema_to_base_model(parameters_schema)  # type: ignore
     else:
         # Tool has no parameters
         param_cls = None
@@ -57,27 +47,25 @@ def _add_tool_route(app: FastAPI, tool: Tool) -> None:
     async def route_handler(*args, **kwargs) -> Any:
         """Route handler for the tool."""
         if param_cls:
-            # Parse and validate parameters
-            params_instance = param_cls(**kwargs)
-            # Convert to dict and remove None values
-            clean_params = {
-                k: v for k, v in params_instance.model_dump().items() if v is not None
-            }
+            params_instance = param_cls(**kwargs)  # Parse and validate parameters
+            dct = params_instance.model_dump()  # Convert to dict and remove None values
+            clean_params = {k: v for k, v in dct.items() if v is not None}
             result = await _execute_tool(tool, **clean_params)
         else:
             result = await _execute_tool(tool)
-
         return {"result": result}
 
     # Set up the route with proper parameter annotations for FastAPI
     if param_cls:
-        # Add query parameters to route handler signature
+        # Get field information from the generated model
+        model_fields = param_cls.model_fields
         route_params = []
-        for name, (field_type, default) in model_fields.items():
-            if default is ...:  # Required field
-                route_params.append(f"{name}: {field_type.__name__}")
+        for name, field_info in model_fields.items():
+            field_type = field_info.annotation
+            if field_info.is_required():
+                route_params.append(f"{name}: {field_type.__name__}")  # type: ignore
             else:
-                route_params.append(f"{name}: {field_type.__name__} = None")
+                route_params.append(f"{name}: {field_type.__name__} = None")  # type: ignore
 
         # Create function signature dynamically
         param_str = ", ".join(route_params)
@@ -97,25 +85,6 @@ async def dynamic_handler({param_str}) -> dict[str, Any]:
 
     # Add route to FastAPI app
     app.get(f"/tools/{tool.name}")(dynamic_handler)
-
-
-def _get_python_type(param_info: dict[str, Any]) -> type:
-    """Convert JSON schema type to Python type.
-
-    Args:
-        param_info: Parameter schema information
-
-    Returns:
-        Python type for the parameter
-    """
-    param_type = param_info.get("type", "string")
-    type_mapping = {
-        "string": str,
-        "integer": int,
-        "number": float,
-        "boolean": bool,
-    }
-    return type_mapping.get(param_type, str)
 
 
 async def _execute_tool(tool: Tool, **kwargs) -> Any:
@@ -165,8 +134,11 @@ if __name__ == "__main__":
     # Print available routes
     print("Generated routes:")
     for route in app.routes:
-        if hasattr(route, "path") and route.path.startswith("/tools/"):
-            print(f"  GET {route.path}")
+        try:
+            if route.path.startswith("/tools/"):  # type: ignore[attr-defined]
+                print(f"  GET {route.path}")  # type: ignore[attr-defined]
+        except AttributeError:
+            continue
 
     # To run: uvicorn route_generator:app --reload
     print("\nTo test: uvicorn route_generator:app --reload")
