@@ -190,29 +190,19 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         from llmling_agent.agent.conversation import ConversationManager
         from llmling_agent.agent.interactions import Interactions
         from llmling_agent.agent.sys_prompts import SystemPrompts
+        from llmling_agent.observability import registry
 
         self.task_manager = TaskManager()
         self._infinite = False
         # save some stuff for asnyc init
         self.deps_type = deps_type
-        # match output_type:
-        #     case type() | str():
-        #         # For types and named definitions, use overrides if provided
-        #         self.set_output_type(
-        #             output_type,
-        #             tool_name=tool_name,
-        #             tool_description=tool_description,
-        #         )
-        #     case StructuredResponseConfig():
-        #         # For response definitions, use as-is
-        #         # (overrides don't apply to complete definitions)
-        #         self.set_output_type(output_type)
         # prepare context
         ctx = context or AgentContext[TDeps].create_default(
             name,
             input_provider=input_provider,
         )
         self._context = ctx
+        # TODO: use set_output_type with tool_name / description?
         self._output_type = to_type(output_type, ctx.definition.responses)
         memory_cfg = (
             session
@@ -221,7 +211,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         )
         # Initialize progress queue before super().__init__()
         self._progress_queue = asyncio.Queue[ToolCallProgressEvent]()
-
         super().__init__(
             name=name,
             context=ctx,
@@ -259,8 +248,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         self.skills_registry = SkillsRegistry()
 
         if ctx and ctx.definition:
-            from llmling_agent.observability import registry
-
             registry.configure_observability(ctx.definition.observability)
 
         # init variables

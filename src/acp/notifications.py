@@ -172,7 +172,7 @@ class ACPNotifications:
             raw_input=raw_input,
         )
         notification = SessionNotification(session_id=self.id, update=start)
-        await self.client.session_update(notification)
+        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]
 
     async def tool_call_progress(
         self,
@@ -208,7 +208,7 @@ class ACPNotifications:
             ],
         )
         notification = SessionNotification(session_id=self.id, update=progress)
-        await self.client.session_update(notification)
+        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]
 
     async def file_edit_progress(
         self,
@@ -283,7 +283,7 @@ class ACPNotifications:
         """
         plan = AgentPlanUpdate(entries=entries)
         notification = SessionNotification(session_id=self.id, update=plan)
-        await self.client.session_update(notification)
+        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]
 
     async def update_commands(self, commands: list[AvailableCommand]) -> None:
         """Send a command update notification.
@@ -293,7 +293,7 @@ class ACPNotifications:
         """
         update = AvailableCommandsUpdate(available_commands=commands)
         notification = SessionNotification(session_id=self.id, update=update)
-        await self.client.session_update(notification)
+        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]
 
     async def send_agent_text(self, message: str) -> None:
         """Send a text message notification.
@@ -303,7 +303,7 @@ class ACPNotifications:
         """
         update = AgentMessageChunk(content=TextContentBlock(text=message))
         notification = SessionNotification(session_id=self.id, update=update)
-        await self.client.session_update(notification)
+        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]
 
     async def send_agent_thought(self, message: str) -> None:
         """Send a text message notification.
@@ -313,7 +313,7 @@ class ACPNotifications:
         """
         update = AgentThoughtChunk(content=TextContentBlock(text=message))
         notification = SessionNotification(session_id=self.id, update=update)
-        await self.client.session_update(notification)
+        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]
 
     async def send_user_message(self, message: str) -> None:
         """Send a user message notification.
@@ -323,7 +323,7 @@ class ACPNotifications:
         """
         update = UserMessageChunk(content=TextContentBlock(text=message))
         notification = SessionNotification(session_id=self.id, update=update)
-        await self.client.session_update(notification)
+        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]
 
     async def send_user_image(
         self,
@@ -349,7 +349,7 @@ class ACPNotifications:
         )
         update = UserMessageChunk(content=content)
         notification = SessionNotification(session_id=self.id, update=update)
-        await self.client.session_update(notification)
+        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]
 
     async def send_user_audio(
         self,
@@ -372,7 +372,7 @@ class ACPNotifications:
         )
         update = UserMessageChunk(content=content)
         notification = SessionNotification(session_id=self.id, update=update)
-        await self.client.session_update(notification)
+        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]
 
     async def send_user_resource(
         self,
@@ -407,7 +407,7 @@ class ACPNotifications:
         )
         update = UserMessageChunk(content=content)
         notification = SessionNotification(session_id=self.id, update=update)
-        await self.client.session_update(notification)
+        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]
 
     async def replay(self, messages: Sequence[ModelRequest | ModelResponse]) -> None:
         """Replay a sequence of model messages as notifications.
@@ -560,7 +560,7 @@ class ACPNotifications:
         )
         update = AgentMessageChunk(content=content)
         notification = SessionNotification(session_id=self.id, update=update)
-        await self.client.session_update(notification)
+        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]
 
     async def update_session_mode(self, mode_id: str) -> None:
         """Send a session mode update notification.
@@ -570,7 +570,7 @@ class ACPNotifications:
         """
         update = CurrentModeUpdate(current_mode_id=mode_id)
         notification = SessionNotification(session_id=self.id, update=update)
-        await self.client.session_update(notification)
+        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]
 
     # async def update_session_model(self, model_id: str) -> None:
     #     """Send a session model update notification.
@@ -601,7 +601,7 @@ class ACPNotifications:
         )
         update = AgentMessageChunk(content=content)
         notification = SessionNotification(session_id=self.id, update=update)
-        await self.client.session_update(notification)
+        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]
 
     async def send_agent_resource(
         self,
@@ -636,4 +636,4 @@ class ACPNotifications:
         )
         update = AgentMessageChunk(content=content)
         notification = SessionNotification(session_id=self.id, update=update)
-        await self.client.session_update(notification)
+        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]
