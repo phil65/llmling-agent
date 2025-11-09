@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
-from llmling_agent.resource_providers.static import StaticResourceProvider
+from llmling_agent.resource_providers import StaticResourceProvider
 from llmling_agent.tools.base import Tool
 
 

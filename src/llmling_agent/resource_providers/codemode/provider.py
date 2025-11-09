@@ -209,7 +209,7 @@ if __name__ == "__main__":
     import webbrowser
 
     from llmling_agent import Agent
-    from llmling_agent.resource_providers.static import StaticResourceProvider
+    from llmling_agent.resource_providers import StaticResourceProvider
 
     logging.basicConfig(level=logging.INFO, stream=sys.stdout)
     static_provider = StaticResourceProvider(tools=[Tool.from_callable(webbrowser.open)])

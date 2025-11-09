@@ -15,7 +15,7 @@ from toprompt import render_prompt
 from llmling_agent import log
 from llmling_agent.common_types import EndStrategy  # noqa: TC001
 from llmling_agent.prompts.prompts import BasePrompt, PromptMessage, StaticPrompt
-from llmling_agent.resource_providers.static import StaticResourceProvider
+from llmling_agent.resource_providers import StaticResourceProvider
 from llmling_agent.utils.importing import import_class
 from llmling_agent_config.knowledge import Knowledge  # noqa: TC001
 from llmling_agent_config.models import AnyModelConfig  # noqa: TC001

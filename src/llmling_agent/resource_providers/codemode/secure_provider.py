@@ -130,18 +130,15 @@ async def report_progress(current: int, total: int, message: str = "") -> None:
 
     async def _get_code_execution_provider(self) -> CodeExecutionProvider:
         """Get cached code execution provider with thread-safe initialization."""
+        from llmling_agent_config.execution_environments import (
+            LocalExecutionEnvironmentConfig,
+        )
+
         async with self._provider_lock:
             if self._code_execution_provider is None:
                 all_tools = await self._collect_all_tools()
-
                 if self.execution_config is None:
-                    # Default to local execution if no config provided
-                    from llmling_agent_config.execution_environments import (
-                        LocalExecutionEnvironmentConfig,
-                    )
-
                     self.execution_config = LocalExecutionEnvironmentConfig()
-
                 self._code_execution_provider = (
                     CodeExecutionProvider.from_tools_and_config(
                         all_tools,
@@ -164,7 +161,6 @@ async def report_progress(current: int, total: int, message: str = "") -> None:
             return self._tools_cache
 
         all_tools = list(self.wrapped_tools)
-
         for provider in self.wrapped_providers:
             async with provider:
                 provider_tools = await provider.get_tools()
@@ -193,7 +189,7 @@ if __name__ == "__main__":
     import webbrowser
 
     from llmling_agent import Agent
-    from llmling_agent.resource_providers.static import StaticResourceProvider
+    from llmling_agent.resource_providers import StaticResourceProvider
     from llmling_agent_config.execution_environments import (
         LocalExecutionEnvironmentConfig,
     )

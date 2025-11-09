@@ -9,7 +9,7 @@ from dataclasses import fields
 from typing import TYPE_CHECKING, Any, Literal
 
 from llmling_agent.log import get_logger
-from llmling_agent.resource_providers.static import StaticResourceProvider
+from llmling_agent.resource_providers import StaticResourceProvider
 from llmling_agent.tools.base import Tool
 from llmling_agent.utils.baseregistry import LLMLingError
 from llmling_agent.utils.importing import import_class

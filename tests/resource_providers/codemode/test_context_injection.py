@@ -6,8 +6,8 @@ from typing import TYPE_CHECKING
 
 import pytest
 
+from llmling_agent.resource_providers import StaticResourceProvider
 from llmling_agent.resource_providers.codemode.provider import CodeModeResourceProvider
-from llmling_agent.resource_providers.static import StaticResourceProvider
 from llmling_agent.tools.base import Tool
 
 

@@ -7,7 +7,7 @@ import contextlib
 import io
 
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
-from llmling_agent.resource_providers.static import StaticResourceProvider
+from llmling_agent.resource_providers import StaticResourceProvider
 from llmling_agent.tools.base import Tool
 
 
