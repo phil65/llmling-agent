@@ -8,16 +8,17 @@ from typing import TYPE_CHECKING, Any
 
 from fastapi import FastAPI
 
-from llmling_agent.resource_providers.codemode.toolset_code_generator import (
-    ToolsetCodeGenerator,
-)
+from llmling_agent.resource_providers.codemode.helpers import tools_to_codegen
 
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
+    import socket
 
     from anyenv.code_execution.base import ExecutionEnvironment
     from anyenv.code_execution.models import ServerInfo
+    from schemez import ToolsetCodeGenerator
+    import uvicorn
 
     from llmling_agent.tools.base import Tool
     from llmling_agent_config.execution_environments import ExecutionEnvironmentConfig
@@ -63,7 +64,7 @@ class CodeExecutionProvider:
             CodeExecutionProvider instance
         """
         # Create toolset code generator
-        toolset_generator = ToolsetCodeGenerator.from_tools(
+        toolset_generator = tools_to_codegen(
             tools, include_signatures, include_docstrings
         )
 
@@ -115,11 +116,11 @@ class ToolServerLifecycleHandler:
         self.host = host
         self.port = port  # Will be set when socket is created
         self.app: FastAPI | None = None
-        self.server: Any = None
-        self._server_task: Any = None
-        self._socket: Any = None
+        self.server: uvicorn.Server | None = None
+        self._server_task: asyncio.Task | None = None
+        self._socket: socket.socket | None = None
 
-    def _create_socket(self, preferred_port: int):
+    def _create_socket(self, preferred_port: int) -> socket.socket:
         """Create a socket bound to a free port."""
         import socket
 

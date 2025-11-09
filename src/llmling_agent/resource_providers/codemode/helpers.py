@@ -2,6 +2,17 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+
+    from llmling_agent.resource_providers.codemode.toolset_code_generator import (
+        ToolsetCodeGenerator,
+    )
+    from llmling_agent.tools import Tool
+
 
 def fix_code(python_code: str) -> str:
     """Fix code to be executable."""
@@ -36,3 +47,32 @@ def fix_code(python_code: str) -> str:
         else:
             python_code = "async def main():\n    pass"
     return python_code
+
+
+def tools_to_codegen(
+    tools: Sequence[Tool],
+    include_signatures: bool = True,
+    include_docstrings: bool = True,
+) -> ToolsetCodeGenerator:
+    """Create a ToolsetCodeGenerator from a sequence of Tools.
+
+    Args:
+        tools: Tools to generate code for
+        include_signatures: Include function signatures in documentation
+        include_docstrings: Include function docstrings in documentation
+
+    Returns:
+        ToolsetCodeGenerator instance
+    """
+    from llmling_agent.resource_providers.codemode.tool_code_generator import (
+        ToolCodeGenerator,
+    )
+    from llmling_agent.resource_providers.codemode.toolset_code_generator import (
+        ToolsetCodeGenerator,
+    )
+
+    generators = [
+        ToolCodeGenerator(schema=t.schema, callable=t.callable, name_override=t.name)
+        for t in tools
+    ]
+    return ToolsetCodeGenerator(generators, include_signatures, include_docstrings)

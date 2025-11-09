@@ -5,20 +5,18 @@ from __future__ import annotations
 import inspect
 from typing import TYPE_CHECKING, Any
 
+from schemez.code_generation.namespace_callable import NamespaceCallable
+
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.resource_providers import ResourceProvider
-from llmling_agent.resource_providers.codemode.fix_code import fix_code
-from llmling_agent.resource_providers.codemode.namespace_callable import (
-    NamespaceCallable,
-)
-from llmling_agent.resource_providers.codemode.toolset_code_generator import (
-    ToolsetCodeGenerator,
-)
+from llmling_agent.resource_providers.codemode.helpers import fix_code, tools_to_codegen
 from llmling_agent.tools.base import Tool
 
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
+
+    from schemez.code_generation import ToolsetCodeGenerator
 
 
 class CodeModeResourceProvider(ResourceProvider):
@@ -170,12 +168,12 @@ class CodeModeResourceProvider(ResourceProvider):
     async def _get_toolset_generator(self) -> ToolsetCodeGenerator:
         """Get cached toolset generator."""
         if self._toolset_generator is None:
-            all_tools = await self._collect_all_tools()
-            self._toolset_generator = ToolsetCodeGenerator.from_tools(
-                all_tools,
+            self._toolset_generator = tools_to_codegen(
+                tools=await self._collect_all_tools(),
                 include_signatures=self.include_signatures,
                 include_docstrings=self.include_docstrings,
             )
+        assert self._toolset_generator
         return self._toolset_generator
 
     async def _collect_all_tools(self) -> list[Tool]:
@@ -184,7 +182,6 @@ class CodeModeResourceProvider(ResourceProvider):
             return self._tools_cache
 
         all_tools = list(self.wrapped_tools)
-
         for provider in self.wrapped_providers:
             async with provider:
                 provider_tools = await provider.get_tools()
