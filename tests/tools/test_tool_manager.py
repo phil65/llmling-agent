@@ -68,5 +68,72 @@ async def test_invalid_tool_operations():
         await manager.disable_tool("nonexistent")
 
 
+async def test_providers_property():
+    """Test that providers property returns all providers."""
+    from llmling_agent.resource_providers import StaticResourceProvider
+
+    tool1 = Tool.from_callable(lambda x: x, name_override="tool1")
+    manager = ToolManager([tool1])
+
+    # Add an external provider
+    external_provider = StaticResourceProvider(name="test_external")
+    manager.add_provider(external_provider)
+
+    # Check providers property includes all three types
+    all_providers = manager.providers
+    expected_provider_count = 3  # external + worker + builtin
+    assert len(all_providers) == expected_provider_count
+
+    # Check that external providers are included
+    assert external_provider in all_providers
+    assert manager.worker_provider in all_providers
+    assert manager.builtin_provider in all_providers
+
+    # Check that external_providers only contains external providers
+    assert len(manager.external_providers) == 1
+    assert manager.external_providers[0] == external_provider
+
+
+async def test_enabled_state_preservation():
+    """Test that enabled states are preserved when tools change."""
+    from llmling_agent.tools.base import Tool
+
+    # Create a mock MCP provider with some tools
+    class MockMCPProvider:
+        def __init__(self):
+            self.name = "mock_mcp"
+            self._tools_cache = [
+                Tool.from_callable(lambda x: x, name_override="tool1"),
+                Tool.from_callable(lambda x: x, name_override="tool2"),
+            ]
+            self._saved_enabled_states = {}
+
+        async def _on_tools_changed(self):
+            """Callback when tools change on the MCP server."""
+            # Save current enabled states before invalidating cache
+            if self._tools_cache:
+                self._saved_enabled_states = {
+                    tool.name: tool.enabled for tool in self._tools_cache
+                }
+            self._tools_cache = None  # Invalidate cache
+
+    provider = MockMCPProvider()
+
+    # Disable one tool
+    provider._tools_cache[0].enabled = False
+
+    # Simulate tool change event (this should save states and invalidate cache)
+    await provider._on_tools_changed()
+
+    # Verify states were saved
+    assert "tool1" in provider._saved_enabled_states
+    assert "tool2" in provider._saved_enabled_states
+    assert not provider._saved_enabled_states["tool1"]  # Should be False
+    assert provider._saved_enabled_states["tool2"]  # Should be True
+
+    # Cache should be invalidated
+    assert provider._tools_cache is None
+
+
 if __name__ == "__main__":
     pytest.main(["-v", __file__])
