@@ -10,20 +10,13 @@ seamlessly with PydanticAI's RunContext while providing rich progress informatio
 
 from __future__ import annotations
 
-import base64
 from collections.abc import Callable
 import contextlib
 import logging
 from typing import TYPE_CHECKING, Any, Self
 
 from anyenv import MultiEventHandler
-from pydantic_ai import (
-    BinaryContent,
-    BinaryImage,
-    DocumentUrl,
-    RunContext,  # noqa: TC002
-    ToolReturn,
-)
+from pydantic_ai import RunContext, ToolReturn  # noqa: TC002
 from schemez.functionschema import FunctionSchema
 
 from llmling_agent.log import get_logger
@@ -76,6 +69,7 @@ if TYPE_CHECKING:
         TextResourceContents,
         Tool as MCPTool,
     )
+    from pydantic_ai import BinaryContent
 
     from llmling_agent_config.mcp_server import MCPServerConfig
 
@@ -360,54 +354,9 @@ class MCPClient:
         mcp_content: Sequence[ContentBlock | TextResourceContents | BlobResourceContents],
     ) -> list[str | BinaryContent]:
         """Convert MCP content blocks to PydanticAI content types."""
-        from mcp.types import (
-            AudioContent,
-            BlobResourceContents,
-            EmbeddedResource,
-            ImageContent,
-            ResourceLink,
-            TextContent,
-            TextResourceContents,
-        )
+        from llmling_agent.mcp_server.helpers import convert_mcp_content
 
-        contents: list[Any] = []
-
-        for block in mcp_content:
-            match block:
-                case TextContent(text=text):
-                    contents.append(text)
-                case TextResourceContents(text=text):
-                    contents.append(text)
-                case ImageContent(data=data, mimeType=mime_type):
-                    decoded_data = base64.b64decode(data)
-                    img = BinaryImage(data=decoded_data, media_type=mime_type)
-                    contents.append(img)
-                case AudioContent(data=data, mimeType=mime_type):
-                    decoded_data = base64.b64decode(data)
-                    content = BinaryContent(data=decoded_data, media_type=mime_type)
-                    contents.append(content)
-                case BlobResourceContents(blob=blob):
-                    decoded_data = base64.b64decode(blob)
-                    mime = "application/octet-stream"
-                    content = BinaryContent(data=decoded_data, media_type=mime)
-                    contents.append(content)
-                case ResourceLink(uri=uri):
-                    try:
-                        assert self._client
-                        res = await self._client.read_resource_mcp(uri)
-                        nested = await self._convert_mcp_content(res.contents)
-                        contents.extend(nested)
-                    except Exception:  # noqa: BLE001
-                        # Fallback to DocumentUrl if reading fails
-                        contents.append(DocumentUrl(url=str(uri)))
-                case EmbeddedResource(resource=TextResourceContents(text=text)):
-                    contents.append(text)
-                case EmbeddedResource(resource=BlobResourceContents() as blob_resource):
-                    contents.append(f"[Binary data: {blob_resource.mimeType}]")
-                case _:
-                    contents.append(str(block))  # Convert anything else to string
-
-        return contents
+        return [convert_mcp_content(block) for block in mcp_content]
 
 
 if __name__ == "__main__":
