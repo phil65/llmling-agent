@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from dataclasses import dataclass, field
 import inspect
 import os
 from typing import TYPE_CHECKING, Annotated, Any, Literal, Self, get_type_hints
@@ -409,20 +410,21 @@ class DynamicPrompt(BasePrompt):
         )
 
 
+@dataclass
 class Prompt:
     """A prompt that can be rendered from an MCP server."""
 
-    def __init__(
-        self,
-        name: str,
-        description: str | None,
-        arguments: list[dict[str, Any]] | None,
-        client: MCPClient,
-    ):
-        self.name = name
-        self.description = description
-        self.arguments = arguments or []
-        self._client = client
+    client: MCPClient
+    """The client used to render the prompt."""
+
+    name: str
+    """The name of the prompt."""
+
+    description: str | None = None
+    """A description of the prompt."""
+
+    arguments: list[dict[str, Any]] = field(default_factory=list)
+    """A list of arguments for the prompt."""
 
     @classmethod
     def from_fastmcp(cls, client: MCPClient, prompt: MCPPrompt) -> Self:
@@ -462,7 +464,7 @@ class Prompt:
             ValueError: If prompt contains unsupported message types
         """
         try:
-            result = await self._client.get_prompt(self.name, arguments)
+            result = await self.client.get_prompt(self.name, arguments)
         except Exception as e:
             msg = f"Failed to get prompt {self.name!r}: {e}"
             raise RuntimeError(msg) from e
