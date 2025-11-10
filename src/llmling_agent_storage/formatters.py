@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Literal, TypeGuard
+from typing import TYPE_CHECKING, Any, Literal, TypeGuard, assert_never
 
 from rich.console import Console
 from rich.markdown import Markdown
@@ -58,9 +58,8 @@ def format_output(
                 stats_data: dict[str, Any] = data  # type: ignore
                 _print_stats(console, stats_data)
             return console.export_text()
-        case _:
-            msg = f"Invalid output format: {output_format}"
-            raise ValueError(msg)
+        case _ as unreachable:
+            assert_never(unreachable)
 
 
 def _print_conversation(console: Console, conv: ConversationData):

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
 from datetime import timedelta
-from typing import TYPE_CHECKING, Annotated, Literal
+from typing import TYPE_CHECKING, Annotated, Literal, assert_never
 
 from pydantic import ConfigDict, Field, ImportString
 from schemez import Schema
@@ -155,9 +155,8 @@ class TokenThresholdCondition(ConnectionCondition):
                 return (
                     context.message.cost_info.token_usage.output_tokens >= self.max_tokens
                 )
-            case _:
-                msg = f"Unknown count type: {self.count_type}"
-                raise ValueError(msg)
+            case _ as unreachable:
+                assert_never(unreachable)
 
 
 class CostCondition(ConnectionCondition):

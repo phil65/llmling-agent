@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Callable, Sequence
 from contextlib import asynccontextmanager
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any, Literal, assert_never
 
 from llmling_agent.log import get_logger
 from llmling_agent.resource_providers import StaticResourceProvider
@@ -103,9 +103,8 @@ class ToolManager:
                 for p in self.external_providers:
                     if p.name == provider:
                         self.external_providers.remove(p)
-            case _:
-                msg = f"Invalid provider type: {type(provider)}"
-                raise ValueError(msg)
+            case _ as unreachable:
+                assert_never(unreachable)
 
     async def reset_states(self) -> None:
         """Reset all tools to their default enabled states."""

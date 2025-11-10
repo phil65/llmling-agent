@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Literal, assert_never
 
 from pydantic import ConfigDict, Field
 from schemez import Schema
@@ -58,8 +58,8 @@ class MCPPoolServerConfig(Schema):
                 return False
             case list():
                 return name in self.serve_nodes
-            case _:
-                return False
+            case _ as unreachable:
+                assert_never(unreachable)
 
     def should_serve_prompt(self, name: str) -> bool:
         """Check if a prompt should be exposed."""
@@ -70,5 +70,5 @@ class MCPPoolServerConfig(Schema):
                 return False
             case list():
                 return name in self.serve_prompts
-            case _:
-                return False
+            case _ as unreachable:
+                assert_never(unreachable)

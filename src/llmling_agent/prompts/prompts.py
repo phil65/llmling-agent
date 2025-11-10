@@ -6,7 +6,7 @@ from collections.abc import Callable
 from dataclasses import field
 import inspect
 import os
-from typing import TYPE_CHECKING, Annotated, Any, Literal, Self
+from typing import TYPE_CHECKING, Annotated, Any, Literal, Self, assert_never
 
 from fastmcp.prompts.prompt import (
     Prompt as FastMCPPrompt,
@@ -505,12 +505,8 @@ class MCPClientPrompt(BasePrompt):
                 case "assistant":
                     # Convert assistant messages to user parts for context
                     parts.append(UserPromptPart(content=f"Assistant: {text_content}"))
-                case _:
-                    logger.warning(
-                        "Unsupported message role in MCP prompt",
-                        role=message.role,
-                        prompt_name=self.name,
-                    )
+                case _ as unreachable:
+                    assert_never(unreachable)
 
         if not parts:
             msg = f"No supported message parts found in prompt {self.name!r}"
@@ -560,9 +556,8 @@ class FilePrompt(BasePrompt):
             case "jinja2":
                 # Raw template - will be formatted during format()
                 msg = MessageContent(type="text", content=content)
-            case _:
-                msg = f"Unsupported format: {self.fmt}"
-                raise ValueError(msg)
+            case _ as unreachable:
+                assert_never(unreachable)
         return [PromptMessage(role="user", content=msg)]
 
     async def format(

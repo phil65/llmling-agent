@@ -6,7 +6,7 @@ content blocks, session updates, and other data structures using the external ac
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, overload
+from typing import TYPE_CHECKING, assert_never, overload
 
 from pydantic import HttpUrl
 
@@ -84,9 +84,8 @@ def convert_acp_mcp_server_to_config(acp_server: McpServer) -> MCPServerConfig:
         case HttpMcpServer(name=name, url=url, headers=headers):
             h = {h.name: h.value for h in acp_server.headers}
             return StreamableHTTPMCPServerConfig(name=name, url=HttpUrl(url), headers=h)
-        case _:
-            msg = f"Unsupported MCP server type: {type(acp_server)}"
-            raise ValueError(msg)
+        case _ as unreachable:
+            assert_never(unreachable)
 
 
 def format_uri_as_link(uri: str) -> str:

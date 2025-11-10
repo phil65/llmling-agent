@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass, field, replace
 from decimal import Decimal
-from typing import TYPE_CHECKING, Any, Literal, Self, TypeVar
+from typing import TYPE_CHECKING, Any, Literal, Self, TypeVar, assert_never
 import uuid
 from uuid import uuid4
 
@@ -336,9 +336,8 @@ class ChatMessage[TContent]:
                     name=name,
                     forwarded_from=forwarded_from or [],
                 )
-            case _:
-                msg = f"Unknown message kind: {message.kind}"
-                raise ValueError(msg)
+            case _ as unreachable:
+                assert_never(unreachable)
 
     @classmethod
     async def from_run_result[OutputDataT](

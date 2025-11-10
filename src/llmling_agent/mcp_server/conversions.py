@@ -91,6 +91,7 @@ async def convert_mcp_content(
 
     """
     contents: list[Any] = []
+
     for block in mcp_content:
         match block:
             case TextContent(text=text):

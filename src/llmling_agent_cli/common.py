@@ -8,7 +8,7 @@ import logging
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 import sys
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any, Literal, assert_never
 
 import platformdirs
 from pydantic import TypeAdapter
@@ -150,9 +150,8 @@ def format_output(
             print(yamling.dump_yaml(data))
         case "text":
             console.print(data)
-        case _:
-            msg = f"Unknown format: {output_format}"
-            raise ValueError(msg)
+        case _ as unreachable:
+            assert_never(unreachable)
 
 
 if __name__ == "__main__":

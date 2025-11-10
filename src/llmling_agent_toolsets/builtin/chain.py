@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Any, Literal
+from typing import Any, Literal, assert_never
 
 from pydantic import Field
 from pydantic_ai import ModelRetry
@@ -55,9 +55,8 @@ class StepCondition(Schema):
                     return False
             case "exists":
                 return field_value is not None
-            case _:
-                msg = f"Unknown operator: {self.operator}"
-                raise ValueError(msg)
+            case _ as unreachable:
+                assert_never(unreachable)
 
 
 @dataclass

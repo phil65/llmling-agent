@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, assert_never
 
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.resource_providers import StaticResourceProvider
@@ -41,8 +41,8 @@ async def ask_user(  # noqa: D417
             return "User declined to answer"
         case ErrorData(message=message):
             return f"Error: {message}"
-        case _:
-            return "Unknown error occurred"
+        case _ as unreachable:
+            assert_never(unreachable)
 
 
 def create_user_interaction_tools() -> list[Tool]:

@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections import deque
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Self, overload
+from typing import TYPE_CHECKING, Any, Self, assert_never, overload
 from uuid import UUID, uuid4
 
 from psygnal import Signal
@@ -139,9 +139,8 @@ class ConversationManager:
             case str():
                 query = SessionQuery(name=key)
                 return self._agent.context.storage.filter_messages.sync(query=query)
-            case _:
-                msg = f"Invalid key type: {type(key)}"
-                raise TypeError(msg)
+            case _ as unreachable:
+                assert_never(unreachable)
 
     def __contains__(self, item: Any) -> bool:
         """Check if item is in history."""
@@ -273,9 +272,8 @@ class ConversationManager:
                     roles=roles,
                     limit=limit,
                 )
-            case _:
-                msg = f"Invalid type for session: {type(session)}"
-                raise ValueError(msg)
+            case _ as unreachable:
+                assert_never(unreachable)
         self.chat_messages.clear()
         self.chat_messages.extend(storage.filter_messages.sync(query))
 

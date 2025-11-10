@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING, Any, ClassVar, Literal
+from typing import TYPE_CHECKING, Any, ClassVar, Literal, assert_never
 
 from youtube_transcript_api import YouTubeTranscriptApi  # pyright: ignore
 from youtube_transcript_api.formatters import (  # pyright: ignore
@@ -59,9 +59,8 @@ class YouTubeTranscriptConverter(DocumentConverter):
                 self.formatter = WebVTTFormatter()
             case "srt":
                 self.formatter = SRTFormatter()
-            case _:
-                msg = f"Invalid format: {self.config.format}"
-                raise ValueError(msg)
+            case _ as unreachable:
+                assert_never(unreachable)
 
     def extract_video_id(self, url: str) -> str | None:
         """Extract YouTube video ID from URL or ID string.

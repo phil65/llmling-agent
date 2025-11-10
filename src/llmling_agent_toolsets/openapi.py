@@ -278,9 +278,7 @@ class OpenAPITools(ResourceProvider):
                 return dict[str, Any]
 
             case _:
-                from typing import Any as AnyType
-
-                return AnyType
+                return Any
 
     def _create_operation_method(
         self,
