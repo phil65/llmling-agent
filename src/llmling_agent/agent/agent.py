@@ -782,7 +782,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                                 event.result,
                                 agent_name=self.name,
                                 message_id=message_id,
-                                conversation_id=user_msg.conversation_id,
+                                conversation_id=conversation_id,
                                 response_time=response_time,
                             )
 
