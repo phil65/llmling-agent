@@ -3,10 +3,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Annotated, Any, Literal
+from typing import TYPE_CHECKING, Annotated, Any, Literal, Self
 
 from pydantic import ConfigDict, Field
 from schemez import Schema
+
+
+if TYPE_CHECKING:
+    from mcp.types import Resource as MCPResource
 
 
 @dataclass
@@ -25,6 +29,13 @@ class ResourceInfo:
 
     description: str | None = None
     """Optional description of the resource's content or purpose"""
+
+    @classmethod
+    async def from_mcp_resource(cls, resource: MCPResource) -> Self:
+        """Create ResourceInfo from MCP resource."""
+        return cls(
+            name=resource.name, uri=str(resource.uri), description=resource.description
+        )
 
 
 class BaseResourceConfig(Schema):

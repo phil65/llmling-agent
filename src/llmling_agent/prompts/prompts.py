@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 import inspect
 import os
-from typing import TYPE_CHECKING, Annotated, Any, Literal, get_type_hints
+from typing import TYPE_CHECKING, Annotated, Any, Literal, Self, get_type_hints
 
 from fastmcp.prompts.prompt import (
     Prompt as FastMCPPrompt,
@@ -28,6 +28,8 @@ if TYPE_CHECKING:
     from fastmcp.prompts.prompt import FunctionPrompt
     from mcp.types import Prompt as MCPPrompt, PromptArgument
     from pydantic_ai import ModelRequestPart
+
+    from llmling_agent.mcp_server import MCPClient
 
 
 logger = get_logger(__name__)
@@ -405,6 +407,123 @@ class DynamicPrompt(BasePrompt):
             template=template_override,
             metadata={"source": "function", "import_path": path},
         )
+
+
+class Prompt:
+    """A prompt that can be rendered from an MCP server."""
+
+    def __init__(
+        self,
+        name: str,
+        description: str | None,
+        arguments: list[dict[str, Any]] | None,
+        client: MCPClient,
+    ):
+        self.name = name
+        self.description = description
+        self.arguments = arguments or []
+        self._client = client
+
+    @classmethod
+    def from_fastmcp(cls, client: MCPClient, prompt: MCPPrompt) -> Self:
+        """Convert MCP prompt to our Prompt class."""
+        arguments = [
+            {
+                "name": arg.name,
+                "description": arg.description,
+                "required": arg.required or False,
+            }
+            for arg in prompt.arguments or []
+        ]
+
+        return cls(
+            name=prompt.name,
+            description=prompt.description,
+            arguments=arguments,
+            client=client,
+        )
+
+    def __repr__(self) -> str:
+        return f"Prompt(name={self.name!r}, description={self.description!r})"
+
+    async def get_components(
+        self, arguments: dict[str, str] | None = None
+    ) -> list[SystemPromptPart | UserPromptPart]:
+        """Get prompt as pydantic-ai message components.
+
+        Args:
+            arguments: Arguments to pass to the prompt template
+
+        Returns:
+            List of message parts ready for agent usage
+
+        Raises:
+            RuntimeError: If prompt fetch fails
+            ValueError: If prompt contains unsupported message types
+        """
+        try:
+            result = await self._client.get_prompt(self.name, arguments)
+        except Exception as e:
+            msg = f"Failed to get prompt {self.name!r}: {e}"
+            raise RuntimeError(msg) from e
+
+        # Convert MCP messages to pydantic-ai parts
+        from mcp.types import (
+            AudioContent,
+            EmbeddedResource,
+            ImageContent,
+            ResourceLink,
+            TextContent,
+            TextResourceContents,
+        )
+
+        parts: list[SystemPromptPart | UserPromptPart] = []
+
+        for message in result.messages:
+            # Extract text content from MCP message
+            text_content = ""
+
+            match message.content:
+                case TextContent(text=text):
+                    text_content = text
+                case EmbeddedResource(resource=resource):
+                    if isinstance(resource, TextResourceContents):
+                        text_content = resource.text
+                    else:
+                        text_content = f"[Resource: {resource.uri}]"
+                case ResourceLink(uri=uri, description=desc):
+                    text_content = f"[Resource Link: {uri}]"
+                    if desc:
+                        text_content += f" - {desc}"
+                case ImageContent(mimeType=mime_type):
+                    text_content = f"[Image: {mime_type}]"
+                case AudioContent(mimeType=mime_type):
+                    text_content = f"[Audio: {mime_type}]"
+                case _:
+                    # Fallback to string representation
+                    text_content = str(message.content)
+
+            # Convert based on role
+            match message.role:
+                case "system":
+                    parts.append(SystemPromptPart(content=text_content))
+                case "user":
+                    parts.append(UserPromptPart(content=text_content))
+                case "assistant":
+                    # Convert assistant messages to user parts for context
+                    parts.append(UserPromptPart(content=f"Assistant: {text_content}"))
+                case _:
+                    logger.warning(
+                        "Unsupported message role in MCP prompt",
+                        role=message.role,
+                        prompt_name=self.name,
+                    )
+
+        if not parts:
+            msg = f"No supported message parts found in prompt {self.name!r}"
+            raise ValueError(msg)
+
+        return parts
 
 
 class FilePrompt(BasePrompt):
