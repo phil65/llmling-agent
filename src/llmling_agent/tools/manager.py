@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Callable, Sequence
 from contextlib import asynccontextmanager
-from dataclasses import fields
 from typing import TYPE_CHECKING, Any, Literal
 
 from llmling_agent.log import get_logger
@@ -51,7 +50,7 @@ class ToolManager:
 
     def __init__(
         self,
-        tools: Sequence[Tool | ToolType | dict[str, Any]] | None = None,
+        tools: Sequence[Tool | ToolType] | None = None,
     ):
         """Initialize tool manager.
 
@@ -113,12 +112,7 @@ class ToolManager:
         for info in await self.get_tools():
             info.enabled = True
 
-    @property
-    def _error_class(self) -> type[ToolError]:
-        """Error class for tool operations."""
-        return ToolError
-
-    def _validate_item(self, item: Tool | ToolType | dict[str, Any]) -> Tool:
+    def _validate_item(self, item: Tool | ToolType) -> Tool:
         """Validate and convert items before registration."""
         match item:
             case Tool():
@@ -133,10 +127,6 @@ class ToolManager:
                 return Tool.from_callable(item)
             case Callable():
                 return Tool.from_callable(item)
-            case {"callable": callable_item, **config} if callable(callable_item):
-                valid_keys = {f.name for f in fields(Tool)} - {"callable"}
-                tool_config = {k: v for k, v in config.items() if k in valid_keys}
-                return Tool.from_callable(callable_item, **tool_config)  # type: ignore
             case _:
                 typ = type(item)
                 msg = f"Item must be Tool or callable. Got {typ}"
