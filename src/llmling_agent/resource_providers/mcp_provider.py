@@ -59,6 +59,7 @@ class MCPResourceProvider(ResourceProvider):
 
         # Tool caching
         self._tools_cache: list[Tool] | None = None
+        self._saved_enabled_states: dict[str, bool] = {}
 
         self.client = MCPClient(
             config=self.server,
@@ -111,7 +112,8 @@ class MCPResourceProvider(ResourceProvider):
     async def _on_tools_changed(self) -> None:
         """Callback when tools change on the MCP server."""
         logger.info("MCP tool list changed, refreshing provider cache")
-        self._tools_cache = None  # Invalidate cache
+        self._saved_enabled_states = {t.name: t.enabled for t in self._tools_cache or []}
+        self._tools_cache = None
 
     async def refresh_tools_cache(self) -> None:
         """Refresh the tools cache by fetching from client."""
@@ -127,6 +129,11 @@ class MCPResourceProvider(ResourceProvider):
                 except Exception:
                     logger.exception("Failed to create MCP tool", name=tool.name)
                     continue
+
+            # Restore enabled states from saved states
+            for tool_info in all_tools:
+                if tool_info.name in self._saved_enabled_states:
+                    tool_info.enabled = self._saved_enabled_states[tool_info.name]
 
             self._tools_cache = all_tools
             logger.debug("Refreshed MCP tools cache", num_tools=len(all_tools))

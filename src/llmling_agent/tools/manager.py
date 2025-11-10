@@ -59,13 +59,18 @@ class ToolManager:
             tools: Initial tools to register
         """
         super().__init__()
-        self.providers: list[ResourceProvider] = []
+        self.external_providers: list[ResourceProvider] = []
         self.worker_provider = StaticResourceProvider(name="workers")
         self.builtin_provider = StaticResourceProvider(name="builtin")
         # Register initial tools
         for tool in tools or []:
             t = self._validate_item(tool)
             self.builtin_provider.add_tool(t)
+
+    @property
+    def providers(self) -> list[ResourceProvider]:
+        """Get all providers: external + worker + builtin providers."""
+        return [*self.external_providers, self.worker_provider, self.builtin_provider]
 
     async def __prompt__(self) -> str:
         enabled_tools = [t.name for t in await self.get_tools() if t.enabled]
@@ -78,28 +83,27 @@ class ToolManager:
         provider: ResourceProvider,
         owner: str | None = None,
     ):
-        """Add a resource provider or tool callable.
+        """Add an external resource provider.
 
         Args:
-            provider: Either a ResourceProvider instance or a callable
-                     returning tools. Callables are automatically wrapped.
+            provider: ResourceProvider instance (e.g., MCP server, custom provider)
             owner: Optional owner for the provider
         """
         if owner:
             provider.owner = owner
-        self.providers.append(provider)
+        self.external_providers.append(provider)
 
     def remove_provider(self, provider: ResourceProvider | ProviderName):
-        """Remove a resource provider."""
+        """Remove an external resource provider."""
         from llmling_agent.resource_providers import ResourceProvider
 
         match provider:
             case ResourceProvider():
-                self.providers.remove(provider)
+                self.external_providers.remove(provider)
             case str():
-                for p in self.providers:
+                for p in self.external_providers:
                     if p.name == provider:
-                        self.providers.remove(p)
+                        self.external_providers.remove(p)
             case _:
                 msg = f"Invalid provider type: {type(provider)}"
                 raise ValueError(msg)
@@ -168,14 +172,14 @@ class ToolManager:
         """Get tool objects based on filters."""
         tools: list[Tool] = []
         # Get tools from providers concurrently
-        providers = [*self.providers, self.worker_provider, self.builtin_provider]
-        provider_coroutines = [provider.get_tools() for provider in providers]
+        provider_coroutines = [provider.get_tools() for provider in self.providers]
         results = await asyncio.gather(*provider_coroutines, return_exceptions=True)
-        for provider, result in zip(providers, results, strict=False):
+        for provider, result in zip(self.providers, results, strict=False):
             if isinstance(result, BaseException):
                 logger.exception("Failed to get tools from provider", provider=provider)
                 continue
             tools.extend(t for t in result if t.matches_filter(state))
+
         # Sort by priority if any have non-default priority
         match names:
             case str():
@@ -214,8 +218,8 @@ class ToolManager:
 
         all_prompts: list[Prompt] = []
 
-        # Get prompts from all MCP providers
-        for provider in self.providers:
+        # Get prompts from all external providers (check if they're MCP providers)
+        for provider in self.external_providers:
             if isinstance(provider, MCPManager):
                 try:
                     prompts = await provider.list_prompts()
