@@ -31,24 +31,15 @@ class AggregatingResourceProvider(ResourceProvider):
 
     async def get_tools(self) -> list[Tool]:
         """Get tools from all providers."""
-        tools: list[Tool] = []
-        for provider in self.providers:
-            tools.extend(await provider.get_tools())
-        return tools
+        return [t for provider in self.providers for t in await provider.get_tools()]
 
     async def get_prompts(self) -> list[BasePrompt]:
         """Get prompts from all providers."""
-        prompts: list[BasePrompt] = []
-        for provider in self.providers:
-            prompts.extend(await provider.get_prompts())
-        return prompts
+        return [p for provider in self.providers for p in await provider.get_prompts()]
 
     async def get_resources(self) -> list[ResourceInfo]:
         """Get resources from all providers."""
-        resources: list[ResourceInfo] = []
-        for provider in self.providers:
-            resources.extend(await provider.get_resources())
-        return resources
+        return [r for provider in self.providers for r in await provider.get_resources()]
 
     async def get_request_parts(
         self, name: str, arguments: dict[str, str] | None = None
