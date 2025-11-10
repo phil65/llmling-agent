@@ -469,7 +469,7 @@ class MCPClientPrompt(BasePrompt):
 
         return cls(
             name=prompt.name,
-            description=prompt.description,
+            description=prompt.description or "",
             arguments=arguments,
             client=client,
         )
