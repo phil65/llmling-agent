@@ -67,9 +67,9 @@ class SecureCodeModeResourceProvider(AggregatingResourceProvider):
         """Return single secure code execution tool."""
         code_provider = await self._get_code_execution_provider()
         desc = code_provider.get_tool_description()
-        return [Tool.from_callable(self.execute_secure_code, description_override=desc)]
+        return [Tool.from_callable(self.execute, description_override=desc)]
 
-    async def execute_secure_code(  # noqa: D417
+    async def execute(  # noqa: D417
         self,
         ctx: AgentContext,
         python_code: str,

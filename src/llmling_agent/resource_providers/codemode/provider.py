@@ -47,9 +47,9 @@ class CodeModeResourceProvider(AggregatingResourceProvider):
         """Return single meta-tool for Python execution with available tools."""
         toolset_generator = await self._get_toolset_generator()
         desc = toolset_generator.generate_tool_description()
-        return [Tool.from_callable(self.execute_codemode, description_override=desc)]
+        return [Tool.from_callable(self.execute, description_override=desc)]
 
-    async def execute_codemode(  # noqa: D417
+    async def execute(  # noqa: D417
         self,
         ctx: AgentContext,
         python_code: str,
