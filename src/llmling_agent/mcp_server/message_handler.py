@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
-import asyncio
 from typing import TYPE_CHECKING
 
 from llmling_agent.log import get_logger
 
 
 if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
+
     from mcp.shared.session import RequestResponder
     import mcp.types
 
@@ -20,8 +21,13 @@ logger = get_logger(__name__)
 class MCPMessageHandler:
     """Custom message handler that bridges FastMCP to llmling-agent notifications."""
 
-    def __init__(self, client: MCPClient) -> None:
+    def __init__(
+        self,
+        client: MCPClient,
+        tool_change_callback: Callable[[], Awaitable[None]] | None = None,
+    ) -> None:
         self.client = client
+        self._tool_change_callback = tool_change_callback
 
     async def __call__(
         self,
@@ -89,14 +95,11 @@ class MCPMessageHandler:
     async def on_tool_list_changed(
         self, message: mcp.types.ToolListChangedNotification
     ) -> None:
-        """Handle tool list changes by refreshing tools."""
+        """Handle tool list changes."""
         logger.info("MCP tool list changed", message=message)
-        # Schedule async refresh - use create_task to avoid blocking
-        task = asyncio.create_task(self.client._refresh_tools())
-        # Store reference to avoid warning about unawaited task
-        task.add_done_callback(
-            lambda t: t.exception() if t.done() and t.exception() else None
-        )
+        # Call the tool change callback if provided
+        if self._tool_change_callback:
+            await self._tool_change_callback()
 
     async def on_resource_list_changed(
         self, message: mcp.types.ResourceListChangedNotification

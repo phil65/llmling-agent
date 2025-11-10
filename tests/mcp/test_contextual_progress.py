@@ -152,8 +152,8 @@ async def test_direct_mcp_client_progress():
     client = MCPClient(cfg, progress_handler=progress_capture)
     async with client:
         await asyncio.sleep(0.5)  # Wait a bit for server to be ready
-        tools = client.get_tools()
-        tool_names = [t["function"]["name"] for t in tools]
+        mcp_tools = await client.list_tools()
+        tool_names = [tool.name for tool in mcp_tools]
         assert "test_progress" in tool_names, (
             f"test_progress tool not found in {tool_names}"
         )

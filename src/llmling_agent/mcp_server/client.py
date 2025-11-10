@@ -57,7 +57,7 @@ type ContextualProgressHandler = Callable[
 
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Awaitable, Sequence
     from types import TracebackType
 
     from fastmcp.client import ClientTransport
@@ -105,6 +105,7 @@ class MCPClient:
         progress_handler: ContextualProgressHandler | None = None,
         message_handler: MessageHandlerT | MessageHandler | None = None,
         accessible_roots: list[str] | None = None,
+        tool_change_callback: Callable[[], Awaitable[None]] | None = None,
     ):
         self._elicitation_callback = elicitation_callback
         self.config = config
@@ -115,8 +116,8 @@ class MCPClient:
         # Store message handler or mark for lazy creation
         self._message_handler = message_handler
         self._accessible_roots = accessible_roots or []
+        self._tool_change_callback = tool_change_callback
         self._client = self._get_client(self.config)
-        self._available_tools: list[MCPTool] = []
         self._connected = False
 
     async def __aenter__(self) -> Self:
@@ -143,7 +144,6 @@ class MCPClient:
                 raise
 
         self._connected = True
-        await self._refresh_tools()
         return self
 
     async def __aexit__(
@@ -159,7 +159,6 @@ class MCPClient:
             logger.warning("Error during FastMCP client cleanup", error=e)
         finally:
             self._connected = False
-            self._available_tools = []
 
     def get_resource_fs(self):
         """Get a filesystem for accessing MCP resources."""
@@ -201,7 +200,9 @@ class MCPClient:
                 raise ValueError(msg)
 
         # Create message handler if needed
-        msg_handler = self._message_handler or MCPMessageHandler(self)
+        msg_handler = self._message_handler or MCPMessageHandler(
+            self, self._tool_change_callback
+        )
         return fastmcp.Client(
             transport,
             log_handler=self._log_handler,
@@ -213,25 +214,20 @@ class MCPClient:
             auth="oauth" if (force_oauth or oauth) else None,
         )
 
-    async def _refresh_tools(self) -> None:
-        """Refresh the list of available tools from the server."""
+    async def list_tools(self) -> list[MCPTool]:
+        """Get available tools directly from the server."""
         if not self._client or not self._connected:
-            return
+            msg = "Not connected to MCP server"
+            raise RuntimeError(msg)
 
         try:
             tools = await self._client.list_tools()
-            self._available_tools = tools
-            logger.debug("Refreshed tools from MCP server", num_tools=len(tools))
+            logger.debug("Listed tools from MCP server", num_tools=len(tools))
         except Exception as e:  # noqa: BLE001
-            logger.warning("Failed to refresh tools", error=e)
-            self._available_tools = []
-
-    def get_tools(self) -> list[dict[str, Any]]:
-        """Get tools in OpenAI function format."""
-        return [
-            {"type": "function", "function": mcp_tool_to_fn_schema(tool)}
-            for tool in self._available_tools
-        ]
+            logger.warning("Failed to list tools", error=e)
+            return []
+        else:
+            return tools
 
     async def list_prompts(self) -> list[MCPPrompt]:
         """Get available prompts from the server."""

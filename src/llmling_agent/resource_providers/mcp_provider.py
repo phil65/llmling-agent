@@ -56,12 +56,17 @@ class MCPResourceProvider(ResourceProvider):
         self._accessible_roots = accessible_roots
         self._elicitation_callback = elicitation_callback
         self._sampling_callback = sampling_callback
+
+        # Tool caching
+        self._tools_cache: list[Tool] | None = None
+
         self.client = MCPClient(
             config=self.server,
             elicitation_callback=self._elicitation_callback,
             sampling_callback=self._sampling_callback,
             progress_handler=self._progress_handler,
             accessible_roots=self._accessible_roots,
+            tool_change_callback=self._on_tools_changed,
         )
 
     def __repr__(self) -> str:
@@ -103,19 +108,38 @@ class MCPResourceProvider(ResourceProvider):
             logger.exception(msg, exc_info=e)
             raise RuntimeError(msg) from e
 
-    async def get_tools(self) -> list[Tool]:
-        """Get all tools from all connected servers."""
-        all_tools: list[Tool] = []
+    async def _on_tools_changed(self) -> None:
+        """Callback when tools change on the MCP server."""
+        logger.info("MCP tool list changed, refreshing provider cache")
+        self._tools_cache = None  # Invalidate cache
 
-        for tool in self.client._available_tools:
-            try:
-                tool_info = self.client.convert_tool(tool)
-                all_tools.append(tool_info)
-            except Exception:
-                logger.exception("Failed to create MCP tool", name=tool.name)
-                continue
-        logger.debug("Fetched MCP tools", num_tools=len(all_tools))
-        return all_tools
+    async def refresh_tools_cache(self) -> None:
+        """Refresh the tools cache by fetching from client."""
+        try:
+            # Get fresh tools from client
+            mcp_tools = await self.client.list_tools()
+            all_tools: list[Tool] = []
+
+            for tool in mcp_tools:
+                try:
+                    tool_info = self.client.convert_tool(tool)
+                    all_tools.append(tool_info)
+                except Exception:
+                    logger.exception("Failed to create MCP tool", name=tool.name)
+                    continue
+
+            self._tools_cache = all_tools
+            logger.debug("Refreshed MCP tools cache", num_tools=len(all_tools))
+        except Exception:
+            logger.exception("Failed to refresh MCP tools cache")
+            self._tools_cache = []
+
+    async def get_tools(self) -> list[Tool]:
+        """Get cached tools, refreshing if necessary."""
+        if self._tools_cache is None:
+            await self.refresh_tools_cache()
+
+        return self._tools_cache or []
 
     async def list_prompts(self) -> list[Prompt]:
         """Get all available prompts from MCP servers."""
