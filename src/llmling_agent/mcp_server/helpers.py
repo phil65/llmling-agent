@@ -119,3 +119,37 @@ def extract_tool_call_args(
                 return part.args_as_dict()
 
     return {}
+
+
+def content_block_as_text(content: ContentBlock) -> str:  # noqa: PLR0911
+
+    # Convert MCP messages to pydantic-ai parts
+    from mcp.types import (
+        AudioContent,
+        BlobResourceContents,
+        EmbeddedResource,
+        ImageContent,
+        ResourceLink,
+        TextContent,
+        TextResourceContents,
+    )
+
+    match content:
+        case TextContent(text=text):
+            return text
+        case EmbeddedResource(resource=TextResourceContents() as content):
+            return content.text
+        case EmbeddedResource(resource=BlobResourceContents() as content):
+            return f"[Resource: {content.uri}]"
+        case EmbeddedResource():
+            return f"[Resource: {content.uri}]"
+        case ResourceLink(uri=uri, description=desc):
+            return (
+                f"[Resource Link: {uri}] - {desc}" if desc else f"[Resource Link: {uri}]"
+            )
+        case ImageContent(mimeType=mime_type):
+            return f"[Image: {mime_type}]"
+        case AudioContent(mimeType=mime_type):
+            return f"[Audio: {mime_type}]"
+    msg = "Unexpected content type"
+    raise TypeError(msg, type=type(content).__name__)

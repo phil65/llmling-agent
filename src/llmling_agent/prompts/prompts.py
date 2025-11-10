@@ -492,6 +492,8 @@ class MCPClientPrompt(BasePrompt):
             RuntimeError: If prompt fetch fails
             ValueError: If prompt contains unsupported message types
         """
+        from llmling_agent.mcp_server.helpers import content_block_as_text
+
         try:
             result = await self.client.get_prompt(self.name, arguments)
         except Exception as e:
@@ -499,45 +501,12 @@ class MCPClientPrompt(BasePrompt):
             raise RuntimeError(msg) from e
 
         # Convert MCP messages to pydantic-ai parts
-        from mcp.types import (
-            AudioContent,
-            EmbeddedResource,
-            ImageContent,
-            ResourceLink,
-            TextContent,
-            TextResourceContents,
-        )
-
         parts: list[SystemPromptPart | UserPromptPart] = []
-
         for message in result.messages:
             # Extract text content from MCP message
-            text_content = ""
-
-            match message.content:
-                case TextContent(text=text):
-                    text_content = text
-                case EmbeddedResource(resource=resource):
-                    if isinstance(resource, TextResourceContents):
-                        text_content = resource.text
-                    else:
-                        text_content = f"[Resource: {resource.uri}]"
-                case ResourceLink(uri=uri, description=desc):
-                    text_content = f"[Resource Link: {uri}]"
-                    if desc:
-                        text_content += f" - {desc}"
-                case ImageContent(mimeType=mime_type):
-                    text_content = f"[Image: {mime_type}]"
-                case AudioContent(mimeType=mime_type):
-                    text_content = f"[Audio: {mime_type}]"
-                case _:
-                    # Fallback to string representation
-                    text_content = str(message.content)
-
+            text_content = content_block_as_text(message.content)
             # Convert based on role
             match message.role:
-                case "system":
-                    parts.append(SystemPromptPart(content=text_content))
                 case "user":
                     parts.append(UserPromptPart(content=text_content))
                 case "assistant":
