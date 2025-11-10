@@ -38,8 +38,8 @@ async def add_local_mcp_server(  # noqa: D417
 
     env = env_vars or {}
     config = StdioMCPServerConfig(name=name, command=command, args=args or [], env=env)
-    ctx.agent.mcp.add_server_config(config)
-    await ctx.agent.mcp.setup_server(config)
+    await ctx.agent.mcp.setup_server_runtime(config)
+    # New provider automatically available via aggregating provider
 
     return f"Added local MCP server {name!r} with command: {command}"
 
@@ -71,8 +71,8 @@ async def add_remote_mcp_server(  # noqa: D417
         case "streamable-http":
             config = StreamableHTTPMCPServerConfig(name=name, url=HttpUrl(url))
 
-    ctx.agent.mcp.add_server_config(config)
-    await ctx.agent.mcp.setup_server(config)
+    await ctx.agent.mcp.setup_server_runtime(config)
+    # New provider automatically available via aggregating provider
 
     return f"Added remote MCP server {name!r} at {url} using {transport} transport"
 

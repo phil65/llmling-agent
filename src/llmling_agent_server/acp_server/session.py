@@ -182,9 +182,9 @@ class ACPSession:
         cfgs = [convert_acp_mcp_server_to_config(s) for s in self.mcp_servers]
         # Define accessible roots for MCP servers
         # root = Path(self.cwd).resolve().as_uri() if self.cwd else None
-        for cfg in cfgs:
+        for _cfg in cfgs:
             try:
-                await self.agent_pool.mcp.setup_server(cfg)
+                # Server will be initialized when MCP manager enters context
                 self.log.info("Added MCP servers", server_count=len(cfgs))
                 await self._register_mcp_prompts_as_commands()
             except Exception:

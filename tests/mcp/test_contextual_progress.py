@@ -72,8 +72,12 @@ async def test_progress_handler_with_agent():
             f"test_progress tool not found in {tool_names}"
         )
 
-        client = next(iter(agent.mcp.clients.values()))  # Find the client
-        client._progress_handler.add_handler(progress_capture)  # Add our progress handler
+        # Get the MCP provider and access its client
+        mcp_providers = agent.mcp.get_mcp_providers()
+        provider = next(iter(mcp_providers))  # Find the first provider
+        provider.client._progress_handler.add_handler(
+            progress_capture
+        )  # Add our progress handler
         await agent.run("")  #  TestModel will call the test_progress tool
         with contextlib.suppress(TimeoutError):  # Wait for progress events to complete
             await asyncio.wait_for(progress_capture.completed.wait(), timeout=15.0)

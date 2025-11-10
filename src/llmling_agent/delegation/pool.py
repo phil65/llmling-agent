@@ -149,15 +149,17 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
         async with self._enter_lock:
             if self._running_count == 0:
                 try:
-                    # Add MCP tool provider to all agents
+                    # Initialize MCP manager first, then add aggregating provider
+                    await self.exit_stack.enter_async_context(self.mcp)
+                    aggregating_provider = self.mcp.get_aggregating_provider()
+
                     agents = list(self.agents.values())
                     teams = list(self.teams.values())
                     for agent in agents:
-                        agent.tools.add_provider(self.mcp)
+                        agent.tools.add_provider(aggregating_provider)
 
-                    # Collect all components to initialize
+                    # Collect remaining components to initialize (MCP already initialized)
                     components: list[AbstractAsyncContextManager[Any]] = [
-                        self.mcp,
                         self.storage,
                         *agents,
                         *teams,
@@ -194,10 +196,10 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
         async with self._enter_lock:
             self._running_count -= 1
             if self._running_count == 0:
-                # Remove MCP tool provider from all agents
+                # Remove MCP aggregating provider from all agents
+                aggregating_provider = self.mcp.get_aggregating_provider()
                 for agent in self.agents.values():
-                    if self.mcp in agent.tools.providers:
-                        agent.tools.remove_provider(self.mcp)
+                    agent.tools.remove_provider(aggregating_provider.name)
                 await self.cleanup()
 
     @property
@@ -652,7 +654,8 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
         from llmling_agent.agent import Agent
 
         agent: Agent[Any, TResult] = Agent(name=name, **kwargs, output_type=output_type)
-        agent.tools.add_provider(self.mcp)
+        # Add MCP aggregating provider from manager
+        agent.tools.add_provider(self.mcp.get_aggregating_provider())
         agent = await self.exit_stack.enter_async_context(agent)
         self.register(name, agent)
         return agent

@@ -158,18 +158,22 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
         self._on_node_added(index, new)
 
     def _on_node_added(self, index: int, node: MessageNode[Any, Any]):
-        """Handler for adding nodes to the team."""
+        """Handler for adding new nodes to the team."""
         from llmling_agent.agent import Agent
 
         if isinstance(node, Agent):
-            node.tools.add_provider(self.mcp)
+            # Add MCP aggregating provider from manager
+            aggregating_provider = self.mcp.get_aggregating_provider()
+            node.tools.add_provider(aggregating_provider)
 
     def _on_node_removed(self, index: int, node: MessageNode[Any, Any]):
         """Handler for removing nodes from the team."""
         from llmling_agent.agent import Agent
 
         if isinstance(node, Agent):
-            node.tools.remove_provider(self.mcp)
+            # Remove MCP aggregating provider
+            aggregating_provider = self.mcp.get_aggregating_provider()
+            node.tools.remove_provider(aggregating_provider.name)
 
     def __repr__(self) -> str:
         """Create readable representation."""

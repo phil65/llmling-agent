@@ -1,20 +1,18 @@
-"""Tool management for LLMling agents."""
+"""MCP server management for LLMling agents."""
 
 from __future__ import annotations
 
 import asyncio
 from contextlib import AsyncExitStack
-from typing import TYPE_CHECKING, Any, Self
+from typing import TYPE_CHECKING, Any, Self, cast
 
 from pydantic_ai import UsageLimits
 
 from llmling_agent.log import get_logger
-from llmling_agent.mcp_server import MCPClient
 from llmling_agent.models.content import AudioBase64Content, ImageBase64Content
-from llmling_agent.prompts.prompts import Prompt
-from llmling_agent.resource_providers import ResourceProvider
+from llmling_agent.resource_providers import AggregatingResourceProvider, ResourceProvider
+from llmling_agent.resource_providers.mcp_provider import MCPResourceProvider
 from llmling_agent_config.mcp_server import BaseMCPServerConfig
-from llmling_agent_config.resources import ResourceInfo
 
 
 if TYPE_CHECKING:
@@ -29,15 +27,14 @@ if TYPE_CHECKING:
     from llmling_agent.mcp_server.client import ContextualProgressHandler
     from llmling_agent.messaging.context import NodeContext
     from llmling_agent.models.content import BaseContent
-    from llmling_agent.tools.base import Tool
     from llmling_agent_config.mcp_server import MCPServerConfig
 
 
 logger = get_logger(__name__)
 
 
-class MCPManager(ResourceProvider):
-    """Manages MCP server connections and tools."""
+class MCPManager:
+    """Manages MCP server connections and distributes resource providers."""
 
     def __init__(
         self,
@@ -48,12 +45,17 @@ class MCPManager(ResourceProvider):
         progress_handler: ContextualProgressHandler | None = None,
         accessible_roots: list[str] | None = None,
     ):
-        super().__init__(name, owner=owner)
+        self.name = name
+        self.owner = owner
         self.servers: list[MCPServerConfig] = []
         for server in servers or []:
             self.add_server_config(server)
         self.context = context
-        self.clients: dict[str, MCPClient] = {}
+        self.providers: list[MCPResourceProvider] = []
+        self.aggregating_provider = AggregatingResourceProvider(
+            providers=cast(list[ResourceProvider], self.providers),
+            name=f"{name}_aggregated",
+        )
         self.exit_stack = AsyncExitStack()
         self._progress_handler = progress_handler
         self._accessible_roots = accessible_roots
@@ -64,15 +66,15 @@ class MCPManager(ResourceProvider):
         self.servers.append(resolved)
 
     def __repr__(self) -> str:
-        return f"MCPManager({self.servers!r})"
+        return f"MCPManager(name={self.name!r}, servers={len(self.servers)})"
 
     async def __aenter__(self) -> Self:
         try:
             # Setup directly provided servers and context servers concurrently
-            tasks = [self.setup_server(server) for server in self.servers]
+            tasks = [self._setup_server(server) for server in self.servers]
             if self.context and self.context.config and self.context.config.mcp_servers:
                 tasks.extend(
-                    self.setup_server(server)
+                    self._setup_server(server)
                     for server in self.context.config.get_mcp_servers()
                 )
 
@@ -188,91 +190,74 @@ class MCPManager(ResourceProvider):
             logger.exception("Sampling failed")
             return f"Sampling failed: {e!s}"
 
-    async def setup_server(self, config: MCPServerConfig) -> None:
-        """Set up a single MCP server connection."""
+    async def _setup_server(self, config: MCPServerConfig) -> None:
+        """Set up a single MCP server resource provider."""
         if not config.enabled:
             return
 
-        client = MCPClient(
-            config=config,
+        provider = MCPResourceProvider(
+            server=config,
+            name=f"{self.name}_{config.client_id}",
+            owner=self.owner,
+            context=self.context,
+            source="pool" if self.owner == "pool" else "node",
             elicitation_callback=self._elicitation_callback,
             sampling_callback=self._sampling_callback,
             progress_handler=self._progress_handler,
             accessible_roots=self._accessible_roots,
         )
-        client = await self.exit_stack.enter_async_context(client)
 
-        self.clients[config.client_id] = client
+        # Initialize the provider and add to exit stack
+        provider = await self.exit_stack.enter_async_context(provider)
+        self.providers.append(provider)
 
-    async def get_tools(self) -> list[Tool]:
-        """Get all tools from all connected servers."""
-        all_tools: list[Tool] = []
+    def get_mcp_providers(self) -> list[MCPResourceProvider]:
+        """Get all MCP resource providers managed by this manager."""
+        return list(self.providers)
 
-        for client in self.clients.values():
-            for tool in client._available_tools:
-                try:
-                    tool_info = client.convert_tool(tool)
-                    all_tools.append(tool_info)
-                except Exception:
-                    logger.exception("Failed to create MCP tool", name=tool.name)
-                    continue
-        logger.debug("Fetched MCP tools", num_tools=len(all_tools))
-        return all_tools
+    def get_aggregating_provider(self) -> AggregatingResourceProvider:
+        """Get the aggregating provider that contains all MCP providers."""
+        return self.aggregating_provider
 
-    async def list_prompts(self) -> list[Prompt]:
-        """Get all available prompts from MCP servers."""
+    async def setup_server_runtime(self, config: MCPServerConfig) -> MCPResourceProvider:
+        """Set up a single MCP server at runtime while manager is running.
 
-        async def get_client_prompts(client: MCPClient) -> list[Prompt]:
-            try:
-                result = await client.list_prompts()
-                client_prompts: list[Prompt] = []
-                for prompt in result:
-                    try:
-                        converted = Prompt.from_fastmcp(client, prompt)
-                        client_prompts.append(converted)
-                    except Exception:
-                        logger.exception("Failed to convert prompt", name=prompt.name)
-            except Exception:
-                logger.exception("Failed to get prompts from MCP server")
-                return []
-            else:
-                return client_prompts
+        Returns:
+            The newly created and initialized MCPResourceProvider
+        """
+        if not config.enabled:
+            msg = f"Server config {config.client_id} is disabled"
+            raise ValueError(msg)
 
-        results = await asyncio.gather(*[
-            get_client_prompts(client) for client in self.clients.values()
-        ])
-        return [prompt for client_prompts in results for prompt in client_prompts]
+        # Add the config first
+        self.add_server_config(config)
 
-    async def list_resources(self) -> list[ResourceInfo]:
-        """Get all available resources from MCP servers."""
-
-        async def get_client_resources(client: MCPClient) -> list[ResourceInfo]:
-            try:
-                result = await client.list_resources()
-                client_resources: list[ResourceInfo] = []
-                for resource in result:
-                    try:
-                        converted = await ResourceInfo.from_mcp_resource(resource)
-                        client_resources.append(converted)
-                    except Exception:
-                        logger.exception("Failed to convert resource", name=resource.name)
-            except Exception:
-                logger.exception("Failed to get resources from MCP server")
-                return []
-            else:
-                return client_resources
-
-        results = await asyncio.gather(
-            *[get_client_resources(client) for client in self.clients.values()],
-            return_exceptions=False,
+        # Create and initialize the provider
+        provider = MCPResourceProvider(
+            server=config,
+            name=f"{self.name}_{config.client_id}",
+            owner=self.owner,
+            context=self.context,
+            source="pool" if self.owner == "pool" else "node",
+            elicitation_callback=self._elicitation_callback,
+            sampling_callback=self._sampling_callback,
+            progress_handler=self._progress_handler,
+            accessible_roots=self._accessible_roots,
         )
-        return [resource for client_resources in results for resource in client_resources]
+
+        # Initialize the provider and add to exit stack
+        provider = await self.exit_stack.enter_async_context(provider)
+        self.providers.append(provider)
+        # Note: AggregatingResourceProvider automatically sees the new provider
+        # since it references self.providers list
+
+        return provider
 
     async def cleanup(self) -> None:
-        """Clean up all MCP connections."""
+        """Clean up all MCP connections and providers."""
         try:
             try:
-                # Clean up exit stack (which includes MCP clients)
+                # Clean up exit stack (which includes MCP providers)
                 await self.exit_stack.aclose()
             except RuntimeError as e:
                 if "different task" in str(e):
@@ -284,7 +269,7 @@ class MCPManager(ResourceProvider):
                 else:
                     raise
 
-            self.clients.clear()
+            self.providers.clear()
 
         except Exception as e:
             msg = "Error during MCP manager cleanup"
@@ -294,7 +279,7 @@ class MCPManager(ResourceProvider):
     @property
     def active_servers(self) -> list[str]:
         """Get IDs of active servers."""
-        return list(self.clients)
+        return [provider.server.client_id for provider in self.providers]
 
 
 if __name__ == "__main__":
@@ -306,32 +291,25 @@ if __name__ == "__main__":
     )
 
     async def main():
-        manager = MCPManager()
+        manager = MCPManager(servers=[cfg])
         async with manager:
-            await manager.setup_server(cfg)
-            prompts = await manager.list_prompts()
-            print(f"Found prompts: {prompts}")
+            providers = manager.get_mcp_providers()
+            print(f"Found {len(providers)} providers")
 
-            # Test static prompt (no arguments)
-            static_prompt = next(p for p in prompts if p.name == "static_prompt")
-            print(f"\n--- Testing static prompt: {static_prompt} ---")
-            components = await static_prompt.get_components()
-            assert components, "No prompt components found"
-            print(f"Found {len(components)} prompt components:")
-            for i, component in enumerate(components):
-                comp_type = type(component).__name__
-                print(f"  {i + 1}. {comp_type}: {component.content}")
+            if providers:
+                provider = providers[0]
+                prompts = await provider.list_prompts()
+                print(f"Found prompts: {prompts}")
 
-            # Test dynamic prompt (with arguments)
-            dynamic_prompt = next(p for p in prompts if p.name == "dynamic_prompt")
-            print(f"\n--- Testing dynamic prompt: {dynamic_prompt} ---")
-            components = await dynamic_prompt.get_components(
-                arguments={"some_arg": "Hello, world!"}
-            )
-            assert components, "No prompt components found"
-            print(f"Found {len(components)} prompt components:")
-            for i, component in enumerate(components):
-                comp_type = type(component).__name__
-                print(f"  {i + 1}. {comp_type}: {component.content}")
+                if prompts:
+                    # Test static prompt (no arguments)
+                    static_prompt = next(p for p in prompts if p.name == "static_prompt")
+                    print(f"\n--- Testing static prompt: {static_prompt} ---")
+                    components = await static_prompt.get_components()
+                    assert components, "No prompt components found"
+                    print(f"Found {len(components)} prompt components:")
+                    for i, component in enumerate(components):
+                        comp_type = type(component).__name__
+                        print(f"  {i + 1}. {comp_type}: {component.content}")
 
     asyncio.run(main())

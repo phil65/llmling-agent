@@ -14,8 +14,6 @@ from llmling_agent.tools.base import Tool
 
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
-
     from schemez.code_generation import ToolsetCodeGenerator
 
     from llmling_agent.resource_providers import ResourceProvider
@@ -26,7 +24,7 @@ class CodeModeResourceProvider(AggregatingResourceProvider):
 
     def __init__(
         self,
-        providers: Sequence[ResourceProvider],
+        providers: list[ResourceProvider],
         name: str = "meta_tools",
         include_signatures: bool = True,
         include_docstrings: bool = True,

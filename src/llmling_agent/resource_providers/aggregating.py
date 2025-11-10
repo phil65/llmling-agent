@@ -8,8 +8,6 @@ from llmling_agent.resource_providers import ResourceProvider
 
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
-
     from pydantic_ai import ModelRequestPart
 
     from llmling_agent.prompts.prompts import BasePrompt
@@ -20,15 +18,16 @@ if TYPE_CHECKING:
 class AggregatingResourceProvider(ResourceProvider):
     """Provider that combines resources from multiple providers."""
 
-    def __init__(self, providers: Sequence[ResourceProvider], name: str = "aggregating"):
+    def __init__(self, providers: list[ResourceProvider], name: str = "aggregating"):
         """Initialize provider with list of providers to aggregate.
 
         Args:
-            providers: Resource providers to aggregate
+            providers: Resource providers to aggregate (stores reference to list)
             name: Name for this provider
         """
         super().__init__(name=name)
-        self.providers = list(providers)
+        # Store reference to the providers list for dynamic updates
+        self.providers = providers
 
     async def get_tools(self) -> list[Tool]:
         """Get tools from all providers."""

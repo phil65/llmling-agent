@@ -17,8 +17,6 @@ from llmling_agent_config.execution_environments import LocalExecutionEnvironmen
 
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
-
     from llmling_agent.resource_providers import ResourceProvider
     from llmling_agent_config.execution_environments import ExecutionEnvironmentConfig
 
@@ -36,7 +34,7 @@ class SecureCodeModeResourceProvider(AggregatingResourceProvider):
 
     def __init__(
         self,
-        providers: Sequence[ResourceProvider],
+        providers: list[ResourceProvider],
         execution_config: ExecutionEnvironmentConfig | None = None,
         name: str = "secure_code_executor",
         include_signatures: bool = True,
@@ -55,7 +53,7 @@ class SecureCodeModeResourceProvider(AggregatingResourceProvider):
             server_host: Host for tool server
             server_port: Port for tool server
         """
-        super().__init__(providers=providers, name=name)
+        super().__init__(providers=list(providers), name=name)
         self.execution_config = execution_config or LocalExecutionEnvironmentConfig()
         self.include_signatures = include_signatures
         self.include_docstrings = include_docstrings

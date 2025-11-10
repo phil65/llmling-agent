@@ -224,7 +224,8 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         self.event_handler = MultiEventHandler[IndividualEventHandler](event_handlers)
         all_tools = list(tools or [])
         self.tools = ToolManager(all_tools)
-        self.tools.add_provider(self.mcp)
+
+        # MCP manager will be initialized in __aenter__ and providers added there
         if builtin_tools := ctx.config.get_tool_provider():
             self.tools.add_provider(builtin_tools)
 
@@ -296,8 +297,12 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                 for coro in coros:
                     await coro
 
-            for provider in self.context.config.get_toolsets():
-                self.tools.add_provider(provider)
+            # Add MCP aggregating provider after manager is initialized
+            aggregating_provider = self.mcp.get_aggregating_provider()
+            self.tools.add_provider(aggregating_provider)
+
+            for toolset_provider in self.context.config.get_toolsets():
+                self.tools.add_provider(toolset_provider)
         except Exception as e:
             msg = "Failed to initialize agent"
             raise RuntimeError(msg) from e
@@ -312,12 +317,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
     ):
         """Exit async context."""
         await super().__aexit__(exc_type, exc_val, exc_tb)
-        try:
-            await self.mcp.__aexit__(exc_type, exc_val, exc_tb)
-        finally:
-            pass
-            # for provider in await self.context.config.get_toolsets():
-            #     self.tools.remove_provider(provider.name)
+        # MCP manager cleanup is handled by MessageEmitter's __aexit__
 
     @overload
     def __and__(  # if other doesnt define deps, we take the agents one
@@ -427,7 +427,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         """Set agent context and propagate to provider."""
         self._context = value
         self.mcp.context = value
-        self._context = value
 
     def set_output_type(
         self,
