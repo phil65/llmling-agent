@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 
     from llmling_agent import Agent, MessageNode
     from llmling_agent.common_types import AnyCallable, ToolSource, ToolType
-    from llmling_agent.mcp_server.manager import Prompt
+    from llmling_agent.prompts.prompts import Prompt
     from llmling_agent.resource_providers import ResourceProvider
 
 
