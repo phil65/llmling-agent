@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+from types import TracebackType
 from typing import TYPE_CHECKING, Any
 
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
@@ -147,7 +148,12 @@ class SecureCodeModeResourceProvider(AggregatingResourceProvider):
         """Async context manager entry."""
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ):
         """Async context manager exit."""
         # Clean up the code execution provider if it exists
         if self._code_execution_provider is not None:
