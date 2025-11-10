@@ -298,7 +298,7 @@ if __name__ == "__main__":
 
             if providers:
                 provider = providers[0]
-                prompts = await provider.list_prompts()
+                prompts = await provider.get_prompts()
                 print(f"Found prompts: {prompts}")
 
                 if prompts:

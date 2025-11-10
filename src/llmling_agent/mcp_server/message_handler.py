@@ -25,9 +25,13 @@ class MCPMessageHandler:
         self,
         client: MCPClient,
         tool_change_callback: Callable[[], Awaitable[None]] | None = None,
+        prompt_change_callback: Callable[[], Awaitable[None]] | None = None,
+        resource_change_callback: Callable[[], Awaitable[None]] | None = None,
     ) -> None:
         self.client = client
         self._tool_change_callback = tool_change_callback
+        self._prompt_change_callback = prompt_change_callback
+        self._resource_change_callback = resource_change_callback
 
     async def __call__(
         self,
@@ -53,10 +57,8 @@ class MCPMessageHandler:
                     case mcp.types.CreateMessageRequest():
                         await self.on_create_message(message.request.root)
 
-            # notifications
             case mcp.types.ServerNotification():
                 await self.on_notification(message)
-                # Handle specific notifications
                 match message.root:
                     case mcp.types.CancelledNotification():
                         await self.on_cancelled(message.root)
@@ -106,6 +108,9 @@ class MCPMessageHandler:
     ) -> None:
         """Handle resource list changes."""
         logger.info("MCP resource list changed", message=message)
+        # Call the resource change callback if provided
+        if self._resource_change_callback:
+            await self._resource_change_callback()
 
     async def on_resource_updated(
         self, message: mcp.types.ResourceUpdatedNotification
@@ -124,6 +129,9 @@ class MCPMessageHandler:
     ) -> None:
         """Handle prompt list changes."""
         logger.info("MCP prompt list changed", message=message)
+        # Call the prompt change callback if provided
+        if self._prompt_change_callback:
+            await self._prompt_change_callback()
 
     async def on_cancelled(self, message: mcp.types.CancelledNotification) -> None:
         """Handle cancelled operations."""

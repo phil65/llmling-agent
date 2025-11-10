@@ -61,6 +61,12 @@ class MCPResourceProvider(ResourceProvider):
         self._tools_cache: list[Tool] | None = None
         self._saved_enabled_states: dict[str, bool] = {}
 
+        # Prompt caching
+        self._prompts_cache: list[Prompt] | None = None
+
+        # Resource caching
+        self._resources_cache: list[ResourceInfo] | None = None
+
         self.client = MCPClient(
             config=self.server,
             elicitation_callback=self._elicitation_callback,
@@ -68,6 +74,8 @@ class MCPResourceProvider(ResourceProvider):
             progress_handler=self._progress_handler,
             accessible_roots=self._accessible_roots,
             tool_change_callback=self._on_tools_changed,
+            prompt_change_callback=self._on_prompts_changed,
+            resource_change_callback=self._on_resources_changed,
         )
 
     def __repr__(self) -> str:
@@ -115,6 +123,16 @@ class MCPResourceProvider(ResourceProvider):
         self._saved_enabled_states = {t.name: t.enabled for t in self._tools_cache or []}
         self._tools_cache = None
 
+    async def _on_prompts_changed(self) -> None:
+        """Callback when prompts change on the MCP server."""
+        logger.info("MCP prompt list changed, refreshing provider cache")
+        self._prompts_cache = None
+
+    async def _on_resources_changed(self) -> None:
+        """Callback when resources change on the MCP server."""
+        logger.info("MCP resource list changed, refreshing provider cache")
+        self._resources_cache = None
+
     async def refresh_tools_cache(self) -> None:
         """Refresh the tools cache by fetching from client."""
         try:
@@ -148,39 +166,61 @@ class MCPResourceProvider(ResourceProvider):
 
         return self._tools_cache or []
 
-    async def list_prompts(self) -> list[Prompt]:
-        """Get all available prompts from MCP servers."""
+    async def refresh_prompts_cache(self) -> None:
+        """Refresh the prompts cache by fetching from client."""
         try:
             result = await self.client.list_prompts()
-            client_prompts: list[Prompt] = []
+            all_prompts: list[Prompt] = []
+
             for prompt in result:
                 try:
                     converted = Prompt.from_fastmcp(self.client, prompt)
-                    client_prompts.append(converted)
+                    all_prompts.append(converted)
                 except Exception:
                     logger.exception("Failed to convert prompt", name=prompt.name)
-        except Exception:
-            logger.exception("Failed to get prompts from MCP server")
-            return []
-        else:
-            return client_prompts
+                    continue
 
-    async def list_resources(self) -> list[ResourceInfo]:
-        """Get all available resources from MCP servers."""
+            self._prompts_cache = all_prompts
+            logger.debug("Refreshed MCP prompts cache", num_prompts=len(all_prompts))
+        except Exception:
+            logger.exception("Failed to refresh MCP prompts cache")
+            self._prompts_cache = []
+
+    async def get_prompts(self) -> list[Prompt]:
+        """Get cached prompts, refreshing if necessary."""
+        if self._prompts_cache is None:
+            await self.refresh_prompts_cache()
+
+        return self._prompts_cache or []
+
+    async def refresh_resources_cache(self) -> None:
+        """Refresh the resources cache by fetching from client."""
         try:
             result = await self.client.list_resources()
-            client_resources: list[ResourceInfo] = []
+            all_resources: list[ResourceInfo] = []
+
             for resource in result:
                 try:
                     converted = await ResourceInfo.from_mcp_resource(resource)
-                    client_resources.append(converted)
+                    all_resources.append(converted)
                 except Exception:
                     logger.exception("Failed to convert resource", name=resource.name)
+                    continue
+
+            self._resources_cache = all_resources
+            logger.debug(
+                "Refreshed MCP resources cache", num_resources=len(all_resources)
+            )
         except Exception:
-            logger.exception("Failed to get resources from MCP server")
-            return []
-        else:
-            return client_resources
+            logger.exception("Failed to refresh MCP resources cache")
+            self._resources_cache = []
+
+    async def get_resources(self) -> list[ResourceInfo]:
+        """Get cached resources, refreshing if necessary."""
+        if self._resources_cache is None:
+            await self.refresh_resources_cache()
+
+        return self._resources_cache or []
 
 
 if __name__ == "__main__":
@@ -194,7 +234,7 @@ if __name__ == "__main__":
     async def main():
         manager = MCPResourceProvider(cfg)
         async with manager:
-            prompts = await manager.list_prompts()
+            prompts = await manager.get_prompts()
             print(f"Found prompts: {prompts}")
 
             # Test static prompt (no arguments)

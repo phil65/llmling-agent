@@ -212,7 +212,9 @@ class ToolManager:
         for provider in self.external_providers:
             if isinstance(provider, MCPManager):
                 try:
-                    prompts = await provider.list_prompts()
+                    # Get prompts from MCP providers via the aggregating provider
+                    agg_provider = provider.get_aggregating_provider()
+                    prompts = await agg_provider.get_prompts()
                     all_prompts.extend(prompts)
                 except Exception:
                     logger.exception(

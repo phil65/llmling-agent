@@ -27,6 +27,7 @@ from pydantic_ai import (
 from schemez.functionschema import FunctionSchema
 
 from llmling_agent.log import get_logger
+from llmling_agent.mcp_server.constants import MCP_TO_LOGGING
 from llmling_agent.mcp_server.helpers import (
     _create_tool_annotations_with_context,
     _create_tool_signature_with_context,
@@ -82,18 +83,6 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-LEVEL_MAP = {
-    "debug": logging.DEBUG,
-    "info": logging.INFO,
-    "notice": logging.INFO,
-    "warning": logging.WARNING,
-    "error": logging.ERROR,
-    "critical": logging.CRITICAL,
-    "alert": logging.CRITICAL,
-    "emergency": logging.CRITICAL,
-}
-
-
 class MCPClient:
     """FastMCP-based client for communicating with MCP servers."""
 
@@ -106,6 +95,8 @@ class MCPClient:
         message_handler: MessageHandlerT | MessageHandler | None = None,
         accessible_roots: list[str] | None = None,
         tool_change_callback: Callable[[], Awaitable[None]] | None = None,
+        prompt_change_callback: Callable[[], Awaitable[None]] | None = None,
+        resource_change_callback: Callable[[], Awaitable[None]] | None = None,
     ):
         self._elicitation_callback = elicitation_callback
         self.config = config
@@ -117,6 +108,8 @@ class MCPClient:
         self._message_handler = message_handler
         self._accessible_roots = accessible_roots or []
         self._tool_change_callback = tool_change_callback
+        self._prompt_change_callback = prompt_change_callback
+        self._resource_change_callback = resource_change_callback
         self._client = self._get_client(self.config)
         self._connected = False
 
@@ -168,7 +161,7 @@ class MCPClient:
 
     async def _log_handler(self, message: LogMessage) -> None:
         """Handle server log messages."""
-        level = LEVEL_MAP.get(message.level.lower(), logging.INFO)
+        level = MCP_TO_LOGGING.get(message.level, logging.INFO)
         logger.log(level, "MCP Server: ", data=message.data)
 
     def _get_client(self, config: MCPServerConfig, force_oauth: bool = False):
@@ -201,7 +194,10 @@ class MCPClient:
 
         # Create message handler if needed
         msg_handler = self._message_handler or MCPMessageHandler(
-            self, self._tool_change_callback
+            self,
+            self._tool_change_callback,
+            self._prompt_change_callback,
+            self._resource_change_callback,
         )
         return fastmcp.Client(
             transport,
