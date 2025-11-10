@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 
     from llmling_agent import Agent, MessageNode
     from llmling_agent.common_types import AnyCallable, ToolSource, ToolType
-    from llmling_agent.prompts.prompts import Prompt
+    from llmling_agent.prompts.prompts import MCPClientPrompt
     from llmling_agent.resource_providers import ResourceProvider
 
 
@@ -198,7 +198,7 @@ class ToolManager:
         """Get tool names based on state."""
         return {t.name for t in await self.get_tools() if t.matches_filter(state)}
 
-    async def list_prompts(self) -> list[Prompt]:
+    async def list_prompts(self) -> list[MCPClientPrompt]:
         """Get all prompts from all providers.
 
         Returns:
@@ -206,7 +206,7 @@ class ToolManager:
         """
         from llmling_agent.mcp_server.manager import MCPManager
 
-        all_prompts: list[Prompt] = []
+        all_prompts: list[MCPClientPrompt] = []
 
         # Get prompts from all external providers (check if they're MCP providers)
         for provider in self.external_providers:

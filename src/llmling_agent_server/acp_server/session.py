@@ -58,7 +58,7 @@ if TYPE_CHECKING:
     from llmling_agent.agent.events import RichAgentStreamEvent
     from llmling_agent.models.content import BaseContent
     from llmling_agent.prompts.manager import PromptManager
-    from llmling_agent.prompts.prompts import Prompt
+    from llmling_agent.prompts.prompts import MCPClientPrompt
     from llmling_agent.resource_providers.aggregating import AggregatingResourceProvider
     from llmling_agent_server.acp_server.acp_agent import LLMlingACPAgent
     from llmling_agent_server.acp_server.session_manager import ACPSessionManager
@@ -645,7 +645,7 @@ class ACPSession:
         """
         self._update_callbacks.append(callback)
 
-    def create_mcp_command(self, prompt: Prompt) -> Command:
+    def create_mcp_command(self, prompt: MCPClientPrompt) -> Command:
         """Convert MCP prompt to slashed Command.
 
         Args:

@@ -6,7 +6,7 @@ from functools import wraps
 from typing import TYPE_CHECKING, Any
 
 from llmling_agent.log import get_logger
-from llmling_agent.prompts.prompts import DynamicPrompt, PromptParameter
+from llmling_agent.prompts.prompts import DynamicPrompt
 from llmling_agent.utils.importing import import_callable
 
 
@@ -79,9 +79,9 @@ def prepare_prompts_for_zed(prompts: Sequence[BasePrompt]) -> list[BasePrompt]:
             continue
 
         # Skip if only one or zero parameters
-        if len(prompt.arguments) <= 1:
-            result.append(prompt)
-            continue
+        # if len(prompt.arguments) <= 1:
+        #     result.append(prompt)
+        #     continue
 
         try:
             # Get and wrap the original function
@@ -93,30 +93,15 @@ def prepare_prompts_for_zed(prompts: Sequence[BasePrompt]) -> list[BasePrompt]:
             wrapped_func = create_zed_wrapper(original_func)
 
             # Create new prompt with single input parameter
-            args = ", ".join(a.name for a in prompt.arguments)
             new_prompt = DynamicPrompt(
                 name=prompt.name,
                 description=prompt.description,
                 import_path=f"{wrapped_func.__module__}.{wrapped_func.__qualname__}",
                 template=prompt.template,
                 completions=prompt.completions,
-                arguments=[
-                    PromptParameter(
-                        name="input",
-                        description=(
-                            "Format: 'first_arg :: key1=value1 | key2=value2' "
-                            f"(Original args: {args})"
-                        ),
-                        required=True,
-                    )
-                ],
             )
             result.append(new_prompt)
-            logger.debug(
-                "Wrapped prompt for Zed mode",
-                name=prompt.name,
-                num_args=len(prompt.arguments),
-            )
+            logger.debug("Wrapped prompt for Zed mode", name=prompt.name)
 
         except Exception:
             logger.exception("Failed to wrap function for prompt", name=prompt.name)

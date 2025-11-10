@@ -3,22 +3,25 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import field
 import inspect
 import os
-from typing import TYPE_CHECKING, Annotated, Any, Literal, Self, get_type_hints
+from typing import TYPE_CHECKING, Annotated, Any, Literal, Self
 
 from fastmcp.prompts.prompt import (
     Prompt as FastMCPPrompt,
     PromptArgument as FastMCPArgument,
 )
-from pydantic import Field, ImportString
+from mcp.types import Prompt as MCPPrompt, PromptArgument
+from pydantic import ConfigDict, Field, ImportString
 from pydantic_ai import BinaryContent, SystemPromptPart, UserPromptPart
 from pydantic_ai.messages import ImageUrl
 from schemez import Schema
 import upath
+from upathtools import to_upath
 
 from llmling_agent.log import get_logger
+from llmling_agent.mcp_server import MCPClient
 from llmling_agent.utils import importing
 from llmling_agent.utils.inspection import execute
 
@@ -27,10 +30,7 @@ if TYPE_CHECKING:
     from collections.abc import Mapping
 
     from fastmcp.prompts.prompt import FunctionPrompt
-    from mcp.types import Prompt as MCPPrompt, PromptArgument
     from pydantic_ai import ModelRequestPart
-
-    from llmling_agent.mcp_server import MCPClient
 
 
 logger = get_logger(__name__)
@@ -141,20 +141,9 @@ class BasePrompt(Schema):
     title: str | None = None
     """Title of the prompt."""
 
-    arguments: list[PromptParameter] = Field(default_factory=list)
-    """List of arguments that this prompt accepts."""
-
     metadata: dict[str, Any] = Field(default_factory=dict)
     """Additional metadata for storing custom prompt information."""
     # messages: list[PromptMessage]
-
-    def validate_arguments(self, provided: dict[str, Any]) -> None:
-        """Validate that required arguments are provided."""
-        required = {arg.name for arg in self.arguments if arg.required}
-        missing = required - set(provided)
-        if missing:
-            msg = f"Missing required arguments: {', '.join(missing)}"
-            raise ValueError(msg)
 
     async def format(
         self, arguments: dict[str, Any] | None = None
@@ -174,13 +163,7 @@ class BasePrompt(Schema):
 
     def to_mcp_prompt(self) -> MCPPrompt:
         """Convert to MCP Prompt."""
-        from mcp.types import Prompt as MCPPrompt
-
-        if self.name is None:
-            msg = "Prompt name not set. This should be set during registration."
-            raise ValueError(msg)
-        args = [arg.to_mcp_argument() for arg in self.arguments]
-        return MCPPrompt(name=self.name, description=self.description, arguments=args)
+        raise NotImplementedError
 
 
 class StaticPrompt(BasePrompt):
@@ -191,6 +174,27 @@ class StaticPrompt(BasePrompt):
 
     type: Literal["text"] = Field("text", init=False)
     """Discriminator field identifying this as a static text prompt."""
+
+    arguments: list[PromptParameter] = Field(default_factory=list)
+    """List of arguments that this prompt accepts."""
+
+    def validate_arguments(self, provided: dict[str, Any]) -> None:
+        """Validate that required arguments are provided."""
+        required = {arg.name for arg in self.arguments if arg.required}
+        missing = required - set(provided)
+        if missing:
+            msg = f"Missing required arguments: {', '.join(missing)}"
+            raise ValueError(msg)
+
+    def to_mcp_prompt(self) -> MCPPrompt:
+        """Convert to MCP Prompt."""
+        from mcp.types import Prompt as MCPPrompt
+
+        if self.name is None:
+            msg = "Prompt name not set. This should be set during registration."
+            raise ValueError(msg)
+        args = [arg.to_mcp_argument() for arg in self.arguments]
+        return MCPPrompt(name=self.name, description=self.description, arguments=args)
 
     def to_fastmcp_prompt(self) -> FastMCPPrompt:
         params = [
@@ -315,7 +319,6 @@ class DynamicPrompt(BasePrompt):
     ) -> list[PromptMessage]:
         """Format this prompt with given arguments."""
         args = arguments or {}
-        self.validate_arguments(args)
         try:
             result = await execute(self.fn(**args))
             template = self.template or "{result}"
@@ -365,14 +368,35 @@ class DynamicPrompt(BasePrompt):
 
         # Get function metadata
         name = name_override or getattr(fn, "__name__", "unknown")
-        sig = inspect.signature(fn)
-        hints = get_type_hints(fn, include_extras=True, localns=locals())
 
         # Parse docstring
         docstring = inspect.getdoc(fn)
         if docstring:
             parsed = parse_docstring(docstring)
             description = description_override or parsed.short_description
+        else:
+            description = description_override or f"Prompt from {name}"
+
+        path = f"{fn.__module__}.{fn.__qualname__}"
+        return cls(
+            name=name,
+            description=description or "",
+            import_path=path,
+            template=template_override,
+            metadata={"source": "function", "import_path": path},
+        )
+
+    def to_mcp_prompt(self) -> MCPPrompt:
+        """Convert to MCP Prompt."""
+        from docstring_parser import parse as parse_docstring
+        from mcp.types import Prompt as MCPPrompt
+
+        sig = inspect.signature(self.fn)
+        # hints = get_type_hints(self.fn, include_extras=True, localns=locals())
+        docstring = inspect.getdoc(self.fn)
+
+        if docstring:
+            parsed = parse_docstring(docstring)
             # Create mapping of param names to descriptions
             arg_docs = {
                 param.arg_name: param.description
@@ -380,7 +404,6 @@ class DynamicPrompt(BasePrompt):
                 if param.arg_name and param.description
             }
         else:
-            description = description_override or f"Prompt from {name}"
             arg_docs = {}
 
         # Create arguments
@@ -395,23 +418,17 @@ class DynamicPrompt(BasePrompt):
                 description=arg_docs.get(param_name),
                 required=required,
                 default=None if param.default is param.empty else param.default,
-                completion_function=completions.get(param_name),
             )
             arguments.append(arg)
 
-        path = f"{fn.__module__}.{fn.__qualname__}"
-        return cls(
-            name=name,
-            description=description or "",
-            arguments=arguments,
-            import_path=path,
-            template=template_override,
-            metadata={"source": "function", "import_path": path},
-        )
+        if self.name is None:
+            msg = "Prompt name not set. This should be set during registration."
+            raise ValueError(msg)
+        args = [arg.to_mcp_argument() for arg in arguments]
+        return MCPPrompt(name=self.name, description=self.description, arguments=args)
 
 
-@dataclass
-class Prompt:
+class MCPClientPrompt(BasePrompt):
     """A prompt that can be rendered from an MCP server."""
 
     client: MCPClient
@@ -420,11 +437,23 @@ class Prompt:
     name: str
     """The name of the prompt."""
 
-    description: str | None = None
-    """A description of the prompt."""
-
     arguments: list[dict[str, Any]] = field(default_factory=list)
     """A list of arguments for the prompt."""
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    def to_mcp_prompt(self) -> MCPPrompt:
+        """Convert to MCP Prompt."""
+        return MCPPrompt(
+            name=self.name,
+            description=self.description,
+            arguments=[
+                PromptArgument(
+                    name=i["name"], description=i["description"], required=i["required"]
+                )
+                for i in self.arguments
+            ],
+        )
 
     @classmethod
     def from_fastmcp(cls, client: MCPClient, prompt: MCPPrompt) -> Self:
@@ -548,13 +577,17 @@ class FilePrompt(BasePrompt):
     watch: bool = False
     """Whether to watch the file for changes and reload automatically."""
 
+    def to_mcp_prompt(self) -> MCPPrompt:
+        """Convert to MCP Prompt."""
+        return MCPPrompt(
+            name=self.name or upath.UPath(self.path).name,
+            description=self.description,
+        )
+
     @property
     def messages(self) -> list[PromptMessage]:
         """Get messages from file content."""
-        from upathtools import to_upath
-
         content = to_upath(self.path).read_text("utf-8")
-
         match self.fmt:
             case "text":
                 # Simple text format - whole file as user message
@@ -574,16 +607,7 @@ class FilePrompt(BasePrompt):
         self, arguments: dict[str, Any] | None = None
     ) -> list[PromptMessage]:
         """Format the file content with arguments."""
-        from upathtools import to_upath
-
         args = arguments or {}
-        self.validate_arguments(args)
-
-        # Add default values for optional arguments
-        for arg in self.arguments:
-            if arg.name not in args and not arg.required:
-                args[arg.name] = arg.default if arg.default is not None else ""
-
         content = to_upath(self.path).read_text("utf-8")
 
         if self.fmt == "jinja2":

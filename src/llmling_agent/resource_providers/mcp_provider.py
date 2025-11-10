@@ -7,8 +7,6 @@ from contextlib import AsyncExitStack
 from typing import TYPE_CHECKING, Self
 
 from llmling_agent.log import get_logger
-from llmling_agent.mcp_server import MCPClient
-from llmling_agent.prompts.prompts import Prompt
 from llmling_agent.resource_providers import ResourceProvider
 from llmling_agent_config.mcp_server import BaseMCPServerConfig
 from llmling_agent_config.resources import ResourceInfo
@@ -23,6 +21,7 @@ if TYPE_CHECKING:
 
     from llmling_agent.mcp_server.client import ContextualProgressHandler
     from llmling_agent.messaging.context import NodeContext
+    from llmling_agent.prompts.prompts import MCPClientPrompt
     from llmling_agent.tools.base import Tool
     from llmling_agent_config.mcp_server import MCPServerConfig
 
@@ -45,6 +44,8 @@ class MCPResourceProvider(ResourceProvider):
         progress_handler: ContextualProgressHandler | None = None,
         accessible_roots: list[str] | None = None,
     ):
+        from llmling_agent.mcp_server import MCPClient
+
         super().__init__(name, owner=owner)
         self.server = (
             BaseMCPServerConfig.from_string(server) if isinstance(server, str) else server
@@ -62,7 +63,7 @@ class MCPResourceProvider(ResourceProvider):
         self._saved_enabled_states: dict[str, bool] = {}
 
         # Prompt caching
-        self._prompts_cache: list[Prompt] | None = None
+        self._prompts_cache: list[MCPClientPrompt] | None = None
 
         # Resource caching
         self._resources_cache: list[ResourceInfo] | None = None
@@ -168,13 +169,15 @@ class MCPResourceProvider(ResourceProvider):
 
     async def refresh_prompts_cache(self) -> None:
         """Refresh the prompts cache by fetching from client."""
+        from llmling_agent.prompts.prompts import MCPClientPrompt
+
         try:
             result = await self.client.list_prompts()
-            all_prompts: list[Prompt] = []
+            all_prompts: list[MCPClientPrompt] = []
 
             for prompt in result:
                 try:
-                    converted = Prompt.from_fastmcp(self.client, prompt)
+                    converted = MCPClientPrompt.from_fastmcp(self.client, prompt)
                     all_prompts.append(converted)
                 except Exception:
                     logger.exception("Failed to convert prompt", name=prompt.name)
@@ -186,7 +189,7 @@ class MCPResourceProvider(ResourceProvider):
             logger.exception("Failed to refresh MCP prompts cache")
             self._prompts_cache = []
 
-    async def get_prompts(self) -> list[Prompt]:
+    async def get_prompts(self) -> list[MCPClientPrompt]:  # type: ignore
         """Get cached prompts, refreshing if necessary."""
         if self._prompts_cache is None:
             await self.refresh_prompts_cache()
@@ -234,7 +237,7 @@ if __name__ == "__main__":
     async def main():
         manager = MCPResourceProvider(cfg)
         async with manager:
-            prompts = await manager.get_prompts()
+            prompts = await manager.get_prompts()  # type: ignore
             print(f"Found prompts: {prompts}")
 
             # Test static prompt (no arguments)
