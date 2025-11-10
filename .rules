@@ -10,18 +10,12 @@
 ## Key Dependencies
 
 ### Core Framework
-- `llmling`: Base resource and configuration system
-- `pydantic_ai_slim`: PydanticAI provider support
-- `llmling-models`: Meta-model system for provider abstraction
+- `pydantic-ai`: PydanticAI provider support
+- `llmling-models`: Additional models and pydantic-ai tools
+- `slashed`: SLash command framework
 - `sqlmodel`: Type-safe SQL database interactions
-- `psygnal`: Signal-based messaging system
-
-### CLI
 - `typer`: CLI framework with rich help and completion
 
-### Optional Integrations
-- `fastapi` + `uvicorn`: Web server capabilities
-- `mcp`: Model Context Protocol support
 
 ## Build System
 
@@ -29,40 +23,17 @@
 ```bash
 # Install dependencies
 uv sync --all-extras
-
-# Update dependencies
-uv lock --upgrade
-
 # Add new dependency
 uv add package-name
 ```
 
-### Development Commands
-```bash
-# Run tests (parallel execution)
-uv run pytest -n auto
-
-# Lint and format code
-uv run ruff check --fix --unsafe-fixes .
-uv run ruff format .
-uv run mypy src/llmling_agent/
-
-# Build documentation
-uv run mknodes build
-
-```
+ALWAYS use uv for all python related tasks.
 
 ### Quality Assurance
-- **Ruff**: Fast Python linter and formatter
-- **MyPy**: Static type checking
-- **Pytest**: Testing framework with async support
-- **Pre-commit**: Git hooks for code quality
-- **Tach**: Module dependency enforcement
+- "duty lint" for all linting and formatting checks
+- "duty test" for running tests
+- "uv run pytest ..." for specific test files directories, patterns
 
-## Architecture Patterns
-
-### Modular Design
-- Separate packages for each major component (`llmling_agent_*`)
 
 
 # Project Structure & Organization
@@ -98,11 +69,6 @@ src/
 
 ## Key Architectural Patterns
 
-### Module Dependencies
-Dependencies are strictly enforced by `tach.toml`:
-- Core `llmling_agent` depends on most other modules
-- CLI modules depend on core + commands + UI modules
-- No circular dependencies allowed
 
 ### Configuration System
 - **YAML-first**: All configuration via YAML files with JSON schema validation
@@ -131,39 +97,25 @@ Dependencies are strictly enforced by `tach.toml`:
 - **Schema validation**: All YAML configs have corresponding Pydantic models
 
 ### Test Files
-- **Test prefix**: `test_*.py` for pytest discovery
+- **Test prefix**: `test_*.py` for pytest discovery, in folder `<project>/tests`
 - **Mirror structure**: Test files mirror source structure
 - **Async tests**: Use `pytest-asyncio` for async test functions
 
 ## Import Patterns
-
-### Internal Imports
 ```python
-# Relative imports within packages
-from .models import AgentConfig
-from ..messaging import ChatMessage
-
-# Absolute imports for cross-package
+# Absolute imports
 from llmling_agent import Agent
 from llmling_agent_config import AgentsManifest
 ```
 
-### External Dependencies
-```python
-# Standard library first
-import asyncio
-from pathlib import Path
-
-# Third-party libraries
-import pydantic
-from typing import TypedDict
-
-# Local imports last
-from llmling_agent import Agent
-```
 
 ### Type Annotations
 - **Full typing**: All functions and methods have type annotations
 - **Generic types**: Use `TypeVar` for generic agent types
 - **Union types**: Use `|` syntax for Python 3.12+ union types
 - **Optional imports**: Use `TYPE_CHECKING` for type-only imports
+
+
+Rules:
+- DO NOT USE getattr and hasattr in very rare exceptions. Always provide full type safety.
+- never resort to shortcuts, never leave out stuff with TODOs unless explicitely asked.
