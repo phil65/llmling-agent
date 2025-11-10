@@ -8,7 +8,7 @@ import mcp
 from mcp import types
 
 from llmling_agent.log import get_logger
-from llmling_agent.mcp_server import constants, conversions
+from llmling_agent.mcp_server import constants
 
 
 if TYPE_CHECKING:
@@ -86,6 +86,8 @@ def register_handlers(llm_server: MCPServer):  # noqa: PLR0915
         arguments: dict[str, str] | None = None,
     ) -> types.GetPromptResult:
         """Handle prompts/get request."""
+        from llmling_agent.mcp_server import conversions
+
         try:
             parts = await llm_server.provider.get_request_parts(name, arguments)
             messages = [msg for p in parts for msg in conversions.to_mcp_messages(p)]

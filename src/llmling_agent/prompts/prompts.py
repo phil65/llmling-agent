@@ -362,16 +362,11 @@ class DynamicPrompt(BasePrompt):
         from docstring_parser import parse as parse_docstring
 
         completions = completions or {}
-        # Import if string path provided
         if isinstance(fn, str):
             fn = importing.import_callable(fn)
 
-        # Get function metadata
         name = name_override or getattr(fn, "__name__", "unknown")
-
-        # Parse docstring
-        docstring = inspect.getdoc(fn)
-        if docstring:
+        if docstring := inspect.getdoc(fn):
             parsed = parse_docstring(docstring)
             description = description_override or parsed.short_description
         else:
@@ -393,9 +388,7 @@ class DynamicPrompt(BasePrompt):
 
         sig = inspect.signature(self.fn)
         # hints = get_type_hints(self.fn, include_extras=True, localns=locals())
-        docstring = inspect.getdoc(self.fn)
-
-        if docstring:
+        if docstring := inspect.getdoc(self.fn):
             parsed = parse_docstring(docstring)
             # Create mapping of param names to descriptions
             arg_docs = {
@@ -492,7 +485,7 @@ class MCPClientPrompt(BasePrompt):
             RuntimeError: If prompt fetch fails
             ValueError: If prompt contains unsupported message types
         """
-        from llmling_agent.mcp_server.helpers import content_block_as_text
+        from llmling_agent.mcp_server.conversions import content_block_as_text
 
         try:
             result = await self.client.get_prompt(self.name, arguments)

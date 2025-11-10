@@ -354,9 +354,9 @@ class MCPClient:
         mcp_content: Sequence[ContentBlock | TextResourceContents | BlobResourceContents],
     ) -> list[str | BinaryContent]:
         """Convert MCP content blocks to PydanticAI content types."""
-        from llmling_agent.mcp_server.helpers import convert_mcp_content
+        from llmling_agent.mcp_server.conversions import convert_mcp_content
 
-        return [convert_mcp_content(block) for block in mcp_content]
+        return await convert_mcp_content(mcp_content)
 
 
 if __name__ == "__main__":
