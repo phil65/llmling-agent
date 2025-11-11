@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
 
     from mcp.types import Tool as MCPTool
+    from schemez.functionschema import FunctionSchema
     from schemez.typedefs import Property
 
     from llmling_agent.common_types import ToolSource
@@ -47,14 +48,19 @@ class Tool[TOutputType = Any]:
     """The actual tool implementation"""
 
     name: str
+    """The name of the tool."""
 
     description: str = ""
+    """The description of the tool."""
 
     schema_override: schemez.OpenAIFunctionDefinition | None = None
+    """Schema override. If not set, the schema is inferred from the callable."""
 
     hints: ToolHints | None = None
+    """Hints for the tool."""
 
     import_path: str | None = None
+    """The import path for the tool."""
 
     enabled: bool = True
     """Whether the tool is currently enabled"""
@@ -84,11 +90,18 @@ class Tool[TOutputType = Any]:
     """The category of the tool."""
 
     @property
+    def schema_obj(self) -> FunctionSchema:
+        """Get the OpenAI function schema for the tool."""
+        return schemez.create_schema(
+            self.callable,
+            name_override=self.name,
+            description_override=self.description,
+        )
+
+    @property
     def schema(self) -> schemez.OpenAIFunctionTool:
         """Get the OpenAI function schema for the tool."""
-        schema = schemez.create_schema(self.callable).model_dump_openai()
-        schema["function"]["name"] = self.name
-        schema["function"]["description"] = self.description
+        schema = self.schema_obj.model_dump_openai()
         if self.schema_override:
             schema["function"] = self.schema_override
         return schema
