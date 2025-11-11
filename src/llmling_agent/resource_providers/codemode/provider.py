@@ -19,6 +19,27 @@ if TYPE_CHECKING:
     from llmling_agent.resource_providers import ResourceProvider
 
 
+USAGE = """
+Usage notes:
+- Write your code inside an 'async def main():' function
+- All tool functions are async, use 'await'
+- Use 'return' statements to return values from main()
+- Generated model classes are available for type checking
+- Use 'await report_progress(current, total, message)' for long-running operations
+- DO NOT call asyncio.run() or try to run the main function yourself
+- DO NOT import asyncio or other modules - tools are already available
+- Example:
+    async def main():
+        for i in range(5):
+            await report_progress(i, 5, f'Step {i+1} for {name}')
+            should_continue = await ask_user('Continue?', 'bool')
+            if not should_continue:
+                break
+        return f'Completed for {name}'
+
+"""
+
+
 class CodeModeResourceProvider(AggregatingResourceProvider):
     """Provider that wraps tools into a single Python execution environment."""
 
@@ -28,6 +49,7 @@ class CodeModeResourceProvider(AggregatingResourceProvider):
         name: str = "meta_tools",
         include_signatures: bool = True,
         include_docstrings: bool = True,
+        usage_notes: str = USAGE,
     ):
         """Initialize meta provider.
 
@@ -36,16 +58,19 @@ class CodeModeResourceProvider(AggregatingResourceProvider):
             name: Provider name
             include_signatures: Include function signatures in documentation
             include_docstrings: Include function docstrings in documentation
+            usage_notes: Usage notes for the codemode tool
         """
         super().__init__(providers=providers, name=name)
         self.include_signatures = include_signatures
         self.include_docstrings = include_docstrings
         self._toolset_generator: ToolsetCodeGenerator | None = None
+        self.usage_notes = usage_notes
 
     async def get_tools(self) -> list[Tool]:
         """Return single meta-tool for Python execution with available tools."""
         toolset_generator = await self._get_code_generator()
         desc = toolset_generator.generate_tool_description()
+        desc += self.usage_notes
         return [Tool.from_callable(self.execute, description_override=desc)]
 
     async def execute(  # noqa: D417

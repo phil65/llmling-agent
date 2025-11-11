@@ -11,7 +11,10 @@ from llmling_agent.resource_providers.codemode.code_execution_provider import (
     CodeExecutionProvider,
 )
 from llmling_agent.resource_providers.codemode.helpers import fix_code
-from llmling_agent.resource_providers.codemode.provider import CodeModeResourceProvider
+from llmling_agent.resource_providers.codemode.provider import (
+    USAGE,
+    CodeModeResourceProvider,
+)
 from llmling_agent.tools.base import Tool
 from llmling_agent_config.execution_environments import LocalExecutionEnvironmentConfig
 
@@ -41,6 +44,7 @@ class SecureCodeModeResourceProvider(CodeModeResourceProvider):
         name: str = "secure_code_executor",
         include_signatures: bool = True,
         include_docstrings: bool = True,
+        usage_notes: str = USAGE,
         server_host: str = "localhost",
         server_port: int = 8000,
     ):
@@ -52,6 +56,7 @@ class SecureCodeModeResourceProvider(CodeModeResourceProvider):
             name: Provider name
             include_signatures: Include function signatures in documentation
             include_docstrings: Include function docstrings in documentation
+            usage_notes: Usage notes for the provider
             server_host: Host for tool server
             server_port: Port for tool server
         """
@@ -60,6 +65,7 @@ class SecureCodeModeResourceProvider(CodeModeResourceProvider):
             name=name,
             include_signatures=include_signatures,
             include_docstrings=include_docstrings,
+            usage_notes=usage_notes,
         )
         self.execution_config = execution_config or LocalExecutionEnvironmentConfig()
         self.server_host = server_host
