@@ -2,19 +2,13 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
+from pydantic_ai import RunContext  # noqa: TC002
 import pytest
 
+from llmling_agent import AgentContext  # noqa: TC001
 from llmling_agent.resource_providers import StaticResourceProvider
 from llmling_agent.resource_providers.codemode.provider import CodeModeResourceProvider
 from llmling_agent.tools.base import Tool
-
-
-if TYPE_CHECKING:
-    from pydantic_ai import RunContext
-
-    from llmling_agent import AgentContext
 
 
 async def tool_with_run_context(ctx: RunContext[None], message: str) -> str:

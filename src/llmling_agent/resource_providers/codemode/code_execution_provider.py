@@ -7,11 +7,7 @@ import contextlib
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from anyenv.code_execution.models import ServerInfo
-from fastapi import FastAPI
-
 from llmling_agent.log import get_logger
-from llmling_agent.resource_providers.codemode.helpers import tools_to_codegen
 
 
 if TYPE_CHECKING:
@@ -19,6 +15,8 @@ if TYPE_CHECKING:
     import socket
 
     from anyenv.code_execution.base import ExecutionEnvironment
+    from anyenv.code_execution.models import ServerInfo
+    from fastapi import FastAPI
     from schemez import ToolsetCodeGenerator
     import uvicorn
 
@@ -89,6 +87,8 @@ class CodeExecutionProvider:
         Returns:
             CodeExecutionProvider instance
         """
+        from llmling_agent.resource_providers.codemode.helpers import tools_to_codegen
+
         toolset_gen = tools_to_codegen(tools, include_signatures, include_docstrings)
         server_handler = ToolServerLifecycleHandler(toolset_gen, server_host, server_port)
         execution_env = env_config.get_provider(server_handler)
@@ -138,6 +138,9 @@ class ToolServerLifecycleHandler:
 
     async def __aenter__(self) -> ServerInfo:
         """Start FastAPI server with tool routes."""
+        from anyenv.code_execution.models import ServerInfo
+        from fastapi import FastAPI
+
         if self.server is not None:
             return ServerInfo(url=f"http://{self.host}:{self.port}", port=self.port)
         # Create socket and get actual port
