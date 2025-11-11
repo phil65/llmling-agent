@@ -4,20 +4,21 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-from types import TracebackType
 from typing import TYPE_CHECKING, Any
 
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
-from llmling_agent.resource_providers import AggregatingResourceProvider
 from llmling_agent.resource_providers.codemode.code_execution_provider import (
     CodeExecutionProvider,
 )
 from llmling_agent.resource_providers.codemode.helpers import fix_code
+from llmling_agent.resource_providers.codemode.provider import CodeModeResourceProvider
 from llmling_agent.tools.base import Tool
 from llmling_agent_config.execution_environments import LocalExecutionEnvironmentConfig
 
 
 if TYPE_CHECKING:
+    from types import TracebackType
+
     from llmling_agent.resource_providers import ResourceProvider
     from llmling_agent_config.execution_environments import ExecutionEnvironmentConfig
 
@@ -30,7 +31,7 @@ async def report_progress(current: int, total: int, message: str = "") -> None:
 """
 
 
-class SecureCodeModeResourceProvider(AggregatingResourceProvider):
+class SecureCodeModeResourceProvider(CodeModeResourceProvider):
     """Provider that executes code in secure isolation with tool access via server."""
 
     def __init__(
@@ -54,21 +55,17 @@ class SecureCodeModeResourceProvider(AggregatingResourceProvider):
             server_host: Host for tool server
             server_port: Port for tool server
         """
-        super().__init__(providers=list(providers), name=name)
+        super().__init__(
+            providers=providers,
+            name=name,
+            include_signatures=include_signatures,
+            include_docstrings=include_docstrings,
+        )
         self.execution_config = execution_config or LocalExecutionEnvironmentConfig()
-        self.include_signatures = include_signatures
-        self.include_docstrings = include_docstrings
         self.server_host = server_host
         self.server_port = server_port
-        self._tools_cache: list[Tool] | None = None
         self._code_execution_provider: CodeExecutionProvider | None = None
         self._provider_lock = asyncio.Lock()
-
-    async def get_tools(self) -> list[Tool]:
-        """Return single secure code execution tool."""
-        code_provider = await self._get_code_execution_provider()
-        desc = code_provider.get_tool_description()
-        return [Tool.from_callable(self.execute, description_override=desc)]
 
     async def execute(  # noqa: D417
         self,
@@ -118,31 +115,20 @@ class SecureCodeModeResourceProvider(AggregatingResourceProvider):
         """Get cached code execution provider with thread-safe initialization."""
         async with self._provider_lock:
             if self._code_execution_provider is None:
-                all_tools = await self._collect_all_tools()
-                self._code_execution_provider = (
-                    CodeExecutionProvider.from_tools_and_config(
-                        all_tools,
-                        self.execution_config,
-                        server_host=self.server_host,
-                        server_port=self.server_port,
-                        include_signatures=self.include_signatures,
-                        include_docstrings=self.include_docstrings,
-                    )
+                all_tools = await super().get_tools()
+                self._code_execution_provider = CodeExecutionProvider.from_tools(
+                    all_tools,
+                    self.execution_config,
+                    server_host=self.server_host,
+                    server_port=self.server_port,
+                    include_signatures=self.include_signatures,
+                    include_docstrings=self.include_docstrings,
                 )
 
                 # Initialize the provider and start server
                 await self._code_execution_provider.__aenter__()
 
             return self._code_execution_provider
-
-    async def _collect_all_tools(self) -> list[Tool]:
-        """Collect all tools from providers and direct tools with caching."""
-        if self._tools_cache is not None:
-            return self._tools_cache
-
-        all_tools = [t for provider in self.providers for t in await provider.get_tools()]
-        self._tools_cache = all_tools
-        return all_tools
 
     async def __aenter__(self):
         """Async context manager entry."""

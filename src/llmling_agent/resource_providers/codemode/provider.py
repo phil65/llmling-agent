@@ -40,12 +40,11 @@ class CodeModeResourceProvider(AggregatingResourceProvider):
         super().__init__(providers=providers, name=name)
         self.include_signatures = include_signatures
         self.include_docstrings = include_docstrings
-        self._tools_cache: list[Tool] | None = None
         self._toolset_generator: ToolsetCodeGenerator | None = None
 
     async def get_tools(self) -> list[Tool]:
         """Return single meta-tool for Python execution with available tools."""
-        toolset_generator = await self._get_toolset_generator()
+        toolset_generator = await self._get_code_generator()
         desc = toolset_generator.generate_tool_description()
         return [Tool.from_callable(self.execute, description_override=desc)]
 
@@ -68,7 +67,7 @@ class CodeModeResourceProvider(AggregatingResourceProvider):
         # if isinstance(ctx, RunContext):
         #     ctx = ctx.deps
         # Build execution namespace
-        toolset_generator = await self._get_toolset_generator()
+        toolset_generator = await self._get_code_generator()
         namespace = toolset_generator.generate_execution_namespace()
 
         # Add progress reporting if context is available
@@ -152,35 +151,16 @@ class CodeModeResourceProvider(AggregatingResourceProvider):
         else:
             return result
 
-    async def _get_toolset_generator(self) -> ToolsetCodeGenerator:
+    async def _get_code_generator(self) -> ToolsetCodeGenerator:
         """Get cached toolset generator."""
         if self._toolset_generator is None:
             self._toolset_generator = tools_to_codegen(
-                tools=await self._collect_all_tools(),
+                tools=await super().get_tools(),
                 include_signatures=self.include_signatures,
                 include_docstrings=self.include_docstrings,
             )
         assert self._toolset_generator
         return self._toolset_generator
-
-    async def _collect_all_tools(self) -> list[Tool]:
-        """Collect all tools from providers and direct tools with caching."""
-        if self._tools_cache is not None:
-            return self._tools_cache
-
-        all_tools = [t for provider in self.providers for t in await provider.get_tools()]
-        validated_tools = []
-        for tool in all_tools:
-            if inspect.iscoroutinefunction(tool.callable):
-                # Check if async function has proper return type hints
-                sig = inspect.signature(tool.callable)
-                if sig.return_annotation == inspect.Signature.empty:
-                    # Add warning in tool description about missing return type
-                    tool.description = f"{tool.description}\n\nNote: This async function should explicitly return a value."  # noqa: E501
-            validated_tools.append(tool)
-
-        self._tools_cache = validated_tools
-        return validated_tools
 
 
 if __name__ == "__main__":

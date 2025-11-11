@@ -67,7 +67,7 @@ class CodeExecutionProvider:
     """Execution environment for running code."""
 
     @classmethod
-    def from_tools_and_config(
+    def from_tools(
         cls,
         tools: Sequence[Tool],
         env_config: ExecutionEnvironmentConfig,
@@ -89,19 +89,10 @@ class CodeExecutionProvider:
         Returns:
             CodeExecutionProvider instance
         """
-        # Create toolset code generator
-        toolset_generator = tools_to_codegen(
-            tools, include_signatures, include_docstrings
-        )
-
-        # Create server lifecycle handler
-        server_handler = ToolServerLifecycleHandler(
-            toolset_generator, server_host, server_port
-        )
-
-        # Create execution environment with server lifecycle
+        toolset_gen = tools_to_codegen(tools, include_signatures, include_docstrings)
+        server_handler = ToolServerLifecycleHandler(toolset_gen, server_host, server_port)
         execution_env = env_config.get_provider(server_handler)
-        return cls(toolset_generator, execution_env)
+        return cls(toolset_gen, execution_env)
 
     def get_tool_description(self) -> str:
         """Get comprehensive description of available tools."""
@@ -223,9 +214,7 @@ if __name__ == "__main__":
     async def main():
         tools = [Tool.from_callable(add_numbers)]
         config = LocalExecutionEnvironmentConfig()
-        provider = CodeExecutionProvider.from_tools_and_config(
-            tools, config, server_port=9876
-        )
+        provider = CodeExecutionProvider.from_tools(tools, config, server_port=9876)
         async with provider:
             result = await provider.execute_code("_result = await add_numbers(5, 3)")
             print(f"Result: {result.result}")

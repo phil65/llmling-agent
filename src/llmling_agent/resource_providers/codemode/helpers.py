@@ -63,11 +63,19 @@ def tools_to_codegen(
     Returns:
         ToolsetCodeGenerator instance
     """
+    from pydantic_ai import RunContext
     from schemez import ToolsetCodeGenerator
     from schemez.code_generation.tool_code_generator import ToolCodeGenerator
 
+    from llmling_agent.agent.context import AgentContext
+
     generators = [
-        ToolCodeGenerator(schema=t.schema, callable=t.callable, name_override=t.name)
+        ToolCodeGenerator(
+            schema=t.schema,
+            callable=t.callable,
+            name_override=t.name,
+            exclude_types=[AgentContext, RunContext],
+        )
         for t in tools
     ]
     return ToolsetCodeGenerator(generators, include_signatures, include_docstrings)

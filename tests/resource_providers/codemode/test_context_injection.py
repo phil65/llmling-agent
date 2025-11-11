@@ -39,170 +39,164 @@ async def dual_context_tool(
     return f"Dual context tool: {value}"
 
 
-class TestContextInjection:
-    """Test context injection for tools in code execution environment."""
+async def test_direct_context_call_fails():
+    """Test that calling context-dependent tools directly fails."""
+    # Create tool that needs RunContext
+    tool = Tool.from_callable(tool_with_run_context)
 
-    @pytest.mark.asyncio
-    async def test_direct_context_call_fails(self):
-        """Test that calling context-dependent tools directly fails."""
-        # Create tool that needs RunContext
-        tool = Tool.from_callable(tool_with_run_context)
+    # Create provider with the context-dependent tool
+    static_provider = StaticResourceProvider(tools=[tool])
+    code_provider = CodeModeResourceProvider([static_provider])
 
-        # Create provider with the context-dependent tool
-        static_provider = StaticResourceProvider(tools=[tool])
-        code_provider = CodeModeResourceProvider([static_provider])
+    # Create a mock context for testing
+    class MockContext:
+        name = "test-agent"
+        report_progress = None
 
-        # Create a mock context for testing
-        class MockContext:
-            name = "test-agent"
-            report_progress = None
+    MockContext()
 
-        MockContext()
+    # Get the execution namespace directly
+    generator = await code_provider._get_code_generator()
+    namespace = generator.generate_execution_namespace()
 
-        # Get the execution namespace directly
-        generator = await code_provider._get_toolset_generator()
-        namespace = generator.generate_execution_namespace()
+    # Try to call the tool directly without context - this should fail
+    tool_func = namespace["tool_with_run_context"]
 
-        # Try to call the tool directly without context - this should fail
-        tool_func = namespace["tool_with_run_context"]
+    # This should fail because we're not providing RunContext
+    result = await tool_func("test message")
 
-        # This should fail because we're not providing RunContext
-        result = await tool_func("test message")
+    # Should get an error about missing context
+    assert "Error executing" in result
 
-        # Should get an error about missing context
-        assert "Error executing" in result
 
-    @pytest.mark.asyncio
-    async def test_simple_tool_works(self):
-        """Test that simple tools without context work fine."""
-        # Create tool without context requirements
-        tool = Tool.from_callable(simple_tool)
+async def test_simple_tool_works():
+    """Test that simple tools without context work fine."""
+    # Create tool without context requirements
+    tool = Tool.from_callable(simple_tool)
 
-        # Create provider
-        static_provider = StaticResourceProvider(tools=[tool])
-        code_provider = CodeModeResourceProvider([static_provider])
+    # Create provider
+    static_provider = StaticResourceProvider(tools=[tool])
+    code_provider = CodeModeResourceProvider([static_provider])
 
-        # Get the execution namespace
-        generator = await code_provider._get_toolset_generator()
-        namespace = generator.generate_execution_namespace()
+    # Get the execution namespace
+    generator = await code_provider._get_code_generator()
+    namespace = generator.generate_execution_namespace()
 
-        # Call the simple tool - this should work
-        tool_func = namespace["simple_tool"]
-        result = await tool_func(42)
+    # Call the simple tool - this should work
+    tool_func = namespace["simple_tool"]
+    result = await tool_func(42)
 
-        # Should work fine
-        assert result == "Simple result: 42"
+    # Should work fine
+    assert result == "Simple result: 42"
 
-    @pytest.mark.asyncio
-    async def test_context_signature_hiding(self):
-        """Test that context parameters are hidden from user-visible signatures."""
-        # Create tool with context
-        tool = Tool.from_callable(tool_with_run_context)
 
-        static_provider = StaticResourceProvider(tools=[tool])
-        code_provider = CodeModeResourceProvider([static_provider])
+async def test_context_signature_hiding():
+    """Test that context parameters are hidden from user-visible signatures."""
+    # Create tool with context
+    tool = Tool.from_callable(tool_with_run_context)
 
-        # Get tool description (what user sees)
-        tools = await code_provider.get_tools()
-        assert len(tools) == 1
+    static_provider = StaticResourceProvider(tools=[tool])
+    code_provider = CodeModeResourceProvider([static_provider])
 
-        description = tools[0].description
+    # Get tool description (what user sees)
+    tools = await code_provider.get_tools()
+    assert len(tools) == 1
 
-        # The description should show the function signature but without RunContext param
-        # User should see: tool_with_run_context(message: str) -> str
-        # NOT: tool_with_run_context(ctx: RunContext[None], message: str) -> str
-        assert "message: str" in description
+    description = tools[0].description
 
-        # Check that the RunContext param is specifically hidden from the signature
-        # (RunContext may still appear in return types or docstrings, but not as a param)
-        assert "ctx: RunContext" not in description
-        assert "(ctx:" not in description
+    # The description should show the function signature but without RunContext param
+    # User should see: tool_with_run_context(message: str) -> str
+    # NOT: tool_with_run_context(ctx: RunContext[None], message: str) -> str
+    assert "message: str" in description
 
-        # Verify the signature shows only the message parameter
-        import re
+    # Check that the RunContext param is specifically hidden from the signature
+    # (RunContext may still appear in return types or docstrings, but not as a param)
+    assert "ctx: RunContext" not in description
+    assert "(ctx:" not in description
 
-        # Find the function signature line
-        signature_match = re.search(
-            r"async def tool_with_run_context\([^)]*\)", description
-        )
-        assert signature_match is not None, "Could not find function signature"
-        signature = signature_match.group(0)
-        assert "message:" in signature
-        assert "ctx:" not in signature
+    # Verify the signature shows only the message parameter
+    import re
 
-    @pytest.mark.asyncio
-    async def test_agent_context_signature_hiding(self):
-        """Test that AgentContext parameters are hidden from user-visible signatures."""
-        # Create tool with AgentContext
-        tool = Tool.from_callable(tool_with_agent_context)
+    # Find the function signature line
+    signature_match = re.search(r"async def tool_with_run_context\([^)]*\)", description)
+    assert signature_match is not None, "Could not find function signature"
+    signature = signature_match.group(0)
+    assert "message:" in signature
+    assert "ctx:" not in signature
 
-        static_provider = StaticResourceProvider(tools=[tool])
-        code_provider = CodeModeResourceProvider([static_provider])
 
-        # Get tool description (what user sees)
-        tools = await code_provider.get_tools()
-        assert len(tools) == 1
+async def test_agent_context_signature_hiding():
+    """Test that AgentContext parameters are hidden from user-visible signatures."""
+    # Create tool with AgentContext
+    tool = Tool.from_callable(tool_with_agent_context)
 
-        description = tools[0].description
+    static_provider = StaticResourceProvider(tools=[tool])
+    code_provider = CodeModeResourceProvider([static_provider])
 
-        # The description should show the function sig but without AgentContext param
-        # User should see: tool_with_agent_context(message: str) -> str
-        # NOT: tool_with_agent_context(ctx: AgentContext, message: str) -> str
-        assert "message: str" in description
+    # Get tool description (what user sees)
+    tools = await code_provider.get_tools()
+    assert len(tools) == 1
 
-        # Check that the AgentContext parameter is specifically hidden from the signature
-        assert "ctx: AgentContext" not in description
-        assert "(ctx:" not in description
+    description = tools[0].description
 
-        # Verify the signature shows only the message parameter
-        import re
+    # The description should show the function sig but without AgentContext param
+    # User should see: tool_with_agent_context(message: str) -> str
+    # NOT: tool_with_agent_context(ctx: AgentContext, message: str) -> str
+    assert "message: str" in description
 
-        # Find the function signature line
-        signature_match = re.search(
-            r"async def tool_with_agent_context\([^)]*\)", description
-        )
-        assert signature_match is not None, "Could not find function signature"
-        signature = signature_match.group(0)
-        assert "message:" in signature
-        assert "ctx:" not in signature
+    # Check that the AgentContext parameter is specifically hidden from the signature
+    assert "ctx: AgentContext" not in description
+    assert "(ctx:" not in description
 
-    @pytest.mark.asyncio
-    async def test_dual_context_signature_hiding(self):
-        """Test that both RunContext and AgentContext parameters are hidden from tools."""
-        # Create tool with both contexts
-        tool = Tool.from_callable(dual_context_tool)
+    # Verify the signature shows only the message parameter
+    import re
 
-        static_provider = StaticResourceProvider(tools=[tool])
-        code_provider = CodeModeResourceProvider([static_provider])
+    # Find the function signature line
+    signature_match = re.search(
+        r"async def tool_with_agent_context\([^)]*\)", description
+    )
+    assert signature_match is not None, "Could not find function signature"
+    signature = signature_match.group(0)
+    assert "message:" in signature
+    assert "ctx:" not in signature
 
-        # Get tool description (what user sees)
-        tools = await code_provider.get_tools()
-        assert len(tools) == 1
 
-        description = tools[0].description
+async def test_dual_context_signature_hiding():
+    """Test that both RunContext and AgentContext parameters are hidden from tools."""
+    # Create tool with both contexts
+    tool = Tool.from_callable(dual_context_tool)
 
-        # The description should show the function signature with only the business param
-        # User should see: dual_context_tool(value: int) -> str
-        # NOT: dual_context_tool(run_ctx: RunContext[None], agent_ctx:
-        # AgentContext, value: int) -> str
-        assert "value: int" in description
+    static_provider = StaticResourceProvider(tools=[tool])
+    code_provider = CodeModeResourceProvider([static_provider])
 
-        # Check that both context parameters are hidden from the signature
-        assert "run_ctx: RunContext" not in description
-        assert "agent_ctx: AgentContext" not in description
-        assert "(run_ctx:" not in description
-        assert "(agent_ctx:" not in description
+    # Get tool description (what user sees)
+    tools = await code_provider.get_tools()
+    assert len(tools) == 1
 
-        # Verify the signature shows only the value parameter
-        import re
+    description = tools[0].description
 
-        # Find the function signature line
-        signature_match = re.search(r"async def dual_context_tool\([^)]*\)", description)
-        assert signature_match is not None, "Could not find function signature"
-        signature = signature_match.group(0)
-        assert "value:" in signature
-        assert "run_ctx:" not in signature
-        assert "agent_ctx:" not in signature
+    # The description should show the function signature with only the business param
+    # User should see: dual_context_tool(value: int) -> str
+    # NOT: dual_context_tool(run_ctx: RunContext[None], agent_ctx:
+    # AgentContext, value: int) -> str
+    assert "value: int" in description
+
+    # Check that both context parameters are hidden from the signature
+    assert "run_ctx: RunContext" not in description
+    assert "agent_ctx: AgentContext" not in description
+    assert "(run_ctx:" not in description
+    assert "(agent_ctx:" not in description
+
+    # Verify the signature shows only the value parameter
+    import re
+
+    # Find the function signature line
+    signature_match = re.search(r"async def dual_context_tool\([^)]*\)", description)
+    assert signature_match is not None, "Could not find function signature"
+    signature = signature_match.group(0)
+    assert "value:" in signature
+    assert "run_ctx:" not in signature
+    assert "agent_ctx:" not in signature
 
 
 if __name__ == "__main__":
