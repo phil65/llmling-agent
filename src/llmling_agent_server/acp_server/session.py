@@ -140,8 +140,6 @@ class ACPSession:
         cmds = [
             *get_commands(
                 enable_set_model=False,
-                enable_enable_tool=False,
-                enable_disable_tool=False,
                 enable_list_resources=False,
                 enable_add_resource=False,
                 enable_show_resource=False,
