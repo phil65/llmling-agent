@@ -16,9 +16,6 @@ agents:
         description: "Open URL in default browser"  # optional description
         enabled: true  # whether tool is initially available
         requires_confirmation: false  # whether to ask before executing
-        requires_capability: null  # optional required capability
-        priority: 100  # execution priority (lower = higher priority)
-        cache_enabled: false  # whether to cache results
         metadata:  # additional tool metadata
           category: "browser"
           version: "1.0"
@@ -40,7 +37,6 @@ agents:
         description: "Search the web using Brave"  # override description
         enabled: true
         requires_confirmation: true
-        requires_capability: "web_access"
 ```
 
 ## LangChain Tools
@@ -59,7 +55,6 @@ agents:
         description: "Search using SerpAPI"
         enabled: true
         requires_confirmation: false
-        requires_capability: "search"
 ```
 
 ## Shorthand Syntax

@@ -31,15 +31,6 @@ class BaseToolConfig(Schema):
     requires_confirmation: bool = False
     """Whether tool execution needs confirmation."""
 
-    requires_capability: str | None = None
-    """Optional capability needed to use the tool."""
-
-    priority: int = 100
-    """Execution priority (lower = higher priority)."""
-
-    cache_enabled: bool = False
-    """Whether to enable result caching."""
-
     metadata: dict[str, str] = Field(default_factory=dict)
     """Additional tool metadata."""
 
@@ -89,9 +80,6 @@ class ImportToolConfig(BaseToolConfig):
             description_override=self.description,
             enabled=self.enabled,
             requires_confirmation=self.requires_confirmation,
-            requires_capability=self.requires_capability,
-            priority=self.priority,
-            cache_enabled=self.cache_enabled,
             metadata=self.metadata,
         )
 
@@ -119,9 +107,6 @@ class CrewAIToolConfig(BaseToolConfig):
                 description_override=self.description,
                 enabled=self.enabled,
                 requires_confirmation=self.requires_confirmation,
-                requires_capability=self.requires_capability,
-                priority=self.priority,
-                cache_enabled=self.cache_enabled,
                 metadata={"type": "crewai", **self.metadata},
             )
         except ImportError as e:
@@ -154,9 +139,6 @@ class LangChainToolConfig(BaseToolConfig):
                 description_override=self.description,
                 enabled=self.enabled,
                 requires_confirmation=self.requires_confirmation,
-                requires_capability=self.requires_capability,
-                priority=self.priority,
-                cache_enabled=self.cache_enabled,
                 metadata={"type": "langchain", **self.metadata},
             )
         except ImportError as e:

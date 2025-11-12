@@ -139,9 +139,6 @@ class StaticResourceProvider(ResourceProvider):
         description: str | None = None,
         enabled: bool = True,
         requires_confirmation: bool = False,
-        requires_capability: str | None = None,
-        priority: int = 100,
-        cache_enabled: bool = False,
         metadata: dict[str, str] | None = None,
         **kwargs: Any,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]: ...
@@ -154,9 +151,6 @@ class StaticResourceProvider(ResourceProvider):
         description: str | None = None,
         enabled: bool = True,
         requires_confirmation: bool = False,
-        requires_capability: str | None = None,
-        priority: int = 100,
-        cache_enabled: bool = False,
         metadata: dict[str, str] | None = None,
         **kwargs: Any,
     ) -> Callable[..., Any] | Callable[[Callable[..., Any]], Callable[..., Any]]:
@@ -182,9 +176,6 @@ class StaticResourceProvider(ResourceProvider):
             description: Override for tool description
             enabled: Whether tool is initially enabled
             requires_confirmation: Whether execution needs confirmation
-            requires_capability: Optional capability requirement
-            priority: Execution priority (lower = higher priority)
-            cache_enabled: Whether to enable result caching
             metadata: Additional tool metadata
             **kwargs: Additional arguments passed to Tool.from_callable
         """
@@ -197,9 +188,6 @@ class StaticResourceProvider(ResourceProvider):
                 description_override=description,
                 enabled=enabled,
                 requires_confirmation=requires_confirmation,
-                requires_capability=requires_capability,
-                priority=priority,
-                cache_enabled=cache_enabled,
                 metadata=metadata or {},
                 **kwargs,
             )

@@ -154,7 +154,6 @@
               "discriminator": {
                 "mapping": {
                   "augmented": "#/$defs/AugmentedModelConfig",
-                  "cost-optimized": "#/$defs/CostOptimizedModelConfig",
                   "delegation": "#/$defs/DelegationModelConfig",
                   "fallback": "#/$defs/FallbackModelConfig",
                   "function": "#/$defs/FunctionModelConfig",
@@ -164,7 +163,6 @@
                   "remote-proxy": "#/$defs/RemoteProxyConfig",
                   "string": "#/$defs/StringModelConfig",
                   "test": "#/$defs/TestModelConfig",
-                  "token-optimized": "#/$defs/TokenOptimizedModelConfig",
                   "user-select": "#/$defs/UserSelectModelConfig"
                 },
                 "propertyName": "type"
@@ -172,9 +170,6 @@
               "oneOf": [
                 {
                   "$ref": "#/$defs/AugmentedModelConfig"
-                },
-                {
-                  "$ref": "#/$defs/CostOptimizedModelConfig"
                 },
                 {
                   "$ref": "#/$defs/DelegationModelConfig"
@@ -196,9 +191,6 @@
                 },
                 {
                   "$ref": "#/$defs/RemoteProxyConfig"
-                },
-                {
-                  "$ref": "#/$defs/TokenOptimizedModelConfig"
                 },
                 {
                   "$ref": "#/$defs/StringModelConfig"
@@ -264,13 +256,15 @@
                 "custom": "#/$defs/CustomToolsetConfig",
                 "entry_points": "#/$defs/EntryPointToolsetConfig",
                 "file_access": "#/$defs/FileAccessToolsetConfig",
+                "fsspec": "#/$defs/FSSpecToolsetConfig",
                 "history": "#/$defs/HistoryToolsetConfig",
                 "integrations": "#/$defs/IntegrationToolsetConfig",
                 "openapi": "#/$defs/OpenAPIToolsetConfig",
                 "process_management": "#/$defs/ProcessManagementToolsetConfig",
                 "tool_management": "#/$defs/ToolManagementToolsetConfig",
                 "upsonic": "#/$defs/UpsonicToolSetConfig",
-                "user_interaction": "#/$defs/UserInteractionToolsetConfig"
+                "user_interaction": "#/$defs/UserInteractionToolsetConfig",
+                "vfs": "#/$defs/VFSToolsetConfig"
               },
               "propertyName": "type"
             },
@@ -313,6 +307,12 @@
               },
               {
                 "$ref": "#/$defs/CodeToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/FSSpecToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/VFSToolsetConfig"
               },
               {
                 "$ref": "#/$defs/CustomToolsetConfig"
@@ -892,14 +892,6 @@
           "default": null,
           "description": "Title of the prompt.",
           "title": "Title"
-        },
-        "arguments": {
-          "description": "List of arguments that this prompt accepts.",
-          "items": {
-            "$ref": "#/$defs/PromptParameter"
-          },
-          "title": "Arguments",
-          "type": "array"
         },
         "metadata": {
           "additionalProperties": true,
@@ -1559,57 +1551,6 @@
       "title": "CostLimitCondition",
       "type": "object"
     },
-    "CostOptimizedModelConfig": {
-      "additionalProperties": false,
-      "description": "Configuration for cost-optimized model selection.",
-      "properties": {
-        "type": {
-          "const": "cost-optimized",
-          "default": "cost-optimized",
-          "description": "Type identifier for cost-optimized model.",
-          "title": "Type",
-          "type": "string"
-        },
-        "models": {
-          "description": "List of available models to choose from.",
-          "items": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "$ref": "#/$defs/BaseModelConfig"
-              }
-            ]
-          },
-          "minItems": 1,
-          "title": "Models",
-          "type": "array"
-        },
-        "max_input_cost": {
-          "description": "Maximum cost threshold for input processing.",
-          "exclusiveMinimum": 0,
-          "title": "Max Input Cost",
-          "type": "number"
-        },
-        "strategy": {
-          "default": "best_within_budget",
-          "description": "Strategy for model selection based on cost.",
-          "enum": [
-            "cheapest_possible",
-            "best_within_budget"
-          ],
-          "title": "Strategy",
-          "type": "string"
-        }
-      },
-      "required": [
-        "models",
-        "max_input_cost"
-      ],
-      "title": "CostOptimizedModelConfig",
-      "type": "object"
-    },
     "CrewAIToolConfig": {
       "additionalProperties": false,
       "description": "Configuration for CrewAI-based tools.",
@@ -1657,31 +1598,6 @@
           "default": false,
           "description": "Whether tool execution needs confirmation.",
           "title": "Requires Confirmation",
-          "type": "boolean"
-        },
-        "requires_capability": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Optional capability needed to use the tool.",
-          "title": "Requires Capability"
-        },
-        "priority": {
-          "default": 100,
-          "description": "Execution priority (lower = higher priority).",
-          "title": "Priority",
-          "type": "integer"
-        },
-        "cache_enabled": {
-          "default": false,
-          "description": "Whether to enable result caching.",
-          "title": "Cache Enabled",
           "type": "boolean"
         },
         "metadata": {
@@ -1929,14 +1845,6 @@
           "description": "Title of the prompt.",
           "title": "Title"
         },
-        "arguments": {
-          "description": "List of arguments that this prompt accepts.",
-          "items": {
-            "$ref": "#/$defs/PromptParameter"
-          },
-          "title": "Arguments",
-          "type": "array"
-        },
         "metadata": {
           "additionalProperties": true,
           "description": "Additional metadata for storing custom prompt information.",
@@ -2148,6 +2056,50 @@
         "module"
       ],
       "title": "EntryPointToolsetConfig",
+      "type": "object"
+    },
+    "FSSpecToolsetConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for FSSpec filesystem toolsets.",
+      "properties": {
+        "namespace": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional namespace prefix for tool names",
+          "title": "Namespace"
+        },
+        "type": {
+          "const": "fsspec",
+          "default": "fsspec",
+          "description": "FSSpec filesystem toolset.",
+          "title": "Type",
+          "type": "string"
+        },
+        "url": {
+          "description": "Filesystem URL or protocol (e.g., 'file', 's3://bucket-name', etc.).",
+          "title": "Url",
+          "type": "string"
+        },
+        "storage_options": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Additional options to pass to the filesystem constructor.",
+          "title": "Storage Options",
+          "type": "object"
+        }
+      },
+      "required": [
+        "url"
+      ],
+      "title": "FSSpecToolsetConfig",
       "type": "object"
     },
     "FabricConfig": {
@@ -2579,14 +2531,6 @@
           "default": null,
           "description": "Title of the prompt.",
           "title": "Title"
-        },
-        "arguments": {
-          "description": "List of arguments that this prompt accepts.",
-          "items": {
-            "$ref": "#/$defs/PromptParameter"
-          },
-          "title": "Arguments",
-          "type": "array"
         },
         "metadata": {
           "additionalProperties": true,
@@ -3128,31 +3072,6 @@
           "title": "Requires Confirmation",
           "type": "boolean"
         },
-        "requires_capability": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Optional capability needed to use the tool.",
-          "title": "Requires Capability"
-        },
-        "priority": {
-          "default": 100,
-          "description": "Execution priority (lower = higher priority).",
-          "title": "Priority",
-          "type": "integer"
-        },
-        "cache_enabled": {
-          "default": false,
-          "description": "Whether to enable result caching.",
-          "title": "Cache Enabled",
-          "type": "boolean"
-        },
         "metadata": {
           "additionalProperties": {
             "type": "string"
@@ -3572,31 +3491,6 @@
           "default": false,
           "description": "Whether tool execution needs confirmation.",
           "title": "Requires Confirmation",
-          "type": "boolean"
-        },
-        "requires_capability": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Optional capability needed to use the tool.",
-          "title": "Requires Capability"
-        },
-        "priority": {
-          "default": 100,
-          "description": "Execution priority (lower = higher priority).",
-          "title": "Priority",
-          "type": "integer"
-        },
-        "cache_enabled": {
-          "default": false,
-          "description": "Whether to enable result caching.",
-          "title": "Cache Enabled",
           "type": "boolean"
         },
         "metadata": {
@@ -4940,6 +4834,7 @@
       "type": "object"
     },
     "PromptMessage": {
+      "additionalProperties": false,
       "description": "A message in a prompt template.",
       "properties": {
         "role": {
@@ -4978,6 +4873,7 @@
       "type": "object"
     },
     "PromptParameter": {
+      "additionalProperties": false,
       "description": "Prompt argument with validation information.",
       "properties": {
         "name": {
@@ -5003,12 +4899,6 @@
           "description": "Whether this argument must be provided when formatting the prompt.",
           "title": "Required",
           "type": "boolean"
-        },
-        "type_hint": {
-          "default": "str",
-          "description": "Type annotation for the argument, defaults to str.",
-          "title": "Type Hint",
-          "type": "string"
         },
         "default": {
           "anyOf": [
@@ -5783,14 +5673,6 @@
           "description": "Title of the prompt.",
           "title": "Title"
         },
-        "arguments": {
-          "description": "List of arguments that this prompt accepts.",
-          "items": {
-            "$ref": "#/$defs/PromptParameter"
-          },
-          "title": "Arguments",
-          "type": "array"
-        },
         "metadata": {
           "additionalProperties": true,
           "description": "Additional metadata for storing custom prompt information.",
@@ -5811,6 +5693,14 @@
           "description": "Discriminator field identifying this as a static text prompt.",
           "title": "Type",
           "type": "string"
+        },
+        "arguments": {
+          "description": "List of arguments that this prompt accepts.",
+          "items": {
+            "$ref": "#/$defs/PromptParameter"
+          },
+          "title": "Arguments",
+          "type": "array"
         }
       },
       "required": [
@@ -6689,50 +6579,6 @@
       "title": "TimeEventConfig",
       "type": "object"
     },
-    "TokenOptimizedModelConfig": {
-      "additionalProperties": false,
-      "description": "Configuration for token-optimized model selection.",
-      "properties": {
-        "type": {
-          "const": "token-optimized",
-          "default": "token-optimized",
-          "description": "Type identifier for token-optimized model.",
-          "title": "Type",
-          "type": "string"
-        },
-        "models": {
-          "description": "List of available models to choose from based on token optimization.",
-          "items": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "$ref": "#/$defs/BaseModelConfig"
-              }
-            ]
-          },
-          "minItems": 1,
-          "title": "Models",
-          "type": "array"
-        },
-        "strategy": {
-          "default": "efficient",
-          "description": "Strategy for selecting models based on token usage.",
-          "enum": [
-            "efficient",
-            "maximum_context"
-          ],
-          "title": "Strategy",
-          "type": "string"
-        }
-      },
-      "required": [
-        "models"
-      ],
-      "title": "TokenOptimizedModelConfig",
-      "type": "object"
-    },
     "TokenThresholdCondition": {
       "additionalProperties": false,
       "description": "Disconnect after token threshold is reached.",
@@ -7160,6 +7006,34 @@
         "models"
       ],
       "title": "UserSelectModelConfig",
+      "type": "object"
+    },
+    "VFSToolsetConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for VFS registry filesystem toolset.",
+      "properties": {
+        "namespace": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional namespace prefix for tool names",
+          "title": "Namespace"
+        },
+        "type": {
+          "const": "vfs",
+          "default": "vfs",
+          "description": "VFS registry filesystem toolset.",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "title": "VFSToolsetConfig",
       "type": "object"
     },
     "WebhookConfig": {

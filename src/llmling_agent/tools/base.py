@@ -7,6 +7,7 @@ import inspect
 from typing import TYPE_CHECKING, Any, Literal
 
 import logfire
+from pydantic_ai.tools import Tool as PydanticAiTool
 import schemez
 
 from llmling_agent.log import get_logger
@@ -68,14 +69,8 @@ class Tool[TOutputType = Any]:
     source: ToolSource = "dynamic"
     """Where the tool came from."""
 
-    priority: int = 100
-    """Priority for tool execution (lower = higher priority)"""
-
     requires_confirmation: bool = False
     """Whether tool execution needs explicit confirmation"""
-
-    requires_capability: str | None = None
-    """Optional capability required to use this tool"""
 
     agent_name: str | None = None
     """The agent name as an identifier for agent-as-a-tool."""
@@ -83,11 +78,25 @@ class Tool[TOutputType = Any]:
     metadata: dict[str, str] = field(default_factory=dict)
     """Additional tool metadata"""
 
-    cache_enabled: bool = False
-    """Whether to enable caching for this tool."""
-
     category: ToolKind | None = None
     """The category of the tool."""
+
+    def to_pydantic_ai(self) -> PydanticAiTool:
+        """Convert tool to Pydantic AI tool."""
+        metadata = {
+            **self.metadata,
+            "agent_name": self.agent_name,
+            "category": self.category,
+        }
+        return PydanticAiTool(
+            function=self.callable,
+            name=self.name,
+            # takes_ctx=self.takes_ctx,
+            # max_retries=self.max_retries,
+            description=self.description,
+            requires_approval=self.requires_confirmation,
+            metadata=metadata,
+        )
 
     @property
     def schema_obj(self) -> FunctionSchema:

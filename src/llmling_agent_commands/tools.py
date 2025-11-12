@@ -63,7 +63,6 @@ class ShowToolCommand(SlashedCommand):
     Shows:
     - Source (runtime/agent/builtin)
     - Current status (enabled/disabled)
-    - Priority and capabilities
     - Parameter descriptions
     - Additional metadata
 
@@ -94,14 +93,10 @@ class ShowToolCommand(SlashedCommand):
 
             # Add extra metadata section if we have any additional info
             extra_info = []
-            if tool_info.requires_capability:
-                extra_info.append(f"Required Capability: {tool_info.requires_capability}")
             if tool_info.requires_confirmation:
                 extra_info.append("Requires Confirmation: Yes")
             if tool_info.source != "dynamic":  # Only show if not default
                 extra_info.append(f"Source: {tool_info.source}")
-            if tool_info.priority != 100:  # Only show if not default  # noqa: PLR2004
-                extra_info.append(f"Priority: {tool_info.priority}")
             if tool_info.metadata:
                 extra_info.append("\nMetadata:")
                 extra_info.extend(f"- {k}: {v}" for k, v in tool_info.metadata.items())

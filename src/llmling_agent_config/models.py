@@ -7,7 +7,7 @@ from schemez import Schema
 
 
 if TYPE_CHECKING:
-    from llmling_models import CostOptimizedMultiModel, DelegationMultiModel, InputModel
+    from llmling_models import DelegationMultiModel, InputModel
     from llmling_models.augmented import AugmentedModel
     from pydantic_ai.models.fallback import FallbackModel
     from pydantic_ai.models.function import FunctionModel
@@ -57,34 +57,6 @@ class AugmentedModelConfig(BaseModelConfig):
             main_model=self.main_model,  # type: ignore
             pre_prompt=self.pre_prompt,  # type: ignore
             post_prompt=self.post_prompt,  # type: ignore
-        )
-
-
-class CostOptimizedModelConfig(BaseModelConfig):
-    """Configuration for cost-optimized model selection."""
-
-    type: Literal["cost-optimized"] = Field(default="cost-optimized", init=False)
-    """Type identifier for cost-optimized model."""
-
-    models: list[str | BaseModelConfig] = Field(min_length=1)
-    """List of available models to choose from."""
-
-    max_input_cost: float = Field(gt=0)
-    """Maximum cost threshold for input processing."""
-
-    strategy: Literal["cheapest_possible", "best_within_budget"] = "best_within_budget"
-    """Strategy for model selection based on cost."""
-
-    def get_model(self) -> CostOptimizedMultiModel:
-        from llmling_models.multimodels import CostOptimizedMultiModel
-
-        converted_models = [
-            m.get_model() if isinstance(m, BaseModelConfig) else m for m in self.models
-        ]
-        return CostOptimizedMultiModel(
-            models=converted_models,
-            max_input_cost=self.max_input_cost,
-            strategy=self.strategy,
         )
 
 
@@ -234,30 +206,6 @@ class RemoteProxyConfig(BaseModelConfig):
         return RemoteProxyModel(url=self.url, api_key=key)
 
 
-class TokenOptimizedModelConfig(BaseModelConfig):
-    """Configuration for token-optimized model selection."""
-
-    type: Literal["token-optimized"] = Field(default="token-optimized", init=False)
-    """Type identifier for token-optimized model."""
-
-    models: list[str | BaseModelConfig] = Field(min_length=1)
-    """List of available models to choose from based on token optimization."""
-
-    strategy: Literal["efficient", "maximum_context"] = Field(default="efficient")
-    """Strategy for selecting models based on token usage."""
-
-    def get_model(self) -> Any:
-        from llmling_models.multimodels import TokenOptimizedMultiModel
-
-        converted_models = [
-            m.get_model() if isinstance(m, BaseModelConfig) else m for m in self.models
-        ]
-        return TokenOptimizedMultiModel(
-            models=converted_models,
-            strategy=self.strategy,
-        )
-
-
 class UserSelectModelConfig(BaseModelConfig):
     """Configuration for interactive model selection."""
 
@@ -387,7 +335,6 @@ class ModelSettings(Schema):
 
 AnyModelConfig = Annotated[
     AugmentedModelConfig
-    | CostOptimizedModelConfig
     | DelegationModelConfig
     | FallbackModelConfig
     | FunctionModelConfig
@@ -395,7 +342,6 @@ AnyModelConfig = Annotated[
     | InputModelConfig
     | RemoteInputConfig
     | RemoteProxyConfig
-    | TokenOptimizedModelConfig
     | StringModelConfig
     | TestModelConfig
     | UserSelectModelConfig,

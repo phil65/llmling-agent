@@ -33,7 +33,7 @@ You MUST use these tools to complete your tasks:
 You have access to these tools:
 {%- endif %}
 {% for tool in tools %}
-- {{ tool.name }}{% if tool.description %}: {{ tool.description }}{% endif %}{% if tool.requires_capability %} (requires {{ tool.requires_capability }}){% endif %}
+- {{ tool.name }}{% if tool.description %}: {{ tool.description }}{% endif %}
 {%- endfor %}
 
 {%- if tool_usage_style == "strict" %}

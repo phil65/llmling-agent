@@ -169,14 +169,11 @@ class ToolManager:
                 continue
             tools.extend(t for t in result if t.matches_filter(state))
 
-        # Sort by priority if any have non-default priority
         match names:
             case str():
                 tools = [t for t in tools if t.name == names]
             case list():
                 tools = [t for t in tools if t.name in names]
-        if any(t.priority != 100 for t in tools):  # noqa: PLR2004
-            tools.sort(key=lambda t: t.priority)
         return tools
 
     async def get_tool(self, name: str) -> Tool | None:
@@ -230,9 +227,7 @@ class ToolManager:
         description_override: str | None = None,
         enabled: bool = True,
         source: ToolSource = "dynamic",
-        priority: int = 100,
         requires_confirmation: bool = False,
-        requires_capability: str | None = None,
         metadata: dict[str, str] | None = None,
     ) -> Tool:
         """Register a new tool with custom settings.
@@ -243,9 +238,7 @@ class ToolManager:
             name_override: Optional name override for the tool
             description_override: Optional description override for the tool
             source: Tool source (runtime/agent/builtin/dynamic)
-            priority: Execution priority (lower = higher priority)
             requires_confirmation: Whether tool needs confirmation
-            requires_capability: Optional capability needed to use tool
             metadata: Additional tool metadata
 
         Returns:
@@ -266,9 +259,7 @@ class ToolManager:
                     source=source,
                     name_override=name_override,
                     description_override=description_override,
-                    priority=priority,
                     requires_confirmation=requires_confirmation,
-                    requires_capability=requires_capability,
                     metadata=metadata or {},
                 )
 
@@ -378,9 +369,7 @@ class ToolManager:
         description: str | None = None,
         enabled: bool = True,
         source: ToolSource = "dynamic",
-        priority: int = 100,
         requires_confirmation: bool = False,
-        requires_capability: str | None = None,
         metadata: dict[str, str] | None = None,
     ) -> Callable[[AnyCallable], AnyCallable]:
         """Decorator to register a function as a tool.
@@ -390,9 +379,7 @@ class ToolManager:
             description: Optional description override
             enabled: Whether tool is initially enabled
             source: Tool source type
-            priority: Execution priority (lower = higher)
             requires_confirmation: Whether tool needs confirmation
-            requires_capability: Optional required capability
             metadata: Additional tool metadata
 
         Returns:
@@ -416,9 +403,7 @@ class ToolManager:
                 description_override=description,
                 enabled=enabled,
                 source=source,
-                priority=priority,
                 requires_confirmation=requires_confirmation,
-                requires_capability=requires_capability,
                 metadata=metadata,
             )
             return func

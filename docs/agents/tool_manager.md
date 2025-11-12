@@ -112,7 +112,6 @@ print(tool_info.description)          # Tool description
 print(tool_info.enabled)              # Current state
 print(tool_info.source)               # Where tool came from
 print(tool_info.requires_confirmation)  # Whether to confirm
-print(tool_info.requires_capability)   # Required capability
 print(tool_info.metadata)             # Custom metadata
 print(tool_info.parameters)           # Parameter information
 ```
@@ -124,7 +123,6 @@ print(tool_info.parameters)           # Parameter information
 # Register tool with capability requirement
 manager.register_tool(
     sensitive_operation,
-    requires_capability="can_execute_code",
     requires_confirmation=True
 )
 ```
