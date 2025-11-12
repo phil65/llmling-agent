@@ -36,17 +36,7 @@ class ToolError(LLMLingError):
 
 
 class ToolManager:
-    """Manages tool registration, enabling/disabling and access.
-
-    Inherits from BaseRegistry providing:
-    - Dict-like access: manager["tool_name"] -> Tool
-    - Async startup/shutdown: await manager.startup()
-    - Event observation: manager.add_observer(observer)
-    - Registration: manager.register("tool_name", tool)
-    - Listing: manager.list_items()
-    - State check: manager.is_empty, manager.has_item()
-    - Async iteration: async for name, tool in manager: ...
-    """
+    """Manages tool registration, enabling/disabling and access."""
 
     def __init__(
         self,

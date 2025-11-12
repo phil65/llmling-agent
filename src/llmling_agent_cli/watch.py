@@ -8,11 +8,11 @@ from typing import TYPE_CHECKING, Any
 import typer as t
 
 from llmling_agent.log import get_logger
+from llmling_agent_cli.cli_types import DetailLevel  # noqa: TC001
 
 
 if TYPE_CHECKING:
     from llmling_agent import ChatMessage
-    from llmling_agent_cli.cli_types import DetailLevel
 
 
 logger = get_logger(__name__)
