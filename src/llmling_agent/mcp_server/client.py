@@ -151,7 +151,7 @@ class MCPClient:
         """Get a filesystem for accessing MCP resources."""
         from upathtools.filesystems.mcp_fs import MCPFileSystem
 
-        return MCPFileSystem(self._client)
+        return MCPFileSystem(client=self._client)
 
     async def _log_handler(self, message: LogMessage) -> None:
         """Handle server log messages."""

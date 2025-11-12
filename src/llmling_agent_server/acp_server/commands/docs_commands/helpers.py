@@ -63,7 +63,7 @@ def generate_from_schema(
     schema_json: str,
     class_name: str | None = None,
     input_path: str | None = None,
-):
+) -> str:
     """Generate Pydantic model code from a JSON schema."""
     from datamodel_code_generator import DataModelType, LiteralType, PythonVersion
     from datamodel_code_generator.model import get_data_model_types
@@ -85,4 +85,4 @@ def generate_from_schema(
         use_schema_description=True,
         enum_field_as_literal=LiteralType.All,
     )
-    return parser.parse()
+    return str(parser.parse())

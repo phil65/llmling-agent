@@ -123,7 +123,7 @@ class GetSchemaCommand(SlashedCommand):
                     )
                     return
 
-                # Step 2: SERVER-SIDE - Generate code from schema using JsonSchemaParser
+                # Step 2: SERVER-SIDE - Generate code from schema
 
                 try:
                     generated_code = await asyncio.to_thread(

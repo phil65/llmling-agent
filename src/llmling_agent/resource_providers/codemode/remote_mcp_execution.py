@@ -23,7 +23,7 @@ logger = get_logger(__name__)
 
 
 @dataclass
-class CodeExecutionProvider:
+class RemoteMCPExecutor:
     """Provides secure code execution with tool access.
 
     Code Generation mode (ctx-zip style):
@@ -48,7 +48,7 @@ class CodeExecutionProvider:
         env_config: ExecutionEnvironmentConfig,
         include_signatures: bool = True,
         include_docstrings: bool = True,
-    ) -> CodeExecutionProvider:
+    ) -> RemoteMCPExecutor:
         """Create provider from tools and environment configuration.
 
         Args:
@@ -58,7 +58,7 @@ class CodeExecutionProvider:
             include_docstrings: Include function docstrings in documentation
 
         Returns:
-            CodeExecutionProvider instance
+            RemoteMCPExecutor instance
         """
         from llmling_agent.resource_providers.codemode.helpers import tools_to_codegen
 
@@ -113,11 +113,11 @@ if __name__ == "__main__":
         return x * y
 
     async def demo_code_generation_approach():
-        """Demo new code generation approach (ctx-zip style, works with cloud sandboxes)."""
+        """Demo new code generation approach (ctx-zip style, works with remote envs)."""
         print("\n=== Code Generation Approach (ctx-zip style) ===")
         tools = [Tool.from_callable(add_numbers), Tool.from_callable(multiply_numbers)]
         config = LocalExecutionEnvironmentConfig()  # Could be E2B, etc.
-        provider = CodeExecutionProvider.from_tools(tools, config)
+        provider = RemoteMCPExecutor.from_tools(tools, config)
         async with provider:
             print("Tool description:")
             print(provider.get_tool_description())
