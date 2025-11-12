@@ -19,7 +19,6 @@ if TYPE_CHECKING:
     from anyenv.code_execution.local_provider import LocalExecutionEnvironment
     from anyenv.code_execution.mcp_python_provider import McpPythonExecutionEnvironment
     from anyenv.code_execution.models import ServerInfo
-    from anyenv.code_execution.subprocess_provider import SubprocessExecutionEnvironment
 
 
 class BaseExecutionEnvironmentConfig(Schema):
@@ -43,6 +42,15 @@ class LocalExecutionEnvironmentConfig(BaseExecutionEnvironmentConfig):
 
     type: Literal["local"] = Field("local", init=False)
 
+    executable: str | None = None
+    """Python executable to use (if None, auto-detect based on language)."""
+
+    language: Language = "python"
+    """Programming language to use."""
+
+    isolated: bool = False
+    """Whether to run code in a subprocess."""
+
     def get_provider(
         self, lifespan_handler: AbstractAsyncContextManager[ServerInfo] | None = None
     ) -> LocalExecutionEnvironment:
@@ -53,36 +61,8 @@ class LocalExecutionEnvironmentConfig(BaseExecutionEnvironmentConfig):
             lifespan_handler=lifespan_handler,
             dependencies=self.dependencies,
             timeout=self.timeout,
-        )
-
-
-class SubprocessExecutionEnvironmentConfig(BaseExecutionEnvironmentConfig):
-    """Subprocess execution environment configuration.
-
-    Executes code in a separate Python process for basic isolation.
-    """
-
-    type: Literal["subprocess"] = Field("subprocess", init=False)
-
-    executable: str | None = None
-    """Python executable to use (if None, auto-detect based on language)."""
-
-    language: Language = "python"
-    """Programming language to use."""
-
-    def get_provider(
-        self, lifespan_handler: AbstractAsyncContextManager[ServerInfo] | None = None
-    ) -> SubprocessExecutionEnvironment:
-        """Create subprocess execution environment instance."""
-        from anyenv.code_execution.subprocess_provider import (
-            SubprocessExecutionEnvironment,
-        )
-
-        return SubprocessExecutionEnvironment(
-            lifespan_handler=lifespan_handler,
-            dependencies=self.dependencies,
+            isolated=self.isolated,
             executable=self.executable,
-            timeout=self.timeout,
             language=self.language,
         )
 
@@ -270,7 +250,6 @@ class McpPythonExecutionEnvironmentConfig(BaseExecutionEnvironmentConfig):
 # Union type for all execution environment configurations
 ExecutionEnvironmentConfig = Annotated[
     LocalExecutionEnvironmentConfig
-    | SubprocessExecutionEnvironmentConfig
     | DockerExecutionEnvironmentConfig
     | E2bExecutionEnvironmentConfig
     | BeamExecutionEnvironmentConfig

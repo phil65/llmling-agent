@@ -303,7 +303,7 @@ class MCPClient:
         self,
         name: str,
         run_context: RunContext,
-        arguments: dict | None = None,
+        arguments: dict[str, Any] | None = None,
     ) -> ToolReturn | str | Any:
         """Call an MCP tool with full PydanticAI return type support."""
         if not self._client or not self._connected:

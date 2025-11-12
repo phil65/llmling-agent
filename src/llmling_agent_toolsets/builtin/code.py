@@ -18,7 +18,7 @@ async def format_code(code: str, language: str | None = None) -> str:
     """
     from anyenv.language_formatters import FormatterRegistry
 
-    registry = FormatterRegistry("subprocess")
+    registry = FormatterRegistry("local")
     registry.register_default_formatters()
 
     # Get formatter by language or try to detect
