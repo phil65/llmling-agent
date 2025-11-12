@@ -11,9 +11,8 @@ import asyncio
 
 import typer as t
 
-from llmling_agent.log import configure_logging, get_logger
+from llmling_agent.log import get_logger
 from llmling_agent_cli import resolve_agent_config
-from llmling_agent_cli.cli_types import LogLevel  # noqa: TC001
 
 
 logger = get_logger(__name__)
@@ -21,7 +20,6 @@ logger = get_logger(__name__)
 
 def acp_command(
     config: str = t.Argument(None, help="Path to agent configuration"),
-    log_level: LogLevel = t.Option("info", help="Logging level"),  # noqa: B008
     file_access: bool = t.Option(
         True,
         "--file-access/--no-file-access",
@@ -115,8 +113,6 @@ def acp_command(
     """  # noqa: E501
     from llmling_agent_server.acp_server import ACPServer
 
-    # Configure logging with structlog
-    configure_logging(level=log_level)
     try:
         config_path = resolve_agent_config(config)
     except ValueError as e:

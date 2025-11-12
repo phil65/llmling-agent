@@ -2,14 +2,12 @@
 
 from __future__ import annotations
 
-import logging
 from typing import TYPE_CHECKING, Any
 
 import typer as t
 
 from llmling_agent.log import get_logger
 from llmling_agent_cli import resolve_agent_config
-from llmling_agent_cli.cli_types import LogLevel  # noqa: TC001
 from llmling_agent_server.openai_api_server.server import OpenAIAPIServer
 
 
@@ -21,6 +19,7 @@ logger = get_logger(__name__)
 
 
 def api_command(
+    ctx: t.Context,
     config: str = t.Argument(None, help="Path to agent configuration"),
     host: str = t.Option("localhost", help="Host to bind server to"),
     port: int = t.Option(8000, help="Port to listen on"),
@@ -28,7 +27,6 @@ def api_command(
     show_messages: bool = t.Option(
         False, "--show-messages", help="Show message activity"
     ),
-    log_level: LogLevel = t.Option("info", help="Logging level"),  # noqa: B008
     docs: bool = t.Option(True, help="Enable API documentation"),
 ):
     """Run agents as a completions API server.
@@ -47,9 +45,6 @@ def api_command(
 
     from llmling_agent import AgentPool, AgentsManifest
 
-    level = getattr(logging, log_level.upper())
-    logging.basicConfig(level=level)
-
     def on_message(message: ChatMessage[Any]):
         print(message.format(style="simple"))
 
@@ -67,6 +62,8 @@ def api_command(
 
     server = OpenAIAPIServer(pool, cors=cors, docs=docs)
 
+    # Get log level from the global context
+    log_level = ctx.obj.get("log_level", "info") if ctx.obj else "info"
     uvicorn.run(server.app, host=host, port=port, log_level=log_level.lower())
 
 

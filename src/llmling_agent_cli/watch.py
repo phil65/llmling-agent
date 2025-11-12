@@ -1,20 +1,18 @@
-"""Run command for agent execution."""
+"""Command for watching agents and displaying messages."""
 
 from __future__ import annotations
 
 import asyncio
-import logging
 from typing import TYPE_CHECKING, Any
 
 import typer as t
 
-from llmling_agent import AgentPool
 from llmling_agent.log import get_logger
-from llmling_agent_cli.cli_types import DetailLevel, LogLevel  # noqa: TC001
 
 
 if TYPE_CHECKING:
     from llmling_agent import ChatMessage
+    from llmling_agent_cli.cli_types import DetailLevel
 
 
 logger = get_logger(__name__)
@@ -30,11 +28,8 @@ def watch_command(
     ),
     show_metadata: bool = t.Option(False, "--metadata", help="Show message metadata"),
     show_costs: bool = t.Option(False, "--costs", help="Show token usage and costs"),
-    log_level: LogLevel = t.Option("info", help="Logging level"),  # noqa: B008
 ):
     """Run agents in event-watching mode."""
-    level = getattr(logging, log_level.upper())
-    logging.basicConfig(level=level)
 
     def on_message(chat_message: ChatMessage[Any]):
         text = chat_message.format(
@@ -45,7 +40,10 @@ def watch_command(
         print(text)
 
     async def run_watch():
-        async with AgentPool(config) as pool:
+        from llmling_agent import AgentPool, AgentsManifest
+
+        manifest = AgentsManifest.from_file(config)
+        async with AgentPool(manifest) as pool:
             # Connect message handlers if showing all messages
             if show_messages:
                 for agent in pool.agents.values():

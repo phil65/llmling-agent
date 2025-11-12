@@ -10,13 +10,12 @@ from __future__ import annotations
 
 import argparse
 import json
-import logging
 from pathlib import Path
 import sys
 from typing import Any
 
 from llmling_agent import AgentsManifest
-from llmling_agent.log import get_logger
+from llmling_agent.log import configure_logging, get_logger
 
 
 logger = get_logger(__name__)
@@ -43,7 +42,7 @@ def generate_schema(
         output_path = root / "schema" / "config-schema.json"
     else:
         output_path = Path(output_path)
-    logger.info("Generating schema to: %s", output_path)
+    logger.info("Generating schema: ", output_path=output_path)
 
     # Generate new schema
     schema = AgentsManifest.model_json_schema()
@@ -53,28 +52,29 @@ def generate_schema(
     changed = True
     if output_path.exists():
         try:
-            logger.info("Writing schema to %s", output_path)
+            logger.info("Writing schema", output_path=output_path)
             output_path.parent.mkdir(parents=True, exist_ok=True)
             with output_path.open() as f:
                 current = json.load(f)
             changed = current != schema
-            logger.info("Schema %s from current", "differs" if changed else "unchanged")
+            logger.info("Schema status", status="differs" if changed else "unchanged")
 
         except Exception as exc:  # noqa: BLE001
-            logger.warning("Failed to read current schema: %s", exc)
+            logger.warning("Failed to read current schema", error=exc)
 
     # Write if needed
     if (changed or force) and not check_only:
         output_path.parent.mkdir(parents=True, exist_ok=True)
         with output_path.open("w") as f:
             json.dump(schema, f, indent=2)
-        logger.info("Schema written to %s", output_path)
+        logger.info("Schema written", output_path=output_path)
 
     return changed, schema
 
 
 def main() -> int:
     """Run schema generation."""
+    configure_logging()
     parser = argparse.ArgumentParser(description="Generate config schema")
     parser.add_argument(
         "--output",
@@ -102,5 +102,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
     sys.exit(main())

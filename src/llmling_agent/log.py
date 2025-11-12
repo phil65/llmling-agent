@@ -45,18 +45,28 @@ def configure_logging(
     if isinstance(level, str):
         level = getattr(logging, level.upper())
 
+    # Determine output format first
+    colors = sys.stderr.isatty() and not json_logs if use_colors is not None else False
+    use_console_renderer = not (json_logs or (not colors and not sys.stderr.isatty()))
+
     # Configure standard logging as backend
-    logging.basicConfig(
-        level=level,
-        handlers=[logging.StreamHandler(sys.stderr)],
-        force=True,
-        format="%(message)s",  # structlog handles formatting
-    )
+    if use_console_renderer:
+        # For console output, don't show level in stdlib logging (structlog handles it)
+        handler = logging.StreamHandler(sys.stderr)
+        handler.setFormatter(logging.Formatter("%(message)s"))
+        logging.basicConfig(level=level, handlers=[handler], force=True)
+    else:
+        # For structured output, use minimal formatting
+        logging.basicConfig(
+            level=level,
+            handlers=[logging.StreamHandler(sys.stderr)],
+            force=True,
+            format="%(message)s",
+        )
 
     # Configure structlog processors
     processors: list[Any] = [
         structlog.stdlib.filter_by_level,
-        structlog.stdlib.add_logger_name,
         structlog.stdlib.add_log_level,
         structlog.stdlib.PositionalArgumentsFormatter(),
         structlog.processors.TimeStamper(fmt="iso"),
@@ -64,12 +74,9 @@ def configure_logging(
         structlog.processors.UnicodeDecoder(),
     ]
 
-    # Determine output format
-    colors = sys.stderr.isatty() and not json_logs if use_colors is not None else False
-    use_console_renderer = not (json_logs or (not colors and not sys.stderr.isatty()))
-
-    # Add format_exc_info only for non-console renderers
+    # Add logger name only for non-console renderers (avoid duplication with stdlib)
     if not use_console_renderer:
+        processors.insert(1, structlog.stdlib.add_logger_name)
         processors.append(structlog.processors.format_exc_info)
 
     # Add final renderer
@@ -107,7 +114,6 @@ def get_logger(
         structlog.configure(
             processors=[
                 structlog.stdlib.filter_by_level,
-                structlog.stdlib.add_logger_name,
                 structlog.stdlib.add_log_level,
                 structlog.processors.StackInfoRenderer(),
                 structlog.dev.ConsoleRenderer(colors=False),

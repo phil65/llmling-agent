@@ -3,14 +3,12 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 from typing import TYPE_CHECKING, Any
 
 import typer as t
 
 from llmling_agent import AgentPool, AgentsManifest
 from llmling_agent.log import get_logger
-from llmling_agent_cli.cli_types import LogLevel  # noqa: TC001
 from llmling_agent_config.pool_server import (
     MCPPoolServerConfig,
     TransportType,  # noqa: TC001
@@ -35,15 +33,12 @@ def serve_command(
     show_messages: bool = t.Option(
         False, "--show-messages", help="Show message activity"
     ),
-    log_level: LogLevel = t.Option("info", help="Logging level"),  # noqa: B008
 ):
     """Run agents as an MCP server.
 
     This makes agents available as tools to other applications, regardless of
     whether pool_server is configured in the manifest.
     """
-    level = getattr(logging, log_level.upper())
-    logging.basicConfig(level=level)
 
     def on_message(message: ChatMessage[Any]):
         print(message.format(style="simple"))

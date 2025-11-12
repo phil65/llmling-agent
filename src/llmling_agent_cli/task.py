@@ -3,14 +3,12 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 from typing import TYPE_CHECKING
 
 import typer as t
 
 from llmling_agent import log
 from llmling_agent_cli import resolve_agent_config
-from llmling_agent_cli.cli_types import LogLevel  # noqa: TC001
 
 
 if TYPE_CHECKING:
@@ -57,18 +55,10 @@ def task_command(
         None, "--config", "-c", help="Agent configuration file"
     ),
     prompt: str | None = t.Option(None, "--prompt", "-p", help="Additional prompt"),
-    log_level: LogLevel = t.Option(  # noqa: B008
-        "warning",
-        "--log-level",
-        "-l",
-        help="Log level",
-    ),
 ):
     """Execute a task with the specified agent."""
+    logger = log.get_logger(__name__)
     try:
-        level = getattr(logging, log_level.upper())
-        logging.basicConfig(level=level)
-        logger = log.get_logger(__name__)
         logger.debug("Starting task execution", name=task_name)
 
         # Resolve configuration path
@@ -87,10 +77,7 @@ def task_command(
 
     except Exception as e:
         t.echo(f"Error: {e}", err=True)
-        if level <= logging.DEBUG:
-            import traceback
-
-            t.echo(traceback.format_exc(), err=True)
+        logger.debug("Exception details", exc_info=True)
         raise t.Exit(1) from e
 
 

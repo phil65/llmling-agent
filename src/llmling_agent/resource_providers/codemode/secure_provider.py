@@ -156,17 +156,15 @@ class SecureCodeModeResourceProvider(CodeModeResourceProvider):
 
 if __name__ == "__main__":
     import asyncio
-    import logging
-    import sys
     import webbrowser
 
-    from llmling_agent import Agent
+    from llmling_agent import Agent, log
     from llmling_agent.resource_providers import StaticResourceProvider
     from llmling_agent_config.execution_environments import (
         LocalExecutionEnvironmentConfig,
     )
 
-    logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
+    log.configure_logging()
 
     def open_browser(url: str, new: int = 0, autoraise: bool = True) -> bool:
         """Display url using the default browser.

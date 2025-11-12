@@ -190,14 +190,12 @@ class CodeModeResourceProvider(AggregatingResourceProvider):
 
 if __name__ == "__main__":
     import asyncio
-    import logging
-    import sys
     import webbrowser
 
-    from llmling_agent import Agent
+    from llmling_agent import Agent, log
     from llmling_agent.resource_providers import StaticResourceProvider
 
-    logging.basicConfig(level=logging.INFO, stream=sys.stdout)
+    log.configure_logging()
     static_provider = StaticResourceProvider(tools=[Tool.from_callable(webbrowser.open)])
     provider = CodeModeResourceProvider([static_provider])
 

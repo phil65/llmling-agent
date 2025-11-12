@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import typer as t
 
+from llmling_agent import log
 from llmling_agent_cli.agent import add_agent_file, list_agents, set_active_file
 from llmling_agent_cli.history import history_cli
 from llmling_agent_cli.run import run_command
@@ -13,6 +16,10 @@ from llmling_agent_cli.serve_mcp import serve_command
 from llmling_agent_cli.store import config_store
 from llmling_agent_cli.task import task_command
 from llmling_agent_cli.watch import watch_command
+
+
+if TYPE_CHECKING:
+    from llmling_agent_cli.cli_types import LogLevel
 
 
 MAIN_HELP = "🤖 LLMling Agent CLI - Run and manage LLM agents"
@@ -25,9 +32,23 @@ def get_command_help(base_help: str) -> str:
     return f"{base_help}\n\n(No active config set)"
 
 
+def main(
+    ctx: t.Context,
+    log_level: LogLevel = t.Option("info", "--log-level", "-l", help="Log level"),  # noqa: B008
+):
+    """🤖 LLMling Agent CLI - Run and manage LLM agents."""
+    # Configure logging globally
+    log.configure_logging(level=log_level.upper())
+
+    # Store log level in context for commands that might need it
+    ctx.ensure_object(dict)
+    ctx.obj["log_level"] = log_level
+
+
 # Create CLI app
 help_text = get_command_help(MAIN_HELP)
 cli = t.Typer(name="LLMling Agent", help=help_text, no_args_is_help=True)
+cli.callback()(main)
 
 cli.command(name="add")(add_agent_file)
 cli.command(name="run")(run_command)
