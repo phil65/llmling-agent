@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-import asyncio
 import contextlib
 import io
+
+from anyenv import create_shell_process
 
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.resource_providers import StaticResourceProvider
@@ -39,19 +40,13 @@ async def execute_command(  # noqa: D417
 
     try:
         # Prepare environment
-        proc_env = dict(os.environ)
+        env = dict(os.environ)
         if env:
-            proc_env.update(env)
-
-        pipe = asyncio.subprocess.PIPE
-        proc = await asyncio.create_subprocess_shell(
-            command, stdout=pipe, stderr=pipe, env=proc_env
-        )
+            env.update(env)
+        proc = await create_shell_process(command, stdout="pipe", stderr="pipe", env=env)
         stdout, stderr = await proc.communicate()
-
         # Combine and decode output
         output = stdout.decode() or stderr.decode() or "Command completed"
-
         # Apply output limit if specified
         if output_limit and len(output.encode()) > output_limit:
             # Truncate from the end to keep most recent output

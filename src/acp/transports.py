@@ -1,16 +1,20 @@
 from __future__ import annotations
 
 import asyncio
-import asyncio.subprocess as aio_subprocess
 import contextlib
 from contextlib import asynccontextmanager
 import os
 from typing import TYPE_CHECKING
 
+from anyenv import create_process
+
 
 if TYPE_CHECKING:
+    import asyncio.subprocess as aio_subprocess
     from collections.abc import AsyncIterator, Mapping
     from pathlib import Path
+
+    from anyenv.processes import Mode
 
 
 DEFAULT_INHERITED_ENV_VARS = (
@@ -53,7 +57,7 @@ async def spawn_stdio_transport(
     *args: str,
     env: Mapping[str, str] | None = None,
     cwd: str | Path | None = None,
-    stderr: int | None = aio_subprocess.PIPE,
+    stderr: Mode | None = "pipe",
     shutdown_timeout: float = 2.0,
 ) -> AsyncIterator[
     tuple[asyncio.StreamReader, asyncio.StreamWriter, aio_subprocess.Process]
@@ -67,11 +71,11 @@ async def spawn_stdio_transport(
     if env:
         merged_env.update(env)
 
-    process = await asyncio.create_subprocess_exec(
+    process = await create_process(
         command,
         *args,
-        stdin=aio_subprocess.PIPE,
-        stdout=aio_subprocess.PIPE,
+        stdin="pipe",
+        stdout="pipe",
         stderr=stderr,
         env=merged_env,
         cwd=str(cwd) if cwd is not None else None,
