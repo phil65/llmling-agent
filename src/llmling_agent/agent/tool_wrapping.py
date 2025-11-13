@@ -35,50 +35,44 @@ def wrap_tool(
     - Tools with both contexts: Present as RunContext-only to pydantic-ai, inject AgentContext
     - Tools with no context: Normal pydantic-ai handling
     """  # noqa: E501
-    original_tool = tool.callable
-    has_run_ctx = get_argument_key(original_tool, RunContext)
-    has_agent_ctx = get_argument_key(original_tool, AgentContext)
-
+    run_ctx_key = get_argument_key(tool.callable, RunContext)
+    agent_ctx_key = get_argument_key(tool.callable, AgentContext)
     # Check if we have separate RunContext and AgentContext parameters
-    has_dual_contexts = has_run_ctx and has_agent_ctx and has_run_ctx != has_agent_ctx
-
-    if has_dual_contexts:
-        # Dual context tool - present RunContext-only signature to pydantic-ai
-        agent_ctx_param = has_agent_ctx
-        assert agent_ctx_param
-
+    if run_ctx_key and agent_ctx_key and run_ctx_key != agent_ctx_key:
+        # Dual context - present RunContext-only signature to pydantic-ai
+        # pydantic-ai will not see AgentContext parameter
         async def wrapped(ctx: RunContext, *args, **kwargs):  # pyright: ignore
             result = await agent_ctx.handle_confirmation(tool, kwargs)
             if result == "allow":
-                kwargs[agent_ctx_param] = agent_ctx
-                return await execute(original_tool, ctx, *args, **kwargs)
+                kwargs[agent_ctx_key] = agent_ctx
+                return await execute(tool.callable, ctx, *args, **kwargs)
             return await _handle_confirmation_result(result, tool.name)
 
         # Hide AgentContext parameter from pydantic-ai's signature analysis
-        sig = inspect.signature(original_tool)
-        new_params = [p for p in sig.parameters.values() if p.name != agent_ctx_param]
+        sig = inspect.signature(tool.callable)
+        new_params = [p for p in sig.parameters.values() if p.name != agent_ctx_key]
         wrapped.__signature__ = sig.replace(parameters=new_params)  # type: ignore
 
-    elif has_run_ctx:
+    elif run_ctx_key:
         # RunContext only - normal pydantic-ai handling
         async def wrapped(ctx: RunContext, *args, **kwargs):  # pyright: ignore
             result = await agent_ctx.handle_confirmation(tool, kwargs)
             if result == "allow":
-                return await execute(original_tool, ctx, *args, **kwargs)
+                return await execute(tool.callable, ctx, *args, **kwargs)
             return await _handle_confirmation_result(result, tool.name)
 
-    elif has_agent_ctx:
+    elif agent_ctx_key:
         # AgentContext only - treat as regular tool, inject context
         async def wrapped(*args, **kwargs):  # pyright: ignore
             result = await agent_ctx.handle_confirmation(tool, kwargs)
             if result == "allow":
-                kwargs[has_agent_ctx] = agent_ctx
-                return await execute(original_tool, *args, **kwargs)
+                kwargs[agent_ctx_key] = agent_ctx
+                return await execute(tool.callable, *args, **kwargs)
             return await _handle_confirmation_result(result, tool.name)
 
         # Hide AgentContext parameter from pydantic-ai's signature analysis
-        sig = inspect.signature(original_tool)
-        new_params = [p for p in sig.parameters.values() if p.name != has_agent_ctx]
+        sig = inspect.signature(tool.callable)
+        new_params = [p for p in sig.parameters.values() if p.name != agent_ctx_key]
         wrapped.__signature__ = sig.replace(parameters=new_params)  # type: ignore
 
     else:
@@ -86,10 +80,10 @@ def wrap_tool(
         async def wrapped(*args, **kwargs):  # pyright: ignore
             result = await agent_ctx.handle_confirmation(tool, kwargs)
             if result == "allow":
-                return await execute(original_tool, *args, **kwargs)
+                return await execute(tool.callable, *args, **kwargs)
             return await _handle_confirmation_result(result, tool.name)
 
-    wraps(original_tool)(wrapped)  # pyright: ignore
+    wraps(tool.callable)(wrapped)  # pyright: ignore
     wrapped.__doc__ = tool.description
     wrapped.__name__ = tool.name
     return wrapped
