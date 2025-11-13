@@ -31,6 +31,7 @@ import tokonomics
 
 from llmling_agent.common_types import MessageRole, SimpleJsonType  # noqa: TC001
 from llmling_agent.log import get_logger
+from llmling_agent.utils.inspection import dataclasses_no_defaults_repr
 from llmling_agent.utils.now import get_now
 
 
@@ -225,6 +226,8 @@ class ChatMessage[TContent]:
     """Reason the model finished generating the response.
 
     Normalized to OpenTelemetry values."""
+
+    __repr__ = dataclasses_no_defaults_repr
 
     @property
     def last_message(self) -> ModelMessage | None:

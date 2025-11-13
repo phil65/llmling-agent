@@ -11,7 +11,7 @@ from pydantic_ai.tools import Tool as PydanticAiTool
 import schemez
 
 from llmling_agent.log import get_logger
-from llmling_agent.utils.inspection import execute
+from llmling_agent.utils.inspection import dataclasses_no_defaults_repr, execute
 from llmling_agent_config.tools import ToolHints  # noqa: TC001
 
 
@@ -80,6 +80,8 @@ class Tool[TOutputType = Any]:
 
     category: ToolKind | None = None
     """The category of the tool."""
+
+    __repr__ = dataclasses_no_defaults_repr
 
     def to_pydantic_ai(self) -> PydanticAiTool:
         """Convert tool to Pydantic AI tool."""

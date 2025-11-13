@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Sequence
+from dataclasses import fields
 from importlib.util import find_spec
 import inspect
 from types import UnionType
@@ -25,6 +26,16 @@ if TYPE_CHECKING:
 
 
 PACKAGE_NAME = "llmling-agent"
+
+
+def dataclasses_no_defaults_repr(self: Any) -> str:
+    """Exclude fields with values equal to the field default."""
+    kv_pairs = (
+        f"{f.name}={getattr(self, f.name)!r}"
+        for f in fields(self)
+        if f.repr and getattr(self, f.name) != f.default
+    )
+    return f"{self.__class__.__qualname__}({', '.join(kv_pairs)})"
 
 
 async def execute[T](
