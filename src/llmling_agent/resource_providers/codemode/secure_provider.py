@@ -44,7 +44,6 @@ class SecureCodeModeResourceProvider(CodeModeResourceProvider):
         providers: list[ResourceProvider],
         execution_config: ExecutionEnvironmentConfig | None = None,
         name: str = "secure_code_executor",
-        include_signatures: bool = True,
         include_docstrings: bool = True,
         usage_notes: str = USAGE,
         server_host: str = "localhost",
@@ -56,7 +55,6 @@ class SecureCodeModeResourceProvider(CodeModeResourceProvider):
             providers: Providers whose tools to expose
             execution_config: Execution environment configuration
             name: Provider name
-            include_signatures: Include function signatures in documentation
             include_docstrings: Include function docstrings in documentation
             usage_notes: Usage notes for the provider
             server_host: Host for tool server
@@ -65,7 +63,6 @@ class SecureCodeModeResourceProvider(CodeModeResourceProvider):
         super().__init__(
             providers=providers,
             name=name,
-            include_signatures=include_signatures,
             include_docstrings=include_docstrings,
             usage_notes=usage_notes,
         )
@@ -129,7 +126,6 @@ class SecureCodeModeResourceProvider(CodeModeResourceProvider):
                     self.execution_config,
                     server_host=self.server_host,
                     server_port=self.server_port,
-                    include_signatures=self.include_signatures,
                     include_docstrings=self.include_docstrings,
                 )
 

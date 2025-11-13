@@ -46,7 +46,6 @@ class RemoteMCPExecutor:
         cls,
         tools: Sequence[Tool],
         env_config: ExecutionEnvironmentConfig,
-        include_signatures: bool = True,
         include_docstrings: bool = True,
     ) -> RemoteMCPExecutor:
         """Create provider from tools and environment configuration.
@@ -54,7 +53,6 @@ class RemoteMCPExecutor:
         Args:
             tools: Tools to make available for code execution
             env_config: Execution environment configuration
-            include_signatures: Include function signatures in documentation
             include_docstrings: Include function docstrings in documentation
 
         Returns:
@@ -62,7 +60,7 @@ class RemoteMCPExecutor:
         """
         from llmling_agent.resource_providers.codemode.helpers import tools_to_codegen
 
-        toolset_gen = tools_to_codegen(tools, include_signatures, include_docstrings)
+        toolset_gen = tools_to_codegen(tools, include_docstrings)
         execution_env = env_config.get_provider()
         return cls(toolset_gen, execution_env)
 

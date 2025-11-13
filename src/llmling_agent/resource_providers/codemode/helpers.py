@@ -50,14 +50,12 @@ def fix_code(python_code: str) -> str:
 
 def tools_to_codegen(
     tools: Sequence[Tool],
-    include_signatures: bool = True,
     include_docstrings: bool = True,
 ) -> ToolsetCodeGenerator:
     """Create a ToolsetCodeGenerator from a sequence of Tools.
 
     Args:
         tools: Tools to generate code for
-        include_signatures: Include function signatures in documentation
         include_docstrings: Include function docstrings in documentation
 
     Returns:
@@ -83,4 +81,4 @@ def tools_to_codegen(
         )
         for t in tools
     ]
-    return ToolsetCodeGenerator(generators, include_signatures, include_docstrings)
+    return ToolsetCodeGenerator(generators, include_docstrings)

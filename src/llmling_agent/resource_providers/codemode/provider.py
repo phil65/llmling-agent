@@ -47,7 +47,6 @@ class CodeModeResourceProvider(AggregatingResourceProvider):
         self,
         providers: list[ResourceProvider],
         name: str = "meta_tools",
-        include_signatures: bool = True,
         include_docstrings: bool = True,
         usage_notes: str = USAGE,
     ):
@@ -56,12 +55,10 @@ class CodeModeResourceProvider(AggregatingResourceProvider):
         Args:
             providers: Providers whose tools to wrap
             name: Provider name
-            include_signatures: Include function signatures in documentation
             include_docstrings: Include function docstrings in documentation
             usage_notes: Usage notes for the codemode tool
         """
         super().__init__(providers=providers, name=name)
-        self.include_signatures = include_signatures
         self.include_docstrings = include_docstrings
         self._toolset_generator: ToolsetCodeGenerator | None = None
         self.usage_notes = usage_notes
@@ -199,7 +196,6 @@ class CodeModeResourceProvider(AggregatingResourceProvider):
         if self._toolset_generator is None:
             self._toolset_generator = tools_to_codegen(
                 tools=await super().get_tools(),
-                include_signatures=self.include_signatures,
                 include_docstrings=self.include_docstrings,
             )
         assert self._toolset_generator

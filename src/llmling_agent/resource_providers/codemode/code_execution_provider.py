@@ -50,7 +50,6 @@ class CodeExecutionProvider:
         env_config: ExecutionEnvironmentConfig,
         server_host: str = "localhost",
         server_port: int = 8000,
-        include_signatures: bool = True,
         include_docstrings: bool = True,
     ) -> CodeExecutionProvider:
         """Create provider from tools and environment configuration.
@@ -60,7 +59,6 @@ class CodeExecutionProvider:
             env_config: Execution environment configuration
             server_host: Host for FastAPI server
             server_port: Port for FastAPI server
-            include_signatures: Include function signatures in documentation
             include_docstrings: Include function docstrings in documentation
 
         Returns:
@@ -68,7 +66,7 @@ class CodeExecutionProvider:
         """
         from llmling_agent.resource_providers.codemode.helpers import tools_to_codegen
 
-        toolset_gen = tools_to_codegen(tools, include_signatures, include_docstrings)
+        toolset_gen = tools_to_codegen(tools, include_docstrings)
         server_handler = ToolServerLifecycleHandler(toolset_gen, server_host, server_port)
         execution_env = env_config.get_provider(server_handler)
         return cls(toolset_gen, execution_env)
