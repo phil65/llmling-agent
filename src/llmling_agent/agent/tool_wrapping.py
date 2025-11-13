@@ -6,12 +6,6 @@ from functools import wraps
 import inspect
 from typing import TYPE_CHECKING, Any
 
-
-if TYPE_CHECKING:
-    from collections.abc import Awaitable, Callable
-
-    from llmling_agent.tools.base import Tool
-
 from pydantic_ai import RunContext
 
 from llmling_agent.agent.context import AgentContext
@@ -21,6 +15,12 @@ from llmling_agent.tasks.exceptions import (
     ToolSkippedError,
 )
 from llmling_agent.utils.inspection import execute, get_argument_key
+
+
+if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
+
+    from llmling_agent.tools.base import Tool
 
 
 def wrap_tool(
