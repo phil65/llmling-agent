@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 from typing import TYPE_CHECKING
 
 
@@ -13,39 +14,31 @@ if TYPE_CHECKING:
     from llmling_agent.tools import Tool
 
 
-def fix_code(python_code: str) -> str:
-    """Fix code to be executable."""
-    # Simplified execution: require main() function pattern
-    if "async def main(" not in python_code:
-        # Auto-wrap code in main function, ensuring last expression is returned
-        lines = python_code.strip().splitlines()
-        if lines:
-            # Check if last line is an expression (not a statement)
-            last_line = lines[-1].strip()
-            if last_line and not any(
-                last_line.startswith(kw)
-                for kw in [
-                    "import ",
-                    "from ",
-                    "def ",
-                    "class ",
-                    "if ",
-                    "for ",
-                    "while ",
-                    "try ",
-                    "with ",
-                    "async def ",
-                ]
-            ):
-                # Last line looks like an expression, add return
-                lines[-1] = f"    return {last_line}"
-                indented_lines = [f"    {line}" for line in lines[:-1]] + [lines[-1]]
-            else:
-                indented_lines = [f"    {line}" for line in lines]
-            python_code = "async def main():\n" + "\n".join(indented_lines)
-        else:
-            python_code = "async def main():\n    pass"
-    return python_code
+def validate_code(python_code: str) -> None:
+    """Validate code structure and raise ModelRetry for fixable issues."""
+    from pydantic_ai import ModelRetry
+
+    code = python_code.strip()
+    try:
+        ast.parse(code)
+    except SyntaxError as e:
+        msg = f"Invalid code syntax: {e}"
+        raise ModelRetry(msg) from None
+    else:
+        if "async def main(" not in code:
+            msg = (
+                "Code must be wrapped in 'async def main():' function. "
+                "Please rewrite your code like:\n"
+                "async def main():\n"
+                "    # your code here\n"
+                "    return result"
+            )
+            raise ModelRetry(msg)
+
+        # Check if code contains a return statement
+        if "return " not in code:
+            msg = "The main() function should return a value."
+            raise ModelRetry(msg)
 
 
 def tools_to_codegen(

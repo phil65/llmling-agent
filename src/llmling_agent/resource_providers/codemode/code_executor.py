@@ -28,7 +28,7 @@ logger = get_logger(__name__)
 
 
 @dataclass
-class CodeExecutionProvider:
+class RemoteCodeExecutor:
     """Provides secure code execution with tool access via FastAPI server.
 
     Architecture:
@@ -40,7 +40,7 @@ class CodeExecutionProvider:
     toolset_generator: ToolsetCodeGenerator
     """Code generator for tools."""
 
-    execution_environment: ExecutionEnvironment
+    execution_env: ExecutionEnvironment
     """Execution environment for running code."""
 
     @classmethod
@@ -51,7 +51,7 @@ class CodeExecutionProvider:
         server_host: str = "localhost",
         server_port: int = 8000,
         include_docstrings: bool = True,
-    ) -> CodeExecutionProvider:
+    ) -> RemoteCodeExecutor:
         """Create provider from tools and environment configuration.
 
         Args:
@@ -62,7 +62,7 @@ class CodeExecutionProvider:
             include_docstrings: Include function docstrings in documentation
 
         Returns:
-            CodeExecutionProvider instance
+            RemoteCodeExecutor instance
         """
         from llmling_agent.resource_providers.codemode.helpers import tools_to_codegen
 
@@ -84,16 +84,16 @@ class CodeExecutionProvider:
         Returns:
             Execution result from the environment
         """
-        return await self.execution_environment.execute(code)
+        return await self.execution_env.execute(code)
 
     async def __aenter__(self):
         """Async context manager entry."""
-        await self.execution_environment.__aenter__()
+        await self.execution_env.__aenter__()
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """Async context manager exit."""
-        return await self.execution_environment.__aexit__(exc_type, exc_val, exc_tb)
+        return await self.execution_env.__aexit__(exc_type, exc_val, exc_tb)
 
 
 class ToolServerLifecycleHandler:
@@ -195,7 +195,7 @@ if __name__ == "__main__":
     async def main():
         tools = [Tool.from_callable(add_numbers)]
         config = LocalExecutionEnvironmentConfig()
-        provider = CodeExecutionProvider.from_tools(tools, config, server_port=9876)
+        provider = RemoteCodeExecutor.from_tools(tools, config, server_port=9876)
         async with provider:
             result = await provider.execute_code("_result = await add_numbers(5, 3)")
             print(f"Result: {result.result}")

@@ -9,7 +9,11 @@ from schemez.code_generation.namespace_callable import NamespaceCallable
 
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.resource_providers import AggregatingResourceProvider
-from llmling_agent.resource_providers.codemode.helpers import fix_code, tools_to_codegen
+from llmling_agent.resource_providers.codemode.default_prompt import USAGE
+from llmling_agent.resource_providers.codemode.helpers import (
+    tools_to_codegen,
+    validate_code,
+)
 from llmling_agent.tools.base import Tool
 
 
@@ -17,27 +21,6 @@ if TYPE_CHECKING:
     from schemez.code_generation import ToolsetCodeGenerator
 
     from llmling_agent.resource_providers import ResourceProvider
-
-
-USAGE = """
-Usage notes:
-- Write your code inside an 'async def main():' function
-- All tool functions are async, use 'await'
-- Use 'return' statements to return values from main()
-- Generated model classes are available for type checking
-- Use 'await report_progress(current, total, message)' for long-running operations
-- DO NOT call asyncio.run() or try to run the main function yourself
-- DO NOT import asyncio or other modules - tools are already available
-- Example:
-    async def main():
-        for i in range(5):
-            await report_progress(i, 5, f'Step {i+1} for {name}')
-            should_continue = await ask_user('Continue?', 'bool')
-            if not should_continue:
-                break
-        return f'Completed for {name}'
-
-"""
 
 
 class CodeModeResourceProvider(AggregatingResourceProvider):
@@ -70,48 +53,28 @@ class CodeModeResourceProvider(AggregatingResourceProvider):
         desc += self.usage_notes
 
         # Create a closure that captures self but isn't a bound method
-        async def execute_tool(  # noqa: D417
+        async def execute_tool(
             ctx: AgentContext,
             python_code: str,
-            context_vars: dict[str, Any] | None = None,
         ) -> Any:
-            """Execute Python code with all wrapped tools available as functions.
-
-            Args:
-                python_code: Python code to execute
-                context_vars: Additional variables to make available
-
-            Returns:
-                Result of the last expression or explicit return value
-            """
-            return await self.execute(ctx, python_code, context_vars)
+            """These docstings are overriden by description_override."""
+            return await self.execute(ctx, python_code)
 
         return [Tool.from_callable(execute_tool, description_override=desc)]
 
-    async def execute(  # noqa: D417
-        self,
-        ctx: AgentContext,
-        python_code: str,
-        context_vars: dict[str, Any] | None = None,
-    ) -> Any:
+    async def execute(self, ctx: AgentContext, python_code: str) -> Any:  # noqa: D417
         """Execute Python code with all wrapped tools available as functions.
 
         Args:
             python_code: Python code to execute
-            context_vars: Additional variables to make available
 
         Returns:
             Result of the last expression or explicit return value
         """
-        # Handle RunContext wrapper
-        # if isinstance(ctx, RunContext):
-        #     ctx = ctx.deps
-        # Build execution namespace
         toolset_generator = await self._get_code_generator()
         namespace = toolset_generator.generate_execution_namespace()
 
-        # Add progress reporting if context is available
-        if ctx.report_progress:
+        if ctx.report_progress:  # Add progress reporting if  available
 
             async def report_progress(current: int, total: int, message: str = ""):
                 """Report progress during code execution."""
@@ -120,72 +83,15 @@ class CodeModeResourceProvider(AggregatingResourceProvider):
 
             namespace["report_progress"] = NamespaceCallable(report_progress)
 
-        # async def ask_user(
-        #     message: str, response_type: str = "string"
-        # ) -> str | bool | int | float | dict:
-        #     """Ask the user for input during code execution.
-
-        #     Args:
-        #         message: Question to ask the user
-        #         response_type: Type of response
-        #                         expected ("string", "bool", "int", "float", "json")
-
-        #     Returns:
-        #         User's response in the requested type
-        #     """
-        #     from mcp import types
-
-        #     # Map string types to Python types for elicitation
-        #     type_mapping = {
-        #         "string": str,
-        #         "str": str,
-        #         "bool": bool,
-        #         "boolean": bool,
-        #         "int": int,
-        #         "integer": int,
-        #         "float": float,
-        #         "number": float,
-        #         "json": dict,
-        #         "dict": dict,
-        #     }
-
-        #     python_type = type_mapping.get(response_type.lower(), str)
-
-        #     params = types.ElicitRequestParams(
-        #         message=message,
-        #         response_type=python_type.__name__,
-        #     )
-
-        #     result = await ctx.handle_elicitation(params)
-
-        #     if isinstance(result, types.ElicitResult) and result.action == "accept":
-        #         return result.content if result.content is not None else ""
-        #     if isinstance(result, types.ErrorData):
-        #         msg = f"Elicitation failed: {result.message}"
-        #         raise RuntimeError(msg)
-        #     msg = "User declined to provide input"
-        #     raise RuntimeError(msg)
-
-        # namespace["ask_user"] = ask_user
-
-        if context_vars:
-            namespace.update(context_vars)
-        python_code = fix_code(python_code)
+        validate_code(python_code)
         try:
             exec(python_code, namespace)
             result = await namespace["main"]()
             # Handle edge cases with coroutines and return values
             if inspect.iscoroutine(result):
                 result = await result
-            # Ensure we return a serializable value
-            if result is None:
+            if not result:  # in order to not confuse the model, return a success message.
                 return "Code executed successfully"
-            if hasattr(result, "__dict__") and not isinstance(
-                result, (str, int, float, bool, list, dict)
-            ):
-                # Handle complex objects that might not serialize well
-                return f"Operation completed. Result type: {type(result).__name__}"
-
         except Exception as e:  # noqa: BLE001
             return f"Error executing code: {e!s}"
         else:

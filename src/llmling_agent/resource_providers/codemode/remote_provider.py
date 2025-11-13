@@ -9,12 +9,12 @@ from typing import TYPE_CHECKING, Any
 from anyenv.code_execution.configs import LocalExecutionEnvironmentConfig
 
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
-from llmling_agent.resource_providers.codemode.code_execution_provider import (
-    CodeExecutionProvider,
+from llmling_agent.resource_providers.codemode.code_executor import (
+    RemoteCodeExecutor,
 )
-from llmling_agent.resource_providers.codemode.helpers import fix_code
+from llmling_agent.resource_providers.codemode.default_prompt import USAGE
+from llmling_agent.resource_providers.codemode.helpers import validate_code
 from llmling_agent.resource_providers.codemode.provider import (
-    USAGE,
     CodeModeResourceProvider,
 )
 from llmling_agent.tools.base import Tool
@@ -69,15 +69,10 @@ class RemoteCodeModeResourceProvider(CodeModeResourceProvider):
         self.execution_config = execution_config or LocalExecutionEnvironmentConfig()
         self.server_host = server_host
         self.server_port = server_port
-        self._code_execution_provider: CodeExecutionProvider | None = None
+        self._code_executor: RemoteCodeExecutor | None = None
         self._provider_lock = asyncio.Lock()
 
-    async def execute(  # noqa: D417
-        self,
-        ctx: AgentContext,
-        python_code: str,
-        context_vars: dict[str, Any] | None = None,
-    ) -> Any:
+    async def execute(self, ctx: AgentContext, python_code: str) -> Any:  # noqa: D417
         """Execute Python code in secure environment with tools available via HTTP.
 
         Args:
@@ -87,26 +82,11 @@ class RemoteCodeModeResourceProvider(CodeModeResourceProvider):
         Returns:
             Result of the code execution
         """
-        code_provider = await self._get_code_execution_provider()
-        python_code = fix_code(python_code)
+        code_provider = await self._get_code_executor()
+        validate_code(python_code)
         full_code = f"{PROGRESS_HELPER}\n\n{python_code}"
-        # Add context variables if provided
-        if context_vars:
-            ctx_assignments = []
-            for key, value in context_vars.items():
-                if isinstance(value, (str, int, float, bool, list, dict)):
-                    ctx_assignments.append(f"{key} = {value!r}")
-                else:
-                    ctx_assignments.append(
-                        f"# {key} = <non-serializable: {type(value).__name__}>"
-                    )
-
-            if ctx_assignments:
-                ctx_code = "# Context variables:\n" + "\n".join(ctx_assignments) + "\n\n"
-                full_code = f"{PROGRESS_HELPER}\n{ctx_code}\n{python_code}"
-
         try:
-            result = await code_provider.execution_environment.execute(full_code)
+            result = await code_provider.execution_env.execute(full_code)
             if result.success:
                 if result.result is None:
                     return "Code executed successfully"
@@ -116,23 +96,22 @@ class RemoteCodeModeResourceProvider(CodeModeResourceProvider):
         else:
             return f"Error executing code: {result.error}"
 
-    async def _get_code_execution_provider(self) -> CodeExecutionProvider:
+    async def _get_code_executor(self) -> RemoteCodeExecutor:
         """Get cached code execution provider with thread-safe initialization."""
         async with self._provider_lock:
-            if self._code_execution_provider is None:
+            if self._code_executor is None:
                 all_tools = await super().get_tools()
-                self._code_execution_provider = CodeExecutionProvider.from_tools(
+                self._code_executor = RemoteCodeExecutor.from_tools(
                     all_tools,
                     self.execution_config,
                     server_host=self.server_host,
                     server_port=self.server_port,
                     include_docstrings=self.include_docstrings,
                 )
-
                 # Initialize the provider and start server
-                await self._code_execution_provider.__aenter__()
+                await self._code_executor.__aenter__()
 
-            return self._code_execution_provider
+            return self._code_executor
 
     async def __aenter__(self):
         """Async context manager entry."""
@@ -145,11 +124,10 @@ class RemoteCodeModeResourceProvider(CodeModeResourceProvider):
         exc_tb: TracebackType | None,
     ):
         """Async context manager exit."""
-        # Clean up the code execution provider if it exists
-        if self._code_execution_provider is not None:
+        if self._code_executor is not None:
             with contextlib.suppress(Exception):
-                await self._code_execution_provider.__aexit__(exc_type, exc_val, exc_tb)
-            self._code_execution_provider = None
+                await self._code_executor.__aexit__(exc_type, exc_val, exc_tb)
+            self._code_executor = None
 
 
 if __name__ == "__main__":
@@ -163,19 +141,9 @@ if __name__ == "__main__":
 
     log.configure_logging()
 
-    def open_browser(url: str, new: int = 0, autoraise: bool = True) -> bool:
-        """Display url using the default browser.
-
-        If possible, open url in a location determined by new.
-        - 0: the same browser window (the default).
-        - 1: a new browser window.
-        - 2: a new browser page ("tab").
-        If possible, autoraise raises the window (the default) or not.
-
-        If opening the browser succeeds, return True.
-        If there is a problem, return False.
-        """
-        return webbrowser.open(url, new, autoraise)
+    def open_browser(url: str) -> bool:
+        """Display url using the default browser."""
+        return webbrowser.open(url)
 
     async def main():
         tools = [Tool.from_callable(open_browser)]
@@ -186,7 +154,6 @@ if __name__ == "__main__":
             execution_config=config,
             server_port=9999,
         )
-
         print("Available tools:")
         for tool in await provider.get_tools():
             print(f"- {tool.name}: {tool.description[:100]}...")

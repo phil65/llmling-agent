@@ -35,7 +35,7 @@ class RemoteMCPExecutor:
     toolset_generator: ToolsetCodeGenerator
     """Code generator for tools."""
 
-    execution_environment: ExecutionEnvironment
+    execution_env: ExecutionEnvironment
     """Execution environment for running code."""
 
     use_code_generation: bool = False
@@ -84,16 +84,16 @@ class RemoteMCPExecutor:
         Returns:
             Execution result from the environment
         """
-        return await self.execution_environment.execute(code)
+        return await self.execution_env.execute(code)
 
     async def __aenter__(self):
         """Async context manager entry."""
-        await self.execution_environment.__aenter__()
+        await self.execution_env.__aenter__()
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """Async context manager exit."""
-        return await self.execution_environment.__aexit__(exc_type, exc_val, exc_tb)
+        return await self.execution_env.__aexit__(exc_type, exc_val, exc_tb)
 
 
 if __name__ == "__main__":
