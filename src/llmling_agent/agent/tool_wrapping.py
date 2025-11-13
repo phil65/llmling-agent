@@ -38,7 +38,7 @@ def wrap_tool(
     run_ctx_key = get_argument_key(tool.callable, RunContext)
     agent_ctx_key = get_argument_key(tool.callable, AgentContext)
     # Check if we have separate RunContext and AgentContext parameters
-    if run_ctx_key and agent_ctx_key and run_ctx_key != agent_ctx_key:
+    if run_ctx_key and agent_ctx_key:
         # Dual context - present RunContext-only signature to pydantic-ai
         # pydantic-ai will not see AgentContext parameter
         async def wrapped(ctx: RunContext, *args, **kwargs):  # pyright: ignore

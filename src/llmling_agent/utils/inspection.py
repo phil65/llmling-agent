@@ -72,14 +72,16 @@ def get_argument_key(
 
     Examples:
         >>> def func(x: int | str, y: list[int]): ...
-        >>> get_argument_key(func, int | str)  # True
-        >>> get_argument_key(func, int)        # True
-        >>> get_argument_key(func, list)       # True
-        >>> get_argument_key(func, float)      # False
-        >>> get_argument_key(func, (int, str)) # True
+        >>> get_argument_key(func, int | str)  # Returns 'x'
+        >>> get_argument_key(func, int)        # Returns 'x'
+        >>> get_argument_key(func, list)       # Returns 'y'
+        >>> get_argument_key(func, float)      # Returns False
+        >>> get_argument_key(func, (int, str)) # Returns 'x'
 
     Returns:
-        key of argument if any argument matches any of the target types
+        Parameter name (str) if a matching argument is found, False otherwise.
+        Only checks the origin type for generics, not type arguments
+        (e.g., list[int] matches 'list', but does not match 'int').
     """
     # Convert target type(s) to set of normalized strings
     if isinstance(arg_type, Sequence) and not isinstance(arg_type, str | bytes):
@@ -114,14 +116,10 @@ def get_argument_key(
                 return key
 
         # Handle generic types (list[str], dict[str, int], etc)
-        if origin is not None:
-            # Check if the generic type (e.g., list) matches
-            if _type_to_string(origin) in target_types:
-                return key
-            # Check type arguments (e.g., str in list[str])
-            args = get_args(param_type)
-            if any(_type_to_string(arg) in target_types for arg in args):
-                return key
+        # Only check the origin type (e.g., list), not the arguments
+        # This avoids matching nested contexts like RunContext[AgentContext]
+        if origin is not None and _type_to_string(origin) in target_types:
+            return key
 
     return False
 
