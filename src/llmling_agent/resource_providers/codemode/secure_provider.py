@@ -6,6 +6,8 @@ import asyncio
 import contextlib
 from typing import TYPE_CHECKING, Any
 
+from anyenv.code_execution.configs import LocalExecutionEnvironmentConfig
+
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.resource_providers.codemode.code_execution_provider import (
     CodeExecutionProvider,
@@ -16,14 +18,14 @@ from llmling_agent.resource_providers.codemode.provider import (
     CodeModeResourceProvider,
 )
 from llmling_agent.tools.base import Tool
-from llmling_agent_config.execution_environments import LocalExecutionEnvironmentConfig
 
 
 if TYPE_CHECKING:
     from types import TracebackType
 
+    from anyenv.code_execution.configs import ExecutionEnvironmentConfig
+
     from llmling_agent.resource_providers import ResourceProvider
-    from llmling_agent_config.execution_environments import ExecutionEnvironmentConfig
 
 
 PROGRESS_HELPER = """
@@ -158,11 +160,10 @@ if __name__ == "__main__":
     import asyncio
     import webbrowser
 
+    from anyenv.code_execution.configs import LocalExecutionEnvironmentConfig
+
     from llmling_agent import Agent, log
     from llmling_agent.resource_providers import StaticResourceProvider
-    from llmling_agent_config.execution_environments import (
-        LocalExecutionEnvironmentConfig,
-    )
 
     log.configure_logging()
 

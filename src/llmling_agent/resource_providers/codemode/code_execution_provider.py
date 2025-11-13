@@ -15,13 +15,13 @@ if TYPE_CHECKING:
     import socket
 
     from anyenv.code_execution.base import ExecutionEnvironment
+    from anyenv.code_execution.configs import ExecutionEnvironmentConfig
     from anyenv.code_execution.models import ServerInfo
     from fastapi import FastAPI
     from schemez import ToolsetCodeGenerator
     import uvicorn
 
     from llmling_agent.tools.base import Tool
-    from llmling_agent_config.execution_environments import ExecutionEnvironmentConfig
 
 
 logger = get_logger(__name__)
@@ -186,10 +186,9 @@ class ToolServerLifecycleHandler:
 
 
 if __name__ == "__main__":
+    from anyenv.code_execution.configs import LocalExecutionEnvironmentConfig
+
     from llmling_agent.tools.base import Tool
-    from llmling_agent_config.execution_environments import (
-        LocalExecutionEnvironmentConfig,
-    )
 
     def add_numbers(x: int, y: int) -> int:
         """Add two numbers."""

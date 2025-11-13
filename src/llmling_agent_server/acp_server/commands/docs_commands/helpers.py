@@ -10,7 +10,6 @@ import json
 import importlib
 
 def import_callable(path):
-    \"\"\"Simple import_callable implementation.\"\"\"
     parts = path.split(".")
     for i in range(len(parts), 0, -1):
         try:

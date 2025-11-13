@@ -7,11 +7,12 @@ cloud sandboxes like E2B that can't reach localhost.
 
 import asyncio
 
+from anyenv.code_execution.configs import LocalExecutionEnvironmentConfig
+
 from llmling_agent.resource_providers.codemode.code_execution_provider import (
     CodeExecutionProvider,
 )
 from llmling_agent.tools.base import Tool
-from llmling_agent_config.execution_environments import LocalExecutionEnvironmentConfig
 
 
 def add_numbers(x: int, y: int) -> int:
