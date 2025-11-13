@@ -43,7 +43,6 @@ if TYPE_CHECKING:
     from llmling_agent.agent.agent import AgentKwargs
     from llmling_agent.common_types import AgentName, SessionIdType
     from llmling_agent.delegation.base_team import BaseTeam
-    from llmling_agent.messaging.eventnode import EventNode
     from llmling_agent.messaging.messagenode import MessageNode
     from llmling_agent.models.manifest import AgentsManifest
     from llmling_agent.ui.base import InputProvider
@@ -413,13 +412,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
         from llmling_agent import MessageNode
 
         return {i.name: i for i in self._items.values() if isinstance(i, MessageNode)}
-
-    @property
-    def event_nodes(self) -> dict[str, EventNode[Any]]:
-        """Get agents dict (backward compatibility)."""
-        from llmling_agent.messaging.eventnode import EventNode
-
-        return {i.name: i for i in self._items.values() if isinstance(i, EventNode)}
 
     @property
     def node_events(self) -> DictEvents:
