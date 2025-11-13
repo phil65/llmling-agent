@@ -5,6 +5,8 @@ from __future__ import annotations
 import ast
 from typing import TYPE_CHECKING
 
+from llmling_agent.log import get_logger
+
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -12,6 +14,8 @@ if TYPE_CHECKING:
     from schemez import ToolsetCodeGenerator
 
     from llmling_agent.tools import Tool
+
+logger = get_logger(__name__)
 
 
 def validate_code(python_code: str) -> None:
@@ -23,9 +27,11 @@ def validate_code(python_code: str) -> None:
         ast.parse(code)
     except SyntaxError as e:
         msg = f"Invalid code syntax: {e}"
+        logger.info("Invalid code", code=code)
         raise ModelRetry(msg) from None
     else:
         if "async def main(" not in code:
+            logger.info("Code not in async def main()", code=code)
             msg = (
                 "Code must be wrapped in 'async def main():' function. "
                 "Please rewrite your code like:\n"
@@ -37,6 +43,7 @@ def validate_code(python_code: str) -> None:
 
         # Check if code contains a return statement
         if "return " not in code:
+            logger.info("Code does not contain a return statement", code=code)
             msg = "The main() function should return a value."
             raise ModelRetry(msg)
 

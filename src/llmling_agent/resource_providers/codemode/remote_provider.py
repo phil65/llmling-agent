@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any
 from anyenv.code_execution.configs import LocalExecutionEnvironmentConfig
 
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
+from llmling_agent.log import get_logger
 from llmling_agent.resource_providers.codemode.code_executor import (
     RemoteCodeExecutor,
 )
@@ -19,6 +20,8 @@ from llmling_agent.resource_providers.codemode.provider import (
 )
 from llmling_agent.tools.base import Tool
 
+
+logger = get_logger(__name__)
 
 if TYPE_CHECKING:
     from types import TracebackType
@@ -77,17 +80,19 @@ class RemoteCodeModeResourceProvider(CodeModeResourceProvider):
 
         Args:
             python_code: Python code to execute
-            context_vars: Additional variables to make available (limited support)
 
         Returns:
             Result of the code execution
         """
         code_provider = await self._get_code_executor()
+        logger.info("Validating code", code=python_code)
         validate_code(python_code)
         full_code = f"{PROGRESS_HELPER}\n\n{python_code}"
+        logger.info("Complete code", code=full_code)
         try:
             result = await code_provider.execution_env.execute(full_code)
             if result.success:
+                logger.info("Code executed successfully")
                 if result.result is None:
                     return "Code executed successfully"
                 return result.result
@@ -142,7 +147,7 @@ if __name__ == "__main__":
     log.configure_logging()
 
     def open_browser(url: str) -> bool:
-        """Display url using the default browser."""
+        """Use this to open url in the default browser."""
         return webbrowser.open(url)
 
     async def main():
@@ -156,13 +161,11 @@ if __name__ == "__main__":
         )
         print("Available tools:")
         for tool in await provider.get_tools():
-            print(f"- {tool.name}: {tool.description[:100]}...")
+            print(f"- {tool.name}: {tool.description}")
 
-        async with Agent(model="openai:gpt-5-nano") as agent:
+        async with Agent(model="anthropic:claude-haiku-4-5") as agent:
             agent.tools.add_provider(provider)
-            result = await agent.run(
-                "Use code execution to open google.com in the browser."
-            )
+            result = await agent.run("open google.com in the browser.")
             print(f"Result: {result}")
 
     asyncio.run(main())
