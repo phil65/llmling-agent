@@ -227,19 +227,20 @@ class ChatMessage[TContent]:
     Normalized to OpenTelemetry values."""
 
     @property
-    def last_message(self) -> ModelMessage:
+    def last_message(self) -> ModelMessage | None:
         """Return the last message from the message history."""
         # The response may not be the very last item if it contained an output tool call.
         # See `CallToolsNode._handle_final_result`.
         for message in reversed(self.messages):
             if isinstance(message, ModelRequest | ModelResponse):
                 return message
-        msg = "No last message found in the message history"
-        raise ValueError(msg)  # pragma: no cover
+        return None
 
     @property
     def parts(self) -> Sequence[ModelRequestPart] | Sequence[ModelResponsePart]:
         """The parts of the last model message."""
+        if not self.last_message:
+            return []
         return self.last_message.parts
 
     @property
