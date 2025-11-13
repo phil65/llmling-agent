@@ -252,6 +252,7 @@
                 "agent_management": "#/$defs/AgentManagementToolsetConfig",
                 "code": "#/$defs/CodeToolsetConfig",
                 "code_execution": "#/$defs/CodeExecutionToolsetConfig",
+                "code_mode": "#/$defs/CodeModeToolsetConfig",
                 "composio": "#/$defs/ComposioToolSetConfig",
                 "custom": "#/$defs/CustomToolsetConfig",
                 "entry_points": "#/$defs/EntryPointToolsetConfig",
@@ -261,6 +262,7 @@
                 "integrations": "#/$defs/IntegrationToolsetConfig",
                 "openapi": "#/$defs/OpenAPIToolsetConfig",
                 "process_management": "#/$defs/ProcessManagementToolsetConfig",
+                "remote_code_mode": "#/$defs/RemoteCodeModeToolsetConfig",
                 "tool_management": "#/$defs/ToolManagementToolsetConfig",
                 "upsonic": "#/$defs/UpsonicToolSetConfig",
                 "user_interaction": "#/$defs/UserInteractionToolsetConfig",
@@ -313,6 +315,12 @@
               },
               {
                 "$ref": "#/$defs/VFSToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/CodeModeToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/RemoteCodeModeToolsetConfig"
               },
               {
                 "$ref": "#/$defs/CustomToolsetConfig"
@@ -906,6 +914,86 @@
       "title": "BasePrompt",
       "type": "object"
     },
+    "BeamExecutionEnvironmentConfig": {
+      "additionalProperties": false,
+      "description": "Beam execution environment configuration.\n\nExecutes code in Beam cloud sandboxes for scalable, serverless execution environments.",
+      "properties": {
+        "type": {
+          "const": "beam",
+          "default": "beam",
+          "title": "Type",
+          "type": "string"
+        },
+        "dependencies": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "List of packages to install (pip for Python, npm for JS/TS).",
+          "title": "Dependencies"
+        },
+        "timeout": {
+          "default": 60.0,
+          "description": "Execution timeout in seconds.",
+          "exclusiveMinimum": 0.0,
+          "title": "Timeout",
+          "type": "number"
+        },
+        "cpu": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "default": 1.0,
+          "description": "CPU cores allocated to the container.",
+          "title": "Cpu"
+        },
+        "memory": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "default": 128,
+          "description": "Memory allocated to the container in MiB.",
+          "title": "Memory"
+        },
+        "keep_warm_seconds": {
+          "default": 600,
+          "description": "Seconds to keep sandbox alive, -1 for no timeout.",
+          "title": "Keep Warm Seconds",
+          "type": "integer"
+        },
+        "language": {
+          "default": "python",
+          "description": "Programming language to use.",
+          "enum": [
+            "python",
+            "javascript",
+            "typescript"
+          ],
+          "title": "Language",
+          "type": "string"
+        }
+      },
+      "title": "BeamExecutionEnvironmentConfig",
+      "type": "object"
+    },
     "BraintrustConfig": {
       "additionalProperties": false,
       "description": "Configuration for Braintrust prompt provider.",
@@ -1317,6 +1405,123 @@
         }
       },
       "title": "CodeExecutionToolsetConfig",
+      "type": "object"
+    },
+    "CodeModeToolsetConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for code mode tools.",
+      "properties": {
+        "namespace": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional namespace prefix for tool names",
+          "title": "Namespace"
+        },
+        "type": {
+          "const": "code_mode",
+          "default": "code_mode",
+          "description": "Code mode toolset.",
+          "title": "Type",
+          "type": "string"
+        },
+        "toolsets": {
+          "description": "List of toolsets to expose as a codemode toolset.",
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "agent_management": "#/$defs/AgentManagementToolsetConfig",
+                "code": "#/$defs/CodeToolsetConfig",
+                "code_execution": "#/$defs/CodeExecutionToolsetConfig",
+                "code_mode": "#/$defs/CodeModeToolsetConfig",
+                "composio": "#/$defs/ComposioToolSetConfig",
+                "custom": "#/$defs/CustomToolsetConfig",
+                "entry_points": "#/$defs/EntryPointToolsetConfig",
+                "file_access": "#/$defs/FileAccessToolsetConfig",
+                "fsspec": "#/$defs/FSSpecToolsetConfig",
+                "history": "#/$defs/HistoryToolsetConfig",
+                "integrations": "#/$defs/IntegrationToolsetConfig",
+                "openapi": "#/$defs/OpenAPIToolsetConfig",
+                "process_management": "#/$defs/ProcessManagementToolsetConfig",
+                "remote_code_mode": "#/$defs/RemoteCodeModeToolsetConfig",
+                "tool_management": "#/$defs/ToolManagementToolsetConfig",
+                "upsonic": "#/$defs/UpsonicToolSetConfig",
+                "user_interaction": "#/$defs/UserInteractionToolsetConfig",
+                "vfs": "#/$defs/VFSToolsetConfig"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/OpenAPIToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/EntryPointToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/ComposioToolSetConfig"
+              },
+              {
+                "$ref": "#/$defs/UpsonicToolSetConfig"
+              },
+              {
+                "$ref": "#/$defs/AgentManagementToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/FileAccessToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/CodeExecutionToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/ProcessManagementToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/ToolManagementToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/UserInteractionToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/HistoryToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/IntegrationToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/CodeToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/FSSpecToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/VFSToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/CodeModeToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/RemoteCodeModeToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/CustomToolsetConfig"
+              }
+            ]
+          },
+          "title": "Toolsets",
+          "type": "array"
+        }
+      },
+      "required": [
+        "toolsets"
+      ],
+      "title": "CodeModeToolsetConfig",
       "type": "object"
     },
     "CodeToolsetConfig": {
@@ -1741,6 +1946,96 @@
       "title": "CustomToolsetConfig",
       "type": "object"
     },
+    "DaytonaExecutionEnvironmentConfig": {
+      "additionalProperties": false,
+      "description": "Daytona execution environment configuration.\n\nExecutes code in remote Daytona sandboxes for cloud-based development environments.",
+      "properties": {
+        "type": {
+          "const": "daytona",
+          "default": "daytona",
+          "title": "Type",
+          "type": "string"
+        },
+        "dependencies": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "List of packages to install (pip for Python, npm for JS/TS).",
+          "title": "Dependencies"
+        },
+        "timeout": {
+          "default": 60.0,
+          "description": "Execution timeout in seconds.",
+          "exclusiveMinimum": 0.0,
+          "title": "Timeout",
+          "type": "number"
+        },
+        "api_url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Daytona API URL (optional, uses env vars if not provided).",
+          "title": "Api Url"
+        },
+        "api_key": {
+          "anyOf": [
+            {
+              "format": "password",
+              "type": "string",
+              "writeOnly": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "API key for authentication.",
+          "title": "Api Key"
+        },
+        "target": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Target configuration.",
+          "title": "Target"
+        },
+        "image": {
+          "default": "python:3.13-slim",
+          "description": "Container image.",
+          "title": "Image",
+          "type": "string"
+        },
+        "keep_alive": {
+          "default": false,
+          "description": "Keep sandbox running after execution.",
+          "title": "Keep Alive",
+          "type": "boolean"
+        }
+      },
+      "title": "DaytonaExecutionEnvironmentConfig",
+      "type": "object"
+    },
     "DelegationModelConfig": {
       "additionalProperties": false,
       "description": "Configuration for delegation-based model selection.",
@@ -1808,6 +2103,60 @@
         "selection_prompt"
       ],
       "title": "DelegationModelConfig",
+      "type": "object"
+    },
+    "DockerExecutionEnvironmentConfig": {
+      "additionalProperties": false,
+      "description": "Docker execution environment configuration.\n\nExecutes code in Docker containers for strong isolation and reproducible environments.",
+      "properties": {
+        "type": {
+          "const": "docker",
+          "default": "docker",
+          "title": "Type",
+          "type": "string"
+        },
+        "dependencies": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "List of packages to install (pip for Python, npm for JS/TS).",
+          "title": "Dependencies"
+        },
+        "timeout": {
+          "default": 60.0,
+          "description": "Execution timeout in seconds.",
+          "exclusiveMinimum": 0.0,
+          "title": "Timeout",
+          "type": "number"
+        },
+        "image": {
+          "default": "python:3.13-slim",
+          "description": "Docker image to use.",
+          "title": "Image",
+          "type": "string"
+        },
+        "language": {
+          "default": "python",
+          "description": "Programming language to use.",
+          "enum": [
+            "python",
+            "javascript",
+            "typescript"
+          ],
+          "title": "Language",
+          "type": "string"
+        }
+      },
+      "title": "DockerExecutionEnvironmentConfig",
       "type": "object"
     },
     "DynamicPrompt": {
@@ -1898,6 +2247,73 @@
         "import_path"
       ],
       "title": "DynamicPrompt",
+      "type": "object"
+    },
+    "E2bExecutionEnvironmentConfig": {
+      "additionalProperties": false,
+      "description": "E2B execution environment configuration.\n\nExecutes code in E2B sandboxes for secure, ephemeral execution environments.",
+      "properties": {
+        "type": {
+          "const": "e2b",
+          "default": "e2b",
+          "title": "Type",
+          "type": "string"
+        },
+        "dependencies": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "List of packages to install (pip for Python, npm for JS/TS).",
+          "title": "Dependencies"
+        },
+        "timeout": {
+          "default": 60.0,
+          "description": "Execution timeout in seconds.",
+          "exclusiveMinimum": 0.0,
+          "title": "Timeout",
+          "type": "number"
+        },
+        "template": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "E2B template to use.",
+          "title": "Template"
+        },
+        "keep_alive": {
+          "default": false,
+          "description": "Keep sandbox running after execution.",
+          "title": "Keep Alive",
+          "type": "boolean"
+        },
+        "language": {
+          "default": "python",
+          "description": "Programming language to use.",
+          "enum": [
+            "python",
+            "javascript",
+            "typescript"
+          ],
+          "title": "Language",
+          "type": "string"
+        }
+      },
+      "title": "E2bExecutionEnvironmentConfig",
       "type": "object"
     },
     "EmailConfig": {
@@ -3714,6 +4130,73 @@
       "title": "LibraryPromptConfig",
       "type": "object"
     },
+    "LocalExecutionEnvironmentConfig": {
+      "additionalProperties": false,
+      "description": "Local execution environment configuration.\n\nExecutes code in the same process. Fastest option but offers no isolation.",
+      "properties": {
+        "type": {
+          "const": "local",
+          "default": "local",
+          "title": "Type",
+          "type": "string"
+        },
+        "dependencies": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "List of packages to install (pip for Python, npm for JS/TS).",
+          "title": "Dependencies"
+        },
+        "timeout": {
+          "default": 60.0,
+          "description": "Execution timeout in seconds.",
+          "exclusiveMinimum": 0.0,
+          "title": "Timeout",
+          "type": "number"
+        },
+        "executable": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Python executable to use (if None, auto-detect based on language).",
+          "title": "Executable"
+        },
+        "language": {
+          "default": "python",
+          "description": "Programming language to use.",
+          "enum": [
+            "python",
+            "javascript",
+            "typescript"
+          ],
+          "title": "Language",
+          "type": "string"
+        },
+        "isolated": {
+          "default": false,
+          "description": "Whether to run code in a subprocess.",
+          "title": "Isolated",
+          "type": "boolean"
+        }
+      },
+      "title": "LocalExecutionEnvironmentConfig",
+      "type": "object"
+    },
     "LocalWhisperConfig": {
       "additionalProperties": false,
       "description": "Configuration for local Whisper model.",
@@ -4031,6 +4514,49 @@
         }
       },
       "title": "MarkItDownConfig",
+      "type": "object"
+    },
+    "McpPythonExecutionEnvironmentConfig": {
+      "additionalProperties": false,
+      "description": "MCP Python execution environment configuration.\n\nExecutes Python code with Model Context Protocol support for AI integrations.",
+      "properties": {
+        "type": {
+          "const": "mcp_python",
+          "default": "mcp_python",
+          "title": "Type",
+          "type": "string"
+        },
+        "dependencies": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "List of packages to install (pip for Python, npm for JS/TS).",
+          "title": "Dependencies"
+        },
+        "timeout": {
+          "default": 60.0,
+          "description": "Execution timeout in seconds.",
+          "exclusiveMinimum": 0.0,
+          "title": "Timeout",
+          "type": "number"
+        },
+        "allow_networking": {
+          "default": true,
+          "description": "Allow network access.",
+          "title": "Allow Networking",
+          "type": "boolean"
+        }
+      },
+      "title": "McpPythonExecutionEnvironmentConfig",
       "type": "object"
     },
     "MemoryConfig": {
@@ -4929,6 +5455,159 @@
         "name"
       ],
       "title": "PromptParameter",
+      "type": "object"
+    },
+    "RemoteCodeModeToolsetConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for code mode tools.",
+      "properties": {
+        "namespace": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional namespace prefix for tool names",
+          "title": "Namespace"
+        },
+        "type": {
+          "const": "remote_code_mode",
+          "default": "remote_code_mode",
+          "description": "Code mode toolset.",
+          "title": "Type",
+          "type": "string"
+        },
+        "environment": {
+          "description": "Execution environment configuration.",
+          "discriminator": {
+            "mapping": {
+              "beam": "#/$defs/BeamExecutionEnvironmentConfig",
+              "daytona": "#/$defs/DaytonaExecutionEnvironmentConfig",
+              "docker": "#/$defs/DockerExecutionEnvironmentConfig",
+              "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
+              "local": "#/$defs/LocalExecutionEnvironmentConfig",
+              "mcp_python": "#/$defs/McpPythonExecutionEnvironmentConfig"
+            },
+            "propertyName": "type"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/LocalExecutionEnvironmentConfig"
+            },
+            {
+              "$ref": "#/$defs/DockerExecutionEnvironmentConfig"
+            },
+            {
+              "$ref": "#/$defs/E2bExecutionEnvironmentConfig"
+            },
+            {
+              "$ref": "#/$defs/BeamExecutionEnvironmentConfig"
+            },
+            {
+              "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
+            },
+            {
+              "$ref": "#/$defs/McpPythonExecutionEnvironmentConfig"
+            }
+          ],
+          "title": "Environment"
+        },
+        "toolsets": {
+          "description": "List of toolsets to expose as a codemode toolset.",
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "agent_management": "#/$defs/AgentManagementToolsetConfig",
+                "code": "#/$defs/CodeToolsetConfig",
+                "code_execution": "#/$defs/CodeExecutionToolsetConfig",
+                "code_mode": "#/$defs/CodeModeToolsetConfig",
+                "composio": "#/$defs/ComposioToolSetConfig",
+                "custom": "#/$defs/CustomToolsetConfig",
+                "entry_points": "#/$defs/EntryPointToolsetConfig",
+                "file_access": "#/$defs/FileAccessToolsetConfig",
+                "fsspec": "#/$defs/FSSpecToolsetConfig",
+                "history": "#/$defs/HistoryToolsetConfig",
+                "integrations": "#/$defs/IntegrationToolsetConfig",
+                "openapi": "#/$defs/OpenAPIToolsetConfig",
+                "process_management": "#/$defs/ProcessManagementToolsetConfig",
+                "remote_code_mode": "#/$defs/RemoteCodeModeToolsetConfig",
+                "tool_management": "#/$defs/ToolManagementToolsetConfig",
+                "upsonic": "#/$defs/UpsonicToolSetConfig",
+                "user_interaction": "#/$defs/UserInteractionToolsetConfig",
+                "vfs": "#/$defs/VFSToolsetConfig"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/OpenAPIToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/EntryPointToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/ComposioToolSetConfig"
+              },
+              {
+                "$ref": "#/$defs/UpsonicToolSetConfig"
+              },
+              {
+                "$ref": "#/$defs/AgentManagementToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/FileAccessToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/CodeExecutionToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/ProcessManagementToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/ToolManagementToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/UserInteractionToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/HistoryToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/IntegrationToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/CodeToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/FSSpecToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/VFSToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/CodeModeToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/RemoteCodeModeToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/CustomToolsetConfig"
+              }
+            ]
+          },
+          "title": "Toolsets",
+          "type": "array"
+        }
+      },
+      "required": [
+        "environment",
+        "toolsets"
+      ],
+      "title": "RemoteCodeModeToolsetConfig",
       "type": "object"
     },
     "RemoteInputConfig": {
