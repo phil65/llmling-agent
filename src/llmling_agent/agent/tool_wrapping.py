@@ -35,8 +35,9 @@ def wrap_tool(
     - Tools with both contexts: Present as RunContext-only to pydantic-ai, inject AgentContext
     - Tools with no context: Normal pydantic-ai handling
     """  # noqa: E501
-    run_ctx_key = get_argument_key(tool.callable, RunContext)
-    agent_ctx_key = get_argument_key(tool.callable, AgentContext)
+    fn = tool.callable
+    run_ctx_key = get_argument_key(fn, RunContext)
+    agent_ctx_key = get_argument_key(fn, AgentContext)
     # Check if we have separate RunContext and AgentContext parameters
     if run_ctx_key and agent_ctx_key:
         # Dual context - present RunContext-only signature to pydantic-ai
@@ -45,45 +46,41 @@ def wrap_tool(
             result = await agent_ctx.handle_confirmation(tool, kwargs)
             if result == "allow":
                 kwargs[agent_ctx_key] = agent_ctx
-                return await execute(tool.callable, ctx, *args, **kwargs)
+                return await execute(fn, ctx, *args, **kwargs)
             return await _handle_confirmation_result(result, tool.name)
 
         # Hide AgentContext parameter from pydantic-ai's signature analysis
-        sig = inspect.signature(tool.callable)
-        new_params = [p for p in sig.parameters.values() if p.name != agent_ctx_key]
-        wrapped.__signature__ = sig.replace(parameters=new_params)  # type: ignore
+        wrapped.__signature__ = get_signature_without_argument(fn, agent_ctx_key)  # type: ignore
 
     elif run_ctx_key:
-        # RunContext only - normal pydantic-ai handling
+        # RunContext only - normal pydantic-ai handling, just passthrough
         async def wrapped(ctx: RunContext, *args, **kwargs):  # pyright: ignore
             result = await agent_ctx.handle_confirmation(tool, kwargs)
             if result == "allow":
-                return await execute(tool.callable, ctx, *args, **kwargs)
+                return await execute(fn, ctx, *args, **kwargs)
             return await _handle_confirmation_result(result, tool.name)
 
     elif agent_ctx_key:
-        # AgentContext only - treat as regular tool, inject context
+        # AgentContext only - treat as regular tool, inject AgentContext
         async def wrapped(*args, **kwargs):  # pyright: ignore
             result = await agent_ctx.handle_confirmation(tool, kwargs)
             if result == "allow":
                 kwargs[agent_ctx_key] = agent_ctx
-                return await execute(tool.callable, *args, **kwargs)
+                return await execute(fn, *args, **kwargs)
             return await _handle_confirmation_result(result, tool.name)
 
         # Hide AgentContext parameter from pydantic-ai's signature analysis
-        sig = inspect.signature(tool.callable)
-        new_params = [p for p in sig.parameters.values() if p.name != agent_ctx_key]
-        wrapped.__signature__ = sig.replace(parameters=new_params)  # type: ignore
+        wrapped.__signature__ = get_signature_without_argument(fn, agent_ctx_key)  # type: ignore
 
     else:
         # No context - regular tool
         async def wrapped(*args, **kwargs):  # pyright: ignore
             result = await agent_ctx.handle_confirmation(tool, kwargs)
             if result == "allow":
-                return await execute(tool.callable, *args, **kwargs)
+                return await execute(fn, *args, **kwargs)
             return await _handle_confirmation_result(result, tool.name)
 
-    wraps(tool.callable)(wrapped)  # pyright: ignore
+    wraps(fn)(wrapped)  # pyright: ignore
     wrapped.__doc__ = tool.description
     wrapped.__name__ = tool.name
     return wrapped
@@ -101,3 +98,10 @@ async def _handle_confirmation_result(result: str, name: str) -> None:
         case "abort_chain":
             msg = "Agent chain aborted by user"
             raise ChainAbortedError(msg)
+
+
+def get_signature_without_argument(fn: Callable, key: str) -> inspect.Signature:
+    # Hide AgentContext parameter from pydantic-ai's signature analysis
+    sig = inspect.signature(fn)
+    new_params = [p for p in sig.parameters.values() if p.name != key]
+    return sig.replace(parameters=new_params)  # type: ignore
