@@ -73,10 +73,10 @@ def insert_arg_into_signature(fn: Callable, key: str, type_: type) -> Callable:
     sig = inspect.signature(fn)
     params = [
         inspect.Parameter(key, inspect.Parameter.POSITIONAL_OR_KEYWORD, annotation=type_),
-        *sig.parameters,
+        *sig.parameters.values(),
     ]
     new_sig = inspect.Signature(params)
-    fn.__signature__ = new_sig
+    fn.__signature__ = new_sig  # type: ignore
     fn.__annotations__ = dict(new_sig.parameters) | {"return": new_sig.return_annotation}
     return fn
 

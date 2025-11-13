@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING, Any, Self
 
 from anyenv import MultiEventHandler
 from pydantic_ai import RunContext, ToolReturn  # noqa: TC002
-from schemez.functionschema import FunctionSchema
+from schemez import FunctionSchema
 
 from llmling_agent.log import get_logger
 from llmling_agent.mcp_server.constants import MCP_TO_LOGGING

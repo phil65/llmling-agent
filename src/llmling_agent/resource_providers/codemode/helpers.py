@@ -62,8 +62,7 @@ def tools_to_codegen(
         ToolsetCodeGenerator instance
     """
     from pydantic_ai import RunContext
-    from schemez import ToolsetCodeGenerator, create_schema
-    from schemez.code_generation.tool_code_generator import ToolCodeGenerator
+    from schemez import ToolCodeGenerator, ToolsetCodeGenerator, create_schema
 
     from llmling_agent.agent.context import AgentContext
 

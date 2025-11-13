@@ -498,7 +498,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             parent: Optional parent agent for history/context sharing
         """
         tool_name = name or f"ask_{self.name}"
-
         # Create wrapper function with correct return type annotation
         output_type = self._output_type or Any
 
@@ -540,7 +539,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
 
     async def get_agentlet(
         self,
-        name: str,
         tools: list[Tool],
         model: ModelType = None,
         output_type: type[Any] = str,
@@ -558,7 +556,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         )
 
         agent = PydanticAgent(
-            name=name,
+            name=self.name,
             model=model_,
             instructions=await self.sys_prompts.format_system_prompt(self),
             retries=self._retries,
@@ -635,7 +633,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         try:
             # Create pydantic-ai agent for this run
             agentlet = await self.get_agentlet(
-                self.name, tools, model, final_type, self.deps_type, input_provider
+                tools, model, final_type, self.deps_type, input_provider
             )
             converted_prompts = await convert_prompts(prompts)
 
@@ -726,7 +724,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         )
         try:
             agentlet = await self.get_agentlet(
-                self.name, tools, model, final_type, self.deps_type, input_provider
+                tools, model, final_type, self.deps_type, input_provider
             )
             content = await convert_prompts(prompts)
             # Initialize variables for final response

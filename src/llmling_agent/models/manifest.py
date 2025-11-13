@@ -7,31 +7,22 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Self
 
 from pydantic import ConfigDict, Field, model_validator
-from schemez.schema import Schema
+from schemez import Schema
 
 from llmling_agent import log
-from llmling_agent.models.agents import AgentConfig  # noqa: TC001
+from llmling_agent.models.agents import AgentConfig
 from llmling_agent.vfs_registry import VFSRegistry
-from llmling_agent_config.commands import (  # noqa: TC001
-    CommandConfig,
-    StaticCommandConfig,
-)
+from llmling_agent_config.commands import CommandConfig, StaticCommandConfig
 from llmling_agent_config.converters import ConversionConfig
-from llmling_agent_config.mcp_server import (
-    BaseMCPServerConfig,
-    MCPServerConfig,  # noqa: TC001
-)
+from llmling_agent_config.mcp_server import BaseMCPServerConfig, MCPServerConfig
 from llmling_agent_config.observability import ObservabilityConfig
-from llmling_agent_config.output_types import StructuredResponseConfig  # noqa: TC001
+from llmling_agent_config.output_types import StructuredResponseConfig
 from llmling_agent_config.pool_server import MCPPoolServerConfig
-from llmling_agent_config.resources import (  # noqa: TC001
-    ResourceConfig,
-    SourceResourceConfig,
-)
+from llmling_agent_config.resources import ResourceConfig, SourceResourceConfig
 from llmling_agent_config.storage import StorageConfig
 from llmling_agent_config.system_prompts import PromptLibraryConfig
-from llmling_agent_config.task import Job  # noqa: TC001
-from llmling_agent_config.teams import TeamConfig  # noqa: TC001
+from llmling_agent_config.task import Job
+from llmling_agent_config.teams import TeamConfig
 from llmling_agent_config.workers import (
     AgentWorkerConfig,
     BaseWorkerConfig,
@@ -235,10 +226,7 @@ class AgentsManifest(Schema):
             msg = f"Agent {actual_name} already exists"
             raise ValueError(msg)
 
-        # Deep copy the configuration
         config = self.agents[name].model_copy(deep=True)
-
-        # Apply overrides
         for key, value in overrides.items():
             if not hasattr(config, key):
                 msg = f"Invalid override: {key}"
@@ -251,7 +239,6 @@ class AgentsManifest(Schema):
 
         # Note: system_prompts will be rendered during agent creation, not here
         # config.system_prompts remains as PromptConfig objects
-
         self.agents[actual_name] = config
         return actual_name
 

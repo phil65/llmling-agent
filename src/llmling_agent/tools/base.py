@@ -19,8 +19,7 @@ if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
 
     from mcp.types import Tool as MCPTool
-    from schemez.functionschema import FunctionSchema
-    from schemez.typedefs import Property
+    from schemez import FunctionSchema, Property
 
     from llmling_agent.common_types import ToolSource
     from llmling_agent.tools.manager import ToolState

@@ -18,7 +18,7 @@ from llmling_agent.tools.base import Tool
 
 
 if TYPE_CHECKING:
-    from schemez.code_generation import ToolsetCodeGenerator
+    from schemez import ToolsetCodeGenerator
 
     from llmling_agent.resource_providers import ResourceProvider
 
