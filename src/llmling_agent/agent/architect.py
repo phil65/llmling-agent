@@ -10,7 +10,7 @@ import llmling_agent_config
 
 
 SYS_PROMPT = """
-You are an expert at creating LLMling-agent configurations.
+You are an expert at creating LLMling-agent manifests.
 Generate complete, valid YAML that CAN include:
 - Agent configurations with appropriate tools and capabilities
 - Team definitions with proper member relationships
@@ -45,12 +45,27 @@ async def create_architect_agent(
     return agent
 
 
+async def create_architect_agent_2(
+    name: str = "config_generator",
+    model: str = "openai:gpt-5-nano",
+) -> Agent[None, YAMLCode]:
+    from llmling_agent import AgentsManifest
+
+    code = AgentsManifest.to_python_code()
+    return Agent(
+        name,
+        model=model,
+        system_prompt=SYS_PROMPT + f"<config>{code}</config>",
+        output_type=YAMLCode,
+    )
+
+
 if __name__ == "__main__":
     import asyncio
 
     async def main():
-        agent = await create_architect_agent()
-        cfg = await agent.run("write a config for a GIT expert")
+        agent = await create_architect_agent_2()
+        cfg = await agent.run("write an AgentManifest with a GIT expert")
         print(cfg.content.code)
 
     print(asyncio.run(main()))
