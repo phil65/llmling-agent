@@ -163,7 +163,7 @@ class ProgressTrackingExecutor:
 if __name__ == "__main__":
     import asyncio
 
-    from pydantic_ai import RunContext
+    from pydantic_ai import RunContext  # noqa: TC002
 
     from llmling_agent import Agent, log
     from llmling_agent.agent import AgentContext  # noqa: TC001
