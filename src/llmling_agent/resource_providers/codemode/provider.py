@@ -71,7 +71,25 @@ class CodeModeResourceProvider(AggregatingResourceProvider):
         toolset_generator = await self._get_code_generator()
         desc = toolset_generator.generate_tool_description()
         desc += self.usage_notes
-        return [Tool.from_callable(self.execute, description_override=desc)]
+
+        # Create a closure that captures self but isn't a bound method
+        async def execute_tool(  # noqa: D417
+            ctx: AgentContext,
+            python_code: str,
+            context_vars: dict[str, Any] | None = None,
+        ) -> Any:
+            """Execute Python code with all wrapped tools available as functions.
+
+            Args:
+                python_code: Python code to execute
+                context_vars: Additional variables to make available
+
+            Returns:
+                Result of the last expression or explicit return value
+            """
+            return await self.execute(ctx, python_code, context_vars)
+
+        return [Tool.from_callable(execute_tool, description_override=desc)]
 
     async def execute(  # noqa: D417
         self,
