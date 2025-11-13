@@ -36,7 +36,7 @@ async def report_progress(current: int, total: int, message: str = "") -> None:
 """
 
 
-class SecureCodeModeResourceProvider(CodeModeResourceProvider):
+class RemoteCodeModeResourceProvider(CodeModeResourceProvider):
     """Provider that executes code in secure isolation with tool access via server."""
 
     def __init__(
@@ -181,7 +181,7 @@ if __name__ == "__main__":
         tools = [Tool.from_callable(open_browser)]
         static_provider = StaticResourceProvider(tools=tools)
         config = LocalExecutionEnvironmentConfig(timeout=30.0)
-        provider = SecureCodeModeResourceProvider(
+        provider = RemoteCodeModeResourceProvider(
             providers=[static_provider],
             execution_config=config,
             server_port=9999,

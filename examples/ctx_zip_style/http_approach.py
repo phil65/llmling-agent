@@ -11,9 +11,7 @@ from anyenv.code_execution.configs import LocalExecutionEnvironmentConfig
 
 from llmling_agent import Agent
 from llmling_agent.resource_providers import StaticResourceProvider
-from llmling_agent.resource_providers.codemode.secure_provider import (
-    SecureCodeModeResourceProvider,
-)
+from llmling_agent.resource_providers.codemode import RemoteCodeModeResourceProvider
 from llmling_agent.tools.base import Tool
 
 
@@ -57,7 +55,7 @@ async def demo_http_server_approach():
     ]
 
     config = LocalExecutionEnvironmentConfig()
-    toolset = SecureCodeModeResourceProvider(
+    toolset = RemoteCodeModeResourceProvider(
         providers=[StaticResourceProvider(tools=tools)], execution_config=config
     )
     agent = Agent(model="openai:gpt-5-nano", toolsets=[toolset])

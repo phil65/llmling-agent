@@ -5,9 +5,7 @@ import pytest
 
 from llmling_agent import Agent
 from llmling_agent.resource_providers import StaticResourceProvider
-from llmling_agent.resource_providers.codemode.secure_provider import (
-    SecureCodeModeResourceProvider,
-)
+from llmling_agent.resource_providers.codemode import RemoteCodeModeResourceProvider
 from llmling_agent.tools.base import Tool
 
 
@@ -31,16 +29,15 @@ async def fetch_data(name: str, count: int = 1) -> dict:
     return {"name": name, "count": count, "items": list(range(count))}
 
 
-@pytest.mark.asyncio
 async def test_secure_codemode_provider_creation():
-    """Test that SecureCodeModeResourceProvider can be created without sig errors."""
+    """Test that RemoteCodeModeResourceProvider can be created without sig errors."""
     tools = [
         Tool.from_callable(add_numbers),
         Tool.from_callable(fetch_data),
     ]
 
     config = LocalExecutionEnvironmentConfig()
-    provider = SecureCodeModeResourceProvider(
+    provider = RemoteCodeModeResourceProvider(
         providers=[StaticResourceProvider(tools=tools)], execution_config=config
     )
 
@@ -52,16 +49,15 @@ async def test_secure_codemode_provider_creation():
     assert "Fetch some mock data" in execute_tool.description
 
 
-@pytest.mark.asyncio
 async def test_secure_codemode_provider_with_agent():
-    """Test that SecureCodeModeResourceProvider works with Agent without errors."""
+    """Test that RemoteCodeModeResourceProvider works with Agent without errors."""
     tools = [
         Tool.from_callable(add_numbers),
         Tool.from_callable(fetch_data),
     ]
 
     config = LocalExecutionEnvironmentConfig()
-    provider = SecureCodeModeResourceProvider(
+    provider = RemoteCodeModeResourceProvider(
         providers=[StaticResourceProvider(tools=tools)], execution_config=config
     )
 
@@ -75,13 +71,12 @@ async def test_secure_codemode_provider_with_agent():
         assert all(available_tools.values())
 
 
-@pytest.mark.asyncio
 async def test_codemode_tool_schema_generation():
     """Test that tool schema generation works properly for codemode providers."""
     tools = [Tool.from_callable(add_numbers)]
 
     config = LocalExecutionEnvironmentConfig()
-    provider = SecureCodeModeResourceProvider(
+    provider = RemoteCodeModeResourceProvider(
         providers=[StaticResourceProvider(tools=tools)], execution_config=config
     )
 
@@ -104,9 +99,8 @@ async def test_codemode_tool_schema_generation():
     assert "python_code" in params["properties"]
 
 
-@pytest.mark.asyncio
 async def test_multiple_providers():
-    """Test SecureCodeModeResourceProvider with multiple underlying providers."""
+    """Test RemoteCodeModeResourceProvider with multiple underlying providers."""
     tools1 = [Tool.from_callable(add_numbers)]
     tools2 = [Tool.from_callable(fetch_data)]
 
@@ -114,15 +108,19 @@ async def test_multiple_providers():
     provider2 = StaticResourceProvider(tools=tools2)
 
     config = LocalExecutionEnvironmentConfig()
-    secure_provider = SecureCodeModeResourceProvider(
+    remote_provider = RemoteCodeModeResourceProvider(
         providers=[provider1, provider2], execution_config=config
     )
 
     # Should aggregate tools from all providers
-    provider_tools = await secure_provider.get_tools()
+    provider_tools = await remote_provider.get_tools()
     assert len(provider_tools) == 1
 
     execute_tool = provider_tools[0]
     # Description should include info about all tools
     assert "add_numbers" in execute_tool.description
     assert "fetch_data" in execute_tool.description
+
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from llmling_agent import Agent
 
 
@@ -23,3 +25,7 @@ async def test_conversation_history_management(default_model: str):
         # Test history clearing
         agent.conversation.clear()
         assert len(agent.conversation.get_history()) == 0
+
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])

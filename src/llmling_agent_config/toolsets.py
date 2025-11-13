@@ -315,12 +315,12 @@ class RemoteCodeModeToolsetConfig(BaseToolsetConfig):
 
     def get_provider(self) -> ResourceProvider:
         """Create Codemode toolset."""
-        from llmling_agent.resource_providers.codemode.secure_provider import (
-            SecureCodeModeResourceProvider,
+        from llmling_agent.resource_providers.codemode import (
+            RemoteCodeModeResourceProvider,
         )
 
         providers = [p.get_provider() for p in self.toolsets]
-        return SecureCodeModeResourceProvider(
+        return RemoteCodeModeResourceProvider(
             providers=providers,
             execution_config=self.environment,
         )

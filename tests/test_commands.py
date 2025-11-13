@@ -6,6 +6,8 @@ import inspect
 from pathlib import Path
 import tempfile
 
+import pytest
+
 from llmling_agent_config.commands import (
     CallableCommandConfig,
     FileCommandConfig,
@@ -120,3 +122,7 @@ def test_callable_command_get_callable():
 
     result = func()
     assert result == "Processed: default"
+
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])

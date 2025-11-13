@@ -173,4 +173,4 @@ async def test_event_manager_async_context(agent):
 
 
 if __name__ == "__main__":
-    pytest.main([__file__])
+    pytest.main([__file__, "-v"])
