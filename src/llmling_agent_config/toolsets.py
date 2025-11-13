@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 from typing import TYPE_CHECKING, Annotated, Literal
 
+from anyenv.code_execution.configs import ExecutionEnvironmentConfig  # noqa: TC002
 from pydantic import EmailStr, Field, HttpUrl, SecretStr  # noqa: TC002
 from schemez.schema import Schema
 from upath import UPath  # noqa: TC002
@@ -283,7 +284,48 @@ class CustomToolsetConfig(BaseToolsetConfig):
         return provider_cls(name=provider_cls.__name__)
 
 
-# Use discriminated union for toolset types
+class CodeModeToolsetConfig(BaseToolsetConfig):
+    """Configuration for code mode tools."""
+
+    type: Literal["code_mode"] = Field("code_mode", init=False)
+    """Code mode toolset."""
+
+    toolsets: list[ToolsetConfig]
+    """List of toolsets to expose as a codemode toolset."""
+
+    def get_provider(self) -> ResourceProvider:
+        """Create Codemode toolset."""
+        from llmling_agent.resource_providers.codemode import CodeModeResourceProvider
+
+        providers = [p.get_provider() for p in self.toolsets]
+        return CodeModeResourceProvider(providers=providers)
+
+
+class RemoteCodeModeToolsetConfig(BaseToolsetConfig):
+    """Configuration for code mode tools."""
+
+    type: Literal["remote_code_mode"] = Field("remote_code_mode", init=False)
+    """Code mode toolset."""
+
+    environment: ExecutionEnvironmentConfig
+    """Execution environment configuration."""
+
+    toolsets: list[ToolsetConfig]
+    """List of toolsets to expose as a codemode toolset."""
+
+    def get_provider(self) -> ResourceProvider:
+        """Create Codemode toolset."""
+        from llmling_agent.resource_providers.codemode.secure_provider import (
+            SecureCodeModeResourceProvider,
+        )
+
+        providers = [p.get_provider() for p in self.toolsets]
+        return SecureCodeModeResourceProvider(
+            providers=providers,
+            execution_config=self.environment,
+        )
+
+
 ToolsetConfig = Annotated[
     OpenAPIToolsetConfig
     | EntryPointToolsetConfig
@@ -300,6 +342,8 @@ ToolsetConfig = Annotated[
     | CodeToolsetConfig
     | FSSpecToolsetConfig
     | VFSToolsetConfig
+    | CodeModeToolsetConfig
+    | RemoteCodeModeToolsetConfig
     | CustomToolsetConfig,
     Field(discriminator="type"),
 ]
