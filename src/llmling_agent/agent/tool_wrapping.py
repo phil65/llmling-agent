@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from functools import wraps
-import inspect
 from typing import TYPE_CHECKING, Any
 
 from pydantic_ai import RunContext
@@ -15,6 +14,7 @@ from llmling_agent.tasks.exceptions import (
     ToolSkippedError,
 )
 from llmling_agent.utils.inspection import execute, get_argument_key
+from llmling_agent.utils.signatures import get_signature_without_argument
 
 
 if TYPE_CHECKING:
@@ -23,10 +23,7 @@ if TYPE_CHECKING:
     from llmling_agent.tools.base import Tool
 
 
-def wrap_tool(
-    tool: Tool,
-    agent_ctx: AgentContext,
-) -> Callable[..., Awaitable[Any]]:
+def wrap_tool(tool: Tool, agent_ctx: AgentContext) -> Callable[..., Awaitable[Any]]:
     """Wrap tool with confirmation handling.
 
     Strategy:
@@ -98,10 +95,3 @@ async def _handle_confirmation_result(result: str, name: str) -> None:
         case "abort_chain":
             msg = "Agent chain aborted by user"
             raise ChainAbortedError(msg)
-
-
-def get_signature_without_argument(fn: Callable, key: str) -> inspect.Signature:
-    # Hide AgentContext parameter from pydantic-ai's signature analysis
-    sig = inspect.signature(fn)
-    new_params = [p for p in sig.parameters.values() if p.name != key]
-    return sig.replace(parameters=new_params)  # type: ignore

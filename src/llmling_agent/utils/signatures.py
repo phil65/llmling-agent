@@ -81,8 +81,11 @@ def insert_arg_into_signature(fn: Callable, key: str, type_: type) -> Callable:
     return fn
 
 
-def get_signature_without_argument(fn: Callable, key: str) -> inspect.Signature:
+def get_signature_without_argument(
+    fn: Callable, key: str | list[str]
+) -> inspect.Signature:
     # Hide AgentContext parameter from pydantic-ai's signature analysis
     sig = inspect.signature(fn)
-    new_params = [p for p in sig.parameters.values() if p.name != key]
+    keys = [key] if isinstance(key, str) else key
+    new_params = [p for p in sig.parameters.values() if p.name not in keys]
     return sig.replace(parameters=new_params)  # type: ignore

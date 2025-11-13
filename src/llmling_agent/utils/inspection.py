@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Sequence
 from dataclasses import fields
+import functools
 from importlib.util import find_spec
 import inspect
 from types import UnionType
@@ -121,7 +122,30 @@ def get_argument_key(
         if origin is not None and _type_to_string(origin) in target_types:
             return key
 
+        # if origin is not None:
+        #     # Check if the generic type (e.g., list) matches
+        #     if _type_to_string(origin) in target_types:
+        #         return key
+        #     # Check type arguments (e.g., str in list[str])
+        #     args = get_args(param_type)
+        #     if any(_type_to_string(arg) in target_types for arg in args):
+        #         return key
+
     return False
+
+
+def is_async_callable(obj: Any) -> Any:
+    """Correctly check if a callable is async.
+
+    This function was copied from Starlette:
+    https://github.com/encode/starlette/blob/78da9b9e218ab289117df7d62aee200ed4c59617/starlette/_utils.py#L36-L40
+    """
+    while isinstance(obj, functools.partial):
+        obj = obj.func
+
+    return inspect.iscoroutinefunction(obj) or (
+        callable(obj) and inspect.iscoroutinefunction(obj.__call__)
+    )  # type: ignore
 
 
 def _type_to_string(type_hint: Any) -> str:

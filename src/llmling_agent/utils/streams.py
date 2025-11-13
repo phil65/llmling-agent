@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from contextlib import asynccontextmanager
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 
 if TYPE_CHECKING:
@@ -12,10 +12,10 @@ if TYPE_CHECKING:
 
 
 @asynccontextmanager
-async def merge_queue_into_iterator[T](
+async def merge_queue_into_iterator[T, V](
     primary_stream: AsyncIterator[T],
-    secondary_queue: asyncio.Queue[Any],
-) -> AsyncIterator[AsyncIterator[T | Any]]:
+    secondary_queue: asyncio.Queue[V],
+) -> AsyncIterator[AsyncIterator[T | V]]:
     """Merge a primary async stream with events from a secondary queue.
 
     Args:
@@ -35,7 +35,7 @@ async def merge_queue_into_iterator[T](
         ```
     """
     # Create a queue for all merged events
-    event_queue: asyncio.Queue[T | Any | None] = asyncio.Queue()
+    event_queue: asyncio.Queue[V | T | None] = asyncio.Queue()
 
     # Task to read from primary stream and put into merged queue
     async def primary_task():

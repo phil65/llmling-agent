@@ -607,7 +607,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
 
         # Convert to structured if needed
         if return_type not in {str, None}:
-            base.set_output_type(return_type)
+            base.to_structured(return_type)
 
         return base
 

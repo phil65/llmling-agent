@@ -7,14 +7,7 @@ from collections.abc import Awaitable, Callable
 from contextlib import AsyncExitStack, asynccontextmanager
 from dataclasses import dataclass, field, replace
 import time
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Self,
-    TypedDict,
-    get_type_hints,
-    overload,
-)
+from typing import TYPE_CHECKING, Any, Self, TypedDict, get_type_hints, overload
 from uuid import uuid4
 
 from anyenv import MultiEventHandler, method_spawner
@@ -201,7 +194,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             input_provider=input_provider,
         )
         self._context = ctx
-        # TODO: use set_output_type with tool_name / description?
+        # TODO: use to_structured with tool_name / description?
         self._output_type = to_type(output_type, ctx.definition.responses)
         memory_cfg = (
             session
@@ -391,14 +384,9 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             kwargs: Additional arguments for agent
         """
         name = name or callback.__name__ or "processor"
-
         model = function_to_model(callback)
-        # Get return type from signature for validation
-        hints = get_type_hints(callback)
-        return_type = hints.get("return")
-
-        # If async, unwrap from Awaitable
-        if (
+        return_type = get_type_hints(callback).get("return")
+        if (  # If async, unwrap from Awaitable
             return_type
             and hasattr(return_type, "__origin__")
             and return_type.__origin__ is Awaitable
@@ -427,27 +415,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         self._context = value
         self.mcp.context = value
 
-    def set_output_type(
-        self,
-        output_type: type | None,
-        *,
-        tool_name: str | None = None,
-        tool_description: str | None = None,
-    ):
-        """Set or update the result type for this agent.
-
-        Args:
-            output_type: New result type, can be:
-                - A Python type for validation
-                - Name of a response definition
-                - Response definition instance
-                - None to reset to unstructured mode
-            tool_name: Optional override for tool name
-            tool_description: Optional override for tool description
-        """
-        self.log.debug("Setting result type", output_type=output_type)
-        self._output_type = to_type(output_type)
-
     def to_structured[NewOutputDataT](
         self,
         output_type: type[NewOutputDataT],
@@ -460,19 +427,14 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         Args:
             output_type: Type for structured responses. Can be:
                 - A Python type (Pydantic model)
-                - Name of response definition from context
-                - Complete response definition
             tool_name: Optional override for result tool name
             tool_description: Optional override for result tool description
 
         Returns:
             Typed Agent
         """
-        self.set_output_type(
-            output_type,
-            tool_name=tool_name,
-            tool_description=tool_description,
-        )
+        self.log.debug("Setting result type", output_type=output_type)
+        self._output_type = to_type(output_type)
         return self  # type: ignore
 
     def is_busy(self) -> bool:
@@ -1093,7 +1055,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         old_model = self._model
         if output_type:
             old_type = self._output_type
-            self.set_output_type(output_type)
+            self.to_structured(output_type)
         async with AsyncExitStack() as stack:
             if system_prompts is not None:  # System prompts
                 await stack.enter_async_context(
@@ -1126,7 +1088,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                 if model is not None and old_model:
                     self._model = old_model
                 if output_type:
-                    self.set_output_type(old_type)
+                    self.to_structured(old_type)
 
     async def validate_against(
         self,
