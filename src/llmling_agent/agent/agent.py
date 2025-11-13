@@ -83,7 +83,6 @@ if TYPE_CHECKING:
     from llmling_agent.resource_providers import ResourceProvider
     from llmling_agent.ui.base import InputProvider
     from llmling_agent_config.mcp_server import MCPServerConfig
-    from llmling_agent_config.output_types import StructuredResponseConfig
     from llmling_agent_config.session import SessionQuery
     from llmling_agent_config.task import Job
 
@@ -137,7 +136,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         *,
         deps_type: type[TDeps] | None = None,
         model: ModelType = None,
-        output_type: OutputSpec[OutputDataT] | StructuredResponseConfig | str = str,  # type: ignore[assignment]
+        output_type: OutputSpec[OutputDataT] = str,  # type: ignore[assignment]
         context: AgentContext[TDeps] | None = None,
         session: SessionIdType | SessionQuery | MemoryConfig | bool | int = None,
         system_prompt: AnyPromptType | Sequence[AnyPromptType] = (),
@@ -430,7 +429,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
 
     def set_output_type(
         self,
-        output_type: type | str | StructuredResponseConfig | None,
+        output_type: type | None,
         *,
         tool_name: str | None = None,
         tool_description: str | None = None,
@@ -451,11 +450,11 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
 
     def to_structured[NewOutputDataT](
         self,
-        output_type: type[NewOutputDataT] | str | StructuredResponseConfig,
+        output_type: type[NewOutputDataT],
         *,
         tool_name: str | None = None,
         tool_description: str | None = None,
-    ) -> Agent[TDeps, NewOutputDataT] | Self:
+    ) -> Agent[TDeps, NewOutputDataT]:
         """Convert this agent to a structured agent.
 
         Args:
@@ -469,8 +468,12 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         Returns:
             Typed Agent
         """
-        self.set_output_type(output_type)  # type: ignore
-        return self
+        self.set_output_type(
+            output_type,
+            tool_name=tool_name,
+            tool_description=tool_description,
+        )
+        return self  # type: ignore
 
     def is_busy(self) -> bool:
         """Check if agent is currently processing tasks."""

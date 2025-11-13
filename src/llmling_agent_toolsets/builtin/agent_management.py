@@ -14,6 +14,7 @@ from llmling_agent.log import get_logger
 from llmling_agent.resource_providers import StaticResourceProvider
 from llmling_agent.tools.base import Tool
 from llmling_agent.tools.exceptions import ToolError
+from llmling_agent.utils.result_utils import to_type
 
 
 if TYPE_CHECKING:
@@ -215,7 +216,7 @@ async def add_agent(  # noqa: D417
             system_prompt=system_prompt,
             model=model,
             tools=tools,
-            output_type=output_type or str,
+            output_type=to_type(output_type, responses=ctx.pool.manifest.responses),
             session=session,
         )
     except ValueError as e:  # for wrong tool imports
