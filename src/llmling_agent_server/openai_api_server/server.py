@@ -166,7 +166,11 @@ class OpenAIAPIServer(BaseServer):
         import uvicorn
 
         config = uvicorn.Config(
-            self.app, host=self.host, port=self.port, log_level="info"
+            self.app,
+            host=self.host,
+            port=self.port,
+            log_level="info",
+            ws="websockets-sansio",
         )
         server = uvicorn.Server(config)
         await server.serve()

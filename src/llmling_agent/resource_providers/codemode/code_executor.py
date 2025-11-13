@@ -138,6 +138,7 @@ class ToolServerLifecycleHandler:
             access_log=False,
             host=self.host,
             port=self.port,
+            ws="websockets-sansio",
         )
         self.server = uvicorn.Server(config)
 
