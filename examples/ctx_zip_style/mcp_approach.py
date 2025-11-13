@@ -51,14 +51,7 @@ async def fetch_weather(city: str, country: str = "US") -> dict:
     Returns:
         Weather information dict
     """
-    # Simulate API call
-    return {
-        "city": city,
-        "country": country,
-        "temperature": 22,
-        "condition": "sunny",
-        "humidity": 65,
-    }
+    return {"city": city, "country": country, "temperature": 22}
 
 
 async def demo_code_generation_approach():

@@ -48,7 +48,8 @@ dependencies = [
   "pydantic-ai-slim>=1.0.0",
   # Only add below (Copier)
   "python-dotenv>=1.0.1",
-  "schemez>=0.0.1",
+  "schemez",
+  # "schemez @ file:///home/phil65/dev/oss/schemez",
   "slashed>=0.1.0",
   "sqlalchemy[aiosqlite]",
   "sqlmodel>=0.0.22",
