@@ -9,6 +9,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, field_validator
 from pydantic_ai import AgentStreamEvent, RunContext
 from pydantic_ai.models import Model
+from tokonomics import ModelName
 from toprompt.to_prompt import AnyPromptType
 from upath.types import JoinablePathLike
 
@@ -32,7 +33,7 @@ TeamName = str
 AgentName = str
 MessageRole = Literal["user", "assistant"]
 PartType = Literal["text", "image", "audio", "video"]
-ModelType = Model | str | None
+ModelType = Model | ModelName | str | None
 EnvironmentType = Literal["file", "inline"]
 ToolSource = Literal["agent", "builtin", "dynamic", "task", "mcp", "toolset"]
 AnyCallable = Callable[..., Any]
