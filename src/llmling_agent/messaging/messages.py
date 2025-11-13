@@ -258,7 +258,13 @@ class ChatMessage[TContent]:
             return self.messages
         match self.kind:
             case "request":
-                return [ModelRequest(parts=self.parts, instructions=None)]  # type: ignore
+                return [
+                    ModelRequest(
+                        parts=self.parts,  # type: ignore
+                        instructions=None,
+                        run_id=self.message_id,
+                    )
+                ]
             case "response":
                 return [
                     ModelResponse(
@@ -270,6 +276,7 @@ class ChatMessage[TContent]:
                         provider_details=self.provider_details,
                         finish_reason=self.finish_reason,
                         provider_response_id=self.provider_response_id,
+                        run_id=self.message_id,
                     )
                 ]
 
@@ -297,17 +304,16 @@ class ChatMessage[TContent]:
         message: ModelMessage,
         conversation_id: str | None = None,
         name: str | None = None,
-        message_id: str | None = None,
         forwarded_from: list[str] | None = None,
     ) -> ChatMessage[TContentType]:
         """Convert a Pydantic model to a ChatMessage."""
         match message:
-            case ModelRequest(instructions=_instructions):
+            case ModelRequest(instructions=_instructions, run_id=run_id):
                 return ChatMessage(
                     messages=[message],
                     content=content,
                     role="user" if message.kind == "request" else "assistant",
-                    message_id=message_id or str(uuid.uuid4()),
+                    message_id=run_id or str(uuid.uuid4()),
                     # instructions=instructions,
                     forwarded_from=forwarded_from or [],
                     name=name,
@@ -320,13 +326,14 @@ class ChatMessage[TContent]:
                 provider_details=provider_details,
                 finish_reason=finish_reason,
                 provider_response_id=provider_response_id,
+                run_id=run_id,
             ):
                 return ChatMessage(
                     role="user" if message.kind == "request" else "assistant",
                     content=content,
                     messages=[message],
                     usage=usage,
-                    message_id=message_id or str(uuid.uuid4()),
+                    message_id=run_id or str(uuid.uuid4()),
                     conversation_id=conversation_id,
                     model_name=model_name,
                     timestamp=timestamp,
