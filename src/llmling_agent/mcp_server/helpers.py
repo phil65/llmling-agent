@@ -6,10 +6,9 @@ and content handling for PydanticAI integration.
 
 from __future__ import annotations
 
-import inspect
 from typing import TYPE_CHECKING, Any
 
-from pydantic_ai import BuiltinToolCallPart, ModelRequest, RunContext, ToolCallPart
+from pydantic_ai import BuiltinToolCallPart, ModelRequest, ToolCallPart
 
 from llmling_agent.log import get_logger
 
@@ -20,56 +19,6 @@ if TYPE_CHECKING:
 
 
 logger = get_logger(__name__)
-
-
-def _create_tool_signature_with_context(
-    base_signature: inspect.Signature,
-) -> inspect.Signature:
-    """Create a function signature that includes RunContext as first parameter.
-
-    This is crucial for PydanticAI integration - it expects tools that need RunContext
-    to have it as the first parameter with proper annotation. Without this, PydanticAI
-    won't pass the RunContext and we lose access to tool_call_id and other context.
-
-    Args:
-        base_signature: Original signature from MCP tool schema (tool parameters only)
-
-    Returns:
-        New signature: (ctx: RunContext, ...original_params) -> ReturnType
-
-    Example:
-        Original: (message: str) -> str
-        Result:   (ctx: RunContext, message: str) -> str
-    """
-    # Create RunContext parameter
-    ctx_param = inspect.Parameter(
-        "ctx", inspect.Parameter.POSITIONAL_OR_KEYWORD, annotation=RunContext
-    )
-    # Combine with tool parameters
-    tool_params = list(base_signature.parameters.values())
-    new_params = [ctx_param, *tool_params]
-
-    return base_signature.replace(parameters=new_params)
-
-
-def _create_tool_annotations_with_context(
-    base_annotations: dict[str, Any],
-) -> dict[str, Any]:
-    """Create function annotations that include RunContext for first parameter.
-
-    Args:
-        base_annotations: Original annotations from MCP tool schema
-
-    Returns:
-        New annotations dict with 'ctx': RunContext added to base annotations
-
-    Example:
-        Original: {'message': str, 'return': str}
-        Result:   {'ctx': RunContext, 'message': str, 'return': str}
-    """
-    new_annotations = base_annotations.copy()
-    new_annotations["ctx"] = RunContext
-    return new_annotations
 
 
 def mcp_tool_to_fn_schema(tool: MCPTool) -> dict[str, Any]:

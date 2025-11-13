@@ -22,14 +22,16 @@ from schemez.functionschema import FunctionSchema
 from llmling_agent.log import get_logger
 from llmling_agent.mcp_server.constants import MCP_TO_LOGGING
 from llmling_agent.mcp_server.helpers import (
-    _create_tool_annotations_with_context,
-    _create_tool_signature_with_context,
     extract_text_content,
     extract_tool_call_args,
     mcp_tool_to_fn_schema,
 )
 from llmling_agent.mcp_server.message_handler import MCPMessageHandler
 from llmling_agent.tools.base import Tool
+from llmling_agent.utils.signatures import (
+    _create_tool_annotations_with_context,
+    _create_tool_signature_with_context,
+)
 from llmling_agent_config.mcp_server import (
     SSEMCPServerConfig,
     StdioMCPServerConfig,
