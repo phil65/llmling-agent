@@ -29,6 +29,7 @@ if TYPE_CHECKING:
 
     from llmling_agent.agent.agent import Agent
     from llmling_agent.common_types import MessageRole, SessionIdType
+    from llmling_agent.prompts.conversion_manager import ConversionManager
     from llmling_agent.prompts.prompts import PromptType
     from llmling_agent.storage import StorageManager
     from llmling_agent_config.session import MemoryConfig
@@ -50,7 +51,8 @@ class ConversationManager:
 
     def __init__(
         self,
-        agent: Agent[Any, Any],
+        storage: StorageManager,
+        converter: ConversionManager,
         session_config: MemoryConfig | None = None,
         *,
         resources: Sequence[PromptType | str] = (),
@@ -58,11 +60,13 @@ class ConversationManager:
         """Initialize conversation manager.
 
         Args:
-            agent: instance to manage
+            storage: Storage manager for persistence
+            converter: Content converter for file processing
             session_config: Optional MemoryConfig
             resources: Optional paths to load as context
         """
-        self._agent = agent
+        self._storage = storage
+        self._converter = converter
         self.chat_messages = ChatMessageContainer()
         self._last_messages: list[ChatMessage] = []
         self._pending_messages: deque[ChatMessage] = deque()
@@ -83,7 +87,7 @@ class ConversationManager:
 
     @property
     def storage(self) -> StorageManager:
-        return self._agent.context.storage
+        return self._storage
 
     def get_initialization_tasks(self) -> list[Coroutine[Any, Any, Any]]:
         """Get all initialization coroutines."""
@@ -416,7 +420,7 @@ class ConversationManager:
         """
         path_obj = to_upath(path)
         if convert_to_md:
-            content = await self._agent.context.converter.convert_file(path)
+            content = await self._converter.convert_file(path)
             source = f"markdown:{path_obj.name}"
         else:
             content = await read_path(path)

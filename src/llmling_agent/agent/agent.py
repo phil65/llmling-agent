@@ -228,7 +228,12 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         resources = list(resources)
         if ctx.config.knowledge:
             resources.extend(ctx.config.knowledge.get_resources())
-        self.conversation = ConversationManager(self, memory_cfg, resources=resources)
+        self.conversation = ConversationManager(
+            storage=ctx.storage,
+            converter=ctx.converter,
+            session_config=memory_cfg,
+            resources=resources,
+        )
 
         # Store pydantic-ai configuration
         if model and not isinstance(model, str):
