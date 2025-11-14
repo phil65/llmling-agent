@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import inspect
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from pydantic_ai import RunContext
 
@@ -46,27 +46,6 @@ def _create_tool_signature_with_context(
     new_params = [ctx_param, *tool_params]
 
     return base_signature.replace(parameters=new_params)
-
-
-def _create_tool_annotations_with_context(
-    base_annotations: dict[str, Any],
-    key: str = "ctx",
-) -> dict[str, Any]:
-    """Create function annotations that include RunContext for first parameter.
-
-    Args:
-        base_annotations: Original annotations from MCP tool schema
-        key: Name of the parameter to add RunContext to
-    Returns:
-        New annotations dict with 'ctx': RunContext added to base annotations
-
-    Example:
-        Original: {'message': str, 'return': str}
-        Result:   {'ctx': RunContext, 'message': str, 'return': str}
-    """
-    new_annotations = base_annotations.copy()
-    new_annotations[key] = RunContext
-    return new_annotations
 
 
 def create_modified_signature(

@@ -15,7 +15,7 @@ import logging
 from typing import TYPE_CHECKING, Any, Self
 
 from anyenv import MultiEventHandler
-from pydantic_ai import RunContext, ToolReturn  # noqa: TC002
+from pydantic_ai import RunContext, ToolReturn
 from schemez import FunctionSchema
 
 from llmling_agent.common_types import RichProgressCallback
@@ -28,10 +28,7 @@ from llmling_agent.mcp_server.helpers import (
 )
 from llmling_agent.mcp_server.message_handler import MCPMessageHandler
 from llmling_agent.tools.base import Tool
-from llmling_agent.utils.signatures import (
-    _create_tool_annotations_with_context,
-    _create_tool_signature_with_context,
-)
+from llmling_agent.utils.signatures import _create_tool_signature_with_context
 from llmling_agent_config.mcp_server import (
     SSEMCPServerConfig,
     StdioMCPServerConfig,
@@ -265,11 +262,11 @@ class MCPClient:
         schema = mcp_tool_to_fn_schema(tool)
         fn_schema = FunctionSchema.from_dict(schema)
         sig = fn_schema.to_python_signature()
-
         tool_callable.__signature__ = _create_tool_signature_with_context(sig)  # type: ignore
-        annotations = _create_tool_annotations_with_context(fn_schema.get_annotations())
+        annotations = fn_schema.get_annotations()
+        annotations["ctx"] = RunContext
         # Update return annotation to support multiple types
-        annotations["return"] = str | Any | ToolReturn
+        annotations["return"] = str | Any | ToolReturn  # type: ignore
         tool_callable.__annotations__ = annotations
         tool_callable.__name__ = tool.name
         tool_callable.__doc__ = tool.description or "No description provided."
