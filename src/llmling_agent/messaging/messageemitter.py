@@ -28,8 +28,8 @@ if TYPE_CHECKING:
         ProcessorCallback,
         PromptCompatible,
         QueueStrategy,
+        RichProgressCallback,
     )
-    from llmling_agent.mcp_server.client import ContextualProgressHandler
     from llmling_agent.messaging.context import NodeContext
     from llmling_agent.messaging.messagenode import MessageNode
     from llmling_agent.models.content import BaseContent
@@ -57,7 +57,7 @@ class MessageEmitter[TDeps, TResult](ABC):
         context: NodeContext | None = None,
         mcp_servers: Sequence[str | MCPServerConfig] | None = None,
         enable_logging: bool = True,
-        progress_handler: ContextualProgressHandler | None = None,
+        progress_handler: RichProgressCallback | None = None,
     ):
         """Initialize message node."""
         super().__init__()

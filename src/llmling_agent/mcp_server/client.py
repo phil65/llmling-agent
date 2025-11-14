@@ -10,7 +10,6 @@ seamlessly with PydanticAI's RunContext while providing rich progress informatio
 
 from __future__ import annotations
 
-from collections.abc import Callable
 import contextlib
 import logging
 from typing import TYPE_CHECKING, Any, Self
@@ -19,6 +18,7 @@ from anyenv import MultiEventHandler
 from pydantic_ai import RunContext, ToolReturn  # noqa: TC002
 from schemez import FunctionSchema
 
+from llmling_agent.common_types import RichProgressCallback
 from llmling_agent.log import get_logger
 from llmling_agent.mcp_server.constants import MCP_TO_LOGGING
 from llmling_agent.mcp_server.helpers import (
@@ -39,21 +39,8 @@ from llmling_agent_config.mcp_server import (
 )
 
 
-type ContextualProgressHandler = Callable[
-    [
-        float,  # progress
-        float | None,  # total
-        str | None,  # message
-        str | None,  # tool_name
-        str | None,  # tool_call_id
-        dict[str, Any] | None,  # tool_input
-    ],
-    Any,  # Supports both sync (None) and async (Awaitable[None]) returns
-]
-
-
 if TYPE_CHECKING:
-    from collections.abc import Awaitable, Sequence
+    from collections.abc import Awaitable, Callable, Sequence
     from types import TracebackType
 
     from fastmcp.client import ClientTransport
@@ -87,7 +74,7 @@ class MCPClient:
         config: MCPServerConfig,
         elicitation_callback: ElicitationHandler | None = None,
         sampling_callback: ClientSamplingHandler | None = None,
-        progress_handler: ContextualProgressHandler | None = None,
+        progress_handler: RichProgressCallback | None = None,
         message_handler: MessageHandlerT | MessageHandler | None = None,
         accessible_roots: list[str] | None = None,
         tool_change_callback: Callable[[], Awaitable[None]] | None = None,
@@ -97,7 +84,7 @@ class MCPClient:
         self._elicitation_callback = elicitation_callback
         self.config = config
         self._sampling_callback = sampling_callback
-        self._progress_handler = MultiEventHandler[ContextualProgressHandler](
+        self._progress_handler = MultiEventHandler[RichProgressCallback](
             handlers=[progress_handler] if progress_handler else []
         )
         # Store message handler or mark for lazy creation

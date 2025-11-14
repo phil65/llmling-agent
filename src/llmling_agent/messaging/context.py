@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from functools import cached_property
 from typing import TYPE_CHECKING, Any
@@ -10,15 +9,13 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from llmling_agent import AgentPool
+    from llmling_agent.common_types import ProgressCallback
     from llmling_agent.messaging import MessageEmitter
     from llmling_agent.models.manifest import AgentsManifest
     from llmling_agent.prompts.manager import PromptManager
     from llmling_agent.storage import StorageManager
     from llmling_agent.ui.base import InputProvider
     from llmling_agent_config.nodes import NodeConfig
-
-
-ProgressCallback = Callable[[float, float | None, str], Awaitable[None]]
 
 
 @dataclass(kw_only=True)

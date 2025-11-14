@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     from mcp.client.session import RequestContext
     from mcp.types import SamplingMessage
 
-    from llmling_agent.mcp_server.client import ContextualProgressHandler
+    from llmling_agent.common_types import RichProgressCallback
     from llmling_agent.messaging.context import NodeContext
     from llmling_agent.models.content import BaseContent
     from llmling_agent_config.mcp_server import MCPServerConfig
@@ -42,7 +42,7 @@ class MCPManager:
         owner: str | None = None,
         servers: Sequence[MCPServerConfig | str] | None = None,
         context: NodeContext | None = None,
-        progress_handler: ContextualProgressHandler | None = None,
+        progress_handler: RichProgressCallback | None = None,
         accessible_roots: list[str] | None = None,
     ):
         self.name = name
