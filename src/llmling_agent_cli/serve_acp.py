@@ -158,7 +158,8 @@ def acp_command(
             description="A general-purpose AI assistant",
             system_prompt=[
                 "You are a helpful AI assistant that can help with various tasks.",
-                "You have access to file operations and can assist with coding, writing, analysis, and more.",
+                "You have access to file operations and can assist with coding, writing,",
+                " analysis, and more.",
                 "Be concise but thorough in your responses.",
             ],
         )

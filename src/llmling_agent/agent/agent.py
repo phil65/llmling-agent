@@ -6,6 +6,7 @@ import asyncio
 from collections.abc import Awaitable, Callable
 from contextlib import AsyncExitStack, asynccontextmanager
 from dataclasses import dataclass, field, replace
+from pathlib import Path
 import time
 from typing import TYPE_CHECKING, Any, Self, TypedDict, get_type_hints, overload
 from uuid import uuid4
@@ -40,8 +41,7 @@ from llmling_agent.log import get_logger
 from llmling_agent.messaging import ChatMessage, MessageNode
 from llmling_agent.prompts.convert import convert_prompts
 from llmling_agent.talk.stats import MessageStats
-from llmling_agent.tasks import JobError
-from llmling_agent.tools import SkillsRegistry, Tool, ToolManager
+from llmling_agent.tools import Tool, ToolManager
 from llmling_agent.tools.exceptions import ToolError
 from llmling_agent.utils.inspection import call_with_context, get_argument_key
 from llmling_agent.utils.now import get_now
@@ -79,7 +79,13 @@ if TYPE_CHECKING:
     from llmling_agent_config.session import SessionQuery
     from llmling_agent_config.task import Job
 
+
 from llmling_agent.messaging.processing import finalize_message, prepare_prompts
+
+
+# Import for type hints
+if TYPE_CHECKING:
+    from llmling_agent.agent.conversation import MessageHistory
 
 
 logger = get_logger(__name__)
@@ -96,6 +102,7 @@ class AgentKwargs(TypedDict, total=False):
     tools: Sequence[ToolType | Tool] | None
     toolsets: Sequence[ResourceProvider] | None
     mcp_servers: Sequence[str | MCPServerConfig] | None
+    local_skills_dirs: Sequence[str | Path] | None
     retries: int
     output_retries: int | None
     end_strategy: EndStrategy
@@ -140,6 +147,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         toolsets: Sequence[ResourceProvider] | None = None,
         mcp_servers: Sequence[str | MCPServerConfig] | None = None,
         resources: Sequence[PromptType | str] = (),
+        local_skills_dirs: Sequence[str | Path] | None = None,
         retries: int = 1,
         output_retries: int | None = None,
         end_strategy: EndStrategy = "early",
@@ -171,6 +179,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             toolsets: List of toolset resource providers for the agent
             mcp_servers: MCP servers to connect to
             resources: Additional resources to load
+            local_skills_dirs: Local directories to search for agent-specific skills
             retries: Default number of retries for failed operations
             output_retries: Max retries for result validation (defaults to retries)
             end_strategy: Strategy for handling tool calls that are requested alongside
@@ -226,6 +235,20 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         for toolset_provider in toolsets or []:
             self.tools.add_provider(toolset_provider)
 
+        # # Add local skills provider if directories specified
+        # if local_skills_dirs:
+        #     from llmling_agent.resource_providers.skills import SkillsResourceProvider
+
+        #     skills_paths = [
+        #         Path(d) if isinstance(d, str) else d for d in local_skills_dirs
+        #     ]
+        #     local_skills_provider = SkillsResourceProvider(
+        #         skills_dirs=skills_paths,
+        #         name=f"{name}_local_skills",
+        #         owner=name,
+        #     )
+        #     self.tools.add_provider(local_skills_provider)
+
         # Initialize conversation manager
         resources = list(resources)
         if ctx.config.knowledge:
@@ -244,8 +267,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         self._retries = retries
         self._end_strategy: EndStrategy = end_strategy
         self._output_retries = output_retries
-
-        self.skills_registry = SkillsRegistry()
 
         if ctx and ctx.definition:
             registry.configure_observability(ctx.definition.observability)
@@ -398,7 +419,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             and return_type.__origin__ is Awaitable
         ):
             return_type = return_type.__args__[0]
-        return Agent(
+        return Agent(  # pyright: ignore[reportReturnType]
             model=model,
             name=name,
             output_type=return_type or str,
@@ -567,6 +588,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         message_id: str | None = None,
         conversation_id: str | None = None,
         messages: list[ChatMessage[Any]] | None = None,
+        message_history: MessageHistory | None = None,
         deps: TDeps | None = None,
         input_provider: InputProvider | None = None,
         wait_for_connections: bool | None = None,
@@ -583,7 +605,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         usage_limits: UsageLimits | None = None,
         message_id: str | None = None,
         conversation_id: str | None = None,
-        messages: list[ChatMessage[Any]] | None = None,
+        message_history: MessageHistory | None = None,
         deps: TDeps | None = None,
         input_provider: InputProvider | None = None,
         wait_for_connections: bool | None = None,
@@ -600,7 +622,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         usage_limits: UsageLimits | None = None,
         message_id: str | None = None,
         conversation_id: str | None = None,
-        messages: list[ChatMessage[Any]] | None = None,
+        message_history: MessageHistory | None = None,
         deps: TDeps | None = None,
         input_provider: InputProvider | None = None,
         wait_for_connections: bool | None = None,
@@ -619,6 +641,8 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                         Automatically generated if not provided.
             conversation_id: Optional conversation id for the returned message.
             messages: Optional list of messages to replace the conversation history
+            message_history: Optional MessageHistory object to
+                             use instead of agent's own conversation
             deps: Optional dependencies for the agent
             input_provider: Optional input provider for the agent
             wait_for_connections: Whether to wait for connected agents to complete
@@ -629,6 +653,11 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         Raises:
             UnexpectedModelBehavior: If the model fails or behaves unexpectedly
         """
+        # Determine which conversation/history to use
+        conversation = (
+            message_history if message_history is not None else self.conversation
+        )
+
         # Prepare prompts and create user message
         user_msg, processed_prompts, original_message = await prepare_prompts(*prompts)
         self.message_received.emit(user_msg)
@@ -646,7 +675,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             usage_limits=usage_limits,
             message_id=message_id,
             conversation_id=user_msg.conversation_id,
-            messages=messages,
+            messages=list(conversation.chat_messages),
             deps=deps,
             input_provider=input_provider,
         )
@@ -655,9 +684,9 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         if original_message:
             message = message.forwarded(original_message)
 
-        # Handle history storage
+        # Handle history storage - add to the conversation we're using
         if store_history:
-            self.conversation.add_chat_messages([user_msg, message])
+            conversation.add_chat_messages([user_msg, message])
 
         # Finalize and route message (forwarding already applied)
         return await finalize_message(
@@ -776,7 +805,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             UnexpectedModelBehavior: If the model fails or behaves unexpectedly
         """
         message_id = message_id or str(uuid4())
-        user_msg, prompts, original_message = await prepare_prompts(*prompt)
+        user_msg, prompts, _original_message = await prepare_prompts(*prompt)
         self.message_received.emit(user_msg)
 
         # Set current prompt context
@@ -816,7 +845,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                 pending_tcs: dict[str, ToolCallPart] = {}
                 async for event in events:
                     # Process events and emit signals
-                    yield event
+                    yield event  # pyright: ignore[reportReturnType]
                     match event:
                         case (
                             PartStartEvent(part=ToolCallPart() as tool_part)
@@ -855,7 +884,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
 
             # Send additional enriched completion event
             assert response_msg
-            yield StreamCompleteEvent(message=response_msg)
+            yield StreamCompleteEvent(message=response_msg)  # pyright: ignore[reportReturnType]
             self.message_sent.emit(response_msg)
             await self.log_message(response_msg)
             if store_history:
@@ -931,6 +960,8 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             JobError: If task execution fails
             ValueError: If task configuration is invalid
         """
+        from llmling_agent.tasks import JobError
+
         if job.required_dependency is not None:  # noqa: SIM102
             if not isinstance(self.context.data, job.required_dependency):
                 msg = (

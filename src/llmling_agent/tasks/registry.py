@@ -17,6 +17,8 @@ class TaskRegistry(BaseRegistry[str, Job[Any, Any]]):
         return JobRegistrationError
 
     def _validate_item(self, item: Any) -> Job[Any, Any]:
+        from llmling_agent_config.task import Job
+
         if not isinstance(item, Job):
             msg = f"Expected Job, got {type(item)}"
             raise self._error_class(msg)

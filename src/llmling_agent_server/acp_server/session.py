@@ -199,6 +199,43 @@ class ACPSession:
                 prompt = f"## Project Information\n\n{info}"
                 agent.sys_prompts.prompts.append(prompt)
 
+    async def init_client_skills(self) -> None:
+        """Discover and load skills from client-side .claude/skills directory."""
+        try:
+            from pathlib import Path
+
+            from llmling_agent.tools.skills import SkillsRegistry
+
+            from llmling_agent.resource_providers.skills import SkillsResourceProvider
+
+            # Create skills registry for client-side skills
+            registry = SkillsRegistry(skills_dirs=[Path(".claude/skills")])
+
+            # Discover skills using ACP filesystem
+            await registry.discover_skills(filesystem=self.fs)
+
+            if not registry.is_empty:
+                # Create provider
+                client_skills_provider = SkillsResourceProvider(
+                    registry=registry,
+                    name="client_skills",
+                    owner=f"acp_session_{self.session_id}",
+                )
+
+                # Add to all agents in the pool
+                for agent in self.agent_pool.agents.values():
+                    agent.tools.add_provider(client_skills_provider)
+
+                skill_count = len(registry.list_items())
+                self.log.info(
+                    "Added client-side skills to agents", skill_count=skill_count
+                )
+            else:
+                self.log.debug("No valid client-side skills found")
+
+        except Exception as e:
+            self.log.exception("Failed to discover client-side skills", error=e)
+
     @property
     def agent(self) -> Agent[ACPSession, str]:
         """Get the currently active agent."""

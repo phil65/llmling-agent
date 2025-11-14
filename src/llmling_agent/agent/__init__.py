@@ -13,8 +13,8 @@ from llmling_agent.agent.sys_prompts import SystemPrompts
 __all__ = [
     "Agent",
     "AgentContext",
-    "MessageHistory",
     "Interactions",
+    "MessageHistory",
     "SlashedAgent",
     "SystemPrompts",
 ]

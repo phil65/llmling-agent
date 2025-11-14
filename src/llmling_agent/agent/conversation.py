@@ -12,8 +12,6 @@ from psygnal import Signal
 from upathtools import read_path, to_upath
 
 from llmling_agent.log import get_logger
-from llmling_agent.messaging import ChatMessage, ChatMessageContainer
-from llmling_agent.prompts.prompts import BasePrompt
 from llmling_agent.utils.count_tokens import count_tokens
 from llmling_agent.utils.now import get_now
 from llmling_agent_config.session import SessionQuery
@@ -29,6 +27,7 @@ if TYPE_CHECKING:
 
     from llmling_agent.agent.agent import Agent
     from llmling_agent.common_types import MessageRole, SessionIdType
+    from llmling_agent.messaging import ChatMessage
     from llmling_agent.prompts.conversion_manager import ConversionManager
     from llmling_agent.prompts.prompts import PromptType
     from llmling_agent.storage import StorageManager
@@ -65,6 +64,8 @@ class MessageHistory:
             session_config: Optional MemoryConfig
             resources: Optional paths to load as context
         """
+        from llmling_agent.messaging import ChatMessageContainer
+
         self._storage = storage
         self._converter = converter
         self.chat_messages = ChatMessageContainer()
@@ -192,6 +193,8 @@ class MessageHistory:
 
     async def load_context_source(self, source: PromptType | str):
         """Load context from a single source."""
+        from llmling_agent.prompts.prompts import BasePrompt
+
         try:
             match source:
                 case str():
@@ -315,6 +318,8 @@ class MessageHistory:
 
     def clear(self):
         """Clear conversation history and prompts."""
+        from llmling_agent.messaging import ChatMessageContainer
+
         self.chat_messages = ChatMessageContainer()
         self._last_messages = []
         event = self.HistoryCleared(session_id=str(self.id))
@@ -338,6 +343,8 @@ class MessageHistory:
         from toprompt import to_prompt
 
         old_history = self.chat_messages.copy()
+
+        from llmling_agent.messaging import ChatMessage, ChatMessageContainer
 
         try:
             messages: Sequence[ChatMessage[Any]] = ChatMessageContainer()
@@ -384,6 +391,8 @@ class MessageHistory:
             source: Description of content source
             **metadata: Additional metadata to include with the message
         """
+        from llmling_agent.messaging import ChatMessage
+
         meta_str = ""
         if metadata:
             meta_str = "\n".join(f"{k}: {v}" for k, v in metadata.items())

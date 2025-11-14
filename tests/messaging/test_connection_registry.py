@@ -11,12 +11,11 @@ async def pool():
     """Create agent pool with test agents."""
     pool = AgentPool()
 
-    # Add three agents with test models
-    await pool.add_agent("agent1", model=TestModel())
-    await pool.add_agent("agent2", model=TestModel())
-    await pool.add_agent("agent3", model=TestModel())
-
     async with pool:
+        await pool.add_agent("agent1", model=TestModel())
+        await pool.add_agent("agent2", model=TestModel())
+        await pool.add_agent("agent3", model=TestModel())
+
         yield pool
 
 
@@ -29,8 +28,6 @@ async def test_registry_captures_agent_interaction(pool: AgentPool):
     agent1 = pool.get_agent("agent1")
     agent2 = pool.get_agent("agent2")
     agent1.connect_to(agent2, name="test_talk")
-
-    # Trigger actual interaction
     await agent1.run("Test message")
 
     # Verify flow was captured

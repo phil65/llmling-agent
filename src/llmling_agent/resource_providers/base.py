@@ -14,6 +14,7 @@ if TYPE_CHECKING:
 
     from llmling_agent.prompts.prompts import BasePrompt
     from llmling_agent.tools.base import Tool
+    from llmling_agent.tools.skills import Skill
     from llmling_agent_config.resources import ResourceInfo
 
 
@@ -59,6 +60,25 @@ class ResourceProvider:
     async def get_resources(self) -> list[ResourceInfo]:
         """Get available resources. Override to provide resources."""
         return []
+
+    async def get_skills(self) -> list[Skill]:
+        """Get available skills. Override to provide skills."""
+        return []
+
+    async def get_skill_instructions(self, skill_name: str) -> str:
+        """Get full instructions for a specific skill.
+
+        Args:
+            skill_name: Name of the skill to get instructions for
+
+        Returns:
+            The full skill instructions for execution
+
+        Raises:
+            KeyError: If skill not found
+        """
+        msg = f"Skill {skill_name!r} not found"
+        raise KeyError(msg)
 
     async def get_request_parts(
         self, name: str, arguments: dict[str, str] | None = None

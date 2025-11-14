@@ -12,7 +12,6 @@ from llmling_agent.tools.base import Tool
 
 
 if TYPE_CHECKING:
-    from llmling_agent.tools.skills import SkillsRegistry
     from llmling_agent_config.mcp_server import MCPServerConfig
 
 
@@ -77,83 +76,15 @@ async def add_remote_mcp_server(  # noqa: D417
     return f"Added remote MCP server {name!r} at {url} using {transport} transport"
 
 
-async def load_skill(ctx: AgentContext, skill_name: str) -> str:  # noqa: D417
-    """Load a Claude Code Skill and return its instructions.
-
-    Args:
-        skill_name: Name of the skill to load
-
-    Returns:
-        The full skill instructions for execution
-    """
-    registry = ctx.agent.skills_registry
-    await registry.discover_skills()
-
-    try:
-        skill = registry.get(skill_name)
-        instructions = skill.load_instructions()
-
-        # Format the skill content for Claude to follow
-    except Exception as e:  # noqa: BLE001
-        return f"Failed to load skill {skill_name!r}: {e}"
-    else:
-        return f"""
-<command-message>The "{skill_name}" skill is loading</command-message>
-
-# {skill.name}
-
-{instructions}
-
----
-Skill loaded from: {skill.source}
-Skill directory: {skill.skill_path}
-"""
-
-
 class IntegrationTools(ResourceProvider):
     """Provider for integration tools."""
 
-    def __init__(
-        self, name: str = "integrations", skills_registry: SkillsRegistry | None = None
-    ):
+    def __init__(self, name: str = "integrations"):
         super().__init__(name)
-        self.skills_registry = skills_registry
 
     async def get_tools(self) -> list[Tool]:
-        """Get integration tools with dynamic skill tool."""
-        tools = [
+        """Get integration tools."""
+        return [
             Tool.from_callable(add_local_mcp_server, source="builtin", category="other"),
             Tool.from_callable(add_remote_mcp_server, source="builtin", category="other"),
         ]
-
-        # Add skill loading tool if registry is available
-        if self.skills_registry:
-            await self.skills_registry.discover_skills()
-
-            # Create skill tool with dynamic description including available skills
-            base_desc = """Load a Claude Code Skill and return its instructions.
-
-This tool provides access to Claude Code Skills - specialized workflows and techniques
-for handling specific types of tasks. When you need to use a skill, call this tool
-with the skill name.
-
-Available skills:"""
-
-            if self.skills_registry.is_empty:
-                description = base_desc + "\n(No skills found in configured directories)"
-            else:
-                skills_list = []
-                for skill_name in self.skills_registry.list_items():
-                    skill = self.skills_registry.get(skill_name)
-                    skills_list.append(f"- {skill.name}: {skill.description}")
-                description = base_desc + "\n" + "\n".join(skills_list)
-
-            skill_tool = Tool.from_callable(
-                load_skill,
-                source="builtin",
-                category="read",
-                description_override=description,
-            )
-            tools.append(skill_tool)
-
-        return tools
