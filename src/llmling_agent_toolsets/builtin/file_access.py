@@ -6,6 +6,9 @@ import asyncio
 import time
 from urllib.parse import urlparse
 
+from upath import UPath
+from upathtools import list_files, read_path
+
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.log import get_logger
 from llmling_agent.resource_providers import StaticResourceProvider
@@ -37,8 +40,6 @@ async def read_file(  # noqa: D417
     Returns:
         File content, optionally converted to markdown
     """
-    from upathtools import read_path
-
     try:
         # First try to read raw content
         content = await read_path(path, encoding=encoding)
@@ -88,8 +89,6 @@ async def list_directory(
     Returns:
         A list of files / folders.
     """
-    from upathtools import list_files
-
     pattern = pattern or "**/*"
     files = await list_files(
         path,
@@ -111,7 +110,6 @@ async def download_file(
 ) -> str:
     """Download a file and return status information."""
     import httpx
-    from upath import UPath
 
     start_time = time.time()
     target_path = UPath(target_dir)

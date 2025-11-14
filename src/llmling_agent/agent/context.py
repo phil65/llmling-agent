@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from functools import cached_property
 from typing import TYPE_CHECKING, Any, Literal
 
+from llmling_agent.log import get_logger
 from llmling_agent.messaging.context import NodeContext
 from llmling_agent.prompts.conversion_manager import ConversionManager
 
@@ -21,6 +22,7 @@ if TYPE_CHECKING:
 
 
 ConfirmationResult = Literal["allow", "skip", "abort_run", "abort_chain"]
+logger = get_logger(__name__)
 
 
 @dataclass(kw_only=True)
@@ -126,5 +128,11 @@ class AgentContext[TDeps = Any](NodeContext[TDeps]):
 
     async def report_progress(self, progress: float, total: float | None, message: str):
         """Access progress reporting from pool server if available."""
-        assert self.pool
-        await self.pool.progress_handlers(progress, total, message)
+        logger.info(
+            "Reporting tool call progress",
+            progress=progress,
+            total=total,
+            message=message,
+        )
+        if self.pool:
+            await self.pool.progress_handlers(progress, total, message)
