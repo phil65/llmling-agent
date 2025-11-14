@@ -31,8 +31,9 @@ def wrap_tool(tool: Tool, agent_ctx: AgentContext) -> Callable[..., Awaitable[An
     fn = tool.callable
     run_ctx_key = get_argument_key(fn, RunContext)
     agent_ctx_key = get_argument_key(fn, AgentContext)
-    if run_ctx_key:
 
+    if run_ctx_key:
+        # Tool has RunContext - normal pydantic-ai handling
         async def wrapped(ctx: RunContext, *args, **kwargs):  # pyright: ignore
             result = await agent_ctx.handle_confirmation(tool, kwargs)
             if result == "allow":
@@ -41,23 +42,54 @@ def wrap_tool(tool: Tool, agent_ctx: AgentContext) -> Callable[..., Awaitable[An
                 return await execute(fn, ctx, *args, **kwargs)
             return await _handle_confirmation_result(result, tool.name)
 
-    else:
-
-        async def wrapped(*args, **kwargs):  # pyright: ignore
+    elif agent_ctx_key:
+        # Tool has AgentContext only - need to get RunContext but hide it from original function
+        async def wrapped(ctx: RunContext, *args, **kwargs):  # pyright: ignore
             result = await agent_ctx.handle_confirmation(tool, kwargs)
             if result == "allow":
-                if agent_ctx_key:  # inject AgentContext
-                    kwargs[agent_ctx_key] = agent_ctx
+                # Populate AgentContext with RunContext data
+                if agent_ctx.data is None and hasattr(ctx, "deps"):
+                    agent_ctx.data = ctx.deps
+
+                kwargs[agent_ctx_key] = agent_ctx
+                # Don't pass RunContext to original function since it didn't expect it
                 return await execute(fn, *args, **kwargs)
             return await _handle_confirmation_result(result, tool.name)
 
-    # Hide AgentContext parameter from pydantic-ai's signature analysis
-    if agent_ctx_key:
-        wrapped.__signature__ = create_modified_signature(fn, remove=agent_ctx_key)  # type: ignore
+    else:
+        # Tool has no context - normal function call
+        async def wrapped(*args, **kwargs):  # pyright: ignore
+            result = await agent_ctx.handle_confirmation(tool, kwargs)
+            if result == "allow":
+                return await execute(fn, *args, **kwargs)
+            return await _handle_confirmation_result(result, tool.name)
 
+    # Apply wraps first
     wraps(fn)(wrapped)  # pyright: ignore
     wrapped.__doc__ = tool.description
     wrapped.__name__ = tool.name
+
+    # Modify signature for pydantic-ai: hide AgentContext, add RunContext if needed
+    # Must be done AFTER wraps to prevent overwriting
+    if agent_ctx_key and not run_ctx_key:
+        # Tool has AgentContext only - make it appear to have RunContext to pydantic-ai
+        new_sig = create_modified_signature(
+            fn, remove=agent_ctx_key, inject={"ctx": RunContext}
+        )
+        wrapped.__signature__ = new_sig  # type: ignore
+        # Update annotations to remove AgentContext and add RunContext
+        wrapped.__annotations__ = {
+            name: param.annotation for name, param in new_sig.parameters.items()
+        } | {"return": new_sig.return_annotation}
+    elif agent_ctx_key and run_ctx_key:
+        # Tool has both contexts - hide AgentContext from pydantic-ai
+        new_sig = create_modified_signature(fn, remove=agent_ctx_key)
+        wrapped.__signature__ = new_sig  # type: ignore
+        # Update annotations to remove AgentContext
+        wrapped.__annotations__ = {
+            name: param.annotation for name, param in new_sig.parameters.items()
+        } | {"return": new_sig.return_annotation}
+
     return wrapped
 
 
