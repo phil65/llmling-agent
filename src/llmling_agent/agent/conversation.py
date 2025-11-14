@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections import deque
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Self, assert_never, overload
+from typing import TYPE_CHECKING, Any, Self, assert_never
 from uuid import UUID, uuid4
 
 from psygnal import Signal
@@ -114,34 +114,6 @@ class ConversationManager:
         parts.extend(msg.format() for msg in last_msgs)
         return "\n".join(parts)
 
-    @overload
-    def __getitem__(self, key: int) -> ChatMessage[Any]: ...
-
-    @overload
-    def __getitem__(self, key: slice | str) -> list[ChatMessage[Any]]: ...
-
-    def __getitem__(
-        self, key: int | slice | str
-    ) -> ChatMessage[Any] | list[ChatMessage[Any]]:
-        """Access conversation history.
-
-        Args:
-            key: Either:
-                - Integer index for single message
-                - Slice for message range
-                - Agent name for conversation history with that agent
-        """
-        match key:
-            case int():
-                return self.chat_messages[key]
-            case slice():
-                return list(self.chat_messages[key])
-            case str():
-                query = SessionQuery(name=key)
-                return self._agent.context.storage.filter_messages.sync(query=query)
-            case _ as unreachable:
-                assert_never(unreachable)
-
     def __contains__(self, item: Any) -> bool:
         """Check if item is in history."""
         return item in self.chat_messages
@@ -153,7 +125,7 @@ class ConversationManager:
     def get_message_tokens(self, message: ChatMessage) -> int:
         """Get token count for a single message."""
         content = "\n".join(message.format())
-        return count_tokens(content, self._agent.model_name)
+        return count_tokens(content, message.model_name)
 
     async def format_history(
         self,

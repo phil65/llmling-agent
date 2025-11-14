@@ -327,5 +327,5 @@ if __name__ == "__main__":
     _conn_1 = agent >> agent_2
     _conn_2 = agent >> agent_3
     _conn_3 = agent_2 >> agent_4
-    print(agent.connections.get_connections(recursive=True))
-    print(agent.connections.get_mermaid_diagram())
+    # print(agent.connections.get_connections(recursive=True))
+    # print(agent.connections.get_mermaid_diagram())
