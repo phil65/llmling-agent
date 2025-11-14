@@ -32,26 +32,21 @@ def wrap_tool(tool: Tool, agent_ctx: AgentContext) -> Callable[..., Awaitable[An
     run_ctx_key = get_argument_key(fn, RunContext)
     agent_ctx_key = get_argument_key(fn, AgentContext)
 
-    if run_ctx_key:
-        # Tool has RunContext - normal pydantic-ai handling
+    if run_ctx_key or agent_ctx_key:
+        # Tool has RunContext and/or AgentContext
         async def wrapped(ctx: RunContext, *args, **kwargs):  # pyright: ignore
             result = await agent_ctx.handle_confirmation(tool, kwargs)
             if result == "allow":
-                if agent_ctx_key:  # inject AgentContext
-                    kwargs[agent_ctx_key] = agent_ctx
-                return await execute(fn, ctx, *args, **kwargs)
-            return await _handle_confirmation_result(result, tool.name)
-
-    elif agent_ctx_key:
-        # Tool has AgentContext only - need to get RunContext but hide it from original function
-        async def wrapped(ctx: RunContext, *args, **kwargs):  # pyright: ignore
-            result = await agent_ctx.handle_confirmation(tool, kwargs)
-            if result == "allow":
-                # Populate AgentContext with RunContext data
-                if agent_ctx.data is None and hasattr(ctx, "deps"):
+                # Populate AgentContext with RunContext data if needed
+                if agent_ctx.data is None:
                     agent_ctx.data = ctx.deps
 
-                kwargs[agent_ctx_key] = agent_ctx
+                if agent_ctx_key:  # inject AgentContext
+                    kwargs[agent_ctx_key] = agent_ctx
+
+                if run_ctx_key:
+                    # Pass RunContext to original function
+                    return await execute(fn, ctx, *args, **kwargs)
                 # Don't pass RunContext to original function since it didn't expect it
                 return await execute(fn, *args, **kwargs)
             return await _handle_confirmation_result(result, tool.name)
