@@ -181,7 +181,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             event_handlers: Sequence of event handlers to register with the agent
         """
         from llmling_agent.agent import AgentContext
-        from llmling_agent.agent.conversation import ConversationManager
+        from llmling_agent.agent.conversation import MessageHistory
         from llmling_agent.agent.interactions import Interactions
         from llmling_agent.agent.sys_prompts import SystemPrompts
         from llmling_agent.observability import registry
@@ -230,7 +230,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         resources = list(resources)
         if ctx.config.knowledge:
             resources.extend(ctx.config.knowledge.get_resources())
-        self.conversation = ConversationManager(
+        self.conversation = MessageHistory(
             storage=ctx.storage,
             converter=ctx.converter,
             session_config=memory_cfg,

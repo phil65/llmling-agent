@@ -37,7 +37,7 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-class ConversationManager:
+class MessageHistory:
     """Manages conversation state and system prompts."""
 
     @dataclass(frozen=True)
@@ -113,7 +113,7 @@ class ConversationManager:
         return bool(self._pending_messages) or bool(self.chat_messages)
 
     def __repr__(self) -> str:
-        return f"ConversationManager(id={self.id!r})"
+        return f"MessageHistory(id={self.id!r})"
 
     def __prompt__(self) -> str:
         if not self.chat_messages:
