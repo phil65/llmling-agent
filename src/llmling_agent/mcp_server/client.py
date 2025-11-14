@@ -38,7 +38,6 @@ from llmling_agent_config.mcp_server import (
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable, Sequence
-    from types import TracebackType
 
     from fastmcp.client import ClientTransport
     from fastmcp.client.client import ProgressHandler
@@ -91,7 +90,11 @@ class MCPClient:
         self._prompt_change_callback = prompt_change_callback
         self._resource_change_callback = resource_change_callback
         self._client = self._get_client(self.config)
-        self._connected = False
+
+    @property
+    def connected(self) -> bool:
+        """Check if client is connected by examining session state."""
+        return self._client.is_connected()
 
     async def __aenter__(self) -> Self:
         """Enter context manager."""
@@ -116,22 +119,14 @@ class MCPClient:
             else:
                 raise
 
-        self._connected = True
         return self
 
-    async def __aexit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_val: BaseException | None,
-        exc_tb: TracebackType | None,
-    ):
+    async def __aexit__(self, *args: object):
         """Exit context manager and cleanup."""
         try:
             await self._client.__aexit__(None, None, None)
         except Exception as e:  # noqa: BLE001
             logger.warning("Error during FastMCP client cleanup", error=e)
-        finally:
-            self._connected = False
 
     def get_resource_fs(self):
         """Get a filesystem for accessing MCP resources."""
@@ -192,7 +187,7 @@ class MCPClient:
 
     async def list_tools(self) -> list[MCPTool]:
         """Get available tools directly from the server."""
-        if not self._client or not self._connected:
+        if not self.connected:
             msg = "Not connected to MCP server"
             raise RuntimeError(msg)
 
@@ -207,7 +202,7 @@ class MCPClient:
 
     async def list_prompts(self) -> list[MCPPrompt]:
         """Get available prompts from the server."""
-        if not self._client or not self._connected:
+        if not self.connected:
             msg = "Not connected to MCP server"
             raise RuntimeError(msg)
 
@@ -219,7 +214,7 @@ class MCPClient:
 
     async def list_resources(self) -> list[MCPResource]:
         """Get available resources from the server."""
-        if not self._client or not self._connected:
+        if not self.connected:
             msg = "Not connected to MCP server"
             raise RuntimeError(msg)
 
@@ -233,7 +228,7 @@ class MCPClient:
         self, name: str, arguments: dict[str, str] | None = None
     ) -> GetPromptResult:
         """Get a specific prompt's content."""
-        if not self._client or not self._connected:
+        if not self.connected:
             msg = "Not connected to MCP server"
             raise RuntimeError(msg)
 
@@ -293,7 +288,7 @@ class MCPClient:
         arguments: dict[str, Any] | None = None,
     ) -> ToolReturn | str | Any:
         """Call an MCP tool with full PydanticAI return type support."""
-        if not self._client or not self._connected:
+        if not self.connected:
             msg = "Not connected to MCP server"
             raise RuntimeError(msg)
 
