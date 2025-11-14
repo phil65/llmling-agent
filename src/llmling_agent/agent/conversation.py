@@ -391,8 +391,6 @@ class ConversationManager:
             conversation_id="context",  # TODO: should probably allow DB field to be NULL
         )
         self._pending_messages.append(chat_message)
-        # Emit as user message - will trigger logging through existing flow
-        self._agent.message_received.emit(chat_message)
 
     async def add_context_from_path(
         self,
@@ -454,12 +452,7 @@ class ConversationManager:
     def get_history_tokens(self) -> int:
         """Get token count for current history."""
         # Use cost_info if available
-        return self.chat_messages.get_history_tokens(self._agent.model_name)
-
-    def get_pending_tokens(self) -> int:
-        """Get token count for pending messages."""
-        text = "\n".join(msg.format() for msg in self._pending_messages)
-        return count_tokens(text, self._agent.model_name)
+        return self.chat_messages.get_history_tokens()
 
 
 if __name__ == "__main__":

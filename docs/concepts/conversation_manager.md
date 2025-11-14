@@ -56,7 +56,6 @@ history_text = await conversation.format_history(
 ```python
 # Get token counts
 total = conversation.get_history_tokens()
-pending = conversation.get_pending_tokens()
 
 # Format with token limit
 context = await conversation.format_history(
