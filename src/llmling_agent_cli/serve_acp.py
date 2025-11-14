@@ -19,7 +19,7 @@ logger = get_logger(__name__)
 
 
 def acp_command(
-    config: str = t.Argument(None, help="Path to agent configuration"),
+    config: str | None = t.Argument(None, help="Path to agent configuration (optional)"),
     file_access: bool = t.Option(
         True,
         "--file-access/--no-file-access",
@@ -72,9 +72,15 @@ def acp_command(
     - Content blocks (text, image, audio, resources)
     - Debug slash commands for testing ACP notifications (optional)
 
+    Configuration:
+    Config file is optional. Without a config file, creates a general-purpose
+    agent with default settings. This is useful for clients/installers that
+    start agents directly without configuration support.
+
     Agent Selection:
     Use --agent to specify which agent to use by name. Without this option,
-    the first agent in your config is used as the default.
+    the first agent in your config is used as the default (or "llmling-agent"
+    if no config provided).
 
     Agent Mode Switching:
     If your config defines multiple agents, the IDE will show a mode selector
@@ -82,26 +88,32 @@ def acp_command(
     as a different "mode" with its own name and capabilities.
 
     Examples:
-        # Run ACP server with single agent
-        llmling-agent acp config.yml
+        # Run ACP server with config file
+        llmling-agent serve-acp config.yml
+
+        # Run without config (minimal setup)
+        llmling-agent serve-acp
+
+        # Run without config with custom agent name
+        llmling-agent serve-acp --agent my-assistant
 
         # Run with specific agent by name
-        llmling-agent acp config.yml --agent my-agent
+        llmling-agent serve-acp config.yml --agent my-agent
 
         # Run with multiple agents (enables mode switching)
-        llmling-agent acp multi-agent-config.yml
+        llmling-agent serve-acp multi-agent-config.yml
 
         # Run with file system access enabled
-        llmling-agent acp config.yml --file-access
+        llmling-agent serve-acp config.yml --file-access
 
         # Run with full capabilities
-        llmling-agent acp config.yml --file-access --terminal-access
+        llmling-agent serve-acp config.yml --file-access --terminal-access
 
         # Run with debug commands for testing
-        llmling-agent acp config.yml --debug-commands
+        llmling-agent serve-acp config.yml --debug-commands
 
         # Test with ACP client (example)
-        echo '{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":1},"id":1}' | python -m llmling_agent_cli acp config.yml
+        echo '{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":1},"id":1}' | llmling-agent serve-acp
 
     Protocol Flow:
         1. Client sends initialize request
@@ -113,24 +125,58 @@ def acp_command(
     """  # noqa: E501
     from llmling_agent_server.acp_server import ACPServer
 
-    try:
-        config_path = resolve_agent_config(config)
-    except ValueError as e:
-        msg = str(e)
-        raise t.BadParameter(msg) from e
+    if config:
+        # Use config file
+        try:
+            config_path = resolve_agent_config(config)
+        except ValueError as e:
+            msg = str(e)
+            raise t.BadParameter(msg) from e
 
-    logger.info("Starting ACP server", config_path=config_path)
+        logger.info("Starting ACP server", config_path=config_path)
+        acp_server = ACPServer.from_config(
+            config_path,
+            file_access=file_access,
+            terminal_access=terminal_access,
+            providers=providers,  # type: ignore[arg-type] # pyright: ignore[reportArgumentType]
+            debug_messages=debug_messages,
+            debug_file=debug_file or "acp-debug.jsonl" if debug_messages else None,
+            debug_commands=debug_commands,
+            agent=agent,
+        )
+    else:
+        # Create minimal pool without config
+        from llmling_agent import Agent
+        from llmling_agent.delegation import AgentPool
 
-    acp_server = ACPServer.from_config(
-        config_path,
-        file_access=file_access,
-        terminal_access=terminal_access,
-        providers=providers,  # type: ignore[arg-type] # pyright: ignore[reportArgumentType]
-        debug_messages=debug_messages,
-        debug_file=debug_file or "acp-debug.jsonl" if debug_messages else None,
-        debug_commands=debug_commands,
-        agent=agent,
-    )
+        logger.info("Starting ACP server with minimal configuration")
+
+        # Create a simple general-purpose agent
+        agent_name = agent or "llmling-agent"
+        default_agent = Agent(
+            name=agent_name,
+            description="A general-purpose AI assistant",
+            system_prompt=[
+                "You are a helpful AI assistant that can help with various tasks.",
+                "You have access to file operations and can assist with coding, writing, analysis, and more.",
+                "Be concise but thorough in your responses.",
+            ],
+        )
+
+        # Create pool with the agent
+        pool = AgentPool()
+        pool.register(agent_name, default_agent)
+
+        acp_server = ACPServer(
+            pool,
+            file_access=file_access,
+            terminal_access=terminal_access,
+            providers=providers,  # type: ignore[arg-type] # pyright: ignore[reportArgumentType]
+            debug_messages=debug_messages,
+            debug_file=debug_file or "acp-debug.jsonl" if debug_messages else None,
+            debug_commands=debug_commands,
+            agent=agent_name,
+        )
     # Configure agent capabilities
     agent_count = len(acp_server.pool.agents)
     if agent_count == 0:
