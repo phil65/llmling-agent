@@ -13,6 +13,7 @@ from llmling_agent.delegation.base_team import BaseTeam
 from llmling_agent.delegation.team import normalize_stream_for_teams
 from llmling_agent.log import get_logger
 from llmling_agent.messaging import AgentResponse, ChatMessage, TeamResponse
+from llmling_agent.messaging.processing import finalize_message, prepare_prompts
 from llmling_agent.talk.talk import Talk, TeamTalk
 from llmling_agent.utils.now import get_now
 
@@ -131,19 +132,49 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
         desc = f" - {self.description}" if self.description else ""
         return f"Sequential Team {self.name!r}{desc}\nPipeline: {members}"
 
-    async def _run(
+    async def run(
         self,
         *prompts: PromptCompatible | None,
         wait_for_connections: bool | None = None,
+        store_history: bool = False,
+        **kwargs: Any,
+    ) -> ChatMessage[TResult]:
+        """Run agents sequentially and return combined message."""
+        # Prepare prompts and create user message
+        user_msg, processed_prompts, original_message = await prepare_prompts(*prompts)
+        self.message_received.emit(user_msg)
+
+        # Run sequential execution logic
+        message = await self._run_internal(
+            *processed_prompts,
+            message_id=user_msg.message_id,
+            conversation_id=user_msg.conversation_id,
+            **kwargs,
+        )
+
+        # Teams typically don't store history by default, but allow it
+        if store_history:
+            # Teams could implement their own history management here if needed
+            pass
+
+        # Finalize and route message
+        return await finalize_message(
+            message,
+            user_msg,
+            self,
+            self.connections,
+            original_message,
+            wait_for_connections,
+        )
+
+    async def _run_internal(
+        self,
+        *prompts: PromptCompatible | None,
         message_id: str | None = None,
         conversation_id: str | None = None,
         **kwargs: Any,
     ) -> ChatMessage[TResult]:
-        """Run agents sequentially and return combined message.
-
-        This message wraps execute and extracts the ChatMessage in order to fulfill
-        the "message protocol".
-        """
+        """Internal sequential execution logic."""
         message_id = message_id or str(uuid4())
 
         result = await self.execute(*prompts, **kwargs)

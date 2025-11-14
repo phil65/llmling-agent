@@ -79,6 +79,8 @@ if TYPE_CHECKING:
     from llmling_agent_config.session import SessionQuery
     from llmling_agent_config.task import Job
 
+from llmling_agent.messaging.processing import finalize_message, prepare_prompts
+
 
 logger = get_logger(__name__)
 # OutputDataT = TypeVar('OutputDataT', default=str, covariant=True)
@@ -553,10 +555,11 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
 
         return agent
 
-    async def _run(
+    @overload
+    async def run(
         self,
         *prompts: PromptCompatible | ChatMessage[Any],
-        output_type: type[OutputDataT] | None = None,
+        output_type: None = None,
         model: ModelType = None,
         store_history: bool = True,
         tool_choice: str | list[str] | None = None,
@@ -567,7 +570,41 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         deps: TDeps | None = None,
         input_provider: InputProvider | None = None,
         wait_for_connections: bool | None = None,
-    ) -> ChatMessage[OutputDataT]:
+    ) -> ChatMessage[OutputDataT]: ...
+
+    @overload
+    async def run[OutputTypeT](
+        self,
+        *prompts: PromptCompatible | ChatMessage[Any],
+        output_type: type[OutputTypeT],
+        model: ModelType = None,
+        store_history: bool = True,
+        tool_choice: str | list[str] | None = None,
+        usage_limits: UsageLimits | None = None,
+        message_id: str | None = None,
+        conversation_id: str | None = None,
+        messages: list[ChatMessage[Any]] | None = None,
+        deps: TDeps | None = None,
+        input_provider: InputProvider | None = None,
+        wait_for_connections: bool | None = None,
+    ) -> ChatMessage[OutputTypeT]: ...
+
+    @method_spawner
+    async def run(
+        self,
+        *prompts: PromptCompatible | ChatMessage[Any],
+        output_type: type[Any] | None = None,
+        model: ModelType = None,
+        store_history: bool = True,
+        tool_choice: str | list[str] | None = None,
+        usage_limits: UsageLimits | None = None,
+        message_id: str | None = None,
+        conversation_id: str | None = None,
+        messages: list[ChatMessage[Any]] | None = None,
+        deps: TDeps | None = None,
+        input_provider: InputProvider | None = None,
+        wait_for_connections: bool | None = None,
+    ) -> ChatMessage[Any]:
         """Run agent with prompt and get response.
 
         Args:
@@ -592,7 +629,60 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         Raises:
             UnexpectedModelBehavior: If the model fails or behaves unexpectedly
         """
-        """Run agent with prompt and get response."""
+        # Prepare prompts and create user message
+        user_msg, processed_prompts, original_message = await prepare_prompts(*prompts)
+        self.message_received.emit(user_msg)
+
+        # Set current prompt context
+        final_prompt = "\n\n".join(str(p) for p in processed_prompts)
+        self.context.current_prompt = final_prompt
+
+        # Run internal agent logic
+        message = await self._run_internal(
+            *processed_prompts,
+            output_type=output_type,
+            model=model,
+            tool_choice=tool_choice,
+            usage_limits=usage_limits,
+            message_id=message_id,
+            conversation_id=user_msg.conversation_id,
+            messages=messages,
+            deps=deps,
+            input_provider=input_provider,
+        )
+
+        # Apply forwarding logic before storing history
+        if original_message:
+            message = message.forwarded(original_message)
+
+        # Handle history storage
+        if store_history:
+            self.conversation.add_chat_messages([user_msg, message])
+
+        # Finalize and route message (forwarding already applied)
+        return await finalize_message(
+            message,
+            user_msg,
+            self,
+            self.connections,
+            None,  # forwarding already applied above
+            wait_for_connections,
+        )
+
+    async def _run_internal(
+        self,
+        *prompts: PromptCompatible | ChatMessage[Any],
+        output_type: type[Any] | None = None,
+        model: ModelType = None,
+        tool_choice: str | list[str] | None = None,
+        usage_limits: UsageLimits | None = None,
+        message_id: str | None = None,
+        conversation_id: str | None = None,
+        messages: list[ChatMessage[Any]] | None = None,
+        deps: TDeps | None = None,
+        input_provider: InputProvider | None = None,
+    ) -> ChatMessage[Any]:
+        """Internal agent execution logic."""
         message_id = message_id or str(uuid4())
         tools = await self.tools.get_tools(state="enabled", names=tool_choice)
         final_type = to_type(output_type) if output_type else self._output_type
@@ -686,7 +776,13 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             UnexpectedModelBehavior: If the model fails or behaves unexpectedly
         """
         message_id = message_id or str(uuid4())
-        user_msg, prompts = await self.pre_run(*prompt)
+        user_msg, prompts, original_message = await prepare_prompts(*prompt)
+        self.message_received.emit(user_msg)
+
+        # Set current prompt context
+        final_prompt = "\n\n".join(str(p) for p in prompts)
+        self.context.current_prompt = final_prompt
+
         final_type = to_type(output_type) if output_type else self._output_type
         start_time = time.perf_counter()
         tools = await self.tools.get_tools(state="enabled", names=tool_choice)
@@ -1125,4 +1221,4 @@ if __name__ == "__main__":
         print(f"[EVENT] {type(event).__name__}: {event}")
 
     agent = Agent(model=_model, tools=["webbrowser.open"], event_handlers=[handle_events])
-    result = agent.run.sync(sys_prompt)
+    result = agent.run.sync(sys_prompt)  # type: ignore[attr-defined]

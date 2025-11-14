@@ -7,12 +7,10 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any, Literal, Self, overload
 from uuid import uuid4
 
-from anyenv import method_spawner
 from psygnal import Signal
 
 from llmling_agent.log import get_logger
 from llmling_agent.messaging import ChatMessage
-from llmling_agent.prompts.convert import convert_prompts
 from llmling_agent.talk import AggregatedTalkStats
 from llmling_agent.utils.tasks import TaskManager
 
@@ -26,12 +24,10 @@ if TYPE_CHECKING:
         AnyTransformFn,
         AsyncFilterFn,
         ProcessorCallback,
-        PromptCompatible,
         QueueStrategy,
         RichProgressCallback,
     )
     from llmling_agent.messaging.context import NodeContext
-    from llmling_agent.models.content import BaseContent
     from llmling_agent.talk import Talk, TeamTalk
     from llmling_agent.talk.stats import AggregatedMessageStats, MessageStats
     from llmling_agent_config.forward_targets import ConnectionType
@@ -295,124 +291,13 @@ class MessageNode[TDeps, TResult](ABC):
         """Stop forwarding results to another node."""
         self.connections.disconnect(other)
 
-    async def pre_run(
-        self,
-        *prompt: PromptCompatible | ChatMessage,
-    ) -> tuple[ChatMessage[Any], list[BaseContent | str]]:
-        """Hook to prepare a MessgeNode run call.
-
-        Args:
-            *prompt: The prompt(s) to prepare.
-
-        Returns:
-            A tuple of:
-                - Either incoming message, or a constructed incoming message based
-                  on the prompt(s).
-                - A list of prompts to be sent to the model.
-        """
-        if len(prompt) == 1 and isinstance(prompt[0], ChatMessage):
-            user_msg = prompt[0]
-            prompts = await convert_prompts([user_msg.content])
-            # Update received message's chain to show it came through its source
-            user_msg = user_msg.forwarded(prompt[0]).to_request()
-            # clear cost info to avoid double-counting
-            final_prompt = "\n\n".join(str(p) for p in prompts)
-        else:
-            prompts = await convert_prompts(prompt)
-            final_prompt = "\n\n".join(str(p) for p in prompts)
-            # use format_prompts?
-            messages = [i if isinstance(i, str) else i.to_pydantic_ai() for i in prompts]
-            user_msg = ChatMessage.user_prompt(message=messages)
-        self.message_received.emit(user_msg)
-        self.context.current_prompt = final_prompt
-        return user_msg, prompts
-
-    # async def post_run(
-    #     self,
-    #     message: ChatMessage[TResult],
-    #     previous_message: ChatMessage[Any] | None,
-    #     wait_for_connections: bool | None = None,
-    # ) -> ChatMessage[Any]:
-    #     # For chain processing, update the response's chain
-    #     if previous_message:
-    #         message = message.forwarded(previous_message)
-    #         conversation_id = previous_message.conversation_id
-    #     else:
-    #         conversation_id = str(uuid4())
-    #     # Set conversation_id on response message
-    #     message = replace(message, conversation_id=conversation_id)
-    #     self.message_sent.emit(message)
-    #     await self.log_message(response_msg)
-    #     await self.connections.route_message(message, wait=wait_for_connections)
-    #     return message
-
-    # @overload
-    # async def run(
-    #     self,
-    #     *prompt: PromptCompatible | ChatMessage,
-    #     wait_for_connections: bool | None = None,
-    #     store_history: bool = True,
-    #     output_type: None,
-    #     **kwargs: Any,
-    # ) -> ChatMessage[TResult]: ...
-
-    # @overload
-    # async def run[OutputTypeT](
-    #     self,
-    #     *prompt: PromptCompatible | ChatMessage,
-    #     wait_for_connections: bool | None = None,
-    #     store_history: bool = True,
-    #     output_type: type[OutputTypeT],
-    #     **kwargs: Any,
-    # ) -> ChatMessage[OutputTypeT]: ...
-
-    @method_spawner
-    async def run[OutputTypeT](
-        self,
-        *prompt: PromptCompatible | ChatMessage,
-        wait_for_connections: bool | None = None,
-        store_history: bool = True,
-        output_type: type[OutputTypeT] | None = None,
-        **kwargs: Any,
-    ) -> ChatMessage[Any]:
-        """Execute node with prompts and handle message routing.
-
-        Args:
-            prompt: Input prompts
-            wait_for_connections: Whether to wait for forwarded messages
-            store_history: Whether to store in conversation history
-            output_type: Type of output to expect
-            **kwargs: Additional arguments for _run
-        """
-        from llmling_agent import Agent
-
-        user_msg, prompts = await self.pre_run(*prompt)
-        message = await self._run(
-            *prompts,
-            store_history=store_history,
-            conversation_id=user_msg.conversation_id,
-            output_type=output_type,
-            **kwargs,
-        )
-
-        # For chain processing, update the response's chain
-        if len(prompt) == 1 and isinstance(prompt[0], ChatMessage):
-            message = message.forwarded(prompt[0])
-
-        if store_history and isinstance(self, Agent):
-            self.conversation.add_chat_messages([user_msg, message])
-        self.message_sent.emit(message)
-        await self.log_message(message)
-        await self.connections.route_message(message, wait=wait_for_connections)
-        return message
-
     @abstractmethod
-    async def _run(
+    async def run(
         self,
         *prompts: Any,
         **kwargs: Any,
     ) -> ChatMessage[TResult]:
-        """Implementation-specific run logic."""
+        """Execute node with prompts. Implementation-specific run logic."""
 
     async def get_message_history(self, limit: int | None = None) -> list[ChatMessage]:
         """Get message history from storage."""

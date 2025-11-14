@@ -328,11 +328,11 @@ class AgentWorker:
 
             # Convert A2A message to ChatMessage and add to history
             new_message = self._a2a_to_chat_message(task_data["data"])
+
+            # Run the agent with the new message as prompt and previous history as context
+            result = await self.agent.run(new_message, messages=message_history)
+
             message_history.append(new_message)
-
-            # Run the agent with full message history
-            result = await self.agent.run(message_history=message_history)
-
             message_history.append(result)
             if context_id:
                 await self.storage.update_context(context_id, message_history)
