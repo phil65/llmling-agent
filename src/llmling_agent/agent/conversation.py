@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any, Self, assert_never
 from uuid import UUID, uuid4
 
 from psygnal import Signal
-from upathtools import read_path
+from upathtools import read_path, to_upath
 
 from llmling_agent.log import get_logger
 from llmling_agent.messaging import ChatMessage, ChatMessageContainer
@@ -409,8 +409,6 @@ class ConversationManager:
         Raises:
             ValueError: If content cannot be loaded or converted
         """
-        from upathtools import to_upath
-
         path_obj = to_upath(path)
         if convert_to_md:
             content = await self._agent.context.converter.convert_file(path)

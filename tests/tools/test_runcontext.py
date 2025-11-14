@@ -106,7 +106,7 @@ async def test_capability_tools(default_model: str):
         assert result.get_tool_calls()[0].tool_name == "delegate_to"
 
 
-@pytest.mark.flaky(reruns=3)
+@pytest.mark.flaky(reruns=2)
 async def test_team_creation(default_model: str):
     """Test that an agent can create other agents and form them into a team."""
     async with AgentPool() as pool:

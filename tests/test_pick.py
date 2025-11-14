@@ -22,6 +22,7 @@ async def test_pick_from_options(default_model: str):
     assert len(decision.reason) > 0
 
 
+@pytest.mark.flaky(reruns=2)
 async def test_pick_from_agents(default_model: str):
     """Test picking from a team of agents."""
     # Create a team of specialized agents

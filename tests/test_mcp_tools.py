@@ -8,7 +8,7 @@ import pytest
 from llmling_agent import Agent
 
 
-@pytest.mark.flaky(reruns=3)
+@pytest.mark.flaky(reruns=2)
 async def test_mcp_tool_call(default_model: str):
     """Test basic MCP tool functionality with context7 server."""
     tool_calls = []  # Track tool usage
