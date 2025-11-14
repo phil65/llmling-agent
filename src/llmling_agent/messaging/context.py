@@ -9,7 +9,6 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from llmling_agent import AgentPool
-    from llmling_agent.common_types import ProgressCallback
     from llmling_agent.messaging import MessageEmitter
     from llmling_agent.models.manifest import AgentsManifest
     from llmling_agent.prompts.manager import PromptManager
@@ -72,12 +71,3 @@ class NodeContext[TDeps]:
     def prompt_manager(self) -> PromptManager:
         """Get prompt manager from manifest."""
         return self.definition.prompt_manager
-
-    @property
-    def report_progress(self) -> ProgressCallback | None:
-        """Access progress reporting from pool server if available."""
-        return (  # pyright: ignore[reportReturnType]
-            self.pool.progress_handlers
-            if self.pool and self.pool.progress_handlers
-            else None
-        )

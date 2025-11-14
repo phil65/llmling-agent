@@ -142,8 +142,7 @@ async def download_file(
                         progress = size / total * 100
                         speed_mbps = (size / 1_048_576) / (time.time() - start_time)
                         msg = f"\r{filename}: {progress:.1f}% ({speed_mbps:.1f} MB/s)"
-                        if context.report_progress:
-                            await context.report_progress(progress, 100, msg)
+                        await context.report_progress(progress, 100, msg)
                         await asyncio.sleep(0)
 
         duration = time.time() - start_time

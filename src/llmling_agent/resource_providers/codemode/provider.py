@@ -5,8 +5,6 @@ from __future__ import annotations
 import inspect
 from typing import TYPE_CHECKING, Any
 
-from schemez.code_generation.namespace_callable import NamespaceCallable
-
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.resource_providers import AggregatingResourceProvider
 from llmling_agent.resource_providers.codemode.default_prompt import USAGE
@@ -74,14 +72,11 @@ class CodeModeResourceProvider(AggregatingResourceProvider):
         toolset_generator = await self._get_code_generator()
         namespace = toolset_generator.generate_execution_namespace()
 
-        if ctx.report_progress:  # Add progress reporting if  available
+        # async def report_progress(current: int, total: int, message: str = ""):
+        #     """Report progress during code execution."""
+        #     await ctx.report_progress(current, total, message)
 
-            async def report_progress(current: int, total: int, message: str = ""):
-                """Report progress during code execution."""
-                assert ctx.report_progress
-                await ctx.report_progress(current, total, message)
-
-            namespace["report_progress"] = NamespaceCallable(report_progress)
+        # namespace["report_progress"] = NamespaceCallable(report_progress)
 
         validate_code(python_code)
         try:
