@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from contextlib import AsyncExitStack
-from typing import TYPE_CHECKING, Any, Self, cast
+from typing import TYPE_CHECKING, Any, Self, assert_never, cast
 
 from pydantic_ai import UsageLimits
 
@@ -102,20 +102,25 @@ class MCPManager:
     ) -> ElicitResult[dict[str, Any]] | dict[str, Any] | None:
         """Handle elicitation requests from MCP server."""
         from fastmcp.client.elicitation import ElicitResult
-        from mcp import types
+        from mcp.types import ElicitResult as MCPElicitResult, ErrorData
 
         from llmling_agent.agent.context import AgentContext
 
         if self.context and isinstance(self.context, AgentContext):
-            legacy_result = await self.context.handle_elicitation(params)
-            # Convert legacy MCP result to FastMCP format
-            if isinstance(legacy_result, types.ElicitResult):
-                if legacy_result.action == "accept" and legacy_result.content:
-                    return legacy_result.content
-                return ElicitResult(action=legacy_result.action)
-            if isinstance(legacy_result, types.ErrorData):
-                return ElicitResult(action="cancel")
-            return ElicitResult(action="decline")
+            match await self.context.handle_elicitation(params):
+                case MCPElicitResult(action="accept", content=content):
+                    return content
+                case MCPElicitResult(action="cancel"):
+                    return ElicitResult(action="cancel")
+                case MCPElicitResult(action="decline"):
+                    return ElicitResult(action="decline")
+                case MCPElicitResult():
+                    msg = "Invalid elicitation result"
+                    raise ValueError(msg)
+                case ErrorData():
+                    return ElicitResult(action="decline")
+                case _ as unreachable:
+                    assert_never(unreachable)
 
         return ElicitResult(action="decline")
 
