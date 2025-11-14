@@ -309,7 +309,7 @@ async def connect_nodes(  # noqa: D417
 ) -> str:
     """Connect two nodes to enable message flow between them.
 
-    Nodes can be agents, teams, or EventNodes.
+    Nodes can be agents or teams.
 
     Args:
         source: Name of the source node

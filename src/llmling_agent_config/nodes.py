@@ -2,10 +2,7 @@
 
 from __future__ import annotations
 
-from abc import abstractmethod
-from typing import TYPE_CHECKING, Any
-
-from evented.configs import DEFAULT_TEMPLATE, EventConfig
+from evented.configs import EventConfig
 from pydantic import ConfigDict, Field, ImportString
 from schemez import Schema
 
@@ -16,10 +13,6 @@ from llmling_agent_config.mcp_server import (
     MCPServerConfig,
     StdioMCPServerConfig,
 )
-
-
-if TYPE_CHECKING:
-    from llmling_agent.messaging.eventnode import Event, EventNode
 
 
 class NodeConfig(Schema):
@@ -85,50 +78,3 @@ class NodeConfig(Schema):
                     configs.append(server)
 
         return configs
-
-
-class EventNodeConfig(NodeConfig):
-    """Base configuration for event nodes.
-
-    All event node configurations must:
-    1. Specify their type for discrimination
-    2. Implement get_event() to create their event instance
-    """
-
-    type: str = Field("event", init=False)
-    """Discriminator field for event configs."""
-
-    enabled: bool = True
-    """Whether this event source is active."""
-
-    template: str = DEFAULT_TEMPLATE
-    """Jinja2 template for formatting events."""
-
-    include_metadata: bool = True
-    """Control metadata visibility in template."""
-
-    include_timestamp: bool = True
-    """Control timestamp visibility in template."""
-
-    @abstractmethod
-    def get_event(self) -> Event[Any]:
-        """Create event instance from this configuration.
-
-        This method should:
-        1. Create the event instance
-        2. Wrap any functions if needed
-        3. Return the configured event
-        """
-        raise NotImplementedError
-
-    def get_event_node(self) -> EventNode[Any]:
-        """Create event node from config."""
-        from llmling_agent.messaging.eventnode import EventNode
-
-        event = self.get_event()
-        return EventNode(
-            event=event,
-            name=self.name,
-            description=self.description,
-            mcp_servers=self.mcp_servers,
-        )
