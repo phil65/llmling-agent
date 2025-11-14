@@ -74,7 +74,7 @@ class MessageNode[TDeps, TResult](ABC):
         self._events = EventManager(self, enable_events=True)
         self.mcp = MCPManager(
             f"node_{self._name}",
-            servers=mcp_servers or [],
+            servers=mcp_servers,
             context=context,
             owner=self.name,
             progress_handler=progress_handler,

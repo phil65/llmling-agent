@@ -72,12 +72,8 @@ class MCPManager:
         try:
             # Setup directly provided servers and context servers concurrently
             tasks = [self._setup_server(server) for server in self.servers]
-            if self.context and self.context.config and self.context.config.mcp_servers:
-                tasks.extend(
-                    self._setup_server(server)
-                    for server in self.context.config.get_mcp_servers()
-                )
-
+            if self.context and (cfg := self.context.config) and cfg.mcp_servers:
+                tasks.extend(self._setup_server(s) for s in cfg.get_mcp_servers())
             if tasks:
                 await asyncio.gather(*tasks)
 

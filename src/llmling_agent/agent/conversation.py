@@ -30,6 +30,7 @@ if TYPE_CHECKING:
     from llmling_agent.agent.agent import Agent
     from llmling_agent.common_types import MessageRole, SessionIdType
     from llmling_agent.prompts.prompts import PromptType
+    from llmling_agent.storage import StorageManager
     from llmling_agent_config.session import MemoryConfig
 
 logger = get_logger(__name__)
@@ -70,14 +71,19 @@ class ConversationManager:
         # Generate new ID if none provided
         self.id = str(uuid4())
 
-        if session_config is not None and session_config.session is not None:
-            storage = self._agent.context.storage
-            self._current_history = storage.filter_messages.sync(session_config.session)
+        if session_config and session_config.session:
+            self._current_history = self.storage.filter_messages.sync(
+                session_config.session
+            )
             if session_config.session.name:
                 self.id = session_config.session.name
 
         # Note: max_messages and max_tokens will be handled in add_message/get_history
         # to maintain the rolling window during conversation
+
+    @property
+    def storage(self) -> StorageManager:
+        return self._agent.context.storage
 
     def get_initialization_tasks(self) -> list[Coroutine[Any, Any, Any]]:
         """Get all initialization coroutines."""
@@ -212,7 +218,6 @@ class ConversationManager:
             roles: Only include messages with these roles (override)
             limit: Maximum number of messages to return (override)
         """
-        storage = self._agent.context.storage
         match session:
             case SessionQuery() as query:
                 # Override query params if provided
@@ -247,7 +252,7 @@ class ConversationManager:
             case _ as unreachable:
                 assert_never(unreachable)
         self.chat_messages.clear()
-        self.chat_messages.extend(storage.filter_messages.sync(query))
+        self.chat_messages.extend(self.storage.filter_messages.sync(query))
 
     def get_history(
         self,
@@ -334,7 +339,7 @@ class ConversationManager:
             messages: Sequence[ChatMessage[Any]] = ChatMessageContainer()
             if history is not None:
                 if isinstance(history, SessionQuery):
-                    messages = await self._agent.context.storage.filter_messages(history)
+                    messages = await self.storage.filter_messages(history)
                 else:
                     messages = [
                         ChatMessage.user_prompt(message=prompt)

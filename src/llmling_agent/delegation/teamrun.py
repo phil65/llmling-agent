@@ -323,10 +323,8 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
 if __name__ == "__main__":
     import asyncio
 
-    from llmling_agent import Agent
-
     async def main():
-        from llmling_agent.delegation.team import Team
+        from llmling_agent import Agent, Team
 
         agent1 = Agent(name="Agent1", model="test")
         agent2 = Agent(name="Agent2", model="test")

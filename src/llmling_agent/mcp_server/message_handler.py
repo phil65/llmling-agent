@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from llmling_agent.log import get_logger
@@ -18,20 +19,18 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
+@dataclass
 class MCPMessageHandler:
     """Custom message handler that bridges FastMCP to llmling-agent notifications."""
 
-    def __init__(
-        self,
-        client: MCPClient,
-        tool_change_callback: Callable[[], Awaitable[None]] | None = None,
-        prompt_change_callback: Callable[[], Awaitable[None]] | None = None,
-        resource_change_callback: Callable[[], Awaitable[None]] | None = None,
-    ) -> None:
-        self.client = client
-        self._tool_change_callback = tool_change_callback
-        self._prompt_change_callback = prompt_change_callback
-        self._resource_change_callback = resource_change_callback
+    client: MCPClient
+    """The MCP client instance."""
+    tool_change_callback: Callable[[], Awaitable[None]] | None = None
+    """Tool change callback."""
+    prompt_change_callback: Callable[[], Awaitable[None]] | None = None
+    """Prompt change callback."""
+    resource_change_callback: Callable[[], Awaitable[None]] | None = None
+    """Resource change callback."""
 
     async def __call__(
         self,
@@ -100,8 +99,8 @@ class MCPMessageHandler:
         """Handle tool list changes."""
         logger.info("MCP tool list changed", message=message)
         # Call the tool change callback if provided
-        if self._tool_change_callback:
-            await self._tool_change_callback()
+        if self.tool_change_callback:
+            await self.tool_change_callback()
 
     async def on_resource_list_changed(
         self, message: mcp.types.ResourceListChangedNotification
@@ -109,8 +108,8 @@ class MCPMessageHandler:
         """Handle resource list changes."""
         logger.info("MCP resource list changed", message=message)
         # Call the resource change callback if provided
-        if self._resource_change_callback:
-            await self._resource_change_callback()
+        if self.resource_change_callback:
+            await self.resource_change_callback()
 
     async def on_resource_updated(
         self, message: mcp.types.ResourceUpdatedNotification
@@ -130,8 +129,8 @@ class MCPMessageHandler:
         """Handle prompt list changes."""
         logger.info("MCP prompt list changed", message=message)
         # Call the prompt change callback if provided
-        if self._prompt_change_callback:
-            await self._prompt_change_callback()
+        if self.prompt_change_callback:
+            await self.prompt_change_callback()
 
     async def on_cancelled(self, message: mcp.types.CancelledNotification) -> None:
         """Handle cancelled operations."""

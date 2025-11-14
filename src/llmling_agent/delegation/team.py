@@ -245,7 +245,7 @@ class Team[TDeps = None](BaseTeam[TDeps, Any]):
             JobError: If job execution fails for any agent
             ValueError: If job configuration is invalid
         """
-        from llmling_agent.agent import Agent
+        from llmling_agent import Agent
         from llmling_agent.tasks import JobError
 
         responses: list[AgentResponse[TJobResult]] = []
@@ -303,10 +303,9 @@ class Team[TDeps = None](BaseTeam[TDeps, Any]):
 
 
 if __name__ == "__main__":
-    from llmling_agent import Agent
 
     async def main():
-        from llmling_agent.delegation.teamrun import TeamRun
+        from llmling_agent import Agent, TeamRun
 
         agent_a = Agent(name="A", model="test")
         agent_b = Agent(name="B", model="test")

@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import contextlib
 import logging
-from typing import TYPE_CHECKING, Any, Self
+from typing import TYPE_CHECKING, Any, Self, assert_never
 
 from anyenv import MultiEventHandler
 from pydantic_ai import RunContext, ToolReturn
@@ -163,9 +163,8 @@ class MCPClient:
             case StreamableHTTPMCPServerConfig(url=url, headers=headers, auth=auth):
                 transport = StreamableHttpTransport(url=url, headers=headers)
                 oauth = auth.oauth
-            case _:
-                msg = f"Unsupported server config type: {type(config)}"
-                raise ValueError(msg)
+            case _ as unreachable:
+                assert_never(unreachable)
 
         # Create message handler if needed
         msg_handler = self._message_handler or MCPMessageHandler(
