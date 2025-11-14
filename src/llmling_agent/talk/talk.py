@@ -30,7 +30,7 @@ if TYPE_CHECKING:
         PromptCompatible,
         QueueStrategy,
     )
-    from llmling_agent.messaging import MessageEmitter, MessageNode
+    from llmling_agent.messaging import MessageNode
     from llmling_agent.messaging.events import ConnectionEventData
     from llmling_agent_config.events import ConnectionEventType
     from llmling_agent_config.forward_targets import ConnectionType
@@ -46,7 +46,7 @@ class Talk[TTransmittedData]:
         """Event emitted when a message flows through a connection."""
 
         message: ChatMessage
-        source: MessageEmitter
+        source: MessageNode
         targets: list[MessageNode]
         queued: bool
         connection_type: ConnectionType
@@ -61,7 +61,7 @@ class Talk[TTransmittedData]:
 
     def __init__(
         self,
-        source: MessageEmitter,
+        source: MessageNode,
         targets: Sequence[MessageNode],
         group: TeamTalk | None = None,
         *,

@@ -17,7 +17,7 @@ from llmling_agent.delegation.message_flow_tracker import MessageFlowTracker
 from llmling_agent.delegation.team import Team
 from llmling_agent.delegation.teamrun import TeamRun
 from llmling_agent.log import get_logger
-from llmling_agent.messaging import MessageEmitter
+from llmling_agent.messaging import MessageNode
 from llmling_agent.talk import Talk, TeamTalk
 from llmling_agent.talk.registry import ConnectionRegistry
 from llmling_agent.tasks import TaskRegistry
@@ -42,7 +42,6 @@ if TYPE_CHECKING:
     from llmling_agent.agent.agent import AgentKwargs
     from llmling_agent.common_types import AgentName, SessionIdType
     from llmling_agent.delegation.base_team import BaseTeam
-    from llmling_agent.messaging.messagenode import MessageNode
     from llmling_agent.models.manifest import AgentsManifest
     from llmling_agent.ui.base import InputProvider
     from llmling_agent_config.session import SessionQuery
@@ -52,7 +51,7 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any]]):
+class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]]):
     """Pool managing message processing nodes (agents and teams).
 
     Acts as a unified registry for all nodes, providing:
@@ -416,9 +415,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
         """Get node events."""
         return self._items.events
 
-    def _validate_item(
-        self, item: MessageEmitter[Any, Any] | Any
-    ) -> MessageEmitter[Any, Any]:
+    def _validate_item(self, item: MessageNode[Any, Any] | Any) -> MessageNode[Any, Any]:
         """Validate and convert items before registration.
 
         Args:
@@ -430,7 +427,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageEmitter[Any, Any
         Raises:
             LLMlingError: If item is not a valid node
         """
-        if not isinstance(item, MessageEmitter):
+        if not isinstance(item, MessageNode):
             msg = f"Item must be Agent or Team, got {type(item)}"
             raise self._error_class(msg)
         item.context.pool = self

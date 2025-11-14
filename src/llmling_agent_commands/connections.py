@@ -2,26 +2,22 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from rich.tree import Tree
 from slashed import CommandContext, CommandError, SlashedCommand  # noqa: TC002
 from slashed.completers import CallbackCompleter
 
 from llmling_agent.log import get_logger
+from llmling_agent.messaging import MessageNode
 from llmling_agent.messaging.context import NodeContext  # noqa: TC001
-from llmling_agent.messaging.messagenode import MessageNode
 from llmling_agent_commands.completers import get_available_nodes
-
-
-if TYPE_CHECKING:
-    from llmling_agent.messaging import MessageEmitter
 
 
 logger = get_logger(__name__)
 
 
-def format_node_name(node: MessageEmitter[Any, Any], current: bool = False) -> str:
+def format_node_name(node: MessageNode[Any, Any], current: bool = False) -> str:
     """Format node name for display."""
     name = node.name
     if current:

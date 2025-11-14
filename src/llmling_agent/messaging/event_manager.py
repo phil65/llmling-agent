@@ -29,7 +29,7 @@ if TYPE_CHECKING:
     from evented.configs import EventConfig
     from evented.timed_watcher import TimeEventSource
 
-    from llmling_agent.messaging import MessageEmitter
+    from llmling_agent.messaging import MessageNode
 
 
 logger = get_logger(__name__)
@@ -45,7 +45,7 @@ class EventManager:
 
     def __init__(
         self,
-        node: MessageEmitter[Any, Any],
+        node: MessageNode[Any, Any],
         enable_events: bool = True,
         auto_run: bool = True,
     ):

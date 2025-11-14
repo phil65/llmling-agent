@@ -309,7 +309,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
     ):
         """Exit async context."""
         await super().__aexit__(exc_type, exc_val, exc_tb)
-        # MCP manager cleanup is handled by MessageEmitter's __aexit__
 
     @overload
     def __and__(  # if other doesnt define deps, we take the agents one

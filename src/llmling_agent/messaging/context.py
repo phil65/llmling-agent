@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from llmling_agent import AgentPool
-    from llmling_agent.messaging import MessageEmitter
+    from llmling_agent.messaging import MessageNode
     from llmling_agent.models.manifest import AgentsManifest
     from llmling_agent.prompts.manager import PromptManager
     from llmling_agent.storage import StorageManager
@@ -52,7 +52,7 @@ class NodeContext[TDeps]:
         return StdlibInputProvider()
 
     @property
-    def node(self) -> MessageEmitter[TDeps, Any]:
+    def node(self) -> MessageNode[TDeps, Any]:
         """Get the agent instance from the pool."""
         assert self.pool, "No agent pool available"
         assert self.node_name, "No agent name available"

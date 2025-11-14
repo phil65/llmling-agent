@@ -22,7 +22,7 @@ if TYPE_CHECKING:
         AsyncFilterFn,
         QueueStrategy,
     )
-    from llmling_agent.messaging import ChatMessage, MessageEmitter, MessageNode
+    from llmling_agent.messaging import ChatMessage, MessageNode
     from llmling_agent_config.forward_targets import ConnectionType
 
 logger = get_logger(__name__)
@@ -36,7 +36,7 @@ class ConnectionManager:
     node_connected = Signal(object)  # Node
     connection_added = Signal(Talk)  # Agent
 
-    def __init__(self, owner: MessageEmitter):
+    def __init__(self, owner: MessageNode):
         self.owner = owner
         # helper class for the user
         self._connections = EventedList[Talk]()
@@ -62,7 +62,7 @@ class ConnectionManager:
         """Forward message flow to our aggregated signal."""
         self.connection_processed.emit(event)
 
-    def set_wait_state(self, target: MessageEmitter | AgentName, wait: bool = True):
+    def set_wait_state(self, target: MessageNode | AgentName, wait: bool = True):
         """Set waiting behavior for target."""
         target_name = target if isinstance(target, str) else target.name
         self._wait_states[target_name] = wait
@@ -113,7 +113,7 @@ class ConnectionManager:
 
     def create_connection(
         self,
-        source: MessageEmitter,
+        source: MessageNode,
         target: MessageNode | Sequence[MessageNode],
         *,
         connection_type: ConnectionType = "run",
