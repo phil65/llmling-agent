@@ -541,8 +541,10 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         for tool in tools:
             wrapped = wrap_tool(tool, context_for_tools)
             if get_argument_key(wrapped, RunContext):
+                logger.info("Registering tool: with context", tool_name=tool.name)
                 agent.tool(wrapped)
             else:
+                logger.info("Registering tool: no context", tool_name=tool.name)
                 agent.tool_plain(wrapped)
 
         return agent

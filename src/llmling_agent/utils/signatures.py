@@ -69,23 +69,36 @@ def _create_tool_annotations_with_context(
     return new_annotations
 
 
-def insert_arg_into_signature(fn: Callable, key: str, type_: type) -> Callable:
-    sig = inspect.signature(fn)
-    params = [
-        inspect.Parameter(key, inspect.Parameter.POSITIONAL_OR_KEYWORD, annotation=type_),
-        *sig.parameters.values(),
-    ]
-    new_sig = inspect.Signature(params)
-    fn.__signature__ = new_sig  # type: ignore
-    fn.__annotations__ = dict(new_sig.parameters) | {"return": new_sig.return_annotation}
-    return fn
-
-
-def get_signature_without_argument(
-    fn: Callable, key: str | list[str]
+def create_modified_signature(
+    fn: Callable,
+    *,
+    remove: str | list[str] | None = None,
+    inject: dict[str, type] | None = None,
 ) -> inspect.Signature:
-    # Hide AgentContext parameter from pydantic-ai's signature analysis
     sig = inspect.signature(fn)
-    keys = [key] if isinstance(key, str) else key
-    new_params = [p for p in sig.parameters.values() if p.name not in keys]
+    rem_keys = [remove] if isinstance(remove, str) else remove or []
+    new_params = [p for p in sig.parameters.values() if p.name not in rem_keys]
+    if inject:
+        for k, v in inject.items():
+            new_params.insert(
+                0,
+                inspect.Parameter(
+                    k, inspect.Parameter.POSITIONAL_OR_KEYWORD, annotation=v
+                ),
+            )
     return sig.replace(parameters=new_params)  # type: ignore
+
+
+def modify_signature(
+    fn: Callable,
+    *,
+    remove: str | list[str] | None = None,
+    inject: dict[str, type] | None = None,
+    update_annotations: bool = True,
+):
+    new_sig = create_modified_signature(fn, remove=remove, inject=inject)
+    fn.__signature__ = new_sig  # type: ignore
+    if update_annotations:
+        fn.__annotations__ = dict(new_sig.parameters) | {
+            "return": new_sig.return_annotation
+        }

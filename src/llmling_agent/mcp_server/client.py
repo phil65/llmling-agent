@@ -261,9 +261,6 @@ class MCPClient:
 
     def convert_tool(self, tool: MCPTool) -> Tool:
         """Create a properly typed callable from MCP tool schema."""
-        schema = mcp_tool_to_fn_schema(tool)
-        fn_schema = FunctionSchema.from_dict(schema)
-        sig = fn_schema.to_python_signature()
 
         async def tool_callable(ctx: RunContext, **kwargs: Any) -> str | Any | ToolReturn:
             """Dynamically generated MCP tool wrapper."""
@@ -278,6 +275,10 @@ class MCPClient:
             return await self.call_tool(tool.name, ctx, filtered_kwargs)
 
         # Set proper signature and annotations with RunContext support
+        schema = mcp_tool_to_fn_schema(tool)
+        fn_schema = FunctionSchema.from_dict(schema)
+        sig = fn_schema.to_python_signature()
+
         tool_callable.__signature__ = _create_tool_signature_with_context(sig)  # type: ignore
         annotations = _create_tool_annotations_with_context(fn_schema.get_annotations())
         # Update return annotation to support multiple types

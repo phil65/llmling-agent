@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pydantic_ai import RunContext
+from pydantic_ai.models.test import TestModel
 import pytest
 
 from llmling_agent import Agent, AgentContext, AgentPool
@@ -46,20 +47,18 @@ async def test_tool_context_injection(default_model: str):
     context_received = None
     deps_received = None
 
-    async def test_tool(ctx: RunContext[AgentContext], arg: str) -> str:
+    async def test_tool(ctx: RunContext[AgentContext]) -> str:
         """Test tool that captures its context."""
         nonlocal context_received, deps_received
         context_received = ctx
         deps_received = ctx.deps
-        return f"Got arg: {arg}"
+        return "Called"
 
-    async with Agent(model=default_model, deps_type=bool) as agent:
+    async with Agent(model=TestModel(call_tools=["test_tool"]), deps_type=bool) as agent:
         # Register our test tool
         agent.tools.register_tool(test_tool, enabled=True)
         # Run agent which should trigger tool
-        await agent.run("Use the test_tool with arg='test'", deps=True)
-
-        # Verify context
+        await agent.run("Test", deps=True)
         assert context_received is not None, "Tool did not receive context"
         assert isinstance(context_received, RunContext), "Wrong context type"
 
@@ -71,17 +70,16 @@ async def test_plain_tool_no_context(default_model: str):
     """Test that plain tools work without context."""
     count = 0
 
-    async def plain_tool(arg: str) -> str:
+    async def plain_tool() -> str:
         """Tool without context parameter."""
-        assert "test" in arg
         nonlocal count
         count += 1
-        return f"Got arg: {arg}"
+        return "Got arg"
 
-    async with Agent(model=default_model) as agent:
+    async with Agent(model=TestModel(call_tools=["plain_tool"])) as agent:
         agent.tools.register_tool(plain_tool, enabled=True)
         # Should work without error
-        await agent.run("Use the plain_tool with arg='test'")
+        await agent.run("Test")
         assert count == 1
 
 

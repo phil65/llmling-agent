@@ -14,7 +14,7 @@ from llmling_agent.tasks.exceptions import (
     ToolSkippedError,
 )
 from llmling_agent.utils.inspection import execute, get_argument_key
-from llmling_agent.utils.signatures import get_signature_without_argument
+from llmling_agent.utils.signatures import create_modified_signature
 
 
 if TYPE_CHECKING:
@@ -47,7 +47,7 @@ def wrap_tool(tool: Tool, agent_ctx: AgentContext) -> Callable[..., Awaitable[An
             return await _handle_confirmation_result(result, tool.name)
 
         # Hide AgentContext parameter from pydantic-ai's signature analysis
-        wrapped.__signature__ = get_signature_without_argument(fn, agent_ctx_key)  # type: ignore
+        wrapped.__signature__ = create_modified_signature(fn, remove=agent_ctx_key)  # type: ignore
 
     elif run_ctx_key:
         # RunContext only - normal pydantic-ai handling, just passthrough
@@ -67,7 +67,7 @@ def wrap_tool(tool: Tool, agent_ctx: AgentContext) -> Callable[..., Awaitable[An
             return await _handle_confirmation_result(result, tool.name)
 
         # Hide AgentContext parameter from pydantic-ai's signature analysis
-        wrapped.__signature__ = get_signature_without_argument(fn, agent_ctx_key)  # type: ignore
+        wrapped.__signature__ = create_modified_signature(fn, remove=agent_ctx_key)  # type: ignore
 
     else:
         # No context - regular tool
