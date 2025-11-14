@@ -8,16 +8,16 @@ from llmling_agent import Agent, AgentContext, AgentPool
 from llmling_agent_config.toolsets import AgentManagementToolsetConfig
 
 
-async def run_ctx_tool(ctx: RunContext, arg: str) -> str:
+async def run_ctx_tool(ctx: RunContext) -> str:
     """Tool expecting RunContext."""
     assert isinstance(ctx, RunContext)
-    return f"RunContext tool got: {arg}"
+    return "RunContext tool"
 
 
-async def agent_ctx_tool(ctx: AgentContext, arg: str) -> str:
+async def agent_ctx_tool(ctx: AgentContext) -> str:
     """Tool expecting AgentContext."""
     assert isinstance(ctx, AgentContext)
-    return f"AgentContext tool got: {arg}"
+    return "AgentContext tool"
 
 
 async def data_with_run_ctx(ctx: RunContext) -> str:
@@ -30,19 +30,19 @@ async def data_with_agent_ctx(ctx: AgentContext) -> str:
     return f"Data from AgentContext: {ctx.data}"
 
 
-async def no_ctx_tool(arg: str) -> str:
+async def no_ctx_tool() -> str:
     """Tool without any context."""
-    return f"No context tool got: {arg}"
+    return "No context tool"
 
 
-async def dual_ctx_tool(run_ctx: RunContext, agent_ctx: AgentContext, arg: str) -> str:
+async def dual_ctx_tool(run_ctx: RunContext, agent_ctx: AgentContext) -> str:
     """Tool expecting both RunContext and AgentContext."""
     assert isinstance(run_ctx, RunContext)
     assert isinstance(agent_ctx, AgentContext)
-    return f"Dual context tool got: {arg} (agent: {agent_ctx.node_name})"
+    return f"Dual context tool (agent: {agent_ctx.node_name})"
 
 
-async def test_tool_context_injection(default_model: str):
+async def test_tool_context_injection():
     """Test that tools receive correct context."""
     context_received = None
     deps_received = None
@@ -66,7 +66,7 @@ async def test_tool_context_injection(default_model: str):
         assert deps_received is not None, "Tool did not receive dependencies"
 
 
-async def test_plain_tool_no_context(default_model: str):
+async def test_plain_tool_no_context():
     """Test that plain tools work without context."""
     count = 0
 
@@ -133,70 +133,55 @@ async def test_team_creation(default_model: str):
         assert "bob" in str(result.content.lower())
 
 
-async def test_context_compatibility(default_model: str):
+async def test_context_compatibility():
     """Test that both context types work in tools."""
-    async with Agent(model=default_model) as agent:
-        agent.tools.register_tool(run_ctx_tool, name_override="run_ctx_tool")
-        agent.tools.register_tool(agent_ctx_tool, name_override="agent_ctx_tool")
-        agent.tools.register_tool(no_ctx_tool, name_override="no_ctx_tool")
+    model = TestModel(call_tools=["run_ctx_tool", "agent_ctx_tool", "no_ctx_tool"])
+    async with Agent(model=model) as agent:
+        agent.tools.register_tool(run_ctx_tool)
+        agent.tools.register_tool(agent_ctx_tool)
+        agent.tools.register_tool(no_ctx_tool)
 
         # All should work
-        result1 = await agent.run("Use run_ctx_tool with argument 'test'")
-        assert any(
-            call.result == "RunContext tool got: test"
-            for call in result1.get_tool_calls()
-        )
-
-        result2 = await agent.run("Use agent_ctx_tool with argument 'test'")
-        assert any(
-            call.result == "AgentContext tool got: test"
-            for call in result2.get_tool_calls()
-        )
-
-        result3 = await agent.run("Use no_ctx_tool with argument 'test'")
-        assert any(
-            call.result == "No context tool got: test"
-            for call in result3.get_tool_calls()
-        )
+        result = await agent.run("Test")
+        assert any(call.result == "RunContext tool" for call in result.get_tool_calls())
+        assert any(call.result == "AgentContext tool" for call in result.get_tool_calls())
+        assert any(call.result == "No context tool" for call in result.get_tool_calls())
 
 
-async def test_context_sharing(default_model: str):
+async def test_context_sharing():
     """Test that both context types access same data."""
     shared_data = {"key": "value"}
-
-    agent = Agent[dict](name="test", model=default_model, deps_type=dict)
+    model = TestModel(call_tools=["data_with_run_ctx", "data_with_agent_ctx"])
+    agent = Agent[dict](name="test", model=model, deps_type=dict)
     agent.context.data = shared_data
-
     agent.tools.register_tool(data_with_run_ctx)
     agent.tools.register_tool(data_with_agent_ctx)
 
     async with agent:
-        result1 = await agent.run("Use data_with_run_ctx tool", deps=shared_data)
-        result2 = await agent.run("Use data_with_agent_ctx tool", deps=shared_data)
+        result = await agent.run("Test", deps=shared_data)
 
         assert any(
             call.result == "Data from RunContext: {'key': 'value'}"
-            for call in result1.get_tool_calls()
+            for call in result.get_tool_calls()
         )
         assert any(
             call.result == "Data from AgentContext: {'key': 'value'}"
-            for call in result2.get_tool_calls()
+            for call in result.get_tool_calls()
         )
 
 
-async def test_dual_context_tool(default_model: str):
+async def test_dual_context_tool():
     """Test tool that requires both RunContext and AgentContext."""
-    async with Agent(model=default_model, name="dual-agent") as agent:
+    async with Agent(
+        model=TestModel(call_tools=["dual_ctx_tool"]), name="dual-agent"
+    ) as agent:
         agent.tools.register_tool(dual_ctx_tool)
-
         # This should work if dual context injection is implemented
-        result = await agent.run("Use dual_ctx_tool with argument 'test'")
-
+        result = await agent.run("Test")
         # Should successfully call the tool with both contexts
         tool_calls = result.get_tool_calls()
         assert len(tool_calls) > 0
-
-        expected_result = "Dual context tool got: test (agent: dual-agent)"
+        expected_result = "Dual context tool (agent: dual-agent)"
         assert any(call.result == expected_result for call in tool_calls)
 
 

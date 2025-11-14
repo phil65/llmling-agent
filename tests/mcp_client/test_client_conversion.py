@@ -20,7 +20,7 @@ from llmling_agent_config.mcp_server import StdioMCPServerConfig
 @pytest.fixture
 async def mcp_client():
     """Create MCP client connected to test server."""
-    server_path = Path(__file__).parent / "server.py"
+    server_path = Path(__file__).parent / ".." / "mcp" / "server.py"
 
     config = StdioMCPServerConfig(
         name="test_server",
