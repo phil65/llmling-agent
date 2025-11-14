@@ -39,6 +39,15 @@ class AgentContext[TDeps = Any](NodeContext[TDeps]):
     data: TDeps | None = None
     """Custom context data."""
 
+    tool_name: str | None = None
+    """Name of the currently executing tool."""
+
+    tool_call_id: str | None = None
+    """ID of the current tool call."""
+
+    tool_input: dict[str, Any] = field(default_factory=dict)
+    """Input arguments for the current tool call."""
+
     @classmethod
     def create_default(
         cls,

@@ -42,6 +42,10 @@ def wrap_tool(tool: Tool, agent_ctx: AgentContext) -> Callable[..., Awaitable[An
                     agent_ctx.data = ctx.deps
 
                 if agent_ctx_key:  # inject AgentContext
+                    # Populate tool execution fields from RunContext
+                    agent_ctx.tool_name = ctx.tool_name
+                    agent_ctx.tool_call_id = ctx.tool_call_id
+                    agent_ctx.tool_input = kwargs.copy()
                     kwargs[agent_ctx_key] = agent_ctx
 
                 if run_ctx_key:
