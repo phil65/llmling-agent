@@ -6,6 +6,8 @@ import re
 from typing import TYPE_CHECKING, Any, ClassVar
 
 from fsspec import AbstractFileSystem
+from fsspec.asyn import AsyncFileSystem
+from fsspec.implementations.asyn_wrapper import AsyncFileSystemWrapper
 from upath import UPath
 from upathtools.helpers import upath_to_fs
 
@@ -50,7 +52,9 @@ class SkillsRegistry(BaseRegistry[str, Skill]):
             await self.register_skills_from_path(skills_dir)
 
     async def register_skills_from_path(
-        self, skills_dir: UPath | AbstractFileSystem, **storage_options: Any
+        self,
+        skills_dir: UPath | AbstractFileSystem,
+        **storage_options: Any,
     ):
         """Register skills from a given path.
 
@@ -60,8 +64,12 @@ class SkillsRegistry(BaseRegistry[str, Skill]):
         """
         if isinstance(skills_dir, AbstractFileSystem):
             fs = skills_dir
+            if not isinstance(fs, AsyncFileSystem):
+                fs = AsyncFileSystemWrapper(fs)
+            path = ""
         else:
             fs = upath_to_fs(skills_dir, **storage_options)
+            path = skills_dir
 
         try:
             # List entries in skills directory
@@ -82,7 +90,7 @@ class SkillsRegistry(BaseRegistry[str, Skill]):
                 continue
 
             try:
-                skill = self._parse_skill(skill_dir_path, skills_dir)
+                skill = self._parse_skill(skill_dir_path, path)
                 self.register(skill.name, skill, replace=True)
             except Exception as e:  # noqa: BLE001
                 # Log but don't fail discovery for one bad skill
