@@ -67,7 +67,6 @@ async def load_skill(ctx: AgentContext, skill_name: str) -> str:  # noqa: D417
 {instructions}
 
 ---
-Skill loaded from: {skill.source}
 Skill directory: {skill.skill_path}
 """  # noqa: TRY300
     except Exception as e:  # noqa: BLE001

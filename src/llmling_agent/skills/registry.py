@@ -66,10 +66,8 @@ class SkillsRegistry(BaseRegistry[str, Skill]):
             fs = skills_dir
             if not isinstance(fs, AsyncFileSystem):
                 fs = AsyncFileSystemWrapper(fs)
-            path = ""
         else:
             fs = upath_to_fs(skills_dir, **storage_options)
-            path = skills_dir
 
         try:
             # List entries in skills directory
@@ -90,17 +88,13 @@ class SkillsRegistry(BaseRegistry[str, Skill]):
                 continue
 
             try:
-                skill = self._parse_skill(skill_dir_path, path)
+                skill = self._parse_skill(skill_dir_path)
                 self.register(skill.name, skill, replace=True)
             except Exception as e:  # noqa: BLE001
                 # Log but don't fail discovery for one bad skill
                 print(f"Warning: Failed to parse skill at {skill_dir_path}: {e}")
 
-    def _parse_skill(
-        self,
-        skill_dir: JoinablePathLike,
-        source_dir: JoinablePathLike,
-    ) -> Skill:
+    def _parse_skill(self, skill_dir: JoinablePathLike) -> Skill:
         """Parse a SKILL.md file and extract metadata."""
         skill_file = UPath(skill_dir) / "SKILL.md"
         content = skill_file.read_text()
