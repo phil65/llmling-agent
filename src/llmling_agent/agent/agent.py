@@ -533,9 +533,9 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
 
     async def get_agentlet(
         self,
-        tools: list[Tool],
-        model: ModelType = None,
-        output_type: type[Any] = str,
+        tool_choice: str | list[str] | None,
+        model: ModelType,
+        output_type: type[Any] | None,
         deps_type: type[Any] | None = None,
         input_provider: InputProvider | None = None,
     ):
@@ -544,11 +544,14 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
 
         from llmling_agent.agent.tool_wrapping import wrap_tool
 
+        tools = await self.tools.get_tools(state="enabled", names=tool_choice)
+        final_type = (
+            to_type(output_type) if output_type not in [None, str] else self._output_type
+        )
         actual_model = model or self._model
         model_ = (
             infer_model(actual_model) if isinstance(actual_model, str) else actual_model
         )
-
         agent = PydanticAgent(
             name=self.name,
             model=model_,
@@ -557,7 +560,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             end_strategy=self._end_strategy,
             output_retries=self._output_retries,
             deps_type=deps_type or NoneType,
-            output_type=output_type,
+            output_type=final_type,
         )
 
         # If input_provider override is provided, create modified context
@@ -659,26 +662,18 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         conversation = (
             message_history if message_history is not None else self.conversation
         )
-
         # Prepare prompts and create user message
         user_msg, processed_prompts, original_message = await prepare_prompts(*prompts)
         self.message_received.emit(user_msg)
-
-        # Set current prompt context
         final_prompt = "\n\n".join(str(p) for p in processed_prompts)
-        self.context.current_prompt = final_prompt
-
-        # Execute agent logic
+        self.context.current_prompt = final_prompt  # Set current prompt context
         message_id = message_id or str(uuid4())
-        tools = await self.tools.get_tools(state="enabled", names=tool_choice)
-        final_type = to_type(output_type) if output_type else self._output_type
         start_time = time.perf_counter()
-
         message_history_list = list(conversation.chat_messages)
         try:
             # Create pydantic-ai agent for this run
             agentlet = await self.get_agentlet(
-                tools, model, final_type, self.deps_type, input_provider
+                tool_choice, model, output_type, self.deps_type, input_provider
             )
             converted_prompts = await convert_prompts(processed_prompts)
 
@@ -699,7 +694,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                 message_history=[
                     m for run in message_history_list for m in run.to_pydantic_ai()
                 ],
-                output_type=final_type or str,
                 usage_limits=usage_limits,
                 event_stream_handler=event_distributor,
             )
@@ -782,16 +776,13 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         # Set current prompt context
         final_prompt = "\n\n".join(str(p) for p in prompts)
         self.context.current_prompt = final_prompt
-
-        final_type = to_type(output_type) if output_type else self._output_type
         start_time = time.perf_counter()
-        tools = await self.tools.get_tools(state="enabled", names=tool_choice)
         message_history = (
             messages if messages is not None else self.conversation.get_history()
         )
         try:
             agentlet = await self.get_agentlet(
-                tools, model, final_type, self.deps_type, input_provider
+                tool_choice, model, output_type, self.deps_type, input_provider
             )
             content = await convert_prompts(prompts)
             # Initialize variables for final response
@@ -804,7 +795,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                 message_history=[
                     m for run in message_history for m in run.to_pydantic_ai()
                 ],
-                output_type=final_type or str,
                 usage_limits=usage_limits,
             )
 
