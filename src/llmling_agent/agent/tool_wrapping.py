@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from functools import wraps
+import inspect
 from typing import TYPE_CHECKING, Any
 
 from pydantic_ai import RunContext
@@ -31,6 +32,14 @@ def wrap_tool(tool: Tool, agent_ctx: AgentContext) -> Callable[..., Awaitable[An
     fn = tool.callable
     run_ctx_key = get_argument_key(fn, RunContext)
     agent_ctx_key = get_argument_key(fn, AgentContext)
+
+    # Validate parameter order if RunContext is present
+    if run_ctx_key:
+        param_names = list(inspect.signature(fn).parameters.keys())
+        run_ctx_index = param_names.index(run_ctx_key)
+        if run_ctx_index != 0:
+            msg = f"Tool {tool.name!r}: RunContext param {run_ctx_key!r} must come first."
+            raise ValueError(msg)
 
     if run_ctx_key or agent_ctx_key:
         # Tool has RunContext and/or AgentContext
