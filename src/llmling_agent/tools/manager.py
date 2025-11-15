@@ -117,18 +117,12 @@ class ToolManager:
     async def enable_tool(self, tool_name: str):
         """Enable a previously disabled tool."""
         tool_info = await self.get_tool(tool_name)
-        if not tool_info:
-            msg = f"Tool not found: {tool_name}"
-            raise ToolError(msg)
         tool_info.enabled = True
         logger.debug("Enabled tool", tool_name=tool_name)
 
     async def disable_tool(self, tool_name: str):
         """Disable a tool."""
         tool_info = await self.get_tool(tool_name)
-        if not tool_info:
-            msg = f"Tool not found: {tool_name}"
-            raise ToolError(msg)
         tool_info.enabled = False
         logger.debug("Disabled tool", tool_name=tool_name)
 
@@ -159,7 +153,7 @@ class ToolManager:
                 tools = [t for t in tools if t.name in names]
         return tools
 
-    async def get_tool(self, name: str) -> Tool | None:
+    async def get_tool(self, name: str) -> Tool:
         """Get a specific tool by name.
 
         First checks local tools, then uses concurrent provider fetching.
@@ -171,7 +165,11 @@ class ToolManager:
             Tool instance if found, None otherwise
         """
         all_tools = await self.get_tools()
-        return next((tool for tool in all_tools if tool.name == name), None)
+        tool = next((tool for tool in all_tools if tool.name == name), None)
+        if not tool:
+            msg = f"Tool not found: {tool}"
+            raise ToolError(msg)
+        return tool
 
     async def get_tool_names(self, state: ToolState = "all") -> set[str]:
         """Get tool names based on state."""
@@ -342,8 +340,8 @@ class ToolManager:
             # Restore original tool states if exclusive
             if exclusive:
                 for name_, was_enabled in original_states.items():
-                    if t_ := await self.get_tool(name_):
-                        t_.enabled = was_enabled
+                    t_ = await self.get_tool(name_)
+                    t_.enabled = was_enabled
 
     def tool(
         self,

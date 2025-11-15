@@ -87,7 +87,6 @@ class ShowToolCommand(SlashedCommand):
 
         try:
             tool_info = await agent.tools.get_tool(name)
-            assert tool_info, f"Tool {name} not found"
             # Start with the standard tool info format
             sections = [tool_info.format_info(indent="")]
 

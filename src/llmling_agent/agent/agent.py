@@ -1058,12 +1058,9 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         """
         # Share tools if requested
         for name in tools or []:
-            if tool := await self.tools.get_tool(name):
-                meta = {"shared_from": self.name}
-                target.tools.register_tool(tool.callable, metadata=meta)
-            else:
-                msg = f"Tool not found: {name}"
-                raise ValueError(msg)
+            tool = await self.tools.get_tool(name)
+            meta = {"shared_from": self.name}
+            target.tools.register_tool(tool.callable, metadata=meta)
 
         # Share history if requested
         if history:

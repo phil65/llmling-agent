@@ -118,12 +118,8 @@ async def _execute_step(
 
             # Get the tool
             tool_info = await ctx.agent.tools.get_tool(step.tool)
-            if not tool_info:
-                msg = f"Tool {step.tool} not found"
-                raise ValueError(msg)  # noqa: TRY301
 
-            # Prepare kwargs
-            if isinstance(input_value, dict):
+            if isinstance(input_value, dict):  # Prepare kwargs
                 kwargs = {**input_value, **step.keyword_args}
             else:
                 kwargs = {step.input_kwarg: input_value, **step.keyword_args}

@@ -110,12 +110,8 @@ class RemoveWorkerCommand(SlashedCommand):
         tool_name = f"ask_{worker_name}"  # Match the naming in to_tool
 
         try:
-            if not ctx.context.agent.tools.worker_provider.get_tool(tool_name):
-                msg = f"No worker tool found for agent: {worker_name}"
-                raise CommandError(msg)  # noqa: TRY301
             ctx.context.agent.tools.worker_provider.remove_tool(tool_name)
             await ctx.print(f"🗑️ **Removed worker tool:** `{tool_name}`")
-
         except Exception as e:
             msg = f"Failed to remove worker: {e}"
             raise CommandError(msg) from e
