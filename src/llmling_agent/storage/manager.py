@@ -206,22 +206,20 @@ class StorageManager:
 
         for provider in self.providers:
             if provider.should_log_agent(message.name or "no name"):
-                self.task_manager.create_task(
-                    provider.log_message(
-                        conversation_id=message.conversation_id or "",
-                        message_id=message.message_id,
-                        content=str(message.content),
-                        role=message.role,
-                        name=message.name,
-                        cost_info=message.cost_info,
-                        model=message.model_name,
-                        response_time=message.response_time,
-                        forwarded_from=message.forwarded_from,
-                        provider_name=message.provider_name,
-                        provider_response_id=message.provider_response_id,
-                        messages=serialize_messages(message.messages),
-                        finish_reason=message.finish_reason,
-                    )
+                await provider.log_message(
+                    conversation_id=message.conversation_id or "",
+                    message_id=message.message_id,
+                    content=str(message.content),
+                    role=message.role,
+                    name=message.name,
+                    cost_info=message.cost_info,
+                    model=message.model_name,
+                    response_time=message.response_time,
+                    forwarded_from=message.forwarded_from,
+                    provider_name=message.provider_name,
+                    provider_response_id=message.provider_response_id,
+                    messages=serialize_messages(message.messages),
+                    finish_reason=message.finish_reason,
                 )
 
     @method_spawner
@@ -237,12 +235,10 @@ class StorageManager:
             return
 
         for provider in self.providers:
-            self.task_manager.create_task(
-                provider.log_conversation(
-                    conversation_id=conversation_id,
-                    node_name=node_name,
-                    start_time=start_time,
-                )
+            await provider.log_conversation(
+                conversation_id=conversation_id,
+                node_name=node_name,
+                start_time=start_time,
             )
 
     @method_spawner
@@ -260,14 +256,12 @@ class StorageManager:
             return
 
         for provider in self.providers:
-            self.task_manager.create_task(
-                provider.log_command(
-                    agent_name=agent_name,
-                    session_id=session_id,
-                    command=command,
-                    context_type=context_type,
-                    metadata=metadata,
-                )
+            await provider.log_command(
+                agent_name=agent_name,
+                session_id=session_id,
+                command=command,
+                context_type=context_type,
+                metadata=metadata,
             )
 
     @method_spawner
@@ -282,14 +276,12 @@ class StorageManager:
     ):
         """Log context message to all providers."""
         for provider in self.providers:
-            self.task_manager.create_task(
-                provider.log_context_message(
-                    conversation_id=conversation_id,
-                    content=content,
-                    role=role,
-                    name=name,
-                    model=model,
-                )
+            await provider.log_context_message(
+                conversation_id=conversation_id,
+                content=content,
+                role=role,
+                name=name,
+                model=model,
             )
 
     @method_spawner
