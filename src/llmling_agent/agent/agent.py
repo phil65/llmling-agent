@@ -666,19 +666,55 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         final_prompt = "\n\n".join(str(p) for p in processed_prompts)
         self.context.current_prompt = final_prompt
 
-        # Run internal agent logic
-        message = await self._run_internal(
-            *processed_prompts,
-            output_type=output_type,
-            model=model,
-            tool_choice=tool_choice,
-            usage_limits=usage_limits,
-            message_id=message_id,
-            conversation_id=user_msg.conversation_id,
-            messages=list(conversation.chat_messages),
-            deps=deps,
-            input_provider=input_provider,
-        )
+        # Execute agent logic
+        message_id = message_id or str(uuid4())
+        tools = await self.tools.get_tools(state="enabled", names=tool_choice)
+        final_type = to_type(output_type) if output_type else self._output_type
+        start_time = time.perf_counter()
+
+        message_history_list = list(conversation.chat_messages)
+        try:
+            # Create pydantic-ai agent for this run
+            agentlet = await self.get_agentlet(
+                tools, model, final_type, self.deps_type, input_provider
+            )
+            converted_prompts = await convert_prompts(processed_prompts)
+
+            # Merge internal and external event handlers like the old provider did
+            async def event_distributor(
+                ctx: RunContext, events: AsyncIterable[AgentStreamEvent]
+            ):
+                async for event in events:
+                    for handler in self.event_handler._wrapped_handlers:
+                        await handler(ctx, event)
+
+            result = await agentlet.run(
+                [
+                    i if isinstance(i, str) else i.to_pydantic_ai()
+                    for i in converted_prompts
+                ],
+                deps=deps,
+                message_history=[
+                    m for run in message_history_list for m in run.to_pydantic_ai()
+                ],
+                output_type=final_type or str,
+                usage_limits=usage_limits,
+                event_stream_handler=event_distributor,
+            )
+
+            response_time = time.perf_counter() - start_time
+            message = await ChatMessage.from_run_result(
+                result,
+                agent_name=self.name,
+                message_id=message_id,
+                conversation_id=user_msg.conversation_id,
+                response_time=response_time,
+            )
+
+        except Exception as e:
+            self.log.exception("Agent run failed")
+            self.run_failed.emit("Agent run failed", e)
+            raise
 
         # Apply forwarding logic before storing history
         if original_message:
@@ -697,73 +733,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             None,  # forwarding already applied above
             wait_for_connections,
         )
-
-    async def _run_internal(
-        self,
-        *prompts: PromptCompatible | ChatMessage[Any],
-        output_type: type[Any] | None = None,
-        model: ModelType = None,
-        tool_choice: str | list[str] | None = None,
-        usage_limits: UsageLimits | None = None,
-        message_id: str | None = None,
-        conversation_id: str | None = None,
-        messages: list[ChatMessage[Any]] | None = None,
-        deps: TDeps | None = None,
-        input_provider: InputProvider | None = None,
-    ) -> ChatMessage[Any]:
-        """Internal agent execution logic."""
-        message_id = message_id or str(uuid4())
-        tools = await self.tools.get_tools(state="enabled", names=tool_choice)
-        final_type = to_type(output_type) if output_type else self._output_type
-        start_time = time.perf_counter()
-
-        message_history = (
-            messages if messages is not None else self.conversation.get_history()
-        )
-        try:
-            # Create pydantic-ai agent for this run
-            agentlet = await self.get_agentlet(
-                tools, model, final_type, self.deps_type, input_provider
-            )
-            converted_prompts = await convert_prompts(prompts)
-
-            # Merge internal and external event handlers like the old provider did
-            async def event_distributor(
-                ctx: RunContext, events: AsyncIterable[AgentStreamEvent]
-            ):
-                async for event in events:
-                    for handler in self.event_handler._wrapped_handlers:
-                        await handler(ctx, event)
-
-            result = await agentlet.run(
-                [
-                    i if isinstance(i, str) else i.to_pydantic_ai()
-                    for i in converted_prompts
-                ],
-                deps=deps,
-                message_history=[
-                    m for run in message_history for m in run.to_pydantic_ai()
-                ],
-                output_type=final_type or str,
-                usage_limits=usage_limits,
-                event_stream_handler=event_distributor,
-            )
-
-            response_time = time.perf_counter() - start_time
-            response_msg = await ChatMessage.from_run_result(
-                result,
-                agent_name=self.name,
-                message_id=message_id,
-                conversation_id=conversation_id,
-                response_time=response_time,
-            )
-
-        except Exception as e:
-            self.log.exception("Agent run failed")
-            self.run_failed.emit("Agent run failed", e)
-            raise
-        else:
-            return response_msg
 
     @method_spawner
     async def run_stream(

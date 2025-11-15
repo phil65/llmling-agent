@@ -180,12 +180,21 @@ class Team[TDeps = None](BaseTeam[TDeps, Any]):
         user_msg, processed_prompts, original_message = await prepare_prompts(*prompts)
         self.message_received.emit(user_msg)
 
-        # Run team execution logic
-        message = await self._run_internal(
-            *processed_prompts,
-            message_id=user_msg.message_id,
+        # Execute team logic
+        result: TeamResponse = await self.execute(*processed_prompts, **kwargs)
+        message_id = user_msg.message_id or str(uuid4())
+        message = ChatMessage(
+            content=[r.message.content for r in result if r.message],
+            messages=[m for r in result if r.message for m in r.message.messages],
+            role="assistant",
+            name=self.name,
+            message_id=message_id,
             conversation_id=user_msg.conversation_id,
-            **kwargs,
+            metadata={
+                "agent_names": [r.agent_name for r in result],
+                "errors": {name: str(error) for name, error in result.errors.items()},
+                "start_time": result.start_time.isoformat(),
+            },
         )
 
         # Teams typically don't store history by default, but allow it
@@ -201,30 +210,6 @@ class Team[TDeps = None](BaseTeam[TDeps, Any]):
             self.connections,
             original_message,
             wait_for_connections,
-        )
-
-    async def _run_internal(
-        self,
-        *prompts: PromptCompatible | None,
-        message_id: str | None = None,
-        conversation_id: str | None = None,
-        **kwargs: Any,
-    ) -> ChatMessage[list[Any]]:
-        """Internal team execution logic."""
-        result: TeamResponse = await self.execute(*prompts, **kwargs)
-        message_id = message_id or str(uuid4())
-        return ChatMessage(
-            content=[r.message.content for r in result if r.message],
-            messages=[m for r in result if r.message for m in r.message.messages],
-            role="assistant",
-            name=self.name,
-            message_id=message_id,
-            conversation_id=conversation_id,
-            metadata={
-                "agent_names": [r.agent_name for r in result],
-                "errors": {name: str(error) for name, error in result.errors.items()},
-                "start_time": result.start_time.isoformat(),
-            },
         )
 
     async def run_stream(

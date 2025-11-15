@@ -144,12 +144,34 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
         user_msg, processed_prompts, original_message = await prepare_prompts(*prompts)
         self.message_received.emit(user_msg)
 
-        # Run sequential execution logic
-        message = await self._run_internal(
-            *processed_prompts,
-            message_id=user_msg.message_id,
+        # Execute sequential logic
+        message_id = user_msg.message_id or str(uuid4())
+        result = await self.execute(*processed_prompts, **kwargs)
+        all_messages = [r.message for r in result if r.message]
+        assert all_messages, "Error during execution, returned None for TeamRun"
+        # Determine content based on mode
+        match self.result_mode:
+            case "last":
+                content = all_messages[-1].content
+            # case "concat":
+            #     content = "\n".join(msg.format() for msg in all_messages)
+            case _:
+                msg = f"Invalid result mode: {self.result_mode}"
+                raise ValueError(msg)
+
+        message = ChatMessage(
+            content=content,
+            messages=[m for chat_message in all_messages for m in chat_message.messages],
+            role="assistant",
+            name=self.name,
+            associated_messages=all_messages,
+            message_id=message_id,
             conversation_id=user_msg.conversation_id,
-            **kwargs,
+            metadata={
+                "execution_order": [r.agent_name for r in result],
+                "start_time": result.start_time.isoformat(),
+                "errors": {name: str(error) for name, error in result.errors.items()},
+            },
         )
 
         # Teams typically don't store history by default, but allow it
@@ -165,44 +187,6 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
             self.connections,
             original_message,
             wait_for_connections,
-        )
-
-    async def _run_internal(
-        self,
-        *prompts: PromptCompatible | None,
-        message_id: str | None = None,
-        conversation_id: str | None = None,
-        **kwargs: Any,
-    ) -> ChatMessage[TResult]:
-        """Internal sequential execution logic."""
-        message_id = message_id or str(uuid4())
-
-        result = await self.execute(*prompts, **kwargs)
-        all_messages = [r.message for r in result if r.message]
-        assert all_messages, "Error during execution, returned None for TeamRun"
-        # Determine content based on mode
-        match self.result_mode:
-            case "last":
-                content = all_messages[-1].content
-            # case "concat":
-            #     content = "\n".join(msg.format() for msg in all_messages)
-            case _:
-                msg = f"Invalid result mode: {self.result_mode}"
-                raise ValueError(msg)
-
-        return ChatMessage(
-            content=content,
-            messages=[m for chat_message in all_messages for m in chat_message.messages],
-            role="assistant",
-            name=self.name,
-            associated_messages=all_messages,
-            message_id=message_id,
-            conversation_id=conversation_id,
-            metadata={
-                "execution_order": [r.agent_name for r in result],
-                "start_time": result.start_time.isoformat(),
-                "errors": {name: str(error) for name, error in result.errors.items()},
-            },
         )
 
     async def execute(
