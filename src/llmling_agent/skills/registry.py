@@ -143,12 +143,7 @@ class SkillsRegistry(BaseRegistry[str, Skill]):
             )
             raise ToolError(msg)
 
-        return Skill(
-            name=name,
-            description=description,
-            skill_path=UPath(skill_dir),
-            source=UPath(source_dir),
-        )
+        return Skill(name=name, description=description, skill_path=UPath(skill_dir))
 
     @property
     def _error_class(self) -> type[ToolError]:

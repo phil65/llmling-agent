@@ -17,7 +17,6 @@ class Skill:
     name: str
     description: str
     skill_path: UPath
-    source: UPath  # Directory where skill was discovered
     instructions: str | None = None
 
     def load_instructions(self) -> str:
