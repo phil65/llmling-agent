@@ -145,7 +145,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
         self.message_received.emit(user_msg)
 
         # Execute sequential logic
-        message_id = user_msg.message_id or str(uuid4())
+        message_id = str(uuid4())  # Always generate unique response ID
         result = await self.execute(*processed_prompts, **kwargs)
         all_messages = [r.message for r in result if r.message]
         assert all_messages, "Error during execution, returned None for TeamRun"

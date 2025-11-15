@@ -182,7 +182,7 @@ class Team[TDeps = None](BaseTeam[TDeps, Any]):
 
         # Execute team logic
         result: TeamResponse = await self.execute(*processed_prompts, **kwargs)
-        message_id = user_msg.message_id or str(uuid4())
+        message_id = str(uuid4())  # Always generate unique response ID
         message = ChatMessage(
             content=[r.message.content for r in result if r.message],
             messages=[m for r in result if r.message for m in r.message.messages],
