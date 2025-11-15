@@ -60,8 +60,6 @@ async def load_skill(ctx: AgentContext, skill_name: str) -> str:  # noqa: D417
 
         # Format the skill content for Claude to follow
         return f"""
-<command-message>The "{skill_name}" skill is loading</command-message>
-
 # {skill.name}
 
 {instructions}
@@ -116,7 +114,6 @@ class SkillsResourceProvider(ResourceProvider):
         skills = await self.get_skills()
 
         if not skills:
-            # No tool if no skills available
             return []
 
         skills_list = [f"- {s.name}: {s.description}" for s in skills]

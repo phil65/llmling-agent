@@ -9,9 +9,9 @@ import shlex
 from typing import TYPE_CHECKING, Any, Literal, overload
 
 from anyenv import get_os_command_provider
-from fsspec.asyn import AsyncFileSystem, sync_wrapper
+from fsspec.asyn import sync_wrapper
 from fsspec.spec import AbstractBufferedFile
-from upath import UPath
+from upathtools.filesystems.base import BaseAsyncFileSystem, BaseUPath
 
 from acp.acp_requests import ACPRequests
 from acp.notifications import ACPNotifications
@@ -22,12 +22,6 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
-
-
-class ACPPath(UPath):
-    """UPath implementation for ACP filesystems."""
-
-    __slots__ = ()
 
 
 class ACPFile(AbstractBufferedFile):
@@ -60,11 +54,18 @@ class ACPFile(AbstractBufferedFile):
         return True
 
 
-class ACPFileSystem(AsyncFileSystem):
+class ACPPath(BaseUPath):
+    """Path for ACP filesystem."""
+
+    __slots__ = ()
+
+
+class ACPFileSystem(BaseAsyncFileSystem[ACPPath]):
     """Async filesystem for ACP sessions."""
 
     protocol = "acp"
     sep = "/"
+    upath_cls = ACPPath
 
     def __init__(self, client: Client, session_id: str, **kwargs: Any):
         """Initialize ACP filesystem.
@@ -80,10 +81,6 @@ class ACPFileSystem(AsyncFileSystem):
         self.requests = ACPRequests(client, session_id)
         self.notifications = ACPNotifications(client, session_id)
         self.command_provider = get_os_command_provider()
-
-    def _make_path(self, path: str) -> UPath:
-        """Create a path object from string."""
-        return ACPPath(path, **self.storage_options)
 
     def _parse_command(self, command_str: str) -> tuple[str, list[str]]:
         """Parse a shell command string into command and arguments.

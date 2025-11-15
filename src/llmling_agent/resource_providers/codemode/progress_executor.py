@@ -15,6 +15,15 @@ if TYPE_CHECKING:
     from llmling_agent.common_types import ProgressCallback
 
 
+def count_statements(code: str) -> int:
+    """Count total statements in the code."""
+    try:
+        tree = ast.parse(code)
+        return len(tree.body)
+    except SyntaxError:
+        return 0
+
+
 class ProgressTrackingExecutor:
     """Execute Python code statement-by-statement with automatic progress reporting."""
 
@@ -39,14 +48,6 @@ class ProgressTrackingExecutor:
         """Update the execution namespace with additional globals."""
         self.globals.update(namespace)
 
-    def count_statements(self, code: str) -> int:
-        """Count total statements in the code."""
-        try:
-            tree = ast.parse(code)
-            return len(tree.body)
-        except SyntaxError:
-            return 0
-
     async def execute_with_progress(self, code: str) -> Any:
         """Execute code with automatic progress reporting.
 
@@ -56,7 +57,7 @@ class ProgressTrackingExecutor:
         Returns:
             Result of code execution
         """
-        self.total_statements = self.count_statements(code)
+        self.total_statements = count_statements(code)
         self.current_statement = 0
         self.start_time = time.time()
 
@@ -118,7 +119,7 @@ class ProgressTrackingExecutor:
         Yields:
             (statement_source, metadata) tuples
         """
-        self.total_statements = self.count_statements(code)
+        self.total_statements = count_statements(code)
         self.current_statement = 0
         self.start_time = time.time()
 
@@ -126,7 +127,6 @@ class ProgressTrackingExecutor:
             return
 
         tree = ast.parse(code)
-
         for i, node in enumerate(tree.body):
             self.current_statement = i + 1
             statement_code = ast.unparse(node)
@@ -153,7 +153,6 @@ class ProgressTrackingExecutor:
                 metadata["error"] = str(e)
 
             metadata["locals_after"] = dict(self.locals)
-
             yield statement_code, metadata
 
             if self.step_delay > 0:

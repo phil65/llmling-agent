@@ -13,7 +13,6 @@ from llmling_agent_config.resources import ResourceInfo
 
 
 if TYPE_CHECKING:
-    from types import TracebackType
     from typing import Literal
 
     from fastmcp.client.elicitation import ElicitationHandler
@@ -93,12 +92,7 @@ class MCPResourceProvider(ResourceProvider):
 
         return self
 
-    async def __aexit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_val: BaseException | None,
-        exc_tb: TracebackType | None,
-    ):
+    async def __aexit__(self, *args: object):
         try:
             try:
                 # Clean up exit stack (which includes MCP clients)
