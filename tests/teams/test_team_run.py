@@ -6,7 +6,7 @@ import functools
 from llmling_models import function_to_model
 import pytest
 
-from llmling_agent import AgentPool, ChatMessage
+from llmling_agent import Agent, AgentPool, ChatMessage
 from llmling_agent.utils.now import get_now
 
 
@@ -81,23 +81,25 @@ async def test_single_execution():
 #         assert result.content.startswith("Processed:")
 #         assert result.name == "agent1"
 
-# async def test_error_handling():
-#     """Test handling of errors in background execution."""
 
-#     async def failing_processor(msg: str) -> str:
-#         await asyncio.sleep(0.1)
-#         msg = "Test error"
-#         raise ValueError(msg)
+async def test_error_handling():
+    """Test handling of errors in background execution."""
 
-#     async with AgentPool() as pool:
-#         agent = await pool.add_agent("failing_agent", provider=failing_processor)
+    async def failing_processor(msg: str) -> str:
+        await asyncio.sleep(0.1)
+        msg = "Test error"
+        raise ValueError(msg)
 
-#         run = agent
-#         _stats = await run.run_in_background("test")
+    async with AgentPool() as pool:
+        agent = Agent.from_callback(failing_processor, name="failing_agent")
+        pool.register(agent.name, agent)
 
-#         # Should return None if execution failed
-#         result = await run.wait()
-#         assert result is None
+        run = agent
+        _stats = await run.run_in_background("test", max_count=1)
+        # await asyncio.sleep(1)
+        # Should return None if execution failed
+        result = await run.wait()
+        assert result is None
 
 
 async def test_cancellation():

@@ -78,28 +78,23 @@ async def test_resource_path():
 #     print(list(path.iterdir()))
 #     assert str(path) == "mknodes_dsocs"
 
-
 #     # Test write/read
 #     test_content = "test content"
 #     test_file = path / "test.txt"
-#     await test_file.write_text(test_content)
-#     assert await test_file.read_text(encoding="utf-8") == test_content
+#     test_file.write_text(test_content)
+#     assert test_file.read_text(encoding="utf-8") == test_content
 
 #     # Test exists
-#     assert await test_file.exists()
-#     assert not await (path / "nonexistent.txt").exists()
+#     assert test_file.exists()
+#     assert not (path / "nonexistent.txt").exists()
 
 #     # Test glob
-#     await (path / "dir" / "file1.txt").write_text("content 1")
-#     await (path / "dir" / "file2.txt").write_text("content 2")
-#     files = [str(p) for p in await path.glob("dir/*.txt")]
+#     (path / "dir" / "file1.txt").write_text("content 1")
+#     (path / "dir" / "file2.txt").write_text("content 2")
+#     files = [str(p) for p in path.glob("dir/*.txt")]
 #     assert len(files) == 2
 #     assert "docs://dir/file1.txt" in files
 #     assert "docs://dir/file2.txt" in files
-
-#     # Test not found
-#     with pytest.raises(ValueError, match="Resource not found"):
-#         registry.get_path("nonexistent")
 
 
 if __name__ == "__main__":

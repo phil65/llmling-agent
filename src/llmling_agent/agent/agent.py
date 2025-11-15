@@ -1001,6 +1001,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                     self.log.debug("Continuous run cancelled")
                     break
                 except Exception:
+                    count += 1
                     self.log.exception("Background run failed")
                     await asyncio.sleep(interval)
             self.log.debug("Continuous run completed", iterations=count)
