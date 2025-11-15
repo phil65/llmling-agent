@@ -6,7 +6,6 @@ import asyncio
 from collections.abc import Awaitable, Callable
 from contextlib import AsyncExitStack, asynccontextmanager
 from dataclasses import dataclass, field, replace
-from pathlib import Path
 import time
 from typing import TYPE_CHECKING, Any, Self, TypedDict, overload
 from uuid import uuid4
@@ -59,6 +58,7 @@ if TYPE_CHECKING:
     from pydantic_ai import AgentStreamEvent, UsageLimits
     from pydantic_ai.output import OutputSpec
     from toprompt import AnyPromptType
+    from upath.types import JoinablePathLike
 
     from llmling_agent.agent import AgentContext
     from llmling_agent.agent.events import RichAgentStreamEvent
@@ -102,7 +102,7 @@ class AgentKwargs(TypedDict, total=False):
     tools: Sequence[ToolType | Tool] | None
     toolsets: Sequence[ResourceProvider] | None
     mcp_servers: Sequence[str | MCPServerConfig] | None
-    local_skills_dirs: Sequence[str | Path] | None
+    local_skills_dirs: Sequence[JoinablePathLike] | None
     retries: int
     output_retries: int | None
     end_strategy: EndStrategy
@@ -147,7 +147,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         toolsets: Sequence[ResourceProvider] | None = None,
         mcp_servers: Sequence[str | MCPServerConfig] | None = None,
         resources: Sequence[PromptType | str] = (),
-        local_skills_dirs: Sequence[str | Path] | None = None,
+        local_skills_dirs: Sequence[JoinablePathLike] | None = None,
         retries: int = 1,
         output_retries: int | None = None,
         end_strategy: EndStrategy = "early",
@@ -967,16 +967,14 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         *prompt: PromptCompatible,
         max_count: int | None = None,
         interval: float = 1.0,
-        block: bool = False,
         **kwargs: Any,
-    ) -> ChatMessage[OutputDataT] | None:
+    ) -> asyncio.Task[ChatMessage[OutputDataT] | None]:
         """Run agent continuously in background with prompt or dynamic prompt function.
 
         Args:
             prompt: Static prompt or function that generates prompts
             max_count: Maximum number of runs (None = infinite)
             interval: Seconds between runs
-            block: Whether to block until completion
             **kwargs: Arguments passed to run()
         """
         self._infinite = max_count is None
@@ -1009,19 +1007,11 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             self.log.debug("Continuous run completed", iterations=count)
             return latest
 
-        # Cancel any existing background task
-        await self.stop()
+        await self.stop()  # Cancel any existing background task
         task = asyncio.create_task(_continuous(), name=f"background_{self.name}")
-        if block:
-            try:
-                return await task  # type: ignore
-            finally:
-                if not task.done():
-                    task.cancel()
-        else:
-            self.log.debug("Started background task", task_name=task.get_name())
-            self._background_task = task
-            return None
+        self.log.debug("Started background task", task_name=task.get_name())
+        self._background_task = task
+        return task
 
     async def stop(self):
         """Stop continuous execution if running."""
