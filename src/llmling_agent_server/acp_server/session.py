@@ -202,18 +202,13 @@ class ACPSession:
     async def init_client_skills(self) -> None:
         """Discover and load skills from client-side .claude/skills directory."""
         try:
-            from pathlib import Path
-
-            from llmling_agent.tools.skills import SkillsRegistry
-
             from llmling_agent.resource_providers.skills import SkillsResourceProvider
+            from llmling_agent.skills.registry import SkillsRegistry
 
             # Create skills registry for client-side skills
-            registry = SkillsRegistry(skills_dirs=[Path(".claude/skills")])
-
+            registry = SkillsRegistry()
+            await registry.register_skills_from_path(self.fs)
             # Discover skills using ACP filesystem
-            await registry.discover_skills(filesystem=self.fs)
-
             if not registry.is_empty:
                 # Create provider
                 client_skills_provider = SkillsResourceProvider(

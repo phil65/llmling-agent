@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any, ClassVar
 from upath import UPath
 from upathtools.helpers import upath_to_fs
 
+from llmling_agent.log import get_logger
 from llmling_agent.skills.skill import Skill
 from llmling_agent.tools.exceptions import ToolError
 from llmling_agent.utils.baseregistry import BaseRegistry
@@ -16,12 +17,12 @@ from llmling_agent.utils.baseregistry import BaseRegistry
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from fsspec.asyn import AsyncFileSystem
     from upath.types import JoinablePathLike
 
 
 SKILL_NAME_LIMIT = 64
 SKILL_DESCRIPTION_LIMIT = 1024
+logger = get_logger(__name__)
 
 
 class SkillsRegistry(BaseRegistry[str, Skill]):
@@ -45,45 +46,55 @@ class SkillsRegistry(BaseRegistry[str, Skill]):
                        to get appropriate filesystem for each skills directory.
         """
         for skills_dir in self.skills_dirs:
-            fs = upath_to_fs(skills_dir)
+            await self.register_skills_from_path(skills_dir)
+
+    async def register_skills_from_path(
+        self, skills_dir: UPath | AbstractFileSystem, **storage_options: Any
+    ):
+        """Register skills from a given path.
+
+        Args:
+            skills_dir: Path to the directory containing skills.
+            storage_options: Additional options to pass to the filesystem.
+        """
+        if isinstance(skills_dir, AbstractFileSystem):
+            fs = skills_dir
+        else:
+            fs = upath_to_fs(skills_dir, **storage_options)
+
+        try:
+            # List entries in skills directory
+            entries = await fs._ls(fs.root_marker, detail=True)
+        except FileNotFoundError:
+            logger.warning("Skills directory not found", path=skills_dir)
+            return
+
+        # Filter for directories that might contain skills
+        skill_dirs = [entry for entry in entries if entry.get("type") == "directory"]
+
+        for skill_entry in skill_dirs:
+            skill_name = skill_entry["name"].lstrip("./")
+            skill_dir_path = skills_dir / skill_name
             try:
-                # List entries in skills directory
-                entries = await fs._ls("/", detail=True)
+                await fs._cat(f"{skill_name}/SKILL.md")
             except FileNotFoundError:
                 continue
 
-            # Filter for directories that might contain skills
-            skill_dirs = [entry for entry in entries if entry.get("type") == "directory"]
+            try:
+                skill = self._parse_skill(skill_dir_path, skills_dir)
+                self.register(skill.name, skill, replace=True)
+            except Exception as e:  # noqa: BLE001
+                # Log but don't fail discovery for one bad skill
+                print(f"Warning: Failed to parse skill at {skill_dir_path}: {e}")
 
-            for skill_entry in skill_dirs:
-                skill_dir_path = UPath(skill_entry["name"])
-                skill_file_path = skill_dir_path / "SKILL.md"
-                try:
-                    await fs._cat(str(skill_file_path))
-                except FileNotFoundError:
-                    continue
-
-                try:
-                    skill = await self._parse_skill(skill_dir_path, skills_dir, fs)
-                    self.register(skill.name, skill, replace=True)
-                except Exception as e:  # noqa: BLE001
-                    # Log but don't fail discovery for one bad skill
-                    print(f"Warning: Failed to parse skill at {skill_dir_path}: {e}")
-
-    async def _parse_skill(
+    def _parse_skill(
         self,
         skill_dir: JoinablePathLike,
         source_dir: JoinablePathLike,
-        filesystem: AsyncFileSystem,
     ) -> Skill:
         """Parse a SKILL.md file and extract metadata."""
         skill_file = UPath(skill_dir) / "SKILL.md"
-        skill_content = await filesystem._cat(str(skill_file))
-        content = (
-            skill_content.decode("utf-8")
-            if isinstance(skill_content, bytes)
-            else str(skill_content)
-        )
+        content = skill_file.read_text()
 
         # Extract YAML frontmatter
         frontmatter_match = re.match(r"^---\s*\n(.*?)\n---\s*\n", content, re.DOTALL)
@@ -150,10 +161,33 @@ class SkillsRegistry(BaseRegistry[str, Skill]):
 
 if __name__ == "__main__":
     import asyncio
+    import os
+
+    from llmling_agent.log import configure_logging
+
+    configure_logging()
 
     async def main():
         reg = SkillsRegistry()
-        await reg.discover_skills()
-        print(dict(reg))
+        p = UPath(
+            "github://",
+            token=os.getenv("GITHUB_TOKEN"),
+            username="phil65",
+            org="anthropics",
+            repo="skills",
+        )
+        print("Repository contents:")
+        print([f.name for f in p.iterdir()][:5])  # Show first 5 items
+
+        await reg.register_skills_from_path(
+            p,
+            token=os.getenv("GITHUB_TOKEN"),
+            username="phil65",
+            org="anthropics",
+            repo="skills",
+        )
+        print(f"Found {len(reg)} skills:")
+        for name, skill in reg.items():
+            print(f"  - {name}: {skill.description[:60]}...")
 
     asyncio.run(main())
