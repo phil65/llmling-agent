@@ -56,26 +56,19 @@ async def test_single_execution():
 # async def test_continuous_execution():
 #     """Test continuous background execution."""
 #     async with AgentPool() as pool:
-#         agent1 = await pool.add_agent(
-#             "agent1", provider=functools.partial(delayed_processor, delay=0.1)
-#         )
-
-#         run = agent1
-#         _stats = await run.run_in_background(
-#             "test",
-#             max_count=3,  # Run 3 times
-#             interval=0.1,
-#         )
-
+#         callback = functools.partial(delayed_processor, delay=0.1)
+#         agent1 = Agent.from_callback(callback, name="agent1")
+#         pool.register(agent1.name, agent1)
+#         _stats = await agent1.run_in_background("test", max_count=3, interval=0.1)
 #         # Count executions through stats
 #         execution_count = 0
-#         while run.is_busy():
-#             print(run._background_task)
+#         while agent1.is_busy():
+#             print(agent1._background_task)
 #             await asyncio.sleep(0.1)
 #             # execution_count = len(stats[0].stats.messages)
 
 #         # Wait should return last message
-#         result = await run.wait()
+#         result = await agent1.wait()
 #         assert execution_count == 3
 #         assert isinstance(result, ChatMessage)
 #         assert result.content.startswith("Processed:")

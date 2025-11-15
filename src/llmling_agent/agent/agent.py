@@ -8,7 +8,7 @@ from contextlib import AsyncExitStack, asynccontextmanager
 from dataclasses import dataclass, field, replace
 from pathlib import Path
 import time
-from typing import TYPE_CHECKING, Any, Self, TypedDict, get_type_hints, overload
+from typing import TYPE_CHECKING, Any, Self, TypedDict, overload
 from uuid import uuid4
 
 from anyenv import MultiEventHandler, method_spawner
@@ -410,9 +410,11 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             name: Optional name for the agent
             kwargs: Additional arguments for agent
         """
+        from pydantic._internal import _typing_extra
+
         name = name or callback.__name__ or "processor"
         model = function_to_model(callback)
-        return_type = get_type_hints(callback).get("return")
+        return_type = _typing_extra.get_function_type_hints(callback).get("return")
         if (  # If async, unwrap from Awaitable
             return_type
             and hasattr(return_type, "__origin__")
