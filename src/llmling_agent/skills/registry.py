@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING, Any, ClassVar
 
+from fsspec import AbstractFileSystem
 from upath import UPath
 from upathtools.helpers import upath_to_fs
 
