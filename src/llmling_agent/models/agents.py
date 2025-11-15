@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 from uuid import UUID
 
+from llmling_models.configs import AnyModelConfig  # noqa: TC002
 from pydantic import Field, model_validator
 from pydantic_ai import UsageLimits  # noqa: TC002
 from schemez import InlineSchemaDef
@@ -18,7 +19,6 @@ from llmling_agent.prompts.prompts import BasePrompt, PromptMessage, StaticPromp
 from llmling_agent.resource_providers import StaticResourceProvider
 from llmling_agent.utils.importing import import_class
 from llmling_agent_config.knowledge import Knowledge  # noqa: TC001
-from llmling_agent_config.models import AnyModelConfig  # noqa: TC001
 from llmling_agent_config.nodes import NodeConfig
 from llmling_agent_config.output_types import StructuredResponseConfig  # noqa: TC001
 from llmling_agent_config.session import MemoryConfig, SessionQuery
