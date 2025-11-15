@@ -6,6 +6,8 @@
 
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import Field
 from schemez import Schema
 
@@ -34,7 +36,7 @@ class RavingReview(MovieReview):
 
     score: float = Field(ge=8.5)  # Must really like it
     excitement: float = Field(ge=0.9)  # Must be super excited
-    would_recommend: bool = True  # Must recommend
+    would_recommend: Literal[True] = True  # Must recommend
     key_points: list[str] = Field(min_length=3)  # At least 3 points
 
 
@@ -42,7 +44,7 @@ async def main():
     # Create movie critic agent
     critic = Agent(
         name="movie_critic",
-        model="openai:gpt-5",
+        model="openai:gpt-5-nano",
         output_type=MovieReview,
         system_prompt=(
             "You are an enthusiastic but honest movie critic. "
