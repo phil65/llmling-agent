@@ -682,6 +682,16 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                 ctx: RunContext, events: AsyncIterable[AgentStreamEvent]
             ):
                 async for event in events:
+                    # Check for queued custom events and distribute them first
+                    while not self._progress_queue.empty():
+                        try:
+                            custom_event = self._progress_queue.get_nowait()
+                            for handler in self.event_handler._wrapped_handlers:
+                                await handler(ctx, custom_event)
+                        except asyncio.QueueEmpty:
+                            break
+
+                    # Then distribute the original event
                     for handler in self.event_handler._wrapped_handlers:
                         await handler(ctx, event)
 
