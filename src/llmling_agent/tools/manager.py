@@ -38,10 +38,7 @@ class ToolError(LLMLingError):
 class ToolManager:
     """Manages tool registration, enabling/disabling and access."""
 
-    def __init__(
-        self,
-        tools: Sequence[Tool | ToolType] | None = None,
-    ):
+    def __init__(self, tools: Sequence[Tool | ToolType] | None = None):
         """Initialize tool manager.
 
         Args:
@@ -67,11 +64,7 @@ class ToolManager:
             return "No tools available"
         return f"Available tools: {', '.join(enabled_tools)}"
 
-    def add_provider(
-        self,
-        provider: ResourceProvider,
-        owner: str | None = None,
-    ):
+    def add_provider(self, provider: ResourceProvider, owner: str | None = None):
         """Add an external resource provider.
 
         Args:

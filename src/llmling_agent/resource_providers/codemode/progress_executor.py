@@ -170,7 +170,7 @@ if __name__ == "__main__":
 
     log.configure_logging()
 
-    async def run_me(ctx: AgentContext, run_context: RunContext):
+    async def run_me(run_context: RunContext, ctx: AgentContext):
         """Test function using the unified progress system."""
         code = """
 async def main():
