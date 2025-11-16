@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 
@@ -10,12 +11,14 @@ if TYPE_CHECKING:
     from llmling_agent_server.a2a_server.a2a_types import A2ARequest, TaskData, TaskStatus
 
 
+@dataclass
 class SimpleStorage:
     """Simple in-memory storage for A2A tasks."""
 
-    def __init__(self) -> None:
-        self.tasks: dict[str, TaskData] = {}
-        self.contexts: dict[str, list[ChatMessage]] = {}  # Store conversation history
+    tasks: dict[str, TaskData] = field(default_factory=dict)
+    """Dictionary to store task data."""
+    contexts: dict[str, list[ChatMessage[Any]]] = field(default_factory=dict)
+    """Dictionary to store conversation history."""
 
     async def store_task(self, task_id: str, task_data: A2ARequest) -> None:
         """Store a task."""
@@ -62,11 +65,15 @@ class SimpleStorage:
         """Cancel a task."""
         await self.update_task_status(task_id, "cancelled")
 
-    async def load_context(self, context_id: str) -> list[ChatMessage]:
+    async def load_context(self, context_id: str) -> list[ChatMessage[Any]]:
         """Load conversation history for a context."""
         return self.contexts.get(context_id, [])
 
-    async def update_context(self, context_id: str, messages: list[ChatMessage]) -> None:
+    async def update_context(
+        self,
+        context_id: str,
+        messages: list[ChatMessage[Any]],
+    ) -> None:
         """Update conversation history for a context."""
         if context_id:
             self.contexts[context_id] = messages

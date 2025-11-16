@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import inspect
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from pydantic_ai import RunContext
 
@@ -49,7 +49,7 @@ def _create_tool_signature_with_context(
 
 
 def create_modified_signature(
-    fn: Callable,
+    fn: Callable[..., Any],
     *,
     remove: str | list[str] | None = None,
     inject: dict[str, type] | None = None,
@@ -69,7 +69,7 @@ def create_modified_signature(
 
 
 def modify_signature(
-    fn: Callable,
+    fn: Callable[..., Any],
     *,
     remove: str | list[str] | None = None,
     inject: dict[str, type] | None = None,
@@ -78,7 +78,7 @@ def modify_signature(
     return update_signature(fn, new_sig)
 
 
-def update_signature(fn: Callable, signature: inspect.Signature) -> None:
+def update_signature(fn: Callable[..., Any], signature: inspect.Signature) -> None:
     fn.__signature__ = signature  # type: ignore
     fn.__annotations__ = {
         name: param.annotation for name, param in signature.parameters.items()

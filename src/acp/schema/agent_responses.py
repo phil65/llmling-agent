@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence  # noqa: TC003
-from typing import Any, Literal
+from typing import Any, Literal, Self
 
 from pydantic import Field
 
@@ -142,7 +142,7 @@ class InitializeResponse(Response):
         embedded_context_prompts: bool = False,
         image_prompts: bool = False,
         auth_methods: Sequence[AuthMethod] | None = None,
-    ):
+    ) -> Self:
         """Create an instance of AgentCapabilities.
 
         Args:

@@ -42,7 +42,6 @@ from acp.task import DebuggingMessageStateStore
 if TYPE_CHECKING:
     import asyncio
     from collections.abc import Callable
-    from types import TracebackType
 
     from acp.agent.protocol import Agent
     from acp.connection import StreamObserver
@@ -83,6 +82,15 @@ class AgentSideConnection(Client):
         *,
         debug_file: str | None = None,
     ) -> None:
+        """Initialize the agent-side connection.
+
+        Args:
+            to_agent: factory that receives this connection and returns your Agent
+            input_stream: asyncio.StreamWriter (local -> peer)
+            output_stream: asyncio.StreamReader (peer -> local)
+            observers: list of StreamObserver instances to observe the connection
+            debug_file: path to a file to write debug information to
+        """
         agent = to_agent(self)
         handler = partial(_agent_handler, agent)
         store = DebuggingMessageStateStore(debug_file=debug_file) if debug_file else None
@@ -96,18 +104,21 @@ class AgentSideConnection(Client):
 
     # client-bound methods (agent -> client)
     async def session_update(self, params: SessionNotification) -> None:
+        """Send session update notification."""
         dct = params.model_dump(by_alias=True, exclude_none=True)
         await self._conn.send_notification("session/update", dct)
 
     async def request_permission(
         self, params: RequestPermissionRequest
     ) -> RequestPermissionResponse:
+        """Request permission from the client."""
         dct = params.model_dump(by_alias=True, exclude_none=True, exclude_defaults=True)
         method = "session/request_permission"
         resp = await self._conn.send_request(method, dct)
         return RequestPermissionResponse.model_validate(resp)
 
     async def read_text_file(self, params: ReadTextFileRequest) -> ReadTextFileResponse:
+        """Read text file from the client."""
         dct = params.model_dump(by_alias=True, exclude_none=True, exclude_defaults=True)
         resp = await self._conn.send_request("fs/read_text_file", dct)
         return ReadTextFileResponse.model_validate(resp)
@@ -115,6 +126,7 @@ class AgentSideConnection(Client):
     async def write_text_file(
         self, params: WriteTextFileRequest
     ) -> WriteTextFileResponse:
+        """Write text file to the client."""
         dct = params.model_dump(by_alias=True, exclude_none=True, exclude_defaults=True)
         r = await self._conn.send_request("fs/write_text_file", dct)
         return WriteTextFileResponse.model_validate(r)
@@ -123,6 +135,7 @@ class AgentSideConnection(Client):
     async def create_terminal(
         self, params: CreateTerminalRequest
     ) -> CreateTerminalResponse:
+        """Create a terminal on the client."""
         dct = params.model_dump(by_alias=True, exclude_none=True, exclude_defaults=True)
         resp = await self._conn.send_request("terminal/create", dct)
         #  resp = CreateTerminalResponse.model_validate(resp)
@@ -130,14 +143,17 @@ class AgentSideConnection(Client):
         return CreateTerminalResponse.model_validate(resp)
 
     async def ext_method(self, method: str, params: dict[str, Any]) -> dict[str, Any]:
+        """Call an extension method on the client."""
         return await self._conn.send_request(f"_{method}", params)
 
     async def ext_notification(self, method: str, params: dict[str, Any]) -> None:
+        """Send an extension notification to the client."""
         await self._conn.send_notification(f"_{method}", params)
 
     async def terminal_output(
         self, params: TerminalOutputRequest
     ) -> TerminalOutputResponse:
+        """Show terminal output on the client."""
         dct = params.model_dump(by_alias=True, exclude_none=True, exclude_defaults=True)
         resp = await self._conn.send_request("terminal/output", dct)
         return TerminalOutputResponse.model_validate(resp)
@@ -145,6 +161,7 @@ class AgentSideConnection(Client):
     async def release_terminal(
         self, params: ReleaseTerminalRequest
     ) -> ReleaseTerminalResponse:
+        """Release a terminal on the client."""
         dct = params.model_dump(by_alias=True, exclude_none=True, exclude_defaults=True)
         resp = await self._conn.send_request("terminal/release", dct)
         return ReleaseTerminalResponse.model_validate(resp)
@@ -152,6 +169,7 @@ class AgentSideConnection(Client):
     async def wait_for_terminal_exit(
         self, params: WaitForTerminalExitRequest
     ) -> WaitForTerminalExitResponse:
+        """Wait for a terminal to exit on the client."""
         dct = params.model_dump(by_alias=True, exclude_none=True, exclude_defaults=True)
         resp = await self._conn.send_request("terminal/wait_for_exit", dct)
         return WaitForTerminalExitResponse.model_validate(resp)
@@ -159,22 +177,21 @@ class AgentSideConnection(Client):
     async def kill_terminal(
         self, params: KillTerminalCommandRequest
     ) -> KillTerminalCommandResponse:
+        """Kill a terminal on the client."""
         dct = params.model_dump(by_alias=True, exclude_none=True, exclude_defaults=True)
         resp = await self._conn.send_request("terminal/kill", dct)
         return KillTerminalCommandResponse.model_validate(resp)
 
     async def close(self) -> None:
+        """Close the connection."""
         await self._conn.close()
 
     async def __aenter__(self) -> Self:
+        """Enter the async context."""
         return self
 
-    async def __aexit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_val: BaseException | None,
-        exc_tb: TracebackType | None,
-    ) -> None:
+    async def __aexit__(self, *args: object) -> None:
+        """Exit the async context (close the connection)."""
         await self.close()
 
 
@@ -184,6 +201,7 @@ async def _agent_handler(  # noqa: PLR0911
     params: dict[str, Any] | None,
     is_notification: bool,
 ) -> NewSessionResponse | InitializeResponse | PromptResponse | dict[str, Any] | None:
+    """Handle an agent request."""
     match method:
         case "initialize":
             initialize_request = InitializeRequest.model_validate(params)

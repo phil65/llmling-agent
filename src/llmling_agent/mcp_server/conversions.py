@@ -83,7 +83,7 @@ def to_mcp_messages(
 
 async def convert_mcp_content(
     mcp_content: Sequence[ContentBlock | TextResourceContents | BlobResourceContents],
-    client: Client | None = None,
+    client: Client[Any] | None = None,
 ) -> list[str | BinaryContent]:
     """Convert MCP content blocks to PydanticAI content types.
 

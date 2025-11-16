@@ -70,7 +70,7 @@ class ACPNotifications:
         self.client = client
         self.id = session_id
         self.log = logger.bind(session_id=session_id)
-        self._tool_call_inputs: dict[str, dict] = {}
+        self._tool_call_inputs: dict[str, dict[str, Any]] = {}
 
     async def tool_call(
         self,

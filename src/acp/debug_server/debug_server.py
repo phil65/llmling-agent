@@ -55,6 +55,7 @@ from llmling_agent.log import get_logger
 
 
 if TYPE_CHECKING:
+    from acp import SetSessionModelRequest, SetSessionModeRequest
     from acp.schema import (
         AuthenticateRequest,
         CreateTerminalRequest,
@@ -177,11 +178,11 @@ class MockAgent(Agent):
         terminal_id = str(uuid.uuid4())
         return CreateTerminalResponse(terminal_id=terminal_id)
 
-    async def set_session_mode(self, params) -> None:
+    async def set_session_mode(self, params: SetSessionModeRequest) -> None:
         """Mock session mode change."""
         logger.info("Mock session mode change")
 
-    async def set_session_model(self, params) -> None:
+    async def set_session_model(self, params: SetSessionModelRequest) -> None:
         """Mock session model change."""
         logger.info("Mock session model change")
 
@@ -231,7 +232,7 @@ app = FastAPI(
 
 
 @app.get("/", response_class=HTMLResponse)
-async def debug_interface():
+async def debug_interface() -> HTMLResponse:
     """Serve debug interface HTML."""
     return HTMLResponse("""
     <!DOCTYPE html>
@@ -446,7 +447,7 @@ async def get_status() -> DebugStatus:
 
 
 @app.post("/send-notification")
-async def send_notification(request: NotificationRequest):
+async def send_notification(request: NotificationRequest) -> dict[str, Any]:
     """Send a notification through ACP."""
     state = _get_debug_state()
 
@@ -480,8 +481,6 @@ async def send_notification(request: NotificationRequest):
             notification_type=request.notification_type,
             session_id=request.session_id,
         )
-        return {"success": True, "message": "Notification sent"}
-
     except Exception as e:
         logger.exception("Failed to send notification")
         raise HTTPException(status_code=500, detail=str(e)) from e
