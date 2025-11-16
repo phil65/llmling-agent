@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from slashed import CommandStore
     from slashed.events import CommandStoreEvent
 
-    from llmling_agent.agent.agent import Agent
+    from llmling_agent.agent import Agent
     from llmling_agent.agent.events import SlashedAgentStreamEvent
     from llmling_agent.common_types import PromptCompatible
 

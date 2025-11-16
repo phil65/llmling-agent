@@ -141,7 +141,7 @@ class ACPInputProvider(InputProvider):
         self,
         context: AgentContext[Any],
         params: types.ElicitRequestParams,
-        message_history: list[ChatMessage] | None = None,
+        message_history: list[ChatMessage[Any]] | None = None,
     ) -> types.ElicitResult | types.ErrorData:
         """Get user response to elicitation request with basic schema support.
 

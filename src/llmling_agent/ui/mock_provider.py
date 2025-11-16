@@ -53,7 +53,7 @@ class MockInputProvider(InputProvider):
         context: AgentContext,
         prompt: str,
         output_type: type | None = None,
-        message_history: list[ChatMessage] | None = None,
+        message_history: list[ChatMessage[Any]] | None = None,
     ) -> Any:
         kwargs = {"output_type": output_type, "message_history": message_history}
         args_ = (context, prompt)
@@ -66,7 +66,7 @@ class MockInputProvider(InputProvider):
         context: AgentContext,
         tool: Tool,
         args: dict[str, Any],
-        message_history: list[ChatMessage] | None = None,
+        message_history: list[ChatMessage[Any]] | None = None,
     ) -> ConfirmationResult:
         kwargs = {"message_history": message_history}
         args_ = (context, tool, args)
@@ -79,7 +79,7 @@ class MockInputProvider(InputProvider):
         self,
         context: AgentContext,
         params: types.ElicitRequestParams,
-        message_history: list[ChatMessage] | None = None,
+        message_history: list[ChatMessage[Any]] | None = None,
     ) -> types.ElicitResult | types.ErrorData:
         from mcp import types
 

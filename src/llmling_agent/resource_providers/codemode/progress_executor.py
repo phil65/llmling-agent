@@ -201,7 +201,7 @@ async def main():
         result = await executor.execute_with_progress(code)
         return result or "Code executed successfully"
 
-    async def main():
+    async def main() -> None:
         async with Agent(model="openai:gpt-5-nano", tools=[run_me]) as agent:
             print("🚀 Testing unified progress system...")
             async for event in agent.run_stream("Run run_me and show progress."):

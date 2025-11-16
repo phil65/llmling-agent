@@ -690,7 +690,7 @@ class ACPSession:
         """
 
         async def execute_prompt(
-            ctx: CommandContext,
+            ctx: CommandContext[Any],
             args: list[str],
             kwargs: dict[str, str],
         ) -> None:
@@ -747,7 +747,7 @@ class ACPSession:
         """
 
         async def execute_prompt(
-            ctx: CommandContext,
+            ctx: CommandContext[Any],
             args: list[str],
             kwargs: dict[str, str],
         ) -> None:

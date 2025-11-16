@@ -597,7 +597,7 @@ class ACPDebugServer:
         # Set global reference for FastAPI endpoints
         _set_debug_state(self.debug_state)
 
-    async def run(self):
+    async def run(self) -> None:
         """Run both ACP server (stdio) and FastAPI server."""
         if self._running:
             msg = "Server already running"
@@ -633,7 +633,7 @@ class ACPDebugServer:
         url = f"http://{self.fastapi_host}:{self.fastapi_port}"
         logger.info("FastAPI debug interface started", url=url)
 
-    async def _run_acp_server(self):
+    async def _run_acp_server(self) -> None:
         """Run ACP server on stdio."""
         from acp import AgentSideConnection
 
@@ -667,7 +667,7 @@ class ACPDebugServer:
             logger.exception("ACP server error")
             raise
 
-    async def shutdown(self):
+    async def shutdown(self) -> None:
         """Shutdown the debug server."""
         if not self._running:
             msg = "Server is not running"

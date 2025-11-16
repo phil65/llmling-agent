@@ -54,7 +54,7 @@ class MessageNode[TDeps, TResult](ABC):
         mcp_servers: Sequence[str | MCPServerConfig] | None = None,
         enable_logging: bool = True,
         progress_handler: RichProgressCallback | None = None,
-    ):
+    ) -> None:
         """Initialize message node."""
         super().__init__()
         from llmling_agent.mcp_server.manager import MCPManager

@@ -18,13 +18,13 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 # Type adapter for serializing ModelResponsePart sequences
-parts_adapter: TypeAdapter = TypeAdapter(
+parts_adapter = TypeAdapter(
     list,
     config=ConfigDict(ser_json_bytes="base64", val_json_bytes="base64"),
 )
 
 # Type adapter for serializing ModelMessage sequences
-messages_adapter: TypeAdapter = TypeAdapter(
+messages_adapter = TypeAdapter(
     list,
     config=ConfigDict(ser_json_bytes="base64", val_json_bytes="base64"),
 )

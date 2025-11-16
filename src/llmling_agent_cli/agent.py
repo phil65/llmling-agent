@@ -80,7 +80,7 @@ def add_agent_file(
 def set_active_file(
     name: str = t.Argument(help="Name of agent configuration to set as active"),
     verbose: bool = verbose_opt,
-):
+) -> None:
     """Set the active agent configuration file."""
     try:
         agent_store.set_active(name)
@@ -100,7 +100,7 @@ def list_agents(
     ),
     output_format: OutputFormat = output_format_opt,
     verbose: bool = verbose_opt,
-):
+) -> None:
     """List agents from the active (or specified) configuration."""
     from llmling_agent import AgentsManifest
 

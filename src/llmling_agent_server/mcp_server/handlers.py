@@ -28,7 +28,7 @@ def register_handlers(llm_server: MCPServer) -> None:  # noqa: PLR0915
     """
 
     @llm_server.server.set_logging_level()
-    async def handle_set_level(level: mcp.LoggingLevel):
+    async def handle_set_level(level: mcp.LoggingLevel) -> None:
         """Handle logging level changes."""
         try:
             python_level = constants.MCP_TO_LOGGING[level]

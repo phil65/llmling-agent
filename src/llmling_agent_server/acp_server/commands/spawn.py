@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 import uuid
 
 from pydantic_ai import (
@@ -123,7 +123,7 @@ class SpawnSubagentCommand(SlashedCommand):
 
     async def _handle_subagent_event(
         self,
-        event: RichAgentStreamEvent,
+        event: RichAgentStreamEvent[Any],
         tool_call_id: str,
         aggregated_content: list[str],
         session: ACPSession,

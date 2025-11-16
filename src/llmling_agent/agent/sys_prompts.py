@@ -128,7 +128,7 @@ class SystemPrompts:
         version: str | None = None,
         variables: dict[str, Any] | None = None,
     ):
-        """Add a system prompt using explicit parameters.
+        """Add a system prompt.
 
         Args:
             identifier: Prompt identifier/name

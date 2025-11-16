@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 
 import typer as t
 
@@ -12,6 +13,10 @@ from llmling_agent.utils.parse_time import parse_time_period
 from llmling_agent_cli import resolve_agent_config
 from llmling_agent_cli.cli_types import GroupBy
 from llmling_agent_cli.common import OutputFormat, format_output, output_format_opt
+
+
+if TYPE_CHECKING:
+    from llmling_agent_storage.base import StorageProvider
 
 
 logger = log.get_logger(__name__)
@@ -27,7 +32,7 @@ TOKEN_HELP = "Include token usage statistics"
 CONFIG_HELP = "Override agent config path"
 
 
-def get_history_provider(config_path: str):
+def get_history_provider(config_path: str) -> StorageProvider:
     """Get history provider from manifest config.
 
     Args:
@@ -115,7 +120,7 @@ def show_stats(
     ),
     group_by: GroupBy = t.Option("agent", "--group-by", "-g", help="Group by"),  # noqa: B008
     output_format: OutputFormat = output_format_opt,
-):
+) -> None:
     """Show usage statistics.
 
     Examples:

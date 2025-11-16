@@ -8,15 +8,11 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import TYPE_CHECKING, Any, Literal
+from typing import Any, Literal, Self
 
 import httpx
 from pydantic import Field, field_validator
 from schemez import Schema
-
-
-if TYPE_CHECKING:
-    from types import TracebackType
 
 
 # Constants
@@ -325,15 +321,10 @@ class MCPRegistryClient:
         await self.client.aclose()
         log.debug("Closed HTTP client")
 
-    async def __aenter__(self):
+    async def __aenter__(self) -> Self:
         return self
 
-    async def __aexit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_val: BaseException | None,
-        exc_tb: TracebackType | None,
-    ) -> None:
+    async def __aexit__(self, *args: object) -> None:
         await self.close()
 
 

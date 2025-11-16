@@ -56,7 +56,7 @@ def acp_command(
         "--agent",
         help="Name of specific agent to use (defaults to first agent in config)",
     ),
-):
+) -> None:
     r"""Run agents as an ACP (Agent Client Protocol) server.
 
     This creates an ACP-compatible JSON-RPC 2.0 server that communicates over stdio
@@ -192,7 +192,7 @@ def acp_command(
     if debug_commands:
         logger.info("Debug slash commands enabled")
 
-    async def run_acp_server():
+    async def run_acp_server() -> None:
         try:
             async with acp_server:
                 await acp_server.start()

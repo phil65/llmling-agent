@@ -38,7 +38,7 @@ class Build:
             theme.add_status_icon("js", "fa6-brands:js", "Uses JavaScript")
             theme.add_status_icon("css", "vaadin:css", "Uses CSS")
 
-    def on_root(self, nav: mk.MkNav):
+    def on_root(self, nav: mk.MkNav) -> mk.MkNav:
         nav.page_template.announcement_bar = mk.MkMetadataBadges("websites")
         nav += getting_started.nav
         nav += core_concepts.nav

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 import typer
 
 from llmling_agent_cli.cli_types import Provider  # noqa: TC001
@@ -47,7 +49,7 @@ def create(
     class StatsDisplay(Static):
         """Display for token count and validation status."""
 
-        def __init__(self, *args, **kwargs) -> None:
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
             super().__init__(*args, markup=kwargs.pop("markup", False), **kwargs)
 
         def update_stats(self, token_count: int, status: str | None = None) -> None:
@@ -75,7 +77,7 @@ def create(
             syntax = Syntax(content, "yaml", theme="monokai")
             self._content.update(syntax)
 
-    class ConfigGeneratorApp(App):
+    class ConfigGeneratorApp(App[None]):
         """Application for generating configuration files."""
 
         CSS = """
