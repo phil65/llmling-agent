@@ -35,11 +35,11 @@ from llmling_agent.log import get_logger
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
+    from datetime import datetime
 
     from pydantic_ai import ModelRequest, ModelResponse
 
     from acp import (
-        Annotations,
         AvailableCommand,
         Client,
         PlanEntry,
@@ -47,6 +47,7 @@ if TYPE_CHECKING:
         ToolCallKind,
         ToolCallStatus,
     )
+    from acp.schema import Audience
 
     ContentType = Sequence[ToolCallContent | str]
 
@@ -295,43 +296,90 @@ class ACPNotifications:
         notification = SessionNotification(session_id=self.id, update=update)
         await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]
 
-    async def send_agent_text(self, message: str) -> None:
+    async def send_agent_text(
+        self,
+        message: str,
+        *,
+        audience: Audience | None = None,
+        last_modified: datetime | str | None = None,
+        priority: float | None = None,
+    ) -> None:
         """Send a text message notification.
 
         Args:
             message: Text message to send
+            audience: Audience to send the message to
+            last_modified: Last modified timestamp
+            priority: Priority of the message
         """
-        update = AgentMessageChunk(content=TextContentBlock(text=message))
+        update = AgentMessageChunk.text(
+            text=message,
+            audience=audience,
+            last_modified=last_modified,
+            priority=priority,
+        )
         notification = SessionNotification(session_id=self.id, update=update)
         await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]
 
-    async def send_agent_thought(self, message: str) -> None:
+    async def send_agent_thought(
+        self,
+        message: str,
+        *,
+        audience: Audience | None = None,
+        last_modified: datetime | str | None = None,
+        priority: float | None = None,
+    ) -> None:
         """Send a text message notification.
 
         Args:
             message: Text message to send
+            audience: Audience to send the message to
+            last_modified: Last modified date of the message
+            priority: Priority of the message
         """
-        update = AgentThoughtChunk(content=TextContentBlock(text=message))
+        update = AgentThoughtChunk.text(
+            text=message,
+            audience=audience,
+            last_modified=last_modified,
+            priority=priority,
+        )
         notification = SessionNotification(session_id=self.id, update=update)
         await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]
 
-    async def send_user_message(self, message: str) -> None:
+    async def send_user_message(
+        self,
+        message: str,
+        *,
+        audience: Audience | None = None,
+        last_modified: datetime | str | None = None,
+        priority: float | None = None,
+    ) -> None:
         """Send a user message notification.
 
         Args:
             message: Text message to send
+            audience: Audience to send the message to
+            last_modified: Last modified date of the message
+            priority: Priority of the message
         """
-        update = UserMessageChunk(content=TextContentBlock(text=message))
+        update = UserMessageChunk.text(
+            text=message,
+            audience=audience,
+            last_modified=last_modified,
+            priority=priority,
+        )
         notification = SessionNotification(session_id=self.id, update=update)
         await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]
 
     async def send_user_image(
         self,
-        data: str,
+        data: str | bytes,
         mime_type: str,
         *,
         uri: str | None = None,
-        annotations: Any | None = None,
+        audience: Audience | None = None,
+        last_modified: datetime | str | None = None,
+        priority: float | None = None,
     ) -> None:
         """Send a user image notification.
 
@@ -339,38 +387,49 @@ class ACPNotifications:
             data: Base64-encoded image data
             mime_type: MIME type of the image
             uri: Optional URI of the image
-            annotations: Optional annotations for the content block
+            audience: Optional audience for the content block
+            last_modified: Optional last modified timestamp for the content block
+            priority: Optional priority for the content block
         """
-        content = ImageContentBlock(
+        update = UserMessageChunk.image(
             data=data,
             mime_type=mime_type,
             uri=uri,
-            annotations=annotations,
+            audience=audience,
+            last_modified=last_modified,
+            priority=priority,
         )
-        update = UserMessageChunk(content=content)
         notification = SessionNotification(session_id=self.id, update=update)
         await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]
 
     async def send_user_audio(
         self,
-        data: str,
+        data: str | bytes,
         mime_type: str,
         *,
-        annotations: Any | None = None,
+        uri: str | None = None,
+        audience: Audience | None = None,
+        last_modified: datetime | str | None = None,
+        priority: float | None = None,
     ) -> None:
         """Send a user audio notification.
 
         Args:
             data: Base64-encoded audio data
             mime_type: MIME type of the audio
-            annotations: Optional annotations for the content block
+            uri: Optional URI for the audio
+            audience: Optional audience for the content block
+            last_modified: Optional last modified timestamp for the content block
+            priority: Optional priority for the content block
         """
-        content = AudioContentBlock(
+        update = UserMessageChunk.audio(
             data=data,
             mime_type=mime_type,
-            annotations=annotations,
+            uri=uri,
+            audience=audience,
+            last_modified=last_modified,
+            priority=priority,
         )
-        update = UserMessageChunk(content=content)
         notification = SessionNotification(session_id=self.id, update=update)
         await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]
 
@@ -383,7 +442,9 @@ class ACPNotifications:
         mime_type: str | None = None,
         size: int | None = None,
         title: str | None = None,
-        annotations: Any | None = None,
+        audience: Audience | None = None,
+        last_modified: datetime | str | None = None,
+        priority: float | None = None,
     ) -> None:
         """Send a user resource link notification.
 
@@ -394,18 +455,21 @@ class ACPNotifications:
             mime_type: Optional MIME type of the resource
             size: Optional size of the resource in bytes
             title: Optional title of the resource
-            annotations: Optional annotations for the content block
+            audience: Optional audience for the content block
+            last_modified: Optional last modified timestamp for the content block
+            priority: Optional priority for the content block
         """
-        content = ResourceContentBlock(
+        update = UserMessageChunk.resource(
             uri=uri,
             name=name,
             description=description,
             mime_type=mime_type,
             size=size,
             title=title,
-            annotations=annotations,
+            audience=audience,
+            last_modified=last_modified,
+            priority=priority,
         )
-        update = UserMessageChunk(content=content)
         notification = SessionNotification(session_id=self.id, update=update)
         await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]
 
@@ -456,13 +520,29 @@ class ACPNotifications:
                                         data=img_block.data,
                                         mime_type=img_block.mime_type,
                                         uri=img_block.uri,
-                                        annotations=img_block.annotations,
+                                        audience=img_block.annotations.audience
+                                        if img_block.annotations
+                                        else None,
+                                        last_modified=img_block.annotations.last_modified
+                                        if img_block.annotations
+                                        else None,
+                                        priority=img_block.annotations.priority
+                                        if img_block.annotations
+                                        else None,
                                     )
                                 case AudioContentBlock() as audio_block:
                                     await self.send_user_audio(
                                         data=audio_block.data,
                                         mime_type=audio_block.mime_type,
-                                        annotations=audio_block.annotations,
+                                        audience=audio_block.annotations.audience
+                                        if audio_block.annotations
+                                        else None,
+                                        last_modified=audio_block.annotations.last_modified
+                                        if audio_block.annotations
+                                        else None,
+                                        priority=audio_block.annotations.priority
+                                        if audio_block.annotations
+                                        else None,
                                     )
                                 case ResourceContentBlock() as resource_block:
                                     await self.send_user_resource(
@@ -472,7 +552,15 @@ class ACPNotifications:
                                         mime_type=resource_block.mime_type,
                                         size=resource_block.size,
                                         title=resource_block.title,
-                                        annotations=resource_block.annotations,
+                                        audience=resource_block.annotations.audience
+                                        if resource_block.annotations
+                                        else None,
+                                        last_modified=resource_block.annotations.last_modified
+                                        if resource_block.annotations
+                                        else None,
+                                        priority=resource_block.annotations.priority
+                                        if resource_block.annotations
+                                        else None,
                                     )
                                 case EmbeddedResourceContentBlock() as embedded_block:
                                     # Handle embedded resources with proper
@@ -541,11 +629,13 @@ class ACPNotifications:
 
     async def send_agent_image(
         self,
-        data: str,
+        data: str | bytes,
         mime_type: str,
         *,
         uri: str | None = None,
-        annotations: Annotations | None = None,
+        audience: Audience | None = None,
+        last_modified: datetime | str | None = None,
+        priority: float | None = None,
     ) -> None:
         """Send an image message notification.
 
@@ -553,12 +643,18 @@ class ACPNotifications:
             data: Base64-encoded image data
             mime_type: MIME type of the image (e.g., 'image/png')
             uri: Optional URI reference for the image
-            annotations: Optional annotations for the image
+            audience: Optional audience for the image
+            last_modified: Optional last modified timestamp for the image
+            priority: Optional priority for the image
         """
-        content = ImageContentBlock(
-            data=data, mime_type=mime_type, uri=uri, annotations=annotations
+        update = AgentMessageChunk.image(
+            data=data,
+            mime_type=mime_type,
+            uri=uri,
+            audience=audience,
+            last_modified=last_modified,
+            priority=priority,
         )
-        update = AgentMessageChunk(content=content)
         notification = SessionNotification(session_id=self.id, update=update)
         await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]
 
@@ -584,22 +680,29 @@ class ACPNotifications:
 
     async def send_agent_audio(
         self,
-        data: str,
+        data: str | bytes,
         mime_type: str,
         *,
-        annotations: Annotations | None = None,
+        audience: Audience | None = None,
+        last_modified: datetime | str | None = None,
+        priority: float | None = None,
     ) -> None:
         """Send an audio message notification.
 
         Args:
             data: Base64-encoded audio data
             mime_type: MIME type of the audio (e.g., 'audio/wav')
-            annotations: Optional annotations for the audio
+            audience: Optional audience for the audio
+            last_modified: Optional last modified timestamp for the audio
+            priority: Optional priority for the audio
         """
-        content = AudioContentBlock(
-            data=data, mime_type=mime_type, annotations=annotations
+        update = AgentMessageChunk.audio(
+            data=data,
+            mime_type=mime_type,
+            last_modified=last_modified,
+            priority=priority,
+            audience=audience,
         )
-        update = AgentMessageChunk(content=content)
         notification = SessionNotification(session_id=self.id, update=update)
         await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]
 
@@ -612,7 +715,9 @@ class ACPNotifications:
         description: str | None = None,
         mime_type: str | None = None,
         size: int | None = None,
-        annotations: Annotations | None = None,
+        audience: Audience | None = None,
+        last_modified: datetime | str | None = None,
+        priority: float | None = None,
     ) -> None:
         """Send a resource reference message notification.
 
@@ -623,17 +728,20 @@ class ACPNotifications:
             description: Optional description of the resource
             mime_type: Optional MIME type of the resource
             size: Optional size of the resource in bytes
-            annotations: Optional annotations for the resource
+            audience: Optional audience for the resource
+            last_modified: Optional last modified timestamp for the resource
+            priority: Optional priority for the resource
         """
-        content = ResourceContentBlock(
+        update = AgentMessageChunk.resource(
             name=name,
             uri=uri,
             title=title,
             description=description,
             mime_type=mime_type,
             size=size,
-            annotations=annotations,
+            audience=audience,
+            last_modified=last_modified,
+            priority=priority,
         )
-        update = AgentMessageChunk(content=content)
         notification = SessionNotification(session_id=self.id, update=update)
         await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]

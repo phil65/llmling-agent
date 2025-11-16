@@ -492,17 +492,11 @@ async def _create_notification_update(notification_type: str, data: dict[str, An
     """Create appropriate notification update object."""
     match notification_type:
         case "agent_message":
-            return AgentMessageChunk(
-                content=TextContentBlock(text=data.get("text", "Mock agent message"))
-            )
+            return AgentMessageChunk.text(text=data.get("text", "Mock agent message"))
         case "user_message":
-            return UserMessageChunk(
-                content=TextContentBlock(text=data.get("text", "Mock user message"))
-            )
+            return UserMessageChunk.text(text=data.get("text", "Mock user message"))
         case "agent_thought":
-            return AgentThoughtChunk(
-                content=TextContentBlock(text=data.get("text", "Mock agent thought"))
-            )
+            return AgentThoughtChunk.text(text=data.get("text", "Mock agent thought"))
         case "tool_call_start":
             return ToolCallStart(
                 tool_call_id=data.get("tool_call_id", f"tool-{uuid.uuid4()}"),

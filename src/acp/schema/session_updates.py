@@ -50,7 +50,7 @@ class BaseChunk(AnnotatedObject):
         *,
         audience: Audience | None = None,
         last_modified: datetime | str | None = None,
-        priority: int | None = None,
+        priority: float | None = None,
     ) -> Self:
         """Create a chunk containing text.
 
@@ -75,7 +75,7 @@ class BaseChunk(AnnotatedObject):
         uri: str | None = None,
         audience: Audience | None = None,
         last_modified: datetime | str | None = None,
-        priority: int | None = None,
+        priority: float | None = None,
     ) -> Self:
         """Create a chunk containing an embedded image resource.
 
@@ -111,7 +111,7 @@ class BaseChunk(AnnotatedObject):
         uri: str | None = None,
         audience: Audience | None = None,
         last_modified: datetime | str | None = None,
-        priority: int | None = None,
+        priority: float | None = None,
     ) -> Self:
         """Create a chunk containing audio content.
 
@@ -150,7 +150,7 @@ class BaseChunk(AnnotatedObject):
         title: str | None = None,
         audience: Audience | None = None,
         last_modified: datetime | str | None = None,
-        priority: int | None = None,
+        priority: float | None = None,
     ) -> Self:
         """Create a chunk containing a resource content block.
 
@@ -190,7 +190,7 @@ class BaseChunk(AnnotatedObject):
         mime_type: str | None = None,
         audience: Audience | None = None,
         last_modified: datetime | str | None = None,
-        priority: int | None = None,
+        priority: float | None = None,
     ) -> Self:
         """Create a chunk containing an embedded text resource.
 
@@ -222,7 +222,7 @@ class BaseChunk(AnnotatedObject):
         mime_type: str | None = None,
         audience: Audience | None = None,
         last_modified: datetime | str | None = None,
-        priority: int | None = None,
+        priority: float | None = None,
     ) -> Self:
         """Create a chunk containing an embedded blob resource.
 
