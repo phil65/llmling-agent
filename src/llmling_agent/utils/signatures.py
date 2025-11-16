@@ -73,11 +73,13 @@ def modify_signature(
     *,
     remove: str | list[str] | None = None,
     inject: dict[str, type] | None = None,
-    update_annotations: bool = True,
 ):
     new_sig = create_modified_signature(fn, remove=remove, inject=inject)
-    fn.__signature__ = new_sig  # type: ignore
-    if update_annotations:
-        fn.__annotations__ = dict(new_sig.parameters) | {
-            "return": new_sig.return_annotation
-        }
+    return update_signature(fn, new_sig)
+
+
+def update_signature(fn: Callable, signature: inspect.Signature):
+    fn.__signature__ = signature  # type: ignore
+    fn.__annotations__ = {
+        name: param.annotation for name, param in signature.parameters.items()
+    } | {"return": signature.return_annotation}

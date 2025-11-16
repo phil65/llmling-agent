@@ -11,7 +11,7 @@ from pydantic_ai import RunContext
 from llmling_agent.agent.context import AgentContext
 from llmling_agent.tasks import ChainAbortedError, RunAbortedError, ToolSkippedError
 from llmling_agent.utils.inspection import execute, get_argument_key
-from llmling_agent.utils.signatures import create_modified_signature
+from llmling_agent.utils.signatures import create_modified_signature, update_signature
 
 
 if TYPE_CHECKING:
@@ -76,7 +76,6 @@ def wrap_tool(tool: Tool, agent_ctx: AgentContext) -> Callable[..., Awaitable[An
     wraps(fn)(wrapped)  # pyright: ignore
     wrapped.__doc__ = tool.description
     wrapped.__name__ = tool.name
-
     # Modify signature for pydantic-ai: hide AgentContext, add RunContext if needed
     # Must be done AFTER wraps to prevent overwriting
     if agent_ctx_key and not run_ctx_key:
@@ -84,20 +83,11 @@ def wrap_tool(tool: Tool, agent_ctx: AgentContext) -> Callable[..., Awaitable[An
         new_sig = create_modified_signature(
             fn, remove=agent_ctx_key, inject={"ctx": RunContext}
         )
-        wrapped.__signature__ = new_sig  # type: ignore
-        # Update annotations to remove AgentContext and add RunContext
-        wrapped.__annotations__ = {
-            name: param.annotation for name, param in new_sig.parameters.items()
-        } | {"return": new_sig.return_annotation}
+        update_signature(wrapped, new_sig)
     elif agent_ctx_key and run_ctx_key:
         # Tool has both contexts - hide AgentContext from pydantic-ai
         new_sig = create_modified_signature(fn, remove=agent_ctx_key)
-        wrapped.__signature__ = new_sig  # type: ignore
-        # Update annotations to remove AgentContext
-        wrapped.__annotations__ = {
-            name: param.annotation for name, param in new_sig.parameters.items()
-        } | {"return": new_sig.return_annotation}
-
+        update_signature(wrapped, new_sig)
     return wrapped
 
 
