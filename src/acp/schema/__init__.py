@@ -109,6 +109,7 @@ from acp.schema.content_blocks import (
     TextResourceContents,
     BlobResourceContents,
     ContentBlock,
+    Audience,
 )
 
 PROTOCOL_VERSION = 1
@@ -124,6 +125,7 @@ __all__ = [
     "AgentThoughtChunk",
     "AllowedOutcome",
     "Annotations",
+    "Audience",
     "AudioContentBlock",
     "AuthMethod",
     "AuthenticateRequest",

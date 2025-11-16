@@ -2,14 +2,26 @@
 
 from __future__ import annotations
 
+import base64
 from collections.abc import Sequence  # noqa: TC003
-from typing import Annotated, Any, Literal
+from typing import TYPE_CHECKING, Annotated, Any, Literal, Self
 
 from pydantic import Field
 
 from acp.schema.agent_plan import PlanEntry  # noqa: TC001
 from acp.schema.base import AnnotatedObject
-from acp.schema.content_blocks import ContentBlock  # noqa: TC001
+from acp.schema.content_blocks import (  # noqa: TC001
+    Annotations,
+    Audience,
+    AudioContentBlock,
+    BlobResourceContents,
+    ContentBlock,
+    EmbeddedResourceContentBlock,
+    ImageContentBlock,
+    ResourceContentBlock,
+    TextContentBlock,
+    TextResourceContents,
+)
 from acp.schema.slash_commands import AvailableCommand  # noqa: TC001
 from acp.schema.tool_call import (  # noqa: TC001
     ToolCallContent,
@@ -18,10 +30,226 @@ from acp.schema.tool_call import (  # noqa: TC001
 )
 
 
+if TYPE_CHECKING:
+    from datetime import datetime
+
+
 ToolCallStatus = Literal["pending", "in_progress", "completed", "failed"]
 
 
-class UserMessageChunk(AnnotatedObject):
+class BaseChunk(AnnotatedObject):
+    """Base class for all session update chunks."""
+
+    content: ContentBlock
+    """A single item of content"""
+
+    @classmethod
+    def text(
+        cls,
+        text: str,
+        *,
+        audience: Audience | None = None,
+        last_modified: datetime | str | None = None,
+        priority: int | None = None,
+    ) -> Self:
+        """Create a chunk containing text.
+
+        Args:
+            text: The text content.
+            audience: The audience for the text.
+            last_modified: The last modified date of the text.
+            priority: The priority of the text.
+        """
+        annotations = Annotations.optionally_create(
+            audience=audience,
+            last_modified=last_modified,
+            priority=priority,
+        )
+        return cls(content=TextContentBlock(text=text, annotations=annotations))
+
+    @classmethod
+    def image(
+        cls,
+        data: str | bytes,
+        mime_type: str,
+        uri: str | None = None,
+        audience: Audience | None = None,
+        last_modified: datetime | str | None = None,
+        priority: int | None = None,
+    ) -> Self:
+        """Create a chunk containing an embedded image resource.
+
+        Args:
+            data: The image data.
+            mime_type: The MIME type of the image.
+            uri: The URI of the image.
+            audience: The audience for the image.
+            last_modified: The last modified date of the image.
+            priority: The priority of the image.
+        """
+        if isinstance(data, bytes):
+            data = base64.b64encode(data).decode()
+        annotations = Annotations.optionally_create(
+            audience=audience,
+            last_modified=last_modified,
+            priority=priority,
+        )
+        return cls(
+            content=ImageContentBlock(
+                data=data,
+                mime_type=mime_type,
+                uri=uri,
+                annotations=annotations,
+            )
+        )
+
+    @classmethod
+    def audio(
+        cls,
+        data: str | bytes,
+        mime_type: str,
+        uri: str | None = None,
+        audience: Audience | None = None,
+        last_modified: datetime | str | None = None,
+        priority: int | None = None,
+    ) -> Self:
+        """Create a chunk containing audio content.
+
+        Args:
+            data: The audio data.
+            mime_type: The MIME type of the audio data.
+            uri: The URI of the audio data.
+            audience: The audience for the audio chunk.
+            last_modified: The last modified date of the audio chunk.
+            priority: The priority of the audio chunk.
+        """
+        if isinstance(data, bytes):
+            data = base64.b64encode(data).decode()
+        annotations = Annotations.optionally_create(
+            audience=audience,
+            last_modified=last_modified,
+            priority=priority,
+        )
+        return cls(
+            content=AudioContentBlock(
+                data=data,
+                mime_type=mime_type,
+                uri=uri,
+                annotations=annotations,
+            )
+        )
+
+    @classmethod
+    def resource(
+        cls,
+        name: str,
+        uri: str,
+        description: str | None = None,
+        mime_type: str | None = None,
+        size: int | None = None,
+        title: str | None = None,
+        audience: Audience | None = None,
+        last_modified: datetime | str | None = None,
+        priority: int | None = None,
+    ) -> Self:
+        """Create a chunk containing a resource content block.
+
+        Args:
+            name: The name of the resource.
+            uri: The URI of the resource.
+            description: The description of the resource.
+            mime_type: The MIME type of the resource.
+            size: The size of the resource.
+            title: The title of the resource.
+            audience: The audience of the resource.
+            last_modified: The last modified date of the resource.
+            priority: The priority of the resource.
+        """
+        annotations = Annotations.optionally_create(
+            audience=audience,
+            last_modified=last_modified,
+            priority=priority,
+        )
+        return cls(
+            content=ResourceContentBlock(
+                name=name,
+                uri=uri,
+                description=description,
+                mime_type=mime_type,
+                size=size,
+                title=title,
+                annotations=annotations,
+            )
+        )
+
+    @classmethod
+    def embedded_text_resource(
+        cls,
+        text: str,
+        uri: str,
+        mime_type: str | None = None,
+        audience: Audience | None = None,
+        last_modified: datetime | str | None = None,
+        priority: int | None = None,
+    ) -> Self:
+        """Create a chunk containing an embedded text resource.
+
+        Args:
+            text: The text to embed.
+            uri: The URI of the resource.
+            mime_type: The MIME type of the resource.
+            audience: The audience to apply to the resource.
+            last_modified: The last modified date of the resource.
+            priority: The priority of the resource.
+        """
+        annotations = Annotations.optionally_create(
+            audience=audience,
+            last_modified=last_modified,
+            priority=priority,
+        )
+        return cls(
+            content=EmbeddedResourceContentBlock(
+                annotations=annotations,
+                resource=TextResourceContents(text=text, mime_type=mime_type, uri=uri),
+            )
+        )
+
+    @classmethod
+    def embedded_blob_resource(
+        cls,
+        data: bytes | str,
+        uri: str,
+        mime_type: str | None = None,
+        audience: Audience | None = None,
+        last_modified: datetime | str | None = None,
+        priority: int | None = None,
+    ) -> Self:
+        """Create a chunk containing an embedded blob resource.
+
+        Args:
+            data: The data to embed.
+            uri: The URI of the resource.
+            mime_type: The MIME type of the resource.
+            audience: The audience to apply to the resource.
+            last_modified: The last modified date of the resource.
+            priority: The priority of the resource.
+        """
+        if isinstance(data, bytes):
+            data = base64.b64encode(data).decode()
+        annotations = Annotations.optionally_create(
+            audience=audience,
+            last_modified=last_modified,
+            priority=priority,
+        )
+        return cls(
+            content=EmbeddedResourceContentBlock(
+                annotations=annotations,
+                resource=BlobResourceContents(blob=data, mime_type=mime_type, uri=uri),
+            )
+        )
+
+
+class UserMessageChunk(BaseChunk):
     """A chunk of the user's message being streamed."""
 
     session_update: Literal["user_message_chunk"] = Field(
@@ -29,11 +257,8 @@ class UserMessageChunk(AnnotatedObject):
     )
     """User message chunk."""
 
-    content: ContentBlock
-    """A single item of content"""
 
-
-class AgentMessageChunk(AnnotatedObject):
+class AgentMessageChunk(BaseChunk):
     """A chunk of the agent's response being streamed."""
 
     session_update: Literal["agent_message_chunk"] = Field(
@@ -41,20 +266,14 @@ class AgentMessageChunk(AnnotatedObject):
     )
     """Agent message chunk."""
 
-    content: ContentBlock
-    """A single item of content"""
 
-
-class AgentThoughtChunk(AnnotatedObject):
+class AgentThoughtChunk(BaseChunk):
     """A chunk of the agent's internal reasoning being streamed."""
 
     session_update: Literal["agent_thought_chunk"] = Field(
         default="agent_thought_chunk", init=False
     )
     """Agent thought chunk."""
-
-    content: ContentBlock
-    """A single item of content"""
 
 
 class ToolCallProgress(AnnotatedObject):

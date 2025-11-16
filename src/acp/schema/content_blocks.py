@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Annotated, Literal
+from datetime import datetime
+from typing import Annotated, Literal, Self
 
 from pydantic import Field
 
@@ -51,6 +52,20 @@ class Annotations(AnnotatedObject):
 
     priority: float | None = None
     """Priority of the annotated resource."""
+
+    @classmethod
+    def optionally_create(
+        cls,
+        audience: Audience | None = None,
+        last_modified: datetime | str | None = None,
+        priority: float | None = None,
+    ) -> Self | None:
+        """Create an annotations object if any value is given, otherwise return None."""
+        if audience is None and last_modified is None and priority is None:
+            return None
+        if isinstance(last_modified, datetime):
+            last_modified = last_modified.strftime("%Y-%m-%dT%H:%M:%SZ")
+        return cls(audience=audience, last_modified=last_modified, priority=priority)
 
 
 class BaseContentBlock(AnnotatedObject):
