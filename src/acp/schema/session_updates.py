@@ -94,14 +94,13 @@ class BaseChunk(AnnotatedObject):
             last_modified=last_modified,
             priority=priority,
         )
-        return cls(
-            content=ImageContentBlock(
-                data=data,
-                mime_type=mime_type,
-                uri=uri,
-                annotations=annotations,
-            )
+        image = ImageContentBlock(
+            data=data,
+            mime_type=mime_type,
+            uri=uri,
+            annotations=annotations,
         )
+        return cls(content=image)
 
     @classmethod
     def audio(
@@ -130,14 +129,13 @@ class BaseChunk(AnnotatedObject):
             last_modified=last_modified,
             priority=priority,
         )
-        return cls(
-            content=AudioContentBlock(
-                data=data,
-                mime_type=mime_type,
-                uri=uri,
-                annotations=annotations,
-            )
+        content = AudioContentBlock(
+            data=data,
+            mime_type=mime_type,
+            uri=uri,
+            annotations=annotations,
         )
+        return cls(content=content)
 
     @classmethod
     def resource(
@@ -170,17 +168,16 @@ class BaseChunk(AnnotatedObject):
             last_modified=last_modified,
             priority=priority,
         )
-        return cls(
-            content=ResourceContentBlock(
-                name=name,
-                uri=uri,
-                description=description,
-                mime_type=mime_type,
-                size=size,
-                title=title,
-                annotations=annotations,
-            )
+        block = ResourceContentBlock(
+            name=name,
+            uri=uri,
+            description=description,
+            mime_type=mime_type,
+            size=size,
+            title=title,
+            annotations=annotations,
         )
+        return cls(content=block)
 
     @classmethod
     def embedded_text_resource(
@@ -207,12 +204,9 @@ class BaseChunk(AnnotatedObject):
             last_modified=last_modified,
             priority=priority,
         )
-        return cls(
-            content=EmbeddedResourceContentBlock(
-                annotations=annotations,
-                resource=TextResourceContents(text=text, mime_type=mime_type, uri=uri),
-            )
-        )
+        contents = TextResourceContents(text=text, mime_type=mime_type, uri=uri)
+        content = EmbeddedResourceContentBlock(annotations=annotations, resource=contents)
+        return cls(content=content)
 
     @classmethod
     def embedded_blob_resource(
@@ -241,12 +235,9 @@ class BaseChunk(AnnotatedObject):
             last_modified=last_modified,
             priority=priority,
         )
-        return cls(
-            content=EmbeddedResourceContentBlock(
-                annotations=annotations,
-                resource=BlobResourceContents(blob=data, mime_type=mime_type, uri=uri),
-            )
-        )
+        resource = BlobResourceContents(blob=data, mime_type=mime_type, uri=uri)
+        content = EmbeddedResourceContentBlock(annotations=annotations, resource=resource)
+        return cls(content=content)
 
 
 class UserMessageChunk(BaseChunk):
