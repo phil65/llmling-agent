@@ -76,7 +76,7 @@ class Talk[TTransmittedData]:
         filter_condition: AnyFilterFn | None = None,
         stop_condition: AnyFilterFn | None = None,
         exit_condition: AnyFilterFn | None = None,
-    ):
+    ) -> None:
         """Initialize talk connection.
 
         Args:
@@ -123,7 +123,7 @@ class Talk[TTransmittedData]:
         self.stop_condition = stop_condition
         self.exit_condition = exit_condition
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         targets = [t.name for t in self.targets]
         return f"<Talk({self.connection_type}) {self.source.name} -> {targets}>"
 
@@ -211,7 +211,7 @@ class Talk[TTransmittedData]:
         """Register callback for connection events."""
         from llmling_agent.messaging.events import ConnectionEventData
 
-        async def wrapped_callback(event: EventData):
+        async def wrapped_callback(event: EventData) -> None:
             if isinstance(event, ConnectionEventData) and event.event_type == event_type:
                 await execute(callback, event)
 
@@ -222,7 +222,7 @@ class Talk[TTransmittedData]:
         self,
         event_type: ConnectionEventType,
         message: ChatMessage[TTransmittedData] | None,
-    ):
+    ) -> None:
         from llmling_agent.messaging.events import ConnectionEventData
 
         event = ConnectionEventData[Any](
@@ -332,7 +332,7 @@ class Talk[TTransmittedData]:
                     "prompt": prompt,
                 }
 
-                async def add_context():
+                async def add_context() -> None:
                     match target:
                         case BaseTeam():
                             # Use distribute for teams
@@ -357,7 +357,7 @@ class Talk[TTransmittedData]:
             case "forward":
                 if self.delay is not None or self.priority != 0:
 
-                    async def delayed_emit():
+                    async def delayed_emit() -> None:
                         await target.connections.route_message(message)
 
                     coro = delayed_emit()
@@ -488,7 +488,7 @@ class Talk[TTransmittedData]:
         finally:
             self.active = previous
 
-    def disconnect(self):
+    def disconnect(self) -> None:
         """Permanently disconnect the connection."""
         self.active = False
 
@@ -503,12 +503,12 @@ class TeamTalk[TTransmittedData](list["Talk | TeamTalk"]):
 
     def __init__(
         self, talks: Sequence[Talk[TTransmittedData] | TeamTalk[TTransmittedData]]
-    ):
+    ) -> None:
         super().__init__(talks)
         self.filter_condition: AnyFilterFn | None = None
         self.active = True
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"TeamTalk({list(self)})"
 
     def __rshift__(
@@ -558,7 +558,9 @@ class TeamTalk[TTransmittedData](list["Talk | TeamTalk"]):
                 case TeamTalk():
                     yield from t.iter_talks()
 
-    async def _handle_message(self, message: ChatMessage[Any], prompt: str | None = None):
+    async def _handle_message(
+        self, message: ChatMessage[Any], prompt: str | None = None
+    ) -> None:
         for talk in self:
             await talk._handle_message(message, prompt)
 
@@ -606,7 +608,7 @@ class TeamTalk[TTransmittedData](list["Talk | TeamTalk"]):
             talk.when(condition)
         return self
 
-    def disconnect(self):
+    def disconnect(self) -> None:
         """Disconnect all connections in group."""
         for talk in self:
             talk.disconnect()

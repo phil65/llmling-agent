@@ -16,7 +16,9 @@ if TYPE_CHECKING:
 class FSSpecTools(ResourceProvider):
     """Provider for fsspec filesystem tools."""
 
-    def __init__(self, filesystem: fsspec.AbstractFileSystem, name: str = "fsspec"):
+    def __init__(
+        self, filesystem: fsspec.AbstractFileSystem, name: str = "fsspec"
+    ) -> None:
         """Initialize with an fsspec filesystem.
 
         Args:
@@ -240,7 +242,7 @@ class FSSpecTools(ResourceProvider):
 if __name__ == "__main__":
     import asyncio
 
-    async def main():
+    async def main() -> None:
         import fsspec
 
         from llmling_agent import Agent

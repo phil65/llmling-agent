@@ -30,7 +30,7 @@ class Build:
         b.on_theme(theme)
         return b.on_root(root)
 
-    def on_theme(self, theme: mk.Theme):
+    def on_theme(self, theme: mk.Theme) -> None:
         theme.error_page.content = mk.MkAdmonition("Page does not exist!")
         if isinstance(theme, mk.MaterialTheme):
             theme.content_area_width = 1300

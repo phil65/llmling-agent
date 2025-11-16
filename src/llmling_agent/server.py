@@ -29,7 +29,7 @@ class ServerBridge(abc.ABC):
         self,
         pool: AgentPool[Any],
         **kwargs: Any,
-    ):
+    ) -> None:
         """Initialize the server bridge.
 
         Args:
@@ -110,7 +110,7 @@ class ServerBridge(abc.ABC):
         exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
-    ):
+    ) -> None:
         """Async context manager exit.
 
         Default implementation calls shutdown() if server is running.

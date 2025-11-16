@@ -210,7 +210,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         """Check if the agent pool is running."""
         return bool(self._running_count)
 
-    async def cleanup(self):
+    async def cleanup(self) -> None:
         """Clean up all agents."""
         # Clean up background processes first
         await self.process_manager.cleanup()
@@ -388,7 +388,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         finally:
             self.connection_registry.message_flow.disconnect(tracker.track)
 
-    async def run_event_loop(self):
+    async def run_event_loop(self) -> None:
         """Run pool in event-watching mode until interrupted."""
         print("Starting event watch mode...")
         print("Active nodes: ", ", ".join(self.list_nodes()))
@@ -621,7 +621,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
     def get_job(self, name: str) -> Job[Any, Any]:
         return self._tasks[name]
 
-    def register_task(self, name: str, task: Job[Any, Any]):
+    def register_task(self, name: str, task: Job[Any, Any]) -> None:
         self._tasks.register(name, task)
 
     async def add_agent[TResult = str](
@@ -692,7 +692,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
 
 if __name__ == "__main__":
 
-    async def main():
+    async def main() -> None:
         path = "src/llmling_agent/config_resources/agents.yml"
         async with AgentPool(path) as pool:
             agent = pool.get_agent("overseer")

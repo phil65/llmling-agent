@@ -621,7 +621,7 @@ class TeamResponse[TMessageContent](list[AgentResponse[Any]]):
         responses: list[AgentResponse[TMessageContent]],
         start_time: datetime | None = None,
         errors: dict[str, Exception] | None = None,
-    ):
+    ) -> None:
         super().__init__(responses)
         self.start_time = start_time or get_now()
         self.end_time = get_now()

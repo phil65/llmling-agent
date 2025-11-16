@@ -11,7 +11,7 @@ from pydantic import BaseModel
 class BaseProvider[ConfigT: BaseModel]:
     """Base class for all providers."""
 
-    def __init__(self, config: ConfigT):
+    def __init__(self, config: ConfigT) -> None:
         """Initialize provider with configuration."""
         self.config = config
 

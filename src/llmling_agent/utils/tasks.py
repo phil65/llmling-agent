@@ -39,7 +39,7 @@ class TaskManager:
     - Cleanup of pending tasks
     """
 
-    def __init__(self, *args: Any, **kwargs: Any):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         self._pending_tasks: set[asyncio.Task[Any]] = set()
         self._task_queue: list[PrioritizedTask] = []  # heap queue
         self._scheduler_task: asyncio.Task[Any] | None = None
@@ -63,7 +63,7 @@ class TaskManager:
         task = asyncio.create_task(coro, name=name)
         logger.debug("Created task", name=task.get_name(), priority=priority, delay=delay)
 
-        def _done_callback(t: asyncio.Task[Any]):
+        def _done_callback(t: asyncio.Task[Any]) -> None:
             logger.debug("Task completed", name=t.get_name())
             self._pending_tasks.discard(t)
             if t.exception():
@@ -83,7 +83,7 @@ class TaskManager:
 
         return task
 
-    async def _run_scheduler(self):
+    async def _run_scheduler(self) -> None:
         """Run scheduled tasks when their time comes."""
         try:
             while self._task_queue:
@@ -110,7 +110,7 @@ class TaskManager:
         finally:
             self._scheduler_task = None
 
-    def fire_and_forget(self, coro: Coroutine[Any, Any, Any]):
+    def fire_and_forget(self, coro: Coroutine[Any, Any, Any]) -> None:
         """Run coroutine without waiting for result."""
         try:
             loop = asyncio.get_running_loop()
@@ -154,7 +154,7 @@ class TaskManager:
         name: str | None = None,
         priority: int = 0,
         delay: timedelta | None = None,
-    ):
+    ) -> None:
         """Run a coroutine in the background and track it."""
         try:
             self.create_task(coro, name=name, priority=priority, delay=delay)
@@ -167,13 +167,13 @@ class TaskManager:
         """Check if we have any tasks pending."""
         return bool(self._pending_tasks)
 
-    async def cleanup_tasks(self):
+    async def cleanup_tasks(self) -> None:
         """Wait for all pending tasks to complete."""
         if self._pending_tasks:
             await asyncio.gather(*self._pending_tasks, return_exceptions=True)
         self._pending_tasks.clear()
 
-    async def complete_tasks(self, cancel: bool = False):
+    async def complete_tasks(self, cancel: bool = False) -> None:
         """Wait for all pending tasks to complete."""
         if cancel:
             for task in self._pending_tasks:

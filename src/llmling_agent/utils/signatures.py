@@ -78,7 +78,7 @@ def modify_signature(
     return update_signature(fn, new_sig)
 
 
-def update_signature(fn: Callable, signature: inspect.Signature):
+def update_signature(fn: Callable, signature: inspect.Signature) -> None:
     fn.__signature__ = signature  # type: ignore
     fn.__annotations__ = {
         name: param.annotation for name, param in signature.parameters.items()

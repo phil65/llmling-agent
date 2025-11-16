@@ -170,5 +170,5 @@ def create_file_access_tools() -> list[Tool]:
 class FileAccessTools(StaticResourceProvider):
     """Provider for file access tools."""
 
-    def __init__(self, name: str = "file_access"):
+    def __init__(self, name: str = "file_access") -> None:
         super().__init__(name=name, tools=create_file_access_tools())

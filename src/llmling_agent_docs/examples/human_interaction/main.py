@@ -30,7 +30,7 @@ If you don't know, ask the agent named "human".
 """
 
 
-async def run_example():
+async def run_example() -> None:
     # Load config from YAML
     config_path = get_config_path(None if is_pyodide() else __file__)
     manifest = AgentsManifest.from_file(config_path)

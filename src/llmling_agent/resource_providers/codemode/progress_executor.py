@@ -29,7 +29,7 @@ class ProgressTrackingExecutor:
 
     def __init__(
         self, progress_callback: ProgressCallback | None = None, step_delay: float = 0.01
-    ):
+    ) -> None:
         """Initialize executor.
 
         Args:

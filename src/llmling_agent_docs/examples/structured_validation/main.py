@@ -40,7 +40,7 @@ class RavingReview(MovieReview):
     key_points: list[str] = Field(min_length=3)  # At least 3 points
 
 
-async def main():
+async def main() -> None:
     # Create movie critic agent
     critic = Agent(
         name="movie_critic",

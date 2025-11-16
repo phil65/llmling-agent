@@ -76,7 +76,7 @@ class MCPClient:
         tool_change_callback: Callable[[], Awaitable[None]] | None = None,
         prompt_change_callback: Callable[[], Awaitable[None]] | None = None,
         resource_change_callback: Callable[[], Awaitable[None]] | None = None,
-    ):
+    ) -> None:
         self._elicitation_callback = elicitation_callback
         self.config = config
         self._sampling_callback = sampling_callback
@@ -121,7 +121,7 @@ class MCPClient:
 
         return self
 
-    async def __aexit__(self, *args: object):
+    async def __aexit__(self, *args: object) -> None:
         """Exit context manager and cleanup."""
         try:
             await self._client.__aexit__(None, None, None)
@@ -273,7 +273,7 @@ class MCPClient:
 
         async def fastmcp_progress_handler(
             progress: float, total: float | None, message: str | None
-        ):
+        ) -> None:
             await self._progress_handler(
                 progress, total, message, tool_name, tool_call_id, tool_input
             )
@@ -350,7 +350,7 @@ if __name__ == "__main__":
         args=["run", str(path)],
     )
 
-    async def main():
+    async def main() -> None:
         async with MCPClient(config=config) as mcp_client:
             # Create MCP filesystem
             fs = mcp_client.get_resource_fs()

@@ -87,7 +87,7 @@ def get_label(item: Any) -> str:
 class Interactions[TDeps, TResult]:
     """Manages agent communication patterns."""
 
-    def __init__(self, agent: Agent[TDeps, TResult]):
+    def __init__(self, agent: Agent[TDeps, TResult]) -> None:
         self.agent = agent
 
     async def conversation(

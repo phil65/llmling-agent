@@ -22,7 +22,7 @@ class ListNodesCommand(SlashedCommand):
         self,
         ctx: CommandContext[NodeContext],
         show_connections: bool = False,
-    ):
+    ) -> None:
         """List all nodes and their current status.
 
         Args:

@@ -35,7 +35,7 @@ Delegate to file_getter_1 and file_getter_2. Report the results.
 """
 
 
-def cheer(slogan: str):
+def cheer(slogan: str) -> None:
     """🥳🎉 Cheer! Use this tool to show your apprreciation."""
     print(slogan)
 
@@ -44,7 +44,7 @@ def cheer(slogan: str):
 class CheerProgress:
     """Class for tracking the progress of downloads and providing feedback."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.situation = "The team is assembling, ready to start the downloads!"
 
     def create_prompt(self) -> str:
@@ -54,18 +54,18 @@ class CheerProgress:
             "Be an enthusiastic and encouraging fan!"
         )
 
-    def update(self, situation: str):
+    def update(self, situation: str) -> None:
         """Update the current situation and print it."""
         self.situation = situation
         print(situation)
 
 
-async def run_example():
+async def run_example() -> None:
     # Load config from YAML
     config_path = get_config_path(None if is_pyodide() else __file__)
     manifest = AgentsManifest.from_file(config_path)
 
-    async def progress_handler(progress, total, message):
+    async def progress_handler(progress, total, message) -> None:
         print(f"Progress: {progress}/{total} - {message}")
 
     async with AgentPool(

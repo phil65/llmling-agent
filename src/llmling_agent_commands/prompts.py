@@ -53,7 +53,7 @@ class ListPromptsCommand(SlashedCommand):
     name = "list-prompts"
     category = "prompts"
 
-    async def execute_command(self, ctx: CommandContext[AgentContext]):
+    async def execute_command(self, ctx: CommandContext[AgentContext]) -> None:
         """List available prompts from all providers.
 
         Args:

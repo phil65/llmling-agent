@@ -593,10 +593,10 @@ PromptType = Annotated[
 
 if __name__ == "__main__":
 
-    def prompt_fn():
+    def prompt_fn() -> str:
         return "hello"
 
-    async def main():
+    async def main() -> None:
         prompt = DynamicPrompt(import_path=prompt_fn, name="test", description="test")
         result = await prompt.format()
         print(result)

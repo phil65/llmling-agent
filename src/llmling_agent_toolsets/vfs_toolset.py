@@ -153,5 +153,5 @@ def create_vfs_tools() -> list[Tool]:
 class VFSTools(StaticResourceProvider):
     """Provider for VFS registry filesystem tools."""
 
-    def __init__(self, name: str = "vfs"):
+    def __init__(self, name: str = "vfs") -> None:
         super().__init__(name=name, tools=create_vfs_tools())

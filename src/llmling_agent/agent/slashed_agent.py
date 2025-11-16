@@ -245,13 +245,13 @@ if __name__ == "__main__":
 
     from llmling_agent import Agent
 
-    async def main():
+    async def main() -> None:
         agent = Agent("test-agent", model="test", session=False)
         slashed = SlashedAgent(agent)  # Uses built-in commands by default
 
         # Add a simple test command that outputs multiple lines
         @slashed.command_store.command(name="test-streaming", category="test")
-        async def test_streaming(ctx, *args, **kwargs):
+        async def test_streaming(ctx, *args, **kwargs) -> None:
             """Test command that outputs multiple lines."""
             await ctx.print("Starting streaming test...")
             for i in range(3):

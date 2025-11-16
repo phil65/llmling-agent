@@ -52,7 +52,7 @@ class SQLModelProvider(StorageProvider[Message]):
 
     can_load_history = True
 
-    def __init__(self, config: SQLStorageConfig):
+    def __init__(self, config: SQLStorageConfig) -> None:
         """Initialize provider with async database engine.
 
         Args:
@@ -63,7 +63,7 @@ class SQLModelProvider(StorageProvider[Message]):
         self.auto_migrate = config.auto_migration
         self.session: AsyncSession | None = None
 
-    async def _init_database(self, auto_migrate: bool = True):
+    async def _init_database(self, auto_migrate: bool = True) -> None:
         """Initialize database tables and optionally migrate columns.
 
         Args:
@@ -82,7 +82,7 @@ class SQLModelProvider(StorageProvider[Message]):
         if auto_migrate:
             async with self.engine.begin() as conn:
 
-                def sync_migrate(sync_conn):
+                def sync_migrate(sync_conn) -> None:
                     inspector = inspect(sync_conn)
 
                     # For each table in our models
@@ -113,7 +113,7 @@ class SQLModelProvider(StorageProvider[Message]):
         await self.engine.dispose()
         return await super().__aexit__(exc_type, exc_val, exc_tb)
 
-    def cleanup(self):
+    def cleanup(self) -> None:
         """Clean up database resources."""
         # For sync cleanup, just pass - proper cleanup happens in __aexit__
 
@@ -141,7 +141,7 @@ class SQLModelProvider(StorageProvider[Message]):
         provider_response_id: str | None = None,
         messages: str | None = None,
         finish_reason: str | None = None,
-    ):
+    ) -> None:
         """Log message to database."""
         from llmling_agent_storage.sql_provider.models import Message
 
@@ -178,7 +178,7 @@ class SQLModelProvider(StorageProvider[Message]):
         conversation_id: str,
         node_name: str,
         start_time: datetime | None = None,
-    ):
+    ) -> None:
         """Log conversation to database."""
         from llmling_agent_storage.sql_provider.models import Conversation
 
@@ -196,7 +196,7 @@ class SQLModelProvider(StorageProvider[Message]):
         command: str,
         context_type: type | None = None,
         metadata: dict[str, JsonValue] | None = None,
-    ):
+    ) -> None:
         """Log command to database."""
         async with AsyncSession(self.engine) as session:
             history = CommandHistory(

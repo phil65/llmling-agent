@@ -111,7 +111,7 @@ class ShowAgentCommand(SlashedCommand):
     name = "show-agent"
     category = "agents"
 
-    async def execute_command(self, ctx: CommandContext[NodeContext]):
+    async def execute_command(self, ctx: CommandContext[NodeContext]) -> None:
         """Show current agent's configuration.
 
         Args:

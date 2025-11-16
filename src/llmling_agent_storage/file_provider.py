@@ -83,7 +83,7 @@ class FileProvider(StorageProvider):
 
     can_load_history = True
 
-    def __init__(self, config: FileStorageConfig):
+    def __init__(self, config: FileStorageConfig) -> None:
         """Initialize file provider.
 
         Args:
@@ -100,7 +100,7 @@ class FileProvider(StorageProvider):
         }
         self._load()
 
-    def _load(self):
+    def _load(self) -> None:
         """Load data from file if it exists."""
         import yamling
 
@@ -112,14 +112,14 @@ class FileProvider(StorageProvider):
             )
         self._save()
 
-    def _save(self):
+    def _save(self) -> None:
         """Save current data to file."""
         import yamling
 
         self.path.parent.mkdir(parents=True, exist_ok=True)
         yamling.dump_file(self._data, self.path, mode=self.format)  # pyright: ignore
 
-    def cleanup(self):
+    def cleanup(self) -> None:
         """Save final state."""
         self._save()
 
@@ -203,7 +203,7 @@ class FileProvider(StorageProvider):
         provider_response_id: str | None = None,
         messages: str | None = None,
         finish_reason: FinishReason | None = None,
-    ):
+    ) -> None:
         """Log a new message."""
         self._data["messages"].append({
             "conversation_id": conversation_id,
@@ -239,7 +239,7 @@ class FileProvider(StorageProvider):
         conversation_id: str,
         node_name: str,
         start_time: datetime | None = None,
-    ):
+    ) -> None:
         """Log a new conversation."""
         conversation: ConversationData = {
             "id": conversation_id,
@@ -257,7 +257,7 @@ class FileProvider(StorageProvider):
         command: str,
         context_type: type | None = None,
         metadata: dict[str, JsonValue] | None = None,
-    ):
+    ) -> None:
         """Log a command execution."""
         cmd: CommandData = {
             "agent_name": agent_name,

@@ -49,7 +49,7 @@ class OpenAIAPIServer(BaseServer):
         docs: bool = True,
         api_key: str | None = None,
         raise_exceptions: bool = False,
-    ):
+    ) -> None:
         """Initialize OpenAI-compatible server.
 
         Args:
@@ -183,7 +183,7 @@ if __name__ == "__main__":
 
     from llmling_agent import AgentPool
 
-    async def test_completions():
+    async def test_completions() -> None:
         """Test the chat completions API."""
         async with httpx.AsyncClient() as client:
             response = await client.post(
@@ -211,7 +211,7 @@ if __name__ == "__main__":
             else:
                 print("Completions error:", response.text)
 
-    async def test_responses():
+    async def test_responses() -> None:
         """Test the responses API."""
         timeout = httpx.Timeout(30.0, connect=5.0)
         async with httpx.AsyncClient(timeout=timeout) as client:
@@ -228,7 +228,7 @@ if __name__ == "__main__":
             if not response.is_success:
                 print("Responses error:", response.text)
 
-    async def main():
+    async def main() -> None:
         """Run server and test both endpoints."""
         pool = AgentPool()
         await pool.add_agent("gpt-5-mini", model="openai:gpt-5-mini")

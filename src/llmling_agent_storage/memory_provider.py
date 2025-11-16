@@ -31,13 +31,13 @@ class MemoryStorageProvider(StorageProvider):
 
     can_load_history = True
 
-    def __init__(self, config: MemoryStorageConfig):
+    def __init__(self, config: MemoryStorageConfig) -> None:
         super().__init__(config)
         self.messages: list[dict] = []
         self.conversations: list[dict] = []
         self.commands: list[dict] = []
 
-    def cleanup(self):
+    def cleanup(self) -> None:
         """Clear all stored data."""
         self.messages.clear()
         self.conversations.clear()
@@ -176,7 +176,7 @@ class MemoryStorageProvider(StorageProvider):
         command: str,
         context_type: type | None = None,
         metadata: dict[str, JsonValue] | None = None,
-    ):
+    ) -> None:
         """Store command in memory."""
         self.commands.append({
             "agent_name": agent_name,

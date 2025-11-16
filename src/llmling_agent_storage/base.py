@@ -56,7 +56,7 @@ class StorageProvider[T]:
     can_load_history: bool = False
     """Whether this provider supports loading history."""
 
-    def __init__(self, config: BaseStorageProviderConfig):
+    def __init__(self, config: BaseStorageProviderConfig) -> None:
         super().__init__()
         self.config = config
         self.task_manager = TaskManager()
@@ -74,11 +74,11 @@ class StorageProvider[T]:
         exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
-    ):
+    ) -> None:
         """Clean up provider resources."""
         self.cleanup()
 
-    def cleanup(self):
+    def cleanup(self) -> None:
         """Clean up resources."""
 
     def should_log_agent(self, agent_name: str) -> bool:
@@ -106,7 +106,7 @@ class StorageProvider[T]:
         provider_response_id: str | None = None,
         messages: str | None = None,
         finish_reason: FinishReason | None = None,
-    ):
+    ) -> None:
         """Log a message (if supported)."""
 
     async def log_conversation(
@@ -115,7 +115,7 @@ class StorageProvider[T]:
         conversation_id: str,
         node_name: str,
         start_time: datetime | None = None,
-    ):
+    ) -> None:
         """Log a conversation (if supported)."""
 
     async def log_command(
@@ -126,7 +126,7 @@ class StorageProvider[T]:
         command: str,
         context_type: type | None = None,
         metadata: dict[str, JsonValue] | None = None,
-    ):
+    ) -> None:
         """Log a command (if supported)."""
 
     async def get_commands(
@@ -151,7 +151,7 @@ class StorageProvider[T]:
         model: str | None = None,
         message_id: str | None = None,
         metadata: dict[str, Any] | None = None,
-    ):
+    ) -> None:
         """Log a context message if context logging is enabled."""
         if not self.log_context:
             return

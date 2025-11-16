@@ -57,7 +57,7 @@ class MCPServer(BaseServer):
         instructions: str | None = None,
         name: str = "llmling-server",
         raise_exceptions: bool = False,
-    ):
+    ) -> None:
         """Initialize server with agent pool.
 
         Args:
@@ -131,7 +131,7 @@ class MCPServer(BaseServer):
         total: float | None = None,
         message: str | None = None,
         related_request_id: str | None = None,
-    ):
+    ) -> None:
         """Report progress for the current operation."""
         progress_token = (
             self.server.request_context.meta.progressToken
@@ -158,7 +158,7 @@ class MCPServer(BaseServer):
             return None
         return session.client_params.clientInfo
 
-    async def notify_tool_list_changed(self):
+    async def notify_tool_list_changed(self) -> None:
         """Notify clients about tool list changes."""
         try:
             self.task_manager.create_task(self.current_session.send_tool_list_changed())
@@ -167,7 +167,7 @@ class MCPServer(BaseServer):
         except Exception:
             self.log.exception("Failed to send tool list change notification")
 
-    async def notify_prompt_list_changed(self):
+    async def notify_prompt_list_changed(self) -> None:
         """Notify clients about prompt list changes."""
         try:
             self.task_manager.create_task(self.current_session.send_prompt_list_changed())

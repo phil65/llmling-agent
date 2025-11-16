@@ -103,7 +103,7 @@ class MessageNode[TDeps, TResult](ABC):
         exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
-    ):
+    ) -> None:
         """Clean up base resources."""
         await self._events.__aexit__(exc_type, exc_val, exc_tb)
         await self.mcp.__aexit__(exc_type, exc_val, exc_tb)
@@ -126,7 +126,7 @@ class MessageNode[TDeps, TResult](ABC):
         return self._name or "llmling-agent"
 
     @name.setter
-    def name(self, value: str):
+    def name(self, value: str) -> None:
         self._name = value
 
     @overload
@@ -282,12 +282,12 @@ class MessageNode[TDeps, TResult](ABC):
             exit_condition=exit_condition,
         )
 
-    async def disconnect_all(self):
+    async def disconnect_all(self) -> None:
         """Disconnect from all nodes."""
         for target in list(self.connections.get_targets()):
             self.stop_passing_results_to(target)
 
-    def stop_passing_results_to(self, other: MessageNode):
+    def stop_passing_results_to(self, other: MessageNode) -> None:
         """Stop forwarding results to another node."""
         self.connections.disconnect(other)
 
@@ -309,7 +309,7 @@ class MessageNode[TDeps, TResult](ABC):
         query = SessionQuery(name=self.conversation_id, limit=limit)
         return await self.context.storage.filter_messages(query)
 
-    async def log_message(self, message: ChatMessage):
+    async def log_message(self, message: ChatMessage) -> None:
         """Handle message from chat signal."""
         if self.enable_db_logging:
             await self.context.storage.log_message(message)  # pyright: ignore

@@ -119,7 +119,7 @@ class DisconnectAllCommand(SlashedCommand):
     name = "disconnect-all"
     category = "nodes"
 
-    async def execute_command(self, ctx: CommandContext[NodeContext]):
+    async def execute_command(self, ctx: CommandContext[NodeContext]) -> None:
         """Disconnect from all nodes.
 
         Args:
@@ -145,7 +145,7 @@ class ListConnectionsCommand(SlashedCommand):
     name = "connections"
     category = "nodes"
 
-    async def execute_command(self, ctx: CommandContext[NodeContext]):
+    async def execute_command(self, ctx: CommandContext[NodeContext]) -> None:
         """List current connections.
 
         Args:

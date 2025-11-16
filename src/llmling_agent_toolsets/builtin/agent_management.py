@@ -390,7 +390,7 @@ def create_agent_management_tools() -> list[Tool]:
 class AgentManagementTools(StaticResourceProvider):
     """Provider for agent management tools."""
 
-    def __init__(self, name: str = "agent_management"):
+    def __init__(self, name: str = "agent_management") -> None:
         super().__init__(name=name, tools=create_agent_management_tools())
 
 
@@ -405,7 +405,7 @@ if __name__ == "__main__":
 
 ."""
 
-    async def main():
+    async def main() -> None:
         from llmling_agent_config.toolsets import IntegrationToolsetConfig
 
         async with AgentPool() as pool:

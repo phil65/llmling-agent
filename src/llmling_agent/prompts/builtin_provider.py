@@ -18,7 +18,7 @@ class BuiltinPromptProvider(BasePromptProvider):
     supports_variables = True
     name = "builtin"
 
-    def __init__(self, manifest_prompts: dict[str, StaticPromptConfig]):
+    def __init__(self, manifest_prompts: dict[str, StaticPromptConfig]) -> None:
         from jinjarope import Environment
 
         self.prompts = manifest_prompts

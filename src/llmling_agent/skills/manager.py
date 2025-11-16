@@ -27,7 +27,7 @@ class SkillsManager:
         name: str = "skills",
         owner: str | None = None,
         skills_dirs: list[JoinablePathLike] | None = None,
-    ):
+    ) -> None:
         """Initialize the skills manager.
 
         Args:
@@ -60,7 +60,7 @@ class SkillsManager:
             raise
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
         """Clean up the skills manager."""
         await self.exit_stack.aclose()
 

@@ -79,7 +79,7 @@ async def add_remote_mcp_server(  # noqa: D417
 class IntegrationTools(ResourceProvider):
     """Provider for integration tools."""
 
-    def __init__(self, name: str = "integrations"):
+    def __init__(self, name: str = "integrations") -> None:
         super().__init__(name)
 
     async def get_tools(self) -> list[Tool]:

@@ -90,5 +90,5 @@ def create_tool_management_tools() -> list[Tool]:
 class ToolManagementTools(StaticResourceProvider):
     """Provider for tool management tools."""
 
-    def __init__(self, name: str = "tool_management"):
+    def __init__(self, name: str = "tool_management") -> None:
         super().__init__(name=name, tools=create_tool_management_tools())

@@ -44,7 +44,7 @@ class MCPManager:
         context: NodeContext | None = None,
         progress_handler: RichProgressCallback | None = None,
         accessible_roots: list[str] | None = None,
-    ):
+    ) -> None:
         self.name = name
         self.owner = owner
         self.servers: list[MCPServerConfig] = []
@@ -60,7 +60,7 @@ class MCPManager:
         self._progress_handler = progress_handler
         self._accessible_roots = accessible_roots
 
-    def add_server_config(self, cfg: MCPServerConfig | str):
+    def add_server_config(self, cfg: MCPServerConfig | str) -> None:
         """Add a new MCP server to the manager."""
         resolved = BaseMCPServerConfig.from_string(cfg) if isinstance(cfg, str) else cfg
         self.servers.append(resolved)
@@ -90,7 +90,7 @@ class MCPManager:
         exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
-    ):
+    ) -> None:
         await self.cleanup()
 
     async def _elicitation_callback(
@@ -291,7 +291,7 @@ if __name__ == "__main__":
         args=["run", "/home/phil65/dev/oss/llmling-agent/tests/mcp/server.py"],
     )
 
-    async def main():
+    async def main() -> None:
         manager = MCPManager(servers=[cfg])
         async with manager:
             providers = manager.get_mcp_providers()

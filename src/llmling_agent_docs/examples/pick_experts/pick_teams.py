@@ -10,7 +10,7 @@ from llmling_agent import Agent, Team
 from llmling_agent_docs.examples.utils import run
 
 
-async def main():
+async def main() -> None:
     # Parallel team members
     developer = Agent(
         name="developer",

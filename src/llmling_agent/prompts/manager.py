@@ -70,7 +70,7 @@ class PromptManager:
     - Access to prompts from different sources
     """
 
-    def __init__(self, config: PromptLibraryConfig):
+    def __init__(self, config: PromptLibraryConfig) -> None:
         """Initialize prompt manager.
 
         Args:
@@ -190,7 +190,7 @@ class PromptManager:
             result[name] = prompts
         return result
 
-    def cleanup(self):
+    def cleanup(self) -> None:
         """Clean up providers."""
         self.providers.clear()
 

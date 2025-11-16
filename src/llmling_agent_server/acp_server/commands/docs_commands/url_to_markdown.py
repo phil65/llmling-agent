@@ -35,7 +35,7 @@ class UrlToMarkdownCommand(SlashedCommand):
         title: bool = True,
         links: bool = True,
         clean: bool = True,
-    ):
+    ) -> None:
         """Convert a webpage to markdown.
 
         Args:

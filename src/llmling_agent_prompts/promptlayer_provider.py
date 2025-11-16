@@ -19,7 +19,7 @@ class PromptLayerProvider(BasePromptProvider):
     name = "promptlayer"
     supports_versions = True
 
-    def __init__(self, config: PromptLayerConfig):
+    def __init__(self, config: PromptLayerConfig) -> None:
         self.client = PromptLayer(
             api_key=config.api_key.get_secret_value() if config.api_key else None
         )
@@ -51,7 +51,7 @@ if __name__ == "__main__":
 
     from llmling_agent_config.prompt_hubs import PromptLayerConfig
 
-    async def main():
+    async def main() -> None:
         config = PromptLayerConfig(
             api_key=SecretStr("pl_480ead79b098fc25c63cdb4c95115deb")
         )

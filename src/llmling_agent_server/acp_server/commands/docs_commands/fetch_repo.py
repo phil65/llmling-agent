@@ -44,7 +44,7 @@ class FetchRepoCommand(SlashedCommand):
         max_tokens: int | None = None,
         omit_files: bool = False,
         yaml_string: str | None = None,
-    ):
+    ) -> None:
         """Fetch contents from a GitHub repository.
 
         Args:

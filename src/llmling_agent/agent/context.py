@@ -126,7 +126,9 @@ class AgentContext[TDeps = Any](NodeContext[TDeps]):
         history = self.agent.conversation.get_history() if self.pool else []
         return await provider.get_elicitation(self, params, history)
 
-    async def report_progress(self, progress: float, total: float | None, message: str):
+    async def report_progress(
+        self, progress: float, total: float | None, message: str
+    ) -> None:
         """Access progress reporting from pool server if available."""
         logger.info(
             "Reporting tool call progress",

@@ -23,7 +23,7 @@ documentation generation.
 for example in iter_examples():
 
     @nav.route.page(example.title, icon=example.icon, hide="toc")
-    def _(page: mk.MkPage, ex=example):  # type: ignore
+    def _(page: mk.MkPage, ex=example) -> None:  # type: ignore
         """Add example page with description from its docstring."""
         if ex.files:
             link = mk.MkLink.for_pydantic_playground(ex.files)
@@ -38,7 +38,7 @@ for example in iter_examples():
 @nav.route.page(
     "MkDocs Integration & Docs generation", icon="oui:documentation", hide="toc"
 )
-def gen_docs(page: mk.MkPage):
+def gen_docs(page: mk.MkPage) -> None:
     """Generate docs using agents."""
     agent = Agent(model="openai:gpt-5-nano")
     content = pathlib.Path("src/llmling_agent/__init__.py")

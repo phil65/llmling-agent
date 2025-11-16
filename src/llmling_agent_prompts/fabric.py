@@ -19,7 +19,7 @@ class FabricPromptHub(BasePromptProvider):
     _BASE_URL = "https://raw.githubusercontent.com/danielmiessler/fabric/main"
     _API_URL = "https://api.github.com/repos/danielmiessler/fabric/contents/data/patterns"
 
-    def __init__(self, config: FabricConfig):
+    def __init__(self, config: FabricConfig) -> None:
         self.config = config
 
     async def get_prompt(
@@ -61,7 +61,7 @@ if __name__ == "__main__":
 
     from llmling_agent_config.prompt_hubs import FabricConfig
 
-    async def main():
+    async def main() -> None:
         hub = FabricPromptHub(FabricConfig())
         # List available prompts
         print("Available prompts:")

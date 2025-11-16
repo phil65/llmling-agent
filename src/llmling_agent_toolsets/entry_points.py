@@ -18,7 +18,7 @@ logger = get_logger(__name__)
 class EntryPointTools(ResourceProvider):
     """Provider for entry point based tools."""
 
-    def __init__(self, module: str):
+    def __init__(self, module: str) -> None:
         super().__init__(name=module)
         self.module = module
         self._tools: list[Tool] | None = None

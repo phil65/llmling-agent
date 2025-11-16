@@ -30,7 +30,7 @@ class CodeModeResourceProvider(AggregatingResourceProvider):
         name: str = "meta_tools",
         include_docstrings: bool = True,
         usage_notes: str = USAGE,
-    ):
+    ) -> None:
         """Initialize meta provider.
 
         Args:
@@ -114,7 +114,7 @@ if __name__ == "__main__":
     static_provider = StaticResourceProvider(tools=[Tool.from_callable(webbrowser.open)])
     provider = CodeModeResourceProvider([static_provider])
 
-    async def main():
+    async def main() -> None:
         print("Available tools:")
         for tool in await provider.get_tools():
             print(f"- {tool.name}: {tool.description}")

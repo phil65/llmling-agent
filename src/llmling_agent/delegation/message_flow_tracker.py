@@ -13,10 +13,10 @@ if TYPE_CHECKING:
 class MessageFlowTracker:
     """Class for tracking message flow in conversations."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.events: list[Talk.ConnectionProcessed] = []
 
-    def track(self, event: Talk.ConnectionProcessed):
+    def track(self, event: Talk.ConnectionProcessed) -> None:
         self.events.append(event)
 
     def filter(self, message: ChatMessage) -> list[ChatMessage]:

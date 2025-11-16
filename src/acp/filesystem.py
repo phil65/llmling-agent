@@ -27,7 +27,9 @@ logger = logging.getLogger(__name__)
 class ACPFile(AbstractBufferedFile):
     """File-like object for ACP filesystem operations."""
 
-    def __init__(self, fs: ACPFileSystem, path: str, mode: str = "rb", **kwargs: Any):
+    def __init__(
+        self, fs: ACPFileSystem, path: str, mode: str = "rb", **kwargs: Any
+    ) -> None:
         """Initialize ACP file handle."""
         super().__init__(fs, path, mode, **kwargs)
         self._content: bytes | None = None
@@ -67,7 +69,7 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath]):
     sep = "/"
     upath_cls = ACPPath
 
-    def __init__(self, client: Client, session_id: str, **kwargs: Any):
+    def __init__(self, client: Client, session_id: str, **kwargs: Any) -> None:
         """Initialize ACP filesystem.
 
         Args:

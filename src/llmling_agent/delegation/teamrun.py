@@ -41,12 +41,12 @@ class ExtendedTeamTalk(TeamTalk):
 
     errors: list[tuple[str, str, datetime]] = field(default_factory=list)
 
-    def clear(self):
+    def clear(self) -> None:
         """Reset all tracking data."""
         super().clear()  # Clear base TeamTalk
         self.errors.clear()
 
-    def add_error(self, agent: str, error: str):
+    def add_error(self, agent: str, error: str) -> None:
         """Track errors from AgentResponses."""
         self.errors.append((agent, error, get_now()))
 
@@ -71,7 +71,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
         picker: Agent[Any, Any] | None = None,
         num_picks: int | None = None,
         pick_prompt: str | None = None,
-    ): ...
+    ) -> None: ...
 
     @overload
     def __init__(  # no validator, but all nodes same output type.
@@ -85,7 +85,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
         picker: Agent[Any, Any] | None = None,
         num_picks: int | None = None,
         pick_prompt: str | None = None,
-    ): ...
+    ) -> None: ...
 
     @overload
     def __init__(
@@ -99,7 +99,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
         picker: Agent[Any, Any] | None = None,
         num_picks: int | None = None,
         pick_prompt: str | None = None,
-    ): ...
+    ) -> None: ...
 
     def __init__(
         self,
@@ -113,7 +113,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
         num_picks: int | None = None,
         pick_prompt: str | None = None,
         # result_mode: ResultMode = "last",
-    ):
+    ) -> None:
         super().__init__(
             agents,
             name=name,
@@ -338,7 +338,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
 if __name__ == "__main__":
     import asyncio
 
-    async def main():
+    async def main() -> None:
         from llmling_agent import Agent, Team
 
         agent1 = Agent(name="Agent1", model="test")

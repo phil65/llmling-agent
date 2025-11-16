@@ -578,7 +578,9 @@ def _get_debug_state() -> DebugState:
 class ACPDebugServer:
     """Combined ACP and FastAPI debug server."""
 
-    def __init__(self, *, fastapi_port: int = 8000, fastapi_host: str = "127.0.0.1"):
+    def __init__(
+        self, *, fastapi_port: int = 8000, fastapi_host: str = "127.0.0.1"
+    ) -> None:
         """Initialize the debug server.
 
         Args:
@@ -615,10 +617,10 @@ class ACPDebugServer:
         finally:
             await self.shutdown()
 
-    def _start_fastapi(self):
+    def _start_fastapi(self) -> None:
         """Start FastAPI server in a separate thread."""
 
-        def run_fastapi():
+        def run_fastapi() -> None:
             uvicorn.run(
                 app,
                 host=self.fastapi_host,
@@ -684,7 +686,7 @@ class ACPDebugServer:
                 self.debug_state.client_connection = None
 
 
-async def main():
+async def main() -> None:
     """Entry point for debug server."""
     import argparse
 

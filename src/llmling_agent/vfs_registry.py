@@ -20,7 +20,7 @@ logger = get_logger(__name__)
 class VFSRegistry(BaseRegistry[str, AbstractFileSystem]):
     """Registry for virtual filesystems."""
 
-    def register(self, name: str, item: Any, replace: bool = False):
+    def register(self, name: str, item: Any, replace: bool = False) -> None:
         """Register a new resource."""
         logger.debug("registering resource.", name=name, type=item.__class__.__name__)
         fsspec.register_implementation(name, item.__class__, clobber=True)

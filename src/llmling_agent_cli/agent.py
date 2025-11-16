@@ -29,7 +29,7 @@ def init_agent_config(
     output: str = t.Argument(help="Path to write agent configuration file"),
     name: str | None = t.Option(None, "--name", "-n", help=NAME_HELP),
     interactive: bool = t.Option(False, INTERACTIVE_CMD, help=INTERACTIVE_HELP),
-):
+) -> None:
     """Initialize a new agent configuration file.
 
     Creates and activates a new agent configuration. The configuration will be

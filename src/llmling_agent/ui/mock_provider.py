@@ -42,7 +42,7 @@ class MockInputProvider(InputProvider):
         input_response: str = "mock response",
         tool_confirmation: ConfirmationResult = "allow",
         elicitation_response: dict[str, Any] | None = None,
-    ):
+    ) -> None:
         self.input_response = input_response
         self.tool_confirmation = tool_confirmation
         self.elicitation_response = elicitation_response or {"response": "mock response"}

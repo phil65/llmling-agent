@@ -175,5 +175,5 @@ def create_process_management_tools() -> list[Tool]:
 class ProcessManagementTools(StaticResourceProvider):
     """Provider for process management tools."""
 
-    def __init__(self, name: str = "process_management"):
+    def __init__(self, name: str = "process_management") -> None:
         super().__init__(name=name, tools=create_process_management_tools())

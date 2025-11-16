@@ -16,7 +16,9 @@ logger = get_logger(__name__)
 class ComposioTools(ResourceProvider):
     """Provider for composio tools."""
 
-    def __init__(self, user_id: str, toolsets: list[str], api_key: str | None = None):
+    def __init__(
+        self, user_id: str, toolsets: list[str], api_key: str | None = None
+    ) -> None:
         from composio import Composio
         from composio.core.provider._openai import OpenAIProvider
 
@@ -81,7 +83,7 @@ class ComposioTools(ResourceProvider):
 if __name__ == "__main__":
     import asyncio
 
-    async def main():
+    async def main() -> None:
         from llmling_agent import Agent
 
         tools = ComposioTools("user@example.com", toolsets=["github"])

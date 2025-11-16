@@ -23,10 +23,10 @@ logger = get_logger(__name__)
 class ObservabilityRegistry:
     """Simplified registry that configures Logfire for single backend export."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._configured = False
 
-    def configure_observability(self, observability_config: ObservabilityConfig):
+    def configure_observability(self, observability_config: ObservabilityConfig) -> None:
         """Configure Logfire for single backend export.
 
         Args:
@@ -59,7 +59,7 @@ class ObservabilityRegistry:
         logger.info("Configured observability", provider=config.type)
 
 
-def _setup_otel_environment(config: BaseObservabilityConfig):
+def _setup_otel_environment(config: BaseObservabilityConfig) -> None:
     """Set up OTEL environment variables for the configured backend."""
     # Get endpoint and headers from config
     endpoint = getattr(config, "_endpoint", getattr(config, "endpoint", None))

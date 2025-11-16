@@ -26,7 +26,7 @@ class ConversionManager:
     The manager will handle async I/O and thread pooling.
     """
 
-    def __init__(self, config: ConversionConfig | list[DocumentConverter]):
+    def __init__(self, config: ConversionConfig | list[DocumentConverter]) -> None:
         if isinstance(config, list):
             self.config = ConversionConfig()
             self._converters = config
@@ -35,7 +35,7 @@ class ConversionManager:
             self._converters = self._setup_converters()
         self._executor = ThreadPoolExecutor(max_workers=3)
 
-    def __del__(self):
+    def __del__(self) -> None:
         self._executor.shutdown(wait=False)
 
     def supports_file(self, path: JoinablePathLike) -> bool:

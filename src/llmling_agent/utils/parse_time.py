@@ -18,11 +18,11 @@ _SEPARATORS = r"[,/]"
 
 
 # Optional patterns with separators
-def _OPT(x):  # noqa: N802
+def _OPT(x) -> str:  # noqa: N802
     return f"(?:{x})?"
 
 
-def _OPTSEP(x):  # noqa: N802
+def _OPTSEP(x) -> str:  # noqa: N802
     return f"(?:{x}\\s*(?:{_SEPARATORS}\\s*)?)?"
 
 

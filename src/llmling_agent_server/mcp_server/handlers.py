@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-def register_handlers(llm_server: MCPServer):  # noqa: PLR0915
+def register_handlers(llm_server: MCPServer) -> None:  # noqa: PLR0915
     """Register all MCP protocol handlers.
 
     Args:
@@ -105,7 +105,7 @@ def register_handlers(llm_server: MCPServer):  # noqa: PLR0915
         progress: float,
         total: float | None,
         message: str | None = None,
-    ):
+    ) -> None:
         """Handle progress notifications from client."""
         logger.debug(
             "Progress notification",
@@ -116,14 +116,14 @@ def register_handlers(llm_server: MCPServer):  # noqa: PLR0915
         )
 
     @llm_server.server.subscribe_resource()
-    async def handle_subscribe(uri: AnyUrl):
+    async def handle_subscribe(uri: AnyUrl) -> None:
         """Subscribe to resource updates."""
         uri_str = str(uri)
         llm_server._subscriptions[uri_str].add(llm_server.current_session)
         logger.debug("Added subscription", uri=uri)
 
     @llm_server.server.unsubscribe_resource()
-    async def handle_unsubscribe(uri: AnyUrl):
+    async def handle_unsubscribe(uri: AnyUrl) -> None:
         """Unsubscribe from resource updates."""
         if (uri_str := str(uri)) in llm_server._subscriptions:
             llm_server._subscriptions[uri_str].discard(llm_server.current_session)

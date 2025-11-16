@@ -10,7 +10,7 @@ import logging
 import sys
 
 
-def main():
+def main() -> None:
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
         description="ACP Debug Server - Combined ACP + FastAPI testing server",

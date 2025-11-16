@@ -21,7 +21,7 @@ logger = get_logger(__name__)
 class MarkItDownConverter(DocumentConverter):
     """Converter using MarkItDown for document conversion."""
 
-    def __init__(self, config: MarkItDownConfig | None = None):
+    def __init__(self, config: MarkItDownConfig | None = None) -> None:
         self.config = config or MarkItDownConfig()
 
     @cached_property

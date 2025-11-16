@@ -55,7 +55,7 @@ class SkillsRegistry(BaseRegistry[str, Skill]):
         self,
         skills_dir: UPath | AbstractFileSystem,
         **storage_options: Any,
-    ):
+    ) -> None:
         """Register skills from a given path.
 
         Args:
@@ -165,7 +165,7 @@ if __name__ == "__main__":
 
     configure_logging()
 
-    async def main():
+    async def main() -> None:
         reg = SkillsRegistry()
         p = UPath(
             "github://",

@@ -32,7 +32,7 @@ class GitDiffCommand(SlashedCommand):
         *,
         base_commit: str | None = None,
         cwd: str | None = None,
-    ):
+    ) -> None:
         """Fetch git diff for a specific commit.
 
         Args:

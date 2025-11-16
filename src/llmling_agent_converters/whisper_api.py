@@ -36,7 +36,7 @@ class WhisperAPIConverter(DocumentConverter):
         "video/mp4",
     }
 
-    def __init__(self, config: WhisperAPIConfig):
+    def __init__(self, config: WhisperAPIConfig) -> None:
         """Initialize converter with config."""
         self.config = config
 

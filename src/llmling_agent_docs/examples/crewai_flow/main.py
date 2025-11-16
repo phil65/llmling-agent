@@ -31,7 +31,7 @@ async def generate_fun_fact(fact_finder: Agent[None], generate_city: str) -> str
     return result.data
 
 
-async def run_example():
+async def run_example() -> None:
     """Run the CrewAI-like flow example."""
     config_path = get_config_path(None if is_pyodide() else __file__)
     manifest = AgentsManifest.from_file(config_path)

@@ -55,7 +55,7 @@ class MessageHistory:
         session_config: MemoryConfig | None = None,
         *,
         resources: Sequence[PromptType | str] = (),
-    ):
+    ) -> None:
         """Initialize conversation manager.
 
         Args:
@@ -106,7 +106,7 @@ class MessageHistory:
         exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
-    ):
+    ) -> None:
         """Clean up any pending messages."""
         self._pending_messages.clear()
 
@@ -191,7 +191,7 @@ class MessageHistory:
 
         return "\n".join(messages)
 
-    async def load_context_source(self, source: PromptType | str):
+    async def load_context_source(self, source: PromptType | str) -> None:
         """Load context from a single source."""
         from llmling_agent.prompts.prompts import BasePrompt
 
@@ -215,7 +215,7 @@ class MessageHistory:
         until: datetime | None = None,
         roles: set[MessageRole] | None = None,
         limit: int | None = None,
-    ):
+    ) -> None:
         """Load conversation history from database.
 
         Args:
@@ -307,16 +307,16 @@ class MessageHistory:
         """Get messages that will be included in next interaction."""
         return list(self._pending_messages)
 
-    def clear_pending(self):
+    def clear_pending(self) -> None:
         """Clear pending messages without adding them to history."""
         self._pending_messages.clear()
 
-    def set_history(self, history: list[ChatMessage]):
+    def set_history(self, history: list[ChatMessage]) -> None:
         """Update conversation history after run."""
         self.chat_messages.clear()
         self.chat_messages.extend(history)
 
-    def clear(self):
+    def clear(self) -> None:
         """Clear conversation history and prompts."""
         from llmling_agent.messaging import ChatMessageContainer
 
@@ -368,7 +368,7 @@ class MessageHistory:
         finally:
             self.chat_messages = old_history
 
-    def add_chat_messages(self, messages: Sequence[ChatMessage]):
+    def add_chat_messages(self, messages: Sequence[ChatMessage]) -> None:
         """Add new messages to history and update last_messages."""
         self._last_messages = list(messages)
         self.chat_messages.extend(messages)
@@ -383,7 +383,7 @@ class MessageHistory:
         content: str,
         source: str | None = None,
         **metadata: Any,
-    ):
+    ) -> None:
         """Add a context message.
 
         Args:
@@ -416,7 +416,7 @@ class MessageHistory:
         *,
         convert_to_md: bool = False,
         **metadata: Any,
-    ):
+    ) -> None:
         """Add file or URL content as context message.
 
         Args:
@@ -474,7 +474,7 @@ class MessageHistory:
 if __name__ == "__main__":
     from llmling_agent import Agent
 
-    async def main():
+    async def main() -> None:
         async with Agent() as agent:
             await agent.conversation.add_context_from_path("E:/mcp_zed.yml")
             print(agent.conversation.get_history())

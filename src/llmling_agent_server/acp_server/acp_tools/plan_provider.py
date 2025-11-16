@@ -21,7 +21,7 @@ class ACPPlanProvider(ResourceProvider):
     eliminating the need for parameter injection.
     """
 
-    def __init__(self, session: ACPSession):
+    def __init__(self, session: ACPSession) -> None:
         """Initialize plan provider.
 
         Args:
@@ -136,7 +136,7 @@ class ACPPlanProvider(ResourceProvider):
             )
         return f"Removed entry {index}: {removed_entry.content!r}, plan is now empty"
 
-    async def _send_plan_update(self):
+    async def _send_plan_update(self) -> None:
         """Send current plan state via session update."""
         if not self._current_plan:  # Don't send empty plans
             return

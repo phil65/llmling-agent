@@ -11,7 +11,7 @@ from llmling_agent.tools.base import Tool
 class McpRunTools(ResourceProvider):
     """Provider for composio tools."""
 
-    def __init__(self, entity_id: str, session_id: str | None = None):
+    def __init__(self, entity_id: str, session_id: str | None = None) -> None:
         from mcp_run import Client, ClientConfig
 
         super().__init__(name=entity_id)
@@ -44,7 +44,7 @@ class McpRunTools(ResourceProvider):
 if __name__ == "__main__":
     import asyncio
 
-    async def main():
+    async def main() -> None:
         tools = McpRunTools("default")
         fns = await tools.get_tools()
         print(fns)

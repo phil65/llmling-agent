@@ -41,7 +41,7 @@ class StorageManager:
     - Global logging filters
     """
 
-    def __init__(self, config: StorageConfig):
+    def __init__(self, config: StorageConfig) -> None:
         """Initialize storage manager.
 
         Args:
@@ -80,7 +80,7 @@ class StorageManager:
             msg = "Provider cleanup errors"
             raise ExceptionGroup(msg, errors)
 
-    def cleanup(self):
+    def cleanup(self) -> None:
         """Clean up all providers."""
         for provider in self.providers:
             try:
@@ -199,7 +199,7 @@ class StorageManager:
         return await provider.filter_messages(query)
 
     @method_spawner
-    async def log_message(self, message: ChatMessage):
+    async def log_message(self, message: ChatMessage) -> None:
         """Log message to all providers."""
         if not self.config.log_messages:
             return
@@ -229,7 +229,7 @@ class StorageManager:
         conversation_id: str,
         node_name: str,
         start_time: datetime | None = None,
-    ):
+    ) -> None:
         """Log conversation to all providers."""
         if not self.config.log_conversations:
             return
@@ -250,7 +250,7 @@ class StorageManager:
         command: str,
         context_type: type | None = None,
         metadata: dict[str, JsonValue] | None = None,
-    ):
+    ) -> None:
         """Log command to all providers."""
         if not self.config.log_commands:
             return
@@ -273,7 +273,7 @@ class StorageManager:
         role: str,
         name: str | None = None,
         model: str | None = None,
-    ):
+    ) -> None:
         """Log context message to all providers."""
         for provider in self.providers:
             await provider.log_context_message(

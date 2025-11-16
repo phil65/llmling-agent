@@ -195,7 +195,9 @@ class RegistryListResponse(Schema):
 class MCPRegistryClient:
     """Client for interacting with the MCP registry API."""
 
-    def __init__(self, base_url: str = "https://registry.modelcontextprotocol.io"):
+    def __init__(
+        self, base_url: str = "https://registry.modelcontextprotocol.io"
+    ) -> None:
         self.base_url = base_url.rstrip("/")
         self.client = httpx.AsyncClient(timeout=30.0)
         self._cache: dict[str, dict[str, Any]] = {}
@@ -313,12 +315,12 @@ class MCPRegistryClient:
         else:
             return server
 
-    def clear_cache(self):
+    def clear_cache(self) -> None:
         """Clear the metadata cache."""
         self._cache.clear()
         log.debug("Cleared metadata cache")
 
-    async def close(self):
+    async def close(self) -> None:
         """Close the HTTP client."""
         await self.client.aclose()
         log.debug("Closed HTTP client")
@@ -344,7 +346,7 @@ if __name__ == "__main__":
 
     import devtools
 
-    async def main():
+    async def main() -> None:
         """Test the MCP registry client with caching and transport resolution."""
         async with MCPRegistryClient() as client:
             print("Listing servers from official registry...")

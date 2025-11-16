@@ -33,7 +33,7 @@ def check_types(path: str) -> str:
     return stdout
 
 
-async def main():
+async def main() -> None:
     # Load config from YAML
     config_path = Path(__file__).parent / "config.yml"
     manifest = AgentsManifest.from_file(config_path)

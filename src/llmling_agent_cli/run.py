@@ -52,10 +52,10 @@ def run_command(
             error_msg = str(e)
             raise t.BadParameter(error_msg) from e
 
-        async def run():
+        async def run() -> None:
             async with AgentPool(config_path) as pool:
 
-                def on_message(chat_message: ChatMessage[Any]):
+                def on_message(chat_message: ChatMessage[Any]) -> None:
                     print(
                         chat_message.format(
                             style=detail_level,  # type: ignore

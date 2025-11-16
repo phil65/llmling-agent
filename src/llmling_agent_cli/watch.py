@@ -28,10 +28,10 @@ def watch_command(
     ),
     show_metadata: bool = t.Option(False, "--metadata", help="Show message metadata"),
     show_costs: bool = t.Option(False, "--costs", help="Show token usage and costs"),
-):
+) -> None:
     """Run agents in event-watching mode."""
 
-    def on_message(chat_message: ChatMessage[Any]):
+    def on_message(chat_message: ChatMessage[Any]) -> None:
         text = chat_message.format(
             style=detail_level,  # type: ignore
             show_metadata=show_metadata,
@@ -39,7 +39,7 @@ def watch_command(
         )
         print(text)
 
-    async def run_watch():
+    async def run_watch() -> None:
         from llmling_agent import AgentPool, AgentsManifest
 
         manifest = AgentsManifest.from_file(config)

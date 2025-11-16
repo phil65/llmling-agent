@@ -19,7 +19,7 @@ logger = get_logger(__name__)
 class PlainConverter(DocumentConverter):
     """Fallback converter that handles plain text."""
 
-    def __init__(self, config: PlainConverterConfig | None = None):
+    def __init__(self, config: PlainConverterConfig | None = None) -> None:
         self.config = config or PlainConverterConfig()
 
     def supports_file(self, path: JoinablePathLike) -> bool:

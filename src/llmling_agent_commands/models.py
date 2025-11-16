@@ -30,7 +30,7 @@ class SetModelCommand(SlashedCommand):
         self,
         ctx: CommandContext[AgentContext],
         model: str,
-    ):
+    ) -> None:
         """Change the model for the current conversation.
 
         Args:

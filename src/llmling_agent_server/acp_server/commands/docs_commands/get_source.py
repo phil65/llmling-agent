@@ -31,7 +31,7 @@ class GetSourceCommand(SlashedCommand):
         dot_path: str,
         *,
         cwd: str | None = None,
-    ):
+    ) -> None:
         """Get Python source code for an object.
 
         Args:

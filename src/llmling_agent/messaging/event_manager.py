@@ -48,7 +48,7 @@ class EventManager:
         node: MessageNode[Any, Any],
         enable_events: bool = True,
         auto_run: bool = True,
-    ):
+    ) -> None:
         """Initialize event manager.
 
         Args:
@@ -63,20 +63,20 @@ class EventManager:
         self.auto_run = auto_run
         self._observers = defaultdict[str, list[EventObserver]](list)
 
-    async def _default_handler(self, event: EventData):
+    async def _default_handler(self, event: EventData) -> None:
         """Default event handler that converts events to node runs."""
         if prompt := event.to_prompt():  # Only run if event provides a prompt
             await self.node.run(prompt)
 
-    def add_callback(self, callback: EventCallback):
+    def add_callback(self, callback: EventCallback) -> None:
         """Register an event callback."""
         self._callbacks.append(callback)
 
-    def remove_callback(self, callback: EventCallback):
+    def remove_callback(self, callback: EventCallback) -> None:
         """Remove a previously registered callback."""
         self._callbacks.remove(callback)
 
-    async def emit_event(self, event: EventData):
+    async def emit_event(self, event: EventData) -> None:
         """Emit event to all callbacks and optionally handle via node."""
         if not self.enabled:
             return
@@ -255,7 +255,7 @@ class EventManager:
         else:
             return source
 
-    async def remove_source(self, name: str):
+    async def remove_source(self, name: str) -> None:
         """Stop and remove an event source.
 
         Args:
@@ -286,7 +286,7 @@ class EventManager:
         except Exception:
             logger.exception("Error processing events")
 
-    async def cleanup(self):
+    async def cleanup(self) -> None:
         """Clean up all event sources and tasks."""
         self.enabled = False
 
@@ -462,7 +462,7 @@ class EventObserver:
     interval: timedelta | None = None
     last_run: datetime | None = None
 
-    async def __call__(self, event: EventData):
+    async def __call__(self, event: EventData) -> None:
         """Handle an event."""
         try:
             await execute(self.callback, event)

@@ -104,7 +104,7 @@ class ToolServerLifecycleHandler:
         toolset_generator: ToolsetCodeGenerator,
         host: str = "localhost",
         port: int = 8000,
-    ):
+    ) -> None:
         self.toolset_generator = toolset_generator
         self.host = host
         self.port = port  # Will be set when socket is created
@@ -155,7 +155,7 @@ class ToolServerLifecycleHandler:
 
         return ServerInfo(url=f"http://{self.host}:{self.port}", port=self.port)
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
         """Stop FastAPI server."""
         import asyncio
 
@@ -193,7 +193,7 @@ if __name__ == "__main__":
         """Add two numbers."""
         return x + y
 
-    async def main():
+    async def main() -> None:
         tools = [Tool.from_callable(add_numbers)]
         config = LocalExecutionEnvironmentConfig()
         provider = RemoteCodeExecutor.from_tools(tools, config, server_port=9876)

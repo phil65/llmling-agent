@@ -21,7 +21,7 @@ class StructuredTeam[TResult](TeamRun[Any, TResult]):
         *,
         name: str | None = None,
         description: str | None = None,
-    ):
+    ) -> None:
         """Initialize structured team.
 
         Args:
@@ -42,7 +42,7 @@ class StructuredTeam[TResult](TeamRun[Any, TResult]):
         return self.agents[0]
 
     @worker.setter
-    def worker(self, value: MessageNode[Any, Any]):
+    def worker(self, value: MessageNode[Any, Any]) -> None:
         """Set the worker node."""
         self.agents[0] = value
 
@@ -52,6 +52,6 @@ class StructuredTeam[TResult](TeamRun[Any, TResult]):
         return self.agents[1]  # type: ignore
 
     @processor.setter
-    def processor(self, value: Agent[Any, TResult]):
+    def processor(self, value: Agent[Any, TResult]) -> None:
         """Set the processor node."""
         self.agents[1] = value

@@ -80,7 +80,7 @@ class SkillsResourceProvider(ResourceProvider):
         skills_dirs: Sequence[JoinablePathLike] | None = None,
         name: str = "skills",
         owner: str | None = None,
-    ):
+    ) -> None:
         """Initialize the skills provider.
 
         Args:
@@ -134,7 +134,7 @@ class SkillsResourceProvider(ResourceProvider):
 if __name__ == "__main__":
     import asyncio
 
-    async def main():
+    async def main() -> None:
         async with SkillsResourceProvider() as provider:
             await provider.refresh()
             print(await provider.get_tools())

@@ -186,7 +186,7 @@ async def _execute_parallel(
     """Execute independent steps in parallel."""
     semaphore = asyncio.Semaphore(pipeline.max_parallel)
 
-    async def run_step(step: PipelineStep):
+    async def run_step(step: PipelineStep) -> None:
         async with semaphore:
             # Wait for dependencies
             for dep in step.depends_on:

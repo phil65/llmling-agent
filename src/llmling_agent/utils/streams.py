@@ -38,7 +38,7 @@ async def merge_queue_into_iterator[T, V](
     event_queue: asyncio.Queue[V | T | None] = asyncio.Queue()
 
     # Task to read from primary stream and put into merged queue
-    async def primary_task():
+    async def primary_task() -> None:
         try:
             async for event in primary_stream:
                 await event_queue.put(event)
@@ -47,7 +47,7 @@ async def merge_queue_into_iterator[T, V](
             await event_queue.put(None)
 
     # Task to read from secondary queue and put into merged queue
-    async def secondary_task():
+    async def secondary_task() -> None:
         try:
             while True:
                 secondary_event = await secondary_queue.get()

@@ -9,7 +9,7 @@ if TYPE_CHECKING:
     import jinja2
 
 
-def setup_env(env: jinja2.Environment):
+def setup_env(env: jinja2.Environment) -> None:
     """Used as extension point for the jinjarope environment.
 
     Args:

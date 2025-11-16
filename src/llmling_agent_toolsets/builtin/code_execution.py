@@ -69,5 +69,5 @@ def create_code_execution_tools() -> list[Tool]:
 class CodeExecutionTools(StaticResourceProvider):
     """Provider for code execution tools."""
 
-    def __init__(self, name: str = "code_execution"):
+    def __init__(self, name: str = "code_execution") -> None:
         super().__init__(name=name, tools=create_code_execution_tools())

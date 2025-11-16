@@ -64,7 +64,7 @@ class SystemPrompts:
         inject_agent_info: bool = True,
         inject_tools: ToolInjectionMode = "off",
         tool_usage_style: ToolUsageStyle = "suggestive",
-    ):
+    ) -> None:
         """Initialize prompt manager."""
         from jinjarope import Environment
         from toprompt import to_prompt
@@ -157,11 +157,11 @@ class SystemPrompts:
             msg = f"Failed to add prompt {ref!r}"
             raise RuntimeError(msg) from e
 
-    def clear(self):
+    def clear(self) -> None:
         """Clear all system prompts."""
         self.prompts = []
 
-    async def refresh_cache(self):
+    async def refresh_cache(self) -> None:
         """Force re-evaluation of prompts."""
         from toprompt import to_prompt
 

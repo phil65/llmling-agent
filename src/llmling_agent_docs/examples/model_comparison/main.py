@@ -44,7 +44,7 @@ PROMPT = """Please perform the following steps:
 """
 
 
-async def run_example():
+async def run_example() -> None:
     """Run the model comparison example."""
     # Load config from YAML
     config_path = get_config_path(None if is_pyodide() else __file__)

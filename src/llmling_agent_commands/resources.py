@@ -35,7 +35,7 @@ class ListResourcesCommand(SlashedCommand):
     name = "list-resources"
     category = "resources"
 
-    async def execute_command(self, ctx: CommandContext[AgentContext]):
+    async def execute_command(self, ctx: CommandContext[AgentContext]) -> None:
         """List available resources.
 
         Args:
@@ -94,7 +94,7 @@ class ShowResourceCommand(SlashedCommand):
         ctx: CommandContext[AgentContext],
         name: str,
         **kwargs: str,
-    ):
+    ) -> None:
         """Show details or content of a resource.
 
         Args:

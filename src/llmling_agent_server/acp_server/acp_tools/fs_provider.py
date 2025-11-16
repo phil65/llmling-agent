@@ -32,7 +32,7 @@ class ACPFileSystemProvider(ResourceProvider):
     eliminating the need for parameter injection.
     """
 
-    def __init__(self, session: ACPSession):
+    def __init__(self, session: ACPSession) -> None:
         """Initialize filesystem provider.
 
         Args:

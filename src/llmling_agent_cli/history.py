@@ -85,7 +85,7 @@ def show_history(
         config_path = resolve_agent_config(config)
         provider = get_history_provider(config_path)
 
-        async def main():
+        async def main() -> None:
             async with provider:
                 results = await provider.get_filtered_conversations(
                     agent_name=agent_name,
@@ -140,7 +140,7 @@ def show_stats(
         cutoff = datetime.now(UTC) - parse_time_period(period)
         filters = StatsFilters(cutoff=cutoff, group_by=group_by, agent_name=agent_name)  # type: ignore
 
-        async def main():
+        async def main() -> None:
             async with provider:
                 stats = await provider.get_conversation_stats(filters)
             formatted = format_stats(stats, period, group_by)
@@ -191,7 +191,7 @@ def reset_history(
                 print("Operation cancelled.")
                 return
 
-        async def main():
+        async def main() -> None:
             async with provider:
                 conv_count, msg_count = await provider.reset(
                     agent_name=agent_name, hard=hard

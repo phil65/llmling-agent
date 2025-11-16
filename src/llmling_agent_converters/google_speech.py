@@ -22,12 +22,12 @@ class GoogleSpeechConverter(DocumentConverter):
 
     SUPPORTED_MIME_TYPES: ClassVar = {"audio/wav", "audio/x-wav", "audio/flac"}
 
-    def __init__(self, config: GoogleSpeechConfig):
+    def __init__(self, config: GoogleSpeechConfig) -> None:
         """Initialize converter with config."""
         self.config = config
         self._client = None
 
-    def _ensure_client(self):
+    def _ensure_client(self) -> None:
         """Initialize client if needed."""
         if self._client is not None:
             return

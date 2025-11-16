@@ -27,7 +27,7 @@ class ListSessionsCommand(SlashedCommand):
         *,
         active: bool = False,
         stored: bool = False,
-    ):
+    ) -> None:
         """List available ACP sessions.
 
         Args:

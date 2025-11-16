@@ -13,7 +13,7 @@ from llmling_agent import Agent
 from llmling_agent_config.mcp_server import StdioMCPServerConfig
 
 
-async def main():
+async def main() -> None:
     """Demo MCP server with code fixer workflow."""
     print("🚀 Starting code fixer demo...")
 

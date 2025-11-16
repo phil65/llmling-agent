@@ -51,7 +51,7 @@ class RemoteCodeModeResourceProvider(CodeModeResourceProvider):
         usage_notes: str = USAGE,
         server_host: str = "localhost",
         server_port: int = 8000,
-    ):
+    ) -> None:
         """Initialize secure code execution provider.
 
         Args:
@@ -127,7 +127,7 @@ class RemoteCodeModeResourceProvider(CodeModeResourceProvider):
         exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
-    ):
+    ) -> None:
         """Async context manager exit."""
         if self._code_executor is not None:
             with contextlib.suppress(Exception):
@@ -150,7 +150,7 @@ if __name__ == "__main__":
         """Use this to open url in the default browser."""
         return webbrowser.open(url)
 
-    async def main():
+    async def main() -> None:
         tools = [Tool.from_callable(open_browser)]
         static_provider = StaticResourceProvider(tools=tools)
         config = LocalExecutionEnvironmentConfig(timeout=30.0)

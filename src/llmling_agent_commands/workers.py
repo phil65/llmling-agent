@@ -136,7 +136,7 @@ class ListWorkersCommand(SlashedCommand):
     name = "list-workers"
     category = "tools"
 
-    async def execute_command(self, ctx: CommandContext[AgentContext]):
+    async def execute_command(self, ctx: CommandContext[AgentContext]) -> None:
         """List all worker tools.
 
         Args:

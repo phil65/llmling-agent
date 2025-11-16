@@ -45,7 +45,7 @@ def api_command(
 
     from llmling_agent import AgentPool, AgentsManifest
 
-    def on_message(message: ChatMessage[Any]):
+    def on_message(message: ChatMessage[Any]) -> None:
         print(message.format(style="simple"))
 
     try:

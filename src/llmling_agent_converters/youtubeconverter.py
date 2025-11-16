@@ -41,7 +41,7 @@ class YouTubeTranscriptConverter(DocumentConverter):
         re.compile(r"^[a-zA-Z0-9_-]{11}$"),
     ]
 
-    def __init__(self, config: YouTubeConverterConfig | None = None):
+    def __init__(self, config: YouTubeConverterConfig | None = None) -> None:
         """Initialize converter.
 
         Args:

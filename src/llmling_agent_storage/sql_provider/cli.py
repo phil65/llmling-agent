@@ -133,7 +133,7 @@ def reset(
     return run_command(["alembic", "upgrade", "head"], cwd=project_root)
 
 
-def main():
+def main() -> None:
     """Main entry point."""
     # Set up environment
     project_root = get_project_root()

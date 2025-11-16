@@ -33,7 +33,7 @@ class ListToolsCommand(SlashedCommand):
         self,
         ctx: CommandContext[AgentContext],
         source: str | None = None,
-    ):
+    ) -> None:
         """List all available tools.
 
         Args:
@@ -76,7 +76,7 @@ class ShowToolCommand(SlashedCommand):
         self,
         ctx: CommandContext[AgentContext],
         name: str,
-    ):
+    ) -> None:
         """Show detailed information about a tool.
 
         Args:

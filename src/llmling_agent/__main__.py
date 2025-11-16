@@ -30,7 +30,7 @@ def get_command_help(base_help: str) -> str:
 def main(
     ctx: t.Context,
     log_level: LogLevel = t.Option("info", "--log-level", "-l", help="Log level"),  # noqa: B008
-):
+) -> None:
     """🤖 LLMling Agent CLI - Run and manage LLM agents."""
     # Configure logging globally
     log.configure_logging(level=log_level.upper())

@@ -63,7 +63,7 @@ async def create_architect_agent_2(
 if __name__ == "__main__":
     import asyncio
 
-    async def main():
+    async def main() -> None:
         agent = await create_architect_agent_2()
         cfg = await agent.run("write an AgentManifest with a GIT expert")
         print(cfg.content.code)

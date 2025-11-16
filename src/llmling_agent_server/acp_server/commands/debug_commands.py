@@ -47,7 +47,7 @@ class DebugSendTextCommand(SlashedCommand):
         text: str,
         *,
         chunk_type: str = "agent",
-    ):
+    ) -> None:
         """Send a text chunk notification.
 
         Args:
@@ -96,7 +96,7 @@ class DebugSendToolCallCommand(SlashedCommand):
         title: str,
         *,
         kind: ToolCallKind = "other",
-    ):
+    ) -> None:
         """Send a tool call notification.
 
         Args:
@@ -174,7 +174,7 @@ class DebugReplaySequenceCommand(SlashedCommand):
         self,
         ctx: CommandContext[AgentContext[ACPSession]],
         file_path: str,
-    ):
+    ) -> None:
         """Replay a sequence of ACP notifications from a JSON file.
 
         Args:
@@ -260,7 +260,9 @@ class DebugSessionInfoCommand(SlashedCommand):
     name = "debug-session-info"
     category = "debug"
 
-    async def execute_command(self, ctx: CommandContext[AgentContext[ACPSession]]):
+    async def execute_command(
+        self, ctx: CommandContext[AgentContext[ACPSession]]
+    ) -> None:
         """Show current ACP session debugging information."""
         session = ctx.context.data
         assert session
@@ -299,7 +301,7 @@ class DebugCreateTemplateCommand(SlashedCommand):
         ctx: CommandContext[AgentContext[ACPSession]],
         *,
         file_path: str = "debug_replay_template.json",
-    ):
+    ) -> None:
         """Create a template JSON file for debugging notification sequences.
 
         Args:
@@ -371,7 +373,7 @@ class DebugSendRawCommand(SlashedCommand):
         self,
         ctx: CommandContext[AgentContext[ACPSession]],
         notification_json: str,
-    ):
+    ) -> None:
         """Send a raw ACP notification from JSON string.
 
         Args:

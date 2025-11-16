@@ -17,7 +17,9 @@ if TYPE_CHECKING:
 class UpsonicTools(ResourceProvider):
     """Provider for upsonic tools."""
 
-    def __init__(self, api_key: SecretStr | None = None, base_url: str | None = None):
+    def __init__(
+        self, api_key: SecretStr | None = None, base_url: str | None = None
+    ) -> None:
         from upsonic import Tiger, Tiger_Admin
 
         super().__init__(name="tiger")
@@ -42,7 +44,7 @@ class UpsonicTools(ResourceProvider):
 if __name__ == "__main__":
     import asyncio
 
-    async def main():
+    async def main() -> None:
         from llmling_agent import Agent
 
         tools = UpsonicTools()

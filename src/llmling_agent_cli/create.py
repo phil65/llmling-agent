@@ -23,7 +23,7 @@ def create(
     provider: Provider = typer.Option(  # noqa: B008
         "pydantic_ai", "-p", "--provider", help="Provider to use"
     ),
-):
+) -> None:
     """Interactive config generator for agents and teams."""
     from typing import TYPE_CHECKING, ClassVar
 
@@ -47,10 +47,10 @@ def create(
     class StatsDisplay(Static):
         """Display for token count and validation status."""
 
-        def __init__(self, *args, **kwargs):
+        def __init__(self, *args, **kwargs) -> None:
             super().__init__(*args, markup=kwargs.pop("markup", False), **kwargs)
 
-        def update_stats(self, token_count: int, status: str | None = None):
+        def update_stats(self, token_count: int, status: str | None = None) -> None:
             """Update the stats display."""
             text = f"Context tokens: {token_count:,}"
             if status:
@@ -60,7 +60,7 @@ def create(
     class YamlDisplay(ScrollableContainer):
         """Display for YAML content with syntax highlighting."""
 
-        def __init__(self):
+        def __init__(self) -> None:
             super().__init__()
             self._content = Static("")
 
@@ -68,7 +68,7 @@ def create(
             """Initial empty content."""
             yield self._content
 
-        def update_yaml(self, content: str):
+        def update_yaml(self, content: str) -> None:
             """Update the YAML content with syntax highlighting."""
             from rich.syntax import Syntax
 
@@ -112,7 +112,7 @@ def create(
             model: str = "openai:gpt-5-mini",
             output_path: str | None = None,
             add_to_store: bool = False,
-        ):
+        ) -> None:
             super().__init__()
             agent = Agent(output_type=YAMLCode)
             self.agent = agent
@@ -127,7 +127,7 @@ def create(
             yield YamlDisplay()
             yield StatsDisplay("Context tokens: calculating...")
 
-        async def on_mount(self):
+        async def on_mount(self) -> None:
             """Load schema and calculate token count."""
             self.agent = await create_architect_agent(model="openai:gpt-5-nano")
             assert self.agent.model_name
@@ -137,7 +137,7 @@ def create(
             stats = self.query_one(StatsDisplay)
             stats.update_stats(self._token_count)
 
-        async def on_input_submitted(self, message: Input.Submitted):
+        async def on_input_submitted(self, message: Input.Submitted) -> None:
             """Generate config when user hits enter."""
             yaml = await self.agent.run(message.value)
             self.current_config = yaml.content.code
@@ -152,7 +152,7 @@ def create(
             stats = self.query_one(StatsDisplay)
             stats.update_stats(self._token_count, status)
 
-        def action_save(self):
+        def action_save(self) -> None:
             """Save current config."""
             if not self.current_config:
                 self.notify("No configuration generated yet!")

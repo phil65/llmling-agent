@@ -64,5 +64,5 @@ def create_code_tools() -> list[Tool]:
 class CodeTools(StaticResourceProvider):
     """Provider for code formatting and linting tools."""
 
-    def __init__(self, name: str = "code"):
+    def __init__(self, name: str = "code") -> None:
         super().__init__(name=name, tools=create_code_tools())

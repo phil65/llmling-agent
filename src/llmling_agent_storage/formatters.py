@@ -62,7 +62,7 @@ def format_output(
             assert_never(unreachable)
 
 
-def _print_conversation(console: Console, conv: ConversationData):
+def _print_conversation(console: Console, conv: ConversationData) -> None:
     """Print a conversation in text format."""
     console.print(f"\n[bold blue]Conversation {conv['id']}[/]")
     console.print(f"Agent: {conv['agent']}, Started: {conv['start_time']}\n")
@@ -87,7 +87,7 @@ def _print_conversation(console: Console, conv: ConversationData):
         console.print()
 
 
-def _print_stats(console: Console, stats: dict[str, Any]):
+def _print_stats(console: Console, stats: dict[str, Any]) -> None:
     """Print statistics in text format."""
     if "period" in stats:
         console.print(f"\n[bold]Usage Statistics ({stats['period']})[/]")

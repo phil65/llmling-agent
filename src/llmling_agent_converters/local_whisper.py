@@ -25,12 +25,12 @@ class LocalWhisperConverter(DocumentConverter):
         "audio/flac",
     }
 
-    def __init__(self, config: LocalWhisperConfig | None = None):
+    def __init__(self, config: LocalWhisperConfig | None = None) -> None:
         """Initialize converter with config."""
         self.config = config or LocalWhisperConfig()
         self._model = None
 
-    def _ensure_model(self):
+    def _ensure_model(self) -> None:
         """Load model if not already loaded."""
         if self._model is not None:
             return

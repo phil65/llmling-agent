@@ -37,7 +37,7 @@ class NodeFunction:
     name: str = field(init=False)
     """Function name (from function.__name__)."""
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Set name and validate dependencies."""
         self.name = self.func.__name__
         # Extract default inputs from function signature

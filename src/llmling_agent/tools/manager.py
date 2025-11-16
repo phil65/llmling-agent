@@ -38,7 +38,7 @@ class ToolError(LLMLingError):
 class ToolManager:
     """Manages tool registration, enabling/disabling and access."""
 
-    def __init__(self, tools: Sequence[Tool | ToolType] | None = None):
+    def __init__(self, tools: Sequence[Tool | ToolType] | None = None) -> None:
         """Initialize tool manager.
 
         Args:
@@ -64,7 +64,7 @@ class ToolManager:
             return "No tools available"
         return f"Available tools: {', '.join(enabled_tools)}"
 
-    def add_provider(self, provider: ResourceProvider, owner: str | None = None):
+    def add_provider(self, provider: ResourceProvider, owner: str | None = None) -> None:
         """Add an external resource provider.
 
         Args:
@@ -75,7 +75,7 @@ class ToolManager:
             provider.owner = owner
         self.external_providers.append(provider)
 
-    def remove_provider(self, provider: ResourceProvider | ProviderName):
+    def remove_provider(self, provider: ResourceProvider | ProviderName) -> None:
         """Remove an external resource provider."""
         from llmling_agent.resource_providers import ResourceProvider
 
@@ -114,13 +114,13 @@ class ToolManager:
                 msg = f"Item must be Tool or callable. Got {typ}"
                 raise ToolError(msg)
 
-    async def enable_tool(self, tool_name: str):
+    async def enable_tool(self, tool_name: str) -> None:
         """Enable a previously disabled tool."""
         tool_info = await self.get_tool(tool_name)
         tool_info.enabled = True
         logger.debug("Enabled tool", tool_name=tool_name)
 
-    async def disable_tool(self, tool_name: str):
+    async def disable_tool(self, tool_name: str) -> None:
         """Disable a tool."""
         tool_info = await self.get_tool(tool_name)
         tool_info.enabled = False

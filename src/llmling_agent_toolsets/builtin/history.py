@@ -73,5 +73,5 @@ def create_history_tools() -> list[Tool]:
 class HistoryTools(StaticResourceProvider):
     """Provider for history tools."""
 
-    def __init__(self, name: str = "history"):
+    def __init__(self, name: str = "history") -> None:
         super().__init__(name=name, tools=create_history_tools())

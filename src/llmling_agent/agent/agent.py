@@ -155,7 +155,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         parallel_init: bool = True,
         debug: bool = False,
         event_handlers: Sequence[IndividualEventHandler] | None = None,
-    ):
+    ) -> None:
         """Initialize agent.
 
         Args:
@@ -334,7 +334,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
-    ):
+    ) -> None:
         """Exit async context."""
         await super().__aexit__(exc_type, exc_val, exc_tb)
 
@@ -439,7 +439,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         return self._context
 
     @context.setter
-    def context(self, value: AgentContext[TDeps]):
+    def context(self, value: AgentContext[TDeps]) -> None:
         """Set agent context and propagate to provider."""
         self._context = value
         self.mcp.context = value
@@ -680,7 +680,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             # Merge internal and external event handlers like the old provider did
             async def event_distributor(
                 ctx: RunContext, events: AsyncIterable[AgentStreamEvent]
-            ):
+            ) -> None:
                 async for event in events:
                     # Check for queued custom events and distribute them first
                     while not self._progress_queue.empty():
@@ -1013,7 +1013,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         self._background_task = task
         return task
 
-    async def stop(self):
+    async def stop(self) -> None:
         """Stop continuous execution if running."""
         if self._background_task and not self._background_task.done():
             self._background_task.cancel()
@@ -1040,7 +1040,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         tools: list[str] | None = None,
         history: bool | int | None = None,  # bool or number of messages
         token_limit: int | None = None,
-    ):
+    ) -> None:
         """Share capabilities and knowledge with another agent.
 
         Args:
@@ -1089,7 +1089,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             parent=self if pass_message_history else None,
         )
 
-    def set_model(self, model: ModelType):
+    def set_model(self, model: ModelType) -> None:
         """Set the model for this agent.
 
         Args:
@@ -1098,7 +1098,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         """
         self._model = model
 
-    async def reset(self):
+    async def reset(self) -> None:
         """Reset agent state (conversation history and tool states)."""
         old_tools = await self.tools.list_tools()
         self.conversation.clear()
@@ -1207,7 +1207,7 @@ if __name__ == "__main__":
     sys_prompt = "Open browser with google,"
     _model = "openai:gpt-5-nano"
 
-    async def handle_events(ctx, event):
+    async def handle_events(ctx, event) -> None:
         print(f"[EVENT] {type(event).__name__}: {event}")
 
     agent = Agent(model=_model, tools=["webbrowser.open"], event_handlers=[handle_events])

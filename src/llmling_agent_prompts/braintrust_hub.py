@@ -107,7 +107,7 @@ class BraintrustPromptMetadata:
 class BraintrustPromptHub(BasePromptProvider):
     """Braintrust prompt provider implementation."""
 
-    def __init__(self, config: BraintrustConfig):
+    def __init__(self, config: BraintrustConfig) -> None:
         self.config = config or BraintrustConfig()
         api_key = self.config.api_key.get_secret_value() if self.config.api_key else None
         key = api_key or os.getenv("BRAINTRUST_API_KEY")
@@ -242,7 +242,7 @@ if __name__ == "__main__":
     config = BraintrustConfig(project="test")
     prompt_hub = BraintrustPromptHub(config)
 
-    async def main():
+    async def main() -> None:
         # List available prompts
         print("Available prompts:")
         try:

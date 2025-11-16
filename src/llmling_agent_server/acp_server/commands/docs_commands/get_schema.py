@@ -35,7 +35,7 @@ class GetSchemaCommand(SlashedCommand):
         *,
         class_name: str | None = None,
         cwd: str | None = None,
-    ):
+    ) -> None:
         """Get Python code from Pydantic model schema.
 
         Args:

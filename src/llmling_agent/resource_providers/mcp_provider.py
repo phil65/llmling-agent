@@ -42,7 +42,7 @@ class MCPResourceProvider(ResourceProvider):
         sampling_callback: ClientSamplingHandler | None = None,
         progress_handler: RichProgressCallback | None = None,
         accessible_roots: list[str] | None = None,
-    ):
+    ) -> None:
         from llmling_agent.mcp_server import MCPClient
 
         super().__init__(name, owner=owner)
@@ -228,7 +228,7 @@ if __name__ == "__main__":
         args=["run", "/home/phil65/dev/oss/llmling-agent/tests/mcp/server.py"],
     )
 
-    async def main():
+    async def main() -> None:
         manager = MCPResourceProvider(cfg)
         async with manager:
             prompts = await manager.get_prompts()  # type: ignore

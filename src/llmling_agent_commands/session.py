@@ -16,7 +16,7 @@ class ClearCommand(SlashedCommand):
     name = "clear"
     category = "session"
 
-    async def execute_command(self, ctx: CommandContext[AgentContext]):
+    async def execute_command(self, ctx: CommandContext[AgentContext]) -> None:
         """Clear chat history.
 
         Args:
@@ -37,7 +37,7 @@ class ResetCommand(SlashedCommand):
     name = "reset"
     category = "session"
 
-    async def execute_command(self, ctx: CommandContext[AgentContext]):
+    async def execute_command(self, ctx: CommandContext[AgentContext]) -> None:
         """Reset session state.
 
         Args:

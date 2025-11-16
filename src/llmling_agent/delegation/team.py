@@ -96,7 +96,7 @@ class Team[TDeps = None](BaseTeam[TDeps, Any]):
             execution_talks.append(talk)
             self._team_talk.append(talk)  # Add to base class's TeamTalk
 
-        async def _run(node: MessageNode[TDeps, Any]):
+        async def _run(node: MessageNode[TDeps, Any]) -> None:
             try:
                 start = perf_counter()
                 message = await node.run(*final_prompt, **kwargs)
@@ -131,7 +131,7 @@ class Team[TDeps = None](BaseTeam[TDeps, Any]):
         queue: asyncio.Queue[ChatMessage[Any] | None] = asyncio.Queue()
         failures: dict[str, Exception] = {}
 
-        async def _run(node: MessageNode[TDeps, Any]):
+        async def _run(node: MessageNode[TDeps, Any]) -> None:
             try:
                 message = await node.run(*prompts, **kwargs)
                 await queue.put(message)
@@ -295,7 +295,7 @@ class Team[TDeps = None](BaseTeam[TDeps, Any]):
 
             prompt = await job.get_prompt()
 
-            async def _run(agent: MessageNode[TDeps, TJobResult]):
+            async def _run(agent: MessageNode[TDeps, TJobResult]) -> None:
                 assert isinstance(agent, Agent)
                 try:
                     async with agent.tools.temporary_tools(
@@ -324,7 +324,7 @@ class Team[TDeps = None](BaseTeam[TDeps, Any]):
 
 if __name__ == "__main__":
 
-    async def main():
+    async def main() -> None:
         from llmling_agent import Agent, TeamRun
 
         agent_a = Agent(name="A", model="test")

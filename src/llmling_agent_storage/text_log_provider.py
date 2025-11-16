@@ -116,7 +116,7 @@ class TextLogProvider(StorageProvider):
     }
     can_load_history = False
 
-    def __init__(self, config: TextLogConfig):
+    def __init__(self, config: TextLogConfig) -> None:
         """Initialize text log provider."""
         from jinja2 import Environment, Undefined
 
@@ -199,7 +199,7 @@ class TextLogProvider(StorageProvider):
         provider_response_id: str | None = None,
         messages: str | None = None,
         finish_reason: str | None = None,
-    ):
+    ) -> None:
         """Store message and update log."""
         entry = {
             "type": "message",
@@ -229,7 +229,7 @@ class TextLogProvider(StorageProvider):
         conversation_id: str,
         node_name: str,
         start_time: datetime | None = None,
-    ):
+    ) -> None:
         """Store conversation start."""
         entry = {
             "type": "conversation",
@@ -250,7 +250,7 @@ class TextLogProvider(StorageProvider):
         command: str,
         context_type: type | None = None,
         metadata: dict[str, JsonValue] | None = None,
-    ):
+    ) -> None:
         """Store command."""
         entry = {
             "type": "command",

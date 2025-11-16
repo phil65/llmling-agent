@@ -22,7 +22,7 @@ class LangfusePromptHub(BasePromptProvider):
     supports_versions = True
     supports_variables = True
 
-    def __init__(self, config: LangfuseConfig):
+    def __init__(self, config: LangfuseConfig) -> None:
         self.config = config
         secret = config.secret_key.get_secret_value()
         pub = config.public_key.get_secret_value()
@@ -75,7 +75,7 @@ if __name__ == "__main__":
     config = LangfuseConfig(secret_key="test", public_key="")  # type: ignore
     prompt_hub = LangfusePromptHub(config)
 
-    async def main():
+    async def main() -> None:
         print(await prompt_hub.list_prompts())
 
     asyncio.run(main())

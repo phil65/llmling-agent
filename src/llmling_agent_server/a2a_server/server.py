@@ -74,7 +74,7 @@ class FastA2A(Starlette):
         middleware: Sequence[Middleware] | None = None,
         exception_handlers: dict[Any, ExceptionHandler] | None = None,
         lifespan: Any = None,
-    ):
+    ) -> None:
         if lifespan is None:
             lifespan = _default_lifespan
 
@@ -481,7 +481,7 @@ if __name__ == "__main__":
 
     from llmling_agent import AgentPool
 
-    async def test_client():
+    async def test_client() -> None:
         """Test the A2A server with a basic request."""
         async with httpx.AsyncClient() as client:
             # Test agent card endpoint
@@ -494,7 +494,7 @@ if __name__ == "__main__":
             response = await client.get("http://localhost:8000/docs")
             print("Docs status:", response.status_code)
 
-    async def main():
+    async def main() -> None:
         """Run server and test client."""
         pool = AgentPool()
         await pool.add_agent("test-agent", model="openai:gpt-5-nano")

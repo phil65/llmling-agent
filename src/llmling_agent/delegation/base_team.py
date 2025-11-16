@@ -86,7 +86,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
         picker: Agent[Any, Any] | None = None,
         num_picks: int | None = None,
         pick_prompt: str | None = None,
-    ):
+    ) -> None:
         """Common variables only for typing."""
         from llmling_agent.delegation.teamrun import ExtendedTeamTalk
 
@@ -152,12 +152,12 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
             return multi_result.selections
         return list(self.agents)
 
-    def _on_node_changed(self, index: int, old: MessageNode, new: MessageNode):
+    def _on_node_changed(self, index: int, old: MessageNode, new: MessageNode) -> None:
         """Handle node replacement in the agents list."""
         self._on_node_removed(index, old)
         self._on_node_added(index, new)
 
-    def _on_node_added(self, index: int, node: MessageNode[Any, Any]):
+    def _on_node_added(self, index: int, node: MessageNode[Any, Any]) -> None:
         """Handler for adding new nodes to the team."""
         from llmling_agent.agent import Agent
 
@@ -166,7 +166,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
             aggregating_provider = self.mcp.get_aggregating_provider()
             node.tools.add_provider(aggregating_provider)
 
-    def _on_node_removed(self, index: int, node: MessageNode[Any, Any]):
+    def _on_node_removed(self, index: int, node: MessageNode[Any, Any]) -> None:
         """Handler for removing nodes from the team."""
         from llmling_agent.agent import Agent
 
@@ -266,7 +266,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
         """Check if team is processing any tasks."""
         return bool(self.task_manager._pending_tasks or self._main_task)
 
-    async def stop(self):
+    async def stop(self) -> None:
         """Stop background execution if running."""
         if self._main_task and not self._main_task.done():
             self._main_task.cancel()
@@ -343,7 +343,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
         """Get events for the team."""
         return self.agents.events
 
-    async def cancel(self):
+    async def cancel(self) -> None:
         """Cancel execution and cleanup."""
         if self._main_task:
             self._main_task.cancel()
@@ -353,7 +353,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
         """Generate mermaid flowchart of node hierarchy."""
         lines = ["flowchart TD"]
 
-        def add_node(node: MessageNode[Any, Any], parent: str | None = None):
+        def add_node(node: MessageNode[Any, Any], parent: str | None = None) -> None:
             """Recursively add node and its members to diagram."""
             node_id = f"node_{id(node)}"
             lines.append(f"    {node_id}[{node.name}]")
@@ -442,7 +442,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
         tools: list[str] | None = None,
         resources: list[str] | None = None,
         metadata: dict[str, Any] | None = None,
-    ):
+    ) -> None:
         """Distribute content and capabilities to all team members."""
         for agent in self.iter_agents():
             # Add context message
@@ -523,7 +523,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
 
 if __name__ == "__main__":
 
-    async def main():
+    async def main() -> None:
         from llmling_agent import Agent, Team
 
         agent = Agent("My Agent")

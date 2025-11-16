@@ -46,7 +46,7 @@ def simulate_streaming_input(
         time.sleep(0.1)  # Simulate real-time delay
 
 
-def demonstrate_exact_matching():
+def demonstrate_exact_matching() -> None:
     """Demo exact matching with streaming input."""
     print("🎯 EXACT MATCHING DEMO")
     print("=" * 60)
@@ -87,7 +87,7 @@ def main():
         print(f"   Match {i + 1}: Range({match.start}, {match.end})")
 
 
-def demonstrate_fuzzy_matching():
+def demonstrate_fuzzy_matching() -> None:
     """Demo fuzzy matching with typos and variations."""
     print("\n\n🔧 FUZZY MATCHING DEMO")
     print("=" * 60)
@@ -122,7 +122,7 @@ def calculate_prime_factors(n):
     simulate_streaming_input(matcher, query)
 
 
-def demonstrate_line_hints():
+def demonstrate_line_hints() -> None:
     """Demo line hint usage for disambiguation."""
     print("\n\n📍 LINE HINTS DEMO")
     print("=" * 60)
@@ -167,7 +167,7 @@ def final_helper():
         print("❌ No match")
 
 
-def demonstrate_multiline_matching():
+def demonstrate_multiline_matching() -> None:
     """Demo matching across multiple lines."""
     print("\n\n📄 MULTILINE MATCHING DEMO")
     print("=" * 60)
@@ -219,7 +219,7 @@ def main():
         print()
 
 
-def demonstrate_real_time_editing():
+def demonstrate_real_time_editing() -> None:
     """Demo real-time editing scenario."""
     print("\n\n⚡ REAL-TIME EDITING DEMO")
     print("=" * 60)
@@ -289,7 +289,7 @@ def demonstrate_real_time_editing():
                     print(f"   {line}")
 
 
-def main():
+def main() -> None:
     """Run all demonstration examples."""
     print("🚀 STREAMING FUZZY MATCHER EXAMPLES")
     print("🚀 " + "=" * 58)

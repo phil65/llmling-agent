@@ -55,7 +55,7 @@ async def summarize_analysis(writer: Agent, analyze_data: str):
     return result.data
 
 
-async def run_example():
+async def run_example() -> None:
     """Run the analysis pipeline."""
     # Load config and run nodes
     config_path = get_config_path(None if is_pyodide() else __file__)

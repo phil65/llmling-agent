@@ -23,7 +23,7 @@ class PythonResult(Schema):
     is_positive: bool
 
 
-async def run_example():
+async def run_example() -> None:
     """Show both ways of defining structured responses."""
     # Example 1: Python-defined structure
     agent = Agent(

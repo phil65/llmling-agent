@@ -25,7 +25,7 @@ class PoolResourceProvider(ResourceProvider):
         pool: AgentPool[Any],
         name: str | None = None,
         zed_mode: bool = False,
-    ):
+    ) -> None:
         """Initialize provider with agent pool.
 
         Args:

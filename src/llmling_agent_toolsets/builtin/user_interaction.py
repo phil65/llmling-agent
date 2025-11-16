@@ -53,5 +53,5 @@ def create_user_interaction_tools() -> list[Tool]:
 class UserInteractionTools(StaticResourceProvider):
     """Provider for user interaction tools."""
 
-    def __init__(self, name: str = "user_interaction"):
+    def __init__(self, name: str = "user_interaction") -> None:
         super().__init__(name=name, tools=create_user_interaction_tools())

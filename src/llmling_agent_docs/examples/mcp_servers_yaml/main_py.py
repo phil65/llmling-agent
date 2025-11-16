@@ -23,7 +23,7 @@ MODEL = "openai:gpt-5-nano"
 SERVERS = ["uvx mcp-server-git"]
 
 
-async def run_example():
+async def run_example() -> None:
     picker = Agent(model=MODEL, system_prompt=PICKER, mcp_servers=SERVERS)
     analyzer = Agent(model=MODEL, system_prompt=ANALYZER, mcp_servers=SERVERS)
 

@@ -34,7 +34,7 @@ class TerminalOutputCommand(SlashedCommand):
         self,
         ctx: CommandContext[AgentContext[ACPSession]],
         terminal_id: str,
-    ):
+    ) -> None:
         """Get current output from a terminal.
 
         Args:
@@ -108,7 +108,7 @@ class TerminalKillCommand(SlashedCommand):
         self,
         ctx: CommandContext[AgentContext[ACPSession]],
         terminal_id: str,
-    ):
+    ) -> None:
         """Kill a running terminal.
 
         Args:
@@ -190,7 +190,7 @@ class TerminalCreateCommand(SlashedCommand):
         *args: str,
         cwd: str | None = None,
         env: dict[str, str] | None = None,
-    ):
+    ) -> None:
         """Create a new terminal and run a command.
 
         Args:

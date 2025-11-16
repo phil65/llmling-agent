@@ -33,17 +33,17 @@ def serve_command(
     show_messages: bool = t.Option(
         False, "--show-messages", help="Show message activity"
     ),
-):
+) -> None:
     """Run agents as an MCP server.
 
     This makes agents available as tools to other applications, regardless of
     whether pool_server is configured in the manifest.
     """
 
-    def on_message(message: ChatMessage[Any]):
+    def on_message(message: ChatMessage[Any]) -> None:
         print(message.format(style="simple"))
 
-    async def run_server():
+    async def run_server() -> None:
         # Load manifest and create pool (without server config)
         manifest = AgentsManifest.from_file(config)
         pool = AgentPool(manifest)

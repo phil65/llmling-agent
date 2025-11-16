@@ -36,38 +36,38 @@ class ConnectionManager:
     node_connected = Signal(object)  # Node
     connection_added = Signal(Talk)  # Agent
 
-    def __init__(self, owner: MessageNode):
+    def __init__(self, owner: MessageNode) -> None:
         self.owner = owner
         # helper class for the user
         self._connections = EventedList[Talk]()
         self._wait_states: dict[AgentName, bool] = {}
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"ConnectionManager({self.owner})"
 
-    def _on_talk_added(self, index: int, talk: Talk):
+    def _on_talk_added(self, index: int, talk: Talk) -> None:
         """Connect to new talk's signal."""
         talk.connection_processed.connect(self._handle_message_flow)
 
-    def _on_talk_removed(self, index: int, talk: Talk):
+    def _on_talk_removed(self, index: int, talk: Talk) -> None:
         """Disconnect from removed talk's signal."""
         talk.connection_processed.disconnect(self._handle_message_flow)
 
-    def _on_talk_changed(self, index: int, old: Talk, new: Talk):
+    def _on_talk_changed(self, index: int, old: Talk, new: Talk) -> None:
         """Update signal connections on talk change."""
         old.connection_processed.disconnect(self._handle_message_flow)
         new.connection_processed.connect(self._handle_message_flow)
 
-    def _handle_message_flow(self, event: Talk.ConnectionProcessed):
+    def _handle_message_flow(self, event: Talk.ConnectionProcessed) -> None:
         """Forward message flow to our aggregated signal."""
         self.connection_processed.emit(event)
 
-    def set_wait_state(self, target: MessageNode | AgentName, wait: bool = True):
+    def set_wait_state(self, target: MessageNode | AgentName, wait: bool = True) -> None:
         """Set waiting behavior for target."""
         target_name = target if isinstance(target, str) else target.name
         self._wait_states[target_name] = wait
 
-    async def wait_for_connections(self, _seen: set[AgentName] | None = None):
+    async def wait_for_connections(self, _seen: set[AgentName] | None = None) -> None:
         """Wait for this agent and all connected agents to complete their tasks."""
         seen: set[AgentName] = _seen or {self.owner.name}  # type: ignore
 
@@ -215,20 +215,22 @@ class ConnectionManager:
                 results.extend(await talk.trigger())
         return results
 
-    def disconnect_all(self):
+    def disconnect_all(self) -> None:
         """Disconnect all managed connections."""
         for conn in self._connections:
             conn.disconnect()
         self._connections.clear()
 
-    def disconnect(self, node: MessageNode):
+    def disconnect(self, node: MessageNode) -> None:
         """Disconnect a specific node."""
         for talk in self._connections:
             if node in talk.targets or node == talk.source:
                 talk.active = False
                 self._connections.remove(talk)
 
-    async def route_message(self, message: ChatMessage[Any], wait: bool | None = None):
+    async def route_message(
+        self, message: ChatMessage[Any], wait: bool | None = None
+    ) -> None:
         """Route message to all connections."""
         if wait is not None:
             should_wait = wait

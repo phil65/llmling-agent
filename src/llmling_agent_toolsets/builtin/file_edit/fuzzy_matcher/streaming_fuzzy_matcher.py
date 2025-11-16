@@ -37,7 +37,7 @@ class SearchState:
     cost: int
     direction: SearchDirection
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.cost = max(self.cost, 0)
 
 
@@ -78,7 +78,7 @@ class StreamingFuzzyMatcher:
     a source buffer, returning the best matches found so far.
     """
 
-    def __init__(self, source_text: str):
+    def __init__(self, source_text: str) -> None:
         """Initialize matcher with source text to search against.
 
         Args:
