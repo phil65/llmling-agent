@@ -167,7 +167,7 @@ python_version = "3.13"
 disable_error_code = ["import"]
 pretty = true
 check_untyped_defs = true
-exclude = ["venv/", ".venv/", "tests/"]
+exclude = ["venv/", ".venv/"]
 plugins = ["pydantic.mypy"]
 
 [tool.pyright]
