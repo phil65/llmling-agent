@@ -130,7 +130,6 @@ class ProgressTrackingExecutor:
         for i, node in enumerate(tree.body):
             self.current_statement = i + 1
             statement_code = ast.unparse(node)
-
             # Create metadata
             elapsed_time = time.time() - (self.start_time or time.time())
             metadata = {
@@ -160,8 +159,6 @@ class ProgressTrackingExecutor:
 
 
 if __name__ == "__main__":
-    import asyncio
-
     from pydantic_ai import RunContext  # noqa: TC002
 
     from llmling_agent import Agent, log
