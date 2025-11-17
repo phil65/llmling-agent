@@ -13,8 +13,8 @@ if TYPE_CHECKING:
     from pydantic_ai import ModelRequestPart
 
     from llmling_agent.prompts.prompts import BasePrompt
+    from llmling_agent.skills.skill import Skill
     from llmling_agent.tools.base import Tool
-    from llmling_agent.tools.skills import Skill
     from llmling_agent_config.resources import ResourceInfo
 
 
@@ -52,6 +52,15 @@ class ResourceProvider:
     async def get_tools(self) -> list[Tool]:
         """Get available tools. Override to provide tools."""
         return []
+
+    async def get_tool(self, tool_name: str) -> Tool:
+        """Get available tools. Override to provide tools."""
+        tools = await self.get_tools()
+        for tool in tools:
+            if tool.name == tool_name:
+                return tool
+        msg = f"Tool {tool_name!r} not found"
+        raise ValueError(msg)
 
     async def get_prompts(self) -> list[BasePrompt]:
         """Get available prompts. Override to provide prompts."""

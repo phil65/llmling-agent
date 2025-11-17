@@ -67,7 +67,7 @@ async def spawn_stdio_transport(
     This mirrors the defensive shutdown behaviour used by the MCP Python SDK:
     close stdin first, wait for graceful exit, then escalate to terminate/kill.
     """
-    merged_env = dict(default_environment())
+    merged_env = default_environment()
     if env:
         merged_env.update(env)
 

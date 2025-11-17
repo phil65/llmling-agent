@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -236,8 +237,6 @@ class DebugReplaySequenceCommand(SlashedCommand):
 
                     # Optional delay between notifications
                     if delay := sequence_data.get("delay_ms", 0):
-                        import asyncio
-
                         await asyncio.sleep(delay / 1000)
 
                 except Exception as e:  # noqa: BLE001
@@ -310,9 +309,7 @@ class DebugCreateTemplateCommand(SlashedCommand):
         """
         try:
             # Create proper BaseModel instances
-            message_chunk = AgentMessageChunk(
-                content=TextContentBlock(text="Hello, this is a debug message!")
-            )
+            message_chunk = AgentMessageChunk.text(text="Hello, this is a debug message!")
 
             tool_start = ToolCallStart(
                 tool_call_id="debug-tool-1",
@@ -327,9 +324,7 @@ class DebugCreateTemplateCommand(SlashedCommand):
                 tool_call_id="debug-tool-1",
                 status="completed",
                 content=[
-                    ContentToolCallContent(
-                        content=TextContentBlock(text="Tool completed successfully!"),
-                    )
+                    ContentToolCallContent.text(text="Tool completed successfully!"),
                 ],
                 title="tool_call_update",
             )

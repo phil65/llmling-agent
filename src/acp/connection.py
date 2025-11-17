@@ -7,10 +7,9 @@ from collections.abc import Awaitable, Callable, Coroutine
 import contextlib
 import copy
 from dataclasses import dataclass
-from enum import Enum
 import inspect
 import logging
-from typing import TYPE_CHECKING, Any, Self
+from typing import TYPE_CHECKING, Any, Literal, Self
 
 import anyenv
 from pydantic import BaseModel, ValidationError
@@ -34,8 +33,6 @@ from llmling_agent import log
 
 
 if TYPE_CHECKING:
-    from types import TracebackType
-
     from acp.task.sender import SenderFactory
 
 
@@ -51,11 +48,7 @@ DispatcherFactory = Callable[
 logger = log.get_logger(__name__)
 
 
-class StreamDirection(str, Enum):
-    """Stream direction."""
-
-    INCOMING = "incoming"
-    OUTGOING = "outgoing"
+StreamDirection = Literal["incoming", "outgoing"]
 
 
 @dataclass(frozen=True, slots=True)
@@ -130,12 +123,7 @@ class Connection:
     async def __aenter__(self) -> Self:
         return self
 
-    async def __aexit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_val: BaseException | None,
-        exc_tb: TracebackType | None,
-    ) -> None:
+    async def __aexit__(self, *args: object) -> None:
         await self.close()
 
     async def send_request(self, method: str, params: JsonValue | None = None) -> Any:
@@ -144,7 +132,7 @@ class Connection:
         future = self._state.register_outgoing(request_id, method)
         payload = {"jsonrpc": "2.0", "id": request_id, "method": method, "params": params}
         await self._sender.send(payload)
-        self._notify_observers(StreamDirection.OUTGOING, payload)
+        self._notify_observers("outgoing", payload)
         return await future
 
     async def send_notification(
@@ -152,7 +140,7 @@ class Connection:
     ) -> None:
         payload = {"jsonrpc": "2.0", "method": method, "params": params}
         await self._sender.send(payload)
-        self._notify_observers(StreamDirection.OUTGOING, payload)
+        self._notify_observers("outgoing", payload)
 
     async def _receive_loop(self) -> None:
         try:
@@ -169,7 +157,7 @@ class Connection:
                     logger.exception("Error parsing JSON-RPC message", line=line)
                     continue
                 else:
-                    self._notify_observers(StreamDirection.INCOMING, message)
+                    self._notify_observers("incoming", message)
                     await self._process_message(message)
         except asyncio.CancelledError:
             return
@@ -214,18 +202,18 @@ class Connection:
                 result = result.model_dump(by_alias=True, exclude_none=True)
             payload["result"] = result if result is not None else None
             await self._sender.send(payload)
-            self._notify_observers(StreamDirection.OUTGOING, payload)
+            self._notify_observers("outgoing", payload)
             return payload.get("result")
         except RequestError as exc:
             payload["error"] = exc.to_error_obj()
             await self._sender.send(payload)
-            self._notify_observers(StreamDirection.OUTGOING, payload)
+            self._notify_observers("outgoing", payload)
             raise
         except ValidationError as exc:
             err = RequestError.invalid_params({"errors": exc.errors()})
             payload["error"] = err.to_error_obj()
             await self._sender.send(payload)
-            self._notify_observers(StreamDirection.OUTGOING, payload)
+            self._notify_observers("outgoing", payload)
             raise err from None
         except Exception as exc:  # noqa: BLE001
             try:
@@ -235,7 +223,7 @@ class Connection:
             err = RequestError.internal_error(data)
             payload["error"] = err.to_error_obj()
             await self._sender.send(payload)
-            self._notify_observers(StreamDirection.OUTGOING, payload)
+            self._notify_observers("outgoing", payload)
             raise err from None
 
     async def _run_notification(self, message: dict[str, Any]) -> None:

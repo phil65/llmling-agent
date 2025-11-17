@@ -61,13 +61,7 @@ def register_handlers(llm_server: MCPServer) -> None:  # noqa: PLR0915
         arguments = arguments or {}
         # Filter out _meta from arguments
         args = {k: v for k, v in arguments.items() if not k.startswith("_")}
-
-        tools = await llm_server.provider.get_tools()
-        tool = next((t for t in tools if t.name == name), None)
-        if not tool:
-            msg = f"Tool not found: {name}"
-            raise ValueError(msg)
-
+        tool = await llm_server.provider.get_tool(name)
         try:
             result = await tool.execute(**args)
             return [types.TextContent(type="text", text=str(result))]

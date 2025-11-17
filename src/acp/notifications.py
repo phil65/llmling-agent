@@ -107,8 +107,7 @@ class ACPNotifications:
             else:
                 # Fallback to string conversion
                 output_text = str(tool_output)
-                block = TextContentBlock(text=output_text)
-                content.append(ContentToolCallContent(content=block))
+                content.append(ContentToolCallContent.text(text=output_text))
 
         # Extract file locations if present
         locations = [
@@ -165,9 +164,7 @@ class ACPNotifications:
             kind=kind,
             locations=locations,
             content=[
-                ContentToolCallContent(content=TextContentBlock(text=i))
-                if isinstance(i, str)
-                else i
+                ContentToolCallContent.text(text=i) if isinstance(i, str) else i
                 for i in content or []
             ],
             raw_input=raw_input,
@@ -510,8 +507,6 @@ class ACPNotifications:
                         converted_content = to_acp_content_blocks(content)
                         # Send each content block as separate notifications
                         for block in converted_content:
-                            # Handle different content block types with proper
-                            # pattern matching
                             match block:
                                 case TextContentBlock(text=text):
                                     await self.send_user_message(text)

@@ -25,7 +25,6 @@ from acp import (
     SetSessionModelResponse,
     SetSessionModeRequest,
     SetSessionModeResponse,
-    TextContentBlock,
     UserMessageChunk,
     WriteTextFileRequest,
 )
@@ -197,12 +196,10 @@ async def test_session_notifications_flow(
         )
 
         # Agent -> Client notifications
-        content = TextContentBlock(text="Hello")
-        agent_chunk = AgentMessageChunk(content=content)
+        agent_chunk = AgentMessageChunk.text(text="Hello")
         notification = SessionNotification(session_id="sess", update=agent_chunk)
         await client_conn.session_update(notification)
-        content = TextContentBlock(text="World")
-        chunk = UserMessageChunk(content=content)
+        chunk = UserMessageChunk.text(text="World")
         notification = SessionNotification(session_id="sess", update=chunk)
         await client_conn.session_update(notification)
 
