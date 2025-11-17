@@ -188,7 +188,7 @@ class Connection:
                 logging.exception("Stream observer failed")
                 continue
             if inspect.isawaitable(result):
-                name = f"acp.Connection.observer.{direction.value}"
+                name = f"acp.Connection.observer.{direction}"
                 self._tasks.create(result, name=name, on_error=self._on_observer_error)
 
     def _on_observer_error(self, task: asyncio.Task[Any], exc: BaseException) -> None:

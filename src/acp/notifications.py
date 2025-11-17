@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, assert_never
 
 from acp.schema import (
     AgentMessageChunk,
@@ -572,13 +572,10 @@ class ACPNotifications:
                                                 f"({size_mb:.2f} MB)"
                                             )
                                             await self.send_user_message(msg)
-                                        case _:
-                                            await self.send_user_message(
-                                                "Embedded resource"
-                                            )
-                                case _:
-                                    # Fallback for unknown types
-                                    await self.send_user_message(str(block))
+                                        case _ as unreachable:
+                                            assert_never(unreachable)
+                                case _ as unreachable:
+                                    assert_never(unreachable)
 
                 case ToolReturnPart(
                     content=content, tool_name=tool_name, tool_call_id=tool_call_id
