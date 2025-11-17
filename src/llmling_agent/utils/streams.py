@@ -36,22 +36,30 @@ async def merge_queue_into_iterator[T, V](
     """
     # Create a queue for all merged events
     event_queue: asyncio.Queue[V | T | None] = asyncio.Queue()
+    primary_done = False
 
     # Task to read from primary stream and put into merged queue
     async def primary_task() -> None:
+        nonlocal primary_done
         try:
             async for event in primary_stream:
                 await event_queue.put(event)
         finally:
+            primary_done = True
             # Signal end of primary stream
             await event_queue.put(None)
 
     # Task to read from secondary queue and put into merged queue
     async def secondary_task() -> None:
         try:
-            while True:
-                secondary_event = await secondary_queue.get()
-                await event_queue.put(secondary_event)
+            while not primary_done:
+                try:
+                    secondary_event = await asyncio.wait_for(
+                        secondary_queue.get(), timeout=0.1
+                    )
+                    await event_queue.put(secondary_event)
+                except TimeoutError:
+                    continue
         except asyncio.CancelledError:
             pass
 

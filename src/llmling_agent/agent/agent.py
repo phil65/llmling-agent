@@ -800,7 +800,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             content = await convert_prompts(prompts)
 
             # Initialize variables for final response
-            response_msg = None
+            response_msg: ChatMessage | None = None
             # Create tool dict for signal emission
             converted = [i if isinstance(i, str) else i.to_pydantic_ai() for i in content]
             stream_events = agentlet.run_stream_events(

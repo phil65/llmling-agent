@@ -161,45 +161,36 @@ class ProgressTrackingExecutor:
 if __name__ == "__main__":
     from pydantic_ai import RunContext  # noqa: TC002
 
-    from llmling_agent import Agent, log
+    from llmling_agent import log
     from llmling_agent.agent import AgentContext  # noqa: TC001
-    from llmling_agent.agent.events import create_queuing_progress_handler
 
     log.configure_logging()
+    code = """
+x = 10
+y = 20
+z = x + y
+print(f"Result: {z}")
+for i in range(3):
+    print(f"Loop: {i}")
+"""
 
     async def run_me(run_context: RunContext, ctx: AgentContext):
         """Test function using the unified progress system."""
-        code = """
-async def main():
-    x = 10
-    y = 20
-    z = x + y
-    print(f"Result: {z}")
-    for i in range(3):
-        print(f"Loop: {i}")
-    return f"Completed calculation: {z}"
-"""
+        executor = ProgressTrackingExecutor(step_delay=0.5)
+        results = []
+        async for x in executor.execute_statements(code):
+            await ctx.emit_event(x)
+            results.append(x[0])
 
-        # Create contextual progress handler (like provider does)
-        queuing_handler = create_queuing_progress_handler(ctx.agent._event_queue)
-
-        tool_name = run_context.tool_name or "run_me"
-        tool_call_id = run_context.tool_call_id or ""
-        tool_input = {"python_code": code}
-
-        async def bound_progress(
-            progress: float, total: float | None, message: str
-        ) -> None:
-            await queuing_handler(
-                progress, total, message, tool_name, tool_call_id, tool_input
-            )
-
-        executor = ProgressTrackingExecutor(bound_progress, step_delay=0.5)
-        result = await executor.execute_with_progress(code)
-        return result or "Code executed successfully"
+        return f"Code executed successfully. Executed {len(results)} statements."
 
     async def main() -> None:
-        async with Agent(model="openai:gpt-5-nano", tools=[run_me]) as agent:
+        from llmling_agent.delegation import AgentPool
+
+        async with AgentPool() as pool:
+            agent = await pool.add_agent(
+                "test-agent", model="openai:gpt-5-nano", tools=[run_me]
+            )
             print("🚀 Testing unified progress system...")
             async for event in agent.run_stream("Run run_me and show progress."):
                 print(f"Event: {event}")
