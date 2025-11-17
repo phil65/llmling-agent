@@ -138,3 +138,20 @@ class AgentContext[TDeps = Any](NodeContext[TDeps]):
         )
         if self.pool:
             await self.pool.progress_handlers(progress, total, message)
+
+    async def emit_event(
+        self, event_data: Any, event_type: str = "custom", source: str | None = None
+    ) -> None:
+        """Emit a custom event into the agent's event stream.
+
+        Args:
+            event_data: The custom event data of any type
+            event_type: Type identifier for the custom event
+            source: Optional source identifier (defaults to current tool name)
+        """
+        from llmling_agent.agent.events import CustomEvent
+
+        custom_event = CustomEvent(
+            event_data=event_data, event_type=event_type, source=source or self.tool_name
+        )
+        await self.agent._event_queue.put(custom_event)

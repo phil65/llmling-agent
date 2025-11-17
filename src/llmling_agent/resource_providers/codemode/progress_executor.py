@@ -181,7 +181,7 @@ async def main():
 """
 
         # Create contextual progress handler (like provider does)
-        queuing_handler = create_queuing_progress_handler(ctx.agent._progress_queue)
+        queuing_handler = create_queuing_progress_handler(ctx.agent._event_queue)
 
         tool_name = run_context.tool_name or "run_me"
         tool_call_id = run_context.tool_call_id or ""

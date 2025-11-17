@@ -32,7 +32,6 @@ from llmling_agent.agent.events import (
     RichAgentStreamEvent,
     StreamCompleteEvent,
     ToolCallCompleteEvent,
-    ToolCallProgressEvent,
     create_queuing_progress_handler,
 )
 from llmling_agent.common_types import IndividualEventHandler
@@ -61,7 +60,6 @@ if TYPE_CHECKING:
     from upath.types import JoinablePathLike
 
     from llmling_agent.agent import AgentContext
-    from llmling_agent.agent.events import RichAgentStreamEvent
     from llmling_agent.common_types import (
         AgentName,
         EndStrategy,
@@ -213,14 +211,14 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             else MemoryConfig.from_value(session)
         )
         # Initialize progress queue before super().__init__()
-        self._progress_queue = asyncio.Queue[ToolCallProgressEvent]()
+        self._event_queue = asyncio.Queue[RichAgentStreamEvent]()
         super().__init__(
             name=name,
             context=ctx,
             description=description,
             enable_logging=memory_cfg.enable,
             mcp_servers=mcp_servers,
-            progress_handler=create_queuing_progress_handler(self._progress_queue),
+            progress_handler=create_queuing_progress_handler(self._event_queue),
         )
 
         # Initialize tool manager
@@ -688,9 +686,9 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             ) -> None:
                 async for event in events:
                     # Check for queued custom events and distribute them first
-                    while not self._progress_queue.empty():
+                    while not self._event_queue.empty():
                         try:
-                            custom_event = self._progress_queue.get_nowait()
+                            custom_event = self._event_queue.get_nowait()
                             for handler in self.event_handler._wrapped_handlers:
                                 await handler(ctx, custom_event)
                         except asyncio.QueueEmpty:
@@ -800,6 +798,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                 tool_choice, model, output_type, self.deps_type, input_provider
             )
             content = await convert_prompts(prompts)
+
             # Initialize variables for final response
             response_msg = None
             # Create tool dict for signal emission
@@ -815,7 +814,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
 
             # Stream events through merge_queue for progress events
             async with merge_queue_into_iterator(
-                stream_events, self._progress_queue
+                stream_events, self._event_queue
             ) as events:
                 # Track tool call starts to combine with results later
                 pending_tcs: dict[str, ToolCallPart] = {}

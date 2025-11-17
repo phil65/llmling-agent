@@ -86,11 +86,26 @@ class ToolCallCompleteEvent:
     """Event type identifier."""
 
 
+@dataclass(kw_only=True)
+class CustomEvent[T]:
+    """Generic custom event that can be emitted during tool execution."""
+
+    event_data: T
+    """The custom event data of any type."""
+    event_type: str = "custom"
+    """Type identifier for the custom event."""
+    source: str | None = None
+    """Optional source identifier (tool name, etc.)."""
+    event_kind: Literal["custom"] = "custom"
+    """Event type identifier."""
+
+
 type RichAgentStreamEvent[OutputDataT] = (
     AgentStreamEvent
     | StreamCompleteEvent[OutputDataT]
     | ToolCallProgressEvent
     | ToolCallCompleteEvent
+    | CustomEvent[Any]
 )
 
 
@@ -99,7 +114,7 @@ type SlashedAgentStreamEvent[OutputDataT] = (
 )
 
 
-def create_queuing_progress_handler(queue: asyncio.Queue[ToolCallProgressEvent]):
+def create_queuing_progress_handler(queue: asyncio.Queue[RichAgentStreamEvent]):
     """Create progress handler that converts to ToolCallProgressEvent."""
 
     async def progress_handler(
