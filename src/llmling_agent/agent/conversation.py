@@ -69,7 +69,7 @@ class MessageHistory:
         self._storage = storage
         self._converter = converter
         self.chat_messages = ChatMessageContainer()
-        self._last_messages: list[ChatMessage] = []
+        self._last_messages: list[ChatMessage[Any]] = []
         self._pending_messages: deque[ChatMessage] = deque()
         self._config = session_config
         self._resources = list(resources)  # Store for async loading
@@ -265,7 +265,7 @@ class MessageHistory:
         self,
         include_pending: bool = True,
         do_filter: bool = True,
-    ) -> list[ChatMessage]:
+    ) -> list[ChatMessage[Any]]:
         """Get conversation history.
 
         Args:
@@ -303,7 +303,7 @@ class MessageHistory:
 
         return list(history)
 
-    def get_pending_messages(self) -> list[ChatMessage]:
+    def get_pending_messages(self) -> list[ChatMessage[Any]]:
         """Get messages that will be included in next interaction."""
         return list(self._pending_messages)
 
@@ -311,7 +311,7 @@ class MessageHistory:
         """Clear pending messages without adding them to history."""
         self._pending_messages.clear()
 
-    def set_history(self, history: list[ChatMessage]) -> None:
+    def set_history(self, history: list[ChatMessage[Any]]) -> None:
         """Update conversation history after run."""
         self.chat_messages.clear()
         self.chat_messages.extend(history)
@@ -374,7 +374,7 @@ class MessageHistory:
         self.chat_messages.extend(messages)
 
     @property
-    def last_run_messages(self) -> list[ChatMessage]:
+    def last_run_messages(self) -> list[ChatMessage[Any]]:
         """Get messages from the last run converted to our format."""
         return self._last_messages
 

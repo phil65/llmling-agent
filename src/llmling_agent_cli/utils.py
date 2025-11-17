@@ -32,7 +32,7 @@ def resolve_type(field_type: Any) -> Any:
     # Handle lists/sets
     if origin in {list, set}:
         item_type = get_args(field_type)[0]
-        return list[resolve_type(item_type)]  # type: ignore
+        return list[resolve_type(item_type)]  # type: ignore[misc]
 
     return field_type
 

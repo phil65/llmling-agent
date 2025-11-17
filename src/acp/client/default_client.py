@@ -52,7 +52,8 @@ class DefaultACPClient(Client):
         self,
         *,
         allow_file_operations: bool = False,
-        permission_outcomes: list[dict] | None = None,
+        permission_outcomes: list[dict[str, DeniedOutcome | AllowedOutcome]]
+        | None = None,
         use_real_files: bool = True,
     ) -> None:
         """Initialize default ACP client.
@@ -66,8 +67,8 @@ class DefaultACPClient(Client):
         self.use_real_files = use_real_files
         self.permission_outcomes = permission_outcomes or []
         self.files: dict[str, str] = {}  # In-memory file storage for testing
-        self.ext_calls: list[tuple[str, dict]] = []
-        self.ext_notes: list[tuple[str, dict]] = []
+        self.ext_calls: list[tuple[str, dict[str, Any]]] = []
+        self.ext_notes: list[tuple[str, dict[str, Any]]] = []
         self.notifications: list[SessionNotification] = []
 
     async def request_permission(

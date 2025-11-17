@@ -10,7 +10,9 @@ from psygnal.containers import EventedDict
 
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator, Sequence
+    from collections.abc import AsyncIterator, Iterator, Sequence
+
+    from psygnal.containers import DictEvents
 
 
 TKey = TypeVar("TKey", str, int)
@@ -66,7 +68,7 @@ class BaseRegistry[TKey, TItem](MutableMapping[TKey, TItem], ABC):
         return key in self._items
 
     @property
-    def events(self):
+    def events(self) -> DictEvents:
         """Access to all dictionary events."""
         return self._items.events
 
@@ -172,7 +174,7 @@ class BaseRegistry[TKey, TItem](MutableMapping[TKey, TItem], ABC):
     def __iter__(self) -> Iterator[TKey]:
         return iter(self._items)
 
-    async def __aiter__(self):
+    async def __aiter__(self) -> AsyncIterator[tuple[TKey, TItem]]:
         """Async iterate over items, ensuring they're initialized."""
         if not self._initialized:
             await self.startup()

@@ -55,8 +55,11 @@ def node_function(
     func: Callable | None = None,
     *,
     deps: Any | None = None,
-    depends_on: str | Sequence[str | Callable] | Callable | None = None,
-) -> Callable:
+    depends_on: str
+    | Sequence[str | Callable[..., Any]]
+    | Callable[..., Any]
+    | None = None,
+) -> Callable[..., Any]:
     """Mark a function for automatic node execution.
 
     Can be used as simple decorator or with arguments:
@@ -76,13 +79,13 @@ def node_function(
         Decorated function
     """
 
-    def decorator(func: Callable) -> Callable:
+    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         match depends_on:
             case None:
                 depends_on_ = []
             case str():
                 depends_on_ = [depends_on]
-            case Callable():
+            case Callable():  # type: ignore[misc]
                 depends_on_ = [depends_on.__name__]
 
             case [*items]:

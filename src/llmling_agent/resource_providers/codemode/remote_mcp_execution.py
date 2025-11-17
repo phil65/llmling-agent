@@ -72,7 +72,7 @@ class RemoteMCPExecutor:
         desc += "Usage:\n"
         for name in tool_names:
             desc += f"  from tools.{name} import {name}\n"
-            desc += f"  result = await {name}(...)  # or {name}(...) if sync\n"
+            desc += f"  result = await {name}(...)\n"
         return desc
 
     async def execute_code(self, code: str) -> Any:
@@ -109,8 +109,7 @@ if __name__ == "__main__":
         """Multiply two numbers."""
         return x * y
 
-    async def demo_code_generation_approach() -> None:
-        """Demo new code generation approach (ctx-zip style, works with remote envs)."""
+    async def main() -> None:
         print("\n=== Code Generation Approach (ctx-zip style) ===")
         tools = [Tool.from_callable(add_numbers), Tool.from_callable(multiply_numbers)]
         config = LocalExecutionEnvironmentConfig()  # Could be E2B, etc.
@@ -134,14 +133,6 @@ print(f"Addition: {result1}, Multiplication: {result2}")
 """
             result = await provider.execute_code(code)
             print(f"Result: {result.result}")
-
-    async def main() -> None:
-        await demo_code_generation_approach()
-        print("Code Generation Approach (ctx-zip style):")
-        print("  ✅ Works with ALL environments (local, docker, E2B, etc.)")
-        print("  ✅ No network connectivity required")
-        print("  ✅ Tools are just Python imports")
-        print("  💡 Perfect for cloud sandboxes!")
 
     import asyncio
 

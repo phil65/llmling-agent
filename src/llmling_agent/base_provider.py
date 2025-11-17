@@ -23,6 +23,6 @@ class BaseProvider[ConfigT: BaseModel]:
 
     def __repr__(self) -> str:
         """Return string representation of provider with non-default config values."""
-        non_defaults = self.config.model_dump(exclude_defaults=True)  # type: ignore[attr-defined]
+        non_defaults = self.config.model_dump(exclude_defaults=True)
         fields_str = ", ".join(f"{k}={v!r}" for k, v in non_defaults.items())
         return f"{self.__class__.__name__}({fields_str})"

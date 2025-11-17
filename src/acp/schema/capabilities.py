@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Self
+
 from pydantic import Field
 
 from acp.schema.base import AnnotatedObject
@@ -44,7 +46,7 @@ class ClientCapabilities(AnnotatedObject):
         read_text_file: bool | None = False,
         write_text_file: bool | None = False,
         terminal: bool | None = False,
-    ):
+    ) -> Self:
         """Create a new instance of ClientCapabilities.
 
         Args:
@@ -131,7 +133,7 @@ class AgentCapabilities(AnnotatedObject):
         audio_prompts: bool = False,
         embedded_context_prompts: bool = False,
         image_prompts: bool = False,
-    ):
+    ) -> Self:
         """Create an instance of AgentCapabilities.
 
         Args:

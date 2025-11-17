@@ -66,7 +66,7 @@ def wrap_tool(tool: Tool, agent_ctx: AgentContext) -> Callable[..., Awaitable[An
 
     else:
         # Tool has no context - normal function call
-        async def wrapped(*args, **kwargs):  # pyright: ignore
+        async def wrapped(*args, **kwargs):  # type: ignore[misc]
             result = await agent_ctx.handle_confirmation(tool, kwargs)
             if result == "allow":
                 return await execute(fn, *args, **kwargs)

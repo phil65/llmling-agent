@@ -8,7 +8,7 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from functools import wraps
 import inspect
-from typing import TYPE_CHECKING, Any, Self, overload
+from typing import TYPE_CHECKING, Any, Self
 
 from evented.configs import EmailConfig, FileWatchConfig, TimeEventConfig, WebhookConfig
 from evented.event_data import EventData, FunctionResultEventData
@@ -318,27 +318,16 @@ class EventManager:
         """Clean up when exiting context."""
         await self.cleanup()
 
-    @overload
     def track[T](
         self,
         event_name: str | None = None,
         **event_metadata: Any,
-    ) -> Callable[[Callable[..., T]], Callable[..., T]]: ...
-
-    @overload
-    def track[T](
-        self,
-        event_name: str | None = None,
-        **event_metadata: Any,
-    ) -> Callable[
-        [Callable[..., Coroutine[Any, Any, T]]], Callable[..., Coroutine[Any, Any, T]]
-    ]: ...
-
-    def track(
-        self,
-        event_name: str | None = None,
-        **event_metadata: Any,
-    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+    ) -> (
+        Callable[
+            [Callable[..., Coroutine[Any, Any, T]]], Callable[..., Coroutine[Any, Any, T]]
+        ]
+        | Callable[[Callable[..., T]], Callable[..., T]]
+    ):
         """Track function calls as events.
 
         Args:
@@ -399,27 +388,16 @@ class EventManager:
 
         return decorator
 
-    @overload
     def poll[T](
         self,
         event_type: str,
         interval: timedelta | None = None,
-    ) -> Callable[[Callable[..., T]], Callable[..., T]]: ...
-
-    @overload
-    def poll[T](
-        self,
-        event_type: str,
-        interval: timedelta | None = None,
-    ) -> Callable[
-        [Callable[..., Coroutine[Any, Any, T]]], Callable[..., Coroutine[Any, Any, T]]
-    ]: ...
-
-    def poll(
-        self,
-        event_type: str,
-        interval: timedelta | None = None,
-    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+    ) -> (
+        Callable[
+            [Callable[..., Coroutine[Any, Any, T]]], Callable[..., Coroutine[Any, Any, T]]
+        ]
+        | Callable[[Callable[..., T]], Callable[..., T]]
+    ):
         """Decorator to register an event observer.
 
         Args:

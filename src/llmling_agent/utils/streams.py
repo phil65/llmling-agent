@@ -61,7 +61,7 @@ async def merge_queue_into_iterator[T, V](
 
     try:
         # Create async iterator that drains the merged queue
-        async def merged_events():
+        async def merged_events() -> AsyncIterator[V | T]:
             while True:
                 event = await event_queue.get()
                 if event is None:  # End of primary stream

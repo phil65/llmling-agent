@@ -125,7 +125,7 @@ class ACPSession:
         self._active = True
         self._task_lock = asyncio.Lock()
         self._cancelled = False
-        self._current_tool_inputs: dict[str, dict] = {}
+        self._current_tool_inputs: dict[str, dict[str, Any]] = {}
         self.fs = ACPFileSystem(self.client, session_id=self.session_id)
         self._acp_provider: AggregatingResourceProvider | None = None
         # Staged prompt parts for context building
@@ -398,18 +398,18 @@ class ACPSession:
             ):
                 await self.notifications.send_agent_thought(delta or "\n")
 
-            case PartStartEvent(delta=delta):
-                self.log.debug("Received unhandled PartStartEvent", delta=delta)
+            case PartStartEvent(part=part):
+                self.log.debug("Received unhandled PartStartEvent", part=part)
 
             case PartDeltaEvent(delta=ToolCallPartDelta() as delta):
-                if part := delta.as_part():
-                    tool_call_id = part.tool_call_id
-                    self._current_tool_inputs[tool_call_id] = part.args_as_dict()
+                if delta_part := delta.as_part():
+                    tool_call_id = delta_part.tool_call_id
+                    self._current_tool_inputs[tool_call_id] = delta_part.args_as_dict()
                     # Skip generic notifications for self-notifying tools
-                    if part.tool_name not in ACP_SELF_NOTIFYING_TOOLS:
+                    if delta_part.tool_name not in ACP_SELF_NOTIFYING_TOOLS:
                         await self.notifications.tool_call(
-                            tool_name=part.tool_name,
-                            tool_input=part.args_as_dict(),
+                            tool_name=delta_part.tool_name,
+                            tool_input=delta_part.args_as_dict(),
                             tool_output=None,  # Not available yet
                             status="pending",
                             tool_call_id=tool_call_id,

@@ -465,7 +465,7 @@ def _trim_diff(diff_text: str) -> str:
         if line.startswith(("+", "-", " ")) and not line.startswith(("---", "+++")):
             prefix = line[0]
             content = line[1:]
-            trimmed_lines.append(prefix + content[min_indent:])
+            trimmed_lines.append(prefix + content[int(min_indent) :])
         else:
             trimmed_lines.append(line)
 

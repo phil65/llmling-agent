@@ -54,7 +54,7 @@ class ResourceProvider:
         return []
 
     async def get_tool(self, tool_name: str) -> Tool:
-        """Get available tools. Override to provide tools."""
+        """Get specific tool."""
         tools = await self.get_tools()
         for tool in tools:
             if tool.name == tool_name:

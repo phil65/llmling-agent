@@ -159,7 +159,7 @@ class Talk[TTransmittedData]:
         from llmling_agent.talk import TeamTalk
 
         match other:
-            case Callable():
+            case Callable():  # type: ignore[misc]
                 other = Agent.from_callback(other)
                 if pool := self.source.context.pool:
                     pool.register(other.name, other)
@@ -527,7 +527,7 @@ class TeamTalk[TTransmittedData](list["Talk | TeamTalk"]):
         from llmling_agent.talk import TeamTalk
 
         match other:
-            case Callable():
+            case Callable():  # type: ignore[misc]
                 other = Agent.from_callback(other)
                 for talk_ in self.iter_talks():
                     if pool := talk_.source.context.pool:
@@ -564,7 +564,9 @@ class TeamTalk[TTransmittedData](list["Talk | TeamTalk"]):
         for talk in self:
             await talk._handle_message(message, prompt)
 
-    async def trigger(self, prompt: PromptCompatible | None = None) -> list[ChatMessage]:
+    async def trigger(
+        self, prompt: PromptCompatible | None = None
+    ) -> list[ChatMessage[Any]]:
         messages = []
         for talk in self:
             messages.extend(await talk.trigger(prompt))

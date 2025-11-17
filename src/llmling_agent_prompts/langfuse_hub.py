@@ -72,7 +72,7 @@ if __name__ == "__main__":
 
     from llmling_agent_config.prompt_hubs import LangfuseConfig
 
-    config = LangfuseConfig(secret_key="test", public_key="")  # type: ignore
+    config = LangfuseConfig(secret_key="test", public_key="")
     prompt_hub = LangfusePromptHub(config)
 
     async def main() -> None:

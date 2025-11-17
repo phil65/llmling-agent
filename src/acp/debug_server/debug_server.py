@@ -635,25 +635,17 @@ class ACPDebugServer:
             reader, writer = await stdio_streams()
 
             # Create ACP connection
-            def agent_factory(connection) -> Agent:
+            def agent_factory(connection: AgentSideConnection) -> Agent:
                 return self.agent
 
-            conn = AgentSideConnection(
-                agent_factory,
-                writer,
-                reader,
-                debug_file="acp-debug-server.jsonl",
-            )
-
+            filename = "acp-debug-server.jsonl"
+            conn = AgentSideConnection(agent_factory, writer, reader, debug_file=filename)
             # Store connection for FastAPI endpoints
             self.debug_state.client_connection = conn
-
             logger.info("ACP Debug Server ready - connect your client!")
             url = f"http://{self.fastapi_host}:{self.fastapi_port}"
             logger.info("Web interface", url=url)
-
-            # Keep server running
-            while self._running:
+            while self._running:  # Keep server running
                 await asyncio.sleep(0.1)
 
         except Exception:

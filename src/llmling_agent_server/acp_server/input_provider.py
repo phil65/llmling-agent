@@ -54,7 +54,7 @@ class ACPInputProvider(InputProvider):
         context: AgentContext[Any],
         tool: Tool,
         args: dict[str, Any],
-        message_history: list[ChatMessage] | None = None,
+        message_history: list[ChatMessage[Any]] | None = None,
     ) -> ConfirmationResult:
         """Get tool execution confirmation via ACP request permission.
 

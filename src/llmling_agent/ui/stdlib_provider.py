@@ -30,7 +30,7 @@ class StdlibInputProvider(InputProvider):
         self,
         context: AgentContext,
         prompt: str,
-        message_history: list[ChatMessage] | None = None,
+        message_history: list[ChatMessage[Any]] | None = None,
     ) -> str:
         return input(f"{prompt}\n> ")
 
@@ -39,7 +39,7 @@ class StdlibInputProvider(InputProvider):
         context: AgentContext,
         prompt: str,
         output_type: type[BaseModel],
-        message_history: list[ChatMessage] | None = None,
+        message_history: list[ChatMessage[Any]] | None = None,
     ) -> BaseModel:
         """Get structured input, with promptantic and fallback handling."""
         if result := await _get_promptantic_result(output_type):
@@ -59,7 +59,7 @@ class StdlibInputProvider(InputProvider):
         context: AgentContext,
         tool: Tool,
         args: dict[str, Any],
-        message_history: list[ChatMessage] | None = None,
+        message_history: list[ChatMessage[Any]] | None = None,
     ) -> ConfirmationResult:
         import anyenv
 
@@ -96,7 +96,7 @@ class StdlibInputProvider(InputProvider):
         self,
         context: AgentContext,
         params: types.ElicitRequestParams,
-        message_history: list[ChatMessage] | None = None,
+        message_history: list[ChatMessage[Any]] | None = None,
     ) -> types.ElicitResult | types.ErrorData:
         """Get user response to elicitation request using stdlib input."""
         try:

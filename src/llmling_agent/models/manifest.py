@@ -235,7 +235,7 @@ class AgentsManifest(Schema):
 
         # Handle template rendering if context provided
         if template_context and "name" in template_context and "name" not in overrides:
-            config.name = template_context["name"]
+            config.model_copy(update={"name": template_context["name"]})
 
         # Note: system_prompts will be rendered during agent creation, not here
         # config.system_prompts remains as PromptConfig objects

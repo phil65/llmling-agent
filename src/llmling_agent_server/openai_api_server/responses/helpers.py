@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from llmling_agent_server.openai_api_server.responses.models import ResponseRequest
 
 
-async def handle_request(request: ResponseRequest, agent: Agent[Any, Any]):
+async def handle_request(request: ResponseRequest, agent: Agent[Any, Any]) -> Response:
     from fastapi import HTTPException
 
     match request.input:

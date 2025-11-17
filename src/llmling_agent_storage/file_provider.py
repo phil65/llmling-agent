@@ -215,14 +215,9 @@ class FileProvider(StorageProvider):
             "model": model,
             "cost": Decimal(cost_info.total_cost) if cost_info else None,
             "token_usage": TokenUsage(
-                {
-                    "prompt": cost_info.token_usage.input_tokens if cost_info else None,
-                    "completion": cost_info.token_usage.output_tokens
-                    if cost_info
-                    else None,
-                }
-                if cost_info
-                else None
+                prompt=cost_info.token_usage.input_tokens if cost_info else 0,
+                completion=cost_info.token_usage.output_tokens if cost_info else 0,
+                total=cost_info.token_usage.total_tokens if cost_info else 0,
             ),
             "response_time": response_time,
             "forwarded_from": forwarded_from,

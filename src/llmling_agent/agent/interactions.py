@@ -138,30 +138,6 @@ class Interactions[TDeps, TResult]:
             rounds += 1
 
     @overload
-    async def pick[T: AnyPromptType](
-        self,
-        selections: Sequence[T],
-        task: str,
-        prompt: AnyPromptType | None = None,
-    ) -> Pick[T]: ...
-
-    @overload
-    async def pick[T: AnyPromptType](
-        self,
-        selections: Sequence[T],
-        task: str,
-        prompt: AnyPromptType | None = None,
-    ) -> Pick[T]: ...
-
-    @overload
-    async def pick[T: AnyPromptType](
-        self,
-        selections: Mapping[str, T],
-        task: str,
-        prompt: AnyPromptType | None = None,
-    ) -> Pick[T]: ...
-
-    @overload
     async def pick(
         self,
         selections: AgentPool,
@@ -176,6 +152,14 @@ class Interactions[TDeps, TResult]:
         task: str,
         prompt: AnyPromptType | None = None,
     ) -> Pick[MessageNode[TDeps, Any]]: ...
+
+    @overload
+    async def pick[T: AnyPromptType](
+        self,
+        selections: Sequence[T] | Mapping[str, T],
+        task: str,
+        prompt: AnyPromptType | None = None,
+    ) -> Pick[T]: ...
 
     async def pick[T](
         self,
@@ -251,28 +235,6 @@ Select ONE option by its exact label."""
         return Pick(selection=selected, reason=result.content.reason)
 
     @overload
-    async def pick_multiple[T: AnyPromptType](
-        self,
-        selections: Sequence[T],
-        task: str,
-        *,
-        min_picks: int = 1,
-        max_picks: int | None = None,
-        prompt: AnyPromptType | None = None,
-    ) -> MultiPick[T]: ...
-
-    @overload
-    async def pick_multiple[T: AnyPromptType](
-        self,
-        selections: Mapping[str, T],
-        task: str,
-        *,
-        min_picks: int = 1,
-        max_picks: int | None = None,
-        prompt: AnyPromptType | None = None,
-    ) -> MultiPick[T]: ...
-
-    @overload
     async def pick_multiple(
         self,
         selections: BaseTeam[TDeps, Any],
@@ -293,6 +255,17 @@ Select ONE option by its exact label."""
         max_picks: int | None = None,
         prompt: AnyPromptType | None = None,
     ) -> MultiPick[Agent[Any, Any]]: ...
+
+    @overload
+    async def pick_multiple[T: AnyPromptType](
+        self,
+        selections: Sequence[T] | Mapping[str, T],
+        task: str,
+        *,
+        min_picks: int = 1,
+        max_picks: int | None = None,
+        prompt: AnyPromptType | None = None,
+    ) -> MultiPick[T]: ...
 
     async def pick_multiple[T](
         self,

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 
 if TYPE_CHECKING:
@@ -19,7 +19,7 @@ class MessageFlowTracker:
     def track(self, event: Talk.ConnectionProcessed) -> None:
         self.events.append(event)
 
-    def filter(self, message: ChatMessage) -> list[ChatMessage]:
+    def filter(self, message: ChatMessage[Any]) -> list[ChatMessage[Any]]:
         """Filter events for specific conversation."""
         return [
             e.message
@@ -27,7 +27,7 @@ class MessageFlowTracker:
             if e.message.conversation_id == message.conversation_id
         ]
 
-    def visualize(self, message: ChatMessage) -> str:
+    def visualize(self, message: ChatMessage[Any]) -> str:
         """Get flow visualization for specific conversation."""
         # Filter events for this conversation
         conv_events = [

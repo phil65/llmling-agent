@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import functools
+from typing import Any
 
 from llmling_models import function_to_model
 import pytest
@@ -47,7 +48,7 @@ async def test_single_execution():
         assert result.name == "agent2"
 
         # Verify stats captured all messages
-        messages: list[ChatMessage] = []
+        messages: list[ChatMessage[Any]] = []
         for talk in stats:
             messages.extend(talk.stats.messages)
         assert len(messages) == 2  # One from each agent  # noqa: PLR2004

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from typing import Any
 
 from pydantic_ai import ModelResponse, PartDeltaEvent, TextPart, TextPartDelta
 from pydantic_ai.models.test import TestModel
@@ -128,7 +129,7 @@ async def test_agent_forwarding():
         model = TestModel(custom_output_text="Helper response")
         helper_agent = await pool.add_agent("helper-agent", model=model)
         main_agent.connect_to(helper_agent)  # Set up forwarding
-        messages: list[ChatMessage] = []  # Track messages from both agents
+        messages: list[ChatMessage[Any]] = []  # Track messages from both agents
         main_agent.message_sent.connect(messages.append)
         helper_agent.message_sent.connect(messages.append)
         message = "Hello, agent!"  # Send message and wait for forwarding

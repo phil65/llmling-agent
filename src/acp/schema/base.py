@@ -8,7 +8,7 @@ from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
 
 
-def convert(text: str):
+def convert(text: str) -> str:
     if text == "field_meta":
         return "_meta"
     return to_camel(text)

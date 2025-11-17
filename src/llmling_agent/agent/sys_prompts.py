@@ -99,7 +99,7 @@ class SystemPrompts:
     def __getitem__(self, idx: int | slice) -> AnyPromptType | list[AnyPromptType]:
         return self.prompts[idx]
 
-    async def add_by_reference(self, reference: str):
+    async def add_by_reference(self, reference: str) -> None:
         """Add a system prompt using reference syntax.
 
         Args:
@@ -127,7 +127,7 @@ class SystemPrompts:
         provider: str | None = None,
         version: str | None = None,
         variables: dict[str, Any] | None = None,
-    ):
+    ) -> None:
         """Add a system prompt.
 
         Args:

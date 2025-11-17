@@ -18,7 +18,7 @@ EXAMPLES_DIR = Path("src/llmling_agent_docs/examples")
 def is_pyodide() -> bool:
     """Check if code is running in a Pyodide environment."""
     try:
-        from js import Object  # type: ignore  # noqa: F401
+        from js import Object  # noqa: F401  # pyright: ignore[reportMissingImports]
 
         return True  # noqa: TRY300
     except ImportError:
@@ -93,7 +93,7 @@ class Example:
         # Load the module to get variables
         namespace: dict[str, str] = {}
         with init_file.open() as f:
-            exec(f.read(), namespace)  # type: ignore
+            exec(f.read(), namespace)
 
         # Get metadata with defaults
         title = namespace.get("TITLE", path.name.replace("_", " ").title())

@@ -65,7 +65,7 @@ def create_modified_signature(
                     k, inspect.Parameter.POSITIONAL_OR_KEYWORD, annotation=v
                 ),
             )
-    return sig.replace(parameters=new_params)  # type: ignore
+    return sig.replace(parameters=new_params)
 
 
 def modify_signature(
@@ -73,9 +73,9 @@ def modify_signature(
     *,
     remove: str | list[str] | None = None,
     inject: dict[str, type] | None = None,
-):
+) -> None:
     new_sig = create_modified_signature(fn, remove=remove, inject=inject)
-    return update_signature(fn, new_sig)
+    update_signature(fn, new_sig)
 
 
 def update_signature(fn: Callable[..., Any], signature: inspect.Signature) -> None:

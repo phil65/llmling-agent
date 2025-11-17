@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import functools
 import inspect
-from typing import TYPE_CHECKING, Any, overload
+from typing import TYPE_CHECKING, Any
 
 from llmling_agent.functional.structure import get_structured
 
@@ -14,36 +14,16 @@ if TYPE_CHECKING:
 
     from pydantic_ai.agent import models
 
-    from llmling_agent.common_types import AnyCallable
-
-
-# We need separate overloads for async and sync functions
-@overload
-def auto_callable[R, **P](
-    model: str | models.Model | models.KnownModelName,
-    *,
-    system_prompt: str | None = None,
-    retries: int = 3,
-) -> Callable[
-    [Callable[P, Coroutine[Any, Any, R]]], Callable[P, Coroutine[Any, Any, R]]
-]: ...
-
-
-@overload
-def auto_callable[R, **P](
-    model: str | models.Model | models.KnownModelName,
-    *,
-    system_prompt: str | None = None,
-    retries: int = 3,
-) -> Callable[[Callable[P, R]], Callable[P, Coroutine[Any, Any, R]]]: ...
-
 
 def auto_callable[R, **P](
     model: str | models.Model | models.KnownModelName,
     *,
     system_prompt: str | None = None,
     retries: int = 3,
-) -> AnyCallable:
+) -> (
+    Callable[[Callable[P, R]], Callable[P, Coroutine[Any, Any, R]]]
+    | Callable[[Callable[P, Coroutine[Any, Any, R]]], Callable[P, Coroutine[Any, Any, R]]]
+):
     """Use function signature as schema for LLM responses.
 
     This decorator uses the function's:

@@ -25,7 +25,7 @@ class InputProvider(ABC):
         context: AgentContext,
         prompt: str,
         output_type: type | None = None,
-        message_history: list[ChatMessage] | None = None,
+        message_history: list[ChatMessage[Any]] | None = None,
     ) -> Any:
         """Get normal input (used by HumanProvider).
 
@@ -45,7 +45,7 @@ class InputProvider(ABC):
         self,
         context: AgentContext[Any],
         prompt: str,
-        message_history: list[ChatMessage] | None = None,
+        message_history: list[ChatMessage[Any]] | None = None,
     ) -> str:
         """Get normal text input."""
         raise NotImplementedError
@@ -55,7 +55,7 @@ class InputProvider(ABC):
         context: AgentContext[Any],
         prompt: str,
         output_type: type[BaseModel],
-        message_history: list[ChatMessage] | None = None,
+        message_history: list[ChatMessage[Any]] | None = None,
     ) -> BaseModel:
         """Get structured input, with promptantic and fallback handling."""
         raise NotImplementedError
@@ -66,7 +66,7 @@ class InputProvider(ABC):
         context: AgentContext[Any],
         tool: Tool,
         args: dict[str, Any],
-        message_history: list[ChatMessage] | None = None,
+        message_history: list[ChatMessage[Any]] | None = None,
     ) -> Coroutine[Any, Any, ConfirmationResult]:
         """Get tool execution confirmation.
 
@@ -82,7 +82,7 @@ class InputProvider(ABC):
         self,
         context: AgentContext[Any],
         params: types.ElicitRequestParams,
-        message_history: list[ChatMessage] | None = None,
+        message_history: list[ChatMessage[Any]] | None = None,
     ) -> Coroutine[Any, Any, types.ElicitResult | types.ErrorData]:
         """Get user response to elicitation request.
 

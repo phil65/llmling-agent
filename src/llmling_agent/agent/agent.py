@@ -360,7 +360,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         match other:
             case Team():
                 return Team([self, *other.agents])
-            case Callable():
+            case Callable():  # type: ignore[misc]
                 agent_2 = Agent.from_callback(other)
                 agent_2.context.pool = self.context.pool
                 return Team([self, agent_2])
@@ -432,6 +432,11 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
     def name(self) -> str:
         """Get agent name."""
         return self._name or "llmling-agent"
+
+    @name.setter
+    def name(self, value: str) -> None:
+        """Set agent name."""
+        self._name = value
 
     @property
     def context(self) -> AgentContext[TDeps]:
@@ -616,7 +621,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         wait_for_connections: bool | None = None,
     ) -> ChatMessage[OutputTypeT]: ...
 
-    @method_spawner
+    @method_spawner  # type: ignore[misc]
     async def run(
         self,
         *prompts: PromptCompatible | ChatMessage[Any],
