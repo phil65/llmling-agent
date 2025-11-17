@@ -74,7 +74,7 @@ class DebugSendTextCommand(SlashedCommand):
             notification = SessionNotification(
                 session_id=session.session_id, update=update
             )
-            await session.client.session_update(notification)
+            await session.client.session_update(notification)  # pyright: ignore[reportArgumentType]
             await ctx.print(f"✅ **Sent {chunk_type} text chunk:** {text[:50]}...")
 
         except Exception as e:
@@ -232,7 +232,7 @@ class DebugReplaySequenceCommand(SlashedCommand):
                         session_id=session.session_id, update=update
                     )
 
-                    await session.client.session_update(notification)
+                    await session.client.session_update(notification)  # pyright: ignore[reportArgumentType]
                     count += 1
 
                     # Optional delay between notifications
