@@ -45,19 +45,6 @@ type OptionalAwaitable[T] = T | Awaitable[T]
 
 type ToolType = str | AnyCallable
 
-# Progress handler types
-ProgressCallback = Callable[[float, float | None, str], Awaitable[None]]
-RichProgressCallback = Callable[
-    [
-        float,  # progress
-        float | None,  # total
-        str | None,  # message
-        str | None,  # tool_name
-        str | None,  # tool_call_id
-        dict[str, Any] | None,  # tool_input
-    ],
-    Any,  # Supports both sync (None) and async (Awaitable[None]) returns
-]
 
 # Event handler types for composable event processing
 # Individual event handler for composability - takes single events

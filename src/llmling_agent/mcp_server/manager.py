@@ -24,7 +24,6 @@ if TYPE_CHECKING:
     from mcp.client.session import RequestContext
     from mcp.types import SamplingMessage
 
-    from llmling_agent.common_types import RichProgressCallback
     from llmling_agent.messaging.context import NodeContext
     from llmling_agent.models.content import BaseContent
     from llmling_agent_config.mcp_server import MCPServerConfig
@@ -42,7 +41,6 @@ class MCPManager:
         owner: str | None = None,
         servers: Sequence[MCPServerConfig | str] | None = None,
         context: NodeContext | None = None,
-        progress_handler: RichProgressCallback | None = None,
         accessible_roots: list[str] | None = None,
     ) -> None:
         self.name = name
@@ -57,7 +55,6 @@ class MCPManager:
             name=f"{name}_aggregated",
         )
         self.exit_stack = AsyncExitStack()
-        self._progress_handler = progress_handler
         self._accessible_roots = accessible_roots
 
     def add_server_config(self, cfg: MCPServerConfig | str) -> None:
@@ -204,7 +201,6 @@ class MCPManager:
             source="pool" if self.owner == "pool" else "node",
             elicitation_callback=self._elicitation_callback,
             sampling_callback=self._sampling_callback,
-            progress_handler=self._progress_handler,
             accessible_roots=self._accessible_roots,
         )
 
@@ -242,7 +238,6 @@ class MCPManager:
             source="pool" if self.owner == "pool" else "node",
             elicitation_callback=self._elicitation_callback,
             sampling_callback=self._sampling_callback,
-            progress_handler=self._progress_handler,
             accessible_roots=self._accessible_roots,
         )
 

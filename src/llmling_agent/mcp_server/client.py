@@ -14,16 +14,14 @@ import contextlib
 import logging
 from typing import TYPE_CHECKING, Any, Self, assert_never
 
-from anyenv import MultiEventHandler
 from pydantic_ai import RunContext, ToolReturn
 from schemez import FunctionSchema
 
-from llmling_agent.common_types import RichProgressCallback
+from llmling_agent.agent.context import AgentContext
 from llmling_agent.log import get_logger
 from llmling_agent.mcp_server.constants import MCP_TO_LOGGING
 from llmling_agent.mcp_server.helpers import (
     extract_text_content,
-    extract_tool_call_args,
     mcp_tool_to_fn_schema,
 )
 from llmling_agent.mcp_server.message_handler import MCPMessageHandler
@@ -40,7 +38,6 @@ if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable, Sequence
 
     from fastmcp.client import ClientTransport
-    from fastmcp.client.client import ProgressHandler
     from fastmcp.client.elicitation import ElicitationHandler
     from fastmcp.client.logging import LogMessage
     from fastmcp.client.messages import MessageHandler, MessageHandlerT
@@ -70,7 +67,6 @@ class MCPClient:
         config: MCPServerConfig,
         elicitation_callback: ElicitationHandler | None = None,
         sampling_callback: ClientSamplingHandler | None = None,
-        progress_handler: RichProgressCallback | None = None,
         message_handler: MessageHandlerT | MessageHandler | None = None,
         accessible_roots: list[str] | None = None,
         tool_change_callback: Callable[[], Awaitable[None]] | None = None,
@@ -80,9 +76,6 @@ class MCPClient:
         self._elicitation_callback = elicitation_callback
         self.config = config
         self._sampling_callback = sampling_callback
-        self._progress_handler = MultiEventHandler[RichProgressCallback](
-            handlers=[progress_handler] if progress_handler else []
-        )
         # Store message handler or mark for lazy creation
         self._message_handler = message_handler
         self._accessible_roots = accessible_roots or []
@@ -240,7 +233,9 @@ class MCPClient:
     def convert_tool(self, tool: MCPTool) -> Tool:
         """Create a properly typed callable from MCP tool schema."""
 
-        async def tool_callable(ctx: RunContext, **kwargs: Any) -> str | Any | ToolReturn:
+        async def tool_callable(
+            ctx: RunContext, agent_ctx: AgentContext[Any], **kwargs: Any
+        ) -> str | Any | ToolReturn:
             """Dynamically generated MCP tool wrapper."""
             # Filter out None values for optional params
             schema_props = tool.inputSchema.get("properties", {})
@@ -250,17 +245,19 @@ class MCPClient:
                 for k, v in kwargs.items()
                 if k in required_props or (k in schema_props and v is not None)
             }
-            return await self.call_tool(tool.name, ctx, filtered_kwargs)
+            return await self.call_tool(tool.name, ctx, filtered_kwargs, agent_ctx)
 
-        # Set proper signature and annotations with RunContext support
+        # Set proper signature and annotations with both RunContext and AgentContext
         schema = mcp_tool_to_fn_schema(tool)
         fn_schema = FunctionSchema.from_dict(schema)
         sig = fn_schema.to_python_signature()
+
         tool_callable.__signature__ = create_modified_signature(
-            sig, inject={"ctx": RunContext}
+            sig, inject={"ctx": RunContext, "agent_ctx": AgentContext}
         )
         annotations = fn_schema.get_annotations()
         annotations["ctx"] = RunContext
+        annotations["agent_ctx"] = AgentContext
         # Update return annotation to support multiple types
         annotations["return"] = str | Any | ToolReturn  # type: ignore
         tool_callable.__annotations__ = annotations
@@ -268,47 +265,31 @@ class MCPClient:
         tool_callable.__doc__ = tool.description or "No description provided."
         return Tool.from_callable(tool_callable, source="mcp")
 
-    def _create_final_progress_handler(
-        self, tool_name: str, tool_call_id: str, tool_input: dict[str, Any]
-    ) -> ProgressHandler:
-        """Create a FastMCP-compatible progress handler with baked-in context."""
-
-        async def fastmcp_progress_handler(
-            progress: float, total: float | None, message: str | None
-        ) -> None:
-            await self._progress_handler(
-                progress, total, message, tool_name, tool_call_id, tool_input
-            )
-
-        return fastmcp_progress_handler
-
     async def call_tool(
         self,
         name: str,
         run_context: RunContext,
         arguments: dict[str, Any] | None = None,
+        agent_ctx: AgentContext[Any] | None = None,
     ) -> ToolReturn | str | Any:
         """Call an MCP tool with full PydanticAI return type support."""
         if not self.connected:
             msg = "Not connected to MCP server"
             raise RuntimeError(msg)
 
-        # Create progress handler if we have handler
+        # Create progress handler that bridges to AgentContext if available
         progress_handler = None
-        if self._progress_handler:
-            if run_context.tool_call_id and run_context.tool_name:
-                # Extract tool args from message history
-                tool_input = extract_tool_call_args(
-                    run_context.messages, run_context.tool_call_id
-                )
-                progress_handler = self._create_final_progress_handler(
-                    run_context.tool_name, run_context.tool_call_id, tool_input
-                )
-            else:
-                # Fallback to using passed arguments (direct tool call)
-                progress_handler = self._create_final_progress_handler(
-                    name, run_context.tool_call_id or "", arguments or {}
-                )
+        if agent_ctx:
+
+            async def fastmcp_progress_handler(
+                progress: float,
+                total: float | None,
+                message: str | None,
+            ) -> None:
+                await agent_ctx.report_progress(progress, total, message or "")
+
+            progress_handler = fastmcp_progress_handler
+
         try:
             result = await self._client.call_tool(
                 name, arguments, progress_handler=progress_handler

@@ -8,11 +8,11 @@ from contextlib import AsyncExitStack, asynccontextmanager, suppress
 import os
 from typing import TYPE_CHECKING, Any, Self, Unpack, cast, overload
 
-from anyenv import MultiEventHandler, ProcessManager
+from anyenv import ProcessManager
 from upath import UPath
 
 from llmling_agent.agent import Agent
-from llmling_agent.common_types import NodeName, ProgressCallback
+from llmling_agent.common_types import IndividualEventHandler, NodeName
 from llmling_agent.delegation.message_flow_tracker import MessageFlowTracker
 from llmling_agent.delegation.team import Team
 from llmling_agent.delegation.teamrun import TeamRun
@@ -74,7 +74,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         connect_nodes: bool = True,
         input_provider: InputProvider | None = None,
         parallel_load: bool = True,
-        progress_handlers: list[ProgressCallback] | None = None,
+        event_handlers: list[IndividualEventHandler] | None = None,
     ):
         """Initialize agent pool with immediate agent creation.
 
@@ -84,7 +84,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
             connect_nodes: Whether to set up forwarding connections
             input_provider: Input provider for tool / step confirmations / HumanAgents
             parallel_load: Whether to load nodes in parallel (async)
-            progress_handlers: List of progress handlers to notify about progress
+            event_handlers: Event handlers to pass through to all agents
 
         Raises:
             ValueError: If manifest contains invalid node configurations
@@ -111,7 +111,8 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         self.exit_stack = AsyncExitStack()
         self.parallel_load = parallel_load
         self.storage = StorageManager(self.manifest.storage)
-        self.progress_handlers = MultiEventHandler[ProgressCallback](progress_handlers)
+        self.event_handlers = event_handlers or []
+
         self.connection_registry = ConnectionRegistry()
         servers = self.manifest.get_mcp_servers()
         self.mcp = MCPManager(name="pool_mcp", servers=servers, owner="pool")
@@ -127,7 +128,11 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         # Create requested agents immediately
         for name in self.manifest.agents:
             agent = self.manifest.get_agent(
-                name, deps=shared_deps, input_provider=self._input_provider, pool=self
+                name,
+                deps=shared_deps,
+                input_provider=self._input_provider,
+                pool=self,
+                event_handlers=self.event_handlers,
             )
             self.register(name, agent)
 
@@ -643,7 +648,12 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         """
         from llmling_agent.agent import Agent
 
-        agent: Agent[Any, TResult] = Agent(name=name, **kwargs, output_type=output_type)
+        agent: Agent[Any, TResult] = Agent(
+            name=name,
+            event_handlers=self.event_handlers,
+            **kwargs,
+            output_type=output_type,
+        )
         # Add MCP aggregating provider from manager
         agent.tools.add_provider(self.mcp.get_aggregating_provider())
         agent.tools.add_provider(self.skills.get_skills_provider())

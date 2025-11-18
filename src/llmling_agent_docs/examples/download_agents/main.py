@@ -65,12 +65,15 @@ async def run_example() -> None:
     config_path = get_config_path(None if is_pyodide() else __file__)
     manifest = AgentsManifest.from_file(config_path)
 
-    async def progress_handler(progress, total, message) -> None:
-        print(f"Progress: {progress}/{total} - {message}")
+    async def event_handler(event) -> None:
+        from llmling_agent.agent.events import ToolCallProgressEvent
+
+        if isinstance(event, ToolCallProgressEvent):
+            print(f"Progress: {event.progress}/{event.total} - {event.message}")
 
     async with AgentPool(
         manifest,
-        progress_handlers=[progress_handler],
+        event_handlers=[event_handler],
     ) as pool:
         # Get agents from the YAML config
         worker_1 = pool.get_agent("file_getter_1")

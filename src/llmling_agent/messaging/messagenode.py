@@ -25,7 +25,6 @@ if TYPE_CHECKING:
         AsyncFilterFn,
         ProcessorCallback,
         QueueStrategy,
-        RichProgressCallback,
     )
     from llmling_agent.messaging.context import NodeContext
     from llmling_agent.talk import Talk, TeamTalk
@@ -53,7 +52,6 @@ class MessageNode[TDeps, TResult](ABC):
         context: NodeContext | None = None,
         mcp_servers: Sequence[str | MCPServerConfig] | None = None,
         enable_logging: bool = True,
-        progress_handler: RichProgressCallback | None = None,
     ) -> None:
         """Initialize message node."""
         super().__init__()
@@ -73,7 +71,6 @@ class MessageNode[TDeps, TResult](ABC):
             servers=mcp_servers,
             context=context,
             owner=self.name,
-            progress_handler=progress_handler,
         )
         self.enable_db_logging = enable_logging
         self.conversation_id = str(uuid4())

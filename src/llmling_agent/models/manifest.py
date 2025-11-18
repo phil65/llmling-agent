@@ -10,6 +10,7 @@ from pydantic import ConfigDict, Field, model_validator
 from schemez import Schema
 
 from llmling_agent import log
+from llmling_agent.common_types import IndividualEventHandler
 from llmling_agent.models.agents import AgentConfig
 from llmling_agent.vfs_registry import VFSRegistry
 from llmling_agent_config.commands import CommandConfig, StaticCommandConfig
@@ -364,6 +365,7 @@ class AgentsManifest(Schema):
         deps: TAgentDeps | None = None,
         input_provider: InputProvider | None = None,
         pool: AgentPool[Any] | None = None,
+        event_handlers: list[IndividualEventHandler] | None = None,
     ) -> Agent[TAgentDeps, Any]:
         from llmling_agent import Agent, AgentContext
 
@@ -433,6 +435,7 @@ class AgentsManifest(Schema):
             end_strategy=config.end_strategy,
             debug=config.debug,
             output_type=self.get_output_type(name) or str,
+            event_handlers=event_handlers,
             # name=config.name or name,
         )
 

@@ -18,7 +18,6 @@ if TYPE_CHECKING:
     from fastmcp.client.elicitation import ElicitationHandler
     from fastmcp.client.sampling import ClientSamplingHandler
 
-    from llmling_agent.common_types import RichProgressCallback
     from llmling_agent.messaging.context import NodeContext
     from llmling_agent.prompts.prompts import MCPClientPrompt
     from llmling_agent.tools.base import Tool
@@ -40,7 +39,6 @@ class MCPResourceProvider(ResourceProvider):
         source: Literal["pool", "node"] = "node",
         elicitation_callback: ElicitationHandler | None = None,
         sampling_callback: ClientSamplingHandler | None = None,
-        progress_handler: RichProgressCallback | None = None,
         accessible_roots: list[str] | None = None,
     ) -> None:
         from llmling_agent.mcp_server import MCPClient
@@ -52,7 +50,6 @@ class MCPResourceProvider(ResourceProvider):
         self.context = context
         self.source = source
         self.exit_stack = AsyncExitStack()
-        self._progress_handler = progress_handler
         self._accessible_roots = accessible_roots
         self._elicitation_callback = elicitation_callback
         self._sampling_callback = sampling_callback
@@ -71,7 +68,6 @@ class MCPResourceProvider(ResourceProvider):
             config=self.server,
             elicitation_callback=self._elicitation_callback,
             sampling_callback=self._sampling_callback,
-            progress_handler=self._progress_handler,
             accessible_roots=self._accessible_roots,
             tool_change_callback=self._on_tools_changed,
             prompt_change_callback=self._on_prompts_changed,

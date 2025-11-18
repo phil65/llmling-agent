@@ -129,15 +129,24 @@ class AgentContext[TDeps = Any](NodeContext[TDeps]):
     async def report_progress(
         self, progress: float, total: float | None, message: str
     ) -> None:
-        """Access progress reporting from pool server if available."""
+        """Report progress by emitting event into the agent's stream."""
+        from llmling_agent.agent.events import ToolCallProgressEvent
+
         logger.info(
             "Reporting tool call progress",
             progress=progress,
             total=total,
             message=message,
         )
-        if self.pool:
-            await self.pool.progress_handlers(progress, total, message)
+        progress_event = ToolCallProgressEvent(
+            progress=int(progress),
+            total=int(total) if total is not None else 100,
+            message=message,
+            tool_name=self.tool_name or "",
+            tool_call_id=self.tool_call_id or "",
+            tool_input=self.tool_input,
+        )
+        await self.agent._event_queue.put(progress_event)
 
     async def emit_event(
         self, event_data: Any, event_type: str = "custom", source: str | None = None

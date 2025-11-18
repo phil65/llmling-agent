@@ -32,7 +32,6 @@ from llmling_agent.agent.events import (
     RichAgentStreamEvent,
     StreamCompleteEvent,
     ToolCallCompleteEvent,
-    create_queuing_progress_handler,
 )
 from llmling_agent.common_types import IndividualEventHandler
 from llmling_agent.log import get_logger
@@ -218,7 +217,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             description=description,
             enable_logging=memory_cfg.enable,
             mcp_servers=mcp_servers,
-            progress_handler=create_queuing_progress_handler(self._event_queue),
         )
 
         # Initialize tool manager

@@ -4,15 +4,28 @@ from __future__ import annotations
 
 import ast
 import asyncio
+from dataclasses import dataclass
 import inspect
 import time
 from typing import TYPE_CHECKING, Any
 
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator
+    from collections.abc import AsyncIterator, Awaitable, Callable
 
-    from llmling_agent.common_types import ProgressCallback
+
+@dataclass
+class ProgressInfo:
+    """Information about code execution progress."""
+
+    current: float
+    """Current progress value."""
+
+    total: float
+    """Total progress value."""
+
+    message: str
+    """Progress message describing current operation."""
 
 
 def count_statements(code: str) -> int:
@@ -28,7 +41,9 @@ class ProgressTrackingExecutor:
     """Execute Python code statement-by-statement with automatic progress reporting."""
 
     def __init__(
-        self, progress_callback: ProgressCallback | None = None, step_delay: float = 0.01
+        self,
+        progress_callback: Callable[[ProgressInfo], Awaitable[Any]] | None = None,
+        step_delay: float = 0.01,
     ) -> None:
         """Initialize executor.
 
@@ -38,7 +53,7 @@ class ProgressTrackingExecutor:
         """
         self.globals: dict[str, Any] = {"__builtins__": __builtins__}
         self.locals: dict[str, Any] = {}
-        self.progress_callback: ProgressCallback | None = progress_callback
+        self.progress_callback = progress_callback
         self.step_delay = step_delay
         self.total_statements = 0
         self.current_statement = 0
@@ -75,11 +90,12 @@ class ProgressTrackingExecutor:
                     node_type = type(node).__name__
                     message = f"Executing {node_type.lower()} statement"
 
-                    await self.progress_callback(
-                        float(self.current_statement),
-                        float(self.total_statements),
-                        message,
+                    progress_info = ProgressInfo(
+                        current=float(self.current_statement),
+                        total=float(self.total_statements),
+                        message=message,
                     )
+                    await self.progress_callback(progress_info)
 
                 # Execute the statement
                 compiled = compile(
@@ -100,11 +116,12 @@ class ProgressTrackingExecutor:
         except Exception as e:
             # Report error with current progress
             if self.progress_callback:
-                await self.progress_callback(
-                    float(self.current_statement),
-                    float(self.total_statements),
-                    f"Error: {str(e)[:50]}...",
+                progress_info = ProgressInfo(
+                    current=float(self.current_statement),
+                    total=float(self.total_statements),
+                    message=f"Error: {str(e)[:50]}...",
                 )
+                await self.progress_callback(progress_info)
             raise
         else:
             return "Code executed successfully"
