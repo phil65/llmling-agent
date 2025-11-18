@@ -49,12 +49,16 @@ def _create_tool_signature_with_context(
 
 
 def create_modified_signature(
-    fn: Callable[..., Any],
+    fn_or_sig: Callable[..., Any] | inspect.Signature,
     *,
     remove: str | list[str] | None = None,
     inject: dict[str, type] | None = None,
 ) -> inspect.Signature:
-    sig = inspect.signature(fn)
+    sig = (
+        fn_or_sig
+        if isinstance(fn_or_sig, inspect.Signature)
+        else inspect.signature(fn_or_sig)
+    )
     rem_keys = [remove] if isinstance(remove, str) else remove or []
     new_params = [p for p in sig.parameters.values() if p.name not in rem_keys]
     if inject:
