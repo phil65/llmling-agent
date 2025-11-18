@@ -273,7 +273,7 @@ class ACPNotifications:
             content=[terminal_content],
         )
 
-    async def update_plan(self, entries: list[PlanEntry]) -> None:
+    async def update_plan(self, entries: Sequence[PlanEntry]) -> None:
         """Send a plan notification.
 
         Args:
