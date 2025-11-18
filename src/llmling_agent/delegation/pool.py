@@ -12,7 +12,7 @@ from anyenv import ProcessManager
 from upath import UPath
 
 from llmling_agent.agent import Agent
-from llmling_agent.common_types import IndividualEventHandler, NodeName
+from llmling_agent.common_types import NodeName
 from llmling_agent.delegation.message_flow_tracker import MessageFlowTracker
 from llmling_agent.delegation.team import Team
 from llmling_agent.delegation.teamrun import TeamRun
@@ -40,7 +40,11 @@ if TYPE_CHECKING:
     from upath.types import JoinablePathLike
 
     from llmling_agent.agent.agent import AgentKwargs
-    from llmling_agent.common_types import AgentName, SessionIdType
+    from llmling_agent.common_types import (
+        AgentName,
+        IndividualEventHandler,
+        SessionIdType,
+    )
     from llmling_agent.delegation.base_team import BaseTeam
     from llmling_agent.models.manifest import AgentsManifest
     from llmling_agent.ui.base import InputProvider
@@ -648,9 +652,10 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         """
         from llmling_agent.agent import Agent
 
+        if not kwargs.get("event_handlers"):
+            kwargs["event_handlers"] = self.event_handlers
         agent: Agent[Any, TResult] = Agent(
             name=name,
-            event_handlers=self.event_handlers,
             **kwargs,
             output_type=output_type,
         )

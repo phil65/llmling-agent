@@ -252,7 +252,7 @@ class MCPClient:
         fn_schema = FunctionSchema.from_dict(schema)
         sig = fn_schema.to_python_signature()
 
-        tool_callable.__signature__ = create_modified_signature(
+        tool_callable.__signature__ = create_modified_signature(  # type: ignore[attr-defined]
             sig, inject={"ctx": RunContext, "agent_ctx": AgentContext}
         )
         annotations = fn_schema.get_annotations()

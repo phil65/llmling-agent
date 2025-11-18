@@ -3,11 +3,15 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic_ai import AgentStreamEvent
 
 from llmling_agent.messaging import ChatMessage  # noqa: TC001
+
+
+if TYPE_CHECKING:
+    from llmling_agent.resource_providers.plan_provider import PlanEntry
 
 
 @dataclass(kw_only=True)
@@ -96,11 +100,22 @@ class CustomEvent[T]:
     """Event type identifier."""
 
 
+@dataclass(kw_only=True)
+class PlanUpdateEvent:
+    """Event indicating plan state has changed."""
+
+    entries: list[PlanEntry]
+    """Current plan entries."""
+    event_kind: Literal["plan_update"] = "plan_update"
+    """Event type identifier."""
+
+
 type RichAgentStreamEvent[OutputDataT] = (
     AgentStreamEvent
     | StreamCompleteEvent[OutputDataT]
     | ToolCallProgressEvent
     | ToolCallCompleteEvent
+    | PlanUpdateEvent
     | CustomEvent[Any]
 )
 

@@ -10,7 +10,6 @@ from pydantic import ConfigDict, Field, model_validator
 from schemez import Schema
 
 from llmling_agent import log
-from llmling_agent.common_types import IndividualEventHandler
 from llmling_agent.models.agents import AgentConfig
 from llmling_agent.vfs_registry import VFSRegistry
 from llmling_agent_config.commands import CommandConfig, StaticCommandConfig
@@ -35,6 +34,7 @@ if TYPE_CHECKING:
     from upath.types import JoinablePathLike
 
     from llmling_agent import Agent, AgentPool
+    from llmling_agent.common_types import IndividualEventHandler
     from llmling_agent.prompts.manager import PromptManager
     from llmling_agent.ui.base import InputProvider
 
