@@ -39,13 +39,14 @@ def create_modified_signature(
     rem_keys = [remove] if isinstance(remove, str) else remove or []
     new_params = [p for p in sig.parameters.values() if p.name not in rem_keys]
     if inject:
+        injected_params = []
         for k, v in inject.items():
-            new_params.insert(
-                0,
+            injected_params.append(
                 inspect.Parameter(
                     k, inspect.Parameter.POSITIONAL_OR_KEYWORD, annotation=v
-                ),
+                )
             )
+        new_params = injected_params + new_params
     return sig.replace(parameters=new_params)
 
 
