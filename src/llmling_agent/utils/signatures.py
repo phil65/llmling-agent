@@ -5,8 +5,6 @@ from __future__ import annotations
 import inspect
 from typing import TYPE_CHECKING, Any
 
-from pydantic_ai import RunContext
-
 from llmling_agent.log import get_logger
 
 
@@ -17,43 +15,22 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-def _create_tool_signature_with_context(
-    base_signature: inspect.Signature, key: str = "ctx"
-) -> inspect.Signature:
-    """Create a function signature that includes RunContext as first parameter.
-
-    This is crucial for PydanticAI integration - it expects tools that need RunContext
-    to have it as the first parameter with proper annotation. Without this, PydanticAI
-    won't pass the RunContext and we lose access to tool_call_id and other context.
-
-    Args:
-        base_signature: Original signature from MCP tool schema (tool parameters only)
-        key: Name of the parameter to add RunContext to
-
-    Returns:
-        New signature: (ctx: RunContext, ...original_params) -> ReturnType
-
-    Example:
-        Original: (message: str) -> str
-        Result:   (ctx: RunContext, message: str) -> str
-    """
-    # Create RunContext parameter
-    ctx_param = inspect.Parameter(
-        key, inspect.Parameter.POSITIONAL_OR_KEYWORD, annotation=RunContext
-    )
-    # Combine with tool parameters
-    tool_params = list(base_signature.parameters.values())
-    new_params = [ctx_param, *tool_params]
-
-    return base_signature.replace(parameters=new_params)
-
-
 def create_modified_signature(
     fn_or_sig: Callable[..., Any] | inspect.Signature,
     *,
     remove: str | list[str] | None = None,
     inject: dict[str, type] | None = None,
 ) -> inspect.Signature:
+    """Create a modified signature by removing specified parameters / injecting new ones.
+
+    Args:
+        fn_or_sig: The function or signature to modify.
+        remove: The parameter(s) to remove.
+        inject: The parameter(s) to inject.
+
+    Returns:
+        The modified signature.
+    """
     sig = (
         fn_or_sig
         if isinstance(fn_or_sig, inspect.Signature)
