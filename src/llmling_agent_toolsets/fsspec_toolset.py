@@ -2,15 +2,25 @@
 
 from __future__ import annotations
 
+import difflib
 from pathlib import Path
+import re
 from typing import TYPE_CHECKING, Any
 
+from pydantic_ai import Agent as PydanticAgent, ModelRetry
+
+from llmling_agent.agent.context import AgentContext  # noqa: TC001
+from llmling_agent.log import get_logger
 from llmling_agent.resource_providers import ResourceProvider
 from llmling_agent.tools.base import Tool
+from llmling_agent_toolsets.builtin.file_edit import replace_content
 
 
 if TYPE_CHECKING:
-    import fsspec
+    import fsspec  # type: ignore[import-untyped]
+
+
+logger = get_logger(__name__)
 
 
 class FSSpecTools(ResourceProvider):
@@ -55,13 +65,28 @@ class FSSpecTools(ResourceProvider):
                 name_override="fs_delete",
                 description_override="Delete a file or directory",
             ),
+            Tool.from_callable(
+                self.edit_file,
+                name_override="fs_edit",
+                description_override="Edit a file by replacing specific content",
+                source="filesystem",
+                category="edit",
+            ),
+            Tool.from_callable(
+                self.agentic_edit,
+                name_override="fs_agentic_edit",
+                description_override="Edit a file using AI agent with natural language instructions",  # noqa: E501
+                source="filesystem",
+                category="edit",
+            ),
         ]
         return self._tools
 
-    def _list_directory(self, path: str) -> dict[str, Any]:
+    async def _list_directory(self, agent_ctx: AgentContext, path: str) -> dict[str, Any]:
         """List contents of a directory.
 
         Args:
+            agent_ctx: Agent execution context
             path: Directory path to list
 
         Returns:
@@ -104,22 +129,42 @@ class FSSpecTools(ResourceProvider):
                     }
                     files.append(item_info)
 
-            return {
+            result = {
                 "path": path,
                 "directories": directories,
                 "files": files,
                 "total_items": len(directories) + len(files),
             }
 
-        except (OSError, ValueError) as e:
-            return {"error": f"Failed to list directory {path}: {e}"}
+            # Emit success event
+            await agent_ctx.events.file_operation("list", path=path, success=True)
 
-    def _read_file(self, path: str, encoding: str = "utf-8") -> dict[str, Any]:
+        except (OSError, ValueError) as e:
+            # Emit failure event
+            await agent_ctx.events.file_operation(
+                "list", path=path, success=False, error=str(e)
+            )
+
+            return {"error": f"Failed to list directory {path}: {e}"}
+        else:
+            return result
+
+    async def _read_file(
+        self,
+        agent_ctx: AgentContext,
+        path: str,
+        encoding: str = "utf-8",
+        line: int | None = None,
+        limit: int | None = None,
+    ) -> dict[str, Any]:
         """Read contents of a file.
 
         Args:
+            agent_ctx: Agent execution context
             path: File path to read
             encoding: Text encoding to use (default: utf-8)
+            line: Optional line number to start reading from (1-based indexing)
+            limit: Optional maximum number of lines to read from the starting line
 
         Returns:
             Dictionary with file contents or error info
@@ -127,7 +172,7 @@ class FSSpecTools(ResourceProvider):
         try:
             if encoding == "binary":
                 content = self.fs.cat_file(path)
-                return {
+                result = {
                     "path": path,
                     "content": content.hex()
                     if isinstance(content, bytes)
@@ -135,25 +180,59 @@ class FSSpecTools(ResourceProvider):
                     "size": len(content) if content else 0,
                     "encoding": "binary",
                 }
-            with self.fs.open(path, "r", encoding=encoding) as f:
-                content = f.read()
+            else:
+                with self.fs.open(path, "r", encoding=encoding) as f:
+                    content = f.read()
 
-            return {
-                "path": path,
-                "content": content,
-                "size": len(content),
-                "encoding": encoding,
-            }
+                # Ensure content is string
+                if isinstance(content, bytes):
+                    content = content.decode(encoding)
+
+                # Apply line filtering if specified
+                if line is not None:
+                    lines = content.splitlines()
+                    start_idx = max(0, line - 1)  # Convert to 0-based indexing
+                    if limit is not None:
+                        end_idx = start_idx + limit
+                        selected_lines = lines[start_idx:end_idx]
+                    else:
+                        selected_lines = lines[start_idx:]
+                    content = "\n".join(selected_lines)
+
+                result = {
+                    "path": path,
+                    "content": content,
+                    "size": len(content),
+                    "encoding": encoding,
+                }
+
+            # Emit success event
+            await agent_ctx.events.file_operation(
+                "read", path=path, success=True, size=len(content)
+            )
 
         except (OSError, ValueError) as e:
-            return {"error": f"Failed to read file {path}: {e}"}
+            # Emit failure event
+            await agent_ctx.events.file_operation(
+                "read", path=path, success=False, error=str(e)
+            )
 
-    def _write_file(
-        self, path: str, content: str, encoding: str = "utf-8", mode: str = "w"
+            return {"error": f"Failed to read file {path}: {e}"}
+        else:
+            return result
+
+    async def _write_file(
+        self,
+        agent_ctx: AgentContext,
+        path: str,
+        content: str,
+        encoding: str = "utf-8",
+        mode: str = "w",
     ) -> dict[str, Any]:
         """Write content to a file.
 
         Args:
+            agent_ctx: Agent execution context
             path: File path to write to
             content: Content to write
             encoding: Text encoding to use (default: utf-8)
@@ -165,9 +244,14 @@ class FSSpecTools(ResourceProvider):
         try:
             # Validate mode
             if mode not in ("w", "a"):
-                return {
-                    "error": f"Invalid mode '{mode}'. Use 'w' (write) or 'a' (append)"
-                }
+                error_msg = f"Invalid mode '{mode}'. Use 'w' (write) or 'a' (append)"
+
+                # Emit failure event
+                await agent_ctx.events.file_operation(
+                    "write", path=path, success=False, error=error_msg
+                )
+
+                return {"error": error_msg}
 
             with self.fs.open(path, mode, encoding=encoding) as f:
                 f.write(content)
@@ -179,7 +263,7 @@ class FSSpecTools(ResourceProvider):
             except (OSError, KeyError):
                 size = len(content)
 
-            return {
+            result = {
                 "path": path,
                 "bytes_written": len(content.encode(encoding)),
                 "size": size,
@@ -187,13 +271,27 @@ class FSSpecTools(ResourceProvider):
                 "encoding": encoding,
             }
 
+            # Emit success event
+            await agent_ctx.events.file_operation(
+                "write", path=path, success=True, size=size
+            )
         except (OSError, ValueError) as e:
-            return {"error": f"Failed to write file {path}: {e}"}
+            # Emit failure event
+            await agent_ctx.events.file_operation(
+                "write", path=path, success=False, error=str(e)
+            )
 
-    def _delete_path(self, path: str, recursive: bool = False) -> dict[str, Any]:
+            return {"error": f"Failed to write file {path}: {e}"}
+        else:
+            return result
+
+    async def _delete_path(
+        self, agent_ctx: AgentContext, path: str, recursive: bool = False
+    ) -> dict[str, Any]:
         """Delete a file or directory.
 
         Args:
+            agent_ctx: Agent execution context
             path: Path to delete
             recursive: Whether to delete directories recursively
 
@@ -206,9 +304,23 @@ class FSSpecTools(ResourceProvider):
                 info = self.fs.info(path)
                 path_type = info.get("type", "unknown")
             except FileNotFoundError:
-                return {"error": f"Path does not exist: {path}"}
+                error_msg = f"Path does not exist: {path}"
+
+                # Emit failure event
+                await agent_ctx.events.file_operation(
+                    "delete", path=path, success=False, error=error_msg
+                )
+
+                return {"error": error_msg}
             except (OSError, ValueError) as e:
-                return {"error": f"Could not check path {path}: {e}"}
+                error_msg = f"Could not check path {path}: {e}"
+
+                # Emit failure event
+                await agent_ctx.events.file_operation(
+                    "delete", path=path, success=False, error=error_msg
+                )
+
+                return {"error": error_msg}
 
             if path_type == "directory":
                 if not recursive:
@@ -216,10 +328,17 @@ class FSSpecTools(ResourceProvider):
                     try:
                         contents = self.fs.ls(path)
                         if contents:
-                            return {
-                                "error": f"Directory {path} is not empty. "
+                            error_msg = (
+                                f"Directory {path} is not empty. "
                                 f"Use recursive=True to delete non-empty directories"
-                            }
+                            )
+
+                            # Emit failure event
+                            await agent_ctx.events.file_operation(
+                                "delete", path=path, success=False, error=error_msg
+                            )
+
+                            return {"error": error_msg}
                     except (OSError, ValueError):
                         pass  # Continue with deletion attempt
 
@@ -229,14 +348,446 @@ class FSSpecTools(ResourceProvider):
                 self.fs.delete(path)
 
         except (OSError, ValueError) as e:
+            # Emit failure event
+            await agent_ctx.events.file_operation(
+                "delete", path=path, success=False, error=str(e)
+            )
+
             return {"error": f"Failed to delete {path}: {e}"}
         else:
-            return {
+            result = {
                 "path": path,
                 "deleted": True,
                 "type": path_type,
                 "recursive": recursive,
             }
+
+            # Emit success event
+            await agent_ctx.events.file_operation("delete", path=path, success=True)
+
+            return result
+
+    async def edit_file(  # noqa: D417
+        self,
+        agent_ctx: AgentContext,
+        path: str,
+        old_string: str,
+        new_string: str,
+        description: str,
+        replace_all: bool = False,
+    ) -> str:
+        r"""Edit a file by replacing specific content with smart matching.
+
+        Uses sophisticated matching strategies to handle whitespace, indentation,
+        and other variations. Shows the changes as a diff in the UI.
+
+        Args:
+            path: File path (absolute or relative to session cwd)
+            old_string: Text content to find and replace
+            new_string: Text content to replace it with
+            description: Human-readable description of what the edit accomplishes
+            replace_all: Whether to replace all occurrences (default: False)
+
+        Returns:
+            Success message with edit summary
+        """
+        if old_string == new_string:
+            return "Error: old_string and new_string must be different"
+
+        # Send initial pending notification
+        await agent_ctx.events.file_operation(
+            "edit",
+            path=path,
+            success=True,  # Initial state
+            title=f"Editing file: {path}",
+            kind="edit",
+            locations=[path],
+        )
+
+        try:  # Read current file content
+            with self.fs.open(path, "r", encoding="utf-8") as f:
+                original_content = f.read()
+
+            # Ensure content is string
+            if isinstance(original_content, bytes):
+                original_content = original_content.decode("utf-8")
+
+            try:  # Apply smart content replacement
+                new_content = replace_content(
+                    original_content, old_string, new_string, replace_all
+                )
+            except ValueError as e:
+                error_msg = f"Edit failed: {e}"
+                await agent_ctx.events.file_operation(
+                    "edit",
+                    path=path,
+                    success=False,
+                    error=error_msg,
+                    raw_output=error_msg,
+                )
+                return error_msg
+
+            # Write the new content
+            with self.fs.open(path, "w", encoding="utf-8") as f:
+                f.write(new_content)
+
+            success_msg = f"Successfully edited {Path(path).name}: {description}"
+            changed_line_numbers = get_changed_line_numbers(original_content, new_content)
+            if lines_changed := len(changed_line_numbers):
+                success_msg += f" ({lines_changed} lines changed)"
+
+            await agent_ctx.events.file_edit_progress(
+                path=path,
+                old_text=original_content,
+                new_text=new_content,
+                status="completed",
+                changed_lines=changed_line_numbers,
+            )
+        except Exception as e:  # noqa: BLE001
+            error_msg = f"Error editing file: {e}"
+            await agent_ctx.events.file_operation(
+                "edit",
+                path=path,
+                success=False,
+                error=error_msg,
+                raw_output=error_msg,
+            )
+            return error_msg
+        else:
+            return success_msg
+
+    async def agentic_edit(  # noqa: D417, PLR0915
+        self,
+        agent_ctx: AgentContext,
+        path: str,
+        display_description: str,
+        mode: str = "edit",
+    ) -> str:
+        r"""Edit a file using AI agent with natural language instructions.
+
+        Creates a new agent that processes the file based on the instructions.
+        Shows real-time progress and diffs as the agent works.
+
+        Args:
+            path: File path (absolute or relative to session cwd)
+            display_description: Natural language description of the edits to make
+            mode: Edit mode - 'edit', 'create', or 'overwrite' (default: 'edit')
+
+        Returns:
+            Success message with edit summary
+
+        Example:
+            agentic_edit('src/main.py', 'Add error handling to the main function') ->
+            'Successfully edited main.py using AI agent'
+        """
+        # Send initial pending notification
+        await agent_ctx.events.file_operation(
+            "edit",
+            path=path,
+            success=True,  # Initial state
+            title=f"Editing file: {path}",
+            kind="edit",
+            locations=[path],
+        )
+
+        try:
+            if mode == "create":  # For create mode, don't read existing file
+                original_content = ""
+                prompt = _build_create_prompt(path, display_description)
+                sys_prompt = (
+                    "You are a code generator. Create the requested file content."
+                )
+            elif mode == "overwrite":
+                # For overwrite mode, don't read file - agent
+                # already read it via system prompt requirement
+                original_content = ""  # Will be set later for diff purposes
+                prompt = _build_overwrite_prompt(path, display_description)
+                sys_prompt = (
+                    "You are a code editor. Output ONLY the complete new file content."
+                )
+            else:  # For edit mode, use structured editing approach
+                with self.fs.open(path, "r", encoding="utf-8") as f:
+                    original_content = f.read()
+
+                # Ensure content is string
+                if isinstance(original_content, bytes):
+                    original_content = original_content.decode("utf-8")
+                prompt = _build_edit_prompt(path, display_description)
+                sys_prompt = (
+                    "You are a code editor. Output ONLY structured edits "
+                    "using the specified format."
+                )
+
+            # Create the editor agent using the same model
+            editor_agent = PydanticAgent(model="openai:gpt-4", system_prompt=sys_prompt)
+
+            if mode == "edit":
+                # For structured editing, get the full response and parse the edits
+                edit = await editor_agent.run(prompt)
+                new_content = await _apply_structured_edits(original_content, edit.output)
+            else:
+                # For overwrite mode we need to read the current content for diff purposes
+                if mode == "overwrite":
+                    with self.fs.open(path, "r", encoding="utf-8") as f:
+                        original_content = f.read()
+
+                    # Ensure content is string
+                    if isinstance(original_content, bytes):
+                        original_content = original_content.decode("utf-8")
+                # For create/overwrite modes, stream the complete content
+                new_content_parts = []
+                async with editor_agent.run_stream(prompt) as response:
+                    async for chunk in response.stream_text(delta=True):
+                        chunk_str = str(chunk)
+                        new_content_parts.append(chunk_str)
+                        # Build partial content for progress updates
+                        partial_content = "".join(new_content_parts)
+                        try:  # Send progress update with current diff
+                            if len(partial_content.strip()) > 0:
+                                # Get line numbers for streaming progress
+                                progress_line_numbers = get_changed_line_numbers(
+                                    original_content, partial_content
+                                )
+                                await agent_ctx.events.file_edit_progress(
+                                    path=path,
+                                    old_text=original_content,
+                                    new_text=partial_content,
+                                    status="in_progress",
+                                    changed_lines=progress_line_numbers,
+                                )
+                        except Exception:  # noqa: BLE001
+                            pass  # Continue on progress update errors
+
+                new_content = "".join(new_content_parts).strip()
+
+            if not new_content:
+                error_msg = "AI agent produced no output"
+                await agent_ctx.events.file_operation(
+                    "edit",
+                    path=path,
+                    success=False,
+                    error=error_msg,
+                    raw_output=error_msg,
+                )
+                return error_msg
+
+            # Write the new content to file
+            with self.fs.open(path, "w", encoding="utf-8") as f:
+                f.write(new_content)
+
+            # Calculate some stats
+            original_lines = len(original_content.splitlines()) if original_content else 0
+            new_lines = len(new_content.splitlines())
+
+            if mode == "create":
+                path = Path(path).name
+                success_msg = f"Successfully created {path} ({new_lines} lines)"
+            else:
+                success_msg = f"Successfully edited {Path(path).name} using AI agent"
+                success_msg += f" ({original_lines} → {new_lines} lines)"
+
+            # Get changed line numbers for precise UI highlighting
+            changed_line_numbers = get_changed_line_numbers(original_content, new_content)
+
+            # Send final completion update with complete diff and line numbers
+            await agent_ctx.events.file_edit_progress(
+                path=path,
+                old_text=original_content,
+                new_text=new_content,
+                status="completed",
+                changed_lines=changed_line_numbers,
+            )
+
+        except Exception as e:  # noqa: BLE001
+            error_msg = f"Error during agentic edit: {e}"
+            await agent_ctx.events.file_operation(
+                "edit",
+                path=path,
+                success=False,
+                error=error_msg,
+                raw_output=error_msg,
+            )
+            return error_msg
+        else:
+            return success_msg
+
+
+def _build_create_prompt(path: str, description: str) -> str:
+    """Build prompt for create mode."""
+    return f"""Create a new file at {path} according to this description:
+
+{description}
+
+Output only the complete file content, no explanations or markdown formatting."""
+
+
+def _build_overwrite_prompt(path: str, description: str) -> str:
+    """Build prompt for overwrite mode."""
+    return f"""Rewrite the file {path} according to this description:
+
+{description}
+
+Output only the complete new file content, no explanations or markdown formatting."""
+
+
+def _build_edit_prompt(path: str, description: str) -> str:
+    """Build prompt for structured edit mode."""
+    return f"""\
+You MUST respond with a series of edits to a file, using the following format:
+
+```
+<edits>
+
+<old_text line=10>
+OLD TEXT 1 HERE
+</old_text>
+<new_text>
+NEW TEXT 1 HERE
+</new_text>
+
+<old_text line=456>
+OLD TEXT 2 HERE
+</old_text>
+<new_text>
+NEW TEXT 2 HERE
+</new_text>
+
+</edits>
+```
+
+# File Editing Instructions
+
+- Use `<old_text>` and `<new_text>` tags to replace content
+- `<old_text>` must exactly match existing file content, including indentation
+- `<old_text>` must come from the actual file, not an outline
+- `<old_text>` cannot be empty
+- `line` should be a starting line number for the text to be replaced
+- Be minimal with replacements:
+- For unique lines, include only those lines
+- For non-unique lines, include enough context to identify them
+- Do not escape quotes, newlines, or other characters within tags
+- For multiple occurrences, repeat the same tag pair for each instance
+- Edits are sequential - each assumes previous edits are already applied
+- Only edit the specified file
+- Always close all tags properly
+
+<file_to_edit>
+{path}
+</file_to_edit>
+
+<edit_description>
+{description}
+</edit_description>
+
+Tool calls have been disabled. You MUST start your response with <edits>."""
+
+
+async def _apply_structured_edits(original_content: str, edits_response: str) -> str:
+    """Apply structured edits from the agent response."""
+    # Parse the edits from the response
+    edits_match = re.search(r"<edits>(.*?)</edits>", edits_response, re.DOTALL)
+    if not edits_match:
+        logger.warning("No edits block found in response")
+        return original_content
+
+    edits_content = edits_match.group(1)
+
+    # Find all old_text/new_text pairs
+    old_text_pattern = r"<old_text[^>]*>(.*?)</old_text>"
+    new_text_pattern = r"<new_text>(.*?)</new_text>"
+
+    old_texts = re.findall(old_text_pattern, edits_content, re.DOTALL)
+    new_texts = re.findall(new_text_pattern, edits_content, re.DOTALL)
+
+    if len(old_texts) != len(new_texts):
+        logger.warning("Mismatch between old_text and new_text blocks")
+        return original_content
+
+    # Apply edits sequentially
+    content = original_content
+    applied_edits = 0
+
+    failed_matches = []
+    multiple_matches = []
+
+    for old_text, new_text in zip(old_texts, new_texts, strict=False):
+        old_text = old_text.strip()
+        new_text = new_text.strip()
+
+        # Check for multiple matches (ambiguity)
+        match_count = content.count(old_text)
+        if match_count > 1:
+            multiple_matches.append(old_text[:50])
+        elif match_count == 1:
+            content = content.replace(old_text, new_text, 1)
+            applied_edits += 1
+        else:
+            failed_matches.append(old_text[:50])
+
+    # Raise ModelRetry for specific failure cases
+    if applied_edits == 0 and len(old_texts) > 0:
+        msg = (
+            "Some edits were produced but none of them could be applied. "
+            "Read the relevant sections of the file again so that "
+            "I can perform the requested edits."
+        )
+        raise ModelRetry(msg)
+
+    if multiple_matches:
+        matches_str = ", ".join(multiple_matches)
+        msg = (
+            f"<old_text> matches multiple positions in the file: {matches_str}... "
+            "Read the relevant sections of the file again and extend <old_text> "
+            "to be more specific."
+        )
+        raise ModelRetry(msg)
+
+    logger.info("Applied structured edits", num=applied_edits, total=len(old_texts))
+    return content
+
+
+def get_changed_lines(original_content: str, new_content: str, path: str) -> list[str]:
+    old = original_content.splitlines(keepends=True)
+    new = new_content.splitlines(keepends=True)
+    diff = list(difflib.unified_diff(old, new, fromfile=path, tofile=path, lineterm=""))
+    return [line for line in diff if line.startswith(("+", "-"))]
+
+
+def get_changed_line_numbers(original_content: str, new_content: str) -> list[int]:
+    """Extract line numbers where changes occurred for ACP UI highlighting.
+
+    Similar to Claude Code's line tracking for precise change location reporting.
+    Returns line numbers in the new content where changes happened.
+
+    Args:
+        original_content: Original file content
+        new_content: Modified file content
+
+    Returns:
+        List of line numbers (1-based) where changes occurred in new content
+    """
+    old_lines = original_content.splitlines(keepends=True)
+    new_lines = new_content.splitlines(keepends=True)
+
+    # Use SequenceMatcher to find changed blocks
+    matcher = difflib.SequenceMatcher(None, old_lines, new_lines)
+    changed_line_numbers = set()
+
+    for tag, _i1, _i2, j1, j2 in matcher.get_opcodes():
+        if tag in ("replace", "insert", "delete"):
+            # For replacements and insertions, mark lines in new content
+            # For deletions, mark the position where deletion occurred
+            if tag == "delete":
+                # Mark the line where deletion occurred (or next line if at end)
+                line_num = min(j1 + 1, len(new_lines))
+                if line_num > 0:
+                    changed_line_numbers.add(line_num)
+            else:
+                # Mark all affected lines in new content
+                for line_num in range(j1 + 1, j2 + 1):  # Convert to 1-based
+                    changed_line_numbers.add(line_num)
+
+    return sorted(changed_line_numbers)
 
 
 if __name__ == "__main__":
@@ -251,10 +802,10 @@ if __name__ == "__main__":
         fs = fsspec.filesystem("file")
         tools = FSSpecTools(fs, name="local_fs")
 
-        agent = Agent(model="gpt-5-nano")
+        agent = Agent(model="openai:gpt-5-nano")
         agent.tools.add_provider(tools)
-
-        result = await agent.run("List the tools available for filesystem operations")
-        print(result)
+        async with agent:
+            result = await agent.run("List the tools available for filesystem operations")
+            print(result)
 
     asyncio.run(main())

@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 
     from llmling_agent import AgentPool
     from llmling_agent.agent import Agent
-    from llmling_agent.agent.events import RichAgentStreamEvent
+    from llmling_agent.agent.event_emitter import AgentEventEmitter
     from llmling_agent.models.agents import AgentConfig
     from llmling_agent.tools.base import Tool
     from llmling_agent.ui.base import InputProvider
@@ -149,27 +149,9 @@ class AgentContext[TDeps = Any](NodeContext[TDeps]):
         )
         await self.agent._event_queue.put(progress_event)
 
-    async def emit_event(self, event: RichAgentStreamEvent[Any]) -> None:
-        """Emit a typed event into the agent's event stream.
+    @property
+    def events(self) -> AgentEventEmitter:
+        """Get event emitter with context automatically injected."""
+        from llmling_agent.agent.event_emitter import AgentEventEmitter
 
-        Args:
-            event: The event instance (PlanUpdateEvent, etc.)
-        """
-        await self.agent._event_queue.put(event)
-
-    async def emit_custom_event(
-        self, event_data: Any, event_type: str = "custom", source: str | None = None
-    ) -> None:
-        """Emit a custom event into the agent's event stream.
-
-        Args:
-            event_data: The custom event data of any type
-            event_type: Type identifier for the custom event
-            source: Optional source identifier (defaults to current tool name)
-        """
-        from llmling_agent.agent.events import CustomEvent
-
-        custom_event = CustomEvent(
-            event_data=event_data, event_type=event_type, source=source or self.tool_name
-        )
-        await self.agent._event_queue.put(custom_event)
+        return AgentEventEmitter(self)

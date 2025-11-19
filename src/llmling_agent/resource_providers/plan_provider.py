@@ -1,35 +1,58 @@
-"""ACP plan provider for agent planning and task management."""
+"""Plan provider for agent planning and task management."""
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from dataclasses import dataclass
+from typing import Literal
 
-from acp import PlanEntry, PlanEntryPriority, PlanEntryStatus  # noqa: TC001
+from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.resource_providers import ResourceProvider
 from llmling_agent.tools.base import Tool
 
 
-if TYPE_CHECKING:
-    from llmling_agent_server.acp_server.session import ACPSession
+# Plan entry types - domain models independent of ACP
+PlanEntryPriority = Literal["high", "medium", "low"]
+PlanEntryStatus = Literal["pending", "in_progress", "completed"]
 
 
-class ACPPlanProvider(ResourceProvider):
-    """Provides ACP plan-related tools for agent planning and task management.
+@dataclass(kw_only=True)
+class PlanEntry:
+    """A single entry in the execution plan.
 
-    This provider creates session-aware tools for managing agent plans and tasks
-    via the ACP client. All tools have the session ID baked in at creation time,
-    eliminating the need for parameter injection.
+    Represents a task or goal that the assistant intends to accomplish
+    as part of fulfilling the user's request.
     """
 
-    def __init__(self, session: ACPSession) -> None:
-        """Initialize plan provider.
+    content: str
+    """Human-readable description of what this task aims to accomplish."""
 
-        Args:
-            session: The ACP session instance
-        """
-        super().__init__(name=f"acp_plan_{session.session_id}")
-        self.session = session
-        self.session_id = session.session_id
+    priority: PlanEntryPriority
+    """The relative importance of this task."""
+
+    status: PlanEntryStatus
+    """Current execution status of this task."""
+
+
+@dataclass(kw_only=True)
+class PlanUpdateEvent:
+    """Event indicating plan state has changed."""
+
+    entries: list[PlanEntry]
+    """Current plan entries."""
+    event_kind: Literal["plan_update"] = "plan_update"
+    """Event type identifier."""
+
+
+class PlanProvider(ResourceProvider):
+    """Provides plan-related tools for agent planning and task management.
+
+    This provider creates tools for managing agent plans and tasks,
+    emitting domain events that can be handled by protocol adapters.
+    """
+
+    def __init__(self) -> None:
+        """Initialize plan provider."""
+        super().__init__(name="plan")
         self._current_plan: list[PlanEntry] = []
 
     async def get_tools(self) -> list[Tool]:
@@ -46,6 +69,7 @@ class ACPPlanProvider(ResourceProvider):
 
     async def add_plan_entry(
         self,
+        agent_ctx: AgentContext,
         content: str,
         priority: PlanEntryPriority = "medium",
         index: int | None = None,
@@ -53,6 +77,7 @@ class ACPPlanProvider(ResourceProvider):
         """Add a new plan entry.
 
         Args:
+            agent_ctx: Agent execution context
             content: Description of what this task aims to accomplish
             priority: Relative importance (high/medium/low)
             index: Optional position to insert at (default: append to end)
@@ -70,12 +95,13 @@ class ACPPlanProvider(ResourceProvider):
             self._current_plan.insert(index, entry)
             entry_index = index
 
-        await self._send_plan_update()
+        await self._emit_plan_update(agent_ctx)
 
-        return f"Added plan entry at index {entry_index}: {content!r} ({priority=!r})"
+        return f"Added plan entry at index {entry_index}: {content!r} (priority={priority!r})"  # noqa: E501
 
     async def update_plan_entry(
         self,
+        agent_ctx: AgentContext,
         index: int,
         content: str | None = None,
         status: PlanEntryStatus | None = None,
@@ -84,6 +110,7 @@ class ACPPlanProvider(ResourceProvider):
         """Update an existing plan entry.
 
         Args:
+            agent_ctx: Agent execution context
             index: Position of entry to update (0-based)
             content: New task description
             status: New execution status
@@ -113,13 +140,14 @@ class ACPPlanProvider(ResourceProvider):
         if not updates:
             return "No changes specified"
 
-        await self._send_plan_update()
+        await self._emit_plan_update(agent_ctx)
         return f"Updated entry {index}: {', '.join(updates)}"
 
-    async def remove_plan_entry(self, index: int) -> str:
+    async def remove_plan_entry(self, agent_ctx: AgentContext, index: int) -> str:
         """Remove a plan entry.
 
         Args:
+            agent_ctx: Agent execution context
             index: Position of entry to remove (0-based)
 
         Returns:
@@ -128,7 +156,7 @@ class ACPPlanProvider(ResourceProvider):
         if index < 0 or index >= len(self._current_plan):
             return f"Error: Index {index} out of range (0-{len(self._current_plan) - 1})"
         removed_entry = self._current_plan.pop(index)
-        await self._send_plan_update()
+        await self._emit_plan_update(agent_ctx)
         if self._current_plan:
             return (
                 f"Removed entry {index}: {removed_entry.content!r}, "
@@ -136,8 +164,6 @@ class ACPPlanProvider(ResourceProvider):
             )
         return f"Removed entry {index}: {removed_entry.content!r}, plan is now empty"
 
-    async def _send_plan_update(self) -> None:
-        """Send current plan state via session update."""
-        if not self._current_plan:  # Don't send empty plans
-            return
-        await self.session.notifications.update_plan(self._current_plan)
+    async def _emit_plan_update(self, agent_ctx: AgentContext) -> None:
+        """Emit plan update event."""
+        await agent_ctx.events.plan_updated(self._current_plan)

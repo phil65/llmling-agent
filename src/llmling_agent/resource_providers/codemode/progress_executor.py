@@ -196,7 +196,7 @@ for i in range(3):
         executor = ProgressTrackingExecutor(step_delay=0.5)
         results = []
         async for x in executor.execute_statements(code):
-            await ctx.emit_event(x)
+            await ctx.events.custom(x)
             results.append(x[0])
 
         return f"Code executed successfully. Executed {len(results)} statements."

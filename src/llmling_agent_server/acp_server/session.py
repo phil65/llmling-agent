@@ -32,10 +32,16 @@ from slashed import Command, CommandStore
 from acp.acp_requests import ACPRequests
 from acp.filesystem import ACPFileSystem
 from acp.notifications import ACPNotifications
-from acp.schema import AvailableCommand
+from acp.schema import AvailableCommand, PlanEntry as ACPPlanEntry, ToolCallLocation
 from acp.utils import to_acp_content_blocks
 from llmling_agent.agent import SlashedAgent
-from llmling_agent.agent.events import StreamCompleteEvent, ToolCallProgressEvent
+from llmling_agent.agent.events import (
+    FileEditProgressEvent,
+    FileOperationEvent,
+    PlanUpdateEvent,
+    StreamCompleteEvent,
+    ToolCallProgressEvent,
+)
 from llmling_agent.log import get_logger
 from llmling_agent_commands import get_commands
 from llmling_agent_server.acp_server.acp_tools import get_acp_provider
@@ -533,6 +539,76 @@ class ACPSession:
 
             case StreamCompleteEvent(message=message):
                 pass
+
+            case PlanUpdateEvent(entries=entries, tool_call_id=tool_call_id):
+                # Handle PlanUpdateEvent - convert domain PlanEntry to ACP PlanEntry
+                try:
+                    acp_entries = [
+                        ACPPlanEntry(
+                            content=entry.content,
+                            priority=entry.priority,
+                            status=entry.status,
+                        )
+                        for entry in entries
+                    ]
+                    await self.notifications.update_plan(acp_entries)
+                except Exception as e:  # noqa: BLE001
+                    self.log.warning(
+                        "Failed to send plan update notification",
+                        error=str(e),
+                    )
+
+            case FileOperationEvent(
+                operation=operation,
+                path=path,
+                success=success,
+                error=error,
+                tool_call_id=tool_call_id,
+            ):
+                # Handle FileOperationEvent
+                try:
+                    if tool_call_id and success:
+                        await self.notifications.tool_call_progress(
+                            tool_call_id=tool_call_id,
+                            status="completed",
+                            locations=[ToolCallLocation(path=path)],
+                        )
+                    elif tool_call_id:
+                        await self.notifications.tool_call_progress(
+                            tool_call_id=tool_call_id,
+                            status="failed",
+                            raw_output=f"File operation '{operation}' failed: {error}",
+                        )
+                except Exception as e:  # noqa: BLE001
+                    self.log.warning(
+                        "Failed to send file operation notification",
+                        error=str(e),
+                    )
+
+            case FileEditProgressEvent(
+                path=path,
+                old_text=old_text,
+                new_text=new_text,
+                status=status,
+                changed_lines=changed_lines,
+                tool_call_id=tool_call_id,
+            ):
+                # Handle FileEditProgressEvent
+                try:
+                    if tool_call_id:
+                        await self.notifications.file_edit_progress(
+                            tool_call_id=tool_call_id,
+                            path=path,
+                            old_text=old_text,
+                            new_text=new_text,
+                            status=status,
+                            changed_lines=changed_lines,
+                        )
+                except Exception as e:  # noqa: BLE001
+                    self.log.warning(
+                        "Failed to send file edit progress notification",
+                        error=str(e),
+                    )
 
             case _:
                 self.log.debug("Unhandled event", event_type=type(event).__name__)

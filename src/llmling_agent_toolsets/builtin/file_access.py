@@ -62,12 +62,19 @@ async def read_file(  # noqa: D417
 
     except Exception as e:
         msg = f"Failed to read file {path}: {e}"
+        # Emit failure event
+        await ctx.events.file_operation("read", path=path, success=False, error=msg)
         raise ToolError(msg) from e
     else:
+        # Emit success event
+        await ctx.events.file_operation(
+            "read", path=path, success=True, size=len(content)
+        )
         return content
 
 
-async def list_directory(
+async def list_directory(  # noqa: D417
+    ctx: AgentContext,
     path: str,
     *,
     pattern: str | None = None,
@@ -90,25 +97,43 @@ async def list_directory(
         A list of files / folders.
     """
     pattern = pattern or "**/*"
-    files = await list_files(
-        path,
-        pattern=pattern,
-        include_dirs=include_dirs,
-        recursive=recursive,
-        exclude=exclude,
-        max_depth=max_depth,
-    )
-    return "\n".join(str(f) for f in files)
+    try:
+        files = await list_files(
+            path,
+            pattern=pattern,
+            include_dirs=include_dirs,
+            recursive=recursive,
+            exclude=exclude,
+            max_depth=max_depth,
+        )
+        result = "\n".join(str(f) for f in files)
+        # Emit success event
+        await ctx.events.file_operation("list", path=path, success=True, size=len(files))
+    except Exception as e:
+        msg = f"Failed to list directory {path}: {e}"
+        # Emit failure event
+        await ctx.events.file_operation("list", path=path, success=False, error=msg)
+        raise ToolError(msg) from e
+    else:
+        return result
 
 
-async def download_file(
-    context: AgentContext,
+async def download_file(  # noqa: D417
+    ctx: AgentContext,
     url: str,
     target_dir: str = "downloads",
     chunk_size: int = 8192,
-    verify_ssl: bool = False,  # For testing, in prod should be True
 ) -> str:
-    """Download a file and return status information."""
+    """Download a file and return status information.
+
+    Args:
+        url: URL to download from
+        target_dir: Directory to save the file
+        chunk_size: Size of chunks to download
+
+    Returns:
+        Status message about the download
+    """
     import httpx
 
     start_time = time.time()
@@ -119,7 +144,7 @@ async def download_file(
     full_path = target_path / filename
     try:
         async with (
-            httpx.AsyncClient(verify=verify_ssl) as client,
+            httpx.AsyncClient(verify=False) as client,
             client.stream("GET", url, timeout=30.0) as response,
         ):
             response.raise_for_status()
@@ -140,22 +165,38 @@ async def download_file(
                         progress = size / total * 100
                         speed_mbps = (size / 1_048_576) / (time.time() - start_time)
                         msg = f"\r{filename}: {progress:.1f}% ({speed_mbps:.1f} MB/s)"
-                        await context.report_progress(progress, 100, msg)
+                        await ctx.events.progress(progress, 100, msg)
                         await asyncio.sleep(0)
 
         duration = time.time() - start_time
         size_mb = size / 1_048_576
+        result = (
+            f"Downloaded {filename} ({size_mb:.1f}MB) at {size_mb / duration:.1f} MB/s"
+        )
 
-        return f"Downloaded {filename} ({size_mb:.1f}MB) at {size_mb / duration:.1f} MB/s"
+        # Emit success event
+        await ctx.events.file_operation(
+            "read", path=str(full_path), success=True, size=size
+        )
 
     except httpx.ConnectError as e:
-        return f"Connection error downloading {url}: {e}"
+        error_msg = f"Connection error downloading {url}: {e}"
+        await ctx.events.file_operation("read", path=url, success=False, error=error_msg)
+        return error_msg
     except httpx.TimeoutException:
-        return f"Timeout downloading {url}"
+        error_msg = f"Timeout downloading {url}"
+        await ctx.events.file_operation("read", path=url, success=False, error=error_msg)
+        return error_msg
     except httpx.HTTPStatusError as e:
-        return f"HTTP error {e.response.status_code} downloading {url}"
+        error_msg = f"HTTP error {e.response.status_code} downloading {url}"
+        await ctx.events.file_operation("read", path=url, success=False, error=error_msg)
+        return error_msg
     except Exception as e:  # noqa: BLE001
-        return f"Error downloading {url}: {e!s}"
+        error_msg = f"Error downloading {url}: {e!s}"
+        await ctx.events.file_operation("read", path=url, success=False, error=error_msg)
+        return error_msg
+    else:
+        return result
 
 
 def create_file_access_tools() -> list[Tool]:
@@ -172,3 +213,15 @@ class FileAccessTools(StaticResourceProvider):
 
     def __init__(self, name: str = "file_access") -> None:
         super().__init__(name=name, tools=create_file_access_tools())
+
+
+if __name__ == "__main__":
+    import asyncio
+
+    async def main():
+        tools = FileAccessTools()
+        async with tools:
+            result = await tools.get_tools()
+            print(result)
+
+    asyncio.run(main())

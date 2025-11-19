@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic_ai import AgentStreamEvent
@@ -106,7 +106,62 @@ class PlanUpdateEvent:
 
     entries: list[PlanEntry]
     """Current plan entries."""
+    tool_call_id: str | None = None
+    """Tool call ID for ACP notifications."""
     event_kind: Literal["plan_update"] = "plan_update"
+    """Event type identifier."""
+
+
+@dataclass(kw_only=True)
+class FileOperationEvent:
+    """Event for filesystem operations."""
+
+    operation: Literal["read", "write", "delete", "list", "edit"]
+    """The filesystem operation performed."""
+    path: str
+    """The file/directory path that was operated on."""
+    success: bool
+    """Whether the operation completed successfully."""
+    error: str | None = None
+    """Error message if operation failed."""
+    size: int | None = None
+    """Size of file in bytes (for successful operations)."""
+    tool_call_id: str | None = None
+    """Tool call ID for ACP notifications."""
+
+    # Rich ACP metadata
+    title: str | None = None
+    """Display title for the operation."""
+    kind: str | None = None
+    """Tool operation kind (edit, read, write, etc.)."""
+    locations: list[str] = field(default_factory=list)
+    """File paths affected by the operation."""
+    raw_input: dict[str, Any] = field(default_factory=dict)
+    """Original tool input arguments."""
+    raw_output: Any = None
+    """Tool result data for failed operations."""
+
+    event_kind: Literal["file_operation"] = "file_operation"
+    """Event type identifier."""
+
+
+@dataclass(kw_only=True)
+class FileEditProgressEvent:
+    """Event for file edit progress with diff information."""
+
+    path: str
+    """The file path being edited."""
+    old_text: str
+    """Original file content."""
+    new_text: str
+    """New file content."""
+    status: Literal["in_progress", "completed", "failed"]
+    """Current status of the edit operation."""
+    changed_lines: list[int] = field(default_factory=list)
+    """Line numbers that were changed."""
+    tool_call_id: str | None = None
+    """Tool call ID for ACP notifications."""
+    event_kind: Literal["file_edit_progress"] = "file_edit_progress"
     """Event type identifier."""
 
 
@@ -116,6 +171,8 @@ type RichAgentStreamEvent[OutputDataT] = (
     | ToolCallProgressEvent
     | ToolCallCompleteEvent
     | PlanUpdateEvent
+    | FileOperationEvent
+    | FileEditProgressEvent
     | CustomEvent[Any]
 )
 
