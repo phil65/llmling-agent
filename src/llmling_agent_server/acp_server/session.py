@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import AsyncGenerator
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import re
 from typing import TYPE_CHECKING, Any
 
@@ -34,6 +34,7 @@ from acp.filesystem import ACPFileSystem
 from acp.notifications import ACPNotifications
 from acp.schema import (
     AvailableCommand,
+    ClientCapabilities,
     PlanEntry as ACPPlanEntry,
     TerminalToolCallContent,
     ToolCallLocation,
@@ -69,7 +70,7 @@ if TYPE_CHECKING:
     from slashed import CommandContext
 
     from acp import Client
-    from acp.schema import ClientCapabilities, ContentBlock, McpServer, StopReason
+    from acp.schema import ContentBlock, McpServer, StopReason
     from llmling_agent import Agent, AgentPool
     from llmling_agent.agent.events import RichAgentStreamEvent
     from llmling_agent.models.content import BaseContent
@@ -106,6 +107,8 @@ ACP_SELF_NOTIFYING_TOOLS = {
     "delete_path",
     "edit_file",
     "agentic_edit",
+    "execute_code",
+    "execute_script",
 }
 
 
@@ -147,7 +150,7 @@ class ACPSession:
     mcp_servers: Sequence[McpServer] | None = None
     """Optional MCP server configurations"""
 
-    client_capabilities: ClientCapabilities | None = None
+    client_capabilities: ClientCapabilities = field(default_factory=ClientCapabilities)
     """Client capabilities for tool registration"""
 
     manager: ACPSessionManager | None = None
@@ -199,10 +202,9 @@ class ACPSession:
         self.requests = ACPRequests(client=self.client, session_id=self.session_id)
         self.input_provider = ACPInputProvider(self)
 
-        if self.client_capabilities:
-            self._acp_provider = get_acp_provider(self)
-            current_agent = self.agent
-            current_agent.tools.add_provider(self._acp_provider)
+        self._acp_provider = get_acp_provider(self)
+        current_agent = self.agent
+        current_agent.tools.add_provider(self._acp_provider)
 
         # Add cwd context to all agents in the pool
         for agent in self.agent_pool.agents.values():
