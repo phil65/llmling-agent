@@ -133,6 +133,9 @@ class ACPSession:
         self._cancelled = False
         self._current_tool_inputs: dict[str, dict[str, Any]] = {}
         self.fs = ACPFileSystem(self.client, session_id=self.session_id)
+        from llmling_agent_server.acp_server.acp_process_manager import ACPProcessManager
+
+        self.process_manager = ACPProcessManager(self)
         self._acp_provider: AggregatingResourceProvider | None = None
         # Staged prompt parts for context building
         from llmling_agent_server.acp_server.commands.acp_commands import get_acp_commands
