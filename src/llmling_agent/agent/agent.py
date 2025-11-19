@@ -817,6 +817,10 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                 # Track tool call starts to combine with results later
                 pending_tcs: dict[str, ToolCallPart] = {}
                 async for event in events:
+                    # Call event handlers for all events
+                    for handler in self.event_handler._wrapped_handlers:
+                        await handler(None, event)  # type: ignore[arg-type]
+
                     # Process events and emit signals
                     yield event  # type: ignore[misc]
                     match event:
