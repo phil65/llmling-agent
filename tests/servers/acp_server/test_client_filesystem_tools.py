@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, Mock
 
-from pydantic_ai import RunContext, RunUsage
-from pydantic_ai.models.test import TestModel
 import pytest
 
 from acp import (
@@ -13,26 +12,39 @@ from acp import (
     ClientCapabilities,
     FileSystemCapability,
     InitializeRequest,
-    ReadTextFileResponse,
-    WriteTextFileResponse,
 )
-from llmling_agent import AgentPool
+from llmling_agent import AgentContext, AgentPool
+from llmling_agent.agent.event_emitter import AgentEventEmitter
+from llmling_agent.models.agents import AgentConfig
 from llmling_agent_server.acp_server.acp_agent import LLMlingACPAgent
-from llmling_agent_server.acp_server.session import ACPSession
 from llmling_agent_toolsets.fsspec_toolset import FSSpecTools
 
 
-CTX = RunContext(tool_call_id="test", deps=None, model=TestModel(), usage=RunUsage())
+if TYPE_CHECKING:
+    from llmling_agent_server.acp_server.session import ACPSession
+
+
+def create_mock_agent_context() -> AgentContext:
+    """Create a mock AgentContext for testing."""
+    context = Mock(spec=AgentContext)
+    context.node_name = "test_agent"
+    context.events = Mock(spec=AgentEventEmitter)
+    context.events.file_operation = AsyncMock()
+    context.config = Mock(spec=AgentConfig)
+    return context
+
+
+CTX = create_mock_agent_context()
 
 
 @pytest.fixture
-def mock_connection(self):
+def mock_connection():
     """Create a mock ACP connection."""
     return Mock(spec=AgentSideConnection)
 
 
 @pytest.fixture
-def mock_agent_pool(self) -> AgentPool:
+def mock_agent_pool() -> AgentPool:
     """Create a mock agent pool."""
     pool = Mock(spec=AgentPool)
     pool.agents = {}
@@ -91,6 +103,10 @@ async def session(acp_agent: LLMlingACPAgent, mock_connection: AgentSideConnecti
 @pytest.fixture
 async def fs_provider(session: ACPSession):
     """Create filesystem capability provider for testing."""
+    # Mock the ACP filesystem operations
+    session.fs._cat_file = AsyncMock()
+    session.fs._put_file = AsyncMock()
+    session.fs._info = AsyncMock()
     return FSSpecTools(filesystem=session.fs)
 
 
@@ -99,26 +115,26 @@ async def test_read_text_file_success(
     fs_provider: FSSpecTools,
 ):
     """Test successful file reading."""
-    # Mock read file response
-    response = ReadTextFileResponse(content="Hello, World!\nThis is a test file.\n")
-    acp_agent.connection.read_text_file = AsyncMock(  # type: ignore[method-assign]
-        return_value=response
+    # Mock filesystem read operation
+    fs_provider.fs._cat_file = AsyncMock(
+        return_value=b"Hello, World!\nThis is a test file.\n"
     )
 
     # Get read_text_file tool from provider
     tools = await fs_provider.get_tools()
     read_tool = next(tool for tool in tools if tool.name == "read_text_file")
-    result = await read_tool.execute(ctx=CTX, path="/home/user/test.txt")
+    result = await read_tool.execute(agent_ctx=CTX, path="/home/user/test.txt")
 
-    # Verify result
-    assert "Hello, World!" in result
-    assert "This is a test file." in result
+    # Verify result format (FSSpec tools return dictionaries)
+    assert isinstance(result, dict)
+    assert "content" in result
+    assert "Hello, World!" in result["content"]
+    assert "This is a test file." in result["content"]
+    assert result["path"] == "/home/user/test.txt"
+    assert "size" in result
 
-    # Verify ACP call was made
-    acp_agent.connection.read_text_file.assert_called_once()
-    call_args = acp_agent.connection.read_text_file.call_args[0][0]
-    assert call_args.path == "/home/user/test.txt"
-    assert call_args.session_id == "test_session"
+    # Verify filesystem call was made
+    fs_provider.fs._cat_file.assert_called_once_with("/home/user/test.txt")
 
 
 async def test_read_text_file_with_line_and_limit(
@@ -126,32 +142,31 @@ async def test_read_text_file_with_line_and_limit(
     fs_provider: FSSpecTools,
 ):
     """Test file reading with line and limit parameters."""
-    # Mock read file response
-    response = ReadTextFileResponse(content="Line 10\nLine 11\nLine 12\n")
-    acp_agent.connection.read_text_file = AsyncMock(  # type: ignore[method-assign]
-        return_value=response
+    # Mock filesystem read operation
+    fs_provider.fs._cat_file = AsyncMock(
+        return_value=b"Line 1\nLine 2\nLine 3\nLine 4\nLine 5"
     )
 
     # Get read_text_file tool from provider
     tools = await fs_provider.get_tools()
     read_tool = next(tool for tool in tools if tool.name == "read_text_file")
     result = await read_tool.execute(
-        ctx=CTX,
+        agent_ctx=CTX,
         path="/home/user/large_file.txt",
-        line=10,
-        limit=3,
+        line=2,
+        limit=2,
     )
 
-    # Verify result
-    assert "Line 10" in result
-    assert "Line 11" in result
-    assert "Line 12" in result
+    # Verify result - should contain lines 2 and 3 (line parameter is 1-based)
+    assert isinstance(result, dict)
+    assert "content" in result
+    content_lines = result["content"].split("\n")
+    assert "Line 2" in content_lines
+    assert "Line 3" in content_lines
+    assert len(content_lines) == 2  # noqa: PLR2004
 
-    # Verify ACP call parameters
-    call_args = acp_agent.connection.read_text_file.call_args[0][0]
-    assert call_args.path == "/home/user/large_file.txt"
-    assert call_args.line == 10  # noqa: PLR2004
-    assert call_args.limit == 3  # noqa: PLR2004
+    # Verify filesystem call was made
+    fs_provider.fs._cat_file.assert_called_once_with("/home/user/large_file.txt")
 
 
 async def test_read_text_file_error(
@@ -159,19 +174,19 @@ async def test_read_text_file_error(
     fs_provider: FSSpecTools,
 ):
     """Test file reading error handling."""
-    # Mock read file error
-    acp_agent.connection.read_text_file = AsyncMock(  # type: ignore[method-assign]
-        side_effect=FileNotFoundError("File not found")
-    )
+    # Mock filesystem read error
+    fs_provider.fs._cat_file = AsyncMock(side_effect=FileNotFoundError("File not found"))
 
     # Get read_text_file tool from provider
     tools = await fs_provider.get_tools()
     read_tool = next(tool for tool in tools if tool.name == "read_text_file")
 
-    result = await read_tool.execute(ctx=CTX, path="/home/user/nonexistent.txt")
-    # Verify error handling
-    assert result.startswith("Error reading file:")
-    assert "File not found" in result
+    result = await read_tool.execute(agent_ctx=CTX, path="/home/user/nonexistent.txt")
+
+    # Verify error handling - FSSpec tools return error dict
+    assert isinstance(result, dict)
+    assert "error" in result
+    assert "File not found" in result["error"]
 
 
 async def test_write_text_file_success(
@@ -179,30 +194,30 @@ async def test_write_text_file_success(
     fs_provider: FSSpecTools,
 ):
     """Test successful file writing."""
-    # Mock write file response
-    acp_agent.connection.write_text_file = AsyncMock(  # type: ignore[method-assign]
-        return_value=WriteTextFileResponse()
-    )
+    # Mock filesystem write operations
+    mock_file = AsyncMock()
+    mock_file.write = AsyncMock()
+    fs_provider.fs.open_async = AsyncMock(return_value=mock_file)
+    fs_provider.fs._info = AsyncMock(return_value={"size": 42})
 
     # Get write_text_file tool from provider
     tools = await fs_provider.get_tools()
     write_tool = next(tool for tool in tools if tool.name == "write_text_file")
     result = await write_tool.execute(
-        ctx=CTX,
+        agent_ctx=CTX,
         path="/home/user/output.txt",
         content="Hello, World!\nThis is written content.\n",
     )
 
-    # Verify result
-    assert "Successfully wrote file" in result
-    assert "/home/user/output.txt" in result
+    # Verify result format
+    assert isinstance(result, dict)
+    assert result["path"] == "/home/user/output.txt"
+    assert "bytes_written" in result
+    assert "size" in result
 
-    # Verify ACP call was made
-    acp_agent.connection.write_text_file.assert_called_once()
-    call_args = acp_agent.connection.write_text_file.call_args[0][0]
-    assert call_args.path == "/home/user/output.txt"
-    assert call_args.content == "Hello, World!\nThis is written content.\n"
-    assert call_args.session_id == "test_session"
+    # Verify filesystem calls were made
+    fs_provider.fs.open_async.assert_called_once_with("/home/user/output.txt", "wt")
+    mock_file.write.assert_called_once_with("Hello, World!\nThis is written content.\n")
 
 
 async def test_write_text_file_json(
@@ -210,10 +225,11 @@ async def test_write_text_file_json(
     fs_provider: FSSpecTools,
 ):
     """Test writing JSON content."""
-    # Mock write file response
-    acp_agent.connection.write_text_file = AsyncMock(  # type: ignore[method-assign]
-        return_value=WriteTextFileResponse()
-    )
+    # Mock filesystem write operations
+    mock_file = AsyncMock()
+    mock_file.write = AsyncMock()
+    fs_provider.fs.open_async = AsyncMock(return_value=mock_file)
+    fs_provider.fs._info = AsyncMock(return_value={"size": 42})
 
     json_str = '{\n  "debug": true,\n  "version": "1.0.0"\n}'
 
@@ -221,26 +237,26 @@ async def test_write_text_file_json(
     tools = await fs_provider.get_tools()
     write_tool = next(tool for tool in tools if tool.name == "write_text_file")
     result = await write_tool.execute(
-        ctx=CTX,
+        agent_ctx=CTX,
         path="/home/user/config.json",
         content=json_str,
     )
 
-    # Verify result
-    assert "Successfully wrote file" in result
-    assert "/home/user/config.json" in result
+    # Verify result format
+    assert isinstance(result, dict)
+    assert result["path"] == "/home/user/config.json"
 
     # Verify content was written correctly
-    call_args = acp_agent.connection.write_text_file.call_args[0][0]
-    assert call_args.content == json_str
+    fs_provider.fs.open_async.assert_called_once_with("/home/user/config.json", "wt")
+    mock_file.write.assert_called_once_with(json_str)
 
 
 async def test_write_text_file_error(
     acp_agent: LLMlingACPAgent, fs_provider: FSSpecTools
 ):
     """Test file writing error handling."""
-    # Mock write file error
-    acp_agent.connection.write_text_file = AsyncMock(  # type: ignore[method-assign]
+    # Mock filesystem write error
+    fs_provider.fs.open_async = AsyncMock(
         side_effect=PermissionError("Permission denied")
     )
 
@@ -248,57 +264,61 @@ async def test_write_text_file_error(
     tools = await fs_provider.get_tools()
     write_tool = next(tool for tool in tools if tool.name == "write_text_file")
     result = await write_tool.execute(
-        ctx=CTX,
+        agent_ctx=CTX,
         path="/root/protected.txt",
         content="This should fail",
     )
 
     # Verify error handling
-    assert result.startswith("Error writing file:")
-    assert "Permission denied" in result
+    assert isinstance(result, dict)
+    assert "error" in result
+    assert "Permission denied" in result["error"]
 
 
 async def test_read_empty_file(acp_agent: LLMlingACPAgent, fs_provider: FSSpecTools):
     """Test reading an empty file."""
-    # Mock empty file response
-    acp_agent.connection.read_text_file = AsyncMock(  # type: ignore[method-assign]
-        return_value=ReadTextFileResponse(content="")
-    )
+    # Mock empty filesystem read
+    fs_provider.fs._cat_file = AsyncMock(return_value=b"")
 
     # Get read_text_file tool from provider
     tools = await fs_provider.get_tools()
     read_tool = next(tool for tool in tools if tool.name == "read_text_file")
     result = await read_tool.execute(
-        ctx=CTX,
+        agent_ctx=CTX,
         path="/home/user/empty.txt",
     )
 
     # Verify empty content is handled correctly
-    assert result == ""
+    assert isinstance(result, dict)
+    assert result["content"] == ""
+    assert result["size"] == 0
 
 
 async def test_write_empty_file(acp_agent: LLMlingACPAgent, fs_provider: FSSpecTools):
     """Test writing empty content to a file."""
-    # Mock write file response
-    acp_agent.connection.write_text_file = AsyncMock(  # type: ignore[method-assign]
-        return_value=WriteTextFileResponse()
-    )
+    # Mock filesystem write operations
+    mock_file = AsyncMock()
+    mock_file.write = AsyncMock()
+    fs_provider.fs.open_async = AsyncMock(return_value=mock_file)
+    fs_provider.fs._info = AsyncMock(return_value={"size": 0})
 
     # Get write_text_file tool from provider
     tools = await fs_provider.get_tools()
     write_tool = next(tool for tool in tools if tool.name == "write_text_file")
     result = await write_tool.execute(
-        ctx=CTX,
+        agent_ctx=CTX,
         path="/home/user/empty_output.txt",
         content="",
     )
 
     # Verify result
-    assert "Successfully wrote file" in result
+    assert isinstance(result, dict)
+    assert result["path"] == "/home/user/empty_output.txt"
+    assert result["bytes_written"] == 0
 
     # Verify empty content was written
-    call_args = acp_agent.connection.write_text_file.call_args[0][0]
-    assert call_args.content == ""
+    fs_provider.fs.open_async.assert_called_once_with("/home/user/empty_output.txt", "wt")
+    mock_file.write.assert_called_once_with("")
 
 
 async def test_read_file_with_unicode(
@@ -307,21 +327,21 @@ async def test_read_file_with_unicode(
     """Test reading file with unicode content."""
     unicode_content = "Hello 世界! 🌍\nThis has émojis and spëcial chars: café"
 
-    # Mock read file response with unicode
-    acp_agent.connection.read_text_file = AsyncMock(  # type: ignore[method-assign]
-        return_value=ReadTextFileResponse(content=unicode_content)
-    )
+    # Mock filesystem read with unicode
+    fs_provider.fs._cat_file = AsyncMock(return_value=unicode_content.encode("utf-8"))
 
     # Get read_text_file tool from provider
     tools = await fs_provider.get_tools()
     read_tool = next(tool for tool in tools if tool.name == "read_text_file")
-    result = await read_tool.execute(ctx=CTX, path="/home/user/unicode.txt")
+    result = await read_tool.execute(agent_ctx=CTX, path="/home/user/unicode.txt")
 
     # Verify unicode content is preserved
-    assert "世界" in result
-    assert "🌍" in result
-    assert "émojis" in result
-    assert "café" in result
+    assert isinstance(result, dict)
+    content = result["content"]
+    assert "世界" in content
+    assert "🌍" in content
+    assert "émojis" in content
+    assert "café" in content
 
 
 async def test_write_file_with_unicode(
@@ -330,56 +350,59 @@ async def test_write_file_with_unicode(
     """Test writing file with unicode content."""
     unicode_content = "Testing unicode: 日本語, русский, العربية 🎉"
 
-    # Mock write file response
-    acp_agent.connection.write_text_file = AsyncMock(  # type: ignore[method-assign]
-        return_value=WriteTextFileResponse()
-    )
+    # Mock filesystem write operations
+    mock_file = AsyncMock()
+    mock_file.write = AsyncMock()
+    fs_provider.fs.open_async = AsyncMock(return_value=mock_file)
+    fs_provider.fs._info = AsyncMock(return_value={"size": len(unicode_content)})
 
     # Get write_text_file tool from provider
     tools = await fs_provider.get_tools()
     write_tool = next(tool for tool in tools if tool.name == "write_text_file")
     result = await write_tool.execute(
-        ctx=CTX,
+        agent_ctx=CTX,
         path="/home/user/unicode_output.txt",
         content=unicode_content,
     )
 
     # Verify result
-    assert "Successfully wrote file" in result
+    assert isinstance(result, dict)
+    assert result["path"] == "/home/user/unicode_output.txt"
 
     # Verify unicode content was written correctly
-    call_args = acp_agent.connection.write_text_file.call_args[0][0]
-    assert call_args.content == unicode_content
+    fs_provider.fs.open_async.assert_called_once_with(
+        "/home/user/unicode_output.txt", "wt"
+    )
+    mock_file.write.assert_called_once_with(unicode_content)
 
 
 async def test_file_operations_with_provider_session(
     acp_agent: LLMlingACPAgent, fs_provider
 ):
-    """Test that file operations use the provider's session ID."""
-    # Mock responses
-    acp_agent.connection.read_text_file = AsyncMock(  # type: ignore[method-assign]
-        return_value=ReadTextFileResponse(content="session content")
-    )
-    acp_agent.connection.write_text_file = AsyncMock(  # type: ignore[method-assign]
-        return_value=WriteTextFileResponse()
-    )
+    """Test that file operations work with the filesystem provider."""
+    # Mock filesystem operations
+    fs_provider.fs._cat_file = AsyncMock(return_value=b"session content")
+    mock_file = AsyncMock()
+    mock_file.write = AsyncMock()
+    fs_provider.fs.open_async = AsyncMock(return_value=mock_file)
+    fs_provider.fs._info = AsyncMock(return_value={"size": 12})
 
     # Get tools from provider
     tools = await fs_provider.get_tools()
     read_tool = next(tool for tool in tools if tool.name == "read_text_file")
-    await read_tool.execute(ctx=CTX, path="/home/user/test.txt")
+    await read_tool.execute(agent_ctx=CTX, path="/home/user/test.txt")
 
     write_tool = next(tool for tool in tools if tool.name == "write_text_file")
     await write_tool.execute(
-        ctx=CTX,
+        agent_ctx=CTX,
         path="/home/user/test.txt",
         content="test content",
     )
 
-    read_call_args = acp_agent.connection.read_text_file.call_args[0][0]
-    assert read_call_args.session_id == "test_session"
-    write_call_args = acp_agent.connection.write_text_file.call_args[0][0]
-    assert write_call_args.session_id == "test_session"
+    # Verify filesystem calls were made
+    fs_provider.fs._cat_file.assert_called_with("/home/user/test.txt")
+    fs_provider.fs.open_async.assert_called_with("/home/user/test.txt", "wt")
+    mock_file.write.assert_called_with("test content")
 
 
 if __name__ == "__main__":

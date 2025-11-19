@@ -56,34 +56,34 @@ class FSSpecTools(ResourceProvider):
         self._tools = [
             Tool.from_callable(
                 self._list_directory,
-                name_override="fs_list",
+                name_override="list_directory",
                 description_override="List contents of a directory",
             ),
             Tool.from_callable(
                 self._read_file,
-                name_override="fs_read",
+                name_override="read_text_file",
                 description_override="Read contents of a file",
             ),
             Tool.from_callable(
                 self._write_file,
-                name_override="fs_write",
+                name_override="write_text_file",
                 description_override="Write content to a file",
             ),
             Tool.from_callable(
                 self._delete_path,
-                name_override="fs_delete",
+                name_override="delete_path",
                 description_override="Delete a file or directory",
             ),
             Tool.from_callable(
                 self.edit_file,
-                name_override="fs_edit",
+                name_override="edit_file",
                 description_override="Edit a file by replacing specific content",
                 source="filesystem",
                 category="edit",
             ),
             Tool.from_callable(
                 self.agentic_edit,
-                name_override="fs_agentic_edit",
+                name_override="agentic_edit",
                 description_override="Edit a file using AI agent with natural language instructions",  # noqa: E501
                 source="filesystem",
                 category="edit",

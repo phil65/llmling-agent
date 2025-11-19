@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock
 
@@ -15,6 +14,8 @@ from llmling_agent_server.acp_server.session import ACPSession
 
 
 if TYPE_CHECKING:
+    from datetime import datetime
+
     from acp.schema import Audience
 
 
