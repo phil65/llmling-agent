@@ -152,7 +152,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         parallel_init: bool = True,
         debug: bool = False,
         event_handlers: Sequence[IndividualEventHandler] | None = None,
-        agent_pool: AgentPool | None = None,
+        agent_pool: AgentPool[Any] | None = None,
     ) -> None:
         """Initialize agent.
 
