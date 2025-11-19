@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Self, TypeVar
 import uuid
 
-from fasta2a.schema import (
+from fasta2a.schema import (  # type: ignore[import-untyped]
     AgentCapabilities,
     AgentCard,
     a2a_request_ta,
@@ -348,7 +348,7 @@ class AgentWorker:
         """Cancel a task."""
         await self.storage.update_task_status(task_id, "cancelled")
 
-    def _a2a_to_chat_message(self, task_data: A2ARequest) -> ChatMessage:
+    def _a2a_to_chat_message(self, task_data: A2ARequest) -> ChatMessage[Any]:
         """Convert A2A task data to ChatMessage."""
         # Extract message content from A2A request
         messages = task_data.get("params", {}).get("messages", [])
@@ -365,7 +365,7 @@ class AgentWorker:
             conversation_id=task_data.get("params", {}).get("context_id"),
         )
 
-    def _chat_message_to_a2a(self, message: ChatMessage) -> dict[str, Any]:
+    def _chat_message_to_a2a(self, message: ChatMessage[Any]) -> dict[str, Any]:
         """Convert ChatMessage to A2A format."""
         return {
             "messages": [

@@ -191,7 +191,7 @@ for i in range(3):
     print(f"Loop: {i}")
 """
 
-    async def run_me(run_context: RunContext, ctx: AgentContext):
+    async def run_me(run_context: RunContext, ctx: AgentContext) -> str:
         """Test function using the unified progress system."""
         executor = ProgressTrackingExecutor(step_delay=0.5)
         results = []

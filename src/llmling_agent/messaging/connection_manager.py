@@ -36,7 +36,7 @@ class ConnectionManager:
     node_connected = Signal(object)  # Node
     connection_added = Signal(Talk)  # Agent
 
-    def __init__(self, owner: MessageNode) -> None:
+    def __init__(self, owner: MessageNode[Any, Any]) -> None:
         self.owner = owner
         # helper class for the user
         self._connections = EventedList[Talk]()
@@ -62,14 +62,18 @@ class ConnectionManager:
         """Forward message flow to our aggregated signal."""
         self.connection_processed.emit(event)
 
-    def set_wait_state(self, target: MessageNode | AgentName, wait: bool = True) -> None:
+    def set_wait_state(
+        self,
+        target: MessageNode[Any, Any] | AgentName,
+        wait: bool = True,
+    ) -> None:
         """Set waiting behavior for target."""
         target_name = target if isinstance(target, str) else target.name
         self._wait_states[target_name] = wait
 
     async def wait_for_connections(self, _seen: set[AgentName] | None = None) -> None:
         """Wait for this agent and all connected agents to complete their tasks."""
-        seen: set[AgentName] = _seen or {self.owner.name}  # type: ignore
+        seen: set[AgentName] = _seen or {self.owner.name}
 
         # Wait for our own tasks
         await self.owner.task_manager.complete_tasks()
@@ -95,7 +99,7 @@ class ConnectionManager:
             return targets
 
         # Track seen agents to prevent cycles
-        seen = _seen or {self.owner.name}  # type: ignore
+        seen = _seen or {self.owner.name}
         all_targets = set()
 
         for target in targets:
@@ -107,14 +111,14 @@ class ConnectionManager:
 
         return all_targets
 
-    def has_connection_to(self, target: MessageNode) -> bool:
+    def has_connection_to(self, target: MessageNode[Any, Any]) -> bool:
         """Check if target is connected."""
         return any(target in conn.targets for conn in self._connections if conn.active)
 
     def create_connection(
         self,
-        source: MessageNode,
-        target: MessageNode | Sequence[MessageNode],
+        source: MessageNode[Any, Any],
+        target: MessageNode[Any, Any] | Sequence[MessageNode[Any, Any]],
         *,
         connection_type: ConnectionType = "run",
         priority: int = 0,
@@ -221,7 +225,7 @@ class ConnectionManager:
             conn.disconnect()
         self._connections.clear()
 
-    def disconnect(self, node: MessageNode) -> None:
+    def disconnect(self, node: MessageNode[Any, Any]) -> None:
         """Disconnect a specific node."""
         for talk in self._connections:
             if node in talk.targets or node == talk.source:

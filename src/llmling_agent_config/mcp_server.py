@@ -10,7 +10,7 @@ from schemez import Schema
 
 
 if TYPE_CHECKING:
-    from mcp_interviewer import ServerScoreCard
+    from mcp_interviewer import ServerScoreCard  # type: ignore[import-untyped]
     from pydantic_ai.mcp import (
         MCPServer,
         MCPServerSSE,
@@ -132,8 +132,10 @@ class StdioMCPServerConfig(BaseMCPServerConfig):
         )
 
     async def check(self) -> ServerScoreCard:
-        from mcp_interviewer import MCPInterviewer
-        from mcp_interviewer.models import StdioServerParameters
+        from mcp_interviewer import MCPInterviewer  # type: ignore[import-untyped]
+        from mcp_interviewer.models import (  # type: ignore[import-untyped]
+            StdioServerParameters,
+        )
 
         params = StdioServerParameters(command=self.command, args=self.args)
         interviewer = MCPInterviewer(None, None)

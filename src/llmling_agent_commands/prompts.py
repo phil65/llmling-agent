@@ -38,7 +38,7 @@ class ShowPromptCommand(SlashedCommand):
             msg = f"Error getting prompt: {e}"
             raise CommandError(msg) from e
 
-    def get_completer(self):
+    def get_completer(self) -> PromptCompleter:
         """Get completer for prompt names."""
         return PromptCompleter()
 

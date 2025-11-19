@@ -46,7 +46,7 @@ class ConnectCommand(SlashedCommand):
         node_name: str,
         *,
         wait: bool = True,
-    ):
+    ) -> None:
         """Connect to another node.
 
         Args:
@@ -67,7 +67,7 @@ class ConnectCommand(SlashedCommand):
             msg = f"Failed to connect {ctx.context.node_name!r} to {node_name!r}: {e}"
             raise CommandError(msg) from e
 
-    def get_completer(self):
+    def get_completer(self) -> CallbackCompleter:
         """Get completer for node names."""
         return CallbackCompleter(get_available_nodes)
 
@@ -87,7 +87,7 @@ class DisconnectCommand(SlashedCommand):
         self,
         ctx: CommandContext[NodeContext],
         node_name: str,
-    ):
+    ) -> None:
         """Disconnect from another node.
 
         Args:
@@ -105,7 +105,7 @@ class DisconnectCommand(SlashedCommand):
             msg = f"{source!r} failed to disconnect from {node_name!r}: {e}"
             raise CommandError(msg) from e
 
-    def get_completer(self):
+    def get_completer(self) -> CallbackCompleter:
         """Get completer for node names."""
         return CallbackCompleter(get_available_nodes)
 

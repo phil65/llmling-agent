@@ -32,7 +32,7 @@ class GoogleSpeechConverter(DocumentConverter):
         if self._client is not None:
             return
 
-        from google.cloud import speech  # pyright: ignore
+        from google.cloud import speech  # type: ignore[import-untyped]
 
         self._client = speech.SpeechClient()
 

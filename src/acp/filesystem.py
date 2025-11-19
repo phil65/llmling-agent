@@ -9,8 +9,8 @@ import shlex
 from typing import TYPE_CHECKING, Any, Literal, overload
 
 from anyenv import get_os_command_provider
-from fsspec.asyn import sync_wrapper
-from fsspec.spec import AbstractBufferedFile
+from fsspec.asyn import sync_wrapper  # type: ignore[import-untyped]
+from fsspec.spec import AbstractBufferedFile  # type: ignore[import-untyped]
 from upathtools.filesystems.base import BaseAsyncFileSystem, BaseUPath
 
 from acp.acp_requests import ACPRequests

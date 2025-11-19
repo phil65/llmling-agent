@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Self
 
 from llmling_agent.log import get_logger
 
@@ -86,7 +86,7 @@ class RemoteCodeExecutor:
         """
         return await self.execution_env.execute(code)
 
-    async def __aenter__(self):
+    async def __aenter__(self) -> Self:
         """Async context manager entry."""
         await self.execution_env.__aenter__()
         return self

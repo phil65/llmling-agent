@@ -33,7 +33,7 @@ class EventContext[TMessageContent]:
     message: ChatMessage[TMessageContent]
     """The message being processed."""
 
-    target: MessageNode
+    target: MessageNode[Any, Any]
     """The target node this message is being sent to."""
 
     stats: TalkStats

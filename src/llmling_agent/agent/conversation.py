@@ -70,7 +70,7 @@ class MessageHistory:
         self._converter = converter
         self.chat_messages = ChatMessageContainer()
         self._last_messages: list[ChatMessage[Any]] = []
-        self._pending_messages: deque[ChatMessage] = deque()
+        self._pending_messages: deque[ChatMessage[Any]] = deque()
         self._config = session_config
         self._resources = list(resources)  # Store for async loading
         # Generate new ID if none provided
@@ -133,7 +133,7 @@ class MessageHistory:
         """Get length of history."""
         return len(self.chat_messages)
 
-    def get_message_tokens(self, message: ChatMessage) -> int:
+    def get_message_tokens(self, message: ChatMessage[Any]) -> int:
         """Get token count for a single message."""
         content = "\n".join(message.format())
         return count_tokens(content, message.model_name)

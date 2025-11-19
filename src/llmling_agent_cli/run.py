@@ -31,7 +31,7 @@ def run_command(
     show_metadata: bool = t.Option(False, "--metadata", help="Show message metadata"),
     show_costs: bool = t.Option(False, "--costs", help="Show token usage and costs"),
     verbose: bool = verbose_opt,
-):
+) -> None:
     """Run a node (agent/team) with prompts.
 
     Examples:
@@ -58,7 +58,7 @@ def run_command(
                 def on_message(chat_message: ChatMessage[Any]) -> None:
                     print(
                         chat_message.format(
-                            style=detail_level,  # type: ignore
+                            style=detail_level,
                             show_metadata=show_metadata,
                             show_costs=show_costs,
                         )
@@ -74,7 +74,7 @@ def run_command(
                     if not show_messages:
                         print(
                             response.format(
-                                style=detail_level,  # type: ignore
+                                style=detail_level,
                                 show_metadata=show_metadata,
                                 show_costs=show_costs,
                             )

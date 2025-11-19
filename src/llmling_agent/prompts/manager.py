@@ -103,7 +103,9 @@ class PromptManager:
                     self.providers["braintrust"] = BraintrustPromptHub(provider_config)
 
                 case PromptLayerConfig():
-                    from llmling_agent_prompts.promptlayer import PromptLayerProvider
+                    from llmling_agent_prompts.promptlayer_provider import (
+                        PromptLayerProvider,
+                    )
 
                     self.providers["promptlayer"] = PromptLayerProvider(provider_config)
 

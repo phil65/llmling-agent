@@ -22,11 +22,9 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Sequence
     from datetime import datetime
 
-    from pydantic_ai import AgentStreamEvent
-
     from llmling_agent import MessageNode
     from llmling_agent.agent import Agent
-    from llmling_agent.agent.events import StreamCompleteEvent
+    from llmling_agent.agent.events import RichAgentStreamEvent
     from llmling_agent.common_types import PromptCompatible
 
 
@@ -277,9 +275,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
         *prompts: PromptCompatible,
         require_all: bool = True,
         **kwargs: Any,
-    ) -> AsyncIterator[
-        tuple[MessageNode[Any, Any], AgentStreamEvent | StreamCompleteEvent]
-    ]:
+    ) -> AsyncIterator[tuple[MessageNode[Any, Any], RichAgentStreamEvent[Any]]]:
         """Stream responses through the chain of team members.
 
         Args:
@@ -304,7 +300,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
                 agent_content = []
 
                 # Use wrapper to normalize all streaming nodes to (agent, event) tuples
-                def _raise_streaming_error(agent=agent):
+                def _raise_streaming_error(agent: MessageNode[Any, Any] = agent) -> None:
                     msg = f"Agent {agent.name} does not support streaming"
                     raise ValueError(msg)  # noqa: TRY301
 

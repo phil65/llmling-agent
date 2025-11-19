@@ -129,7 +129,7 @@ class LangChainToolConfig(BaseToolConfig):
     def get_tool(self) -> Tool:
         """Import and create LangChain tool."""
         try:
-            from langchain.tools import load_tool  # pyright: ignore
+            from langchain.tools import load_tool  # type: ignore[import-not-found]
 
             from llmling_agent.tools.base import Tool
 

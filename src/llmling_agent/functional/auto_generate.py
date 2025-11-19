@@ -12,7 +12,7 @@ from llmling_agent.functional.structure import get_structured
 if TYPE_CHECKING:
     from collections.abc import Callable, Coroutine
 
-    from pydantic_ai.agent import models
+    from pydantic_ai import models
 
 
 def auto_callable[R, **P](
@@ -68,7 +68,7 @@ def auto_callable[R, **P](
             # Use get_structured to get typed response
             return_type = sig.return_annotation
             if return_type is inspect.Parameter.empty:
-                return_type = str  # type: ignore[assignment]
+                return_type = str
 
             return await get_structured(
                 prompt=prompt,

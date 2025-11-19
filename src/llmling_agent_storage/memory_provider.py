@@ -33,9 +33,9 @@ class MemoryStorageProvider(StorageProvider):
 
     def __init__(self, config: MemoryStorageConfig) -> None:
         super().__init__(config)
-        self.messages: list[dict] = []
-        self.conversations: list[dict] = []
-        self.commands: list[dict] = []
+        self.messages: list[dict[str, Any]] = []
+        self.conversations: list[dict[str, Any]] = []
+        self.commands: list[dict[str, Any]] = []
 
     def cleanup(self) -> None:
         """Clear all stored data."""

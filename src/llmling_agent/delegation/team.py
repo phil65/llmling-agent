@@ -26,7 +26,7 @@ if TYPE_CHECKING:
     from toprompt import AnyPromptType
 
     from llmling_agent import MessageNode
-    from llmling_agent.agent.events import StreamCompleteEvent
+    from llmling_agent.agent.events import RichAgentStreamEvent, StreamCompleteEvent
     from llmling_agent.common_types import PromptCompatible
     from llmling_agent.talk import Talk
     from llmling_agent_config.task import Job
@@ -52,7 +52,7 @@ async def normalize_stream_for_teams(
         msg = f"Node {node.name} does not support streaming"
         raise ValueError(msg)
 
-    stream = node.run_stream(*args, **kwargs)  # type: ignore[attr-defined]
+    stream = node.run_stream(*args, **kwargs)
     async for item in stream:
         if isinstance(item, tuple):
             # Already normalized (from Team or other composite node)
@@ -216,9 +216,7 @@ class Team[TDeps = None](BaseTeam[TDeps, Any]):
         self,
         *prompts: PromptCompatible,
         **kwargs: Any,
-    ) -> AsyncIterator[
-        tuple[MessageNode[Any, Any], AgentStreamEvent | StreamCompleteEvent]
-    ]:
+    ) -> AsyncIterator[tuple[MessageNode[Any, Any], RichAgentStreamEvent[Any]]]:
         """Stream responses from all team members in parallel.
 
         Args:

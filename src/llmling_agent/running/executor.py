@@ -89,7 +89,7 @@ def _sort_functions(functions: list[NodeFunction]) -> list[NodeFunction]:
     seen = set()
     in_progress = set()
 
-    def add_function(func: NodeFunction):
+    def add_function(func: NodeFunction) -> None:
         if func.name in seen:
             return
         if func.name in in_progress:

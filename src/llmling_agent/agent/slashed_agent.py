@@ -18,7 +18,7 @@ from llmling_agent.log import get_logger
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator, Callable
 
-    from slashed import CommandStore
+    from slashed import CommandContext, CommandStore
     from slashed.events import CommandStoreEvent
 
     from llmling_agent.agent import Agent
@@ -251,7 +251,11 @@ if __name__ == "__main__":
 
         # Add a simple test command that outputs multiple lines
         @slashed.command_store.command(name="test-streaming", category="test")
-        async def test_streaming(ctx, *args, **kwargs) -> None:
+        async def test_streaming(
+            ctx: CommandContext[Any],
+            *args: Any,
+            **kwargs: Any,
+        ) -> None:
             """Test command that outputs multiple lines."""
             await ctx.print("Starting streaming test...")
             for i in range(3):

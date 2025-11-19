@@ -5,9 +5,11 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING, Any, ClassVar
 
-from fsspec import AbstractFileSystem
-from fsspec.asyn import AsyncFileSystem
-from fsspec.implementations.asyn_wrapper import AsyncFileSystemWrapper
+from fsspec import AbstractFileSystem  # type: ignore[import-untyped]
+from fsspec.asyn import AsyncFileSystem  # type: ignore[import-untyped]
+from fsspec.implementations.asyn_wrapper import (  # type: ignore[import-untyped]
+    AsyncFileSystemWrapper,
+)
 from upath import UPath
 from upathtools.helpers import upath_to_fs
 

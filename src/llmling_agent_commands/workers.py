@@ -40,7 +40,7 @@ class AddWorkerCommand(SlashedCommand):
         *,
         reset_history: str = "true",
         share_history: str = "false",
-    ):
+    ) -> None:
         """Add another agent as a worker tool.
 
         Args:
@@ -81,7 +81,7 @@ class AddWorkerCommand(SlashedCommand):
             msg = f"Failed to add worker: {e}"
             raise CommandError(msg) from e
 
-    def get_completer(self):
+    def get_completer(self) -> CallbackCompleter:
         """Get completer for agent names."""
         return CallbackCompleter(get_available_agents)
 
@@ -100,7 +100,7 @@ class RemoveWorkerCommand(SlashedCommand):
         self,
         ctx: CommandContext[AgentContext],
         worker_name: str,
-    ):
+    ) -> None:
         """Remove a worker tool.
 
         Args:
@@ -116,7 +116,7 @@ class RemoveWorkerCommand(SlashedCommand):
             msg = f"Failed to remove worker: {e}"
             raise CommandError(msg) from e
 
-    def get_completer(self):
+    def get_completer(self) -> CallbackCompleter:
         """Get completer for agent names."""
         return CallbackCompleter(get_available_agents)
 

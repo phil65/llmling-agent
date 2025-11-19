@@ -48,7 +48,7 @@ class CreateAgentCommand(SlashedCommand):
         role: str | None = None,
         description: str | None = None,
         tools: str | None = None,
-    ):
+    ) -> None:
         """Create a new agent in the current session.
 
         Args:
@@ -160,7 +160,7 @@ class ListAgentsCommand(SlashedCommand):
     name = "list-agents"
     category = "agents"
 
-    async def execute_command(self, ctx: CommandContext[AgentContext]):
+    async def execute_command(self, ctx: CommandContext[AgentContext]) -> None:
         """List all available agents.
 
         Args:
@@ -200,7 +200,7 @@ class SwitchAgentCommand(SlashedCommand):
         self,
         ctx: CommandContext[AgentContext],
         agent_name: str,
-    ):
+    ) -> None:
         """Switch to a different agent.
 
         Args:

@@ -37,14 +37,14 @@ from llmling_agent_commands.workers import (
     ListWorkersCommand,
 )
 from llmling_agent_commands.utils import CopyClipboardCommand, EditAgentFileCommand
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
     from slashed import BaseCommand, SlashedCommand
 
 
-def get_agent_commands(**kwargs) -> Sequence[BaseCommand | type[SlashedCommand]]:
+def get_agent_commands(**kwargs: Any) -> Sequence[BaseCommand | type[SlashedCommand]]:
     """Get commands that operate primarily on a single agent."""
     command_map = {
         "enable_clear": ClearCommand,
@@ -79,7 +79,7 @@ def get_agent_commands(**kwargs) -> Sequence[BaseCommand | type[SlashedCommand]]
     return commands
 
 
-def get_pool_commands(**kwargs) -> Sequence[BaseCommand | type[SlashedCommand]]:
+def get_pool_commands(**kwargs: Any) -> Sequence[BaseCommand | type[SlashedCommand]]:
     """Get commands that operate on multiple agents or the pool itself."""
     command_map = {
         "enable_create_agent": CreateAgentCommand,

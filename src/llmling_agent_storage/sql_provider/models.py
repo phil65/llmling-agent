@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 from pydantic import ConfigDict
@@ -18,13 +18,21 @@ from llmling_agent.common_types import JsonValue
 from llmling_agent.utils.now import get_now
 
 
+if TYPE_CHECKING:
+    from sqlalchemy import Dialect
+
+
 class UTCDateTime(TypeDecorator):
     """Stores DateTime as UTC."""
 
     impl = DateTime
     cache_ok = True
 
-    def process_bind_param(self, value: datetime | None, dialect):
+    def process_bind_param(
+        self,
+        value: datetime | None,
+        dialect: Dialect,
+    ) -> datetime | None:
         if value is not None:
             if value.tzinfo is None:
                 value = value.replace(tzinfo=UTC)
@@ -32,13 +40,17 @@ class UTCDateTime(TypeDecorator):
                 value = value.astimezone(UTC)
         return value
 
-    def process_result_value(self, value: datetime | None, dialect):
+    def process_result_value(
+        self,
+        value: datetime | None,
+        dialect: Dialect,
+    ) -> datetime | None:
         if value is not None:
             value = value.replace(tzinfo=UTC)
         return value
 
 
-class CommandHistory(AsyncAttrs, SQLModel, table=True):  # type: ignore[call-arg]
+class CommandHistory(AsyncAttrs, SQLModel, table=True):
     """Database model for command history."""
 
     id: int = Field(default=None, primary_key=True)
@@ -111,7 +123,7 @@ class ConversationLog(Schema):
     model_config = ConfigDict(frozen=True)
 
 
-class Message(AsyncAttrs, SQLModel, table=True):  # type: ignore[call-arg]
+class Message(AsyncAttrs, SQLModel, table=True):
     """Database model for message logs."""
 
     id: str = Field(default_factory=lambda: str(uuid4()), primary_key=True)
@@ -179,7 +191,7 @@ class Message(AsyncAttrs, SQLModel, table=True):  # type: ignore[call-arg]
     model_config = SQLModelConfig(use_attribute_docstrings=True)  # pyright: ignore[reportCallIssue]
 
 
-class Conversation(AsyncAttrs, SQLModel, table=True):  # type: ignore[call-arg]
+class Conversation(AsyncAttrs, SQLModel, table=True):
     """Database model for conversations."""
 
     id: str = Field(primary_key=True)

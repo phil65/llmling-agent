@@ -44,6 +44,6 @@ class SetModelCommand(SlashedCommand):
         except Exception as e:  # noqa: BLE001
             await ctx.print(f"❌ **Failed to change model:** {e}")
 
-    def get_completer(self):
+    def get_completer(self) -> CallbackCompleter:
         """Get completer for model names."""
         return CallbackCompleter(get_model_names)

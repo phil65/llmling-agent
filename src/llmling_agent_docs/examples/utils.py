@@ -18,7 +18,7 @@ EXAMPLES_DIR = Path("src/llmling_agent_docs/examples")
 def is_pyodide() -> bool:
     """Check if code is running in a Pyodide environment."""
     try:
-        from js import Object  # noqa: F401  # pyright: ignore[reportMissingImports]
+        from js import Object  # type: ignore[import-not-found] # noqa: F401
 
         return True  # noqa: TRY300
     except ImportError:

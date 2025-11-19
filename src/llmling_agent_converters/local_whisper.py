@@ -35,8 +35,8 @@ class LocalWhisperConverter(DocumentConverter):
         if self._model is not None:
             return
 
-        import torch  # pyright: ignore
-        import whisper  # pyright: ignore
+        import torch  # type: ignore[import-not-found]
+        import whisper  # type: ignore[import-not-found]
 
         device = self.config.device
         if not device:

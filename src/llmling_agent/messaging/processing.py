@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 
 
 async def prepare_prompts(
-    *prompt: PromptCompatible | ChatMessage,
+    *prompt: PromptCompatible | ChatMessage[Any],
 ) -> tuple[ChatMessage[Any], list[BaseContent | str], ChatMessage[Any] | None]:
     """Prepare prompts for processing.
 
@@ -49,7 +49,7 @@ async def prepare_prompts(
 async def finalize_message(
     message: ChatMessage[Any],
     previous_message: ChatMessage[Any] | None,
-    node: MessageNode,
+    node: MessageNode[Any, Any],
     connections: ConnectionManager,
     original_message: ChatMessage[Any] | None,
     wait_for_connections: bool | None = None,

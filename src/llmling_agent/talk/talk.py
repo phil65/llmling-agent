@@ -45,9 +45,9 @@ class Talk[TTransmittedData]:
     class ConnectionProcessed:
         """Event emitted when a message flows through a connection."""
 
-        message: ChatMessage
-        source: MessageNode
-        targets: list[MessageNode]
+        message: ChatMessage[Any]
+        source: MessageNode[Any, Any]
+        targets: list[MessageNode[Any, Any]]
         queued: bool
         connection_type: ConnectionType
         timestamp: datetime = field(default_factory=get_now)
@@ -61,8 +61,8 @@ class Talk[TTransmittedData]:
 
     def __init__(
         self,
-        source: MessageNode,
-        targets: Sequence[MessageNode],
+        source: MessageNode[Any, Any],
+        targets: Sequence[MessageNode[Any, Any]],
         group: TeamTalk | None = None,
         *,
         name: str | None = None,
@@ -178,7 +178,7 @@ class Talk[TTransmittedData]:
         self,
         condition: Callable[..., bool | Awaitable[bool]] | None,
         message: ChatMessage[Any],
-        target: MessageNode,
+        target: MessageNode[Any, Any],
         *,
         default_return: bool = False,
     ) -> bool:
@@ -266,7 +266,7 @@ class Talk[TTransmittedData]:
         if self.transform_fn:
             processed_message = await execute(self.transform_fn, message)
         # 6. First pass: Determine target list
-        target_list: list[MessageNode] = [
+        target_list: list[MessageNode[Any, Any]] = [
             target
             for target in self.targets
             if await self._evaluate_condition(
@@ -308,7 +308,7 @@ class Talk[TTransmittedData]:
     async def _process_for_target(
         self,
         message: ChatMessage[Any],
-        target: MessageNode,
+        target: MessageNode[Any, Any],
         prompt: PromptCompatible | None = None,
     ) -> ChatMessage[Any] | None:
         """Process message for a single target."""
@@ -545,7 +545,7 @@ class TeamTalk[TTransmittedData](list["Talk | TeamTalk"]):
                 raise TypeError(msg)
 
     @property
-    def targets(self) -> list[MessageNode]:
+    def targets(self) -> list[MessageNode[Any, Any]]:
         """Get all targets from all connections."""
         return [t for talk in self for t in talk.targets]
 
@@ -575,8 +575,8 @@ class TeamTalk[TTransmittedData](list["Talk | TeamTalk"]):
     @classmethod
     def from_nodes(
         cls,
-        agents: Sequence[MessageNode],
-        targets: list[MessageNode] | None = None,
+        agents: Sequence[MessageNode[Any, Any]],
+        targets: list[MessageNode[Any, Any]] | None = None,
     ) -> Self:
         """Create TeamTalk from a collection of agents."""
         return cls([Talk(agent, targets or []) for agent in agents])

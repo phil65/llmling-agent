@@ -91,7 +91,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
         from llmling_agent.delegation.teamrun import ExtendedTeamTalk
 
         self._name = name or " & ".join([i.name for i in agents])
-        self.agents = EventedList[MessageNode]()
+        self.agents = EventedList[MessageNode[Any, Any]]()
         self.agents.events.inserted.connect(self._on_node_added)
         self.agents.events.removed.connect(self._on_node_removed)
         self.agents.events.changed.connect(self._on_node_changed)
@@ -152,7 +152,9 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
             return multi_result.selections
         return list(self.agents)
 
-    def _on_node_changed(self, index: int, old: MessageNode, new: MessageNode) -> None:
+    def _on_node_changed(
+        self, index: int, old: MessageNode[Any, Any], new: MessageNode[Any, Any]
+    ) -> None:
         """Handle node replacement in the agents list."""
         self._on_node_removed(index, old)
         self._on_node_added(index, new)
@@ -431,7 +433,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
         )
 
     @context.setter
-    def context(self, value: NodeContext):
+    def context(self, value: NodeContext) -> None:
         msg = "Cannot set context on BaseTeam"
         raise RuntimeError(msg)
 

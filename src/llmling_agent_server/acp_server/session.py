@@ -202,7 +202,9 @@ class ACPSession:
     async def init_client_skills(self) -> None:
         """Discover and load skills from client-side .claude/skills directory."""
         try:
-            from fsspec.implementations.dirfs import DirFileSystem
+            from fsspec.implementations.dirfs import (  # type: ignore[import-untyped]
+                DirFileSystem,
+            )
 
             from llmling_agent.resource_providers.skills import SkillsResourceProvider
             from llmling_agent.skills.registry import SkillsRegistry

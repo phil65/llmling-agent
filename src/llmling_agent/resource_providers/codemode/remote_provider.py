@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Self
 
 from anyenv.code_execution.configs import LocalExecutionEnvironmentConfig
 
@@ -118,7 +118,7 @@ class RemoteCodeModeResourceProvider(CodeModeResourceProvider):
 
             return self._code_executor
 
-    async def __aenter__(self):
+    async def __aenter__(self) -> Self:
         """Async context manager entry."""
         return self
 

@@ -44,7 +44,7 @@ class CopyClipboardCommand(SlashedCommand):
             format_template: Custom format template
         """
         try:
-            import clipman
+            import clipman  # type: ignore[import-untyped]
         except ImportError as e:
             msg = "clipman package required for clipboard operations"
             raise CommandError(msg) from e

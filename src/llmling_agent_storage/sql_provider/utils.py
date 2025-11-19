@@ -155,7 +155,7 @@ def build_message_query(query: SessionQuery) -> SelectOfScalar:
     if query.limit:
         stmt = stmt.limit(query.limit)
 
-    return stmt  # type: ignore
+    return stmt
 
 
 def format_conversation(

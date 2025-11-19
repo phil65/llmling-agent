@@ -43,14 +43,14 @@ class StepCondition(Schema):
 
         match self.operator:
             case "eq":
-                return field_value == self.value
+                return bool(field_value == self.value)
             case "gt":
-                return field_value > self.value
+                return bool(field_value > self.value)
             case "lt":
-                return field_value < self.value
+                return bool(field_value < self.value)
             case "contains":
                 try:
-                    return self.value in field_value  # type: ignore
+                    return self.value in field_value  # type: ignore[operator]
                 except TypeError:
                     return False
             case "exists":

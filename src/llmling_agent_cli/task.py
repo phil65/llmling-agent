@@ -30,7 +30,7 @@ async def execute_job(
     config: AgentsManifest,
     *,
     prompt: str | None = None,
-):
+) -> str:
     """Execute task with agent."""
     from llmling_agent import AgentPool
 
@@ -55,7 +55,7 @@ def task_command(
         None, "--config", "-c", help="Agent configuration file"
     ),
     prompt: str | None = t.Option(None, "--prompt", "-p", help="Additional prompt"),
-):
+) -> None:
     """Execute a task with the specified agent."""
     logger = log.get_logger(__name__)
     try:

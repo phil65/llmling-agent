@@ -66,7 +66,7 @@ def add_agent_file(
     name: str = t.Argument(help="Name for the agent configuration file"),
     path: str = t.Argument(help="Path to agent configuration file"),
     verbose: bool = verbose_opt,
-):
+) -> None:
     """Add a new agent configuration file."""
     try:
         agent_store.add_config(name, path)

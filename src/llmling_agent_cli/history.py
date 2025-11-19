@@ -63,7 +63,7 @@ def show_history(
     compact: bool = t.Option(False, "--compact", help=COMPACT_HELP),
     tokens: bool = t.Option(False, "--tokens", "-t", help=TOKEN_HELP),
     output_format: OutputFormat = output_format_opt,
-):
+) -> None:
     """Show conversation history with filtering options.
 
     Examples:
@@ -143,7 +143,7 @@ def show_stats(
 
         # Create filters
         cutoff = datetime.now(UTC) - parse_time_period(period)
-        filters = StatsFilters(cutoff=cutoff, group_by=group_by, agent_name=agent_name)  # type: ignore
+        filters = StatsFilters(cutoff=cutoff, group_by=group_by, agent_name=agent_name)
 
         async def main() -> None:
             async with provider:
@@ -168,7 +168,7 @@ def reset_history(
     hard: bool = t.Option(
         False, "--hard", help="Drop and recreate tables (for schema changes)"
     ),
-):
+) -> None:
     """Reset (clear) conversation history.
 
     Examples:

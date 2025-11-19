@@ -95,7 +95,7 @@ class StaticPromptConfig(BasePromptConfig):
 class DynamicPromptConfig(BasePromptConfig):
     """Dynamic prompt loaded from callable."""
 
-    import_path: str | Callable
+    import_path: str | Callable[..., Any]
     """Dotted import path to the callable that generates the prompt."""
 
     template: str | None = None

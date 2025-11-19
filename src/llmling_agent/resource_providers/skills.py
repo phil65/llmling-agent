@@ -12,7 +12,8 @@ from llmling_agent.tools.base import Tool
 
 
 if TYPE_CHECKING:
-    from fsspec.utils import Sequence
+    from collections.abc import Sequence
+
     from upath.types import JoinablePathLike
 
     from llmling_agent.skills.skill import Skill

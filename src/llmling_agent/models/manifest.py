@@ -245,13 +245,13 @@ class AgentsManifest(Schema):
 
     @model_validator(mode="before")
     @classmethod
-    def resolve_inheritance(cls, data: dict) -> dict:
+    def resolve_inheritance(cls, data: dict) -> dict[str, Any]:
         """Resolve agent inheritance chains."""
         nodes = data.get("agents", {})
         resolved: dict[str, dict] = {}
         seen: set[str] = set()
 
-        def resolve_node(name: str) -> dict:
+        def resolve_node(name: str) -> dict[str, Any]:
             if name in resolved:
                 return resolved[name]
 

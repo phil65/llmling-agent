@@ -194,7 +194,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
-    ):
+    ) -> None:
         """Exit async context."""
         if self._running_count == 0:
             msg = "AgentPool.__aexit__ called more times than __aenter__"
@@ -445,7 +445,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         item.context.pool = self
         return item
 
-    def _create_teams(self):
+    def _create_teams(self) -> None:
         """Create all teams in two phases to allow nesting."""
         # Phase 1: Create empty teams
 
@@ -475,7 +475,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
             team.agents.extend(members)
             self[name] = team
 
-    def _connect_nodes(self):
+    def _connect_nodes(self) -> None:
         """Set up connections defined in manifest."""
         # Merge agent and team configs into one dict of nodes with connections
         for name, config in self.manifest.nodes.items():
@@ -497,7 +497,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
                         raise ValueError(msg)
 
                 source.connect_to(
-                    target_node,  # type: ignore  # recognized as "Any | BaseTeam[Any, Any]" by mypy?
+                    target_node,
                     connection_type=target.connection_type,
                     name=name,
                     priority=target.priority,
@@ -520,7 +520,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
                     wait=target.wait_for_completion,
                 )
 
-    def setup_agent_workers(self, agent: Agent[Any, Any]):
+    def setup_agent_workers(self, agent: Agent[Any, Any]) -> None:
         """Set up workers for an agent from configuration."""
         for worker_config in agent.context.config.workers:
             try:
@@ -685,11 +685,11 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
                         details.append(talk.connection_type)
                         if talk.queued:
                             details.append(f"queued({talk.queue_strategy})")
-                        if fn := talk.filter_condition:  # type: ignore
+                        if fn := talk.filter_condition:
                             details.append(f"filter:{fn.__name__}")
-                        if fn := talk.stop_condition:  # type: ignore
+                        if fn := talk.stop_condition:
                             details.append(f"stop:{fn.__name__}")
-                        if fn := talk.exit_condition:  # type: ignore
+                        if fn := talk.exit_condition:
                             details.append(f"exit:{fn.__name__}")
 
                         label = f"|{' '.join(details)}|" if details else ""

@@ -496,7 +496,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         # Create wrapper function with correct return type annotation
         output_type = self._output_type or Any
 
-        async def wrapped_tool(prompt: str):
+        async def wrapped_tool(prompt: str) -> Any:
             if pass_message_history and not parent:
                 msg = "Parent agent required for message history sharing"
                 raise ToolError(msg)
@@ -532,14 +532,14 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             source="agent",
         )
 
-    async def get_agentlet(
+    async def get_agentlet[AgentDepsType, AgentOutputType](
         self,
         tool_choice: str | list[str] | None,
         model: ModelType,
-        output_type: type[Any] | None,
-        deps_type: type[Any] | None = None,
+        output_type: type[AgentOutputType] | None,
+        deps_type: type[AgentDepsType] | None = None,
         input_provider: InputProvider | None = None,
-    ):
+    ) -> PydanticAgent[AgentDepsType, AgentOutputType]:
         """Create pydantic-ai agent from current state."""
         # Monkey patch pydantic-ai to recognize AgentContext
 
@@ -580,7 +580,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                 logger.info("Registering tool: no context", tool_name=tool.name)
                 agent.tool_plain(wrapped)
 
-        return agent
+        return agent  # type: ignore[return-value]
 
     @overload
     async def run(
@@ -680,7 +680,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
 
             # Merge internal and external event handlers like the old provider did
             async def event_distributor(
-                ctx: RunContext, events: AsyncIterable[AgentStreamEvent]
+                ctx: RunContext[Any], events: AsyncIterable[AgentStreamEvent]
             ) -> None:
                 async for event in events:
                     # Check for queued custom events and distribute them first
@@ -701,7 +701,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                     i if isinstance(i, str) else i.to_pydantic_ai()
                     for i in converted_prompts
                 ],
-                deps=deps,
+                deps=deps,  # type: ignore[arg-type]
                 message_history=[
                     m for run in message_history_list for m in run.to_pydantic_ai()
                 ],
@@ -798,12 +798,12 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             content = await convert_prompts(prompts)
 
             # Initialize variables for final response
-            response_msg: ChatMessage | None = None
+            response_msg: ChatMessage[Any] | None = None
             # Create tool dict for signal emission
             converted = [i if isinstance(i, str) else i.to_pydantic_ai() for i in content]
             stream_events = agentlet.run_stream_events(
                 converted,
-                deps=deps,
+                deps=deps,  # type: ignore[arg-type]
                 message_history=[
                     m for run in message_history for m in run.to_pydantic_ai()
                 ],
@@ -818,7 +818,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                 pending_tcs: dict[str, ToolCallPart] = {}
                 async for event in events:
                     # Process events and emit signals
-                    yield event  # pyright: ignore[reportReturnType]
+                    yield event  # type: ignore[misc]
                     match event:
                         case (
                             PartStartEvent(part=ToolCallPart() as tool_part)

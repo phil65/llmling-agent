@@ -241,7 +241,7 @@ class FSSpecToolsetConfig(BaseToolsetConfig):
 
     def get_provider(self) -> ResourceProvider:
         """Create FSSpec filesystem tools provider."""
-        import fsspec
+        import fsspec  # type: ignore[import-untyped]
 
         from llmling_agent_toolsets.fsspec_toolset import FSSpecTools
 
@@ -349,6 +349,6 @@ ToolsetConfig = Annotated[
 ]
 
 if __name__ == "__main__":
-    import upsonic
+    import upsonic  # type: ignore[import-untyped]
 
     tools = upsonic.Tiger().crewai

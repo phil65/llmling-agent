@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from decimal import Decimal
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Self
 
 from pydantic_ai import RunUsage
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -32,6 +32,8 @@ from llmling_agent_storage.sql_provider.utils import (
 if TYPE_CHECKING:
     from collections.abc import Sequence
     from datetime import datetime
+
+    from sqlalchemy import Connection
 
     from llmling_agent.common_types import JsonValue
     from llmling_agent.messaging import ChatMessage
@@ -82,7 +84,7 @@ class SQLModelProvider(StorageProvider[Message]):
         if auto_migrate:
             async with self.engine.begin() as conn:
 
-                def sync_migrate(sync_conn) -> None:
+                def sync_migrate(sync_conn: Connection) -> None:
                     inspector = inspect(sync_conn)
 
                     # For each table in our models
@@ -103,7 +105,7 @@ class SQLModelProvider(StorageProvider[Message]):
 
                 await conn.run_sync(sync_migrate)
 
-    async def __aenter__(self):
+    async def __aenter__(self) -> Self:
         """Initialize async database resources."""
         await self._init_database(auto_migrate=self.auto_migrate)
         return await super().__aenter__()
@@ -260,7 +262,7 @@ class SQLModelProvider(StorageProvider[Message]):
             else:
                 query = query.where(CommandHistory.agent_name == agent_name)
 
-            query = query.order_by(desc(CommandHistory.timestamp))  # type: ignore
+            query = query.order_by(desc(CommandHistory.timestamp))
             if limit:
                 query = query.limit(limit)
 

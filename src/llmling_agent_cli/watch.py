@@ -33,7 +33,7 @@ def watch_command(
 
     def on_message(chat_message: ChatMessage[Any]) -> None:
         text = chat_message.format(
-            style=detail_level,  # type: ignore
+            style=detail_level,
             show_metadata=show_metadata,
             show_costs=show_costs,
         )
