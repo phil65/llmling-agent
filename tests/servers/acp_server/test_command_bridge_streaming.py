@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import asyncio
+from datetime import datetime
 from unittest.mock import AsyncMock
 
 import pytest
 
 from acp import ClientCapabilities
+from acp.schema import Audience
 from llmling_agent import Agent, AgentPool
 from llmling_agent_server.acp_server.session import ACPSession
 
@@ -139,7 +141,13 @@ async def test_immediate_send_error_handling():
     # Collect all messages
     sent_messages = []
 
-    async def capture_message(message):
+    async def capture_message(
+        message: str,
+        *,
+        audience: Audience | None = None,
+        last_modified: datetime | str | None = None,
+        priority: float | None = None,
+    ):
         sent_messages.append(message)
 
     session.notifications.send_agent_text = capture_message

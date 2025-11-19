@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from pydantic_ai import RunContext
+from pydantic_ai import RunContext  # noqa: TC002
 from pydantic_ai.models.test import TestModel
 import pytest
 
@@ -105,12 +105,12 @@ async def _test_progress_events_common(agent_name: str, run_method: str) -> None
 
 
 async def test_progress_handler_with_agent_non_streaming():
-    """Test that progress handlers receive tool context information via Agent (non-streaming)."""
+    """Test that progress handlers receive tool context information (non-streaming)."""
     await _test_progress_events_common("progress_test_agent", "non_streaming")
 
 
 async def test_progress_handler_with_agent_streaming():
-    """Test that progress handlers receive tool context information via Agent (streaming)."""
+    """Test that progress handlers receive tool context information (streaming)."""
     await _test_progress_events_common("progress_test_agent_streaming", "streaming")
 
 

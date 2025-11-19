@@ -26,7 +26,7 @@ prompts:
 
 async def test_prompt_command():
     """Test prompt command with new prompt system."""
-    messages = []
+    messages: list[str] = []
     store = CommandStore()
     manifest = AgentsManifest.from_yaml(TEST_CONFIG)
     context = store.create_context(manifest, output_writer=messages.append)
