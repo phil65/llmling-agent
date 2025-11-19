@@ -1,4 +1,12 @@
-"""Event stream events."""
+"""Event stream events.
+
+TODO: The specialized process and file events (ProcessStartEvent, ProcessExitEvent,
+FileOperationEvent, etc.) are essentially domain-specific versions of
+ToolCallProgressEvent. These could potentially be merged into a single, more flexible
+ToolCallProgressEvent that carries rich content (terminals, diffs, locations) and
+domain metadata. This would align better with the ACP protocol's tool call structure
+and reduce event type proliferation.
+"""
 
 from __future__ import annotations
 
@@ -14,6 +22,61 @@ if TYPE_CHECKING:
     from llmling_agent.resource_providers.plan_provider import PlanEntry
 
 
+# Unified tool call content models (dataclass versions of ACP schema models)
+
+
+@dataclass(kw_only=True)
+class TerminalContentItem:
+    """Embed a terminal for live output display."""
+
+    type: Literal["terminal"] = "terminal"
+    """Content type identifier."""
+    terminal_id: str
+    """The ID of the terminal being embedded."""
+
+
+@dataclass(kw_only=True)
+class DiffContentItem:
+    """File modification shown as a diff."""
+
+    type: Literal["diff"] = "diff"
+    """Content type identifier."""
+    path: str
+    """The file path being modified."""
+    old_text: str | None = None
+    """The original content (None for new files)."""
+    new_text: str
+    """The new content after modification."""
+
+
+@dataclass(kw_only=True)
+class LocationContentItem:
+    """A file location being accessed or modified."""
+
+    type: Literal["location"] = "location"
+    """Content type identifier."""
+    path: str
+    """The file path being accessed or modified."""
+    line: int | None = None
+    """Optional line number within the file."""
+
+
+@dataclass(kw_only=True)
+class TextContentItem:
+    """Simple text content."""
+
+    type: Literal["text"] = "text"
+    """Content type identifier."""
+    text: str
+    """The text content."""
+
+
+# Union type for all tool call content items
+ToolCallContentItem = (
+    TerminalContentItem | DiffContentItem | LocationContentItem | TextContentItem
+)
+
+
 @dataclass(kw_only=True)
 class StreamCompleteEvent[TContent]:
     """Event indicating streaming is complete with final message."""
@@ -26,20 +89,38 @@ class StreamCompleteEvent[TContent]:
 
 @dataclass(kw_only=True)
 class ToolCallProgressEvent:
-    """Event indicating the tool call progress."""
+    """Enhanced tool call progress event with rich content support.
 
-    progress: int
-    """The current progress of the tool call."""
-    total: int
-    """The total progress of the tool call."""
-    message: str
-    """Progress message."""
-    tool_name: str
-    """The name of the tool being called."""
+    This event can carry various types of rich content (terminals, diffs, locations, text)
+    and maps directly to ACP tool call notifications. It serves as a unified replacement
+    for specialized events like ProcessStartEvent, FileOperationEvent, etc.
+    """
+
     tool_call_id: str
     """The ID of the tool call."""
-    tool_input: dict[str, Any] | None
+    status: Literal["pending", "in_progress", "completed", "failed"] = "in_progress"
+    """Current execution status."""
+    title: str | None = None
+    """Human-readable title describing the operation."""
+
+    # Rich content items (unified content + locations)
+    items: list[ToolCallContentItem] = field(default_factory=list)
+    """Rich content items (terminals, diffs, locations, text)."""
+
+    # Legacy fields for backwards compatibility
+    progress: int | None = None
+    """The current progress of the tool call."""
+    total: int | None = None
+    """The total progress of the tool call."""
+    message: str | None = None
+    """Progress message (falls back to TextContentItem)."""
+    tool_name: str | None = None
+    """The name of the tool being called."""
+    tool_input: dict[str, Any] | None = None
     """The input provided to the tool."""
+
+    event_kind: Literal["tool_call_progress"] = "tool_call_progress"
+    """Event type identifier."""
 
 
 @dataclass(kw_only=True)

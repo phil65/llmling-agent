@@ -32,13 +32,23 @@ from slashed import Command, CommandStore
 from acp.acp_requests import ACPRequests
 from acp.filesystem import ACPFileSystem
 from acp.notifications import ACPNotifications
-from acp.schema import AvailableCommand, PlanEntry as ACPPlanEntry, ToolCallLocation
+from acp.schema import (
+    AvailableCommand,
+    PlanEntry as ACPPlanEntry,
+    TerminalToolCallContent,
+    ToolCallLocation,
+)
 from acp.utils import to_acp_content_blocks
 from llmling_agent.agent import SlashedAgent
 from llmling_agent.agent.events import (
     FileEditProgressEvent,
     FileOperationEvent,
     PlanUpdateEvent,
+    ProcessExitEvent,
+    ProcessKillEvent,
+    ProcessOutputEvent,
+    ProcessReleaseEvent,
+    ProcessStartEvent,
     StreamCompleteEvent,
     ToolCallProgressEvent,
 )
@@ -75,9 +85,28 @@ ACP_COMMANDS = {"list-sessions", "load-session", "save-session", "delete-session
 
 
 logger = get_logger(__name__)
-# Tools that send their own rich ACP notifications (with ToolCallLocation, etc.)
+# Tools that send their own rich ACP notifications (with TerminalToolCallContent, etc.)
 # These tools are excluded from generic session-level notifications to prevent duplication
-ACP_SELF_NOTIFYING_TOOLS = {"read_text_file", "write_text_file", "run_command"}
+# TODO: This centralized string-based list is brittle. Tools/toolsets should self-report
+# whether they emit their own tool call status updates
+# via a flag like `is_self_notifying: bool`
+# on the Tool class or ResourceProvider level. This would eliminate the need for manual
+# maintenance of this list and provide better type safety.
+ACP_SELF_NOTIFYING_TOOLS = {
+    "read_text_file",
+    "write_text_file",
+    "run_command",
+    "start_process",
+    "get_process_output",
+    "wait_for_process",
+    "kill_process",
+    "release_process",
+    "list_processes",
+    "list_directory",
+    "delete_path",
+    "edit_file",
+    "agentic_edit",
+}
 
 
 def _is_slash_command(text: str) -> bool:
@@ -506,11 +535,8 @@ class ACPSession:
                 tool_call_id=tool_call_id,
                 tool_input=tool_input,
             ):
-                self.log.debug(
-                    "Received progress event for tool",
-                    tool_name=tool_name,
-                    tool_call_id=tool_call_id,
-                )
+                msg = "Received progress event for tool"
+                self.log.debug(msg, tool_name=tool_name, tool_call_id=tool_call_id)
                 output = message if message else f"Progress: {progress}"
                 if total:
                     output += f"/{total}"
@@ -532,10 +558,8 @@ class ACPSession:
                         tool_call_id=tool_call_id,
                     )
                 except Exception as e:  # noqa: BLE001
-                    self.log.warning(
-                        "Failed to convert progress event to ACP notification",
-                        error=str(e),
-                    )
+                    msg = "Failed to convert progress event to ACP notification"
+                    self.log.warning(msg, error=str(e))
 
             case FinalResultEvent():
                 self.log.debug("Final result received")
@@ -556,10 +580,8 @@ class ACPSession:
                     ]
                     await self.notifications.update_plan(acp_entries)
                 except Exception as e:  # noqa: BLE001
-                    self.log.warning(
-                        "Failed to send plan update notification",
-                        error=str(e),
-                    )
+                    msg = "Failed to send plan update notification"
+                    self.log.warning(msg, error=str(e))
 
             case FileOperationEvent(
                 operation=operation,
@@ -580,13 +602,11 @@ class ACPSession:
                         await self.notifications.tool_call_progress(
                             tool_call_id=tool_call_id,
                             status="failed",
-                            raw_output=f"File operation '{operation}' failed: {error}",
+                            raw_output=f"File operation {operation!r} failed: {error}",
                         )
                 except Exception as e:  # noqa: BLE001
-                    self.log.warning(
-                        "Failed to send file operation notification",
-                        error=str(e),
-                    )
+                    msg = "Failed to send file operation notification"
+                    self.log.warning(msg, error=str(e))
 
             case FileEditProgressEvent(
                 path=path,
@@ -608,10 +628,129 @@ class ACPSession:
                             changed_lines=changed_lines,
                         )
                 except Exception as e:  # noqa: BLE001
+                    msg = "Failed to send file edit progress notification"
+                    self.log.warning(msg, error=str(e))
+
+            case ProcessStartEvent(
+                process_id=process_id,
+                command=command,
+                success=success,
+                error=error,
+                tool_call_id=tool_call_id,
+            ):
+                # Handle ProcessStartEvent
+                try:
+                    if tool_call_id and success:
+                        await self.notifications.tool_call_start(
+                            tool_call_id=tool_call_id,
+                            title=f"Running: {command}",
+                            kind="execute",
+                            content=[TerminalToolCallContent(terminal_id=process_id)],
+                        )
+                    elif tool_call_id:
+                        await self.notifications.tool_call_progress(
+                            tool_call_id=tool_call_id,
+                            status="failed",
+                            title=f"Failed to start process: {command}",
+                            raw_output=f"Process start failed: {error}",
+                        )
+                except Exception as e:  # noqa: BLE001
+                    msg = "Failed to send process start notification"
+                    self.log.warning(msg, error=str(e))
+
+            case ProcessOutputEvent(
+                process_id=process_id,
+                output=output,
+                # truncated=truncated,
+                tool_call_id=tool_call_id,
+            ):
+                # Handle ProcessOutputEvent
+                try:
+                    if tool_call_id:
+                        await self.notifications.terminal_progress(
+                            tool_call_id=tool_call_id,
+                            terminal_id=process_id,
+                            status="in_progress",
+                            title=f"Process {process_id} output",
+                        )
+                except Exception as e:  # noqa: BLE001
+                    msg = "Failed to send process output notification"
+                    self.log.warning(msg, error=str(e))
+
+            case ProcessExitEvent(
+                process_id=process_id,
+                exit_code=exit_code,
+                success=success,
+                final_output=final_output,
+                tool_call_id=tool_call_id,
+            ):
+                # Handle ProcessExitEvent
+                try:
+                    if tool_call_id:
+                        title = f"Process {process_id} exited with code {exit_code}"
+                        await self.notifications.terminal_progress(
+                            tool_call_id=tool_call_id,
+                            terminal_id=process_id,
+                            status="completed" if success else "failed",
+                            title=title,
+                        )
+                except Exception as e:  # noqa: BLE001
                     self.log.warning(
-                        "Failed to send file edit progress notification",
+                        "Failed to send process exit notification",
                         error=str(e),
                     )
+
+            case ProcessKillEvent(
+                process_id=process_id,
+                success=success,
+                error=error,
+                tool_call_id=tool_call_id,
+            ):
+                # Handle ProcessKillEvent
+                try:
+                    if tool_call_id and success:
+                        await self.notifications.terminal_progress(
+                            tool_call_id=tool_call_id,
+                            terminal_id=process_id,
+                            status="completed",
+                            title=f"Killed process {process_id}",
+                        )
+                    elif tool_call_id:
+                        await self.notifications.tool_call_progress(
+                            tool_call_id=tool_call_id,
+                            status="failed",
+                            title=f"Failed to kill process {process_id}",
+                            raw_output=f"Process kill failed: {error}",
+                        )
+                except Exception as e:  # noqa: BLE001
+                    msg = "Failed to send process kill notification"
+                    self.log.warning(msg, error=str(e))
+
+            case ProcessReleaseEvent(
+                process_id=process_id,
+                success=success,
+                error=error,
+                tool_call_id=tool_call_id,
+            ):
+                # Handle ProcessReleaseEvent
+                try:
+                    if tool_call_id and success:
+                        await self.notifications.terminal_progress(
+                            tool_call_id=tool_call_id,
+                            terminal_id=process_id,
+                            status="completed",
+                            title=f"Released process {process_id}",
+                        )
+                    elif tool_call_id:
+                        await self.notifications.tool_call_progress(
+                            tool_call_id=tool_call_id,
+                            status="failed",
+                            title=f"Failed to release process {process_id}",
+                            raw_output=f"Process release failed: {error}",
+                        )
+                except Exception as e:  # noqa: BLE001
+                    msg = "Failed to send process release notification"
+                    self.log.warning(msg, error=str(e))
 
             case _:
                 self.log.debug("Unhandled event", event_type=type(event).__name__)
@@ -793,7 +932,7 @@ class ACPSession:
                 # Send confirmation
                 staged_count = self.get_staged_parts_count()
                 await ctx.print(
-                    f"✅ Prompt '{prompt.name}' staged ({staged_count} total parts)"
+                    f"✅ Prompt {prompt.name!r} staged ({staged_count} total parts)"
                 )
 
             except Exception as e:

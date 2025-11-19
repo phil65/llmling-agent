@@ -139,6 +139,146 @@ class AgentEventEmitter:
         )
         await self._context.agent._event_queue.put(custom_event)
 
+    async def process_started(
+        self,
+        process_id: str,
+        command: str,
+        args: list[str] | None = None,
+        cwd: str | None = None,
+        env: dict[str, str] | None = None,
+        output_limit: int | None = None,
+        success: bool = True,
+        error: str | None = None,
+    ) -> None:
+        """Emit process start event.
+
+        Args:
+            process_id: Unique process identifier
+            command: Command being executed
+            args: Command arguments
+            cwd: Working directory
+            env: Environment variables
+            output_limit: Maximum bytes of output to retain
+            success: Whether the process started successfully
+            error: Error message if start failed
+        """
+        from llmling_agent.agent.events import ProcessStartEvent
+
+        event = ProcessStartEvent(
+            process_id=process_id,
+            command=command,
+            args=args or [],
+            cwd=cwd,
+            env=env or {},
+            output_limit=output_limit,
+            success=success,
+            error=error,
+            tool_call_id=self._context.tool_call_id,
+        )
+        await self._context.agent._event_queue.put(event)
+
+    async def process_output(
+        self,
+        process_id: str,
+        output: str,
+        stdout: str | None = None,
+        stderr: str | None = None,
+        truncated: bool = False,
+    ) -> None:
+        """Emit process output event.
+
+        Args:
+            process_id: Process identifier
+            output: Process output (stdout/stderr combined)
+            stdout: Standard output (if separated)
+            stderr: Standard error (if separated)
+            truncated: Whether output was truncated due to limits
+        """
+        from llmling_agent.agent.events import ProcessOutputEvent
+
+        event = ProcessOutputEvent(
+            process_id=process_id,
+            output=output,
+            stdout=stdout,
+            stderr=stderr,
+            truncated=truncated,
+            tool_call_id=self._context.tool_call_id,
+        )
+        await self._context.agent._event_queue.put(event)
+
+    async def process_exit(
+        self,
+        process_id: str,
+        exit_code: int,
+        final_output: str | None = None,
+        truncated: bool = False,
+    ) -> None:
+        """Emit process exit event.
+
+        Args:
+            process_id: Process identifier
+            exit_code: Process exit code
+            final_output: Final process output
+            truncated: Whether output was truncated due to limits
+        """
+        from llmling_agent.agent.events import ProcessExitEvent
+
+        event = ProcessExitEvent(
+            process_id=process_id,
+            exit_code=exit_code,
+            success=exit_code == 0,
+            final_output=final_output,
+            truncated=truncated,
+            tool_call_id=self._context.tool_call_id,
+        )
+        await self._context.agent._event_queue.put(event)
+
+    async def process_killed(
+        self,
+        process_id: str,
+        success: bool = True,
+        error: str | None = None,
+    ) -> None:
+        """Emit process kill event.
+
+        Args:
+            process_id: Process identifier
+            success: Whether the process was successfully killed
+            error: Error message if kill failed
+        """
+        from llmling_agent.agent.events import ProcessKillEvent
+
+        event = ProcessKillEvent(
+            process_id=process_id,
+            success=success,
+            error=error,
+            tool_call_id=self._context.tool_call_id,
+        )
+        await self._context.agent._event_queue.put(event)
+
+    async def process_released(
+        self,
+        process_id: str,
+        success: bool = True,
+        error: str | None = None,
+    ) -> None:
+        """Emit process release event.
+
+        Args:
+            process_id: Process identifier
+            success: Whether resources were successfully released
+            error: Error message if release failed
+        """
+        from llmling_agent.agent.events import ProcessReleaseEvent
+
+        event = ProcessReleaseEvent(
+            process_id=process_id,
+            success=success,
+            error=error,
+            tool_call_id=self._context.tool_call_id,
+        )
+        await self._context.agent._event_queue.put(event)
+
     async def emit_event(self, event: RichAgentStreamEvent) -> None:
         """Emit a typed event into the agent's event stream.
 

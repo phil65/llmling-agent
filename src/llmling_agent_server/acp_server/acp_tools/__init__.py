@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from llmling_agent.resource_providers import PlanProvider
 from llmling_agent_toolsets.fsspec_toolset import FSSpecTools
-from .terminal_provider import ACPTerminalProvider
+from llmling_agent_toolsets.process_toolset import ProcessTools
 
 from typing import TYPE_CHECKING
 
@@ -18,7 +18,7 @@ def get_acp_provider(session: ACPSession) -> AggregatingResourceProvider:
 
     providers = [
         PlanProvider(),
-        ACPTerminalProvider(session),
+        ProcessTools(session.process_manager, name=f"acp_processes_{session.session_id}"),
         FSSpecTools(session.fs, name=f"acp_fs_{session.session_id}"),
     ]
     return AggregatingResourceProvider(
@@ -26,4 +26,4 @@ def get_acp_provider(session: ACPSession) -> AggregatingResourceProvider:
     )
 
 
-__all__ = ["ACPTerminalProvider"]
+__all__ = ["get_acp_provider"]
