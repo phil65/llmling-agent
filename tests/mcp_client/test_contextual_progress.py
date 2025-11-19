@@ -1,19 +1,21 @@
 """Test contextual progress handler functionality with Agent and TestModel."""
 
-import asyncio
-import contextlib
-from pathlib import Path
-from typing import Any
+from __future__ import annotations
 
-from llmling_models import infer_model
-from pydantic_ai import RunContext, RunUsage
+from pathlib import Path
+from typing import TYPE_CHECKING
+
+from pydantic_ai import RunContext
 from pydantic_ai.models.test import TestModel
 import pytest
 
-from llmling_agent import Agent
+from llmling_agent import AgentPool
 from llmling_agent.agent.events import ToolCallProgressEvent
-from llmling_agent.mcp_server import MCPClient
 from llmling_agent_config.mcp_server import StdioMCPServerConfig
+
+
+if TYPE_CHECKING:
+    from llmling_agent.agent.events import RichAgentStreamEvent
 
 
 # Constants for test expectations
@@ -23,50 +25,32 @@ TEST_PROGRESS_VALUE = 50.0
 
 SERVER_PATH = Path(__file__).parent / ".." / "mcp" / "server.py"
 ARGS = ["run", str(SERVER_PATH)]
+mcp_server = StdioMCPServerConfig(name="progress_test", command="uv", args=ARGS)
 
 
 class ProgressCapture:
     """Captures progress callbacks with full context."""
 
     def __init__(self):
-        self.progress_events: list[dict[str, Any]] = []
-        self.completed = asyncio.Event()
+        self.progress_events: list[ToolCallProgressEvent] = []
 
-    async def __call__(
-        self,
-        progress: float,
-        total: float | None,
-        message: str | None,
-        tool_name: str | None = None,
-        tool_call_id: str | None = None,
-        tool_input: dict[str, Any] | None = None,
-    ) -> None:
+    async def __call__(self, ctx: RunContext, event: RichAgentStreamEvent) -> None:
         """Capture progress with full context."""
-        event = {
-            "progress": progress,
-            "total": total,
-            "message": message,
-            "tool_name": tool_name,
-            "tool_call_id": tool_call_id,
-            "tool_input": tool_input,
-        }
-        self.progress_events.append(event)
-
-        # Signal completion when we reach expected threshold
-        if progress >= PROGRESS_COMPLETION_THRESHOLD:
-            self.completed.set()
+        if isinstance(event, ToolCallProgressEvent):
+            self.progress_events.append(event)
 
 
-async def test_progress_handler_with_agent():
-    """Test that progress handlers receive tool context information via Agent."""
+async def _test_progress_events_common(agent_name: str, run_method: str) -> None:
+    """Common test logic for progress events."""
     progress_capture = ProgressCapture()
-
-    async with Agent(
-        name="progress_test_agent",
-        model=TestModel(call_tools=["test_progress"]),
-        system_prompt="You are a test assistant that calls tools.",
-        mcp_servers=[StdioMCPServerConfig(name="progress_test", command="uv", args=ARGS)],
-    ) as agent:
+    async with AgentPool() as pool:
+        agent = await pool.add_agent(
+            name=agent_name,
+            model=TestModel(call_tools=["test_progress"]),
+            system_prompt="You are a test assistant that calls tools.",
+            mcp_servers=[mcp_server],
+            event_handlers=[progress_capture],
+        )
         tools = await agent.tools.get_tools()
         tool_names = [tool.name for tool in tools]
 
@@ -74,47 +58,45 @@ async def test_progress_handler_with_agent():
             f"test_progress tool not found in {tool_names}"
         )
 
-        # Get the MCP provider and access its client
-        mcp_providers = agent.mcp.get_mcp_providers()
-        provider = next(iter(mcp_providers))  # Find the first provider
-        provider.client._progress_handler.add_handler(
-            progress_capture
-        )  # Add our progress handler
-        await agent.run("")  #  TestModel will call the test_progress tool
-        with contextlib.suppress(TimeoutError):  # Wait for progress events to complete
-            await asyncio.wait_for(progress_capture.completed.wait(), timeout=15.0)
+        # Execute based on method
+        if run_method == "streaming":
+            async for _event in agent.run_stream(""):
+                pass
+        else:
+            await agent.run("")
 
         # Verify we captured progress events
         assert len(progress_capture.progress_events) >= EXPECTED_PROGRESS_EVENTS, (
             f"Should have captured at least {EXPECTED_PROGRESS_EVENTS} progress events, "
             f"got {len(progress_capture.progress_events)}"
         )
+
         # Check that all events have contextual information
         for event in progress_capture.progress_events:
             # Basic FastMCP fields should be present
-            assert event["progress"] is not None, "Progress should be set"
-            assert event["message"] is not None, "Message should be set"
+            assert event.progress is not None, "Progress should be set"
+            assert event.message is not None, "Message should be set"
 
             # Our contextual fields should be present
-            assert event["tool_name"] == "test_progress", (
-                f"Tool name should be 'test_progress', got {event['tool_name']}"
+            assert event.tool_name == "test_progress", (
+                f"Tool name should be 'test_progress', got {event.tool_name}"
             )
-            assert event["tool_call_id"] is not None, "Tool call ID should be set"
-            assert event["tool_input"] is not None, "Tool input should be set"
+            assert event.tool_call_id is not None, "Tool call ID should be set"
+            assert event.tool_input is not None, "Tool input should be set"
 
             # Tool input should contain message parameter
-            tool_input = event["tool_input"]
+            tool_input = event.tool_input
             assert isinstance(tool_input, dict), "Tool input should be a dict"
             assert "message" in tool_input, "Tool input should have message parameter"
 
         # Verify progress sequence
-        progress_values = [e["progress"] for e in progress_capture.progress_events]
+        progress_values = [e.progress for e in progress_capture.progress_events]
         assert progress_values == sorted(progress_values), (
             f"Progress values should be increasing, got {progress_values}"
         )
 
         # Check specific progress messages from server.py
-        messages = [event["message"] for event in progress_capture.progress_events]
+        messages = [event.message for event in progress_capture.progress_events]
         expected_messages = ["first step", "second step", "third step"]
         for expected_msg in expected_messages:
             assert any(expected_msg in str(msg) for msg in messages if msg), (
@@ -122,74 +104,21 @@ async def test_progress_handler_with_agent():
             )
 
 
-async def test_progress_handler_without_context():
-    """Test that progress handlers work even when context is not available."""
-    events = []
-
-    async def simple_progress_handler(
-        progress: float,
-        total: float | None,
-        message: str | None,
-        tool_name: str | None = None,
-        tool_call_id: str | None = None,
-        tool_input: dict[str, Any] | None = None,
-    ) -> None:
-        """Simple handler that works with or without context."""
-        events.append({"progress": progress, "has_context": tool_name is not None})
-
-    # This test verifies the handler can work with just the FastMCP parameters
-    await simple_progress_handler(TEST_PROGRESS_VALUE, 100.0, "test", None, None, None)
-
-    assert len(events) == 1
-    assert events[0]["progress"] == TEST_PROGRESS_VALUE
-    assert events[0]["has_context"] is False
+async def test_progress_handler_with_agent_non_streaming():
+    """Test that progress handlers receive tool context information via Agent (non-streaming)."""
+    await _test_progress_events_common("progress_test_agent", "non_streaming")
 
 
-async def test_direct_mcp_client_progress():
-    """Test contextual progress handler with direct MCP client call (no RunContext)."""
-    progress_capture = ProgressCapture()
-    cfg = StdioMCPServerConfig(name="progress_test_server", command="uv", args=ARGS)
-    client = MCPClient(cfg, progress_handler=progress_capture)
-    async with client:
-        await asyncio.sleep(0.5)  # Wait a bit for server to be ready
-        mcp_tools = await client.list_tools()
-        tool_names = [tool.name for tool in mcp_tools]
-        assert "test_progress" in tool_names, (
-            f"test_progress tool not found in {tool_names}"
-        )
-
-        # Call the progress test tool directly (fallback path without RunContext)
-        test_message = "Testing contextual progress directly"
-        await client.call_tool(
-            name="test_progress",
-            arguments={"message": test_message},
-            run_context=RunContext(
-                tool_call_id="test-call-123",
-                deps=None,
-                model=infer_model("openai:gpt-5-nano"),
-                usage=RunUsage(),
-            ),
-        )
-
-        # Wait for progress to complete
-        with contextlib.suppress(TimeoutError):
-            await asyncio.wait_for(progress_capture.completed.wait(), timeout=5.0)
-
-        event = progress_capture.progress_events[0]
-        assert event["progress"] is not None, "Progress should be set"
-        assert event["tool_name"] == "test_progress", "Tool name should be test_progress"
-        assert event["tool_call_id"] == "test-call-123", "Tool call ID should match"
-        assert event["tool_input"] is not None, "Tool input should be set"
-        assert event["tool_input"]["message"] == test_message, (
-            "Should contain our test message"
-        )
+async def test_progress_handler_with_agent_streaming():
+    """Test that progress handlers receive tool context information via Agent (streaming)."""
+    await _test_progress_events_common("progress_test_agent_streaming", "streaming")
 
 
 async def test_agent_stream_progress_events():
     """Test that ToolCallProgressEvent appears in agent stream."""
-    mcp_server = StdioMCPServerConfig(name="progress_test", command="uv", args=ARGS)
     model = TestModel(call_tools=["test_progress"])
-    async with Agent(model=model, mcp_servers=[mcp_server]) as agent:
+    async with AgentPool() as pool:
+        agent = await pool.add_agent(name="test", model=model, mcp_servers=[mcp_server])
         events = [event async for event in agent.run_stream("")]
         progress_events = [e for e in events if isinstance(e, ToolCallProgressEvent)]
         assert len(progress_events) > 0, (
