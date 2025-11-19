@@ -4,14 +4,18 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime
+from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock
 
 import pytest
 
 from acp import ClientCapabilities
-from acp.schema import Audience
 from llmling_agent import Agent, AgentPool
 from llmling_agent_server.acp_server.session import ACPSession
+
+
+if TYPE_CHECKING:
+    from acp.schema import Audience
 
 
 async def test_session_command_immediate_execution():
@@ -39,7 +43,13 @@ async def test_session_command_immediate_execution():
 
     sent_messages = []
 
-    async def capture_message(message):
+    async def capture_message(
+        message: str,
+        *,
+        audience: Audience | None = None,
+        last_modified: datetime | str | None = None,
+        priority: float | None = None,
+    ):
         sent_messages.append(message)
 
     session.notifications.send_agent_text = capture_message

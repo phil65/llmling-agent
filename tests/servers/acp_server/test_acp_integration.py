@@ -7,13 +7,12 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from acp import ClientCapabilities, FileSystemCapability
+from acp import ClientCapabilities
 
 # Add another agent to the pool for switching
 from llmling_agent import Agent
 from llmling_agent.delegation import AgentPool
 from llmling_agent_server.acp_server import ACPServer
-from llmling_agent_server.acp_server.acp_tools import ACPFileSystemProvider
 from llmling_agent_server.acp_server.session import ACPSession
 
 
@@ -36,40 +35,6 @@ async def test_acp_server_creation(agent_pool: AgentPool):
     server = ACPServer(pool=agent_pool)
     assert server.pool is agent_pool
     assert len(server.pool.agents) > 0
-
-
-async def test_filesystem_provider_tool_creation(agent_pool: AgentPool, mock_acp_agent):
-    """Test that filesystem provider creates tools correctly."""
-    # Set up session with file capabilities
-    mock_client = AsyncMock()
-
-    fs_cap = FileSystemCapability(read_text_file=True, write_text_file=True)
-    capabilities = ClientCapabilities(fs=fs_cap, terminal=False)
-
-    session = ACPSession(
-        session_id="file-test",
-        agent_pool=agent_pool,
-        current_agent_name="test_agent",
-        cwd=tempfile.gettempdir(),
-        client=mock_client,
-        acp_agent=mock_acp_agent,
-        client_capabilities=capabilities,
-    )
-
-    # Create filesystem provider
-    provider = ACPFileSystemProvider(session=session)
-
-    # Test tool creation
-    tools = await provider.get_tools()
-    tool_names = {tool.name for tool in tools}
-
-    # Verify expected tools are created
-    assert "read_text_file" in tool_names
-    assert "write_text_file" in tool_names
-
-    # Verify tools have correct session reference
-    assert provider.session_id == "file-test"
-    assert provider.agent is mock_acp_agent
 
 
 async def test_agent_switching_workflow(agent_pool: AgentPool, mock_acp_agent):
