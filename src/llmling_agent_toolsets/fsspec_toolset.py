@@ -190,9 +190,7 @@ class FSSpecTools(ResourceProvider):
                     "encoding": "binary",
                 }
             else:
-                with self.fs.open(path, "r", encoding=encoding) as f:
-                    content = f.read()
-
+                content = await self._read(path, encoding=encoding)
                 # Ensure content is string
                 if isinstance(content, bytes):
                     content = content.decode(encoding)
@@ -262,9 +260,7 @@ class FSSpecTools(ResourceProvider):
 
                 return {"error": error_msg}
 
-            with self.fs.open(path, mode, encoding=encoding) as f:
-                f.write(content)
-
+            await self._write(path, content)
             # Try to get file size after writing
             try:
                 info = await self.fs._info(path)
@@ -414,10 +410,7 @@ class FSSpecTools(ResourceProvider):
         )
 
         try:  # Read current file content
-            with self.fs.open(path, "r", encoding="utf-8") as f:
-                original_content = f.read()
-
-            # Ensure content is string
+            original_content = await self._read(path)
             if isinstance(original_content, bytes):
                 original_content = original_content.decode("utf-8")
 
@@ -436,10 +429,7 @@ class FSSpecTools(ResourceProvider):
                 )
                 return error_msg
 
-            # Write the new content
-            with self.fs.open(path, "w", encoding="utf-8") as f:
-                f.write(new_content)
-
+            await self._write(path, new_content)
             success_msg = f"Successfully edited {Path(path).name}: {description}"
             changed_line_numbers = get_changed_line_numbers(original_content, new_content)
             if lines_changed := len(changed_line_numbers):
@@ -464,6 +454,18 @@ class FSSpecTools(ResourceProvider):
             return error_msg
         else:
             return success_msg
+
+    async def _read(self, path: str, encoding: str = "utf-8") -> str:
+        # with self.fs.open(path, "r", encoding="utf-8") as f:
+        #     return f.read()
+        return await self.fs._cat(path)  # pyright: ignore[reportReturnType]
+
+    async def _write(self, path: str, content: str | bytes) -> None:
+        mode = "wt" if isinstance(content, str) else "wb"
+        file = await self.fs.open_async(path, mode)
+        await file.write(content)
+        # with self.fs.open(path, mode="r") as f:
+        #     f.write(content)
 
     async def agentic_edit(  # noqa: D417, PLR0915
         self,
@@ -515,8 +517,7 @@ class FSSpecTools(ResourceProvider):
                     "You are a code editor. Output ONLY the complete new file content."
                 )
             else:  # For edit mode, use structured editing approach
-                with self.fs.open(path, "r", encoding="utf-8") as f:
-                    original_content = f.read()
+                original_content = await self._read(path)
 
                 # Ensure content is string
                 if isinstance(original_content, bytes):
@@ -537,9 +538,7 @@ class FSSpecTools(ResourceProvider):
             else:
                 # For overwrite mode we need to read the current content for diff purposes
                 if mode == "overwrite":
-                    with self.fs.open(path, "r", encoding="utf-8") as f:
-                        original_content = f.read()
-
+                    original_content = await self._read(path)
                     # Ensure content is string
                     if isinstance(original_content, bytes):
                         original_content = original_content.decode("utf-8")
@@ -581,10 +580,7 @@ class FSSpecTools(ResourceProvider):
                 return error_msg
 
             # Write the new content to file
-            with self.fs.open(path, "w", encoding="utf-8") as f:
-                f.write(new_content)
-
-            # Calculate some stats
+            new_content = await self._read(path)
             original_lines = len(original_content.splitlines()) if original_content else 0
             new_lines = len(new_content.splitlines())
 
@@ -805,16 +801,14 @@ if __name__ == "__main__":
     async def main() -> None:
         import fsspec
 
-        from llmling_agent import Agent
+        from llmling_agent import AgentPool
 
-        # Create a local filesystem for demo
         fs = fsspec.filesystem("file")
         tools = FSSpecTools(fs, name="local_fs")
-
-        agent = Agent(model="openai:gpt-5-nano")
-        agent.tools.add_provider(tools)
-        async with agent:
-            result = await agent.run("List the tools available for filesystem operations")
+        async with AgentPool() as pool:
+            agent = await pool.add_agent("test", model="openai:gpt-5-nano")
+            ctx = agent.context
+            result = await tools._list_directory(ctx, path="/")
             print(result)
 
     asyncio.run(main())
