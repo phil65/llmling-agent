@@ -35,8 +35,17 @@ class FSSpecTools(ResourceProvider):
             filesystem: The fsspec filesystem instance to operate on
             name: Name for this toolset provider
         """
+        from fsspec.asyn import AsyncFileSystem  # type: ignore[import-untyped]
+        from fsspec.implementations.asyn_wrapper import (  # type: ignore[import-untyped]
+            AsyncFileSystemWrapper,
+        )
+
         super().__init__(name=name)
-        self.fs = filesystem
+        self.fs = (
+            filesystem
+            if isinstance(filesystem, AsyncFileSystem)
+            else AsyncFileSystemWrapper(filesystem)
+        )
         self._tools: list[Tool] | None = None
 
     async def get_tools(self) -> list[Tool]:
@@ -94,7 +103,7 @@ class FSSpecTools(ResourceProvider):
         """
         try:
             # Get detailed file information
-            entries = self.fs.ls(path, detail=True)
+            entries = await self.fs._ls(path, detail=True)
 
             files = []
             directories = []
@@ -171,7 +180,7 @@ class FSSpecTools(ResourceProvider):
         """
         try:
             if encoding == "binary":
-                content = self.fs.cat_file(path)
+                content = await self.fs._cat_file(path)
                 result = {
                     "path": path,
                     "content": content.hex()
@@ -258,7 +267,7 @@ class FSSpecTools(ResourceProvider):
 
             # Try to get file size after writing
             try:
-                info = self.fs.info(path)
+                info = await self.fs._info(path)
                 size = info.get("size", len(content))
             except (OSError, KeyError):
                 size = len(content)
@@ -301,7 +310,7 @@ class FSSpecTools(ResourceProvider):
         try:
             # Check if path exists and get its type
             try:
-                info = self.fs.info(path)
+                info = await self.fs._info(path)
                 path_type = info.get("type", "unknown")
             except FileNotFoundError:
                 error_msg = f"Path does not exist: {path}"
@@ -326,7 +335,7 @@ class FSSpecTools(ResourceProvider):
                 if not recursive:
                     # Check if directory is empty
                     try:
-                        contents = self.fs.ls(path)
+                        contents = await self.fs._ls(path)
                         if contents:
                             error_msg = (
                                 f"Directory {path} is not empty. "
@@ -342,10 +351,10 @@ class FSSpecTools(ResourceProvider):
                     except (OSError, ValueError):
                         pass  # Continue with deletion attempt
 
-                self.fs.delete(path, recursive=recursive)
+                await self.fs._rm(path, recursive=recursive)
             else:
                 # It's a file
-                self.fs.delete(path)
+                await self.fs._rm(path)  # or _rm_file?
 
         except (OSError, ValueError) as e:
             # Emit failure event
