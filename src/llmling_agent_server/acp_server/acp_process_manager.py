@@ -101,7 +101,7 @@ class ACPProcessManager(ProcessManagerProtocol):
         )
 
         terminal_id = response.terminal_id
-        process_id = f"acp_{terminal_id}"
+        process_id = terminal_id  # Use terminal_id directly as process_id
 
         # Create tracking object
         process = ACPRunningProcess(
