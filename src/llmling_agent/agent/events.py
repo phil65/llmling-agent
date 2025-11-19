@@ -165,6 +165,109 @@ class FileEditProgressEvent:
     """Event type identifier."""
 
 
+@dataclass(kw_only=True)
+class ProcessStartEvent:
+    """Event for process start operations."""
+
+    process_id: str
+    """Unique process identifier."""
+    command: str
+    """Command being executed."""
+    args: list[str] = field(default_factory=list)
+    """Command arguments."""
+    cwd: str | None = None
+    """Working directory."""
+    env: dict[str, str] = field(default_factory=dict)
+    """Environment variables."""
+    output_limit: int | None = None
+    """Maximum bytes of output to retain."""
+    success: bool = True
+    """Whether the process started successfully."""
+    error: str | None = None
+    """Error message if start failed."""
+    tool_call_id: str | None = None
+    """Tool call ID for notifications."""
+
+    event_kind: Literal["process_start"] = "process_start"
+    """Event type identifier."""
+
+
+@dataclass(kw_only=True)
+class ProcessOutputEvent:
+    """Event for process output updates."""
+
+    process_id: str
+    """Process identifier."""
+    output: str
+    """Process output (stdout/stderr combined)."""
+    stdout: str | None = None
+    """Standard output (if separated)."""
+    stderr: str | None = None
+    """Standard error (if separated)."""
+    truncated: bool = False
+    """Whether output was truncated due to limits."""
+    tool_call_id: str | None = None
+    """Tool call ID for notifications."""
+
+    event_kind: Literal["process_output"] = "process_output"
+    """Event type identifier."""
+
+
+@dataclass(kw_only=True)
+class ProcessExitEvent:
+    """Event for process completion."""
+
+    process_id: str
+    """Process identifier."""
+    exit_code: int
+    """Process exit code."""
+    success: bool
+    """Whether the process completed successfully (exit_code == 0)."""
+    final_output: str | None = None
+    """Final process output."""
+    truncated: bool = False
+    """Whether output was truncated due to limits."""
+    tool_call_id: str | None = None
+    """Tool call ID for notifications."""
+
+    event_kind: Literal["process_exit"] = "process_exit"
+    """Event type identifier."""
+
+
+@dataclass(kw_only=True)
+class ProcessKillEvent:
+    """Event for process termination."""
+
+    process_id: str
+    """Process identifier."""
+    success: bool
+    """Whether the process was successfully killed."""
+    error: str | None = None
+    """Error message if kill failed."""
+    tool_call_id: str | None = None
+    """Tool call ID for notifications."""
+
+    event_kind: Literal["process_kill"] = "process_kill"
+    """Event type identifier."""
+
+
+@dataclass(kw_only=True)
+class ProcessReleaseEvent:
+    """Event for process resource cleanup."""
+
+    process_id: str
+    """Process identifier."""
+    success: bool
+    """Whether resources were successfully released."""
+    error: str | None = None
+    """Error message if release failed."""
+    tool_call_id: str | None = None
+    """Tool call ID for notifications."""
+
+    event_kind: Literal["process_release"] = "process_release"
+    """Event type identifier."""
+
+
 type RichAgentStreamEvent[OutputDataT] = (
     AgentStreamEvent
     | StreamCompleteEvent[OutputDataT]
@@ -173,6 +276,11 @@ type RichAgentStreamEvent[OutputDataT] = (
     | PlanUpdateEvent
     | FileOperationEvent
     | FileEditProgressEvent
+    | ProcessStartEvent
+    | ProcessOutputEvent
+    | ProcessExitEvent
+    | ProcessKillEvent
+    | ProcessReleaseEvent
     | CustomEvent[Any]
 )
 
