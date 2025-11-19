@@ -2,10 +2,16 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from anyenv.process_manager import ProcessManager
 
 from llmling_agent.resource_providers import ResourceProvider
 from llmling_agent.tools.base import Tool
+
+
+if TYPE_CHECKING:
+    from anyenv.process_manager import ProcessManagerProtocol
 
 
 class ProcessManagementTools(ResourceProvider):
@@ -13,7 +19,7 @@ class ProcessManagementTools(ResourceProvider):
 
     def __init__(
         self,
-        process_manager: ProcessManager | None = None,
+        process_manager: ProcessManagerProtocol | None = None,
         name: str = "process_management",
     ) -> None:
         """Initialize process management toolset.
@@ -23,8 +29,7 @@ class ProcessManagementTools(ResourceProvider):
             name: The name of the toolset.
         """
         super().__init__(name=name)
-        # TODO: needs to be ProcessManagerProtocol
-        self.process_manager = process_manager or ProcessManager()
+        self.process_manager: ProcessManagerProtocol = process_manager or ProcessManager()
 
     async def get_tools(self):
         return [
@@ -170,7 +175,7 @@ class ProcessManagementTools(ResourceProvider):
             List of process IDs and basic information
         """
         try:
-            process_ids = self.process_manager.list_processes()
+            process_ids = await self.process_manager.list_processes()
             if not process_ids:
                 return "No active processes"
 

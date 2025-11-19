@@ -248,7 +248,7 @@ class ACPProcessManager(ProcessManagerProtocol):
         if process.terminal_id in self._terminal_to_process:
             del self._terminal_to_process[process.terminal_id]
 
-    def list_processes(self) -> list[str]:
+    async def list_processes(self) -> list[str]:
         """List all active process IDs.
 
         Returns:
