@@ -94,12 +94,6 @@ class AgentContext[TDeps = Any](NodeContext[TDeps]):
         assert self.node_name, "No agent name available"
         return self.pool.agents[self.node_name]
 
-    @property
-    def process_manager(self):
-        """Get process manager from pool."""
-        assert self.pool, "No agent pool available"
-        return self.pool.process_manager
-
     async def handle_confirmation(
         self,
         tool: Tool,
