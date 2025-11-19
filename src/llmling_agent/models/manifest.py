@@ -436,6 +436,7 @@ class AgentsManifest(Schema):
             debug=config.debug,
             output_type=self.get_output_type(name) or str,
             event_handlers=event_handlers,
+            agent_pool=pool,
             # name=config.name or name,
         )
 

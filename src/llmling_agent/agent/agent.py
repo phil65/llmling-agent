@@ -68,7 +68,7 @@ if TYPE_CHECKING:
         SessionIdType,
         ToolType,
     )
-    from llmling_agent.delegation import Team, TeamRun
+    from llmling_agent.delegation import AgentPool, Team, TeamRun
     from llmling_agent.prompts.prompts import PromptType
     from llmling_agent.resource_providers import ResourceProvider
     from llmling_agent.ui.base import InputProvider
@@ -152,6 +152,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         parallel_init: bool = True,
         debug: bool = False,
         event_handlers: Sequence[IndividualEventHandler] | None = None,
+        agent_pool: AgentPool | None = None,
     ) -> None:
         """Initialize agent.
 
@@ -185,6 +186,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             parallel_init: Whether to initialize resources in parallel
             debug: Whether to enable debug mode
             event_handlers: Sequence of event handlers to register with the agent
+            agent_pool: AgentPool instance for managing agent resources
         """
         from llmling_agent.agent import AgentContext
         from llmling_agent.agent.conversation import MessageHistory
@@ -196,6 +198,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         self._infinite = False
         # save some stuff for asnyc init
         self.deps_type = deps_type
+        self.agent_pool = agent_pool
         # prepare context
         ctx = context or AgentContext[TDeps].create_default(
             name,

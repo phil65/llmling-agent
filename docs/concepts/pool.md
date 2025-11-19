@@ -100,8 +100,6 @@ async with AgentPool[AppConfig](
 ) as pool:
     # All agents have access to app_config
     agent = pool.get_agent("analyzer")
-    assert agent.context.data == app_config
-
     # Monitor execution
     result = await agent.run("Analyze this...")
     # Messages appear in pool_talk

@@ -658,6 +658,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
             name=name,
             **kwargs,
             output_type=output_type,
+            agent_pool=self,
         )
         # Add MCP aggregating provider from manager
         agent.tools.add_provider(self.mcp.get_aggregating_provider())
