@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.resource_providers import ResourceProvider
-from llmling_agent.tools.base import Tool
+
+
+if TYPE_CHECKING:
+    from llmling_agent.tools.base import Tool
 
 
 # Plan entry types - domain models independent of ACP
@@ -58,13 +61,9 @@ class PlanProvider(ResourceProvider):
     async def get_tools(self) -> list[Tool]:
         """Get plan management tools."""
         return [
-            Tool.from_callable(self.add_plan_entry, source="planning", category="other"),
-            Tool.from_callable(
-                self.update_plan_entry, source="planning", category="edit"
-            ),
-            Tool.from_callable(
-                self.remove_plan_entry, source="planning", category="delete"
-            ),
+            self.create_tool(self.add_plan_entry, category="other"),
+            self.create_tool(self.update_plan_entry, category="edit"),
+            self.create_tool(self.remove_plan_entry, category="delete"),
         ]
 
     async def add_plan_entry(
