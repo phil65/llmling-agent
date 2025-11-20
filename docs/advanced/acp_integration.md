@@ -77,6 +77,7 @@ This configuration:
 ### Other IDEs
 
 For IDEs that support ACP, the general pattern is:
+
 1. Set the command to `llmling-agent` (or `uvx llmling-agent[default]@latest`)
 2. Add `serve-acp` as the first argument
 3. Specify your configuration file path
