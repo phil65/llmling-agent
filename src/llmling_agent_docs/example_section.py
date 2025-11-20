@@ -7,6 +7,7 @@ import pathlib
 import mknodes as mk
 
 from llmling_agent.agent.agent import Agent
+from llmling_agent_config.session import MemoryConfig
 from llmling_agent_docs.examples.utils import iter_examples
 
 
@@ -38,7 +39,8 @@ for example in iter_examples():
 @nav.route.page("MkDocs Integration & Docs generation", icon="oui:documentation", hide="toc")
 def gen_docs(page: mk.MkPage) -> None:
     """Generate docs using agents."""
-    agent = Agent(model="openai:gpt-5-nano")
+    cfg = MemoryConfig(enable=False)
+    agent = Agent(model="openai:gpt-5-nano", session=cfg)
     content = pathlib.Path("src/llmling_agent/__init__.py")
     page += mk.MkAdmonition(INTRO)
     page += mk.MkCode(pathlib.Path(__file__).read_text(encoding="utf-8"))
