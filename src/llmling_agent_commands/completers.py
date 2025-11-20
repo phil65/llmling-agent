@@ -39,9 +39,9 @@ def get_model_names(ctx: CompletionContext[AgentContext[Any]]) -> list[str]:
     """
     # Get models directly from the Literal type
     from llmling_models import AllModels
-    from pydantic_ai.models import KnownModelName
+    from tokonomics.model_names import ModelName
 
-    known_models = list(get_args(KnownModelName)) + list(get_args(AllModels))
+    known_models = list(get_args(ModelName)) + list(get_args(AllModels))
 
     agent = ctx.command_context.context.agent
     if not agent.context.definition:
