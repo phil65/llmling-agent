@@ -42,23 +42,31 @@ class CodeModeResourceProvider(AggregatingResourceProvider):
         super().__init__(providers=providers, name=name)
         self.include_docstrings = include_docstrings
         self._toolset_generator: ToolsetCodeGenerator | None = None
+        self._cached_tool: Tool | None = None
         self.usage_notes = usage_notes
 
     async def get_tools(self) -> list[Tool]:
         """Return single meta-tool for Python execution with available tools."""
-        toolset_generator = await self._get_code_generator()
+        # Always generate fresh toolset to reflect current tools
+        toolset_generator = await self._get_fresh_code_generator()
         desc = toolset_generator.generate_tool_description()
         desc += self.usage_notes
 
-        # Create a closure that captures self but isn't a bound method
-        async def execute_tool(
-            ctx: AgentContext,
-            python_code: str,
-        ) -> Any:
-            """These docstings are overriden by description_override."""
-            return await self.execute(ctx, python_code)
+        if self._cached_tool is None:
+            # Create a closure that captures self but isn't a bound method
+            async def execute_tool(
+                ctx: AgentContext,
+                python_code: str,
+            ) -> Any:
+                """These docstings are overriden by description_override."""
+                return await self.execute(ctx, python_code)
 
-        return [Tool.from_callable(execute_tool, description_override=desc)]
+            self._cached_tool = Tool.from_callable(execute_tool, description_override=desc)
+        else:
+            # Update the description on existing cached tool
+            self._cached_tool.description = desc
+
+        return [self._cached_tool]
 
     async def execute(self, ctx: AgentContext, python_code: str) -> Any:  # noqa: D417
         """Execute Python code with all wrapped tools available as functions.
@@ -92,15 +100,17 @@ class CodeModeResourceProvider(AggregatingResourceProvider):
         else:
             return result
 
-    async def _get_code_generator(self) -> ToolsetCodeGenerator:
-        """Get cached toolset generator."""
-        if self._toolset_generator is None:
-            self._toolset_generator = tools_to_codegen(
-                tools=await super().get_tools(),
-                include_docstrings=self.include_docstrings,
-            )
-        assert self._toolset_generator
-        return self._toolset_generator
+    def invalidate_cache(self) -> None:
+        """Invalidate cached tool when providers change."""
+        self._cached_tool = None
+        # Note: We no longer cache the toolset generator, so no need to clear it
+
+    async def _get_fresh_code_generator(self) -> ToolsetCodeGenerator:
+        """Get fresh toolset generator with current tools."""
+        return tools_to_codegen(
+            tools=await super().get_tools(),
+            include_docstrings=self.include_docstrings,
+        )
 
 
 if __name__ == "__main__":

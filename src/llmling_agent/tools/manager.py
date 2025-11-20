@@ -21,6 +21,7 @@ if TYPE_CHECKING:
     from llmling_agent.common_types import AnyCallable, ToolSource, ToolType
     from llmling_agent.prompts.prompts import MCPClientPrompt
     from llmling_agent.resource_providers import ResourceProvider
+    from llmling_agent.resource_providers.codemode.provider import CodeModeResourceProvider
 
 
 logger = get_logger(__name__)
@@ -29,6 +30,7 @@ MAX_LEN_DESCRIPTION = 2000
 ToolState = Literal["all", "enabled", "disabled"]
 ProviderName = str
 OwnerType = Literal["pool", "team", "node"]
+ToolMode = Literal["codemode"]
 
 
 class ToolError(LLMLingError):
@@ -38,16 +40,28 @@ class ToolError(LLMLingError):
 class ToolManager:
     """Manages tool registration, enabling/disabling and access."""
 
-    def __init__(self, tools: Sequence[Tool | ToolType] | None = None) -> None:
+    def __init__(
+        self,
+        tools: Sequence[Tool | ToolType] | None = None,
+        tool_mode: ToolMode | None = None,
+    ) -> None:
         """Initialize tool manager.
 
         Args:
             tools: Initial tools to register
+            tool_mode: Tool execution mode (None or "codemode")
         """
         super().__init__()
         self.external_providers: list[ResourceProvider] = []
         self.worker_provider = StaticResourceProvider(name="workers")
         self.builtin_provider = StaticResourceProvider(name="builtin")
+        self.tool_mode = tool_mode
+
+        # CodeModeResourceProvider gets populated with providers in providers property
+        from llmling_agent.resource_providers.codemode.provider import CodeModeResourceProvider
+
+        self._codemode_provider: CodeModeResourceProvider = CodeModeResourceProvider([])
+
         # Register initial tools
         for tool in tools or []:
             t = self._validate_item(tool)
@@ -56,6 +70,15 @@ class ToolManager:
     @property
     def providers(self) -> list[ResourceProvider]:
         """Get all providers: external + worker + builtin providers."""
+        if self.tool_mode == "codemode":
+            # Update the providers list with current providers
+            self._codemode_provider.providers[:] = [
+                *self.external_providers,
+                self.worker_provider,
+                self.builtin_provider,
+            ]
+            return [self._codemode_provider]
+
         return [*self.external_providers, self.worker_provider, self.builtin_provider]
 
     async def __prompt__(self) -> str:

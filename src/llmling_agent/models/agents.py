@@ -34,6 +34,7 @@ if TYPE_CHECKING:
 
 
 ToolConfirmationMode = Literal["always", "never", "per_tool"]
+ToolMode = Literal["codemode"]
 
 logger = log.get_logger(__name__)
 
@@ -115,6 +116,12 @@ class AgentConfig(NodeConfig):
 
     usage_limits: UsageLimits | None = None
     """Usage limits for this agent."""
+
+    tool_mode: ToolMode | None = None
+    """Tool execution mode:
+    - None: Default mode - tools are called directly
+    - "codemode": Tools are wrapped in a Python execution environment
+    """
 
     def is_structured(self) -> bool:
         """Check if this config defines a structured agent."""

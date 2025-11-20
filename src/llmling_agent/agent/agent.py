@@ -223,7 +223,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         # Initialize tool manager
         self.event_handler = MultiEventHandler[IndividualEventHandler](event_handlers)
         all_tools = list(tools or [])
-        self.tools = ToolManager(all_tools)
+        self.tools = ToolManager(all_tools, tool_mode=ctx.config.tool_mode)
 
         # MCP manager will be initialized in __aenter__ and providers added there
         if builtin_tools := ctx.config.get_tool_provider():
