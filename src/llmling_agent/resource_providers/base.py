@@ -11,6 +11,7 @@ from llmling_agent_config.tools import ToolHints
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+    from types import TracebackType
 
     from pydantic_ai import ModelRequestPart
 
@@ -40,7 +41,12 @@ class ResourceProvider:
         """Async context entry if required."""
         return self
 
-    async def __aexit__(self, *args: object) -> None:
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
         """Async context cleanup if required."""
 
     def __repr__(self) -> str:

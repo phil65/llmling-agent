@@ -6,6 +6,7 @@ import asyncio
 from typing import TYPE_CHECKING, Any, Self
 import uuid
 
+from acp.schema import ClientCapabilities
 from llmling_agent.log import get_logger
 from llmling_agent_server.acp_server.session import ACPSession
 
@@ -15,7 +16,7 @@ if TYPE_CHECKING:
     from types import TracebackType
 
     from acp import Client
-    from acp.schema import ClientCapabilities, McpServer
+    from acp.schema import McpServer
     from llmling_agent import AgentPool
     from llmling_agent_server.acp_server.acp_agent import LLMlingACPAgent
 
@@ -89,7 +90,7 @@ class ACPSessionManager:
                 client=client,
                 mcp_servers=mcp_servers,
                 acp_agent=acp_agent,
-                client_capabilities=client_capabilities,
+                client_capabilities=client_capabilities or ClientCapabilities(),
                 manager=self,
             )
             session.register_update_callback(self._on_commands_updated)
