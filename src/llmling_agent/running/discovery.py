@@ -52,7 +52,7 @@ class NodeFunction:
 
 
 def node_function(
-    func: Callable | None = None,
+    func: Callable[..., Any] | None = None,
     *,
     deps: Any | None = None,
     depends_on: str

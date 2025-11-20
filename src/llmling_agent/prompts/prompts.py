@@ -256,7 +256,7 @@ class StaticPrompt(BasePrompt):
 class DynamicPrompt(BasePrompt):
     """Dynamic prompt loaded from callable."""
 
-    import_path: str | Callable
+    import_path: str | Callable[..., str]
     """Dotted import path to the callable that generates the prompt."""
 
     template: str | None = None
@@ -295,7 +295,7 @@ class DynamicPrompt(BasePrompt):
         )
 
     @property
-    def fn(self) -> Callable[..., Any]:
+    def fn(self) -> Callable[..., str]:
         if isinstance(self.import_path, str):
             return importing.import_callable(self.import_path)
         return self.import_path

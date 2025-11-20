@@ -3,10 +3,14 @@
 from __future__ import annotations
 
 import os
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from llmling_agent.resource_providers import ResourceProvider
 from llmling_agent.tools.base import Tool
+
+
+if TYPE_CHECKING:
+    from mcp.types import CallToolResult
 
 
 class McpRunTools(ResourceProvider):
@@ -30,7 +34,7 @@ class McpRunTools(ResourceProvider):
         self._tools = []
         for name, tool in self.client.tools.items():
 
-            async def run(tool_name: str = name, **input_dict: Any):
+            async def run(tool_name: str = name, **input_dict: Any) -> CallToolResult:
                 async with self.client.mcp_sse().connect() as session:
                     return await session.call_tool(tool_name, arguments=input_dict)
 

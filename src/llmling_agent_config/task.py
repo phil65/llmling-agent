@@ -40,12 +40,12 @@ class Job[TDeps, TResult = str](Schema):
 
     required_return_type: ImportString[type[TResult]] = Field(
         default="str", validate_default=True
-    )  # type: ignore
+    )
     """Expected type of the task result."""
 
     required_dependency: ImportString[type[TDeps]] | None = Field(
         default=None, validate_default=True
-    )  # type: ignore
+    )
     """Dependencies or context data needed for task execution"""
 
     requires_vision: bool = False

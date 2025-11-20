@@ -253,7 +253,7 @@ class MessageNode[TDeps, TResult](ABC):
             for t in target:
                 match t:
                     case _ if callable(t):
-                        other: MessageNode = Agent.from_callback(t)
+                        other = Agent.from_callback(t)
                         if pool := self.context.pool:
                             pool.register(other.name, other)
                         targets.append(other)

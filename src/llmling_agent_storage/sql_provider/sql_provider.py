@@ -32,6 +32,7 @@ from llmling_agent_storage.sql_provider.utils import (
 if TYPE_CHECKING:
     from collections.abc import Sequence
     from datetime import datetime
+    from types import TracebackType
 
     from sqlalchemy import Connection
 
@@ -45,7 +46,7 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-class SQLModelProvider(StorageProvider[Message]):
+class SQLModelProvider(StorageProvider):
     """Storage provider using SQLModel.
 
     Can work with any database supported by SQLAlchemy/SQLModel.
@@ -110,7 +111,12 @@ class SQLModelProvider(StorageProvider[Message]):
         await self._init_database(auto_migrate=self.auto_migrate)
         return await super().__aenter__()
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
         """Clean up async database resources properly."""
         await self.engine.dispose()
         return await super().__aexit__(exc_type, exc_val, exc_tb)

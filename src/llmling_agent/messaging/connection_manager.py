@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from contextlib import asynccontextmanager
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Self
 
 from psygnal import Signal
 from psygnal.containers import EventedList
@@ -14,6 +14,7 @@ from llmling_agent.talk import AggregatedTalkStats, Talk, TeamTalk
 
 
 if TYPE_CHECKING:
+    from collections.abc import AsyncIterator
     from datetime import timedelta
 
     from llmling_agent.common_types import (
@@ -251,7 +252,7 @@ class ConnectionManager:
             await self.wait_for_connections()
 
     @asynccontextmanager
-    async def paused_routing(self):
+    async def paused_routing(self) -> AsyncIterator[Self]:
         """Temporarily pause message routing to connections."""
         active_talks = [talk for talk in self._connections if talk.active]
         for talk in active_talks:

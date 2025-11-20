@@ -72,7 +72,7 @@ def auto_callable[R, **P](
 
             return await get_structured(
                 prompt=prompt,
-                response_type=return_type,  # type: ignore[arg-type]
+                response_type=return_type,
                 model=model,
                 system_prompt=system_prompt,
                 max_retries=retries,

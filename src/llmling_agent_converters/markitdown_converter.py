@@ -12,6 +12,7 @@ from llmling_agent_converters.base import DocumentConverter
 
 
 if TYPE_CHECKING:
+    from markitdown import MarkItDown
     from upath.types import JoinablePathLike
 
 
@@ -25,7 +26,7 @@ class MarkItDownConverter(DocumentConverter):
         self.config = config or MarkItDownConfig()
 
     @cached_property
-    def converter(self):
+    def converter(self) -> MarkItDown:
         from markitdown import MarkItDown
 
         return MarkItDown()

@@ -245,7 +245,7 @@ class AgentsManifest(Schema):
 
     @model_validator(mode="before")
     @classmethod
-    def resolve_inheritance(cls, data: dict) -> dict[str, Any]:
+    def resolve_inheritance(cls, data: dict[str, Any]) -> dict[str, Any]:
         """Resolve agent inheritance chains."""
         nodes = data.get("agents", {})
         resolved: dict[str, dict] = {}

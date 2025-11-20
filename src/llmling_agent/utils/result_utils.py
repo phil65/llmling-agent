@@ -13,7 +13,8 @@ if TYPE_CHECKING:
 
 
 def to_type(
-    output_type, responses: dict[str, StructuredResponseConfig] | None = None
+    output_type: str | InlineSchemaDef | type | None,
+    responses: dict[str, StructuredResponseConfig] | None = None,
 ) -> type[BaseModel | str]:
     match output_type:
         case str() if responses and output_type in responses:

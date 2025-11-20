@@ -28,7 +28,7 @@ def api_command(
         False, "--show-messages", help="Show message activity"
     ),
     docs: bool = t.Option(True, help="Enable API documentation"),
-):
+) -> None:
     """Run agents as a completions API server.
 
     This creates an OpenAI-compatible API server that makes your agents available

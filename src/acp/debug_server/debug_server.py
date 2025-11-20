@@ -55,9 +55,12 @@ from llmling_agent.log import get_logger
 
 
 if TYPE_CHECKING:
+    from collections.abc import AsyncIterator
+
     from acp import SetSessionModelRequest, SetSessionModeRequest
     from acp.schema import (
         AuthenticateRequest,
+        CancelNotification,
         CreateTerminalRequest,
         InitializeRequest,
         LoadSessionRequest,
@@ -149,7 +152,7 @@ class MockAgent(Agent):
         logger.info("Received prompt", session_id=params.session_id)
         return PromptResponse(stop_reason="end_turn")
 
-    async def cancel(self, params) -> None:
+    async def cancel(self, params: CancelNotification) -> None:
         """Handle cancellation."""
         logger.info("Received cancellation request")
 
@@ -215,7 +218,7 @@ class DebugStatus(BaseModel):
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """FastAPI lifespan manager."""
     logger.info("Debug server FastAPI starting up")
     yield

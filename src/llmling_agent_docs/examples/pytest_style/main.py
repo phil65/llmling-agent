@@ -41,14 +41,14 @@ Jun: $21,500
 
 
 @node_function
-async def analyze_data(analyzer: Agent):
+async def analyze_data(analyzer: Agent) -> str:
     """First step: Analyze the data."""
     result = await analyzer.run(f"Analyze this sales data and identify trends:\n{DATA}")
     return result.data
 
 
 @node_function(depends_on="analyze_data")
-async def summarize_analysis(writer: Agent, analyze_data: str):
+async def summarize_analysis(writer: Agent, analyze_data: str) -> str:
     """Second step: Create an executive summary."""
     prompt = f"Create a brief executive summary of this sales analysis:\n{analyze_data}"
     result = await writer.run(prompt)
