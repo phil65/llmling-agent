@@ -106,6 +106,7 @@ server = ["logfire[fastapi]", "fastapi", "uvicorn", "websockets"]
 textual = ["textual>=1.0.0", "textualicious", "pygments"]
 tiktoken = ["tiktoken"]
 upsonic = ["upsonic"]
+youtube = ["youtube_transcript_api"]
 # acp = ["agent-client-protocol>=0.0.1"]
 # tools = ["crewai-tools>=0.33.0", "langchain-community>=0.3.17"]
 
@@ -166,6 +167,7 @@ docstring-style = "google"
 [tool.mypy]
 python_version = "3.13"
 pretty = true
+strict = true
 check_untyped_defs = true
 exclude = ["venv/", ".venv/"]
 plugins = ["pydantic.mypy"]

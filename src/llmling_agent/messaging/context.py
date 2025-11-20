@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 
 
 @dataclass(kw_only=True)
-class NodeContext[TDeps]:
+class NodeContext[TDeps = object]:
     """Context for message processing nodes."""
 
     node_name: str

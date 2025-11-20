@@ -42,7 +42,7 @@ logger = get_logger(__name__)
 
 
 @dataclass(kw_only=True)
-class TeamContext[TDeps](NodeContext[TDeps]):
+class TeamContext[TDeps = object](NodeContext[TDeps]):
     """Context for team nodes."""
 
     config: TeamConfig
@@ -57,7 +57,7 @@ class TeamContext[TDeps](NodeContext[TDeps]):
         name: str,
         mode: Literal["sequential", "parallel"] = "sequential",
         pool: AgentPool | None = None,
-    ) -> TeamContext:
+    ) -> TeamContext[object]:
         """Create a default agent context with minimal privileges.
 
         Args:
@@ -104,7 +104,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
         self.agents.extend(list(agents))
         self._team_talk = ExtendedTeamTalk()
         self.shared_prompt = shared_prompt
-        self._main_task: asyncio.Task[ChatMessage[Any]] | None = None
+        self._main_task: asyncio.Task[ChatMessage[Any] | None] | None = None
         self._infinite = False
         self.picker = picker
         self.num_picks = num_picks
