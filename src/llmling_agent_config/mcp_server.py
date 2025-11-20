@@ -25,35 +25,71 @@ class MCPServerAuthSettings(Schema):
     Minimal OAuth v2.1 support with sensible defaults.
     """
 
-    oauth: bool = False
+    oauth: bool = Field(
+        default=False,
+        title="Enable OAuth",
+    )
 
     # Local callback server configuration
-    redirect_port: int = 3030
-    redirect_path: str = "/callback"
+    redirect_port: int = Field(
+        default=3030,
+        examples=[3030, 8080, 9000],
+        title="Redirect port",
+    )
+    redirect_path: str = Field(
+        default="/callback",
+        examples=["/callback", "/auth/callback", "/oauth"],
+        title="Redirect path",
+    )
 
     # Optional scope override. If set to a list, values are space-joined.
-    scope: str | list[str] | None = None
+    scope: str | list[str] | None = Field(
+        default=None,
+        examples=["read write", ["read", "write"], "admin"],
+        title="OAuth scope",
+    )
 
     # Token persistence: use OS keychain via 'keyring' by default; fallback to 'memory'.
-    persist: Literal["keyring", "memory"] = "keyring"
+    persist: Literal["keyring", "memory"] = Field(
+        default="keyring",
+        examples=["keyring", "memory"],
+        title="Token persistence",
+    )
 
 
 class BaseMCPServerConfig(Schema):
     """Base model for MCP server configuration."""
 
-    type: str
+    type: str = Field(
+        title="Server type",
+    )
     """Type discriminator for MCP server configurations."""
 
-    name: str | None = None
+    name: str | None = Field(
+        default=None,
+        examples=["my_server", "api_connector", "file_handler"],
+        title="Server name",
+    )
     """Optional name for referencing the server."""
 
-    enabled: bool = True
+    enabled: bool = Field(
+        default=True,
+        title="Server enabled",
+    )
     """Whether this server is currently enabled."""
 
-    env: dict[str, str] | None = None
+    env: dict[str, str] | None = Field(
+        default=None,
+        title="Environment variables",
+    )
     """Environment variables to pass to the server process."""
 
-    timeout: float = Field(default=60.0, gt=0)
+    timeout: float = Field(
+        default=60.0,
+        gt=0,
+        examples=[30.0, 60.0, 120.0],
+        title="Server timeout",
+    )
     """Timeout for the server process in seconds."""
 
     def get_env_vars(self) -> dict[str, str]:
@@ -100,10 +136,17 @@ class StdioMCPServerConfig(BaseMCPServerConfig):
     type: Literal["stdio"] = Field("stdio", init=False)
     """Stdio server coniguration."""
 
-    command: str
+    command: str = Field(
+        examples=["python", "node", "pipx", "uvx"],
+        title="Command to execute",
+    )
     """Command to execute (e.g. "pipx", "python", "node")."""
 
-    args: list[str] = Field(default_factory=list)
+    args: list[str] = Field(
+        default_factory=list,
+        examples=[["run", "mcp-server"], ["-m", "my_mcp_server"], ["--debug"]],
+        title="Command arguments",
+    )
     """Command arguments (e.g. ["run", "some-server", "--debug"])."""
 
     @classmethod
@@ -151,13 +194,22 @@ class SSEMCPServerConfig(BaseMCPServerConfig):
     type: Literal["sse"] = Field("sse", init=False)
     """SSE server configuration."""
 
-    url: HttpUrl
+    url: HttpUrl = Field(
+        examples=["https://api.example.com/sse", "http://localhost:8080/events"],
+        title="SSE endpoint URL",
+    )
     """URL of the SSE server endpoint."""
 
-    headers: dict[str, str] | None = None
+    headers: dict[str, str] | None = Field(
+        default=None,
+        title="HTTP headers",
+    )
     """Headers to send with the SSE request."""
 
-    auth: MCPServerAuthSettings = Field(default_factory=MCPServerAuthSettings)
+    auth: MCPServerAuthSettings = Field(
+        default_factory=MCPServerAuthSettings,
+        title="Authentication settings",
+    )
     """OAuth settings for the SSE server."""
 
     @property
@@ -198,13 +250,22 @@ class StreamableHTTPMCPServerConfig(BaseMCPServerConfig):
     type: Literal["streamable-http"] = Field("streamable-http", init=False)
     """HTTP server configuration."""
 
-    url: HttpUrl
+    url: HttpUrl = Field(
+        examples=["https://api.example.com/mcp", "http://localhost:8080/stream"],
+        title="HTTP endpoint URL",
+    )
     """URL of the HTTP server endpoint."""
 
-    headers: dict[str, str] | None = None
+    headers: dict[str, str] | None = Field(
+        default=None,
+        title="HTTP headers",
+    )
     """Headers to send with the HTTP request."""
 
-    auth: MCPServerAuthSettings = Field(default_factory=MCPServerAuthSettings)
+    auth: MCPServerAuthSettings = Field(
+        default_factory=MCPServerAuthSettings,
+        title="Authentication settings",
+    )
     """OAuth settings for the HTTP server."""
 
     @property

@@ -14,13 +14,23 @@ from schemez import Schema
 class BaseCommandConfig(Schema):
     """Base configuration for commands."""
 
-    type: str
+    type: str = Field(
+        title="Command type",
+    )
     """Type discriminator for command configurations."""
 
-    name: str | None = None
+    name: str | None = Field(
+        default=None,
+        examples=["summarize", "code_review", "translate"],
+        title="Command name",
+    )
     """Command name (optional, can be inferred from key)."""
 
-    description: str | None = None
+    description: str | None = Field(
+        default=None,
+        examples=["Summarize the given text", "Review code for issues"],
+        title="Command description",
+    )
     """Optional description of what this command does."""
 
     def get_callable(self) -> Callable[..., str]:
@@ -39,7 +49,14 @@ class StaticCommandConfig(BaseCommandConfig):
     type: Literal["static"] = Field("static", init=False)
     """Static command configuration."""
 
-    content: str
+    content: str = Field(
+        examples=[
+            "Summarize this text: {text}",
+            "Translate {text} to {language}",
+            "Review this code: {code}",
+        ],
+        title="Template content",
+    )
     """The prompt template content. Supports ${env.VAR} substitution."""
 
     def get_callable(self) -> Callable[..., str]:
@@ -93,7 +110,14 @@ class CallableCommandConfig(BaseCommandConfig):
     type: Literal["callable"] = Field("callable", init=False)
     """Callable command configuration."""
 
-    function: ImportString[Callable[..., Any]]
+    function: ImportString[Callable[..., Any]] = Field(
+        examples=[
+            "mymodule.commands.summarize",
+            "utils.prompts:code_review",
+            "external.tools:translate_text",
+        ],
+        title="Function import path",
+    )
     """Python function import path (e.g., 'my.package.module.function_name')."""
 
     def get_callable(self) -> Callable[..., str]:
@@ -134,10 +158,21 @@ class FileCommandConfig(BaseCommandConfig):
     type: Literal["file"] = Field("file", init=False)
     """File-based command configuration."""
 
-    path: str
+    path: str = Field(
+        examples=[
+            "prompts/summarize.txt",
+            "/templates/code_review.j2",
+            "commands/translate.md",
+        ],
+        title="Template file path",
+    )
     """Path to file containing the prompt template."""
 
-    encoding: str = "utf-8"
+    encoding: str = Field(
+        default="utf-8",
+        examples=["utf-8", "ascii", "latin1"],
+        title="File encoding",
+    )
     """File encoding to use when reading the file."""
 
     def get_callable(self) -> Callable[..., str]:

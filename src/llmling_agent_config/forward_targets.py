@@ -28,35 +28,65 @@ class ConnectionConfig(Schema):
     type: str = Field(init=False)
     """Connection type."""
 
-    wait_for_completion: bool = Field(True)
+    wait_for_completion: bool = Field(
+        default=True,
+        title="Wait for completion",
+    )
     """Whether to wait for the result before continuing.
 
     If True, message processing will wait for the target to complete.
     If False, message will be forwarded asynchronously.
     """
 
-    queued: bool = False
+    queued: bool = Field(
+        default=False,
+        title="Enable message queueing",
+    )
     """Whether messages should be queued for manual processing."""
 
-    queue_strategy: Literal["concat", "latest", "buffer"] = "latest"
+    queue_strategy: Literal["concat", "latest", "buffer"] = Field(
+        default="latest",
+        examples=["concat", "latest", "buffer"],
+        title="Queue processing strategy",
+    )
     """How to process queued messages."""
 
-    priority: int = 0
+    priority: int = Field(
+        default=0,
+        examples=[0, 1, 5],
+        title="Task priority",
+    )
     """Priority of the task. Lower = higher priority."""
 
-    delay: timedelta | None = None
+    delay: timedelta | None = Field(
+        default=None,
+        title="Processing delay",
+    )
     """Delay before processing."""
 
-    filter_condition: Condition | None = None
+    filter_condition: Condition | None = Field(
+        default=None,
+        title="Message filter condition",
+    )
     """When to filter messages (using Talk.when())."""
 
-    stop_condition: Condition | None = None
+    stop_condition: Condition | None = Field(
+        default=None,
+        title="Connection stop condition",
+    )
     """When to disconnect the connection."""
 
-    exit_condition: Condition | None = None
+    exit_condition: Condition | None = Field(
+        default=None,
+        title="Application exit condition",
+    )
     """When to exit the application (by raising SystemExit)."""
 
-    transform: ImportString[Callable[[Any], Any | Awaitable[Any]]] | None = None
+    transform: ImportString[Callable[[Any], Any | Awaitable[Any]]] | None = Field(
+        default=None,
+        examples=["mymodule.transform_message", "utils.filters:clean_content"],
+        title="Message transform function",
+    )
     """Optional function to transform messages before forwarding."""
 
     model_config = ConfigDict(frozen=True)
@@ -76,10 +106,17 @@ class NodeConnectionConfig(ConnectionConfig):
     type: Literal["node"] = Field("node", init=False)
     """Connection to another node."""
 
-    name: str
+    name: str = Field(
+        examples=["output_agent", "processor", "notification_handler"],
+        title="Target node name",
+    )
     """Name of target agent."""
 
-    connection_type: ConnectionType = "run"
+    connection_type: ConnectionType = Field(
+        default="run",
+        examples=["run", "context", "forward"],
+        title="Connection type",
+    )
     """How messages should be handled by the target agent:
     - run: Execute message as a new run
     - context: Add message to agent's context
@@ -115,13 +152,28 @@ class FileConnectionConfig(ConnectionConfig):
     connection_type: Literal["run"] = Field("run", init=False, exclude=True)
     """Connection type (fixed to "run")"""
 
-    path: str
+    path: str = Field(
+        examples=["logs/messages.txt", "/var/log/agent-{date}.log", "output/{agent}.md"],
+        title="Output file path",
+    )
     """Path to output file. Supports variables: {date}, {time}, {agent}"""
 
-    template: str = DEFAULT_MESSAGE_TEMPLATE
+    template: str = Field(
+        default=DEFAULT_MESSAGE_TEMPLATE,
+        examples=[
+            DEFAULT_MESSAGE_TEMPLATE,
+            "{{ message.content }}",
+            "[{{ message.name }}]: {{ message.content }}",
+        ],
+        title="Message template",
+    )
     """Jinja2 template for message formatting."""
 
-    encoding: str = "utf-8"
+    encoding: str = Field(
+        default="utf-8",
+        examples=["utf-8", "ascii", "latin1"],
+        title="File encoding",
+    )
     """File encoding to use."""
 
     def format_message(self, message: ChatMessage[Any]) -> str:
@@ -171,13 +223,19 @@ class CallableConnectionConfig(ConnectionConfig):
     type: Literal["callable"] = Field("callable", init=False)
     """Connection to a callable imported from given import path."""
 
-    callable: ImportString[Callable[..., Any]]
+    callable: ImportString[Callable[..., Any]] = Field(
+        examples=["mymodule.process_message", "handlers.notifications:send_email"],
+        title="Callable import path",
+    )
     """Import path to the message processing function."""
 
     connection_type: Literal["run"] = Field("run", init=False, exclude=True)
     """Connection type (fixed to "run")"""
 
-    kw_args: dict[str, Any] = Field(default_factory=dict)
+    kw_args: dict[str, Any] = Field(
+        default_factory=dict,
+        title="Additional arguments",
+    )
     """Additional kwargs to pass to the callable."""
 
     async def process_message(self, message: ChatMessage[Any]) -> Any:

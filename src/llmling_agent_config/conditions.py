@@ -17,10 +17,17 @@ if TYPE_CHECKING:
 class ConnectionCondition(Schema):
     """Base class for connection control conditions."""
 
-    type: str = Field(init=False)
+    type: str = Field(
+        init=False,
+        title="Condition type",
+    )
     """Discriminator for condition types."""
 
-    name: str | None = None
+    name: str | None = Field(
+        default=None,
+        examples=["exit_condition", "message_filter", "cost_check"],
+        title="Condition name",
+    )
     """Optional name for the condition for referencing."""
 
     model_config = ConfigDict(frozen=True)
@@ -36,7 +43,14 @@ class Jinja2Condition(ConnectionCondition):
     type: Literal["jinja2"] = Field("jinja2", init=False)
     """Jinja2 template-based condition."""
 
-    template: str
+    template: str = Field(
+        examples=[
+            "{{ ctx.stats.message_count > 10 }}",
+            "{{ 'error' in ctx.message.content }}",
+            "{{ ctx.stats.total_cost > 1.0 }}",
+        ],
+        title="Jinja2 template",
+    )
     """Jinja2 template to evaluate."""
 
     async def check(self, ctx: EventContext[Any]) -> bool:
@@ -56,13 +70,23 @@ class WordMatchCondition(ConnectionCondition):
     type: Literal["word_match"] = Field("word_match", init=False)
     """Word-comparison-based condition."""
 
-    words: list[str]
+    words: list[str] = Field(
+        examples=[["error", "failed"], ["complete", "done", "finished"], ["urgent"]],
+        title="Words to match",
+    )
     """Words or phrases to match in messages."""
 
-    case_sensitive: bool = False
+    case_sensitive: bool = Field(
+        default=False,
+        title="Case sensitive matching",
+    )
     """Whether to match case-sensitively."""
 
-    mode: Literal["any", "all"] = "any"
+    mode: Literal["any", "all"] = Field(
+        default="any",
+        examples=["any", "all"],
+        title="Matching mode",
+    )
     """Match mode:
     - any: Trigger if any word matches
     - all: Require all words to match
@@ -87,10 +111,18 @@ class MessageCountCondition(ConnectionCondition):
     type: Literal["message_count"] = Field("message_count", init=False)
     """Message-count-based condition."""
 
-    max_messages: int = Field(gt=0)
+    max_messages: int = Field(
+        gt=0,
+        examples=[10, 50, 100],
+        title="Maximum message count",
+    )
     """Maximum number of messages before triggering."""
 
-    count_mode: Literal["total", "per_agent"] = "total"
+    count_mode: Literal["total", "per_agent"] = Field(
+        default="total",
+        examples=["total", "per_agent"],
+        title="Message counting mode",
+    )
     """How to count messages:
     - total: All messages in conversation
     - per_agent: Messages from each agent separately
@@ -112,7 +144,9 @@ class TimeCondition(ConnectionCondition):
     type: Literal["time"] = Field("time", init=False)
     """Time-based condition."""
 
-    duration: timedelta
+    duration: timedelta = Field(
+        title="Duration threshold",
+    )
     """How long the connection should stay active."""
 
     async def check(self, context: EventContext[Any]) -> bool:
@@ -129,10 +163,18 @@ class TokenThresholdCondition(ConnectionCondition):
     type: Literal["token_threshold"] = Field("token_threshold", init=False)
     """Type discriminator."""
 
-    max_tokens: int = Field(gt=0)
+    max_tokens: int = Field(
+        gt=0,
+        examples=[1000, 4000, 8000],
+        title="Maximum token count",
+    )
     """Maximum number of tokens allowed."""
 
-    count_type: Literal["total", "prompt", "completion"] = "total"
+    count_type: Literal["total", "prompt", "completion"] = Field(
+        default="total",
+        examples=["total", "prompt", "completion"],
+        title="Token counting type",
+    )
     """What tokens to count:
     - total: All tokens used
     - prompt: Only prompt tokens
@@ -161,7 +203,11 @@ class CostCondition(ConnectionCondition):
     type: Literal["cost"] = Field("cost", init=False)
     """Cost-based condition."""
 
-    max_cost: float = Field(gt=0.0)
+    max_cost: float = Field(
+        gt=0.0,
+        examples=[1.0, 5.0, 10.0],
+        title="Maximum cost threshold",
+    )
     """Maximum cost in USD."""
 
     async def check(self, context: EventContext[Any]) -> bool:
@@ -175,7 +221,11 @@ class CostLimitCondition(ConnectionCondition):
     type: Literal["cost_limit"] = Field("cost_limit", init=False)
     """Cost-limit condition."""
 
-    max_cost: float = Field(gt=0.0)
+    max_cost: float = Field(
+        gt=0.0,
+        examples=[1.0, 5.0, 10.0],
+        title="Cost limit",
+    )
     """Maximum cost in USD before triggering."""
 
     async def check(self, context: EventContext[Any]) -> bool:
@@ -191,7 +241,10 @@ class CallableCondition(ConnectionCondition):
     type: Literal["callable"] = Field("callable", init=False)
     """Condition based on an import path pointing to a predicate."""
 
-    predicate: ImportString[Callable[..., bool | Awaitable[bool]]]
+    predicate: ImportString[Callable[..., bool | Awaitable[bool]]] = Field(
+        examples=["mymodule.check_condition", "utils.predicates:is_urgent"],
+        title="Predicate function",
+    )
     """Function to evaluate condition:
     Args:
         message: Current message being processed
@@ -213,7 +266,9 @@ class AndCondition(ConnectionCondition):
     type: Literal["and"] = Field("and", init=False)
     """Condition to AND-combine multiple conditions."""
 
-    conditions: list[ConnectionCondition]
+    conditions: list[ConnectionCondition] = Field(
+        title="AND conditions",
+    )
     """List of conditions to check."""
 
     async def check(self, context: EventContext[Any]) -> bool:
@@ -228,7 +283,9 @@ class OrCondition(ConnectionCondition):
     type: Literal["or"] = Field("or", init=False)
     """Condition to OR-combine multiple conditions."""
 
-    conditions: list[ConnectionCondition]
+    conditions: list[ConnectionCondition] = Field(
+        title="OR conditions",
+    )
     """List of conditions to check."""
 
     async def check(self, context: EventContext[Any]) -> bool:

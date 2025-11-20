@@ -38,19 +38,38 @@ class WebSearchToolConfig(BaseBuiltinToolConfig):
     type: Literal["web_search"] = Field("web_search", init=False)
     """Web search builtin tool."""
 
-    search_context_size: Literal["low", "medium", "high"] = "medium"
+    search_context_size: Literal["low", "medium", "high"] = Field(
+        default="medium",
+        examples=["low", "medium", "high"],
+        title="Search context size",
+    )
     """The search context size parameter controls how much context is retrieved."""
 
-    user_location: WebSearchUserLocation | None = None
+    user_location: WebSearchUserLocation | None = Field(
+        default=None,
+        title="User location",
+    )
     """User location for localizing search results (city, country, region, timezone)."""
 
-    blocked_domains: list[str] | None = None
+    blocked_domains: list[str] | None = Field(
+        default=None,
+        examples=[["spam.com", "ads.example.com"], ["blocked.site"]],
+        title="Blocked domains",
+    )
     """Domains that will never appear in results."""
 
-    allowed_domains: list[str] | None = None
+    allowed_domains: list[str] | None = Field(
+        default=None,
+        examples=[["wikipedia.org", "github.com"], ["trusted.site"]],
+        title="Allowed domains",
+    )
     """Only these domains will be included in results."""
 
-    max_uses: int | None = None
+    max_uses: int | None = Field(
+        default=None,
+        examples=[5, 10, 20],
+        title="Maximum uses",
+    )
     """Maximum number of times the tool can be used."""
 
     def get_builtin_tool(self) -> WebSearchTool:
@@ -92,28 +111,60 @@ class ImageGenerationToolConfig(BaseBuiltinToolConfig):
     type: Literal["image_generation"] = Field("image_generation", init=False)
     """Image generation builtin tool."""
 
-    background: Literal["transparent", "opaque", "auto"] = "auto"
+    background: Literal["transparent", "opaque", "auto"] = Field(
+        default="auto",
+        examples=["transparent", "opaque", "auto"],
+        title="Background type",
+    )
     """Background type for the generated image."""
 
-    input_fidelity: Literal["high", "low"] | None = None
+    input_fidelity: Literal["high", "low"] | None = Field(
+        default=None,
+        examples=["high", "low"],
+        title="Input fidelity",
+    )
     """Control how much effort the model will exert to match input image features."""
 
-    moderation: Literal["auto", "low"] = "auto"
+    moderation: Literal["auto", "low"] = Field(
+        default="auto",
+        examples=["auto", "low"],
+        title="Moderation level",
+    )
     """Moderation level for the generated image."""
 
-    output_compression: int = 100
+    output_compression: int = Field(
+        default=100,
+        examples=[80, 90, 100],
+        title="Output compression",
+    )
     """Compression level for the output image."""
 
-    output_format: Literal["png", "webp", "jpeg"] | None = None
+    output_format: Literal["png", "webp", "jpeg"] | None = Field(
+        default=None,
+        examples=["png", "webp", "jpeg"],
+        title="Output format",
+    )
     """The output format of the generated image."""
 
-    partial_images: int = 0
+    partial_images: int = Field(
+        default=0,
+        examples=[0, 2, 4],
+        title="Partial images count",
+    )
     """Number of partial images to generate in streaming mode."""
 
-    quality: Literal["low", "medium", "high", "auto"] = "auto"
+    quality: Literal["low", "medium", "high", "auto"] = Field(
+        default="auto",
+        examples=["low", "medium", "high", "auto"],
+        title="Image quality",
+    )
     """The quality of the generated image."""
 
-    size: Literal["1024x1024", "1024x1536", "1536x1024", "auto"] = "auto"
+    size: Literal["1024x1024", "1024x1536", "1536x1024", "auto"] = Field(
+        default="auto",
+        examples=["1024x1024", "1024x1536", "1536x1024", "auto"],
+        title="Image size",
+    )
     """The size of the generated image."""
 
     def get_builtin_tool(self) -> ImageGenerationTool:
@@ -149,22 +200,44 @@ class MCPServerToolConfig(BaseBuiltinToolConfig):
     type: Literal["mcp_server"] = Field("mcp_server", init=False)
     """MCP server builtin tool."""
 
-    server_id: str = Field(alias="id")
+    server_id: str = Field(
+        alias="id",
+        examples=["my_mcp_server", "code_tools", "web_api"],
+        title="Server ID",
+    )
     """A unique identifier for the MCP server."""
 
-    url: str
+    url: str = Field(
+        examples=["https://api.example.com/mcp", "http://localhost:8080"],
+        title="Server URL",
+    )
     """The URL of the MCP server to use."""
 
-    authorization_token: str | None = None
+    authorization_token: str | None = Field(
+        default=None,
+        examples=["Bearer token123", "api_key_abc"],
+        title="Authorization token",
+    )
     """Authorization header to use when making requests to the MCP server."""
 
-    description: str | None = None
+    description: str | None = Field(
+        default=None,
+        examples=["External API tools", "Code execution server"],
+        title="Server description",
+    )
     """A description of the MCP server."""
 
-    allowed_tools: list[str] | None = None
+    allowed_tools: list[str] | None = Field(
+        default=None,
+        examples=[["search", "fetch"], ["execute", "compile"]],
+        title="Allowed tools",
+    )
     """A list of tools that the MCP server can use."""
 
-    headers: dict[str, str] | None = None
+    headers: dict[str, str] | None = Field(
+        default=None,
+        title="HTTP headers",
+    )
     """Optional HTTP headers to send to the MCP server."""
 
     def get_builtin_tool(self) -> MCPServerTool:

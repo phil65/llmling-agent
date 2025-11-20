@@ -15,17 +15,27 @@ class Knowledge(Schema):
     plus LLMling's prompt system for dynamic content generation.
     """
 
-    paths: list[str] = Field(default_factory=list)
+    paths: list[str] = Field(
+        default_factory=list,
+        examples=[["docs/readme.md", "https://api.example.com/docs"], ["/data/context.txt"]],
+        title="Resource paths",
+    )
     """Quick access to files and URLs."""
 
-    prompts: list[PromptType] = Field(default_factory=list)
+    prompts: list[PromptType] = Field(
+        default_factory=list,
+        title="Dynamic prompts",
+    )
     """Prompts for dynamic content generation:
     - StaticPrompt: Fixed message templates
     - DynamicPrompt: Python function-based
     - FilePrompt: File-based with template support
     """
 
-    convert_to_markdown: bool = False
+    convert_to_markdown: bool = Field(
+        default=False,
+        title="Convert to markdown",
+    )
     """Whether to convert content to markdown when possible."""
 
     model_config = ConfigDict(frozen=True)

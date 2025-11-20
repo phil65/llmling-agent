@@ -2262,7 +2262,7 @@
         },
         "enabled": {
           "default": true,
-          "title": "Enabled",
+          "title": "Provider enabled",
           "type": "boolean"
         },
         "service_name": {
@@ -2275,7 +2275,12 @@
             }
           ],
           "default": null,
-          "title": "Service Name"
+          "examples": [
+            "llmling-agent",
+            "my-ai-service",
+            "production-bot"
+          ],
+          "title": "Service name"
         },
         "environment": {
           "anyOf": [
@@ -2287,11 +2292,21 @@
             }
           ],
           "default": null,
+          "examples": [
+            "production",
+            "staging",
+            "development"
+          ],
           "title": "Environment"
         },
         "protocol": {
           "default": "http/protobuf",
           "enum": [
+            "http/protobuf",
+            "grpc",
+            "http/json"
+          ],
+          "examples": [
             "http/protobuf",
             "grpc",
             "http/json"
@@ -2311,7 +2326,7 @@
             }
           ],
           "default": null,
-          "title": "Api Key"
+          "title": "AgentOps API key"
         }
       },
       "title": "AgentOpsObservabilityConfig",
@@ -2323,7 +2338,12 @@
       "properties": {
         "name": {
           "description": "Name of the node to use as a worker.",
-          "title": "Name",
+          "examples": [
+            "web_agent",
+            "code_analyzer",
+            "data_processor"
+          ],
+          "title": "Worker node name",
           "type": "string"
         },
         "type": {
@@ -2336,13 +2356,13 @@
         "reset_history_on_run": {
           "default": true,
           "description": "Whether to clear worker's conversation history before each run.\nTrue (default): Fresh conversation each time\nFalse: Maintain conversation context between runs",
-          "title": "Reset History On Run",
+          "title": "Reset history on run",
           "type": "boolean"
         },
         "pass_message_history": {
           "default": false,
           "description": "Whether to pass parent agent's message history to worker.\nTrue: Worker sees parent's conversation context\nFalse (default): Worker only sees current request",
-          "title": "Pass Message History",
+          "title": "Pass message history",
           "type": "boolean"
         }
       },
@@ -2374,14 +2394,19 @@
           ],
           "default": null,
           "description": "Optional name for the condition for referencing.",
-          "title": "Name"
+          "examples": [
+            "exit_condition",
+            "message_filter",
+            "cost_check"
+          ],
+          "title": "Condition name"
         },
         "conditions": {
           "description": "List of conditions to check.",
           "items": {
             "$ref": "#/$defs/ConnectionCondition"
           },
-          "title": "Conditions",
+          "title": "AND conditions",
           "type": "array"
         }
       },
@@ -2403,7 +2428,7 @@
         },
         "enabled": {
           "default": true,
-          "title": "Enabled",
+          "title": "Provider enabled",
           "type": "boolean"
         },
         "service_name": {
@@ -2416,7 +2441,12 @@
             }
           ],
           "default": null,
-          "title": "Service Name"
+          "examples": [
+            "llmling-agent",
+            "my-ai-service",
+            "production-bot"
+          ],
+          "title": "Service name"
         },
         "environment": {
           "anyOf": [
@@ -2428,11 +2458,21 @@
             }
           ],
           "default": null,
+          "examples": [
+            "production",
+            "staging",
+            "development"
+          ],
           "title": "Environment"
         },
         "protocol": {
           "default": "http/protobuf",
           "enum": [
+            "http/protobuf",
+            "grpc",
+            "http/json"
+          ],
+          "examples": [
             "http/protobuf",
             "grpc",
             "http/json"
@@ -2452,7 +2492,7 @@
             }
           ],
           "default": null,
-          "title": "Api Key"
+          "title": "Arize API key"
         },
         "space_key": {
           "anyOf": [
@@ -2464,7 +2504,12 @@
             }
           ],
           "default": null,
-          "title": "Space Key"
+          "examples": [
+            "default",
+            "team-space",
+            "production-space"
+          ],
+          "title": "Space key"
         },
         "model_id": {
           "anyOf": [
@@ -2476,7 +2521,12 @@
             }
           ],
           "default": null,
-          "title": "Model Id"
+          "examples": [
+            "gpt-4",
+            "claude-3",
+            "my-model"
+          ],
+          "title": "Model ID"
         }
       },
       "title": "ArizePhoenixObservabilityConfig",
@@ -2697,7 +2747,7 @@
           ],
           "default": null,
           "description": "API key for the Braintrust API.",
-          "title": "Api Key"
+          "title": "Braintrust API key"
         },
         "project": {
           "anyOf": [
@@ -2710,7 +2760,12 @@
           ],
           "default": null,
           "description": "Braintrust Project name.",
-          "title": "Project"
+          "examples": [
+            "my_project",
+            "ai_agents",
+            "production"
+          ],
+          "title": "Braintrust project"
         }
       },
       "title": "BraintrustConfig",
@@ -2738,7 +2793,12 @@
           ],
           "default": null,
           "description": "Command name (optional, can be inferred from key).",
-          "title": "Name"
+          "examples": [
+            "summarize",
+            "code_review",
+            "translate"
+          ],
+          "title": "Command name"
         },
         "description": {
           "anyOf": [
@@ -2751,11 +2811,20 @@
           ],
           "default": null,
           "description": "Optional description of what this command does.",
-          "title": "Description"
+          "examples": [
+            "Summarize the given text",
+            "Review code for issues"
+          ],
+          "title": "Command description"
         },
         "function": {
           "description": "Python function import path (e.g., 'my.package.module.function_name').",
-          "title": "Function",
+          "examples": [
+            "mymodule.commands.summarize",
+            "utils.prompts:code_review",
+            "external.tools:translate_text"
+          ],
+          "title": "Function import path",
           "type": "string"
         }
       },
@@ -2787,11 +2856,20 @@
           ],
           "default": null,
           "description": "Optional name for the condition for referencing.",
-          "title": "Name"
+          "examples": [
+            "exit_condition",
+            "message_filter",
+            "cost_check"
+          ],
+          "title": "Condition name"
         },
         "predicate": {
           "description": "Function to evaluate condition:\nArgs:\n    message: Current message being processed\n    stats: Current connection statistics\nReturns:\n    Whether condition is met",
-          "title": "Predicate",
+          "examples": [
+            "mymodule.check_condition",
+            "utils.predicates:is_urgent"
+          ],
+          "title": "Predicate function",
           "type": "string"
         }
       },
@@ -2815,13 +2893,13 @@
         "wait_for_completion": {
           "default": true,
           "description": "Whether to wait for the result before continuing.\n\nIf True, message processing will wait for the target to complete.\nIf False, message will be forwarded asynchronously.",
-          "title": "Wait For Completion",
+          "title": "Wait for completion",
           "type": "boolean"
         },
         "queued": {
           "default": false,
           "description": "Whether messages should be queued for manual processing.",
-          "title": "Queued",
+          "title": "Enable message queueing",
           "type": "boolean"
         },
         "queue_strategy": {
@@ -2832,13 +2910,23 @@
             "latest",
             "buffer"
           ],
-          "title": "Queue Strategy",
+          "examples": [
+            "concat",
+            "latest",
+            "buffer"
+          ],
+          "title": "Queue processing strategy",
           "type": "string"
         },
         "priority": {
           "default": 0,
           "description": "Priority of the task. Lower = higher priority.",
-          "title": "Priority",
+          "examples": [
+            0,
+            1,
+            5
+          ],
+          "title": "Task priority",
           "type": "integer"
         },
         "delay": {
@@ -2853,7 +2941,7 @@
           ],
           "default": null,
           "description": "Delay before processing.",
-          "title": "Delay"
+          "title": "Processing delay"
         },
         "filter_condition": {
           "anyOf": [
@@ -2908,7 +2996,7 @@
           ],
           "default": null,
           "description": "When to filter messages (using Talk.when()).",
-          "title": "Filter Condition"
+          "title": "Message filter condition"
         },
         "stop_condition": {
           "anyOf": [
@@ -2963,7 +3051,7 @@
           ],
           "default": null,
           "description": "When to disconnect the connection.",
-          "title": "Stop Condition"
+          "title": "Connection stop condition"
         },
         "exit_condition": {
           "anyOf": [
@@ -3018,7 +3106,7 @@
           ],
           "default": null,
           "description": "When to exit the application (by raising SystemExit).",
-          "title": "Exit Condition"
+          "title": "Application exit condition"
         },
         "transform": {
           "anyOf": [
@@ -3031,11 +3119,19 @@
           ],
           "default": null,
           "description": "Optional function to transform messages before forwarding.",
-          "title": "Transform"
+          "examples": [
+            "mymodule.transform_message",
+            "utils.filters:clean_content"
+          ],
+          "title": "Message transform function"
         },
         "callable": {
           "description": "Import path to the message processing function.",
-          "title": "Callable",
+          "examples": [
+            "mymodule.process_message",
+            "handlers.notifications:send_email"
+          ],
+          "title": "Callable import path",
           "type": "string"
         },
         "connection_type": {
@@ -3048,7 +3144,7 @@
         "kw_args": {
           "additionalProperties": true,
           "description": "Additional kwargs to pass to the callable.",
-          "title": "Kw Args",
+          "title": "Additional arguments",
           "type": "object"
         }
       },
@@ -3329,7 +3425,7 @@
       "properties": {
         "type": {
           "description": "Discriminator for condition types.",
-          "title": "Type",
+          "title": "Condition type",
           "type": "string"
         },
         "name": {
@@ -3343,7 +3439,12 @@
           ],
           "default": null,
           "description": "Optional name for the condition for referencing.",
-          "title": "Name"
+          "examples": [
+            "exit_condition",
+            "message_filter",
+            "cost_check"
+          ],
+          "title": "Condition name"
         }
       },
       "required": [
@@ -3400,7 +3501,7 @@
           ],
           "default": null,
           "description": "List of configured converter providers.",
-          "title": "Providers"
+          "title": "Converter providers"
         },
         "default_provider": {
           "anyOf": [
@@ -3413,7 +3514,12 @@
           ],
           "default": null,
           "description": "Name of default provider for conversions.",
-          "title": "Default Provider"
+          "examples": [
+            "markitdown",
+            "youtube",
+            "whisper_api"
+          ],
+          "title": "Default provider"
         },
         "max_size": {
           "anyOf": [
@@ -3426,7 +3532,12 @@
           ],
           "default": null,
           "description": "Global size limit for all converters.",
-          "title": "Max Size"
+          "examples": [
+            1048576,
+            10485760,
+            52428800
+          ],
+          "title": "Global size limit"
         }
       },
       "title": "ConversionConfig",
@@ -3454,12 +3565,22 @@
           ],
           "default": null,
           "description": "Optional name for the condition for referencing.",
-          "title": "Name"
+          "examples": [
+            "exit_condition",
+            "message_filter",
+            "cost_check"
+          ],
+          "title": "Condition name"
         },
         "max_cost": {
           "description": "Maximum cost in USD before triggering.",
+          "examples": [
+            1.0,
+            5.0,
+            10.0
+          ],
           "exclusiveMinimum": 0.0,
-          "title": "Max Cost",
+          "title": "Cost limit",
           "type": "number"
         }
       },
@@ -3582,7 +3703,7 @@
         },
         "enabled": {
           "default": true,
-          "title": "Enabled",
+          "title": "Provider enabled",
           "type": "boolean"
         },
         "service_name": {
@@ -3595,7 +3716,12 @@
             }
           ],
           "default": null,
-          "title": "Service Name"
+          "examples": [
+            "llmling-agent",
+            "my-ai-service",
+            "production-bot"
+          ],
+          "title": "Service name"
         },
         "environment": {
           "anyOf": [
@@ -3607,6 +3733,11 @@
             }
           ],
           "default": null,
+          "examples": [
+            "production",
+            "staging",
+            "development"
+          ],
           "title": "Environment"
         },
         "protocol": {
@@ -3616,18 +3747,27 @@
             "grpc",
             "http/json"
           ],
+          "examples": [
+            "http/protobuf",
+            "grpc",
+            "http/json"
+          ],
           "title": "Protocol",
           "type": "string"
         },
         "endpoint": {
-          "title": "Endpoint",
+          "examples": [
+            "https://otel.example.com",
+            "http://localhost:4318"
+          ],
+          "title": "OTEL endpoint",
           "type": "string"
         },
         "headers": {
           "additionalProperties": {
             "type": "string"
           },
-          "title": "Headers",
+          "title": "Custom headers",
           "type": "object"
         }
       },
@@ -4377,7 +4517,12 @@
           ],
           "default": null,
           "description": "Command name (optional, can be inferred from key).",
-          "title": "Name"
+          "examples": [
+            "summarize",
+            "code_review",
+            "translate"
+          ],
+          "title": "Command name"
         },
         "description": {
           "anyOf": [
@@ -4390,17 +4535,31 @@
           ],
           "default": null,
           "description": "Optional description of what this command does.",
-          "title": "Description"
+          "examples": [
+            "Summarize the given text",
+            "Review code for issues"
+          ],
+          "title": "Command description"
         },
         "path": {
           "description": "Path to file containing the prompt template.",
-          "title": "Path",
+          "examples": [
+            "prompts/summarize.txt",
+            "/templates/code_review.j2",
+            "commands/translate.md"
+          ],
+          "title": "Template file path",
           "type": "string"
         },
         "encoding": {
           "default": "utf-8",
           "description": "File encoding to use when reading the file.",
-          "title": "Encoding",
+          "examples": [
+            "utf-8",
+            "ascii",
+            "latin1"
+          ],
+          "title": "File encoding",
           "type": "string"
         }
       },
@@ -4424,13 +4583,13 @@
         "wait_for_completion": {
           "default": true,
           "description": "Whether to wait for the result before continuing.\n\nIf True, message processing will wait for the target to complete.\nIf False, message will be forwarded asynchronously.",
-          "title": "Wait For Completion",
+          "title": "Wait for completion",
           "type": "boolean"
         },
         "queued": {
           "default": false,
           "description": "Whether messages should be queued for manual processing.",
-          "title": "Queued",
+          "title": "Enable message queueing",
           "type": "boolean"
         },
         "queue_strategy": {
@@ -4441,13 +4600,23 @@
             "latest",
             "buffer"
           ],
-          "title": "Queue Strategy",
+          "examples": [
+            "concat",
+            "latest",
+            "buffer"
+          ],
+          "title": "Queue processing strategy",
           "type": "string"
         },
         "priority": {
           "default": 0,
           "description": "Priority of the task. Lower = higher priority.",
-          "title": "Priority",
+          "examples": [
+            0,
+            1,
+            5
+          ],
+          "title": "Task priority",
           "type": "integer"
         },
         "delay": {
@@ -4462,7 +4631,7 @@
           ],
           "default": null,
           "description": "Delay before processing.",
-          "title": "Delay"
+          "title": "Processing delay"
         },
         "filter_condition": {
           "anyOf": [
@@ -4517,7 +4686,7 @@
           ],
           "default": null,
           "description": "When to filter messages (using Talk.when()).",
-          "title": "Filter Condition"
+          "title": "Message filter condition"
         },
         "stop_condition": {
           "anyOf": [
@@ -4572,7 +4741,7 @@
           ],
           "default": null,
           "description": "When to disconnect the connection.",
-          "title": "Stop Condition"
+          "title": "Connection stop condition"
         },
         "exit_condition": {
           "anyOf": [
@@ -4627,7 +4796,7 @@
           ],
           "default": null,
           "description": "When to exit the application (by raising SystemExit).",
-          "title": "Exit Condition"
+          "title": "Application exit condition"
         },
         "transform": {
           "anyOf": [
@@ -4640,7 +4809,11 @@
           ],
           "default": null,
           "description": "Optional function to transform messages before forwarding.",
-          "title": "Transform"
+          "examples": [
+            "mymodule.transform_message",
+            "utils.filters:clean_content"
+          ],
+          "title": "Message transform function"
         },
         "connection_type": {
           "const": "run",
@@ -4651,19 +4824,34 @@
         },
         "path": {
           "description": "Path to output file. Supports variables: {date}, {time}, {agent}",
-          "title": "Path",
+          "examples": [
+            "logs/messages.txt",
+            "/var/log/agent-{date}.log",
+            "output/{agent}.md"
+          ],
+          "title": "Output file path",
           "type": "string"
         },
         "template": {
           "default": "\n[{{ message.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}] {{ message.name }}: {{ message.content }}\n{%- if message.forwarded_from %}\n(via: {{ message.forwarded_from|join(' -> ') }})\n{%- endif %}\n",
           "description": "Jinja2 template for message formatting.",
-          "title": "Template",
+          "examples": [
+            "\n[{{ message.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}] {{ message.name }}: {{ message.content }}\n{%- if message.forwarded_from %}\n(via: {{ message.forwarded_from|join(' -> ') }})\n{%- endif %}\n",
+            "{{ message.content }}",
+            "[{{ message.name }}]: {{ message.content }}"
+          ],
+          "title": "Message template",
           "type": "string"
         },
         "encoding": {
           "default": "utf-8",
           "description": "File encoding to use.",
-          "title": "Encoding",
+          "examples": [
+            "utf-8",
+            "ascii",
+            "latin1"
+          ],
+          "title": "File encoding",
           "type": "string"
         }
       },
@@ -5153,19 +5341,30 @@
         "enabled": {
           "default": true,
           "description": "Whether this converter is currently active.",
-          "title": "Enabled",
+          "title": "Converter enabled",
           "type": "boolean"
         },
         "language": {
           "default": "en-US",
           "description": "Language code for transcription.",
-          "title": "Language",
+          "examples": [
+            "en-US",
+            "es-ES",
+            "fr-FR",
+            "de-DE"
+          ],
+          "title": "Language code",
           "type": "string"
         },
         "model": {
           "default": "default",
           "description": "Speech model to use.",
-          "title": "Model",
+          "examples": [
+            "default",
+            "command_and_search",
+            "phone_call"
+          ],
+          "title": "Speech model",
           "type": "string"
         },
         "encoding": {
@@ -5176,7 +5375,12 @@
             "FLAC",
             "MP3"
           ],
-          "title": "Encoding",
+          "examples": [
+            "LINEAR16",
+            "FLAC",
+            "MP3"
+          ],
+          "title": "Audio encoding",
           "type": "string"
         }
       },
@@ -5511,11 +5715,21 @@
           ],
           "default": null,
           "description": "Optional name for the condition for referencing.",
-          "title": "Name"
+          "examples": [
+            "exit_condition",
+            "message_filter",
+            "cost_check"
+          ],
+          "title": "Condition name"
         },
         "template": {
           "description": "Jinja2 template to evaluate.",
-          "title": "Template",
+          "examples": [
+            "{{ ctx.stats.message_count > 10 }}",
+            "{{ 'error' in ctx.message.content }}",
+            "{{ ctx.stats.total_cost > 1.0 }}"
+          ],
+          "title": "Jinja2 template",
           "type": "string"
         }
       },
@@ -5539,7 +5753,12 @@
           ],
           "default": null,
           "description": "Technical identifier (automatically set from config key during registration)",
-          "title": "Name"
+          "examples": [
+            "analyze_code",
+            "generate_summary",
+            "translate_text"
+          ],
+          "title": "Task name"
         },
         "description": {
           "anyOf": [
@@ -5552,7 +5771,12 @@
           ],
           "default": null,
           "description": "Human-readable description of what this task does",
-          "title": "Description"
+          "examples": [
+            "Analyze code for issues",
+            "Generate a summary",
+            "Translate text to target language"
+          ],
+          "title": "Task description"
         },
         "prompt": {
           "anyOf": [
@@ -5564,12 +5788,21 @@
             }
           ],
           "description": "The task instruction/prompt.",
-          "title": "Prompt"
+          "examples": [
+            "Analyze the following code",
+            "mymodule.prompts:analysis_prompt"
+          ],
+          "title": "Task prompt"
         },
         "required_return_type": {
           "default": "str",
           "description": "Expected type of the task result.",
-          "title": "Required Return Type",
+          "examples": [
+            "str",
+            "dict",
+            "mymodule.models:AnalysisResult"
+          ],
+          "title": "Required return type",
           "type": "string"
         },
         "required_dependency": {
@@ -5583,12 +5816,16 @@
           ],
           "default": null,
           "description": "Dependencies or context data needed for task execution",
-          "title": "Required Dependency"
+          "examples": [
+            "mymodule.deps:DatabaseDeps",
+            "utils.context:TaskContext"
+          ],
+          "title": "Required dependencies"
         },
         "requires_vision": {
           "default": false,
           "description": "Whether the agent requires vision",
-          "title": "Requires Vision",
+          "title": "Requires vision capabilities",
           "type": "boolean"
         },
         "knowledge": {
@@ -5601,7 +5838,8 @@
             }
           ],
           "default": null,
-          "description": "Optional knowledge sources for this task:\n- Simple file/URL paths\n- Rich resource definitions\n- Prompt templates"
+          "description": "Optional knowledge sources for this task:\n- Simple file/URL paths\n- Rich resource definitions\n- Prompt templates",
+          "title": "Task knowledge sources"
         },
         "tools": {
           "description": "Tools needed for this task.",
@@ -5615,7 +5853,7 @@
               }
             ]
           },
-          "title": "Tools",
+          "title": "Task tools",
           "type": "array"
         },
         "min_context_tokens": {
@@ -5629,7 +5867,12 @@
           ],
           "default": null,
           "description": "Minimum amount of required context size.",
-          "title": "Min Context Tokens"
+          "examples": [
+            1000,
+            4000,
+            8000
+          ],
+          "title": "Minimum context tokens"
         }
       },
       "required": [
@@ -5644,10 +5887,19 @@
       "properties": {
         "paths": {
           "description": "Quick access to files and URLs.",
+          "examples": [
+            [
+              "docs/readme.md",
+              "https://api.example.com/docs"
+            ],
+            [
+              "/data/context.txt"
+            ]
+          ],
           "items": {
             "type": "string"
           },
-          "title": "Paths",
+          "title": "Resource paths",
           "type": "array"
         },
         "prompts": {
@@ -5673,13 +5925,13 @@
               }
             ]
           },
-          "title": "Prompts",
+          "title": "Dynamic prompts",
           "type": "array"
         },
         "convert_to_markdown": {
           "default": false,
           "description": "Whether to convert content to markdown when possible.",
-          "title": "Convert To Markdown",
+          "title": "Convert to markdown",
           "type": "boolean"
         }
       },
@@ -5802,45 +6054,64 @@
         "secret_key": {
           "description": "Secret key for the Langfuse API.",
           "format": "password",
-          "title": "Secret Key",
+          "title": "Langfuse secret key",
           "type": "string",
           "writeOnly": true
         },
         "public_key": {
           "description": "Public key for the Langfuse API.",
           "format": "password",
-          "title": "Public Key",
+          "title": "Langfuse public key",
           "type": "string",
           "writeOnly": true
         },
         "host": {
           "default": "https://cloud.langfuse.com/",
           "description": "Langfuse host address.",
+          "examples": [
+            "https://cloud.langfuse.com",
+            "https://langfuse.example.com"
+          ],
           "format": "uri",
           "maxLength": 2083,
           "minLength": 1,
-          "title": "Host",
+          "title": "Langfuse host",
           "type": "string"
         },
         "cache_ttl_seconds": {
           "default": 60,
           "description": "Cache TTL for responses in seconds.",
+          "examples": [
+            60,
+            300,
+            3600
+          ],
           "minimum": 0,
-          "title": "Cache Ttl Seconds",
+          "title": "Cache TTL seconds",
           "type": "integer"
         },
         "max_retries": {
           "default": 2,
           "description": "Maximum number of retries for failed requests.",
+          "examples": [
+            1,
+            2,
+            5
+          ],
           "minimum": 0,
-          "title": "Max Retries",
+          "title": "Maximum retries",
           "type": "integer"
         },
         "fetch_timeout_seconds": {
           "default": 20,
           "description": "Timeout for fetching responses in seconds.",
+          "examples": [
+            10,
+            20,
+            60
+          ],
           "minimum": 0,
-          "title": "Fetch Timeout Seconds",
+          "title": "Fetch timeout seconds",
           "type": "integer"
         }
       },
@@ -5863,7 +6134,7 @@
         },
         "enabled": {
           "default": true,
-          "title": "Enabled",
+          "title": "Provider enabled",
           "type": "boolean"
         },
         "service_name": {
@@ -5876,7 +6147,12 @@
             }
           ],
           "default": null,
-          "title": "Service Name"
+          "examples": [
+            "llmling-agent",
+            "my-ai-service",
+            "production-bot"
+          ],
+          "title": "Service name"
         },
         "environment": {
           "anyOf": [
@@ -5888,11 +6164,21 @@
             }
           ],
           "default": null,
+          "examples": [
+            "production",
+            "staging",
+            "development"
+          ],
           "title": "Environment"
         },
         "protocol": {
           "default": "http/protobuf",
           "enum": [
+            "http/protobuf",
+            "grpc",
+            "http/json"
+          ],
+          "examples": [
             "http/protobuf",
             "grpc",
             "http/json"
@@ -5912,7 +6198,7 @@
             }
           ],
           "default": null,
-          "title": "Api Key"
+          "title": "Langsmith API key"
         },
         "project_name": {
           "anyOf": [
@@ -5924,7 +6210,12 @@
             }
           ],
           "default": null,
-          "title": "Project Name"
+          "examples": [
+            "my-project",
+            "ai-agents",
+            "production"
+          ],
+          "title": "Project name"
         }
       },
       "title": "LangsmithObservabilityConfig",
@@ -6067,7 +6358,7 @@
         "enabled": {
           "default": true,
           "description": "Whether this converter is currently active.",
-          "title": "Enabled",
+          "title": "Converter enabled",
           "type": "boolean"
         },
         "model": {
@@ -6081,7 +6372,11 @@
           ],
           "default": null,
           "description": "Optional model name.",
-          "title": "Model"
+          "examples": [
+            "whisper-1",
+            "whisper-large"
+          ],
+          "title": "Whisper model"
         },
         "model_size": {
           "default": "base",
@@ -6093,7 +6388,14 @@
             "medium",
             "large"
           ],
-          "title": "Model Size",
+          "examples": [
+            "tiny",
+            "base",
+            "small",
+            "medium",
+            "large"
+          ],
+          "title": "Model size",
           "type": "string"
         },
         "device": {
@@ -6111,7 +6413,11 @@
           ],
           "default": null,
           "description": "Device to run model on (None for auto-select).",
-          "title": "Device"
+          "examples": [
+            "cpu",
+            "cuda"
+          ],
+          "title": "Compute device"
         },
         "compute_type": {
           "default": "float16",
@@ -6120,7 +6426,11 @@
             "float32",
             "float16"
           ],
-          "title": "Compute Type",
+          "examples": [
+            "float32",
+            "float16"
+          ],
+          "title": "Compute precision",
           "type": "string"
         }
       },
@@ -6139,7 +6449,7 @@
         },
         "enabled": {
           "default": true,
-          "title": "Enabled",
+          "title": "Provider enabled",
           "type": "boolean"
         },
         "service_name": {
@@ -6152,7 +6462,12 @@
             }
           ],
           "default": null,
-          "title": "Service Name"
+          "examples": [
+            "llmling-agent",
+            "my-ai-service",
+            "production-bot"
+          ],
+          "title": "Service name"
         },
         "environment": {
           "anyOf": [
@@ -6164,11 +6479,21 @@
             }
           ],
           "default": null,
+          "examples": [
+            "production",
+            "staging",
+            "development"
+          ],
           "title": "Environment"
         },
         "protocol": {
           "default": "http/protobuf",
           "enum": [
+            "http/protobuf",
+            "grpc",
+            "http/json"
+          ],
+          "examples": [
             "http/protobuf",
             "grpc",
             "http/json"
@@ -6188,11 +6513,15 @@
             }
           ],
           "default": null,
-          "title": "Token"
+          "title": "Logfire token"
         },
         "region": {
           "default": "us",
           "enum": [
+            "us",
+            "eu"
+          ],
+          "examples": [
             "us",
             "eu"
           ],
@@ -6293,17 +6622,27 @@
       "properties": {
         "oauth": {
           "default": false,
-          "title": "Oauth",
+          "title": "Enable OAuth",
           "type": "boolean"
         },
         "redirect_port": {
           "default": 3030,
-          "title": "Redirect Port",
+          "examples": [
+            3030,
+            8080,
+            9000
+          ],
+          "title": "Redirect port",
           "type": "integer"
         },
         "redirect_path": {
           "default": "/callback",
-          "title": "Redirect Path",
+          "examples": [
+            "/callback",
+            "/auth/callback",
+            "/oauth"
+          ],
+          "title": "Redirect path",
           "type": "string"
         },
         "scope": {
@@ -6322,7 +6661,15 @@
             }
           ],
           "default": null,
-          "title": "Scope"
+          "examples": [
+            "read write",
+            [
+              "read",
+              "write"
+            ],
+            "admin"
+          ],
+          "title": "OAuth scope"
         },
         "persist": {
           "default": "keyring",
@@ -6330,7 +6677,11 @@
             "keyring",
             "memory"
           ],
-          "title": "Persist",
+          "examples": [
+            "keyring",
+            "memory"
+          ],
+          "title": "Token persistence",
           "type": "string"
         }
       },
@@ -6351,7 +6702,7 @@
         "enabled": {
           "default": true,
           "description": "Whether this converter is currently active.",
-          "title": "Enabled",
+          "title": "Converter enabled",
           "type": "boolean"
         },
         "max_size": {
@@ -6366,7 +6717,12 @@
           ],
           "default": null,
           "description": "Optional size limit in bytes.",
-          "title": "Max Size"
+          "examples": [
+            1048576,
+            10485760,
+            52428800
+          ],
+          "title": "Maximum file size"
         }
       },
       "title": "MarkItDownConfig",
@@ -6612,12 +6968,22 @@
           ],
           "default": null,
           "description": "Optional name for the condition for referencing.",
-          "title": "Name"
+          "examples": [
+            "exit_condition",
+            "message_filter",
+            "cost_check"
+          ],
+          "title": "Condition name"
         },
         "max_messages": {
           "description": "Maximum number of messages before triggering.",
+          "examples": [
+            10,
+            50,
+            100
+          ],
           "exclusiveMinimum": 0,
-          "title": "Max Messages",
+          "title": "Maximum message count",
           "type": "integer"
         },
         "count_mode": {
@@ -6627,7 +6993,11 @@
             "total",
             "per_agent"
           ],
-          "title": "Count Mode",
+          "examples": [
+            "total",
+            "per_agent"
+          ],
+          "title": "Message counting mode",
           "type": "string"
         }
       },
@@ -6651,13 +7021,13 @@
         "wait_for_completion": {
           "default": true,
           "description": "Whether to wait for the result before continuing.\n\nIf True, message processing will wait for the target to complete.\nIf False, message will be forwarded asynchronously.",
-          "title": "Wait For Completion",
+          "title": "Wait for completion",
           "type": "boolean"
         },
         "queued": {
           "default": false,
           "description": "Whether messages should be queued for manual processing.",
-          "title": "Queued",
+          "title": "Enable message queueing",
           "type": "boolean"
         },
         "queue_strategy": {
@@ -6668,13 +7038,23 @@
             "latest",
             "buffer"
           ],
-          "title": "Queue Strategy",
+          "examples": [
+            "concat",
+            "latest",
+            "buffer"
+          ],
+          "title": "Queue processing strategy",
           "type": "string"
         },
         "priority": {
           "default": 0,
           "description": "Priority of the task. Lower = higher priority.",
-          "title": "Priority",
+          "examples": [
+            0,
+            1,
+            5
+          ],
+          "title": "Task priority",
           "type": "integer"
         },
         "delay": {
@@ -6689,7 +7069,7 @@
           ],
           "default": null,
           "description": "Delay before processing.",
-          "title": "Delay"
+          "title": "Processing delay"
         },
         "filter_condition": {
           "anyOf": [
@@ -6744,7 +7124,7 @@
           ],
           "default": null,
           "description": "When to filter messages (using Talk.when()).",
-          "title": "Filter Condition"
+          "title": "Message filter condition"
         },
         "stop_condition": {
           "anyOf": [
@@ -6799,7 +7179,7 @@
           ],
           "default": null,
           "description": "When to disconnect the connection.",
-          "title": "Stop Condition"
+          "title": "Connection stop condition"
         },
         "exit_condition": {
           "anyOf": [
@@ -6854,7 +7234,7 @@
           ],
           "default": null,
           "description": "When to exit the application (by raising SystemExit).",
-          "title": "Exit Condition"
+          "title": "Application exit condition"
         },
         "transform": {
           "anyOf": [
@@ -6867,11 +7247,20 @@
           ],
           "default": null,
           "description": "Optional function to transform messages before forwarding.",
-          "title": "Transform"
+          "examples": [
+            "mymodule.transform_message",
+            "utils.filters:clean_content"
+          ],
+          "title": "Message transform function"
         },
         "name": {
           "description": "Name of target agent.",
-          "title": "Name",
+          "examples": [
+            "output_agent",
+            "processor",
+            "notification_handler"
+          ],
+          "title": "Target node name",
           "type": "string"
         },
         "connection_type": {
@@ -6882,7 +7271,12 @@
             "context",
             "forward"
           ],
-          "title": "Connection Type",
+          "examples": [
+            "run",
+            "context",
+            "forward"
+          ],
+          "title": "Connection type",
           "type": "string"
         }
       },
@@ -6899,7 +7293,7 @@
         "enabled": {
           "default": true,
           "description": "Whether observability is enabled.",
-          "title": "Enabled",
+          "title": "Observability enabled",
           "type": "boolean"
         },
         "provider": {
@@ -6939,7 +7333,7 @@
           ],
           "default": null,
           "description": "Single observability provider configuration.",
-          "title": "Provider"
+          "title": "Observability provider"
         }
       },
       "title": "ObservabilityConfig",
@@ -7066,14 +7460,19 @@
           ],
           "default": null,
           "description": "Optional name for the condition for referencing.",
-          "title": "Name"
+          "examples": [
+            "exit_condition",
+            "message_filter",
+            "cost_check"
+          ],
+          "title": "Condition name"
         },
         "conditions": {
           "description": "List of conditions to check.",
           "items": {
             "$ref": "#/$defs/ConnectionCondition"
           },
-          "title": "Conditions",
+          "title": "OR conditions",
           "type": "array"
         }
       },
@@ -7097,13 +7496,13 @@
         "enabled": {
           "default": true,
           "description": "Whether this converter is currently active.",
-          "title": "Enabled",
+          "title": "Converter enabled",
           "type": "boolean"
         },
         "force": {
           "default": false,
           "description": "Whether to attempt converting any file type.",
-          "title": "Force",
+          "title": "Force conversion",
           "type": "boolean"
         }
       },
@@ -7179,7 +7578,7 @@
         "api_key": {
           "description": "API key for the PromptLayer API.",
           "format": "password",
-          "title": "Api Key",
+          "title": "PromptLayer API key",
           "type": "string",
           "writeOnly": true
         }
@@ -7673,12 +8072,17 @@
           ],
           "default": null,
           "description": "Optional name for referencing the server.",
-          "title": "Name"
+          "examples": [
+            "my_server",
+            "api_connector",
+            "file_handler"
+          ],
+          "title": "Server name"
         },
         "enabled": {
           "default": true,
           "description": "Whether this server is currently enabled.",
-          "title": "Enabled",
+          "title": "Server enabled",
           "type": "boolean"
         },
         "env": {
@@ -7695,21 +8099,30 @@
           ],
           "default": null,
           "description": "Environment variables to pass to the server process.",
-          "title": "Env"
+          "title": "Environment variables"
         },
         "timeout": {
           "default": 60.0,
           "description": "Timeout for the server process in seconds.",
+          "examples": [
+            30.0,
+            60.0,
+            120.0
+          ],
           "exclusiveMinimum": 0,
-          "title": "Timeout",
+          "title": "Server timeout",
           "type": "number"
         },
         "url": {
           "description": "URL of the SSE server endpoint.",
+          "examples": [
+            "https://api.example.com/sse",
+            "http://localhost:8080/events"
+          ],
           "format": "uri",
           "maxLength": 2083,
           "minLength": 1,
-          "title": "Url",
+          "title": "SSE endpoint URL",
           "type": "string"
         },
         "headers": {
@@ -7726,11 +8139,12 @@
           ],
           "default": null,
           "description": "Headers to send with the SSE request.",
-          "title": "Headers"
+          "title": "HTTP headers"
         },
         "auth": {
           "$ref": "#/$defs/MCPServerAuthSettings",
-          "description": "OAuth settings for the SSE server."
+          "description": "OAuth settings for the SSE server.",
+          "title": "Authentication settings"
         }
       },
       "required": [
@@ -8162,23 +8576,33 @@
           ],
           "default": null,
           "description": "Optional path prefix within the filesystem.",
-          "title": "Path"
+          "examples": [
+            "/data",
+            "documents",
+            "config/templates"
+          ],
+          "title": "Path prefix"
         },
         "cached": {
           "default": false,
           "description": "Whether to wrap in caching filesystem.",
-          "title": "Cached",
+          "title": "Enable caching",
           "type": "boolean"
         },
         "storage_options": {
           "additionalProperties": true,
           "description": "Protocol-specific storage options.",
-          "title": "Storage Options",
+          "title": "Storage options",
           "type": "object"
         },
         "uri": {
           "description": "URI defining the resource location and protocol.",
-          "title": "Uri",
+          "examples": [
+            "file:///path/to/docs",
+            "s3://bucket-name/data",
+            "https://api.example.com"
+          ],
+          "title": "Resource URI",
           "type": "string"
         }
       },
@@ -8210,7 +8634,12 @@
           ],
           "default": null,
           "description": "Command name (optional, can be inferred from key).",
-          "title": "Name"
+          "examples": [
+            "summarize",
+            "code_review",
+            "translate"
+          ],
+          "title": "Command name"
         },
         "description": {
           "anyOf": [
@@ -8223,11 +8652,20 @@
           ],
           "default": null,
           "description": "Optional description of what this command does.",
-          "title": "Description"
+          "examples": [
+            "Summarize the given text",
+            "Review code for issues"
+          ],
+          "title": "Command description"
         },
         "content": {
           "description": "The prompt template content. Supports ${env.VAR} substitution.",
-          "title": "Content",
+          "examples": [
+            "Summarize this text: {text}",
+            "Translate {text} to {language}",
+            "Review this code: {code}"
+          ],
+          "title": "Template content",
           "type": "string"
         }
       },
@@ -8376,12 +8814,17 @@
           ],
           "default": null,
           "description": "Optional name for referencing the server.",
-          "title": "Name"
+          "examples": [
+            "my_server",
+            "api_connector",
+            "file_handler"
+          ],
+          "title": "Server name"
         },
         "enabled": {
           "default": true,
           "description": "Whether this server is currently enabled.",
-          "title": "Enabled",
+          "title": "Server enabled",
           "type": "boolean"
         },
         "env": {
@@ -8398,26 +8841,50 @@
           ],
           "default": null,
           "description": "Environment variables to pass to the server process.",
-          "title": "Env"
+          "title": "Environment variables"
         },
         "timeout": {
           "default": 60.0,
           "description": "Timeout for the server process in seconds.",
+          "examples": [
+            30.0,
+            60.0,
+            120.0
+          ],
           "exclusiveMinimum": 0,
-          "title": "Timeout",
+          "title": "Server timeout",
           "type": "number"
         },
         "command": {
           "description": "Command to execute (e.g. \"pipx\", \"python\", \"node\").",
-          "title": "Command",
+          "examples": [
+            "python",
+            "node",
+            "pipx",
+            "uvx"
+          ],
+          "title": "Command to execute",
           "type": "string"
         },
         "args": {
           "description": "Command arguments (e.g. [\"run\", \"some-server\", \"--debug\"]).",
+          "examples": [
+            [
+              "run",
+              "mcp-server"
+            ],
+            [
+              "-m",
+              "my_mcp_server"
+            ],
+            [
+              "--debug"
+            ]
+          ],
           "items": {
             "type": "string"
           },
-          "title": "Args",
+          "title": "Command arguments",
           "type": "array"
         }
       },
@@ -8588,12 +9055,17 @@
           ],
           "default": null,
           "description": "Optional name for referencing the server.",
-          "title": "Name"
+          "examples": [
+            "my_server",
+            "api_connector",
+            "file_handler"
+          ],
+          "title": "Server name"
         },
         "enabled": {
           "default": true,
           "description": "Whether this server is currently enabled.",
-          "title": "Enabled",
+          "title": "Server enabled",
           "type": "boolean"
         },
         "env": {
@@ -8610,21 +9082,30 @@
           ],
           "default": null,
           "description": "Environment variables to pass to the server process.",
-          "title": "Env"
+          "title": "Environment variables"
         },
         "timeout": {
           "default": 60.0,
           "description": "Timeout for the server process in seconds.",
+          "examples": [
+            30.0,
+            60.0,
+            120.0
+          ],
           "exclusiveMinimum": 0,
-          "title": "Timeout",
+          "title": "Server timeout",
           "type": "number"
         },
         "url": {
           "description": "URL of the HTTP server endpoint.",
+          "examples": [
+            "https://api.example.com/mcp",
+            "http://localhost:8080/stream"
+          ],
           "format": "uri",
           "maxLength": 2083,
           "minLength": 1,
-          "title": "Url",
+          "title": "HTTP endpoint URL",
           "type": "string"
         },
         "headers": {
@@ -8641,11 +9122,12 @@
           ],
           "default": null,
           "description": "Headers to send with the HTTP request.",
-          "title": "Headers"
+          "title": "HTTP headers"
         },
         "auth": {
           "$ref": "#/$defs/MCPServerAuthSettings",
-          "description": "OAuth settings for the HTTP server."
+          "description": "OAuth settings for the HTTP server.",
+          "title": "Authentication settings"
         }
       },
       "required": [
@@ -8698,7 +9180,7 @@
               "$ref": "#/$defs/ImportedSchemaDef"
             }
           ],
-          "title": "Response Schema"
+          "title": "Response schema"
         },
         "description": {
           "anyOf": [
@@ -8711,12 +9193,22 @@
           ],
           "default": null,
           "description": "A description for this response definition.",
-          "title": "Description"
+          "examples": [
+            "User profile data",
+            "Search results",
+            "Code analysis output"
+          ],
+          "title": "Response description"
         },
         "result_tool_name": {
           "default": "final_result",
           "description": "The tool name for the Agent tool to create the structured response.",
-          "title": "Result Tool Name",
+          "examples": [
+            "final_result",
+            "submit_answer",
+            "return_data"
+          ],
+          "title": "Result tool name",
           "type": "string"
         },
         "result_tool_description": {
@@ -8730,7 +9222,11 @@
           ],
           "default": null,
           "description": "The tool description for the Agent tool to create the structured response.",
-          "title": "Result Tool Description"
+          "examples": [
+            "Submit the final result",
+            "Return structured data"
+          ],
+          "title": "Result tool description"
         },
         "output_retries": {
           "anyOf": [
@@ -8743,7 +9239,12 @@
           ],
           "default": null,
           "description": "Retry override. How often the Agent should try to validate the response.",
-          "title": "Output Retries"
+          "examples": [
+            1,
+            3,
+            5
+          ],
+          "title": "Output retries"
         }
       },
       "required": [
@@ -8903,15 +9404,30 @@
             "parallel",
             "sequential"
           ],
-          "title": "Mode",
+          "examples": [
+            "parallel",
+            "sequential"
+          ],
+          "title": "Execution mode",
           "type": "string"
         },
         "members": {
           "description": "Names of agents or other teams that are part of this team.",
+          "examples": [
+            [
+              "agent1",
+              "agent2"
+            ],
+            [
+              "web_searcher",
+              "data_analyzer",
+              "reporter"
+            ]
+          ],
           "items": {
             "type": "string"
           },
-          "title": "Members",
+          "title": "Team members",
           "type": "array"
         },
         "shared_prompt": {
@@ -8925,7 +9441,11 @@
           ],
           "default": null,
           "description": "Optional shared prompt for this team.",
-          "title": "Shared Prompt"
+          "examples": [
+            "Work together to solve this problem",
+            "Follow the team guidelines"
+          ],
+          "title": "Shared prompt"
         }
       },
       "required": [
@@ -8941,7 +9461,12 @@
       "properties": {
         "name": {
           "description": "Name of the node to use as a worker.",
-          "title": "Name",
+          "examples": [
+            "web_agent",
+            "code_analyzer",
+            "data_processor"
+          ],
+          "title": "Worker node name",
           "type": "string"
         },
         "type": {
@@ -9143,12 +9668,17 @@
           ],
           "default": null,
           "description": "Optional name for the condition for referencing.",
-          "title": "Name"
+          "examples": [
+            "exit_condition",
+            "message_filter",
+            "cost_check"
+          ],
+          "title": "Condition name"
         },
         "duration": {
           "description": "How long the connection should stay active.",
           "format": "duration",
-          "title": "Duration",
+          "title": "Duration threshold",
           "type": "string"
         }
       },
@@ -9258,12 +9788,22 @@
           ],
           "default": null,
           "description": "Optional name for the condition for referencing.",
-          "title": "Name"
+          "examples": [
+            "exit_condition",
+            "message_filter",
+            "cost_check"
+          ],
+          "title": "Condition name"
         },
         "max_tokens": {
           "description": "Maximum number of tokens allowed.",
+          "examples": [
+            1000,
+            4000,
+            8000
+          ],
           "exclusiveMinimum": 0,
-          "title": "Max Tokens",
+          "title": "Maximum token count",
           "type": "integer"
         },
         "count_type": {
@@ -9274,7 +9814,12 @@
             "prompt",
             "completion"
           ],
-          "title": "Count Type",
+          "examples": [
+            "total",
+            "prompt",
+            "completion"
+          ],
+          "title": "Token counting type",
           "type": "string"
         }
       },
@@ -9399,18 +9944,23 @@
           ],
           "default": null,
           "description": "Optional path prefix within the filesystem.",
-          "title": "Path"
+          "examples": [
+            "/data",
+            "documents",
+            "config/templates"
+          ],
+          "title": "Path prefix"
         },
         "cached": {
           "default": false,
           "description": "Whether to wrap in caching filesystem.",
-          "title": "Cached",
+          "title": "Enable caching",
           "type": "boolean"
         },
         "storage_options": {
           "additionalProperties": true,
           "description": "Protocol-specific storage options.",
-          "title": "Storage Options",
+          "title": "Storage options",
           "type": "object"
         },
         "sources": {
@@ -9432,7 +9982,7 @@
               }
             ]
           },
-          "title": "Sources",
+          "title": "Resource sources",
           "type": "array"
         }
       },
@@ -9812,7 +10362,7 @@
         "enabled": {
           "default": true,
           "description": "Whether this converter is currently active.",
-          "title": "Enabled",
+          "title": "Converter enabled",
           "type": "boolean"
         },
         "model": {
@@ -9826,7 +10376,11 @@
           ],
           "default": null,
           "description": "Optional model name.",
-          "title": "Model"
+          "examples": [
+            "whisper-1",
+            "whisper-large-v2"
+          ],
+          "title": "OpenAI model"
         },
         "api_key": {
           "anyOf": [
@@ -9841,7 +10395,7 @@
           ],
           "default": null,
           "description": "OpenAI API key.",
-          "title": "Api Key"
+          "title": "OpenAI API key"
         },
         "language": {
           "anyOf": [
@@ -9854,7 +10408,13 @@
           ],
           "default": null,
           "description": "Optional language code.",
-          "title": "Language"
+          "examples": [
+            "en",
+            "es",
+            "fr",
+            "de"
+          ],
+          "title": "Language code"
         }
       },
       "title": "WhisperAPIConfig",
@@ -9882,20 +10442,39 @@
           ],
           "default": null,
           "description": "Optional name for the condition for referencing.",
-          "title": "Name"
+          "examples": [
+            "exit_condition",
+            "message_filter",
+            "cost_check"
+          ],
+          "title": "Condition name"
         },
         "words": {
           "description": "Words or phrases to match in messages.",
+          "examples": [
+            [
+              "error",
+              "failed"
+            ],
+            [
+              "complete",
+              "done",
+              "finished"
+            ],
+            [
+              "urgent"
+            ]
+          ],
           "items": {
             "type": "string"
           },
-          "title": "Words",
+          "title": "Words to match",
           "type": "array"
         },
         "case_sensitive": {
           "default": false,
           "description": "Whether to match case-sensitively.",
-          "title": "Case Sensitive",
+          "title": "Case sensitive matching",
           "type": "boolean"
         },
         "mode": {
@@ -9905,7 +10484,11 @@
             "any",
             "all"
           ],
-          "title": "Mode",
+          "examples": [
+            "any",
+            "all"
+          ],
+          "title": "Matching mode",
           "type": "string"
         }
       },
@@ -9929,15 +10512,29 @@
         "enabled": {
           "default": true,
           "description": "Whether this converter is currently active.",
-          "title": "Enabled",
+          "title": "Converter enabled",
           "type": "boolean"
         },
         "languages": {
           "description": "Preferred language codes in priority order. Defaults to ['en'].",
+          "examples": [
+            [
+              "en"
+            ],
+            [
+              "en",
+              "es",
+              "fr"
+            ],
+            [
+              "de",
+              "en"
+            ]
+          ],
           "items": {
             "type": "string"
           },
-          "title": "Languages",
+          "title": "Preferred languages",
           "type": "array"
         },
         "format": {
@@ -9949,27 +10546,43 @@
             "vtt",
             "srt"
           ],
-          "title": "Format",
+          "examples": [
+            "text",
+            "json",
+            "vtt",
+            "srt"
+          ],
+          "title": "Output format",
           "type": "string"
         },
         "preserve_formatting": {
           "default": false,
           "description": "Whether to keep HTML formatting elements like <i> and <b>.",
-          "title": "Preserve Formatting",
+          "title": "Preserve HTML formatting",
           "type": "boolean"
         },
         "max_retries": {
           "default": 3,
           "description": "Maximum number of retries for failed requests.",
+          "examples": [
+            1,
+            3,
+            5
+          ],
           "minimum": 0,
-          "title": "Max Retries",
+          "title": "Maximum retries",
           "type": "integer"
         },
         "timeout": {
           "default": 30,
           "description": "Request timeout in seconds.",
+          "examples": [
+            15,
+            30,
+            60
+          ],
           "exclusiveMinimum": 0,
-          "title": "Timeout",
+          "title": "Request timeout",
           "type": "integer"
         }
       },

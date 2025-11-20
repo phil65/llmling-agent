@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Literal
 
+from pydantic import Field
+
 from llmling_agent_config.nodes import NodeConfig
 
 
@@ -14,13 +16,23 @@ class TeamConfig(NodeConfig):
     They can contain both agents and other teams as members.
     """
 
-    mode: Literal["parallel", "sequential"]
+    mode: Literal["parallel", "sequential"] = Field(
+        examples=["parallel", "sequential"],
+        title="Execution mode",
+    )
     """Execution mode for team members."""
 
-    members: list[str]
+    members: list[str] = Field(
+        examples=[["agent1", "agent2"], ["web_searcher", "data_analyzer", "reporter"]],
+        title="Team members",
+    )
     """Names of agents or other teams that are part of this team."""
 
-    shared_prompt: str | None = None
+    shared_prompt: str | None = Field(
+        default=None,
+        examples=["Work together to solve this problem", "Follow the team guidelines"],
+        title="Shared prompt",
+    )
     """Optional shared prompt for this team."""
 
     # Future extensions:

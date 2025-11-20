@@ -11,7 +11,10 @@ from pydantic.networks import HttpUrl
 class BasePromptHubConfig(BaseModel):
     """Configuration for prompt providers."""
 
-    type: str = Field(init=False)
+    type: str = Field(
+        init=False,
+        title="Prompt hub type",
+    )
     model_config = ConfigDict(frozen=True, use_attribute_docstrings=True, extra="forbid")
 
 
@@ -21,7 +24,9 @@ class PromptLayerConfig(BasePromptHubConfig):
     type: Literal["promptlayer"] = Field("promptlayer", init=False)
     """Configuration for PromptLayer prompt provider."""
 
-    api_key: SecretStr
+    api_key: SecretStr = Field(
+        title="PromptLayer API key",
+    )
     """API key for the PromptLayer API."""
 
 
@@ -31,22 +36,45 @@ class LangfuseConfig(BasePromptHubConfig):
     type: Literal["langfuse"] = Field("langfuse", init=False)
     """Configuration for Langfuse prompt provider."""
 
-    secret_key: SecretStr
+    secret_key: SecretStr = Field(
+        title="Langfuse secret key",
+    )
     """Secret key for the Langfuse API."""
 
-    public_key: SecretStr
+    public_key: SecretStr = Field(
+        title="Langfuse public key",
+    )
     """Public key for the Langfuse API."""
 
-    host: HttpUrl = HttpUrl("https://cloud.langfuse.com")
+    host: HttpUrl = Field(
+        default=HttpUrl("https://cloud.langfuse.com"),
+        examples=["https://cloud.langfuse.com", "https://langfuse.example.com"],
+        title="Langfuse host",
+    )
     """Langfuse host address."""
 
-    cache_ttl_seconds: int = Field(default=60, ge=0)
+    cache_ttl_seconds: int = Field(
+        default=60,
+        ge=0,
+        examples=[60, 300, 3600],
+        title="Cache TTL seconds",
+    )
     """Cache TTL for responses in seconds."""
 
-    max_retries: int = Field(default=2, ge=0)
+    max_retries: int = Field(
+        default=2,
+        ge=0,
+        examples=[1, 2, 5],
+        title="Maximum retries",
+    )
     """Maximum number of retries for failed requests."""
 
-    fetch_timeout_seconds: int = Field(default=20, ge=0)
+    fetch_timeout_seconds: int = Field(
+        default=20,
+        ge=0,
+        examples=[10, 20, 60],
+        title="Fetch timeout seconds",
+    )
     """Timeout for fetching responses in seconds."""
 
 
@@ -56,10 +84,17 @@ class BraintrustConfig(BasePromptHubConfig):
     type: Literal["braintrust"] = Field("braintrust", init=False)
     """Configuration for Braintrust prompt provider."""
 
-    api_key: SecretStr | None = None  # Optional, defaults to BRAINTRUST_API_KEY env var
+    api_key: SecretStr | None = Field(
+        default=None,
+        title="Braintrust API key",
+    )  # Optional, defaults to BRAINTRUST_API_KEY env var
     """API key for the Braintrust API."""
 
-    project: str | None = None
+    project: str | None = Field(
+        default=None,
+        examples=["my_project", "ai_agents", "production"],
+        title="Braintrust project",
+    )
     """Braintrust Project name."""
 
 

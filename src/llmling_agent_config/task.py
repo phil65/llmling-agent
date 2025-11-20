@@ -30,37 +30,73 @@ class Job[TDeps, TResult = str](Schema):
     - Tools are temporarily available during task execution
     """
 
-    name: str | None = None
+    name: str | None = Field(
+        default=None,
+        examples=["analyze_code", "generate_summary", "translate_text"],
+        title="Task name",
+    )
     """Technical identifier (automatically set from config key during registration)"""
 
-    description: str | None = None
+    description: str | None = Field(
+        default=None,
+        examples=[
+            "Analyze code for issues",
+            "Generate a summary",
+            "Translate text to target language",
+        ],
+        title="Task description",
+    )
     """Human-readable description of what this task does"""
 
-    prompt: str | ImportString[str] | BasePrompt
+    prompt: str | ImportString[str] | BasePrompt = Field(
+        examples=["Analyze the following code", "mymodule.prompts:analysis_prompt"],
+        title="Task prompt",
+    )
     """The task instruction/prompt."""
 
-    required_return_type: ImportString[type[TResult]] = Field(default="str", validate_default=True)
+    required_return_type: ImportString[type[TResult]] = Field(
+        default="str",
+        validate_default=True,
+        examples=["str", "dict", "mymodule.models:AnalysisResult"],
+        title="Required return type",
+    )
     """Expected type of the task result."""
 
     required_dependency: ImportString[type[TDeps]] | None = Field(
-        default=None, validate_default=True
+        default=None,
+        validate_default=True,
+        examples=["mymodule.deps:DatabaseDeps", "utils.context:TaskContext"],
+        title="Required dependencies",
     )
     """Dependencies or context data needed for task execution"""
 
-    requires_vision: bool = False
+    requires_vision: bool = Field(
+        default=False,
+        title="Requires vision capabilities",
+    )
     """Whether the agent requires vision"""
 
-    knowledge: Knowledge | None = None
+    knowledge: Knowledge | None = Field(
+        default=None,
+        title="Task knowledge sources",
+    )
     """Optional knowledge sources for this task:
     - Simple file/URL paths
     - Rich resource definitions
     - Prompt templates
     """
 
-    tools: list[ImportString[Callable[..., Any]] | ImportToolConfig] = Field(default_factory=list)
+    tools: list[ImportString[Callable[..., Any]] | ImportToolConfig] = Field(
+        default_factory=list,
+        title="Task tools",
+    )
     """Tools needed for this task."""
 
-    min_context_tokens: int | None = None
+    min_context_tokens: int | None = Field(
+        default=None,
+        examples=[1000, 4000, 8000],
+        title="Minimum context tokens",
+    )
     """Minimum amount of required context size."""
 
     model_config = ConfigDict(frozen=True)
