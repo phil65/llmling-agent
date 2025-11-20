@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Literal
 
+from llmling_agent.agent.events import LocationContentItem
+
 
 if TYPE_CHECKING:
     from llmling_agent.agent.context import AgentContext
@@ -284,21 +286,25 @@ class AgentEventEmitter:
         self,
         title: str,
         kind: ToolKind = "other",
-        locations: list[str] | None = None,
+        locations: list[str | LocationContentItem] | None = None,
     ) -> None:
         """Emit tool call start event with rich ACP metadata.
 
         Args:
             title: Human-readable title describing what the tool is doing
-            kind: Tool kind
-            locations: File paths affected by this tool call
+            kind: Tool kind (read, edit, delete, move, search, execute, think, fetch, other)
+            locations: File paths or LocationContentItem objects affected by this tool call
         """
         from llmling_agent.agent.events import LocationContentItem, ToolCallStartEvent
 
-        # Convert string paths to LocationContentItem objects
+        # Convert to LocationContentItem objects
         location_items = []
         if locations:
-            location_items = [LocationContentItem(path=path) for path in locations]
+            for loc in locations:
+                if isinstance(loc, str):
+                    location_items.append(LocationContentItem(path=loc))
+                else:
+                    location_items.append(loc)
 
         event = ToolCallStartEvent(
             tool_call_id=self._context.tool_call_id or "",
