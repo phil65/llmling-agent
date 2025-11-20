@@ -74,8 +74,7 @@ class SQLModelProvider(StorageProvider):
         """
         from sqlalchemy import inspect
         from sqlalchemy.sql import text
-
-        from llmling_agent_storage.sql_provider.models import SQLModel
+        from sqlmodel import SQLModel
 
         # Create tables if they don't exist
         async with self.engine.begin() as conn:

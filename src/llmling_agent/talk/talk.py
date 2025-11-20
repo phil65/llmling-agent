@@ -18,7 +18,7 @@ from llmling_agent.utils.now import get_now
 
 
 if TYPE_CHECKING:
-    from collections.abc import Awaitable, Iterator
+    from collections.abc import AsyncIterator, Awaitable, Iterator
     from datetime import datetime, timedelta
 
     from evented.event_data import EventData
@@ -38,7 +38,7 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-class Talk[TTransmittedData]:
+class Talk[TTransmittedData = Any]:
     """Manages message flow between agents/groups."""
 
     @dataclass(frozen=True)
@@ -460,7 +460,7 @@ class Talk[TTransmittedData]:
         new_talk = Talk[TNewData](
             source=self.source,
             targets=self.targets,
-            connection_type=self.connection_type,  # type: ignore
+            connection_type=self.connection_type,
         )
 
         if self.transform_fn is not None:
@@ -479,7 +479,7 @@ class Talk[TTransmittedData]:
         return new_talk
 
     @asynccontextmanager
-    async def paused(self):
+    async def paused(self) -> AsyncIterator[Self]:
         """Temporarily set inactive."""
         previous = self.active
         self.active = False
@@ -498,7 +498,7 @@ class Talk[TTransmittedData]:
         return self._stats
 
 
-class TeamTalk[TTransmittedData](list["Talk | TeamTalk"]):
+class TeamTalk[TTransmittedData = Any](list["Talk | TeamTalk"]):
     """Group of connections with aggregate operations."""
 
     def __init__(
@@ -582,7 +582,7 @@ class TeamTalk[TTransmittedData](list["Talk | TeamTalk"]):
         return cls([Talk(agent, targets or []) for agent in agents])
 
     @asynccontextmanager
-    async def paused(self):
+    async def paused(self) -> AsyncIterator[Self]:
         """Temporarily set inactive."""
         previous = self.active
         self.active = False

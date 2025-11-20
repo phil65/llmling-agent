@@ -441,7 +441,7 @@ class MessageHistory:
         prompt: PromptType,
         metadata: dict[str, Any] | None = None,
         **kwargs: Any,
-    ):
+    ) -> None:
         """Add rendered prompt content as context message.
 
         Args:

@@ -120,7 +120,7 @@ def parse_model_info(model: str | None) -> tuple[str | None, str | None]:
     return None, name
 
 
-def build_message_query(query: SessionQuery) -> SelectOfScalar:
+def build_message_query(query: SessionQuery) -> SelectOfScalar[Any]:
     """Build SQLModel query from SessionQuery."""
     from llmling_agent_storage.sql_provider.models import Message
 

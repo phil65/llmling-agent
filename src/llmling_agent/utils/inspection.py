@@ -17,6 +17,7 @@ from typing import (
     get_args,
     get_origin,
     get_type_hints,
+    overload,
 )
 
 
@@ -39,6 +40,24 @@ def dataclasses_no_defaults_repr(self: Any) -> str:
     return f"{self.__class__.__qualname__}({', '.join(kv_pairs)})"
 
 
+@overload
+async def execute[T](
+    func: Callable[..., Awaitable[T]],
+    *args: Any,
+    use_thread: bool = False,
+    **kwargs: Any,
+) -> T: ...
+
+
+@overload
+async def execute[T](
+    func: Callable[..., T | Awaitable[T]],
+    *args: Any,
+    use_thread: bool = False,
+    **kwargs: Any,
+) -> T: ...
+
+
 async def execute[T](
     func: Callable[..., T | Awaitable[T]],
     *args: Any,
@@ -50,9 +69,14 @@ async def execute[T](
         return await func(*args, **kwargs)
 
     if use_thread:
-        return await asyncio.to_thread(func, *args, **kwargs)  # type: ignore
+        result = await asyncio.to_thread(func, *args, **kwargs)  # type: ignore
+    else:
+        result = func(*args, **kwargs)
 
-    return func(*args, **kwargs)  # type: ignore
+    if inspect.iscoroutine(result) or inspect.isawaitable(result):
+        return await result
+
+    return result  # type: ignore
 
 
 def get_argument_key(

@@ -6,6 +6,7 @@ registry API for server discovery and configuration.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 import logging
 import time
 from typing import Any, Literal, Self
@@ -188,6 +189,22 @@ class RegistryListResponse(Schema):
     """Response metadata."""
 
 
+@dataclass(slots=True)
+class ListServersCacheEntry:
+    """Cache entry for list_servers results."""
+
+    servers: list[RegistryServer]
+    timestamp: float
+
+
+@dataclass(slots=True)
+class GetServerCacheEntry:
+    """Cache entry for get_server results."""
+
+    server: RegistryServer
+    timestamp: float
+
+
 class MCPRegistryClient:
     """Client for interacting with the MCP registry API."""
 
@@ -196,7 +213,8 @@ class MCPRegistryClient:
     ) -> None:
         self.base_url = base_url.rstrip("/")
         self.client = httpx.AsyncClient(timeout=30.0)
-        self._cache: dict[str, dict[str, Any]] = {}
+        self._cache_lists: dict[str, ListServersCacheEntry] = {}
+        self._cache_servers: dict[str, GetServerCacheEntry] = {}
 
     async def list_servers(
         self, search: str | None = None, status: str = "active"
@@ -205,11 +223,11 @@ class MCPRegistryClient:
         cache_key = f"list_servers:{search}:{status}"
 
         # Check cache first
-        if cache_key in self._cache:
-            cached_data = self._cache[cache_key]
-            if time.time() - cached_data["timestamp"] < CACHE_TTL:
+        if cache_key in self._cache_lists:
+            cached_entry = self._cache_lists[cache_key]
+            if time.time() - cached_entry.timestamp < CACHE_TTL:
                 log.debug("Using cached server list")
-                return cached_data["servers"]
+                return cached_entry.servers
 
         try:
             log.info("Fetching server list from registry")
@@ -244,7 +262,9 @@ class MCPRegistryClient:
                 ]
 
             # Cache the result
-            self._cache[cache_key] = {"servers": servers, "timestamp": time.time()}
+            self._cache_lists[cache_key] = ListServersCacheEntry(
+                servers=servers, timestamp=time.time()
+            )
             log.info("Successfully fetched %d servers", len(servers))
             return servers
 
@@ -253,11 +273,11 @@ class MCPRegistryClient:
         cache_key = f"server:{server_id}"
 
         # Check cache first
-        if cache_key in self._cache:
-            cached_data = self._cache[cache_key]
-            if time.time() - cached_data["timestamp"] < CACHE_TTL:
+        if cache_key in self._cache_servers:
+            cached_entry = self._cache_servers[cache_key]
+            if time.time() - cached_entry.timestamp < CACHE_TTL:
                 log.debug("Using cached server details for %s", server_id)
-                return cached_data["server"]
+                return cached_entry.server
 
         try:
             log.info("Fetching server details for %s", server_id)
@@ -296,7 +316,9 @@ class MCPRegistryClient:
             server = RegistryServer(**server_data)
 
             # Cache the result
-            self._cache[cache_key] = {"server": server, "timestamp": time.time()}
+            self._cache_servers[cache_key] = GetServerCacheEntry(
+                server=server, timestamp=time.time()
+            )
             log.info("Successfully fetched server details for %s", server_id)
 
         except httpx.HTTPStatusError as e:
@@ -313,7 +335,8 @@ class MCPRegistryClient:
 
     def clear_cache(self) -> None:
         """Clear the metadata cache."""
-        self._cache.clear()
+        self._cache_lists.clear()
+        self._cache_servers.clear()
         log.debug("Cleared metadata cache")
 
     async def close(self) -> None:

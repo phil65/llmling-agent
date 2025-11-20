@@ -48,9 +48,6 @@ class PromptParameter(Schema):
     default: Any | None = None
     """Default value if argument is optional."""
 
-    completion_function: ImportString | None = Field(default=None)
-    """Optional function to provide argument completions."""
-
 
 class PromptMessage(Schema):
     """A message in a prompt template."""

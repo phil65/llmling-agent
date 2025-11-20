@@ -11,6 +11,7 @@ from llmling_agent.log import get_logger
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
+    from types import TracebackType
 
     from anyenv.code_execution.base import ExecutionEnvironment
     from anyenv.code_execution.configs import ExecutionEnvironmentConfig
@@ -91,7 +92,12 @@ class RemoteMCPExecutor:
         await self.execution_env.__aenter__()
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
         """Async context manager exit."""
         return await self.execution_env.__aexit__(exc_type, exc_val, exc_tb)
 

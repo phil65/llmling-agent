@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel
 from schemez import InlineSchemaDef
@@ -13,7 +13,8 @@ if TYPE_CHECKING:
 
 
 def to_type(
-    output_type: str | InlineSchemaDef | type | None,
+    output_type: Any,
+    # output_type: str | InlineSchemaDef | type | None,
     responses: dict[str, StructuredResponseConfig] | None = None,
 ) -> type[BaseModel | str]:
     match output_type:

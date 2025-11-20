@@ -20,7 +20,9 @@ if TYPE_CHECKING:
     from llmling_agent.tools.base import Tool
 
 
-def wrap_tool(tool: Tool, agent_ctx: AgentContext) -> Callable[..., Awaitable[Any]]:
+def wrap_tool[TReturn](
+    tool: Tool[TReturn], agent_ctx: AgentContext
+) -> Callable[..., Awaitable[TReturn | None]]:
     """Wrap tool with confirmation handling.
 
     Strategy:
@@ -66,11 +68,12 @@ def wrap_tool(tool: Tool, agent_ctx: AgentContext) -> Callable[..., Awaitable[An
 
     else:
         # Tool has no context - normal function call
-        async def wrapped(*args, **kwargs):  # type: ignore[misc]
+        async def wrapped(*args: Any, **kwargs: Any) -> TReturn | None:  # type: ignore[misc]
             result = await agent_ctx.handle_confirmation(tool, kwargs)
             if result == "allow":
                 return await execute(fn, *args, **kwargs)
-            return await _handle_confirmation_result(result, tool.name)
+            await _handle_confirmation_result(result, tool.name)
+            return None
 
     # Apply wraps first
     wraps(fn)(wrapped)  # pyright: ignore

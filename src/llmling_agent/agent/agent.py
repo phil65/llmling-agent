@@ -213,7 +213,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             else MemoryConfig.from_value(session)
         )
         # Initialize progress queue before super().__init__()
-        self._event_queue = asyncio.Queue[RichAgentStreamEvent]()
+        self._event_queue = asyncio.Queue[RichAgentStreamEvent[Any]]()
         super().__init__(
             name=name,
             context=ctx,
@@ -274,7 +274,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         self._debug = debug
         self.parallel_init = parallel_init
         self._name = name
-        self._background_task: asyncio.Task[Any] | None = None
+        self._background_task: asyncio.Task[ChatMessage[Any]] | None = None
 
         self.talk = Interactions(self)
 
@@ -822,7 +822,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                 async for event in events:
                     # Call event handlers for all events
                     for handler in self.event_handler._wrapped_handlers:
-                        await handler(None, event)  # type: ignore[arg-type]
+                        await handler(None, event)
 
                     # Process events and emit signals
                     yield event  # type: ignore[misc]
@@ -988,7 +988,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         """
         self._infinite = max_count is None
 
-        async def _continuous():
+        async def _continuous() -> ChatMessage[Any]:
             count = 0
             self.log.debug(
                 "Starting continuous run", max_count=max_count, interval=interval
@@ -1014,7 +1014,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                     self.log.exception("Background run failed")
                     await asyncio.sleep(interval)
             self.log.debug("Continuous run completed", iterations=count)
-            return latest
+            return latest  # type: ignore[return-value]
 
         await self.stop()  # Cancel any existing background task
         task = asyncio.create_task(_continuous(), name=f"background_{self.name}")
@@ -1216,7 +1216,7 @@ if __name__ == "__main__":
     sys_prompt = "Open browser with google,"
     _model = "openai:gpt-5-nano"
 
-    async def handle_events(ctx, event) -> None:
+    async def handle_events(ctx, event: Any) -> None:
         print(f"[EVENT] {type(event).__name__}: {event}")
 
     agent = Agent(model=_model, tools=["webbrowser.open"], event_handlers=[handle_events])

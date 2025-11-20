@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from dataclasses import field
 import inspect
 import os
@@ -13,7 +13,7 @@ from fastmcp.prompts.prompt import (
     PromptArgument as FastMCPArgument,
 )
 from mcp.types import Prompt as MCPPrompt, PromptArgument
-from pydantic import ConfigDict, Field, ImportString
+from pydantic import ConfigDict, Field
 from pydantic_ai import BinaryContent, SystemPromptPart, UserPromptPart
 from pydantic_ai.messages import ImageUrl
 from schemez import Schema
@@ -77,9 +77,6 @@ class PromptParameter(Schema):
 
     default: Any | None = None
     """Default value if argument is optional."""
-
-    completion_function: ImportString | None = None
-    """Optional function to provide argument completions."""
 
     def to_mcp_argument(self) -> PromptArgument:
         """Convert to MCP PromptArgument."""
@@ -256,7 +253,7 @@ class StaticPrompt(BasePrompt):
 class DynamicPrompt(BasePrompt):
     """Dynamic prompt loaded from callable."""
 
-    import_path: str | Callable[..., str]
+    import_path: str | Callable[..., str | Awaitable[str]]
     """Dotted import path to the callable that generates the prompt."""
 
     template: str | None = None
@@ -295,7 +292,7 @@ class DynamicPrompt(BasePrompt):
         )
 
     @property
-    def fn(self) -> Callable[..., str]:
+    def fn(self) -> Callable[..., str | Awaitable[str]]:
         if isinstance(self.import_path, str):
             return importing.import_callable(self.import_path)
         return self.import_path
@@ -320,7 +317,7 @@ class DynamicPrompt(BasePrompt):
         """Format this prompt with given arguments."""
         args = arguments or {}
         try:
-            result = await execute(self.fn(**args))
+            result: Any = await execute(self.fn, **args)
             template = self.template or "{result}"
             msg = template.format(result=result)
             content = MessageContent(type="text", content=msg)

@@ -126,7 +126,7 @@ class MemoryStorageProvider(StorageProvider):
         provider_response_id: str | None = None,
         messages: str | None = None,
         finish_reason: str | None = None,
-    ):
+    ) -> None:
         """Store message in memory."""
         if next((i for i in self.messages if i["message_id"] == message_id), None):
             msg = f"Duplicate message ID: {message_id}"
@@ -155,7 +155,7 @@ class MemoryStorageProvider(StorageProvider):
         conversation_id: str,
         node_name: str,
         start_time: datetime | None = None,
-    ):
+    ) -> None:
         """Store conversation in memory."""
         if next(
             (i for i in self.messages if i["conversation_id"] == conversation_id), None
