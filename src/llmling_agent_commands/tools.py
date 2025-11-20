@@ -107,7 +107,7 @@ class ShowToolCommand(SlashedCommand):
         except KeyError:
             await ctx.print(f"❌ **Tool** `{name}` **not found**")
 
-    def get_completer(self):
+    def get_completer(self) -> CallbackCompleter:
         """Get completer for tool names."""
         return CallbackCompleter(get_tool_names)
 
@@ -127,7 +127,7 @@ class EnableToolCommand(SlashedCommand):
         self,
         ctx: CommandContext[AgentContext],
         name: str,
-    ):
+    ) -> None:
         """Enable a tool.
 
         Args:
@@ -141,7 +141,7 @@ class EnableToolCommand(SlashedCommand):
             msg = f"Failed to enable tool: {e}"
             raise CommandError(msg) from e
 
-    def get_completer(self):
+    def get_completer(self) -> CallbackCompleter:
         """Get completer for tool names."""
         return CallbackCompleter(get_tool_names)
 
@@ -161,7 +161,7 @@ class DisableToolCommand(SlashedCommand):
         self,
         ctx: CommandContext[AgentContext],
         name: str,
-    ):
+    ) -> None:
         """Disable a tool.
 
         Args:
@@ -175,7 +175,7 @@ class DisableToolCommand(SlashedCommand):
             msg = f"Failed to disable tool: {e}"
             raise CommandError(msg) from e
 
-    def get_completer(self):
+    def get_completer(self) -> CallbackCompleter:
         """Get completer for tool names."""
         return CallbackCompleter(get_tool_names)
 
@@ -199,7 +199,7 @@ class RegisterToolCommand(SlashedCommand):
         *,
         name: str | None = None,
         description: str | None = None,
-    ):
+    ) -> None:
         """Register a new tool from import path or function.
 
         Args:

@@ -24,7 +24,7 @@ class ShowPromptCommand(SlashedCommand):
         self,
         ctx: CommandContext[AgentContext],
         identifier: str,
-    ):
+    ) -> None:
         """Show prompt content.
 
         Args:

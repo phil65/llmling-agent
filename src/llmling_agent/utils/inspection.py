@@ -69,14 +69,14 @@ async def execute[T](
         return await func(*args, **kwargs)
 
     if use_thread:
-        result = await asyncio.to_thread(func, *args, **kwargs)  # type: ignore
+        result = await asyncio.to_thread(func, *args, **kwargs)
     else:
         result = func(*args, **kwargs)
 
     if inspect.iscoroutine(result) or inspect.isawaitable(result):
         return await result
 
-    return result  # type: ignore
+    return result
 
 
 def get_argument_key(

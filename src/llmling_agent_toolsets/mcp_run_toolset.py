@@ -36,7 +36,7 @@ class McpRunTools(ResourceProvider):
 
             async def run(tool_name: str = name, **input_dict: Any) -> CallToolResult:
                 async with self.client.mcp_sse().connect() as session:
-                    return await session.call_tool(tool_name, arguments=input_dict)
+                    return await session.call_tool(tool_name, arguments=input_dict)  # type: ignore[no-any-return]
 
             run.__name__ = name
             tool = Tool.from_callable(run, schema_override=tool.input_schema)  # pyright: ignore[reportArgumentType]

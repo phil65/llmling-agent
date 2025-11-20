@@ -42,7 +42,7 @@ class ReadCommand(SlashedCommand):
         path: str,
         *,
         convert_to_md: bool = False,
-    ):
+    ) -> None:
         """Read file content into conversation.
 
         Args:
@@ -63,6 +63,6 @@ class ReadCommand(SlashedCommand):
             logger.exception(msg)
             raise CommandError(msg) from e
 
-    def get_completer(self):
+    def get_completer(self) -> PathCompleter:
         """Get completer for file paths."""
         return PathCompleter()

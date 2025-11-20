@@ -88,7 +88,7 @@ class MCPResourceProvider(ResourceProvider):
 
         return self
 
-    async def __aexit__(self, *args: object):
+    async def __aexit__(self, *args: object) -> None:
         try:
             try:
                 # Clean up exit stack (which includes MCP clients)
@@ -227,7 +227,7 @@ if __name__ == "__main__":
     async def main() -> None:
         manager = MCPResourceProvider(cfg)
         async with manager:
-            prompts = await manager.get_prompts()  # type: ignore
+            prompts = await manager.get_prompts()
             print(f"Found prompts: {prompts}")
 
             # Test static prompt (no arguments)

@@ -210,6 +210,6 @@ class SwitchAgentCommand(SlashedCommand):
         msg = "Temporarily disabled"
         raise RuntimeError(msg)
 
-    def get_completer(self):
+    def get_completer(self) -> CallbackCompleter:
         """Get completer for agent names."""
         return CallbackCompleter(get_available_agents)

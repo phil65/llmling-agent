@@ -265,7 +265,7 @@ class EventManager:
             await source.__aexit__(None, None, None)
             logger.debug("Removed event source", name=name)
 
-    async def _process_events(self, source: EventSource):
+    async def _process_events(self, source: EventSource) -> None:
         """Process events from a source.
 
         Args:

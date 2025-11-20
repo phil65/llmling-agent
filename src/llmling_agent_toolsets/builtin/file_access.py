@@ -218,7 +218,7 @@ class FileAccessTools(StaticResourceProvider):
 if __name__ == "__main__":
     import asyncio
 
-    async def main():
+    async def main() -> None:
         tools = FileAccessTools()
         async with tools:
             result = await tools.get_tools()

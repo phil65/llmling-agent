@@ -31,7 +31,7 @@ class ProcessManagementTools(ResourceProvider):
         super().__init__(name=name)
         self.process_manager: ProcessManagerProtocol = process_manager or ProcessManager()
 
-    async def get_tools(self):
+    async def get_tools(self) -> list[Tool]:
         return [
             Tool.from_callable(self.start_process, source="builtin", category="execute"),
             Tool.from_callable(

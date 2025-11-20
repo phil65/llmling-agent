@@ -66,7 +66,7 @@ class ConnectionRegistry(BaseRegistry[str, Talk]):
 
     message_flow = Signal(Talk.ConnectionProcessed)
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         """Initialize registry and connect event handlers."""
         super().__init__(*args, **kwargs)
         # Connect handlers to EventedDict events

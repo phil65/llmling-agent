@@ -37,6 +37,7 @@ from llmling_agent_config.mcp_server import (
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable, Sequence
 
+    import fastmcp
     from fastmcp.client import ClientTransport
     from fastmcp.client.elicitation import ElicitationHandler
     from fastmcp.client.logging import LogMessage
@@ -52,6 +53,7 @@ if TYPE_CHECKING:
         Tool as MCPTool,
     )
     from pydantic_ai import BinaryContent
+    from upathtools.filesystems.mcp_fs import MCPFileSystem
 
     from llmling_agent_config.mcp_server import MCPServerConfig
 
@@ -121,7 +123,7 @@ class MCPClient:
         except Exception as e:  # noqa: BLE001
             logger.warning("Error during FastMCP client cleanup", error=e)
 
-    def get_resource_fs(self):
+    def get_resource_fs(self) -> MCPFileSystem:
         """Get a filesystem for accessing MCP resources."""
         from upathtools.filesystems.mcp_fs import MCPFileSystem
 
@@ -132,7 +134,9 @@ class MCPClient:
         level = MCP_TO_LOGGING.get(message.level, logging.INFO)
         logger.log(level, "MCP Server: ", data=message.data)
 
-    def _get_client(self, config: MCPServerConfig, force_oauth: bool = False):
+    def _get_client(
+        self, config: MCPServerConfig, force_oauth: bool = False
+    ) -> fastmcp.Client:
         """Create FastMCP client based on config."""
         import fastmcp
         from fastmcp.client import SSETransport, StreamableHttpTransport

@@ -107,7 +107,7 @@ class ToolManager:
                     obj = import_class(item)()
                     return Tool.from_langchain_tool(obj)
                 return Tool.from_callable(item)
-            case Callable():  # type: ignore[arg-type, misc]
+            case Callable():  # type: ignore[misc]
                 return Tool.from_callable(item)
             case _:
                 typ = type(item)

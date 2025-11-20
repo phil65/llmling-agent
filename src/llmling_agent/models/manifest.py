@@ -248,7 +248,7 @@ class AgentsManifest(Schema):
     def resolve_inheritance(cls, data: dict[str, Any]) -> dict[str, Any]:
         """Resolve agent inheritance chains."""
         nodes = data.get("agents", {})
-        resolved: dict[str, dict] = {}
+        resolved: dict[str, dict[str, Any]] = {}
         seen: set[str] = set()
 
         def resolve_node(name: str) -> dict[str, Any]:
@@ -282,6 +282,7 @@ class AgentsManifest(Schema):
 
             seen.remove(name)
             resolved[name] = config
+            assert isinstance(config, dict)
             return config
 
         # Resolve all nodes
@@ -490,12 +491,12 @@ class AgentsManifest(Schema):
         logger.debug("Building response model", type=agent_config.output_type)
         if isinstance(agent_config.output_type, str):
             response_def = self.responses[agent_config.output_type]
-            return response_def.response_schema.get_schema()  # type: ignore
-        return agent_config.output_type.response_schema.get_schema()  # type: ignore
+            return response_def.response_schema.get_schema()
+        return agent_config.output_type.response_schema.get_schema()
 
 
 if __name__ == "__main__":
     model = {"type": "input"}
-    agent_cfg = dict(name="test_agent", model=model)  # type: ignore
-    manifest = AgentsManifest(agents=dict(test_agent=agent_cfg))  # type: ignore
+    agent_cfg = dict(name="test_agent", model=model)
+    manifest = AgentsManifest(agents=dict(test_agent=agent_cfg))  # pyright: ignore[reportArgumentType]
     print(manifest.agents["test_agent"].model)

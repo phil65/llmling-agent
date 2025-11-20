@@ -156,7 +156,7 @@ class AddResourceCommand(SlashedCommand):
         *,
         pattern: str | None = None,
         **kwargs: str,
-    ):
+    ) -> None:
         """Add resource content as context for the next message.
 
         Args:

@@ -33,7 +33,7 @@ class CopyClipboardCommand(SlashedCommand):
         include_system: bool = False,
         max_tokens: int | None = None,
         format_template: str | None = None,
-    ):
+    ) -> None:
         """Copy messages to clipboard.
 
         Args:
@@ -90,7 +90,7 @@ class EditAgentFileCommand(SlashedCommand):
     name = "open-agent-file"
     category = "utils"
 
-    async def execute_command(self, ctx: CommandContext[AgentContext]):
+    async def execute_command(self, ctx: CommandContext[AgentContext]) -> None:
         """Open agent's configuration file."""
         agent = ctx.context.agent
         if not agent.context:

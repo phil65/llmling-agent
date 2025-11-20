@@ -164,7 +164,7 @@ class FileCommandConfig(BaseCommandConfig):
         param_names.sort()  # Consistent ordering
 
         # Create function that does template substitution
-        def command_func(*args, **kwargs):
+        def command_func(*args: Any, **kwargs: Any) -> str:
             """Generated command function from file."""
             # Build substitution dict from args and kwargs
             substitutions = {}

@@ -279,7 +279,7 @@ class AgentEventEmitter:
         )
         await self._context.agent._event_queue.put(event)
 
-    async def emit_event(self, event: RichAgentStreamEvent) -> None:
+    async def emit_event(self, event: RichAgentStreamEvent[Any]) -> None:
         """Emit a typed event into the agent's event stream.
 
         Args:

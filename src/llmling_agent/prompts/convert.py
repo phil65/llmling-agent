@@ -53,7 +53,7 @@ async def convert_prompts(
             case _ if not isinstance(p, BaseContent):
                 result.append(await to_prompt(p))
             case _:
-                result.append(p)  # type: ignore
+                result.append(p)
     return result
 
 

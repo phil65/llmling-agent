@@ -116,7 +116,7 @@ class ToolServerLifecycleHandler:
         self.port = port  # Will be set when socket is created
         self.app: FastAPI | None = None
         self.server: uvicorn.Server | None = None
-        self._server_task: asyncio.Task | None = None
+        self._server_task: asyncio.Task[None] | None = None
         self._socket: socket.socket | None = None
 
     async def __aenter__(self) -> ServerInfo:

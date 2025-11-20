@@ -6,7 +6,7 @@ import asyncio
 from asyncio import Lock
 from contextlib import AsyncExitStack, asynccontextmanager, suppress
 import os
-from typing import TYPE_CHECKING, Any, Self, Unpack, cast, overload
+from typing import TYPE_CHECKING, Any, Self, Unpack, overload
 
 from anyenv import ProcessManager
 from upath import UPath
@@ -18,7 +18,7 @@ from llmling_agent.delegation.team import Team
 from llmling_agent.delegation.teamrun import TeamRun
 from llmling_agent.log import get_logger
 from llmling_agent.messaging import MessageNode
-from llmling_agent.talk import Talk, TeamTalk
+from llmling_agent.talk import TeamTalk
 from llmling_agent.talk.registry import ConnectionRegistry
 from llmling_agent.tasks import TaskRegistry
 from llmling_agent.utils.baseregistry import BaseRegistry
@@ -683,7 +683,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         for agent in self.agents.values():
             connections = agent.connections.get_connections()
             for talk in connections:
-                talk = cast(Talk[Any], talk)  # help mypy understand it's a Talk
                 source = talk.source.name
                 for target in talk.targets:
                     if include_details:

@@ -205,7 +205,7 @@ async def execute_single(
         return func.name, result
 
 
-def _validate_dependency_types(functions: list[NodeFunction]):
+def _validate_dependency_types(functions: list[NodeFunction]) -> None:
     """Validate that dependency types match return types."""
     # Get return types for all functions
     return_types = {}

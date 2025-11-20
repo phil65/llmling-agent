@@ -3,11 +3,15 @@
 from __future__ import annotations
 
 import os
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from llmling_agent.log import get_logger
 from llmling_agent.resource_providers import ResourceProvider
 from llmling_agent.tools.base import Tool
+
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 logger = get_logger(__name__)
@@ -32,10 +36,10 @@ class ComposioTools(ResourceProvider):
         self._tools: list[Tool] | None = None
         self._toolkits = toolsets
 
-    def _create_tool_handler(self, tool_slug: str):
+    def _create_tool_handler(self, tool_slug: str) -> Callable[..., Any]:
         """Create a handler function for a specific tool."""
 
-        def handle_tool_call(**kwargs) -> Any:
+        def handle_tool_call(**kwargs: Any) -> Any:
             try:
                 return self.composio.tools.execute(
                     slug=tool_slug,

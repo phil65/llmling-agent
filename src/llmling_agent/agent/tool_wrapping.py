@@ -45,7 +45,7 @@ def wrap_tool[TReturn](
 
     if run_ctx_key or agent_ctx_key:
         # Tool has RunContext and/or AgentContext
-        async def wrapped(ctx: RunContext, *args: Any, **kwargs: Any):  # pyright: ignore
+        async def wrapped(ctx: RunContext, *args: Any, **kwargs: Any) -> TReturn | None:  # pyright: ignore
             result = await agent_ctx.handle_confirmation(tool, kwargs)
             if result == "allow":
                 # Populate AgentContext with RunContext data if needed

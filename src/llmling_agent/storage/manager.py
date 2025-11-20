@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING, Self
+from typing import TYPE_CHECKING, Any, Self
 
 from anyenv import method_spawner
 
@@ -64,7 +64,7 @@ class StorageManager:
         exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
-    ):
+    ) -> None:
         """Clean up all providers."""
         errors = []
         for provider in self.providers:
@@ -199,7 +199,7 @@ class StorageManager:
         return await provider.filter_messages(query)
 
     @method_spawner
-    async def log_message(self, message: ChatMessage) -> None:
+    async def log_message(self, message: ChatMessage[Any]) -> None:
         """Log message to all providers."""
         if not self.config.log_messages:
             return

@@ -87,7 +87,7 @@ class ConnectionManager:
 
     def get_targets(
         self, recursive: bool = False, _seen: set[AgentName] | None = None
-    ) -> set[MessageNode]:
+    ) -> set[MessageNode[Any, Any]]:
         """Get all currently connected target agents.
 
         Args:

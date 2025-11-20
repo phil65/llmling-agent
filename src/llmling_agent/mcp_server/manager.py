@@ -95,7 +95,7 @@ class MCPManager:
         message: str,
         response_type: type[Any],
         params: types.ElicitRequestParams,
-        context: RequestContext,
+        context: RequestContext[Any, Any, Any],
     ) -> ElicitResult[dict[str, Any]] | dict[str, Any] | None:
         """Handle elicitation requests from MCP server."""
         from fastmcp.client.elicitation import ElicitResult
@@ -125,7 +125,7 @@ class MCPManager:
         self,
         messages: list[SamplingMessage],
         params: types.CreateMessageRequestParams,
-        context: RequestContext,
+        context: RequestContext[Any, Any, Any],
     ) -> str:
         """Handle MCP sampling by creating a new agent with specified preferences."""
         from mcp import types

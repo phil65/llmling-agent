@@ -114,7 +114,7 @@ def dereference_openapi(
     return spec
 
 
-def parse_operations(paths: dict) -> dict[str, dict[str, Any]]:
+def parse_operations(paths: dict[str, Any]) -> dict[str, dict[str, Any]]:
     """Parse OpenAPI paths into operation configurations."""
     operations = {}
     for path, path_item in paths.items():
@@ -189,7 +189,7 @@ class OpenAPITools(ResourceProvider):
             tools.append(tool)
         return tools
 
-    async def _load_spec(self):
+    async def _load_spec(self) -> Schema:
         import httpx
         import yaml
 
@@ -232,7 +232,7 @@ class OpenAPITools(ResourceProvider):
         match schema.get("type"):
             case "string":
                 if enum := schema.get("enum"):
-                    return Literal[tuple(enum)]  # type: ignore
+                    return Literal[tuple(enum)]
                 if fmt := schema.get("format"):
                     return FORMAT_MAP.get(fmt, str)
                 return str
@@ -267,11 +267,11 @@ class OpenAPITools(ResourceProvider):
 
             case None if "oneOf" in schema:
                 types = [self._get_type_for_schema(s) for s in schema["oneOf"]]
-                return Union[tuple(types)]  # type: ignore  # noqa: UP007
+                return Union[tuple(types)]  # noqa: UP007
 
             case None if "anyOf" in schema:
                 types = [self._get_type_for_schema(s) for s in schema["anyOf"]]
-                return Union[tuple(types)]  # type: ignore  # noqa: UP007
+                return Union[tuple(types)]  # noqa: UP007
 
             case None if "allOf" in schema:
                 # For allOf, we'd need to merge schemas - using dict for now
@@ -350,7 +350,7 @@ class OpenAPITools(ResourceProvider):
                 json=request_body if request_body else None,
             )
             response.raise_for_status()
-            return response.json()
+            return response.json()  # type: ignore[no-any-return]
 
         # Set method metadata
         operation_method.__name__ = op_id
