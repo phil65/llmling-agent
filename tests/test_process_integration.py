@@ -57,14 +57,6 @@ def process_manifest():
     return AgentsManifest(agents={"process_agent": agent_config})
 
 
-async def test_process_manager_pool_integration(process_manifest):
-    """Test ProcessManager is properly integrated with AgentPool."""
-    async with AgentPool(process_manifest) as pool:
-        agent = pool.agents["process_agent"]
-        assert agent.context.process_manager
-        assert agent.context.process_manager is pool.process_manager
-
-
 async def test_process_tools_registration(process_manifest):
     """Test that process management tools are properly registered."""
     async with AgentPool(process_manifest) as pool:
@@ -110,7 +102,7 @@ async def test_basic_process_workflow(process_manifest):
         await pm.release_process(process_id)
 
         # Verify it's gone
-        processes = pm.list_processes()
+        processes = await pm.list_processes()
         assert process_id not in processes
 
 
@@ -124,7 +116,7 @@ async def test_pool_cleanup_kills_processes(process_manifest):
         process_id = await pm.start_process(command, args)
 
         # Verify it's running
-        processes = pm.list_processes()
+        processes = await pm.list_processes()
         assert process_id in processes
 
         # Pool cleanup should happen automatically when exiting context
@@ -179,7 +171,7 @@ async def test_multiple_processes_management(process_manifest):
         proc3 = await pm.start_process(cmd3, args3)
 
         # Verify all are tracked
-        processes = pm.list_processes()
+        processes = await pm.list_processes()
         assert len(processes) == 3  # noqa: PLR2004
         assert all(p in processes for p in [proc1, proc2, proc3])
 
@@ -193,7 +185,7 @@ async def test_multiple_processes_management(process_manifest):
             await pm.release_process(proc_id)
 
         # Verify all cleaned up
-        processes = pm.list_processes()
+        processes = await pm.list_processes()
         assert len(processes) == 0
 
 

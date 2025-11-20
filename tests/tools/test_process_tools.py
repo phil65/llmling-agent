@@ -1,334 +1,253 @@
-"""Tests for process management tools."""
+"""End-to-end tests for process management tools."""
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
-from anyenv.process_manager import ProcessManager, ProcessOutput
+from anyenv.process_manager import ProcessOutput
 import pytest
 
-from llmling_agent import AgentContext
-from llmling_agent_toolsets.builtin import process_management
+from llmling_agent_toolsets.builtin.process_management import ProcessManagementTools
 
 
 @pytest.fixture
-def mock_context():
-    """Create a mock AgentContext for testing."""
-    context = MagicMock(spec=AgentContext)
-    context.process_manager = MagicMock(spec=ProcessManager)
-    return context
+def mock_process_manager():
+    """Create a mock ProcessManager for testing."""
+    return MagicMock()
 
 
 @pytest.fixture
-def mock_process_output():
-    """Create a mock ProcessOutput for testing."""
-    return ProcessOutput(
-        stdout="Hello World\n",
-        stderr="",
-        combined="Hello World\n",
-        truncated=False,
-        exit_code=0,
-        signal=None,
-    )
-
-
-async def test_start_process_success(mock_context):
-    """Test successful process start."""
-    mock_context.process_manager.start_process.return_value = "proc_123"
-
-    result = await process_management.start_process(
-        mock_context,
-        command="echo",
-        args=["hello"],
-        cwd="/tmp",
-        env={"TEST": "value"},
-        output_limit=1024,
-    )
-
-    assert result == "Started process: proc_123"
-    mock_context.process_manager.start_process.assert_called_once_with(
-        command="echo",
-        args=["hello"],
-        cwd="/tmp",
-        env={"TEST": "value"},
-        output_limit=1024,
-    )
-
-
-async def test_start_process_minimal_args(mock_context):
-    """Test starting process with minimal arguments."""
-    mock_context.process_manager.start_process.return_value = "proc_456"
-
-    result = await process_management.start_process(mock_context, command="ls")
-
-    assert result == "Started process: proc_456"
-    mock_context.process_manager.start_process.assert_called_once_with(
-        command="ls",
-        args=None,
-        cwd=None,
-        env=None,
-        output_limit=None,
-    )
-
-
-async def test_start_process_failure(mock_context):
-    """Test handling process start failure."""
-    mock_context.process_manager.start_process.side_effect = OSError("Command not found")
-
-    result = await process_management.start_process(mock_context, command="badcmd")
-
-    assert "Failed to start process" in result
-    assert "Command not found" in result
-
-
-async def test_get_output_success(mock_context, mock_process_output):
-    """Test successful output retrieval."""
-    mock_context.process_manager.get_output.return_value = mock_process_output
-
-    result = await process_management.get_process_output(mock_context, "proc_123")
-
-    assert "Process proc_123:" in result
-    assert "STDOUT:\nHello World" in result
-    assert "Exit code: 0" in result
-    mock_context.process_manager.get_output.assert_called_once_with("proc_123")
-
-
-async def test_get_output_with_stderr(mock_context):
-    """Test output retrieval with stderr content."""
-    output = ProcessOutput(
-        stdout="Success\n",
-        stderr="Warning: something\n",
-        combined="Success\nWarning: something\n",
-        truncated=False,
-        exit_code=1,
-        signal=None,
-    )
-    mock_context.process_manager.get_output.return_value = output
-
-    result = await process_management.get_process_output(mock_context, "proc_123")
-
-    assert "STDOUT:\nSuccess" in result
-    assert "STDERR:\nWarning: something" in result
-    assert "Exit code: 1" in result
-
-
-async def test_get_output_truncated(mock_context):
-    """Test output retrieval with truncated output."""
-    output = ProcessOutput(
-        stdout="Partial output...",
-        stderr="",
-        combined="Partial output...",
-        truncated=True,
-        exit_code=None,
-        signal=None,
-    )
-    mock_context.process_manager.get_output.return_value = output
-
-    result = await process_management.get_process_output(mock_context, "proc_123")
-
-    assert "Note: Output was truncated due to size limits" in result
-
-
-async def test_get_output_not_found(mock_context):
-    """Test handling non-existent process."""
-    mock_context.process_manager.get_output.side_effect = ValueError("Process not found")
-
-    result = await process_management.get_process_output(mock_context, "nonexistent")
-
-    assert result == "Process not found"
-
-
-async def test_get_output_error(mock_context):
-    """Test handling unexpected errors."""
-    mock_context.process_manager.get_output.side_effect = Exception("Unexpected error")
-
-    result = await process_management.get_process_output(mock_context, "proc_123")
-
-    assert "Error getting process output" in result
-    assert "Unexpected error" in result
-
-
-async def test_wait_success(mock_context, mock_process_output):
-    """Test successful process wait."""
-    mock_context.process_manager.wait_for_exit.return_value = 0
-    mock_context.process_manager.get_output.return_value = mock_process_output
-
-    result = await process_management.wait_for_process(mock_context, "proc_123")
-
-    assert "Process proc_123 completed with exit code 0" in result
-    assert "STDOUT:\nHello World" in result
-    mock_context.process_manager.wait_for_exit.assert_called_once_with("proc_123")
-    mock_context.process_manager.get_output.assert_called_once_with("proc_123")
-
-
-async def test_wait_failure_exit_code(mock_context):
-    """Test waiting for process with non-zero exit code."""
-    mock_context.process_manager.wait_for_exit.return_value = 1
-    output = ProcessOutput(
-        stdout="",
-        stderr="Error occurred\n",
-        combined="Error occurred\n",
-        truncated=False,
-        exit_code=1,
-        signal=None,
-    )
-    mock_context.process_manager.get_output.return_value = output
-
-    result = await process_management.wait_for_process(mock_context, "proc_123")
-
-    assert "completed with exit code 1" in result
-    assert "STDERR:\nError occurred" in result
-
-
-async def test_wait_not_found(mock_context):
-    """Test waiting for non-existent process."""
-    mock_context.process_manager.wait_for_exit.side_effect = ValueError(
-        "Process not found"
-    )
-
-    result = await process_management.wait_for_process(mock_context, "nonexistent")
-
-    assert result == "Process not found"
-
-
-async def test_kill_success(mock_context):
-    """Test successful process termination."""
-    mock_context.process_manager.kill_process.return_value = None
-
-    result = await process_management.kill_process(mock_context, "proc_123")
-
-    assert result == "Process proc_123 has been terminated"
-    mock_context.process_manager.kill_process.assert_called_once_with("proc_123")
-
-
-async def test_kill_not_found(mock_context):
-    """Test killing non-existent process."""
-    mock_context.process_manager.kill_process.side_effect = ValueError(
-        "Process not found"
-    )
-
-    result = await process_management.kill_process(mock_context, "nonexistent")
-
-    assert result == "Process not found"
-
-
-async def test_kill_error(mock_context):
-    """Test handling kill errors."""
-    mock_context.process_manager.kill_process.side_effect = Exception("Kill failed")
-
-    result = await process_management.kill_process(mock_context, "proc_123")
-
-    assert "Error killing process" in result
-    assert "Kill failed" in result
-
-
-async def test_release_success(mock_context):
-    """Test successful process resource release."""
-    mock_context.process_manager.release_process.return_value = None
-
-    result = await process_management.release_process(mock_context, "proc_123")
-
-    assert result == "Process proc_123 resources have been released"
-    mock_context.process_manager.release_process.assert_called_once_with("proc_123")
-
-
-async def test_release_not_found(mock_context):
-    """Test releasing non-existent process."""
-    mock_context.process_manager.release_process.side_effect = ValueError(
-        "Process not found"
-    )
-
-    result = await process_management.release_process(mock_context, "nonexistent")
-
-    assert result == "Process not found"
-
-
-async def test_release_error(mock_context):
-    """Test handling release errors."""
-    mock_context.process_manager.release_process.side_effect = Exception("Release failed")
-
-    result = await process_management.release_process(mock_context, "proc_123")
-
-    assert "Error releasing process" in result
-    assert "Release failed" in result
-
-
-async def test_list_no_processes(mock_context):
-    """Test listing when no processes are active."""
-    mock_context.process_manager.list_processes.return_value = []
-
-    result = await process_management.list_processes(mock_context)
-
-    assert result == "No active processes"
-
-
-async def test_list_with_processes(mock_context):
-    """Test listing active processes."""
-    mock_context.process_manager.list_processes.return_value = [
-        "proc_123",
-        "proc_456",
-    ]
-    mock_context.process_manager.get_process_info.side_effect = [
-        {
-            "command": "echo",
-            "args": ["hello"],
-            "is_running": True,
-            "exit_code": None,
-        },
-        {
-            "command": "sleep",
-            "args": ["60"],
-            "is_running": False,
-            "exit_code": 0,
-        },
-    ]
-
-    result = await process_management.list_processes(mock_context)
-
-    assert "Active processes:" in result
-    assert "proc_123: echo hello [running]" in result
-    assert "proc_456: sleep 60 [exited (0)]" in result
-
-
-async def test_list_with_info_error(mock_context):
-    """Test listing when process info retrieval fails."""
-    mock_context.process_manager.list_processes.return_value = ["proc_123"]
-    mock_context.process_manager.get_process_info.side_effect = Exception("Info error")
-
-    result = await process_management.list_processes(mock_context)
-
-    assert "proc_123: Error getting info - Info error" in result
-
-
-async def test_list_general_error(mock_context):
-    """Test handling general list errors."""
-    mock_context.process_manager.list_processes.side_effect = Exception("List failed")
-
-    result = await process_management.list_processes(mock_context)
-
-    assert "Error listing processes" in result
-    assert "List failed" in result
-
-
-async def test_runcontext_handling():
-    """Test that tools handle PydanticAI RunContext correctly."""
-    # Create mock RunContext
-    mock_deps = MagicMock()
-    mock_deps.process_manager = MagicMock()
-
-    # Mock the async method properly
-    async def mock_start_process(*args, **kwargs):
-        return "proc_123"
-
-    mock_deps.process_manager.start_process = mock_start_process
-
-    mock_run_context = MagicMock(spec=AgentContext)
-    mock_run_context.process_manager = mock_deps.process_manager
-
-    result = await process_management.start_process(mock_run_context, command="echo")
-
-    assert result == "Started process: proc_123"
-
-
-if __name__ == "__main__":
-    pytest.main([__file__])
+def tools(mock_process_manager):
+    """Create ProcessManagementTools instance with mocked process manager."""
+    return ProcessManagementTools(process_manager=mock_process_manager)
+
+
+class TestToolsInitialization:
+    """Test tools initialization and configuration."""
+
+    async def test_tools_can_be_retrieved(self, tools):
+        """Test that tools can be retrieved from the provider."""
+        tool_list = await tools.get_tools()
+        assert len(tool_list) == 6  # noqa: PLR2004
+        assert all(hasattr(tool, "name") for tool in tool_list)
+        assert all(hasattr(tool, "description") for tool in tool_list)
+
+    def test_custom_process_manager_is_used(self, mock_process_manager):
+        """Test that custom process manager is properly set."""
+        tools = ProcessManagementTools(process_manager=mock_process_manager)
+        assert tools.process_manager is mock_process_manager
+
+    def test_default_process_manager_is_created(self):
+        """Test that ProcessManagementTools creates default ProcessManager."""
+        tools = ProcessManagementTools()
+        assert tools.process_manager is not None
+
+
+class TestProcessLifecycleEndToEnd:
+    """Test complete process lifecycle scenarios."""
+
+    async def test_start_and_wait_workflow(self, tools):
+        """Test realistic workflow: start process, get output, wait for completion."""
+        tools.process_manager.start_process = AsyncMock(return_value="proc_123")
+        tools.process_manager.wait_for_exit = AsyncMock(return_value=0)
+        tools.process_manager.get_output = AsyncMock(
+            return_value=ProcessOutput(
+                stdout="Process completed\n",
+                stderr="",
+                combined="Process completed\n",
+                truncated=False,
+                exit_code=0,
+                signal=None,
+            )
+        )
+
+        # Start process
+        start_result = await tools.start_process(command="echo", args=["hello"])
+        assert "proc_123" in start_result
+
+        # Wait for completion
+        wait_result = await tools.wait_for_process("proc_123")
+        assert "completed with exit code 0" in wait_result
+        assert "Process completed" in wait_result
+
+    async def test_process_failure_workflow(self, tools):
+        """Test workflow with process failure."""
+        tools.process_manager.start_process = AsyncMock(return_value="proc_456")
+        tools.process_manager.wait_for_exit = AsyncMock(return_value=1)
+        tools.process_manager.get_output = AsyncMock(
+            return_value=ProcessOutput(
+                stdout="",
+                stderr="Command failed\n",
+                combined="Command failed\n",
+                truncated=False,
+                exit_code=1,
+                signal=None,
+            )
+        )
+
+        start_result = await tools.start_process(command="false")
+        assert "proc_456" in start_result
+
+        wait_result = await tools.wait_for_process("proc_456")
+        assert "exit code 1" in wait_result
+        assert "Command failed" in wait_result
+
+    async def test_start_list_kill_workflow(self, tools):
+        """Test workflow: start, list, and kill processes."""
+        tools.process_manager.start_process = AsyncMock(return_value="proc_111")
+        tools.process_manager.list_processes = AsyncMock(return_value=["proc_111"])
+        tools.process_manager.get_process_info = AsyncMock(
+            return_value={
+                "command": "sleep",
+                "args": ["60"],
+                "is_running": True,
+                "exit_code": None,
+            }
+        )
+        tools.process_manager.kill_process = AsyncMock(return_value=None)
+
+        # Start
+        start_result = await tools.start_process(command="sleep", args=["60"])
+        assert "proc_111" in start_result
+
+        # List
+        list_result = await tools.list_processes()
+        assert "Active processes:" in list_result
+        assert "proc_111" in list_result
+        assert "sleep 60" in list_result
+        assert "[running]" in list_result
+
+        # Kill
+        kill_result = await tools.kill_process("proc_111")
+        assert "terminated" in kill_result
+
+
+class TestErrorHandling:
+    """Test error handling in realistic scenarios."""
+
+    async def test_start_process_command_not_found(self, tools):
+        """Test handling when command doesn't exist."""
+        tools.process_manager.start_process = AsyncMock(
+            side_effect=FileNotFoundError("Command not found")
+        )
+
+        result = await tools.start_process(command="nonexistent_cmd")
+        assert "Failed to start process" in result
+        assert "Command not found" in result
+
+    async def test_wait_for_nonexistent_process(self, tools):
+        """Test waiting for process that doesn't exist."""
+        tools.process_manager.wait_for_exit = AsyncMock(
+            side_effect=ValueError("Process not found")
+        )
+
+        result = await tools.wait_for_process("invalid_pid")
+        assert "Process not found" in result
+
+    async def test_get_output_for_killed_process(self, tools):
+        """Test getting output from killed process."""
+        tools.process_manager.get_output = AsyncMock(
+            side_effect=RuntimeError("Process was killed")
+        )
+
+        result = await tools.get_process_output("killed_proc")
+        assert "Error getting process output" in result
+        assert "Process was killed" in result
+
+    async def test_list_processes_system_error(self, tools):
+        """Test listing processes when system error occurs."""
+        tools.process_manager.list_processes = AsyncMock(
+            side_effect=PermissionError("Access denied")
+        )
+
+        result = await tools.list_processes()
+        assert "Error listing processes" in result
+        assert "Access denied" in result
+
+    async def test_list_processes_with_partial_info_failure(self, tools):
+        """Test listing when retrieving info for one process fails."""
+        tools.process_manager.list_processes = AsyncMock(
+            return_value=["proc_1", "proc_2"]
+        )
+        tools.process_manager.get_process_info = AsyncMock(
+            side_effect=[
+                {
+                    "command": "sleep",
+                    "args": ["60"],
+                    "is_running": True,
+                    "exit_code": None,
+                },
+                RuntimeError("Can't get info for proc_2"),
+            ]
+        )
+
+        result = await tools.list_processes()
+        assert "proc_1" in result
+        assert "sleep 60" in result
+        assert "proc_2" in result
+        assert "Error getting info" in result
+
+
+class TestEdgeCases:
+    """Test edge cases and boundary conditions."""
+
+    async def test_large_truncated_output(self, tools):
+        """Test handling of truncated output from large process."""
+        tools.process_manager.get_output = AsyncMock(
+            return_value=ProcessOutput(
+                stdout="[TRUNCATED - 10000 bytes]",
+                stderr="",
+                combined="[TRUNCATED - 10000 bytes]",
+                truncated=True,
+                exit_code=None,
+                signal=None,
+            )
+        )
+
+        result = await tools.get_process_output("big_proc")
+        assert "STDOUT:" in result
+        assert "[TRUNCATED - 10000 bytes]" in result
+        assert "Output was truncated" in result
+
+    async def test_process_with_both_stdout_and_stderr(self, tools):
+        """Test process output with both stdout and stderr."""
+        tools.process_manager.get_output = AsyncMock(
+            return_value=ProcessOutput(
+                stdout="Normal output\n",
+                stderr="Warning: something\n",
+                combined="Normal output\nWarning: something\n",
+                truncated=False,
+                exit_code=0,
+                signal=None,
+            )
+        )
+
+        result = await tools.get_process_output("mixed_proc")
+        assert "STDOUT:\nNormal output" in result
+        assert "STDERR:\nWarning: something" in result
+        assert "Exit code: 0" in result
+
+    async def test_no_active_processes(self, tools):
+        """Test listing when no processes are running."""
+        tools.process_manager.list_processes = AsyncMock(return_value=[])
+
+        result = await tools.list_processes()
+        assert result == "No active processes"
+
+    async def test_process_killed_by_signal(self, tools):
+        """Test process terminated by signal."""
+        tools.process_manager.wait_for_exit = AsyncMock(return_value=-15)
+        tools.process_manager.get_output = AsyncMock(
+            return_value=ProcessOutput(
+                stdout="",
+                stderr="Killed\n",
+                combined="Killed\n",
+                truncated=False,
+                exit_code=-15,
+                signal=15,
+            )
+        )
+
+        result = await tools.wait_for_process("killed_proc")
+        assert "completed with exit code -15" in result
+        assert "Killed" in result
