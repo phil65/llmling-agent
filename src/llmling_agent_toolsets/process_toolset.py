@@ -37,16 +37,16 @@ class ProcessTools(ResourceProvider):
             return self._tools
 
         self._tools = [
-            Tool.from_callable(self._start_process),
-            Tool.from_callable(self._get_process_output),
-            Tool.from_callable(self._wait_for_process),
-            Tool.from_callable(self._kill_process),
-            Tool.from_callable(self._release_process),
-            Tool.from_callable(self._list_processes),
+            Tool.from_callable(self.start_process),
+            Tool.from_callable(self.get_process_output),
+            Tool.from_callable(self.wait_for_process),
+            Tool.from_callable(self.kill_process),
+            Tool.from_callable(self.release_process),
+            Tool.from_callable(self.list_processes),
         ]
         return self._tools
 
-    async def _start_process(
+    async def start_process(
         self,
         agent_ctx: AgentContext,
         command: str,
@@ -109,7 +109,7 @@ class ProcessTools(ResourceProvider):
                 "status": "started",
             }
 
-    async def _get_process_output(
+    async def get_process_output(
         self, agent_ctx: AgentContext, process_id: str
     ) -> dict[str, Any]:
         """Get current output from a background process.
@@ -153,7 +153,7 @@ class ProcessTools(ResourceProvider):
         else:
             return result
 
-    async def _wait_for_process(
+    async def wait_for_process(
         self, agent_ctx: AgentContext, process_id: str
     ) -> dict[str, Any]:
         """Wait for background process to complete and return final output.
@@ -191,7 +191,7 @@ class ProcessTools(ResourceProvider):
                 "truncated": output.truncated,
             }
 
-    async def _kill_process(
+    async def kill_process(
         self, agent_ctx: AgentContext, process_id: str
     ) -> dict[str, Any]:
         """Terminate a background process.
@@ -234,7 +234,7 @@ class ProcessTools(ResourceProvider):
                 "message": f"Process {process_id} has been terminated",
             }
 
-    async def _release_process(
+    async def release_process(
         self, agent_ctx: AgentContext, process_id: str
     ) -> dict[str, Any]:
         """Release resources for a background process.
@@ -277,7 +277,7 @@ class ProcessTools(ResourceProvider):
                 "message": f"Process {process_id} resources have been released",
             }
 
-    async def _list_processes(self, agent_ctx: AgentContext) -> dict[str, Any]:
+    async def list_processes(self, agent_ctx: AgentContext) -> dict[str, Any]:
         """List all active background processes.
 
         Args:
