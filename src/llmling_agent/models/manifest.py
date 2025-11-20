@@ -415,6 +415,19 @@ class AgentsManifest(Schema):
                 case FunctionPromptConfig(function=function, arguments=arguments):
                     content = function(**arguments)  # Call function to get prompt content
                     sys_prompts.append(content)
+        # Prepare toolsets list with config's tool provider
+        toolsets_list = []
+        if config_tool_provider := config.get_tool_provider():
+            toolsets_list.append(config_tool_provider)
+
+        # Resolve output type using the same two-step process as before
+        from llmling_agent.utils.result_utils import to_type
+
+        # Step 1: Get agent-specific output type (same as before)
+        agent_output_type = self.get_output_type(name) or str
+        # Step 2: Resolve it fully with to_type (same as before)
+        resolved_output_type = to_type(agent_output_type, self.responses)
+
         # Create agent with runtime and context
         return Agent(
             context=context,
@@ -429,10 +442,12 @@ class AgentsManifest(Schema):
             output_retries=config.output_retries,
             end_strategy=config.end_strategy,
             debug=config.debug,
-            output_type=self.get_output_type(name) or str,
+            output_type=resolved_output_type,
             event_handlers=event_handlers,
             agent_pool=pool,
-            # name=config.name or name,
+            tool_mode=config.tool_mode,
+            knowledge=config.knowledge,
+            toolsets=toolsets_list,
         )
 
     @classmethod

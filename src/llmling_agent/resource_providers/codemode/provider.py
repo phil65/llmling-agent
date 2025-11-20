@@ -77,7 +77,7 @@ class CodeModeResourceProvider(AggregatingResourceProvider):
         Returns:
             Result of the last expression or explicit return value
         """
-        toolset_generator = await self._get_code_generator()
+        toolset_generator = await self._get_fresh_code_generator()
         namespace = toolset_generator.generate_execution_namespace()
 
         # async def report_progress(current: int, total: int, message: str = ""):

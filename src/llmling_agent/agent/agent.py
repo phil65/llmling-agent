@@ -69,9 +69,11 @@ if TYPE_CHECKING:
         ToolType,
     )
     from llmling_agent.delegation import AgentPool, Team, TeamRun
+    from llmling_agent.models.agents import ToolMode
     from llmling_agent.prompts.prompts import PromptType
     from llmling_agent.resource_providers import ResourceProvider
     from llmling_agent.ui.base import InputProvider
+    from llmling_agent_config.knowledge import Knowledge
     from llmling_agent_config.mcp_server import MCPServerConfig
     from llmling_agent_config.session import SessionQuery
     from llmling_agent_config.task import Job
@@ -153,6 +155,8 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         debug: bool = False,
         event_handlers: Sequence[IndividualEventHandler] | None = None,
         agent_pool: AgentPool[Any] | None = None,
+        tool_mode: ToolMode | None = None,
+        knowledge: Knowledge | None = None,
     ) -> None:
         """Initialize agent.
 
@@ -187,6 +191,8 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             debug: Whether to enable debug mode
             event_handlers: Sequence of event handlers to register with the agent
             agent_pool: AgentPool instance for managing agent resources
+            tool_mode: Tool execution mode (None or "codemode")
+            knowledge: Knowledge sources for this agent
         """
         from llmling_agent.agent import AgentContext
         from llmling_agent.agent.conversation import MessageHistory
@@ -223,12 +229,10 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         # Initialize tool manager
         self.event_handler = MultiEventHandler[IndividualEventHandler](event_handlers)
         all_tools = list(tools or [])
-        self.tools = ToolManager(all_tools, tool_mode=ctx.config.tool_mode)
+        effective_tool_mode = tool_mode or (ctx.config.tool_mode if ctx else None)
+        self.tools = ToolManager(all_tools, tool_mode=effective_tool_mode)
 
         # MCP manager will be initialized in __aenter__ and providers added there
-        if builtin_tools := ctx.config.get_tool_provider():
-            self.tools.add_provider(builtin_tools)
-
         for toolset_provider in toolsets or []:
             self.tools.add_provider(toolset_provider)
 
@@ -248,8 +252,9 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
 
         # Initialize conversation manager
         resources = list(resources)
-        if ctx.config.knowledge:
-            resources.extend(ctx.config.knowledge.get_resources())
+        effective_knowledge = knowledge or (ctx.config.knowledge if ctx else None)
+        if effective_knowledge:
+            resources.extend(effective_knowledge.get_resources())
         self.conversation = MessageHistory(
             storage=ctx.storage,
             converter=ctx.converter,
@@ -277,11 +282,10 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         self.talk = Interactions(self)
 
         # Set up system prompts
-        config_prompts = ctx.config.system_prompts if ctx else []
-        all_prompts: list[AnyPromptType] = list(config_prompts)
-        if isinstance(system_prompt, list):
+        all_prompts: list[AnyPromptType] = []
+        if isinstance(system_prompt, (list, tuple)):
             all_prompts.extend(system_prompt)
-        else:
+        elif system_prompt:
             all_prompts.append(system_prompt)
         self.sys_prompts = SystemPrompts(all_prompts, context=ctx)
 
