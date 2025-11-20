@@ -131,7 +131,7 @@ def get_logger(
         # Set level on underlying stdlib logger
         stdlib_logger = logging.getLogger(f"llmling_agent.{name}")
         stdlib_logger.setLevel(log_level)
-    return logger
+    return logger  # type: ignore[no-any-return]
 
 
 @contextmanager

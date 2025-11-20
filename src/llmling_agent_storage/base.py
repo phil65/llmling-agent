@@ -50,7 +50,7 @@ class StoredConversation:
     total_cost: float = 0.0
 
 
-class StorageProvider[T]:
+class StorageProvider:
     """Base class for storage providers."""
 
     can_load_history: bool = False
@@ -285,21 +285,4 @@ class StorageProvider[T]:
         Returns:
             Tuple of (conversation count, message count)
         """
-        raise NotImplementedError
-
-    async def add_checkpoint(
-        self,
-        message_id: str,
-        checkpoint_name: str,
-        description: str | None = None,
-    ):
-        """Add checkpoint to message."""
-        raise NotImplementedError
-
-    async def get_messages_until_checkpoint(
-        self,
-        checkpoint_name: str,
-        conversation_id: str,
-    ) -> list[T]:
-        """Get all messages up to and including checkpoint."""
         raise NotImplementedError
