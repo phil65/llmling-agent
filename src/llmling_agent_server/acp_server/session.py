@@ -542,26 +542,22 @@ class ACPSession:
                 output = message if message else f"Progress: {progress}"
                 if total:
                     output += f"/{total}"
-                try:
-                    # Create content from progress message
+                # Create content from progress message
 
-                    # Create ACP tool call progress notification
-                    # await self.notifications.tool_call(
-                    #     tool_name=tool_name,
-                    #     tool_input=tool_input or {},
-                    #     tool_output=output,
-                    #     status="in_progress",
-                    #     tool_call_id=tool_call_id,
-                    # )
-                    await self.notifications.tool_call_progress(
-                        title=message,
-                        raw_output=output,
-                        status="in_progress",
-                        tool_call_id=tool_call_id,
-                    )
-                except Exception as e:  # noqa: BLE001
-                    msg = "Failed to convert progress event to ACP notification"
-                    self.log.warning(msg, error=str(e))
+                # Create ACP tool call progress notification
+                # await self.notifications.tool_call(
+                #     tool_name=tool_name,
+                #     tool_input=tool_input or {},
+                #     tool_output=output,
+                #     status="in_progress",
+                #     tool_call_id=tool_call_id,
+                # )
+                await self.notifications.tool_call_progress(
+                    title=message,
+                    raw_output=output,
+                    status="in_progress",
+                    tool_call_id=tool_call_id,
+                )
 
             case FinalResultEvent():
                 self.log.debug("Final result received")
@@ -570,20 +566,11 @@ class ACPSession:
                 pass
 
             case PlanUpdateEvent(entries=entries, tool_call_id=tool_call_id):
-                # Handle PlanUpdateEvent - convert domain PlanEntry to ACP PlanEntry
-                try:
-                    acp_entries = [
-                        ACPPlanEntry(
-                            content=entry.content,
-                            priority=entry.priority,
-                            status=entry.status,
-                        )
-                        for entry in entries
-                    ]
-                    await self.notifications.update_plan(acp_entries)
-                except Exception as e:  # noqa: BLE001
-                    msg = "Failed to send plan update notification"
-                    self.log.warning(msg, error=str(e))
+                acp_entries = [
+                    ACPPlanEntry(content=e.content, priority=e.priority, status=e.status)
+                    for e in entries
+                ]
+                await self.notifications.update_plan(acp_entries)
 
             case FileOperationEvent(
                 operation=operation,
@@ -592,23 +579,18 @@ class ACPSession:
                 error=error,
                 tool_call_id=tool_call_id,
             ):
-                # Handle FileOperationEvent
-                try:
-                    if tool_call_id and success:
-                        await self.notifications.tool_call_progress(
-                            tool_call_id=tool_call_id,
-                            status="completed",
-                            locations=[ToolCallLocation(path=path)],
-                        )
-                    elif tool_call_id:
-                        await self.notifications.tool_call_progress(
-                            tool_call_id=tool_call_id,
-                            status="failed",
-                            raw_output=f"File operation {operation!r} failed: {error}",
-                        )
-                except Exception as e:  # noqa: BLE001
-                    msg = "Failed to send file operation notification"
-                    self.log.warning(msg, error=str(e))
+                if tool_call_id and success:
+                    await self.notifications.tool_call_progress(
+                        tool_call_id=tool_call_id,
+                        status="completed",
+                        locations=[ToolCallLocation(path=path)],
+                    )
+                elif tool_call_id:
+                    await self.notifications.tool_call_progress(
+                        tool_call_id=tool_call_id,
+                        status="failed",
+                        raw_output=f"File operation {operation!r} failed: {error}",
+                    )
 
             case FileEditProgressEvent(
                 path=path,
@@ -619,19 +601,15 @@ class ACPSession:
                 tool_call_id=tool_call_id,
             ):
                 # Handle FileEditProgressEvent
-                try:
-                    if tool_call_id:
-                        await self.notifications.file_edit_progress(
-                            tool_call_id=tool_call_id,
-                            path=path,
-                            old_text=old_text,
-                            new_text=new_text,
-                            status=status,
-                            changed_lines=changed_lines,
-                        )
-                except Exception as e:  # noqa: BLE001
-                    msg = "Failed to send file edit progress notification"
-                    self.log.warning(msg, error=str(e))
+                if tool_call_id:
+                    await self.notifications.file_edit_progress(
+                        tool_call_id=tool_call_id,
+                        path=path,
+                        old_text=old_text,
+                        new_text=new_text,
+                        status=status,
+                        changed_lines=changed_lines,
+                    )
 
             case ProcessStartEvent(
                 process_id=process_id,
@@ -641,24 +619,20 @@ class ACPSession:
                 tool_call_id=tool_call_id,
             ):
                 # Handle ProcessStartEvent
-                try:
-                    if tool_call_id and success:
-                        await self.notifications.tool_call_start(
-                            tool_call_id=tool_call_id,
-                            title=f"Running: {command}",
-                            kind="execute",
-                            content=[TerminalToolCallContent(terminal_id=process_id)],
-                        )
-                    elif tool_call_id:
-                        await self.notifications.tool_call_progress(
-                            tool_call_id=tool_call_id,
-                            status="failed",
-                            title=f"Failed to start process: {command}",
-                            raw_output=f"Process start failed: {error}",
-                        )
-                except Exception as e:  # noqa: BLE001
-                    msg = "Failed to send process start notification"
-                    self.log.warning(msg, error=str(e))
+                if tool_call_id and success:
+                    await self.notifications.tool_call_start(
+                        tool_call_id=tool_call_id,
+                        title=f"Running: {command}",
+                        kind="execute",
+                        content=[TerminalToolCallContent(terminal_id=process_id)],
+                    )
+                elif tool_call_id:
+                    await self.notifications.tool_call_progress(
+                        tool_call_id=tool_call_id,
+                        status="failed",
+                        title=f"Failed to start process: {command}",
+                        raw_output=f"Process start failed: {error}",
+                    )
 
             case ProcessOutputEvent(
                 process_id=process_id,
@@ -667,17 +641,13 @@ class ACPSession:
                 tool_call_id=tool_call_id,
             ):
                 # Handle ProcessOutputEvent
-                try:
-                    if tool_call_id:
-                        await self.notifications.terminal_progress(
-                            tool_call_id=tool_call_id,
-                            terminal_id=process_id,
-                            status="in_progress",
-                            title=f"Process {process_id} output",
-                        )
-                except Exception as e:  # noqa: BLE001
-                    msg = "Failed to send process output notification"
-                    self.log.warning(msg, error=str(e))
+                if tool_call_id:
+                    await self.notifications.terminal_progress(
+                        tool_call_id=tool_call_id,
+                        terminal_id=process_id,
+                        status="in_progress",
+                        title=f"Process {process_id} output",
+                    )
 
             case ProcessExitEvent(
                 process_id=process_id,
@@ -687,19 +657,13 @@ class ACPSession:
                 tool_call_id=tool_call_id,
             ):
                 # Handle ProcessExitEvent
-                try:
-                    if tool_call_id:
-                        title = f"Process {process_id} exited with code {exit_code}"
-                        await self.notifications.terminal_progress(
-                            tool_call_id=tool_call_id,
-                            terminal_id=process_id,
-                            status="completed" if success else "failed",
-                            title=title,
-                        )
-                except Exception as e:  # noqa: BLE001
-                    self.log.warning(
-                        "Failed to send process exit notification",
-                        error=str(e),
+                if tool_call_id:
+                    title = f"Process {process_id} exited with code {exit_code}"
+                    await self.notifications.terminal_progress(
+                        tool_call_id=tool_call_id,
+                        terminal_id=process_id,
+                        status="completed" if success else "failed",
+                        title=title,
                     )
 
             case ProcessKillEvent(
@@ -708,25 +672,20 @@ class ACPSession:
                 error=error,
                 tool_call_id=tool_call_id,
             ):
-                # Handle ProcessKillEvent
-                try:
-                    if tool_call_id and success:
-                        await self.notifications.terminal_progress(
-                            tool_call_id=tool_call_id,
-                            terminal_id=process_id,
-                            status="completed",
-                            title=f"Killed process {process_id}",
-                        )
-                    elif tool_call_id:
-                        await self.notifications.tool_call_progress(
-                            tool_call_id=tool_call_id,
-                            status="failed",
-                            title=f"Failed to kill process {process_id}",
-                            raw_output=f"Process kill failed: {error}",
-                        )
-                except Exception as e:  # noqa: BLE001
-                    msg = "Failed to send process kill notification"
-                    self.log.warning(msg, error=str(e))
+                if tool_call_id and success:
+                    await self.notifications.terminal_progress(
+                        tool_call_id=tool_call_id,
+                        terminal_id=process_id,
+                        status="completed",
+                        title=f"Killed process {process_id}",
+                    )
+                elif tool_call_id:
+                    await self.notifications.tool_call_progress(
+                        tool_call_id=tool_call_id,
+                        status="failed",
+                        title=f"Failed to kill process {process_id}",
+                        raw_output=f"Process kill failed: {error}",
+                    )
 
             case ProcessReleaseEvent(
                 process_id=process_id,
@@ -734,25 +693,20 @@ class ACPSession:
                 error=error,
                 tool_call_id=tool_call_id,
             ):
-                # Handle ProcessReleaseEvent
-                try:
-                    if tool_call_id and success:
-                        await self.notifications.terminal_progress(
-                            tool_call_id=tool_call_id,
-                            terminal_id=process_id,
-                            status="completed",
-                            title=f"Released process {process_id}",
-                        )
-                    elif tool_call_id:
-                        await self.notifications.tool_call_progress(
-                            tool_call_id=tool_call_id,
-                            status="failed",
-                            title=f"Failed to release process {process_id}",
-                            raw_output=f"Process release failed: {error}",
-                        )
-                except Exception as e:  # noqa: BLE001
-                    msg = "Failed to send process release notification"
-                    self.log.warning(msg, error=str(e))
+                if tool_call_id and success:
+                    await self.notifications.terminal_progress(
+                        tool_call_id=tool_call_id,
+                        terminal_id=process_id,
+                        status="completed",
+                        title=f"Released process {process_id}",
+                    )
+                elif tool_call_id:
+                    await self.notifications.tool_call_progress(
+                        tool_call_id=tool_call_id,
+                        status="failed",
+                        title=f"Failed to release process {process_id}",
+                        raw_output=f"Process release failed: {error}",
+                    )
 
             case _:
                 self.log.debug("Unhandled event", event_type=type(event).__name__)
@@ -800,10 +754,8 @@ class ACPSession:
                     command = self.create_mcp_command(prompt)
                     self.command_store.register_command(command)
                 self._notify_command_update()
-                self.log.info(
-                    "Registered MCP prompts as slash commands",
-                    prompt_count=len(all_prompts),
-                )
+                msg = "Registered MCP prompts as slash commands"
+                self.log.info(msg, prompt_count=len(all_prompts))
                 # Send updated command list to client
                 await self.send_available_commands_update()
 
@@ -829,10 +781,8 @@ class ACPSession:
 
             if command_count > 0:
                 self._notify_command_update()
-                self.log.info(
-                    "Registered prompt hub prompts as slash commands",
-                    command_count=command_count,
-                )
+                msg = "Registered prompt hub prompts as slash commands"
+                self.log.info(msg, command_count=command_count)
                 # Send updated command list to client
                 await self.send_available_commands_update()
 
