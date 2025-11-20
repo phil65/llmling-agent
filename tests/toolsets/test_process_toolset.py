@@ -47,7 +47,7 @@ def mock_process_manager():
     manager.wait_for_exit = AsyncMock(return_value=0)
     manager.kill_process = AsyncMock()
     manager.release_process = AsyncMock()
-    manager.list_processes = Mock(return_value=["proc_123", "proc_456"])
+    manager.list_processes = AsyncMock(return_value=["proc_123", "proc_456"])
     manager.get_process_info = AsyncMock(
         return_value={
             "command": "echo",

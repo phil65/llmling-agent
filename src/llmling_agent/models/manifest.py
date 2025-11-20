@@ -282,8 +282,7 @@ class AgentsManifest(Schema):
 
             seen.remove(name)
             resolved[name] = config
-            assert isinstance(config, dict)
-            return config
+            return config  # type: ignore[no-any-return]
 
         # Resolve all nodes
         for name in nodes:

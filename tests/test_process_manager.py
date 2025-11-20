@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 
 async def test_builtin_toolset_tools():
     """Test that process management tools are available in builtin toolset."""
@@ -22,3 +24,7 @@ async def test_builtin_toolset_tools():
 
     for tool_name in expected_tools:
         assert tool_name in tool_names
+
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])

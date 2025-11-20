@@ -248,3 +248,7 @@ async def test_process_info_retrieval(process_manifest):
 
         await pm.wait_for_exit(process_id)
         await pm.release_process(process_id)
+
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])
