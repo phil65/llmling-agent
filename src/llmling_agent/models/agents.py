@@ -11,6 +11,7 @@ from llmling_models.configs import AnyModelConfig  # noqa: TC002
 from pydantic import Field, model_validator
 from pydantic_ai import UsageLimits  # noqa: TC002
 from schemez import InlineSchemaDef
+from tokonomics.model_names import ModelName
 from toprompt import render_prompt
 
 from llmling_agent import log
@@ -55,7 +56,7 @@ class AgentConfig(NodeConfig):
     inherits: str | None = None
     """Name of agent config to inherit from"""
 
-    model: str | AnyModelConfig | None = None
+    model: str | ModelName | AnyModelConfig | None = None
     """The model to use for this agent. Can be either a simple model name
     string (e.g. 'openai:gpt-5') or a structured model definition."""
 
