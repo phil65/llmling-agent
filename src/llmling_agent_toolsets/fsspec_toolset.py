@@ -26,12 +26,15 @@ logger = get_logger(__name__)
 class FSSpecTools(ResourceProvider):
     """Provider for fsspec filesystem tools."""
 
-    def __init__(self, filesystem: fsspec.AbstractFileSystem, name: str = "fsspec") -> None:
+    def __init__(
+        self, filesystem: fsspec.AbstractFileSystem, name: str = "fsspec", cwd: str | None = None
+    ) -> None:
         """Initialize with an fsspec filesystem.
 
         Args:
             filesystem: The fsspec filesystem instance to operate on
             name: Name for this toolset provider
+            cwd: Optional cwd to resolve relative paths against
         """
         from fsspec.asyn import AsyncFileSystem  # type: ignore[import-untyped]
         from fsspec.implementations.asyn_wrapper import (  # type: ignore[import-untyped]
@@ -44,7 +47,24 @@ class FSSpecTools(ResourceProvider):
             if isinstance(filesystem, AsyncFileSystem)
             else AsyncFileSystemWrapper(filesystem)
         )
+        self.cwd = cwd
         self._tools: list[Tool] | None = None
+
+    def _resolve_path(self, path: str) -> str:
+        """Resolve a potentially relative path to an absolute path.
+
+        If cwd is set and path is relative, resolves relative to cwd.
+        Otherwise returns the path as-is.
+
+        Args:
+            path: Path that may be relative or absolute
+
+        Returns:
+            Absolute path string
+        """
+        if self.cwd and not (path.startswith("/") or (len(path) > 1 and path[1] == ":")):
+            return str(Path(self.cwd) / path)
+        return path
 
     async def get_tools(self) -> list[Tool]:
         """Get filesystem tools."""
@@ -100,6 +120,8 @@ class FSSpecTools(ResourceProvider):
             Dictionary with directory contents and metadata
         """
         # Emit tool call start event for ACP notifications
+        if self.cwd:
+            path = self._resolve_path(path)
         await agent_ctx.events.tool_call_start(
             title=f"Listing directory: {path}", kind="read", locations=[path]
         )
@@ -179,7 +201,8 @@ class FSSpecTools(ResourceProvider):
         Returns:
             Dictionary with file contents or error info
         """
-        # Emit tool call start event for ACP notifications
+        if self.cwd:
+            path = self._resolve_path(path)
         await agent_ctx.events.tool_call_start(
             title=f"Reading file: {path}", kind="read", locations=[path]
         )
@@ -250,7 +273,8 @@ class FSSpecTools(ResourceProvider):
         Returns:
             Dictionary with success info or error details
         """
-        # Emit tool call start event for ACP notifications
+        if self.cwd:
+            path = self._resolve_path(path)
         await agent_ctx.events.tool_call_start(
             title=f"Writing file: {path}", kind="edit", locations=[path]
         )
@@ -305,7 +329,8 @@ class FSSpecTools(ResourceProvider):
         Returns:
             Dictionary with operation result
         """
-        # Emit tool call start event for ACP notifications
+        if self.cwd:
+            path = self._resolve_path(path)
         await agent_ctx.events.tool_call_start(
             title=f"Deleting path: {path}", kind="delete", locations=[path]
         )
@@ -401,7 +426,8 @@ class FSSpecTools(ResourceProvider):
         Returns:
             Success message with edit summary
         """
-        # Emit tool call start event for ACP notifications
+        if self.cwd:
+            path = self._resolve_path(path)
         await agent_ctx.events.tool_call_start(
             title=f"Editing file: {path}", kind="edit", locations=[path]
         )
@@ -499,7 +525,8 @@ class FSSpecTools(ResourceProvider):
             agentic_edit('src/main.py', 'Add error handling to the main function') ->
             'Successfully edited main.py using AI agent'
         """
-        # Emit tool call start event for ACP notifications
+        if self.cwd:
+            path = self._resolve_path(path)
         await agent_ctx.events.tool_call_start(
             title=f"AI editing file: {path}", kind="edit", locations=[path]
         )
