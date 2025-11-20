@@ -66,7 +66,7 @@ async def execute[T](
 ) -> T:
     """Execute callable, handling both sync and async cases."""
     if inspect.iscoroutinefunction(func):
-        return await func(*args, **kwargs)
+        return await func(*args, **kwargs)  # type: ignore[no-any-return]
 
     if use_thread:
         result = await asyncio.to_thread(func, *args, **kwargs)
@@ -259,8 +259,8 @@ def call_with_context[T](
 
     if inspect.ismethod(func):
         if get_argument_key(func, AgentContext):
-            return func(context)
-        return func()
+            return func(context)  # type: ignore[no-any-return]
+        return func()  # type: ignore[no-any-return]
     if get_argument_key(func, AgentContext):
         return func(context, **kwargs)
     return func(context.data)

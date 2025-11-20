@@ -55,7 +55,7 @@ class StaticCommandConfig(BaseCommandConfig):
         param_names.sort()  # Consistent ordering
 
         # Create function that does template substitution
-        def command_func(*args, **kwargs):
+        def command_func(*args: Any, **kwargs: Any) -> str:
             """Generated command function."""
             # Build substitution dict from args and kwargs
             substitutions = {}

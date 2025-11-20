@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 
     from fastmcp.client.elicitation import ElicitResult
     from mcp import types
-    from mcp.client.session import RequestContext
+    from mcp.shared.context import RequestContext
     from mcp.types import SamplingMessage
 
     from llmling_agent.messaging.context import NodeContext

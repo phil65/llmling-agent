@@ -144,7 +144,7 @@ class AgentSideConnection(Client):
 
     async def ext_method(self, method: str, params: dict[str, Any]) -> dict[str, Any]:
         """Call an extension method on the client."""
-        return await self._conn.send_request(f"_{method}", params)
+        return await self._conn.send_request(f"_{method}", params)  # type: ignore[no-any-return]
 
     async def ext_notification(self, method: str, params: dict[str, Any]) -> None:
         """Send an extension notification to the client."""

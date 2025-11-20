@@ -67,6 +67,7 @@ if TYPE_CHECKING:
         NewSessionRequest,
         PromptRequest,
         ReadTextFileRequest,
+        SessionUpdate,
         WriteTextFileRequest,
     )
 
@@ -295,7 +296,9 @@ async def send_notification(request: NotificationRequest) -> dict[str, Any]:
         return {"success": True, "message": "Notification sent"}
 
 
-async def _create_notification_update(notification_type: str, data: dict[str, Any]):  # noqa: PLR0911
+async def _create_notification_update(  # noqa: PLR0911
+    notification_type: str, data: dict[str, Any]
+) -> SessionUpdate:
     """Create appropriate notification update object."""
     match notification_type:
         case "agent_message":

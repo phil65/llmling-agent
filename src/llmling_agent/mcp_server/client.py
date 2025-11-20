@@ -95,7 +95,7 @@ class MCPClient:
         """Enter context manager."""
         try:
             # First attempt with configured auth
-            await self._client.__aenter__()
+            await self._client.__aenter__()  # type: ignore[no-untyped-call]
 
         except Exception as first_error:
             # OAuth fallback for HTTP/SSE if not already using OAuth
@@ -105,9 +105,9 @@ class MCPClient:
             ):
                 try:
                     with contextlib.suppress(Exception):
-                        await self._client.__aexit__(None, None, None)
+                        await self._client.__aexit__(None, None, None)  # type: ignore[no-untyped-call]
                     self._client = self._get_client(self.config, force_oauth=True)
-                    await self._client.__aenter__()
+                    await self._client.__aenter__()  # type: ignore[no-untyped-call]
                     logger.info("Connected with OAuth fallback")
                 except Exception:  # noqa: BLE001
                     raise first_error from None
@@ -119,7 +119,7 @@ class MCPClient:
     async def __aexit__(self, *args: object) -> None:
         """Exit context manager and cleanup."""
         try:
-            await self._client.__aexit__(None, None, None)
+            await self._client.__aexit__(None, None, None)  # type: ignore[no-untyped-call]
         except Exception as e:  # noqa: BLE001
             logger.warning("Error during FastMCP client cleanup", error=e)
 
@@ -136,7 +136,7 @@ class MCPClient:
 
     def _get_client(
         self, config: MCPServerConfig, force_oauth: bool = False
-    ) -> fastmcp.Client:
+    ) -> fastmcp.Client[Any]:
         """Create FastMCP client based on config."""
         import fastmcp
         from fastmcp.client import SSETransport, StreamableHttpTransport

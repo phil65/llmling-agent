@@ -458,7 +458,7 @@ class FSSpecTools(ResourceProvider):
     async def _read(self, path: str, encoding: str = "utf-8") -> str:
         # with self.fs.open(path, "r", encoding="utf-8") as f:
         #     return f.read()
-        return await self.fs._cat(path)  # pyright: ignore[reportReturnType]
+        return await self.fs._cat(path)  # type: ignore[no-any-return]
 
     async def _write(self, path: str, content: str | bytes) -> None:
         mode = "wt" if isinstance(content, str) else "wb"

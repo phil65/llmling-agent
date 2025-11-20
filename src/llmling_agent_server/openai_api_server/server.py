@@ -97,7 +97,7 @@ class OpenAIAPIServer(BaseServer):
 
     def verify_api_key(
         self, authorization: Annotated[str | None, Header(alias="Authorization")] = None
-    ):
+    ) -> None:
         """Verify API key if configured."""
         from fastapi import HTTPException
 

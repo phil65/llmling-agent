@@ -172,7 +172,7 @@ class OpenAPITools(ResourceProvider):
         self.headers = headers or {}
         self._client: httpx.AsyncClient | None = None
         self._spec: Schema | None = None
-        self._schemas: dict[str, Any] = {}
+        self._schemas: dict[str, dict[str, Any]] = {}
         self._operations: dict[str, Any] = {}
 
     async def get_tools(self) -> list[Tool]:

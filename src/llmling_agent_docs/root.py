@@ -25,7 +25,7 @@ class Build:
     """Class for building the documentation tree."""
 
     @classmethod
-    def build(cls, root: mk.MkNav, theme: mk.Theme):
+    def build(cls, root: mk.MkNav, theme: mk.Theme) -> mk.MkNav:
         b = cls()
         b.on_theme(theme)
         return b.on_root(root)

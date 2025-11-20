@@ -180,7 +180,7 @@ class Team[TDeps = None](BaseTeam[TDeps, Any]):
         self.message_received.emit(user_msg)
 
         # Execute team logic
-        result: TeamResponse = await self.execute(*processed_prompts, **kwargs)
+        result = await self.execute(*processed_prompts, **kwargs)
         message_id = str(uuid4())  # Always generate unique response ID
         message = ChatMessage(
             content=[r.message.content for r in result if r.message],

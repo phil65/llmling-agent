@@ -90,7 +90,7 @@ class CrewAIToolConfig(BaseToolConfig):
     type: Literal["crewai"] = Field("crewai", init=False)
     """CrewAI tool configuration."""
 
-    import_path: ImportString
+    import_path: ImportString[Any]
     """Import path to CrewAI tool class."""
 
     params: dict[str, Any] = Field(default_factory=dict)

@@ -167,9 +167,6 @@ class MessageHistory:
             history = list(reversed(history))  # Start from newest when token limited
 
         for msg in history:
-            # Check role directly from ChatMessage
-            if not include_system and msg.role == "system":
-                continue
             name = msg.name or msg.role.title()
             formatted = template.format(agent=name, content=str(msg.content))
 

@@ -42,7 +42,7 @@ class PromptParameter(Schema):
     required: bool = False
     """Whether this argument must be provided when formatting the prompt."""
 
-    type_hint: ImportString = Field(default="str")
+    type_hint: ImportString[Any] = Field(default="str")
     """Type annotation for the argument, defaults to str."""
 
     default: Any | None = None

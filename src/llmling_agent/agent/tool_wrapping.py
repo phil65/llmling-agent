@@ -64,7 +64,8 @@ def wrap_tool[TReturn](
                     return await execute(fn, ctx, *args, **kwargs)
                 # Don't pass RunContext to original function since it didn't expect it
                 return await execute(fn, *args, **kwargs)
-            return await _handle_confirmation_result(result, tool.name)
+            await _handle_confirmation_result(result, tool.name)
+            return None
 
     else:
         # Tool has no context - normal function call

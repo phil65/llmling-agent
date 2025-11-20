@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import os
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from llmling_agent import AgentPool, AgentsManifest
 from llmling_agent.agent.events import RichAgentStreamEvent
@@ -71,7 +71,7 @@ async def run_example() -> None:
     config_path = get_config_path(None if is_pyodide() else __file__)
     manifest = AgentsManifest.from_file(config_path)
 
-    async def event_handler(ctx: RunContext, event: RichAgentStreamEvent) -> None:
+    async def event_handler(ctx: RunContext, event: RichAgentStreamEvent[Any]) -> None:
         from llmling_agent.agent.events import ToolCallProgressEvent
 
         if isinstance(event, ToolCallProgressEvent):

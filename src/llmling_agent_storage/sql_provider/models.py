@@ -12,7 +12,7 @@ from sqlalchemy import Column, DateTime
 from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy.types import TypeDecorator
 from sqlmodel import JSON, Field, SQLModel
-from sqlmodel.main import SQLModelConfig
+from sqlmodel.main import SQLModelConfig  # type: ignore[attr-defined]
 
 from llmling_agent.common_types import JsonValue
 from llmling_agent.utils.now import get_now
@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from sqlalchemy import Dialect
 
 
-class UTCDateTime(TypeDecorator):
+class UTCDateTime(TypeDecorator[datetime]):
     """Stores DateTime as UTC."""
 
     impl = DateTime

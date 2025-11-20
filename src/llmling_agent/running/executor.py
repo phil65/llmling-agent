@@ -233,7 +233,7 @@ def _validate_dependency_types(functions: list[NodeFunction]) -> None:
 
 def _validate_value_type(
     value: Any, expected_type: type, func_name: str, param_name: str
-):
+) -> None:
     """Validate that a value matches its expected type."""
     if not isinstance(value, expected_type):
         msg = (

@@ -27,7 +27,7 @@ def register_handlers(llm_server: MCPServer) -> None:  # noqa: PLR0915
         llm_server: LLMLing server instance
     """
 
-    @llm_server.server.set_logging_level()
+    @llm_server.server.set_logging_level()  # type: ignore[misc, no-untyped-call]
     async def handle_set_level(level: mcp.LoggingLevel) -> None:
         """Handle logging level changes."""
         try:
@@ -46,13 +46,13 @@ def register_handlers(llm_server: MCPServer) -> None:  # noqa: PLR0915
             error = mcp.McpError(error_data)
             raise error from exc
 
-    @llm_server.server.list_tools()
+    @llm_server.server.list_tools()  # type: ignore[misc, no-untyped-call]
     async def handle_list_tools() -> list[types.Tool]:
         """Handle tools/list request."""
         tools = await llm_server.provider.get_tools()
         return [tool.to_mcp_tool() for tool in tools]
 
-    @llm_server.server.call_tool()
+    @llm_server.server.call_tool()  # type: ignore[misc]
     async def handle_call_tool(
         name: str,
         arguments: dict[str, Any] | None = None,
@@ -70,7 +70,7 @@ def register_handlers(llm_server: MCPServer) -> None:  # noqa: PLR0915
             error_msg = f"Tool execution failed: {exc}"
             return [types.TextContent(type="text", text=error_msg)]
 
-    @llm_server.server.list_prompts()
+    @llm_server.server.list_prompts()  # type: ignore[misc, no-untyped-call]
     async def handle_list_prompts() -> list[types.Prompt]:
         """Handle prompts/list request."""
         return [p.to_mcp_prompt() for p in await llm_server.provider.get_prompts()]
@@ -93,7 +93,7 @@ def register_handlers(llm_server: MCPServer) -> None:  # noqa: PLR0915
             error_data = mcp.ErrorData(code=types.INTERNAL_ERROR, message=str(exc))
             raise mcp.McpError(error_data) from exc
 
-    @llm_server.server.progress_notification()
+    @llm_server.server.progress_notification()  # type: ignore[misc, no-untyped-call]
     async def handle_progress(
         token: str | int,
         progress: float,
@@ -109,14 +109,14 @@ def register_handlers(llm_server: MCPServer) -> None:  # noqa: PLR0915
             message=message,
         )
 
-    @llm_server.server.subscribe_resource()
+    @llm_server.server.subscribe_resource()  # type: ignore[misc, no-untyped-call]
     async def handle_subscribe(uri: AnyUrl) -> None:
         """Subscribe to resource updates."""
         uri_str = str(uri)
         llm_server._subscriptions[uri_str].add(llm_server.current_session)
         logger.debug("Added subscription", uri=uri)
 
-    @llm_server.server.unsubscribe_resource()
+    @llm_server.server.unsubscribe_resource()  # type: ignore[misc, no-untyped-call]
     async def handle_unsubscribe(uri: AnyUrl) -> None:
         """Unsubscribe from resource updates."""
         if (uri_str := str(uri)) in llm_server._subscriptions:

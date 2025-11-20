@@ -131,7 +131,7 @@ class ClientSideConnection(Agent):
         await self._conn.send_notification("session/cancel", dct)
 
     async def ext_method(self, method: str, params: dict[str, Any]) -> dict[str, Any]:
-        return await self._conn.send_request(f"_{method}", params)
+        return await self._conn.send_request(f"_{method}", params)  # type: ignore[no-any-return]
 
     async def ext_notification(self, method: str, params: dict[str, Any]) -> None:
         await self._conn.send_notification(f"_{method}", params)

@@ -32,7 +32,7 @@ class YouTubeTranscriptConverter(DocumentConverter):
     """Converter for YouTube video transcripts."""
 
     # YouTube URL/ID patterns
-    URL_PATTERNS: ClassVar[list[re.Pattern]] = [
+    URL_PATTERNS: ClassVar[list[re.Pattern[str]]] = [
         # Standard YouTube URLs
         re.compile(r"https?://(?:www\.)?youtube\.com/watch\?v=([a-zA-Z0-9_-]+)"),
         # Short URLs

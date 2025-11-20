@@ -426,7 +426,7 @@ class ACPSession:
             else:
                 return "end_turn"
 
-    async def handle_event(self, event: RichAgentStreamEvent) -> None:  # noqa: PLR0915
+    async def handle_event(self, event: RichAgentStreamEvent[Any]) -> None:  # noqa: PLR0915
         match event:
             case (
                 PartStartEvent(part=TextPart(content=delta))

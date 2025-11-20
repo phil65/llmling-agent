@@ -279,10 +279,10 @@ async def _default_lifespan(app: FastA2A) -> AsyncIterator[None]:
 
 @asynccontextmanager
 async def worker_lifespan(
-    app: FastA2A, worker, agent: Agent[AgentDepsT, OutputDataT]
+    app: FastA2A, worker: AgentWorker, agent: Agent[AgentDepsT, OutputDataT]
 ) -> AsyncIterator[None]:
     """Custom lifespan that runs the worker during application startup."""
-    async with app.task_manager, agent, worker.run():
+    async with app.task_manager, agent, await worker.run():
         yield
 
 

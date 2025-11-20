@@ -88,7 +88,7 @@ class AgentsManifest(Schema):
     responses: dict[str, StructuredResponseConfig] = Field(default_factory=dict)
     """Mapping of response names to their definitions"""
 
-    jobs: dict[str, Job] = Field(default_factory=dict)
+    jobs: dict[str, Job[Any]] = Field(default_factory=dict)
     """Pre-defined jobs, ready to be used by nodes."""
 
     mcp_servers: list[str | MCPServerConfig] = Field(default_factory=list)

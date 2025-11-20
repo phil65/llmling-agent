@@ -225,7 +225,7 @@ class ACPInputProvider(InputProvider):
             properties = schema.get("properties", {})
             if len(properties) == 1:
                 prop_schema = next(iter(properties.values()))
-                return prop_schema.get("type") == "boolean"
+                return bool(prop_schema.get("type") == "boolean")
 
         return False
 

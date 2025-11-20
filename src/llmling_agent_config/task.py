@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
 from pydantic import ConfigDict, Field, ImportString
@@ -58,7 +59,9 @@ class Job[TDeps, TResult = str](Schema):
     - Prompt templates
     """
 
-    tools: list[ImportString | ImportToolConfig] = Field(default_factory=list)
+    tools: list[ImportString[Callable[..., Any]] | ImportToolConfig] = Field(
+        default_factory=list
+    )
     """Tools needed for this task."""
 
     min_context_tokens: int | None = None
