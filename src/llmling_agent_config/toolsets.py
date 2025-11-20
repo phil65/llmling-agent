@@ -20,7 +20,11 @@ if TYPE_CHECKING:
 class BaseToolsetConfig(Schema):
     """Base configuration for toolsets."""
 
-    namespace: str | None = Field(default=None)
+    namespace: str | None = Field(
+        default=None,
+        examples=["web", "files", "code"],
+        title="Tool namespace",
+    )
     """Optional namespace prefix for tool names"""
 
 
@@ -30,10 +34,17 @@ class OpenAPIToolsetConfig(BaseToolsetConfig):
     type: Literal["openapi"] = Field("openapi", init=False)
     """OpenAPI toolset."""
 
-    spec: UPath
+    spec: UPath = Field(
+        examples=["https://api.example.com/openapi.json", "/path/to/spec.yaml"],
+        title="OpenAPI specification",
+    )
     """URL or path to the OpenAPI specification document."""
 
-    base_url: HttpUrl | None = None
+    base_url: HttpUrl | None = Field(
+        default=None,
+        examples=["https://api.example.com", "http://localhost:8080"],
+        title="Base URL override",
+    )
     """Optional base URL for API requests, overrides the one in spec."""
 
     def get_provider(self) -> ResourceProvider:
@@ -50,7 +61,10 @@ class EntryPointToolsetConfig(BaseToolsetConfig):
     type: Literal["entry_points"] = Field("entry_points", init=False)
     """Entry point toolset."""
 
-    module: str
+    module: str = Field(
+        examples=["myapp.tools", "external_package.plugins"],
+        title="Module path",
+    )
     """Python module path to load tools from via entry points."""
 
     def get_provider(self) -> ResourceProvider:
@@ -66,13 +80,24 @@ class ComposioToolSetConfig(BaseToolsetConfig):
     type: Literal["composio"] = Field("composio", init=False)
     """Composio Toolsets."""
 
-    api_key: SecretStr | None = None
+    api_key: SecretStr | None = Field(
+        default=None,
+        title="Composio API key",
+    )
     """Composio API Key."""
 
-    user_id: EmailStr = "user@example.com"
+    user_id: EmailStr = Field(
+        default="user@example.com",
+        examples=["user@example.com", "admin@company.com"],
+        title="User ID",
+    )
     """User ID for composio tools."""
 
-    toolsets: list[str] = Field(default_factory=list)
+    toolsets: list[str] = Field(
+        default_factory=list,
+        examples=[["github", "slack"], ["gmail", "calendar"]],
+        title="Toolset list",
+    )
     """List of toolsets to load."""
 
     def get_provider(self) -> ResourceProvider:
@@ -89,13 +114,24 @@ class UpsonicToolSetConfig(BaseToolsetConfig):
     type: Literal["upsonic"] = Field("upsonic", init=False)
     """Upsonic Toolsets."""
 
-    base_url: HttpUrl | None = None
+    base_url: HttpUrl | None = Field(
+        default=None,
+        examples=["https://api.upsonic.co", "http://localhost:9000"],
+        title="Upsonic API URL",
+    )
     """Upsonic API URL."""
 
-    api_key: SecretStr | None = None
+    api_key: SecretStr | None = Field(
+        default=None,
+        title="Upsonic API key",
+    )
     """Upsonic API Key."""
 
-    entity_id: str = "default"
+    entity_id: str = Field(
+        default="default",
+        examples=["default", "team1", "project_alpha"],
+        title="Entity ID",
+    )
     """Toolset entity id."""
 
     def get_provider(self) -> ResourceProvider:
@@ -229,10 +265,16 @@ class FSSpecToolsetConfig(BaseToolsetConfig):
     type: Literal["fsspec"] = Field("fsspec", init=False)
     """FSSpec filesystem toolset."""
 
-    url: str
+    url: str = Field(
+        examples=["s3://my-bucket", "file:///tmp", "gcs://bucket-name"],
+        title="Filesystem URL",
+    )
     """Filesystem URL or protocol (e.g., 'file', 's3://bucket-name', etc.)."""
 
-    storage_options: dict[str, str] = Field(default_factory=dict)
+    storage_options: dict[str, str] = Field(
+        default_factory=dict,
+        title="Storage options",
+    )
     """Additional options to pass to the filesystem constructor."""
 
     def get_provider(self) -> ResourceProvider:
@@ -266,7 +308,10 @@ class CustomToolsetConfig(BaseToolsetConfig):
     type: Literal["custom"] = Field("custom", init=False)
     """Custom toolset."""
 
-    import_path: str
+    import_path: str = Field(
+        examples=["myapp.toolsets.CustomTools", "external.providers:MyProvider"],
+        title="Import path",
+    )
     """Dotted import path to the custom toolset implementation class."""
 
     def get_provider(self) -> ResourceProvider:
@@ -286,7 +331,9 @@ class CodeModeToolsetConfig(BaseToolsetConfig):
     type: Literal["code_mode"] = Field("code_mode", init=False)
     """Code mode toolset."""
 
-    toolsets: list[ToolsetConfig]
+    toolsets: list[ToolsetConfig] = Field(
+        title="Wrapped toolsets",
+    )
     """List of toolsets to expose as a codemode toolset."""
 
     def get_provider(self) -> ResourceProvider:
@@ -303,10 +350,14 @@ class RemoteCodeModeToolsetConfig(BaseToolsetConfig):
     type: Literal["remote_code_mode"] = Field("remote_code_mode", init=False)
     """Code mode toolset."""
 
-    environment: ExecutionEnvironmentConfig
+    environment: ExecutionEnvironmentConfig = Field(
+        title="Execution environment",
+    )
     """Execution environment configuration."""
 
-    toolsets: list[ToolsetConfig]
+    toolsets: list[ToolsetConfig] = Field(
+        title="Wrapped toolsets",
+    )
     """List of toolsets to expose as a codemode toolset."""
 
     def get_provider(self) -> ResourceProvider:

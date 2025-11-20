@@ -15,7 +15,12 @@
           ],
           "default": null,
           "description": "Name of the Agent / Team",
-          "title": "Name"
+          "examples": [
+            "main_agent",
+            "web_searcher",
+            "code_assistant"
+          ],
+          "title": "Node name"
         },
         "description": {
           "anyOf": [
@@ -28,7 +33,11 @@
           ],
           "default": null,
           "description": "Optional description of the agent / team.",
-          "title": "Description"
+          "examples": [
+            "Main conversation agent",
+            "Handles web search requests"
+          ],
+          "title": "Node description"
         },
         "triggers": {
           "description": "Event sources that activate this agent / team",
@@ -57,7 +66,7 @@
               }
             ]
           },
-          "title": "Triggers",
+          "title": "Event triggers",
           "type": "array"
         },
         "connections": {
@@ -83,7 +92,7 @@
               }
             ]
           },
-          "title": "Connections",
+          "title": "Message forwarding targets",
           "type": "array"
         },
         "mcp_servers": {
@@ -116,7 +125,7 @@
               }
             ]
           },
-          "title": "Mcp Servers",
+          "title": "MCP servers",
           "type": "array"
         },
         "input_provider": {
@@ -130,7 +139,11 @@
           ],
           "default": null,
           "description": "Provider for human-input-handling.",
-          "title": "Input Provider"
+          "examples": [
+            "myapp.providers.ConsoleInput",
+            "ui.providers:WebInput"
+          ],
+          "title": "Input provider"
         },
         "inherits": {
           "anyOf": [
@@ -143,7 +156,11 @@
           ],
           "default": null,
           "description": "Name of agent config to inherit from",
-          "title": "Inherits"
+          "examples": [
+            "base_agent",
+            "coding_assistant"
+          ],
+          "title": "Inheritance source"
         },
         "model": {
           "anyOf": [
@@ -1830,7 +1847,10 @@
           ],
           "default": null,
           "description": "The model to use for this agent. Can be either a simple model name\nstring (e.g. 'openai:gpt-5') or a structured model definition.",
-          "title": "Model"
+          "examples": [
+            "openai:gpt-5-nano"
+          ],
+          "title": "Model configuration or name"
         },
         "tools": {
           "description": "A list of tools to register with this agent.",
@@ -1862,7 +1882,7 @@
               }
             ]
           },
-          "title": "Tools",
+          "title": "Agent tools",
           "type": "array"
         },
         "toolsets": {
@@ -1948,7 +1968,7 @@
               }
             ]
           },
-          "title": "Toolsets",
+          "title": "Toolset configurations",
           "type": "array"
         },
         "session": {
@@ -1968,7 +1988,11 @@
           ],
           "default": null,
           "description": "Session configuration for conversation recovery.",
-          "title": "Session"
+          "examples": [
+            "main_session",
+            "user_123"
+          ],
+          "title": "Session configuration"
         },
         "output_type": {
           "anyOf": [
@@ -1984,32 +2008,21 @@
           ],
           "default": null,
           "description": "Name of the response definition to use",
-          "title": "Output Type"
+          "examples": [
+            "json_response",
+            "code_output"
+          ],
+          "title": "Output type definition"
         },
         "retries": {
           "default": 1,
           "description": "Number of retries for failed operations (maps to pydantic-ai's retries)",
-          "title": "Retries",
-          "type": "integer"
-        },
-        "result_tool_name": {
-          "default": "final_result",
-          "description": "Name of the tool used for structured responses",
-          "title": "Result Tool Name",
-          "type": "string"
-        },
-        "result_tool_description": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
+          "examples": [
+            1,
+            3
           ],
-          "default": null,
-          "description": "Custom description for the result tool",
-          "title": "Result Tool Description"
+          "title": "Model retries",
+          "type": "integer"
         },
         "output_retries": {
           "anyOf": [
@@ -2022,7 +2035,11 @@
           ],
           "default": null,
           "description": "Max retries for result validation",
-          "title": "Output Retries"
+          "examples": [
+            1,
+            3
+          ],
+          "title": "Output retries"
         },
         "end_strategy": {
           "default": "early",
@@ -2031,7 +2048,11 @@
             "early",
             "exhaustive"
           ],
-          "title": "End Strategy",
+          "examples": [
+            "early",
+            "exhaust"
+          ],
+          "title": "Tool execution strategy",
           "type": "string"
         },
         "avatar": {
@@ -2045,7 +2066,11 @@
           ],
           "default": null,
           "description": "URL or path to agent's avatar image",
-          "title": "Avatar"
+          "examples": [
+            "https://example.com/avatar.png",
+            "/assets/robot.jpg"
+          ],
+          "title": "Avatar image"
         },
         "system_prompts": {
           "description": "System prompts for the agent. Can be strings or structured prompt configs.",
@@ -2081,7 +2106,7 @@
               }
             ]
           },
-          "title": "System Prompts",
+          "title": "System prompts",
           "type": "array"
         },
         "config_file_path": {
@@ -2095,7 +2120,11 @@
           ],
           "default": null,
           "description": "Config file path for resolving environment.",
-          "title": "Config File Path"
+          "examples": [
+            "/path/to/config.yml",
+            "configs/agent.yaml"
+          ],
+          "title": "Configuration file path"
         },
         "knowledge": {
           "anyOf": [
@@ -2107,7 +2136,8 @@
             }
           ],
           "default": null,
-          "description": "Knowledge sources for this agent."
+          "description": "Knowledge sources for this agent.",
+          "title": "Knowledge sources"
         },
         "workers": {
           "description": "Worker agents which will be available as tools.",
@@ -2128,7 +2158,7 @@
               }
             ]
           },
-          "title": "Workers",
+          "title": "Worker agents",
           "type": "array"
         },
         "requires_tool_confirmation": {
@@ -2139,13 +2169,18 @@
             "never",
             "per_tool"
           ],
-          "title": "Requires Tool Confirmation",
+          "examples": [
+            "always",
+            "never",
+            "per_tool"
+          ],
+          "title": "Tool confirmation mode",
           "type": "string"
         },
         "debug": {
           "default": false,
           "description": "Enable debug output for this agent.",
-          "title": "Debug",
+          "title": "Debug mode",
           "type": "boolean"
         },
         "usage_limits": {
@@ -2158,7 +2193,8 @@
             }
           ],
           "default": null,
-          "description": "Usage limits for this agent."
+          "description": "Usage limits for this agent.",
+          "title": "Usage limits"
         },
         "tool_mode": {
           "anyOf": [
@@ -2172,7 +2208,10 @@
           ],
           "default": null,
           "description": "Tool execution mode:\n- None: Default mode - tools are called directly\n- \"codemode\": Tools are wrapped in a Python execution environment",
-          "title": "Tool Mode"
+          "examples": [
+            "codemode"
+          ],
+          "title": "Tool execution mode"
         }
       },
       "title": "AgentConfig",
@@ -2193,7 +2232,12 @@
           ],
           "default": null,
           "description": "Optional namespace prefix for tool names",
-          "title": "Namespace"
+          "examples": [
+            "web",
+            "files",
+            "code"
+          ],
+          "title": "Tool namespace"
         },
         "type": {
           "const": "agent_management",
@@ -3029,7 +3073,12 @@
           ],
           "default": null,
           "description": "Optional namespace prefix for tool names",
-          "title": "Namespace"
+          "examples": [
+            "web",
+            "files",
+            "code"
+          ],
+          "title": "Tool namespace"
         },
         "type": {
           "const": "code_execution",
@@ -3057,7 +3106,12 @@
           ],
           "default": null,
           "description": "Optional namespace prefix for tool names",
-          "title": "Namespace"
+          "examples": [
+            "web",
+            "files",
+            "code"
+          ],
+          "title": "Tool namespace"
         },
         "type": {
           "const": "code_mode",
@@ -3149,7 +3203,7 @@
               }
             ]
           },
-          "title": "Toolsets",
+          "title": "Wrapped toolsets",
           "type": "array"
         }
       },
@@ -3174,7 +3228,12 @@
           ],
           "default": null,
           "description": "Optional namespace prefix for tool names",
-          "title": "Namespace"
+          "examples": [
+            "web",
+            "files",
+            "code"
+          ],
+          "title": "Tool namespace"
         },
         "type": {
           "const": "code",
@@ -3202,7 +3261,12 @@
           ],
           "default": null,
           "description": "Optional namespace prefix for tool names",
-          "title": "Namespace"
+          "examples": [
+            "web",
+            "files",
+            "code"
+          ],
+          "title": "Tool namespace"
         },
         "type": {
           "const": "composio",
@@ -3224,21 +3288,35 @@
           ],
           "default": null,
           "description": "Composio API Key.",
-          "title": "Api Key"
+          "title": "Composio API key"
         },
         "user_id": {
           "default": "user@example.com",
           "description": "User ID for composio tools.",
+          "examples": [
+            "user@example.com",
+            "admin@company.com"
+          ],
           "format": "email",
-          "title": "User Id",
+          "title": "User ID",
           "type": "string"
         },
         "toolsets": {
           "description": "List of toolsets to load.",
+          "examples": [
+            [
+              "github",
+              "slack"
+            ],
+            [
+              "gmail",
+              "calendar"
+            ]
+          ],
           "items": {
             "type": "string"
           },
-          "title": "Toolsets",
+          "title": "Toolset list",
           "type": "array"
         }
       },
@@ -3413,7 +3491,12 @@
           ],
           "default": null,
           "description": "Optional override for the tool name.",
-          "title": "Name"
+          "examples": [
+            "search_web",
+            "file_reader",
+            "calculator"
+          ],
+          "title": "Tool name override"
         },
         "description": {
           "anyOf": [
@@ -3426,18 +3509,22 @@
           ],
           "default": null,
           "description": "Optional override for the tool description.",
-          "title": "Description"
+          "examples": [
+            "Search the web for information",
+            "Read file contents"
+          ],
+          "title": "Tool description override"
         },
         "enabled": {
           "default": true,
           "description": "Whether this tool is initially enabled.",
-          "title": "Enabled",
+          "title": "Tool enabled",
           "type": "boolean"
         },
         "requires_confirmation": {
           "default": false,
           "description": "Whether tool execution needs confirmation.",
-          "title": "Requires Confirmation",
+          "title": "Requires confirmation",
           "type": "boolean"
         },
         "metadata": {
@@ -3445,7 +3532,7 @@
             "type": "string"
           },
           "description": "Additional tool metadata.",
-          "title": "Metadata",
+          "title": "Tool metadata",
           "type": "object"
         },
         "hints": {
@@ -3458,17 +3545,22 @@
             }
           ],
           "default": null,
-          "description": "Hints for tool execution."
+          "description": "Hints for tool execution.",
+          "title": "Execution hints"
         },
         "import_path": {
           "description": "Import path to CrewAI tool class.",
-          "title": "Import Path",
+          "examples": [
+            "crewai_tools.BrowserTool",
+            "crewai_tools.SearchTool"
+          ],
+          "title": "CrewAI tool import path",
           "type": "string"
         },
         "params": {
           "additionalProperties": true,
           "description": "Tool-specific parameters.",
-          "title": "Params",
+          "title": "Tool parameters",
           "type": "object"
         }
       },
@@ -3560,7 +3652,12 @@
           ],
           "default": null,
           "description": "Optional namespace prefix for tool names",
-          "title": "Namespace"
+          "examples": [
+            "web",
+            "files",
+            "code"
+          ],
+          "title": "Tool namespace"
         },
         "type": {
           "const": "custom",
@@ -3571,7 +3668,11 @@
         },
         "import_path": {
           "description": "Dotted import path to the custom toolset implementation class.",
-          "title": "Import Path",
+          "examples": [
+            "myapp.toolsets.CustomTools",
+            "external.providers:MyProvider"
+          ],
+          "title": "Import path",
           "type": "string"
         }
       },
@@ -4088,7 +4189,12 @@
           ],
           "default": null,
           "description": "Optional namespace prefix for tool names",
-          "title": "Namespace"
+          "examples": [
+            "web",
+            "files",
+            "code"
+          ],
+          "title": "Tool namespace"
         },
         "type": {
           "const": "entry_points",
@@ -4099,7 +4205,11 @@
         },
         "module": {
           "description": "Python module path to load tools from via entry points.",
-          "title": "Module",
+          "examples": [
+            "myapp.tools",
+            "external_package.plugins"
+          ],
+          "title": "Module path",
           "type": "string"
         }
       },
@@ -4124,7 +4234,12 @@
           ],
           "default": null,
           "description": "Optional namespace prefix for tool names",
-          "title": "Namespace"
+          "examples": [
+            "web",
+            "files",
+            "code"
+          ],
+          "title": "Tool namespace"
         },
         "type": {
           "const": "fsspec",
@@ -4135,7 +4250,12 @@
         },
         "url": {
           "description": "Filesystem URL or protocol (e.g., 'file', 's3://bucket-name', etc.).",
-          "title": "Url",
+          "examples": [
+            "s3://my-bucket",
+            "file:///tmp",
+            "gcs://bucket-name"
+          ],
+          "title": "Filesystem URL",
           "type": "string"
         },
         "storage_options": {
@@ -4143,7 +4263,7 @@
             "type": "string"
           },
           "description": "Additional options to pass to the filesystem constructor.",
-          "title": "Storage Options",
+          "title": "Storage options",
           "type": "object"
         }
       },
@@ -4217,7 +4337,12 @@
           ],
           "default": null,
           "description": "Optional namespace prefix for tool names",
-          "title": "Namespace"
+          "examples": [
+            "web",
+            "files",
+            "code"
+          ],
+          "title": "Tool namespace"
         },
         "type": {
           "const": "file_access",
@@ -4670,7 +4795,11 @@
       "properties": {
         "content": {
           "description": "The actual prompt text.",
-          "title": "Content",
+          "examples": [
+            "You are a helpful assistant",
+            "Always be concise"
+          ],
+          "title": "Prompt content",
           "type": "string"
         },
         "category": {
@@ -4682,7 +4811,13 @@
             "quality",
             "task"
           ],
-          "title": "Category",
+          "examples": [
+            "role",
+            "methodology",
+            "quality",
+            "task"
+          ],
+          "title": "Prompt category",
           "type": "string"
         },
         "type": {
@@ -4694,13 +4829,17 @@
         },
         "path": {
           "description": "Path to the Jinja template file.",
-          "title": "Path",
+          "examples": [
+            "prompts/system.j2",
+            "/templates/agent_prompt.jinja"
+          ],
+          "title": "Template file path",
           "type": "string"
         },
         "variables": {
           "additionalProperties": true,
           "description": "Variables to pass to the template.",
-          "title": "Variables",
+          "title": "Template variables",
           "type": "object"
         }
       },
@@ -4725,7 +4864,7 @@
         "log_messages": {
           "default": true,
           "description": "Whether to log messages",
-          "title": "Log Messages",
+          "title": "Log messages",
           "type": "boolean"
         },
         "agents": {
@@ -4743,29 +4882,33 @@
           ],
           "default": null,
           "description": "Optional set of agent names to include. If None, logs all agents.",
-          "title": "Agents"
+          "title": "Agent filter"
         },
         "log_conversations": {
           "default": true,
           "description": "Whether to log conversations",
-          "title": "Log Conversations",
+          "title": "Log conversations",
           "type": "boolean"
         },
         "log_commands": {
           "default": true,
           "description": "Whether to log command executions",
-          "title": "Log Commands",
+          "title": "Log commands",
           "type": "boolean"
         },
         "log_context": {
           "default": true,
           "description": "Whether to log context messages.",
-          "title": "Log Context",
+          "title": "Log context",
           "type": "boolean"
         },
         "path": {
           "description": "Path to storage file (extension determines format unless specified)",
-          "title": "Path",
+          "examples": [
+            "/data/storage.json",
+            "~/agent_data.yaml"
+          ],
+          "title": "Storage file path",
           "type": "string"
         },
         "format": {
@@ -4786,12 +4929,23 @@
           ],
           "default": "auto",
           "description": "Storage format (auto=detect from extension)",
-          "title": "Format"
+          "examples": [
+            "auto",
+            "json",
+            "yaml",
+            "toml"
+          ],
+          "title": "Storage format"
         },
         "encoding": {
           "default": "utf-8",
           "description": "File encoding",
-          "title": "Encoding",
+          "examples": [
+            "utf-8",
+            "ascii",
+            "latin1"
+          ],
+          "title": "File encoding",
           "type": "string"
         }
       },
@@ -4930,7 +5084,11 @@
       "properties": {
         "content": {
           "description": "The actual prompt text.",
-          "title": "Content",
+          "examples": [
+            "You are a helpful assistant",
+            "Always be concise"
+          ],
+          "title": "Prompt content",
           "type": "string"
         },
         "category": {
@@ -4942,7 +5100,13 @@
             "quality",
             "task"
           ],
-          "title": "Category",
+          "examples": [
+            "role",
+            "methodology",
+            "quality",
+            "task"
+          ],
+          "title": "Prompt category",
           "type": "string"
         },
         "type": {
@@ -4954,13 +5118,17 @@
         },
         "function": {
           "description": "Import path to the function that generates the prompt.",
-          "title": "Function",
+          "examples": [
+            "mymodule.generate_prompt",
+            "prompts.dynamic:create_system_prompt"
+          ],
+          "title": "Function import path",
           "type": "string"
         },
         "arguments": {
           "additionalProperties": true,
           "description": "Arguments to pass to the function.",
-          "title": "Arguments",
+          "title": "Function arguments",
           "type": "object"
         }
       },
@@ -5030,7 +5198,12 @@
           ],
           "default": null,
           "description": "Optional namespace prefix for tool names",
-          "title": "Namespace"
+          "examples": [
+            "web",
+            "files",
+            "code"
+          ],
+          "title": "Tool namespace"
         },
         "type": {
           "const": "history",
@@ -5096,7 +5269,12 @@
           ],
           "default": null,
           "description": "Optional override for the tool name.",
-          "title": "Name"
+          "examples": [
+            "search_web",
+            "file_reader",
+            "calculator"
+          ],
+          "title": "Tool name override"
         },
         "description": {
           "anyOf": [
@@ -5109,18 +5287,22 @@
           ],
           "default": null,
           "description": "Optional override for the tool description.",
-          "title": "Description"
+          "examples": [
+            "Search the web for information",
+            "Read file contents"
+          ],
+          "title": "Tool description override"
         },
         "enabled": {
           "default": true,
           "description": "Whether this tool is initially enabled.",
-          "title": "Enabled",
+          "title": "Tool enabled",
           "type": "boolean"
         },
         "requires_confirmation": {
           "default": false,
           "description": "Whether tool execution needs confirmation.",
-          "title": "Requires Confirmation",
+          "title": "Requires confirmation",
           "type": "boolean"
         },
         "metadata": {
@@ -5128,7 +5310,7 @@
             "type": "string"
           },
           "description": "Additional tool metadata.",
-          "title": "Metadata",
+          "title": "Tool metadata",
           "type": "object"
         },
         "hints": {
@@ -5141,11 +5323,16 @@
             }
           ],
           "default": null,
-          "description": "Hints for tool execution."
+          "description": "Hints for tool execution.",
+          "title": "Execution hints"
         },
         "import_path": {
           "description": "Import path to the tool function.",
-          "title": "Import Path",
+          "examples": [
+            "mymodule.my_function",
+            "package.tools:search_tool"
+          ],
+          "title": "Import path",
           "type": "string"
         }
       },
@@ -5284,7 +5471,12 @@
           ],
           "default": null,
           "description": "Optional namespace prefix for tool names",
-          "title": "Namespace"
+          "examples": [
+            "web",
+            "files",
+            "code"
+          ],
+          "title": "Tool namespace"
         },
         "type": {
           "const": "integrations",
@@ -5516,7 +5708,12 @@
           ],
           "default": null,
           "description": "Optional override for the tool name.",
-          "title": "Name"
+          "examples": [
+            "search_web",
+            "file_reader",
+            "calculator"
+          ],
+          "title": "Tool name override"
         },
         "description": {
           "anyOf": [
@@ -5529,18 +5726,22 @@
           ],
           "default": null,
           "description": "Optional override for the tool description.",
-          "title": "Description"
+          "examples": [
+            "Search the web for information",
+            "Read file contents"
+          ],
+          "title": "Tool description override"
         },
         "enabled": {
           "default": true,
           "description": "Whether this tool is initially enabled.",
-          "title": "Enabled",
+          "title": "Tool enabled",
           "type": "boolean"
         },
         "requires_confirmation": {
           "default": false,
           "description": "Whether tool execution needs confirmation.",
-          "title": "Requires Confirmation",
+          "title": "Requires confirmation",
           "type": "boolean"
         },
         "metadata": {
@@ -5548,7 +5749,7 @@
             "type": "string"
           },
           "description": "Additional tool metadata.",
-          "title": "Metadata",
+          "title": "Tool metadata",
           "type": "object"
         },
         "hints": {
@@ -5561,17 +5762,23 @@
             }
           ],
           "default": null,
-          "description": "Hints for tool execution."
+          "description": "Hints for tool execution.",
+          "title": "Execution hints"
         },
         "tool_name": {
           "description": "Name of LangChain tool to use.",
-          "title": "Tool Name",
+          "examples": [
+            "wikipedia",
+            "google-search",
+            "python_repl"
+          ],
+          "title": "LangChain tool name",
           "type": "string"
         },
         "params": {
           "additionalProperties": true,
           "description": "Tool-specific parameters.",
-          "title": "Params",
+          "title": "Tool parameters",
           "type": "object"
         }
       },
@@ -5729,7 +5936,11 @@
       "properties": {
         "content": {
           "description": "The actual prompt text.",
-          "title": "Content",
+          "examples": [
+            "You are a helpful assistant",
+            "Always be concise"
+          ],
+          "title": "Prompt content",
           "type": "string"
         },
         "category": {
@@ -5741,7 +5952,13 @@
             "quality",
             "task"
           ],
-          "title": "Category",
+          "examples": [
+            "role",
+            "methodology",
+            "quality",
+            "task"
+          ],
+          "title": "Prompt category",
           "type": "string"
         },
         "type": {
@@ -5753,7 +5970,12 @@
         },
         "reference": {
           "description": "Library prompt reference identifier.",
-          "title": "Reference",
+          "examples": [
+            "coding_assistant",
+            "helpful_agent",
+            "creative_writer"
+          ],
+          "title": "Library reference",
           "type": "string"
         }
       },
@@ -6200,7 +6422,7 @@
         "enable": {
           "default": true,
           "description": "Whether to enable history tracking.",
-          "title": "Enable",
+          "title": "Enable memory",
           "type": "boolean"
         },
         "max_tokens": {
@@ -6214,7 +6436,12 @@
           ],
           "default": null,
           "description": "Maximum number of tokens to keep in context window.",
-          "title": "Max Tokens"
+          "examples": [
+            1000,
+            4000,
+            8000
+          ],
+          "title": "Maximum context tokens"
         },
         "max_messages": {
           "anyOf": [
@@ -6227,7 +6454,12 @@
           ],
           "default": null,
           "description": "Maximum number of messages to keep in context window.",
-          "title": "Max Messages"
+          "examples": [
+            10,
+            50,
+            100
+          ],
+          "title": "Maximum message count"
         },
         "session": {
           "anyOf": [
@@ -6239,7 +6471,8 @@
             }
           ],
           "default": null,
-          "description": "Query configuration for loading previous session."
+          "description": "Query configuration for loading previous session.",
+          "title": "Session query"
         },
         "provider": {
           "anyOf": [
@@ -6252,7 +6485,12 @@
           ],
           "default": null,
           "description": "Override default storage provider for this agent.\nIf None, uses manifest's default provider or first available.",
-          "title": "Provider"
+          "examples": [
+            "sqlite",
+            "memory",
+            "file"
+          ],
+          "title": "Storage provider"
         }
       },
       "title": "MemoryConfig",
@@ -6272,7 +6510,7 @@
         "log_messages": {
           "default": true,
           "description": "Whether to log messages",
-          "title": "Log Messages",
+          "title": "Log messages",
           "type": "boolean"
         },
         "agents": {
@@ -6290,24 +6528,24 @@
           ],
           "default": null,
           "description": "Optional set of agent names to include. If None, logs all agents.",
-          "title": "Agents"
+          "title": "Agent filter"
         },
         "log_conversations": {
           "default": true,
           "description": "Whether to log conversations",
-          "title": "Log Conversations",
+          "title": "Log conversations",
           "type": "boolean"
         },
         "log_commands": {
           "default": true,
           "description": "Whether to log command executions",
-          "title": "Log Commands",
+          "title": "Log commands",
           "type": "boolean"
         },
         "log_context": {
           "default": true,
           "description": "Whether to log context messages.",
-          "title": "Log Context",
+          "title": "Log context",
           "type": "boolean"
         }
       },
@@ -6722,7 +6960,12 @@
           ],
           "default": null,
           "description": "Optional namespace prefix for tool names",
-          "title": "Namespace"
+          "examples": [
+            "web",
+            "files",
+            "code"
+          ],
+          "title": "Tool namespace"
         },
         "type": {
           "const": "openapi",
@@ -6768,7 +7011,11 @@
             }
           ],
           "description": "URL or path to the OpenAPI specification document.",
-          "title": "Spec"
+          "examples": [
+            "https://api.example.com/openapi.json",
+            "/path/to/spec.yaml"
+          ],
+          "title": "OpenAPI specification"
         },
         "base_url": {
           "anyOf": [
@@ -6784,7 +7031,11 @@
           ],
           "default": null,
           "description": "Optional base URL for API requests, overrides the one in spec.",
-          "title": "Base Url"
+          "examples": [
+            "https://api.example.com",
+            "http://localhost:8080"
+          ],
+          "title": "Base URL override"
         }
       },
       "required": [
@@ -6896,7 +7147,12 @@
           ],
           "default": null,
           "description": "Optional namespace prefix for tool names",
-          "title": "Namespace"
+          "examples": [
+            "web",
+            "files",
+            "code"
+          ],
+          "title": "Tool namespace"
         },
         "type": {
           "const": "process_management",
@@ -6943,7 +7199,7 @@
             "$ref": "#/$defs/StaticPromptConfig"
           },
           "description": "Mapping of system prompt identifiers to their definitions.",
-          "title": "System Prompts",
+          "title": "System prompt definitions",
           "type": "object"
         },
         "template": {
@@ -6957,7 +7213,11 @@
           ],
           "default": null,
           "description": "Optional template for combining prompts.\nHas access to prompts grouped by type.",
-          "title": "Template"
+          "examples": [
+            "Role: {{role}}\nMethod: {{method}}",
+            "{{content}}"
+          ],
+          "title": "Combination template"
         },
         "providers": {
           "description": "List of external prompt providers to use.",
@@ -6986,7 +7246,7 @@
               }
             ]
           },
-          "title": "Providers",
+          "title": "Prompt hub providers",
           "type": "array"
         }
       },
@@ -7093,7 +7353,12 @@
           ],
           "default": null,
           "description": "Optional namespace prefix for tool names",
-          "title": "Namespace"
+          "examples": [
+            "web",
+            "files",
+            "code"
+          ],
+          "title": "Tool namespace"
         },
         "type": {
           "const": "remote_code_mode",
@@ -7135,7 +7400,7 @@
               "$ref": "#/$defs/McpPythonExecutionEnvironmentConfig"
             }
           ],
-          "title": "Environment"
+          "title": "Execution environment"
         },
         "toolsets": {
           "description": "List of toolsets to expose as a codemode toolset.",
@@ -7220,7 +7485,7 @@
               }
             ]
           },
-          "title": "Toolsets",
+          "title": "Wrapped toolsets",
           "type": "array"
         }
       },
@@ -7317,7 +7582,7 @@
         "log_messages": {
           "default": true,
           "description": "Whether to log messages",
-          "title": "Log Messages",
+          "title": "Log messages",
           "type": "boolean"
         },
         "agents": {
@@ -7335,42 +7600,51 @@
           ],
           "default": null,
           "description": "Optional set of agent names to include. If None, logs all agents.",
-          "title": "Agents"
+          "title": "Agent filter"
         },
         "log_conversations": {
           "default": true,
           "description": "Whether to log conversations",
-          "title": "Log Conversations",
+          "title": "Log conversations",
           "type": "boolean"
         },
         "log_commands": {
           "default": true,
           "description": "Whether to log command executions",
-          "title": "Log Commands",
+          "title": "Log commands",
           "type": "boolean"
         },
         "log_context": {
           "default": true,
           "description": "Whether to log context messages.",
-          "title": "Log Context",
+          "title": "Log context",
           "type": "boolean"
         },
         "url": {
           "description": "Database URL (e.g. sqlite:///history.db)",
-          "title": "Url",
+          "examples": [
+            "sqlite:///history.db",
+            "postgresql://user:pass@localhost/db"
+          ],
+          "title": "Database URL",
           "type": "string"
         },
         "pool_size": {
           "default": 5,
           "description": "Connection pool size",
+          "examples": [
+            5,
+            10,
+            20
+          ],
           "minimum": 1,
-          "title": "Pool Size",
+          "title": "Connection pool size",
           "type": "integer"
         },
         "auto_migration": {
           "default": true,
           "description": "Whether to automatically add missing columns",
-          "title": "Auto Migration",
+          "title": "Auto migration",
           "type": "boolean"
         }
       },
@@ -7739,7 +8013,12 @@
           ],
           "default": null,
           "description": "Session identifier to match.",
-          "title": "Name"
+          "examples": [
+            "main_session",
+            "user_123",
+            "conversation_01"
+          ],
+          "title": "Session name"
         },
         "agents": {
           "anyOf": [
@@ -7756,7 +8035,7 @@
           ],
           "default": null,
           "description": "Filter by agent names.",
-          "title": "Agents"
+          "title": "Agent filter"
         },
         "since": {
           "anyOf": [
@@ -7769,7 +8048,12 @@
           ],
           "default": null,
           "description": "Time period to look back (e.g. \"1h\", \"2d\").",
-          "title": "Since"
+          "examples": [
+            "1h",
+            "2d",
+            "1w"
+          ],
+          "title": "Time period lookback"
         },
         "until": {
           "anyOf": [
@@ -7782,7 +8066,12 @@
           ],
           "default": null,
           "description": "Time period to look up to.",
-          "title": "Until"
+          "examples": [
+            "1h",
+            "2d",
+            "1w"
+          ],
+          "title": "Time period limit"
         },
         "contains": {
           "anyOf": [
@@ -7795,7 +8084,12 @@
           ],
           "default": null,
           "description": "Filter by message content.",
-          "title": "Contains"
+          "examples": [
+            "error",
+            "important",
+            "task completed"
+          ],
+          "title": "Content filter"
         },
         "roles": {
           "anyOf": [
@@ -7816,7 +8110,7 @@
           ],
           "default": null,
           "description": "Only include specific message roles.",
-          "title": "Roles"
+          "title": "Role filter"
         },
         "limit": {
           "anyOf": [
@@ -7829,12 +8123,17 @@
           ],
           "default": null,
           "description": "Maximum number of messages to return.",
-          "title": "Limit"
+          "examples": [
+            10,
+            50,
+            100
+          ],
+          "title": "Message limit"
         },
         "include_forwarded": {
           "default": true,
           "description": "Whether to include messages forwarded through agents.",
-          "title": "Include Forwarded",
+          "title": "Include forwarded messages",
           "type": "boolean"
         }
       },
@@ -8016,7 +8315,11 @@
       "properties": {
         "content": {
           "description": "The prompt text content.",
-          "title": "Content",
+          "examples": [
+            "You are a helpful assistant",
+            "Always be concise"
+          ],
+          "title": "Prompt content",
           "type": "string"
         },
         "category": {
@@ -8028,7 +8331,13 @@
             "quality",
             "task"
           ],
-          "title": "Category",
+          "examples": [
+            "role",
+            "methodology",
+            "quality",
+            "task"
+          ],
+          "title": "Prompt category",
           "type": "string"
         },
         "type": {
@@ -8158,7 +8467,7 @@
           ],
           "default": null,
           "description": "List of configured storage providers",
-          "title": "Providers"
+          "title": "Storage providers"
         },
         "default_provider": {
           "anyOf": [
@@ -8171,7 +8480,12 @@
           ],
           "default": null,
           "description": "Name of default provider for history queries.\nIf None, uses first configured provider.",
-          "title": "Default Provider"
+          "examples": [
+            "sql",
+            "file",
+            "memory"
+          ],
+          "title": "Default provider"
         },
         "agents": {
           "anyOf": [
@@ -8188,7 +8502,7 @@
           ],
           "default": null,
           "description": "Global agent filter. Can be overridden by provider-specific filters.",
-          "title": "Agents"
+          "title": "Global agent filter"
         },
         "filter_mode": {
           "default": "and",
@@ -8197,43 +8511,55 @@
             "and",
             "override"
           ],
-          "title": "Filter Mode",
+          "examples": [
+            "and",
+            "override"
+          ],
+          "title": "Filter mode",
           "type": "string"
         },
         "log_messages": {
           "default": true,
           "description": "Whether to log messages.",
-          "title": "Log Messages",
+          "title": "Log messages",
           "type": "boolean"
         },
         "log_conversations": {
           "default": true,
           "description": "Whether to log conversations.",
-          "title": "Log Conversations",
+          "title": "Log conversations",
           "type": "boolean"
         },
         "log_commands": {
           "default": true,
           "description": "Whether to log command executions.",
-          "title": "Log Commands",
+          "title": "Log commands",
           "type": "boolean"
         },
         "log_context": {
           "default": true,
           "description": "Whether to log additions to the context.",
-          "title": "Log Context",
+          "title": "Log context",
           "type": "boolean"
         },
         "title_generation_model": {
           "default": "openai:gpt-5-nano",
           "description": "Whether to log command executions.",
-          "title": "Title Generation Model",
+          "examples": [
+            "openai:gpt-5-nano",
+            "anthropic:claude-3-haiku"
+          ],
+          "title": "Title generation model",
           "type": "string"
         },
         "title_generation_prompt": {
           "default": "Create a short & consise title for this message. Only answer with that title.\n",
           "description": "Whether to log additions to the context.",
-          "title": "Title Generation Prompt",
+          "examples": [
+            "Create a short & consise title for this message. Only answer with that title.\n",
+            "Summarize this conversation in 5 words"
+          ],
+          "title": "Title generation prompt",
           "type": "string"
         }
       },
@@ -8441,7 +8767,12 @@
           ],
           "default": null,
           "description": "Name of the Agent / Team",
-          "title": "Name"
+          "examples": [
+            "main_agent",
+            "web_searcher",
+            "code_assistant"
+          ],
+          "title": "Node name"
         },
         "description": {
           "anyOf": [
@@ -8454,7 +8785,11 @@
           ],
           "default": null,
           "description": "Optional description of the agent / team.",
-          "title": "Description"
+          "examples": [
+            "Main conversation agent",
+            "Handles web search requests"
+          ],
+          "title": "Node description"
         },
         "triggers": {
           "description": "Event sources that activate this agent / team",
@@ -8483,7 +8818,7 @@
               }
             ]
           },
-          "title": "Triggers",
+          "title": "Event triggers",
           "type": "array"
         },
         "connections": {
@@ -8509,7 +8844,7 @@
               }
             ]
           },
-          "title": "Connections",
+          "title": "Message forwarding targets",
           "type": "array"
         },
         "mcp_servers": {
@@ -8542,7 +8877,7 @@
               }
             ]
           },
-          "title": "Mcp Servers",
+          "title": "MCP servers",
           "type": "array"
         },
         "input_provider": {
@@ -8556,7 +8891,11 @@
           ],
           "default": null,
           "description": "Provider for human-input-handling.",
-          "title": "Input Provider"
+          "examples": [
+            "myapp.providers.ConsoleInput",
+            "ui.providers:WebInput"
+          ],
+          "title": "Input provider"
         },
         "mode": {
           "description": "Execution mode for team members.",
@@ -8678,7 +9017,7 @@
         "log_messages": {
           "default": true,
           "description": "Whether to log messages",
-          "title": "Log Messages",
+          "title": "Log messages",
           "type": "boolean"
         },
         "agents": {
@@ -8696,29 +9035,33 @@
           ],
           "default": null,
           "description": "Optional set of agent names to include. If None, logs all agents.",
-          "title": "Agents"
+          "title": "Agent filter"
         },
         "log_conversations": {
           "default": true,
           "description": "Whether to log conversations",
-          "title": "Log Conversations",
+          "title": "Log conversations",
           "type": "boolean"
         },
         "log_commands": {
           "default": true,
           "description": "Whether to log command executions",
-          "title": "Log Commands",
+          "title": "Log commands",
           "type": "boolean"
         },
         "log_context": {
           "default": true,
           "description": "Whether to log context messages.",
-          "title": "Log Context",
+          "title": "Log context",
           "type": "boolean"
         },
         "path": {
           "description": "Path to log file",
-          "title": "Path",
+          "examples": [
+            "/var/log/agent.log",
+            "~/logs/conversations.txt"
+          ],
+          "title": "Log file path",
           "type": "string"
         },
         "format": {
@@ -8728,7 +9071,11 @@
             "chronological",
             "conversations"
           ],
-          "title": "Format",
+          "examples": [
+            "chronological",
+            "conversations"
+          ],
+          "title": "Log format",
           "type": "string"
         },
         "template": {
@@ -8749,12 +9096,22 @@
           ],
           "default": "chronological",
           "description": "Template to use: either predefined name or path to custom template",
+          "examples": [
+            "chronological",
+            "conversations",
+            "/path/to/template.j2"
+          ],
           "title": "Template"
         },
         "encoding": {
           "default": "utf-8",
           "description": "File encoding",
-          "title": "Encoding",
+          "examples": [
+            "utf-8",
+            "ascii",
+            "latin1"
+          ],
+          "title": "File encoding",
           "type": "string"
         }
       },
@@ -8942,7 +9299,7 @@
           ],
           "default": null,
           "description": "Hints that this tool only reads data without modifying anything",
-          "title": "Read Only"
+          "title": "Read-only operation"
         },
         "destructive": {
           "anyOf": [
@@ -8955,7 +9312,7 @@
           ],
           "default": null,
           "description": "Hints that this tool performs destructive operations that cannot be undone",
-          "title": "Destructive"
+          "title": "Destructive operation"
         },
         "idempotent": {
           "anyOf": [
@@ -8968,7 +9325,7 @@
           ],
           "default": null,
           "description": "Hints that this tool has idempotent behaviour",
-          "title": "Idempotent"
+          "title": "Idempotent operation"
         },
         "open_world": {
           "anyOf": [
@@ -8981,7 +9338,7 @@
           ],
           "default": null,
           "description": "Hints that this tool can access / interact with external resources beyond the\ncurrent system",
-          "title": "Open World"
+          "title": "External resource access"
         }
       },
       "title": "ToolHints",
@@ -9002,7 +9359,12 @@
           ],
           "default": null,
           "description": "Optional namespace prefix for tool names",
-          "title": "Namespace"
+          "examples": [
+            "web",
+            "files",
+            "code"
+          ],
+          "title": "Tool namespace"
         },
         "type": {
           "const": "tool_management",
@@ -9095,7 +9457,12 @@
           ],
           "default": null,
           "description": "Optional namespace prefix for tool names",
-          "title": "Namespace"
+          "examples": [
+            "web",
+            "files",
+            "code"
+          ],
+          "title": "Tool namespace"
         },
         "type": {
           "const": "upsonic",
@@ -9118,7 +9485,11 @@
           ],
           "default": null,
           "description": "Upsonic API URL.",
-          "title": "Base Url"
+          "examples": [
+            "https://api.upsonic.co",
+            "http://localhost:9000"
+          ],
+          "title": "Upsonic API URL"
         },
         "api_key": {
           "anyOf": [
@@ -9133,12 +9504,17 @@
           ],
           "default": null,
           "description": "Upsonic API Key.",
-          "title": "Api Key"
+          "title": "Upsonic API key"
         },
         "entity_id": {
           "default": "default",
           "description": "Toolset entity id.",
-          "title": "Entity Id",
+          "examples": [
+            "default",
+            "team1",
+            "project_alpha"
+          ],
+          "title": "Entity ID",
           "type": "string"
         }
       },
@@ -9237,7 +9613,12 @@
           ],
           "default": null,
           "description": "Optional namespace prefix for tool names",
-          "title": "Namespace"
+          "examples": [
+            "web",
+            "files",
+            "code"
+          ],
+          "title": "Tool namespace"
         },
         "type": {
           "const": "user_interaction",
@@ -9323,7 +9704,12 @@
           ],
           "default": null,
           "description": "Optional namespace prefix for tool names",
-          "title": "Namespace"
+          "examples": [
+            "web",
+            "files",
+            "code"
+          ],
+          "title": "Tool namespace"
         },
         "type": {
           "const": "vfs",

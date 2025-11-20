@@ -53,72 +53,127 @@ class AgentConfig(NodeConfig):
     The configuration can be loaded from YAML or created programmatically.
     """
 
-    inherits: str | None = None
+    inherits: str | None = Field(
+        default=None,
+        examples=["base_agent", "coding_assistant"],
+        title="Inheritance source",
+    )
     """Name of agent config to inherit from"""
 
-    model: str | ModelName | AnyModelConfig | None = None
+    model: str | ModelName | AnyModelConfig | None = Field(
+        default=None,
+        examples=["openai:gpt-5-nano"],
+        title="Model configuration or name",
+    )
     """The model to use for this agent. Can be either a simple model name
     string (e.g. 'openai:gpt-5') or a structured model definition."""
 
-    tools: list[ToolConfig | str] = Field(default_factory=list)
+    tools: list[ToolConfig | str] = Field(
+        default_factory=list,
+        title="Agent tools",
+    )
     """A list of tools to register with this agent."""
 
-    toolsets: list[ToolsetConfig] = Field(default_factory=list)
+    toolsets: list[ToolsetConfig] = Field(
+        default_factory=list,
+        title="Toolset configurations",
+    )
     """Toolset configurations for extensible tool collections."""
 
-    session: str | SessionQuery | MemoryConfig | None = None
+    session: str | SessionQuery | MemoryConfig | None = Field(
+        default=None,
+        examples=["main_session", "user_123"],
+        title="Session configuration",
+    )
     """Session configuration for conversation recovery."""
 
-    output_type: str | StructuredResponseConfig | None = None
+    output_type: str | StructuredResponseConfig | None = Field(
+        default=None,
+        examples=["json_response", "code_output"],
+        title="Output type definition",
+    )
     """Name of the response definition to use"""
 
-    retries: int = 1
+    retries: int = Field(default=1, examples=[1, 3], title="Model retries")
     """Number of retries for failed operations (maps to pydantic-ai's retries)"""
 
-    result_tool_name: str = "final_result"
-    """Name of the tool used for structured responses"""
-
-    result_tool_description: str | None = None
-    """Custom description for the result tool"""
-
-    output_retries: int | None = None
+    output_retries: int | None = Field(
+        default=None,
+        examples=[1, 3],
+        title="Output retries",
+    )
     """Max retries for result validation"""
 
-    end_strategy: EndStrategy = "early"
+    end_strategy: EndStrategy = Field(
+        default="early",
+        examples=["early", "exhaust"],
+        title="Tool execution strategy",
+    )
     """The strategy for handling multiple tool calls when a final result is found"""
 
-    avatar: str | None = None
+    avatar: str | None = Field(
+        default=None,
+        examples=["https://example.com/avatar.png", "/assets/robot.jpg"],
+        title="Avatar image",
+    )
     """URL or path to agent's avatar image"""
 
-    system_prompts: Sequence[str | PromptConfig] = Field(default_factory=list)
+    system_prompts: Sequence[str | PromptConfig] = Field(
+        default_factory=list,
+        title="System prompts",
+    )
     """System prompts for the agent. Can be strings or structured prompt configs."""
 
     # context_sources: list[ContextSource] = Field(default_factory=list)
     # """Initial context sources to load"""
 
-    config_file_path: str | None = None
+    config_file_path: str | None = Field(
+        default=None,
+        examples=["/path/to/config.yml", "configs/agent.yaml"],
+        title="Configuration file path",
+    )
     """Config file path for resolving environment."""
 
-    knowledge: Knowledge | None = None
+    knowledge: Knowledge | None = Field(
+        default=None,
+        title="Knowledge sources",
+    )
     """Knowledge sources for this agent."""
 
-    workers: list[WorkerConfig] = Field(default_factory=list)
+    workers: list[WorkerConfig] = Field(
+        default_factory=list,
+        title="Worker agents",
+    )
     """Worker agents which will be available as tools."""
 
-    requires_tool_confirmation: ToolConfirmationMode = "per_tool"
+    requires_tool_confirmation: ToolConfirmationMode = Field(
+        default="per_tool",
+        examples=["always", "never", "per_tool"],
+        title="Tool confirmation mode",
+    )
     """How to handle tool confirmation:
     - "always": Always require confirmation for all tools
     - "never": Never require confirmation (ignore tool settings)
     - "per_tool": Use individual tool settings
     """
 
-    debug: bool = False
+    debug: bool = Field(
+        default=False,
+        title="Debug mode",
+    )
     """Enable debug output for this agent."""
 
-    usage_limits: UsageLimits | None = None
+    usage_limits: UsageLimits | None = Field(
+        default=None,
+        title="Usage limits",
+    )
     """Usage limits for this agent."""
 
-    tool_mode: ToolMode | None = None
+    tool_mode: ToolMode | None = Field(
+        default=None,
+        examples=["codemode"],
+        title="Tool execution mode",
+    )
     """Tool execution mode:
     - None: Default mode - tools are called directly
     - "codemode": Tools are wrapped in a Python execution environment

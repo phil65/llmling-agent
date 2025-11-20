@@ -35,10 +35,17 @@ Task: {{ prompt.content }}
 class BaseSystemPrompt(Schema):
     """Individual system prompt definition."""
 
-    content: str
+    content: str = Field(
+        examples=["You are a helpful assistant", "Always be concise"],
+        title="Prompt content",
+    )
     """The actual prompt text."""
 
-    category: SystemPromptCategory = "role"
+    category: SystemPromptCategory = Field(
+        default="role",
+        examples=["role", "methodology", "quality", "task"],
+        title="Prompt category",
+    )
     """Categorization for template organization."""
 
     model_config = ConfigDict(frozen=True)
@@ -50,7 +57,10 @@ class StaticPromptConfig(BaseSystemPrompt):
     type: Literal["static"] = Field("static", init=False)
     """Static prompt reference."""
 
-    content: str
+    content: str = Field(
+        examples=["You are a helpful assistant", "Always be concise"],
+        title="Prompt content",
+    )
     """The prompt text content."""
 
     model_config = ConfigDict(frozen=True)
@@ -62,10 +72,16 @@ class FilePromptConfig(BaseSystemPrompt):
     type: Literal["file"] = Field("file", init=False)
     """File prompt reference."""
 
-    path: str
+    path: str = Field(
+        examples=["prompts/system.j2", "/templates/agent_prompt.jinja"],
+        title="Template file path",
+    )
     """Path to the Jinja template file."""
 
-    variables: dict[str, Any] = Field(default_factory=dict)
+    variables: dict[str, Any] = Field(
+        default_factory=dict,
+        title="Template variables",
+    )
     """Variables to pass to the template."""
 
 
@@ -75,7 +91,10 @@ class LibraryPromptConfig(BaseSystemPrompt):
     type: Literal["library"] = Field("library", init=False)
     """Library prompt reference."""
 
-    reference: str
+    reference: str = Field(
+        examples=["coding_assistant", "helpful_agent", "creative_writer"],
+        title="Library reference",
+    )
     """Library prompt reference identifier."""
 
 
@@ -85,10 +104,16 @@ class FunctionPromptConfig(BaseSystemPrompt):
     type: Literal["function"] = Field("function", init=False)
     """Function prompt reference."""
 
-    function: ImportString[Callable[..., str]]
+    function: ImportString[Callable[..., str]] = Field(
+        examples=["mymodule.generate_prompt", "prompts.dynamic:create_system_prompt"],
+        title="Function import path",
+    )
     """Import path to the function that generates the prompt."""
 
-    arguments: dict[str, Any] = Field(default_factory=dict)
+    arguments: dict[str, Any] = Field(
+        default_factory=dict,
+        title="Function arguments",
+    )
     """Arguments to pass to the function."""
 
 
@@ -102,14 +127,24 @@ PromptConfig = Annotated[
 class PromptLibraryConfig(Schema):
     """Complete prompt configuration."""
 
-    system_prompts: dict[str, StaticPromptConfig] = Field(default_factory=dict)
+    system_prompts: dict[str, StaticPromptConfig] = Field(
+        default_factory=dict,
+        title="System prompt definitions",
+    )
     """Mapping of system prompt identifiers to their definitions."""
 
-    template: str | None = None
+    template: str | None = Field(
+        default=None,
+        examples=["Role: {{role}}\nMethod: {{method}}", "{{content}}"],
+        title="Combination template",
+    )
     """Optional template for combining prompts.
     Has access to prompts grouped by type."""
 
-    providers: list[PromptHubConfig] = Field(default_factory=list)
+    providers: list[PromptHubConfig] = Field(
+        default_factory=list,
+        title="Prompt hub providers",
+    )
     """List of external prompt providers to use."""
 
     model_config = ConfigDict(frozen=True)

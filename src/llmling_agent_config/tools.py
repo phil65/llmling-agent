@@ -19,22 +19,42 @@ class BaseToolConfig(Schema):
     type: str = Field(init=False)
     """Type discriminator for tool configs."""
 
-    name: str | None = None
+    name: str | None = Field(
+        default=None,
+        examples=["search_web", "file_reader", "calculator"],
+        title="Tool name override",
+    )
     """Optional override for the tool name."""
 
-    description: str | None = None
+    description: str | None = Field(
+        default=None,
+        examples=["Search the web for information", "Read file contents"],
+        title="Tool description override",
+    )
     """Optional override for the tool description."""
 
-    enabled: bool = True
+    enabled: bool = Field(
+        default=True,
+        title="Tool enabled",
+    )
     """Whether this tool is initially enabled."""
 
-    requires_confirmation: bool = False
+    requires_confirmation: bool = Field(
+        default=False,
+        title="Requires confirmation",
+    )
     """Whether tool execution needs confirmation."""
 
-    metadata: dict[str, str] = Field(default_factory=dict)
+    metadata: dict[str, str] = Field(
+        default_factory=dict,
+        title="Tool metadata",
+    )
     """Additional tool metadata."""
 
-    hints: ToolHints | None = None
+    hints: ToolHints | None = Field(
+        default=None,
+        title="Execution hints",
+    )
     """Hints for tool execution."""
 
     model_config = ConfigDict(frozen=True)
@@ -47,16 +67,28 @@ class BaseToolConfig(Schema):
 class ToolHints(Schema):
     """Configuration for tool execution hints."""
 
-    read_only: bool | None = None
+    read_only: bool | None = Field(
+        default=None,
+        title="Read-only operation",
+    )
     """Hints that this tool only reads data without modifying anything"""
 
-    destructive: bool | None = None
+    destructive: bool | None = Field(
+        default=None,
+        title="Destructive operation",
+    )
     """Hints that this tool performs destructive operations that cannot be undone"""
 
-    idempotent: bool | None = None
+    idempotent: bool | None = Field(
+        default=None,
+        title="Idempotent operation",
+    )
     """Hints that this tool has idempotent behaviour"""
 
-    open_world: bool | None = None
+    open_world: bool | None = Field(
+        default=None,
+        title="External resource access",
+    )
     """Hints that this tool can access / interact with external resources beyond the
     current system"""
 
@@ -67,7 +99,10 @@ class ImportToolConfig(BaseToolConfig):
     type: Literal["import"] = Field("import", init=False)
     """Import path based tool."""
 
-    import_path: ImportString[Callable[..., Any]]
+    import_path: ImportString[Callable[..., Any]] = Field(
+        examples=["mymodule.my_function", "package.tools:search_tool"],
+        title="Import path",
+    )
     """Import path to the tool function."""
 
     def get_tool(self) -> Tool:
@@ -90,10 +125,16 @@ class CrewAIToolConfig(BaseToolConfig):
     type: Literal["crewai"] = Field("crewai", init=False)
     """CrewAI tool configuration."""
 
-    import_path: ImportString[Any]
+    import_path: ImportString[Any] = Field(
+        examples=["crewai_tools.BrowserTool", "crewai_tools.SearchTool"],
+        title="CrewAI tool import path",
+    )
     """Import path to CrewAI tool class."""
 
-    params: dict[str, Any] = Field(default_factory=dict)
+    params: dict[str, Any] = Field(
+        default_factory=dict,
+        title="Tool parameters",
+    )
     """Tool-specific parameters."""
 
     def get_tool(self) -> Tool:
@@ -120,10 +161,16 @@ class LangChainToolConfig(BaseToolConfig):
     type: Literal["langchain"] = Field("langchain", init=False)
     """LangChain tool configuration."""
 
-    tool_name: str
+    tool_name: str = Field(
+        examples=["wikipedia", "google-search", "python_repl"],
+        title="LangChain tool name",
+    )
     """Name of LangChain tool to use."""
 
-    params: dict[str, Any] = Field(default_factory=dict)
+    params: dict[str, Any] = Field(
+        default_factory=dict,
+        title="Tool parameters",
+    )
     """Tool-specific parameters."""
 
     def get_tool(self) -> Tool:

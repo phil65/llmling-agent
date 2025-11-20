@@ -18,28 +18,49 @@ from llmling_agent_config.mcp_server import (
 class NodeConfig(Schema):
     """Configuration for a Node of the messaging system."""
 
-    name: str | None = None
+    name: str | None = Field(
+        default=None,
+        examples=["main_agent", "web_searcher", "code_assistant"],
+        title="Node name",
+    )
     """Name of the Agent / Team"""
 
     # display_name: str | None = None
     # """Display Name of the Agent / Team"""
 
-    description: str | None = None
+    description: str | None = Field(
+        default=None,
+        examples=["Main conversation agent", "Handles web search requests"],
+        title="Node description",
+    )
     """Optional description of the agent / team."""
 
-    triggers: list[EventConfig] = Field(default_factory=list)
+    triggers: list[EventConfig] = Field(
+        default_factory=list,
+        title="Event triggers",
+    )
     """Event sources that activate this agent / team"""
 
-    connections: list[ForwardingTarget] = Field(default_factory=list)
+    connections: list[ForwardingTarget] = Field(
+        default_factory=list,
+        title="Message forwarding targets",
+    )
     """Targets to forward results to."""
 
-    mcp_servers: list[str | MCPServerConfig] = Field(default_factory=list)
+    mcp_servers: list[str | MCPServerConfig] = Field(
+        default_factory=list,
+        title="MCP servers",
+    )
     """List of MCP server configurations:
     - str entries are converted to StdioMCPServerConfig
     - MCPServerConfig for full server configuration
     """
 
-    input_provider: ImportString[InputProvider] | None = None
+    input_provider: ImportString[InputProvider] | None = Field(
+        default=None,
+        examples=["myapp.providers.ConsoleInput", "ui.providers:WebInput"],
+        title="Input provider",
+    )
     """Provider for human-input-handling."""
 
     # Future extensions:
