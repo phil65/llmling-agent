@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from contextlib import AsyncExitStack
-from typing import TYPE_CHECKING, Self
+from typing import TYPE_CHECKING, Any, Self
 
 from llmling_agent.log import get_logger
 from llmling_agent.resource_providers import ResourceProvider
@@ -38,7 +38,7 @@ class MCPResourceProvider(ResourceProvider):
         context: NodeContext | None = None,
         source: Literal["pool", "node"] = "node",
         elicitation_callback: ElicitationHandler | None = None,
-        sampling_callback: ClientSamplingHandler | None = None,
+        sampling_callback: ClientSamplingHandler[Any] | None = None,
         accessible_roots: list[str] | None = None,
     ) -> None:
         from llmling_agent.mcp_server import MCPClient

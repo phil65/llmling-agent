@@ -14,13 +14,6 @@ from llmling_agent_docs import (
 )
 
 
-def build(project) -> mk.MkNav:
-    build = Build()
-    project.linkprovider.add_inv_file("https://mkdocstrings.github.io/objects.inv")
-    build.on_theme(project.theme)
-    return build.on_root(project.root) or project.root
-
-
 class Build:
     """Class for building the documentation tree."""
 

@@ -381,7 +381,9 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
     @overload
     def __or__(self, other: ProcessorCallback[Any]) -> TeamRun[Any, Any]: ...
 
-    def __or__(self, other: MessageNode[Any, Any] | ProcessorCallback[Any]) -> TeamRun:
+    def __or__(
+        self, other: MessageNode[Any, Any] | ProcessorCallback[Any]
+    ) -> TeamRun[Any, Any]:
         # Create new execution with sequential mode (for piping)
         from llmling_agent import TeamRun
 

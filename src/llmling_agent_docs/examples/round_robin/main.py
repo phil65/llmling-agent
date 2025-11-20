@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import os
 
-from llmling_agent.__main__ import run_command
+from llmling_agent.__main__ import run_command  # type: ignore[attr-defined]
 from llmling_agent_docs.examples.utils import get_config_path, is_pyodide
 
 

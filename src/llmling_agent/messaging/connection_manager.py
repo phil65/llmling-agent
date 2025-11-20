@@ -126,7 +126,7 @@ class ConnectionManager:
         delay: timedelta | None = None,
         queued: bool = False,
         queue_strategy: QueueStrategy = "latest",
-        transform: AnyTransformFn | None = None,
+        transform: AnyTransformFn[Any] | None = None,
         filter_condition: AsyncFilterFn | None = None,
         stop_condition: AsyncFilterFn | None = None,
         exit_condition: AsyncFilterFn | None = None,

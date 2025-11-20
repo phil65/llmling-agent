@@ -5,8 +5,8 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING, Any, ClassVar, Literal, assert_never
 
-from youtube_transcript_api import YouTubeTranscriptApi  # type: ignore[import-not-found]
-from youtube_transcript_api.formatters import (  # type: ignore[import-not-found]
+from youtube_transcript_api import YouTubeTranscriptApi
+from youtube_transcript_api.formatters import (
     JSONFormatter,
     SRTFormatter,
     TextFormatter,
@@ -106,15 +106,11 @@ class YouTubeTranscriptConverter(DocumentConverter):
             msg = f"Invalid YouTube URL/ID: {path}"
             raise ValueError(msg)
 
-        proxies = {"https": self.config.https_proxy} if self.config.https_proxy else None
-
         try:
-            transcript = YouTubeTranscriptApi.get_transcript(
+            transcript = YouTubeTranscriptApi().fetch(
                 video_id=video_id,
                 languages=self.config.languages,
                 preserve_formatting=self.config.preserve_formatting,
-                proxies=proxies,
-                cookies=self.config.cookies_path,
             )
             return self.formatter.format_transcript(transcript)
 

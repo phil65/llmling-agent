@@ -15,7 +15,7 @@ from llmling_agent.utils.count_tokens import batch_count_tokens, count_tokens
 if TYPE_CHECKING:
     from datetime import datetime
 
-    from bigtree import DAGNode
+    from bigtree import DAGNode  # type: ignore[attr-defined]
 
     from llmling_agent.common_types import MessageRole
     from llmling_agent.messaging.messages import FormatStyle
@@ -150,7 +150,7 @@ class ChatMessageContainer(EventedList[ChatMessage[Any]]):
         Returns:
             Root DAGNode of the graph
         """
-        from bigtree import DAGNode
+        from bigtree import DAGNode  # type: ignore[attr-defined]
 
         # Get messages from this conversation
         conv_messages = [m for m in self if m.conversation_id == message.conversation_id]
@@ -188,7 +188,7 @@ class ChatMessageContainer(EventedList[ChatMessage[Any]]):
         rankdir: Literal["TB", "BT", "LR", "RL"] = "LR",
     ) -> str:
         """Convert message flow to mermaid graph."""
-        from bigtree import dag_to_list
+        from bigtree import dag_to_list  # type: ignore[attr-defined]
 
         dag = self._build_flow_dag(message)
         if not dag:

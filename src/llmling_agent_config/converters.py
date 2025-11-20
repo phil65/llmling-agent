@@ -63,12 +63,6 @@ class YouTubeConverterConfig(BaseConverterConfig):
     preserve_formatting: bool = False
     """Whether to keep HTML formatting elements like <i> and <b>."""
 
-    cookies_path: str | None = None
-    """Optional path to cookies file for age-restricted videos."""
-
-    https_proxy: str | None = None
-    """Optional HTTPS proxy URL (format: https://user:pass@domain:port)."""
-
     max_retries: int = Field(default=3, ge=0)
     """Maximum number of retries for failed requests."""
 

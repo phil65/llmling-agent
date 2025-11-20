@@ -104,7 +104,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
         self.agents.extend(list(agents))
         self._team_talk = ExtendedTeamTalk()
         self.shared_prompt = shared_prompt
-        self._main_task: asyncio.Task[Any] | None = None
+        self._main_task: asyncio.Task[ChatMessage[Any]] | None = None
         self._infinite = False
         self.picker = picker
         self.num_picks = num_picks

@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class ACPFile(AbstractBufferedFile):
+class ACPFile(AbstractBufferedFile):  # type: ignore[misc]
     """File-like object for ACP filesystem operations."""
 
     def __init__(

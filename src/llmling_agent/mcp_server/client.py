@@ -68,7 +68,7 @@ class MCPClient:
         self,
         config: MCPServerConfig,
         elicitation_callback: ElicitationHandler | None = None,
-        sampling_callback: ClientSamplingHandler | None = None,
+        sampling_callback: ClientSamplingHandler[Any] | None = None,
         message_handler: MessageHandlerT | MessageHandler | None = None,
         accessible_roots: list[str] | None = None,
         tool_change_callback: Callable[[], Awaitable[None]] | None = None,

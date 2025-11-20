@@ -315,7 +315,7 @@ class ChatMessage[TContent]:
                 return ChatMessage(
                     messages=[message],
                     content=content,
-                    role="user" if message.kind == "request" else "assistant",
+                    role="user",
                     message_id=run_id or str(uuid.uuid4()),
                     # instructions=instructions,
                     forwarded_from=forwarded_from or [],
@@ -332,7 +332,7 @@ class ChatMessage[TContent]:
                 run_id=run_id,
             ):
                 return ChatMessage(
-                    role="user" if message.kind == "request" else "assistant",
+                    role="assistant",
                     content=content,
                     messages=[message],
                     usage=usage,
@@ -587,7 +587,7 @@ class ChatMessage[TContent]:
 
 
 @dataclass
-class AgentResponse[TResult]:
+class AgentResponse[TResult = Any]:
     """Result from an agent's execution."""
 
     agent_name: str
@@ -613,7 +613,7 @@ class AgentResponse[TResult]:
         return self.message.content if self.message else None
 
 
-class TeamResponse[TMessageContent](list[AgentResponse[Any]]):
+class TeamResponse[TMessageContent = Any](list[AgentResponse[Any]]):
     """Results from a team execution."""
 
     def __init__(
