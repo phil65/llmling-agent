@@ -538,6 +538,20 @@
           ],
           "default": null,
           "description": "Usage limits for this agent."
+        },
+        "tool_mode": {
+          "anyOf": [
+            {
+              "const": "codemode",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Tool execution mode:\n- None: Default mode - tools are called directly\n- \"codemode\": Tools are wrapped in a Python execution environment",
+          "title": "Tool Mode"
         }
       },
       "title": "AgentConfig",
