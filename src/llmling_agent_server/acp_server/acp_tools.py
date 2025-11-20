@@ -2,15 +2,16 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from llmling_agent.resource_providers import PlanProvider
 from llmling_agent_toolsets.fsspec_toolset import FSSpecTools
 from llmling_agent_toolsets.process_toolset import ProcessTools
 
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from llmling_agent_server.acp_server.session import ACPSession
     from llmling_agent.resource_providers.aggregating import AggregatingResourceProvider
+    from llmling_agent_server.acp_server.session import ACPSession
 
 
 def get_acp_provider(session: ACPSession) -> AggregatingResourceProvider:
