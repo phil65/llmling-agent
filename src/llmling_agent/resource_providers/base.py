@@ -2,19 +2,21 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Self
+from typing import TYPE_CHECKING, Any, Self
 
 from llmling_agent.log import get_logger
+from llmling_agent.tools.base import Tool
+from llmling_agent_config.tools import ToolHints
 
 
 if TYPE_CHECKING:
-    from types import TracebackType
+    from collections.abc import Callable
 
     from pydantic_ai import ModelRequestPart
 
     from llmling_agent.prompts.prompts import BasePrompt
     from llmling_agent.skills.skill import Skill
-    from llmling_agent.tools.base import Tool
+    from llmling_agent.tools.base import ToolKind
     from llmling_agent_config.resources import ResourceInfo
 
 
@@ -38,12 +40,7 @@ class ResourceProvider:
         """Async context entry if required."""
         return self
 
-    async def __aexit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_val: BaseException | None,
-        exc_tb: TracebackType | None,
-    ) -> None:
+    async def __aexit__(self, *args: object) -> None:
         """Async context cleanup if required."""
 
     def __repr__(self) -> str:
@@ -117,3 +114,43 @@ class ResourceProvider:
             raise ValueError(msg)
 
         return [p for prompt_msg in messages for p in prompt_msg.to_pydantic_parts()]
+
+    def create_tool(
+        self,
+        fn: Callable[..., Any],
+        read_only: bool | None = None,
+        destructive: bool | None = None,
+        idempotent: bool | None = None,
+        open_world: bool | None = None,
+        requires_confirmation: bool = False,
+        metadata: dict[str, Any] | None = None,
+        category: ToolKind | None = None,
+    ) -> Tool:
+        """Create a tool from a function.
+
+        Args:
+            fn: Function to create a tool from
+            read_only: Whether the tool is read-only
+            destructive: Whether the tool is destructive
+            idempotent: Whether the tool is idempotent
+            open_world: Whether the tool is open-world
+            requires_confirmation: Whether the tool requires confirmation
+            metadata: Metadata for the tool
+            category: Category of the tool
+
+        Returns:
+            Tool created from the function
+        """
+        return Tool.from_callable(
+            fn=fn,
+            category=category,
+            source=self.name,
+            requires_confirmation=requires_confirmation,
+            metadata=metadata,
+            hints=ToolHints(
+                read_only=read_only,
+                destructive=destructive,
+                idempotent=idempotent,
+                open_world=open_world,
+            ),
+        )
