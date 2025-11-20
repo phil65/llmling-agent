@@ -9,6 +9,7 @@ if TYPE_CHECKING:
     from llmling_agent.agent.context import AgentContext
     from llmling_agent.agent.events import RichAgentStreamEvent
     from llmling_agent.resource_providers.plan_provider import PlanEntry
+    from llmling_agent.tools.base import ToolKind
 
 
 class AgentEventEmitter:
@@ -276,6 +277,36 @@ class AgentEventEmitter:
             success=success,
             error=error,
             tool_call_id=self._context.tool_call_id,
+        )
+        await self._context.agent._event_queue.put(event)
+
+    async def tool_call_start(
+        self,
+        title: str,
+        kind: ToolKind = "other",
+        locations: list[str] | None = None,
+    ) -> None:
+        """Emit tool call start event with rich ACP metadata.
+
+        Args:
+            title: Human-readable title describing what the tool is doing
+            kind: Tool kind
+            locations: File paths affected by this tool call
+        """
+        from llmling_agent.agent.events import LocationContentItem, ToolCallStartEvent
+
+        # Convert string paths to LocationContentItem objects
+        location_items = []
+        if locations:
+            location_items = [LocationContentItem(path=path) for path in locations]
+
+        event = ToolCallStartEvent(
+            tool_call_id=self._context.tool_call_id or "",
+            tool_name=self._context.tool_name or "",
+            title=title,
+            kind=kind,
+            locations=location_items,
+            raw_input=self._context.tool_input.copy(),
         )
         await self._context.agent._event_queue.put(event)
 

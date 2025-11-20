@@ -52,6 +52,7 @@ from llmling_agent.agent.events import (
     ProcessStartEvent,
     StreamCompleteEvent,
     ToolCallProgressEvent,
+    ToolCallStartEvent,
 )
 from llmling_agent.log import get_logger
 from llmling_agent_commands import get_commands
@@ -518,6 +519,33 @@ class ACPSession:
                         tool_call_id=tool_call_id,
                     )
                 self._current_tool_inputs.pop(tool_call_id, None)  # Clean up stored input
+
+            case ToolCallStartEvent(
+                tool_call_id=tool_call_id,
+                tool_name=tool_name,
+                title=title,
+                kind=kind,
+                locations=locations,
+                raw_input=raw_input,
+            ):
+                self.log.debug(
+                    "Received tool call start event",
+                    tool_name=tool_name,
+                    tool_call_id=tool_call_id,
+                )
+                # Convert locations to ACP format
+                acp_locations = [
+                    ToolCallLocation(path=loc.path, line=loc.line) for loc in locations
+                ]
+
+                # Send initial tool_call notification (creation)
+                await self.notifications.tool_call_start(
+                    tool_call_id=tool_call_id,
+                    title=title,
+                    kind=kind,
+                    locations=acp_locations,
+                    raw_input=raw_input,
+                )
 
             case ToolCallProgressEvent(
                 progress=progress,

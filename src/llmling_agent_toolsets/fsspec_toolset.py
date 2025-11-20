@@ -101,6 +101,11 @@ class FSSpecTools(ResourceProvider):
         Returns:
             Dictionary with directory contents and metadata
         """
+        # Emit tool call start event for ACP notifications
+        await agent_ctx.events.tool_call_start(
+            title=f"Listing directory: {path}", kind="read", locations=[path]
+        )
+
         try:
             # Get detailed file information
             entries = await self.fs._ls(path, detail=True)
@@ -178,6 +183,11 @@ class FSSpecTools(ResourceProvider):
         Returns:
             Dictionary with file contents or error info
         """
+        # Emit tool call start event for ACP notifications
+        await agent_ctx.events.tool_call_start(
+            title=f"Reading file: {path}", kind="read", locations=[path]
+        )
+
         try:
             if encoding == "binary":
                 content = await self.fs._cat_file(path)
@@ -240,14 +250,18 @@ class FSSpecTools(ResourceProvider):
 
         Args:
             agent_ctx: Agent execution context
-            path: File path to write to
+            path: File path to write
             content: Content to write
             encoding: Text encoding to use (default: utf-8)
             mode: Write mode ('w' for overwrite, 'a' for append)
 
         Returns:
-            Dictionary with operation result
+            Dictionary with success info or error details
         """
+        # Emit tool call start event for ACP notifications
+        await agent_ctx.events.tool_call_start(
+            title=f"Writing file: {path}", kind="edit", locations=[path]
+        )
         try:
             # Validate mode
             if mode not in ("w", "a"):
@@ -303,6 +317,11 @@ class FSSpecTools(ResourceProvider):
         Returns:
             Dictionary with operation result
         """
+        # Emit tool call start event for ACP notifications
+        await agent_ctx.events.tool_call_start(
+            title=f"Deleting path: {path}", kind="delete", locations=[path]
+        )
+
         try:
             # Check if path exists and get its type
             try:
@@ -396,6 +415,11 @@ class FSSpecTools(ResourceProvider):
         Returns:
             Success message with edit summary
         """
+        # Emit tool call start event for ACP notifications
+        await agent_ctx.events.tool_call_start(
+            title=f"Editing file: {path}", kind="edit", locations=[path]
+        )
+
         if old_string == new_string:
             return "Error: old_string and new_string must be different"
 
@@ -491,6 +515,11 @@ class FSSpecTools(ResourceProvider):
             agentic_edit('src/main.py', 'Add error handling to the main function') ->
             'Successfully edited main.py using AI agent'
         """
+        # Emit tool call start event for ACP notifications
+        await agent_ctx.events.tool_call_start(
+            title=f"AI editing file: {path}", kind="edit", locations=[path]
+        )
+
         # Send initial pending notification
         await agent_ctx.events.file_operation(
             "edit",

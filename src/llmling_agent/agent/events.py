@@ -20,6 +20,7 @@ from llmling_agent.messaging import ChatMessage  # noqa: TC001
 
 if TYPE_CHECKING:
     from llmling_agent.resource_providers.plan_provider import PlanEntry
+    from llmling_agent.tools.base import ToolKind
 
 
 # Unified tool call content models (dataclass versions of ACP schema models)
@@ -84,6 +85,27 @@ class StreamCompleteEvent[TContent]:
     message: ChatMessage[TContent]
     """The final chat message with all metadata."""
     event_kind: Literal["stream_complete"] = "stream_complete"
+    """Event type identifier."""
+
+
+@dataclass(kw_only=True)
+class ToolCallStartEvent:
+    """Event indicating a tool call has started with rich ACP metadata."""
+
+    tool_call_id: str
+    """The ID of the tool call."""
+    tool_name: str
+    """The name of the tool being called."""
+    title: str
+    """Human-readable title describing what the tool is doing."""
+    kind: ToolKind = "other"
+    """Tool kind (read, edit, delete, move, search, execute, think, fetch, other)."""
+    locations: list[LocationContentItem] = field(default_factory=list)
+    """File locations affected by this tool call."""
+    raw_input: dict[str, Any] = field(default_factory=dict)
+    """The raw input parameters sent to the tool."""
+
+    event_kind: Literal["tool_call_start"] = "tool_call_start"
     """Event type identifier."""
 
 
@@ -352,6 +374,7 @@ class ProcessReleaseEvent:
 type RichAgentStreamEvent[OutputDataT] = (
     AgentStreamEvent
     | StreamCompleteEvent[OutputDataT]
+    | ToolCallStartEvent
     | ToolCallProgressEvent
     | ToolCallCompleteEvent
     | PlanUpdateEvent
