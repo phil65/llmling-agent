@@ -60,9 +60,7 @@ async def test_parallel_grouping():
     @node_function(depends_on=["second_a", "second_b"])
     async def third(): ...
 
-    sorted_funcs = _sort_functions([
-        f._node_function for f in [first, second_a, second_b, third]
-    ])
+    sorted_funcs = _sort_functions([f._node_function for f in [first, second_a, second_b, third]])
     groups = _group_parallel(sorted_funcs)
 
     assert len(groups) == 3  # noqa: PLR2004

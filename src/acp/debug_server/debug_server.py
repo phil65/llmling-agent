@@ -157,9 +157,7 @@ class MockAgent(Agent):
         """Handle cancellation."""
         logger.info("Received cancellation request")
 
-    async def authenticate(
-        self, params: AuthenticateRequest
-    ) -> AuthenticateResponse | None:
+    async def authenticate(self, params: AuthenticateRequest) -> AuthenticateResponse | None:
         """Mock authentication - always succeeds."""
         return AuthenticateResponse()
 
@@ -168,16 +166,12 @@ class MockAgent(Agent):
         mock_content = MOCK_FILE.format(path=params.path)
         return ReadTextFileResponse(content=mock_content)
 
-    async def write_text_file(
-        self, params: WriteTextFileRequest
-    ) -> WriteTextFileResponse:
+    async def write_text_file(self, params: WriteTextFileRequest) -> WriteTextFileResponse:
         """Mock file writing."""
         logger.info("Mock write", path=params.path, content_length=len(params.content))
         return WriteTextFileResponse()
 
-    async def create_terminal(
-        self, params: CreateTerminalRequest
-    ) -> CreateTerminalResponse:
+    async def create_terminal(self, params: CreateTerminalRequest) -> CreateTerminalResponse:
         """Mock terminal creation."""
         terminal_id = str(uuid.uuid4())
         return CreateTerminalResponse(terminal_id=terminal_id)
@@ -267,9 +261,7 @@ async def send_notification(request: NotificationRequest) -> dict[str, Any]:
 
     try:
         # Create notification based on type
-        update = await _create_notification_update(
-            request.notification_type, request.data
-        )
+        update = await _create_notification_update(request.notification_type, request.data)
 
         notification = SessionNotification(session_id=request.session_id, update=update)
 
@@ -319,9 +311,7 @@ async def _create_notification_update(  # noqa: PLR0911
                 tool_call_id=data.get("tool_call_id", "tool-123"),
                 status=data.get("status", "completed"),
                 raw_output=data.get("output"),
-                content=[
-                    ContentToolCallContent.text(text=data.get("output", "Tool completed"))
-                ]
+                content=[ContentToolCallContent.text(text=data.get("output", "Tool completed"))]
                 if data.get("output")
                 else None,
             )
@@ -377,9 +367,7 @@ def _get_debug_state() -> DebugState:
 class ACPDebugServer:
     """Combined ACP and FastAPI debug server."""
 
-    def __init__(
-        self, *, fastapi_port: int = 8000, fastapi_host: str = "127.0.0.1"
-    ) -> None:
+    def __init__(self, *, fastapi_port: int = 8000, fastapi_host: str = "127.0.0.1") -> None:
         """Initialize the debug server.
 
         Args:

@@ -69,14 +69,10 @@ def to_mcp_messages(
                         messages.append(PromptMessage(role="user", content=content))
 
         case SystemPromptPart(content=msg):
-            messages.append(
-                PromptMessage(role="user", content=TextContent(type="text", text=msg))
-            )
+            messages.append(PromptMessage(role="user", content=TextContent(type="text", text=msg)))
         case TextPart(content=msg):
             messages.append(
-                PromptMessage(
-                    role="assistant", content=TextContent(type="text", text=msg)
-                )
+                PromptMessage(role="assistant", content=TextContent(type="text", text=msg))
             )
     return messages
 
@@ -142,9 +138,7 @@ def content_block_as_text(content: ContentBlock) -> str:
             msg = f"Invalid embedded resource content: {resource}"
             raise ValueError(msg)
         case ResourceLink(uri=uri, description=desc):
-            return (
-                f"[Resource Link: {uri}] - {desc}" if desc else f"[Resource Link: {uri}]"
-            )
+            return f"[Resource Link: {uri}] - {desc}" if desc else f"[Resource Link: {uri}]"
         case ImageContent(mimeType=mime_type):
             return f"[Image: {mime_type}]"
         case AudioContent(mimeType=mime_type):

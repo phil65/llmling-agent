@@ -134,12 +134,8 @@ class FastA2A(Starlette):
             )
             if self.provider is not None:
                 agent_card["provider"] = self.provider
-            self._agent_card_json_schema = agent_card_ta.dump_json(
-                agent_card, by_alias=True
-            )
-        return Response(
-            content=self._agent_card_json_schema, media_type="application/json"
-        )
+            self._agent_card_json_schema = agent_card_ta.dump_json(agent_card, by_alias=True)
+        return Response(content=self._agent_card_json_schema, media_type="application/json")
 
     async def _docs_endpoint(self, request: Request) -> Response:
         """Serve the documentation interface."""
@@ -485,9 +481,7 @@ if __name__ == "__main__":
         """Test the A2A server with a basic request."""
         async with httpx.AsyncClient() as client:
             # Test agent card endpoint
-            response = await client.get(
-                "http://localhost:8000/.well-known/agent-card.json"
-            )
+            response = await client.get("http://localhost:8000/.well-known/agent-card.json")
             print("Agent card:", response.json())
 
             # Test docs endpoint

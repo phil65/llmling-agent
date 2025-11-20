@@ -70,7 +70,7 @@ class AddWorkerCommand(SlashedCommand):
             )
 
             await ctx.print(
-                f"✅ **Added agent** `{worker_name}` **as worker tool:** `{tool_info.name}`\n"  # noqa: E501
+                f"✅ **Added agent** `{worker_name}` **as worker tool:** `{tool_info.name}`\n"
                 f"🔧 **Tool enabled:** {tool_info.enabled}"
             )
 

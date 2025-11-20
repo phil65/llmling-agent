@@ -79,9 +79,7 @@ class BraintrustPromptMetadata:
                     # Check for Jinja2 template variables in message content
                     for msg in prompt["messages"]:
                         content = msg.get("content", "")
-                        if isinstance(content, str) and (
-                            "{{" in content or "{%" in content
-                        ):
+                        if isinstance(content, str) and ("{{" in content or "{%" in content):
                             has_variables = True
                             break
                 elif prompt.get("type") == "completion":
@@ -159,7 +157,7 @@ class BraintrustPromptHub(BasePromptProvider):
                     msg = "Forbidden: API key doesn't have permission to list prompts"
                     raise RuntimeError(msg)
                 if response.status_code != 200:  # noqa: PLR2004
-                    msg = f"Failed to list prompts: {response.status_code} - {response.text}"  # noqa: E501
+                    msg = f"Failed to list prompts: {response.status_code} - {response.text}"
                     raise RuntimeError(msg)
 
                 try:
@@ -203,11 +201,7 @@ class BraintrustPromptHub(BasePromptProvider):
 
     def filter_prompts_by_tag(self, tag: str) -> list[str]:
         """Filter prompts by tag."""
-        return [
-            name
-            for name, metadata in self._prompt_metadata.items()
-            if tag in metadata.tags
-        ]
+        return [name for name, metadata in self._prompt_metadata.items() if tag in metadata.tags]
 
     def filter_prompts_by_function_type(self, function_type: str) -> list[str]:
         """Filter prompts by function type (llm, scorer, task, tool)."""
@@ -219,19 +213,11 @@ class BraintrustPromptHub(BasePromptProvider):
 
     def filter_prompts_with_variables(self) -> list[str]:
         """Get prompts that contain template variables."""
-        return [
-            name
-            for name, metadata in self._prompt_metadata.items()
-            if metadata.has_variables
-        ]
+        return [name for name, metadata in self._prompt_metadata.items() if metadata.has_variables]
 
     def get_prompts_by_model(self, model: str) -> list[str]:
         """Get prompts configured for a specific model."""
-        return [
-            name
-            for name, metadata in self._prompt_metadata.items()
-            if metadata.model == model
-        ]
+        return [name for name, metadata in self._prompt_metadata.items() if metadata.model == model]
 
 
 if __name__ == "__main__":

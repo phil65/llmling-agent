@@ -15,9 +15,7 @@ TSessionUpdate_co = TypeVar(
 )
 
 
-class SessionNotification[TSessionUpdate_co: SessionUpdate = SessionUpdate](
-    AnnotatedObject
-):
+class SessionNotification[TSessionUpdate_co: SessionUpdate = SessionUpdate](AnnotatedObject):
     """Notification containing a session update from the agent.
 
     Used to stream real-time progress and results during prompt processing.

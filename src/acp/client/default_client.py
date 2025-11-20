@@ -52,8 +52,7 @@ class DefaultACPClient(Client):
         self,
         *,
         allow_file_operations: bool = False,
-        permission_outcomes: list[dict[str, DeniedOutcome | AllowedOutcome]]
-        | None = None,
+        permission_outcomes: list[dict[str, DeniedOutcome | AllowedOutcome]] | None = None,
         use_real_files: bool = True,
     ) -> None:
         """Initialize default ACP client.
@@ -110,9 +109,7 @@ class DefaultACPClient(Client):
         logger.debug(msg, params.session_id, params.update.session_update)
         self.notifications.append(params)
 
-    async def write_text_file(
-        self, params: WriteTextFileRequest
-    ) -> WriteTextFileResponse:
+    async def write_text_file(self, params: WriteTextFileRequest) -> WriteTextFileResponse:
         """Write text to file (if allowed).
 
         Args:
@@ -177,9 +174,7 @@ class DefaultACPClient(Client):
             content = self.files.get(str(params.path), "default content")
             return ReadTextFileResponse(content=content)
 
-    async def create_terminal(
-        self, params: CreateTerminalRequest
-    ) -> CreateTerminalResponse:
+    async def create_terminal(self, params: CreateTerminalRequest) -> CreateTerminalResponse:
         """Create terminal (not implemented).
 
         Args:
@@ -191,9 +186,7 @@ class DefaultACPClient(Client):
         msg = "Terminal operations not implemented"
         raise NotImplementedError(msg)
 
-    async def terminal_output(
-        self, params: TerminalOutputRequest
-    ) -> TerminalOutputResponse:
+    async def terminal_output(self, params: TerminalOutputRequest) -> TerminalOutputResponse:
         """Get terminal output (not implemented).
 
         Args:

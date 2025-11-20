@@ -135,9 +135,7 @@ def build_message_query(query: SessionQuery) -> SelectOfScalar[Any]:
             agent_conditions.append(
                 and_(
                     Column("forwarded_from").isnot(None),
-                    expression.cast(Column("forwarded_from"), JSON).contains(
-                        list(query.agents)
-                    ),  # type: ignore
+                    expression.cast(Column("forwarded_from"), JSON).contains(list(query.agents)),  # type: ignore
                 )
             )
         conditions.append(or_(*agent_conditions))
@@ -185,9 +183,7 @@ def format_conversation(
         }
 
     # Convert messages to ChatMessage format if needed
-    chat_messages = [
-        msg if isinstance(msg, ChatMessage) else to_chat_message(msg) for msg in msgs
-    ]
+    chat_messages = [msg if isinstance(msg, ChatMessage) else to_chat_message(msg) for msg in msgs]
 
     return ConversationData(
         id=conv_dict["id"],

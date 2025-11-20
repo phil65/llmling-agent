@@ -137,9 +137,7 @@ def test_session_modes_from_agent_pool(agent_pool: AgentPool[Any]):
         for name in list(agent_pool.agents.keys())
     ]
 
-    modes = SessionModeState(
-        current_mode_id="coding-agent", available_modes=available_modes
-    )
+    modes = SessionModeState(current_mode_id="coding-agent", available_modes=available_modes)
 
     assert len(modes.available_modes) == 3  # noqa: PLR2004
     assert modes.current_mode_id == "coding-agent"

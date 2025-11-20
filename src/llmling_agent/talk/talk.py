@@ -113,9 +113,7 @@ class Talk[TTransmittedData = Any]:
         self.wait_for_connections = wait_for_connections
         self.queued = queued
         self.queue_strategy = queue_strategy
-        self._pending_messages = defaultdict[str, list[ChatMessage[TTransmittedData]]](
-            list
-        )
+        self._pending_messages = defaultdict[str, list[ChatMessage[TTransmittedData]]](list)
         names = {t.name for t in targets}
         self._stats = TalkStats(source_name=source.name, target_names=names)
         self.transform_fn = transform
@@ -204,9 +202,7 @@ class Talk[TTransmittedData = Any]:
     def on_event(
         self,
         event_type: ConnectionEventType,
-        callback: Callable[
-            [ConnectionEventData[TTransmittedData]], None | Awaitable[None]
-        ],
+        callback: Callable[[ConnectionEventData[TTransmittedData]], None | Awaitable[None]],
     ) -> Self:
         """Register callback for connection events."""
         from llmling_agent.messaging.events import ConnectionEventData
@@ -298,9 +294,7 @@ class Talk[TTransmittedData = Any]:
             if self.queued:
                 self._pending_messages[target.name].append(processed_message)
                 continue
-            if response := await self._process_for_target(
-                processed_message, target, prompt
-            ):
+            if response := await self._process_for_target(processed_message, target, prompt):
                 responses.append(response)
 
         return responses
@@ -558,15 +552,11 @@ class TeamTalk[TTransmittedData = Any](list["Talk | TeamTalk"]):
                 case TeamTalk():
                     yield from t.iter_talks()
 
-    async def _handle_message(
-        self, message: ChatMessage[Any], prompt: str | None = None
-    ) -> None:
+    async def _handle_message(self, message: ChatMessage[Any], prompt: str | None = None) -> None:
         for talk in self:
             await talk._handle_message(message, prompt)
 
-    async def trigger(
-        self, prompt: PromptCompatible | None = None
-    ) -> list[ChatMessage[Any]]:
+    async def trigger(self, prompt: PromptCompatible | None = None) -> list[ChatMessage[Any]]:
         messages = []
         for talk in self:
             messages.extend(await talk.trigger(prompt))

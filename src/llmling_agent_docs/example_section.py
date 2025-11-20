@@ -35,9 +35,7 @@ for example in iter_examples():
             page += link
 
 
-@nav.route.page(
-    "MkDocs Integration & Docs generation", icon="oui:documentation", hide="toc"
-)
+@nav.route.page("MkDocs Integration & Docs generation", icon="oui:documentation", hide="toc")
 def gen_docs(page: mk.MkPage) -> None:
     """Generate docs using agents."""
     agent = Agent(model="openai:gpt-5-nano")

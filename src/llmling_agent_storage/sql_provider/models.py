@@ -34,10 +34,7 @@ class UTCDateTime(TypeDecorator[datetime]):
         dialect: Dialect,
     ) -> datetime | None:
         if value is not None:
-            if value.tzinfo is None:
-                value = value.replace(tzinfo=UTC)
-            else:
-                value = value.astimezone(UTC)
+            value = value.replace(tzinfo=UTC) if value.tzinfo is None else value.astimezone(UTC)
         return value
 
     def process_result_value(
@@ -68,9 +65,7 @@ class CommandHistory(AsyncAttrs, SQLModel, table=True):
     context_type: str | None = Field(default=None, index=True)
     """Type of the command context (e.g. 'AgentContext', 'PoolSupervisor', etc.)"""
 
-    context_metadata: dict[str, JsonValue] = Field(
-        default_factory=dict, sa_column=Column(JSON)
-    )
+    context_metadata: dict[str, JsonValue] = Field(default_factory=dict, sa_column=Column(JSON))
     """Additional context information about command execution"""
 
     timestamp: datetime = Field(
@@ -203,9 +198,7 @@ class Conversation(AsyncAttrs, SQLModel, table=True):
     title: str | None = Field(default=None, index=True)
     """Generated title for the conversation"""
 
-    start_time: datetime = Field(
-        sa_column=Column(UTCDateTime, index=True), default_factory=get_now
-    )
+    start_time: datetime = Field(sa_column=Column(UTCDateTime, index=True), default_factory=get_now)
     """When the conversation started"""
 
     total_tokens: int = 0

@@ -54,9 +54,7 @@ async def _test_progress_events_common(agent_name: str, run_method: str) -> None
         tools = await agent.tools.get_tools()
         tool_names = [tool.name for tool in tools]
 
-        assert "test_progress" in tool_names, (
-            f"test_progress tool not found in {tool_names}"
-        )
+        assert "test_progress" in tool_names, f"test_progress tool not found in {tool_names}"
 
         # Execute based on method
         if run_method == "streaming":

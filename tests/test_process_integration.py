@@ -129,9 +129,7 @@ async def test_toolset_requirement_enforcement():
         ]
 
         for process_tool in process_tools:
-            assert process_tool not in tool_names, (
-                f"Tool {process_tool} should not be available"
-            )
+            assert process_tool not in tool_names, f"Tool {process_tool} should not be available"
 
 
 async def test_multiple_processes_management(process_manifest):
@@ -172,9 +170,7 @@ async def test_process_output_limit(process_manifest):
         # Start process with small output limit
         # Use a command that generates more output than the limit (platform-aware)
         python_cmd = get_python_command()
-        process_id = await pm.start_process(
-            python_cmd, ["-c", "print('x' * 500)"], output_limit=50
-        )
+        process_id = await pm.start_process(python_cmd, ["-c", "print('x' * 500)"], output_limit=50)
         exit_code = await pm.wait_for_exit(process_id)
         assert exit_code == 0
         # Check that output was truncated
@@ -200,9 +196,7 @@ async def test_process_info_retrieval(process_manifest):
         # Use platform-appropriate commands and working directory
         cwd = get_temp_dir()
         command, args = get_echo_command("test")
-        process_id = await pm.start_process(
-            command, args, cwd=cwd, env={"TEST_VAR": "test_value"}
-        )
+        process_id = await pm.start_process(command, args, cwd=cwd, env={"TEST_VAR": "test_value"})
         info = await pm.get_process_info(process_id)
         assert info["process_id"] == process_id
         assert info["command"] == command

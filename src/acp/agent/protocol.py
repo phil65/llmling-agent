@@ -38,9 +38,7 @@ class Agent(Protocol):
 
     async def load_session(self, params: LoadSessionRequest) -> LoadSessionResponse: ...
 
-    async def authenticate(
-        self, params: AuthenticateRequest
-    ) -> AuthenticateResponse | None: ...
+    async def authenticate(self, params: AuthenticateRequest) -> AuthenticateResponse | None: ...
 
     async def set_session_mode(
         self, params: SetSessionModeRequest

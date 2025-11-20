@@ -37,9 +37,7 @@ async def main():
 
     async with agent:
         print(f"📋 Agent created with tools: {list(await agent.tools.get_tools())}")
-        async for event in agent.run_stream(
-            "Test the progress tool with a funny message"
-        ):
+        async for event in agent.run_stream("Test the progress tool with a funny message"):
             print(event)
 
 

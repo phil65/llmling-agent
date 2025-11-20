@@ -44,9 +44,7 @@ async def main() -> None:
         print(f"Original code: {buggy_code}")
         print("=" * 60)
 
-        result = await agent.run(
-            f"Please use fix_code to analyze and fix this code: {buggy_code}"
-        )
+        result = await agent.run(f"Please use fix_code to analyze and fix this code: {buggy_code}")
         print(f"\n✅ Agent response:\n{result.data}")
 
         print("\n✨ Code fixer demo completed!")

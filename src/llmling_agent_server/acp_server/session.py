@@ -267,9 +267,7 @@ class ACPSession:
                     agent.tools.add_provider(client_skills_provider)
 
                 skill_count = len(registry.list_items())
-                self.log.info(
-                    "Added client-side skills to agents", skill_count=skill_count
-                )
+                self.log.info("Added client-side skills to agents", skill_count=skill_count)
             else:
                 self.log.debug("No valid client-side skills found")
 
@@ -897,18 +895,14 @@ class ACPSession:
 
                 # Send confirmation
                 staged_count = self.get_staged_parts_count()
-                await ctx.print(
-                    f"✅ Prompt {prompt.name!r} staged ({staged_count} total parts)"
-                )
+                await ctx.print(f"✅ Prompt {prompt.name!r} staged ({staged_count} total parts)")
 
             except Exception as e:
                 logger.exception("MCP prompt execution failed", prompt=prompt.name)
                 await ctx.print(f"❌ Prompt error: {e}")
 
         usage_hint = (
-            " ".join(f"<{arg['name']}>" for arg in prompt.arguments)
-            if prompt.arguments
-            else None
+            " ".join(f"<{arg['name']}>" for arg in prompt.arguments) if prompt.arguments else None
         )
         return Command(
             execute_func=execute_prompt,
@@ -958,13 +952,11 @@ class ACPSession:
                 # Send confirmation
                 staged_count = self.get_staged_parts_count()
                 await ctx.print(
-                    f"✅ Prompt {name!r} from {provider} staged ({staged_count} total parts)"  # noqa: E501
+                    f"✅ Prompt {name!r} from {provider} staged ({staged_count} total parts)"
                 )
 
             except Exception as e:
-                logger.exception(
-                    "Prompt hub execution failed", prompt=name, provider=provider
-                )
+                logger.exception("Prompt hub execution failed", prompt=name, provider=provider)
                 await ctx.print(f"❌ Prompt error: {e}")
 
         # Create command name - prefix with provider if not builtin

@@ -265,9 +265,7 @@ class AgentsManifest(Schema):
                 if hasattr(nodes[name], "model_copy")
                 else nodes[name].copy()
             )
-            inherit = (
-                config.get("inherits") if isinstance(config, dict) else config.inherits
-            )
+            inherit = config.get("inherits") if isinstance(config, dict) else config.inherits
             if inherit:
                 if inherit not in nodes:
                     msg = f"Parent agent {inherit} not found"
@@ -411,10 +409,7 @@ class AgentsManifest(Schema):
                         content = self.prompt_manager.get.sync(reference)
                         sys_prompts.append(content)
                     except Exception as e:
-                        msg = (
-                            f"Failed to load library prompt {reference!r} "
-                            f"for agent {name}"
-                        )
+                        msg = f"Failed to load library prompt {reference!r} for agent {name}"
                         logger.exception(msg)
                         raise ValueError(msg) from e
                 case FunctionPromptConfig(function=function, arguments=arguments):

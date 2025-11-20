@@ -34,16 +34,10 @@ class ProcessManagementTools(ResourceProvider):
     async def get_tools(self) -> list[Tool]:
         return [
             Tool.from_callable(self.start_process, source="builtin", category="execute"),
-            Tool.from_callable(
-                self.get_process_output, source="builtin", category="execute"
-            ),
-            Tool.from_callable(
-                self.wait_for_process, source="builtin", category="execute"
-            ),
+            Tool.from_callable(self.get_process_output, source="builtin", category="execute"),
+            Tool.from_callable(self.wait_for_process, source="builtin", category="execute"),
             Tool.from_callable(self.kill_process, source="builtin", category="execute"),
-            Tool.from_callable(
-                self.release_process, source="builtin", category="execute"
-            ),
+            Tool.from_callable(self.release_process, source="builtin", category="execute"),
             Tool.from_callable(self.list_processes, source="builtin", category="search"),
         ]
 
@@ -183,11 +177,7 @@ class ProcessManagementTools(ResourceProvider):
             for process_id in process_ids:
                 try:
                     info = await self.process_manager.get_process_info(process_id)
-                    status = (
-                        "running"
-                        if info["is_running"]
-                        else f"exited ({info['exit_code']})"
-                    )
+                    status = "running" if info["is_running"] else f"exited ({info['exit_code']})"
                     args = " ".join(info["args"])
                     result += f"- {process_id}: {info['command']} {args} [{status}]\n"
                 except Exception as e:  # noqa: BLE001

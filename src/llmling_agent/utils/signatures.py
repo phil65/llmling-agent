@@ -31,20 +31,14 @@ def create_modified_signature(
     Returns:
         The modified signature.
     """
-    sig = (
-        fn_or_sig
-        if isinstance(fn_or_sig, inspect.Signature)
-        else inspect.signature(fn_or_sig)
-    )
+    sig = fn_or_sig if isinstance(fn_or_sig, inspect.Signature) else inspect.signature(fn_or_sig)
     rem_keys = [remove] if isinstance(remove, str) else remove or []
     new_params = [p for p in sig.parameters.values() if p.name not in rem_keys]
     if inject:
         injected_params = []
         for k, v in inject.items():
             injected_params.append(
-                inspect.Parameter(
-                    k, inspect.Parameter.POSITIONAL_OR_KEYWORD, annotation=v
-                )
+                inspect.Parameter(k, inspect.Parameter.POSITIONAL_OR_KEYWORD, annotation=v)
             )
         new_params = injected_params + new_params
     return sig.replace(parameters=new_params)

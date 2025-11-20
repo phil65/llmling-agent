@@ -139,8 +139,7 @@ class FetchRepoCommand(SlashedCommand):
             await session.notifications.tool_call_progress(
                 tool_call_id=tool_call_id,
                 status="completed",
-                title=f"Repository {display_path} fetched and staged "
-                f"({staged_count} total parts)",
+                title=f"Repository {display_path} fetched and staged ({staged_count} total parts)",
                 content=[f"```\n{content}\n```"],
             )
 

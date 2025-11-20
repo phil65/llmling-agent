@@ -39,9 +39,7 @@ DEFAULT_PERMISSION_OPTIONS = [
 
 
 def to_acp_content_blocks(  # noqa: PLR0911
-    tool_output: (
-        ToolReturn | list[ToolReturn] | UserContent | Sequence[UserContent] | None
-    ),
+    tool_output: (ToolReturn | list[ToolReturn] | UserContent | Sequence[UserContent] | None),
 ) -> list[ContentBlock]:
     """Convert pydantic-ai tool output to raw ACP content blocks.
 
@@ -86,16 +84,12 @@ def to_acp_content_blocks(  # noqa: PLR0911
 
     # Handle multimodal content types
     match tool_output:
-        case BinaryContent(data=data, media_type=media_type) if media_type.startswith(
-            "image/"
-        ):
+        case BinaryContent(data=data, media_type=media_type) if media_type.startswith("image/"):
             # Image content - convert binary data to base64
             image_data = base64.b64encode(data).decode("utf-8")
             return [ImageContentBlock(data=image_data, mime_type=media_type)]
 
-        case BinaryContent(data=data, media_type=media_type) if media_type.startswith(
-            "audio/"
-        ):
+        case BinaryContent(data=data, media_type=media_type) if media_type.startswith("audio/"):
             # Audio content - convert binary data to base64
             audio_data = base64.b64encode(data).decode("utf-8")
             return [AudioContentBlock(data=audio_data, mime_type=media_type)]
@@ -122,9 +116,7 @@ def to_acp_content_blocks(  # noqa: PLR0911
             # Generate name from URL path or use type as fallback
             name = parsed.path.split("/")[-1] if parsed.path else resource_type
             if not name or name == "/":
-                name = (
-                    f"{resource_type}_{parsed.netloc}" if parsed.netloc else resource_type
-                )
+                name = f"{resource_type}_{parsed.netloc}" if parsed.netloc else resource_type
 
             return [
                 ResourceContentBlock(
@@ -156,9 +148,9 @@ def infer_tool_kind(tool_name: str) -> ToolCallKind:  # noqa: PLR0911
         i in name_lower for i in ["file", "path", "content"]
     ):
         return "read"
-    if any(
-        i in name_lower for i in ["write", "save", "edit", "modify", "update"]
-    ) and any(i in name_lower for i in ["file", "path", "content"]):
+    if any(i in name_lower for i in ["write", "save", "edit", "modify", "update"]) and any(
+        i in name_lower for i in ["file", "path", "content"]
+    ):
         return "edit"
     if any(i in name_lower for i in ["delete", "remove", "rm"]):
         return "delete"

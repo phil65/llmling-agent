@@ -266,10 +266,7 @@ def _whitespace_normalized_replacer(content: str, find: str) -> Generator[str]:
     else:
         # Single line matches
         for line in lines:
-            if (
-                normalize_whitespace(line) == normalized_find
-                and line not in found_matches
-            ):
+            if normalize_whitespace(line) == normalized_find and line not in found_matches:
                 found_matches.add(line)
                 yield line
             else:
@@ -580,9 +577,7 @@ async def edit_file_tool(
     if old_string == "" and original_content == "":
         new_content = new_string
     else:
-        new_content = replace_content(
-            original_content, old_string, new_string, replace_all
-        )
+        new_content = replace_content(original_content, old_string, new_string, replace_all)
 
     # Generate diff
     diff_lines = list(
@@ -609,9 +604,7 @@ async def edit_file_tool(
         "file_path": str(path),
         "diff": trimmed_diff,
         "message": f"Successfully edited {path.name}",
-        "lines_changed": len([
-            line for line in diff_lines if line.startswith(("+", "-"))
-        ]),
+        "lines_changed": len([line for line in diff_lines if line.startswith(("+", "-"))]),
     }
 
 

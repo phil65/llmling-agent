@@ -73,9 +73,7 @@ def agent_ctx():
     return create_mock_agent_context()
 
 
-async def test_start_process_success(
-    process_tools: ProcessTools, agent_ctx: AgentContext
-):
+async def test_start_process_success(process_tools: ProcessTools, agent_ctx: AgentContext):
     """Test successful process start."""
     tools = await process_tools.get_tools()
     start_tool = next(tool for tool in tools if tool.name == "start_process")
@@ -111,9 +109,7 @@ async def test_start_process_success(
     assert call_args["success"] is True
 
 
-async def test_start_process_failure(
-    process_tools: ProcessTools, agent_ctx: AgentContext
-):
+async def test_start_process_failure(process_tools: ProcessTools, agent_ctx: AgentContext):
     """Test process start failure."""
     process_tools.process_manager.start_process.side_effect = OSError("Permission denied")
 
@@ -138,9 +134,7 @@ async def test_start_process_failure(
     assert "Permission denied" in call_args["error"]
 
 
-async def test_get_process_output_success(
-    process_tools: ProcessTools, agent_ctx: AgentContext
-):
+async def test_get_process_output_success(process_tools: ProcessTools, agent_ctx: AgentContext):
     """Test getting process output."""
     tools = await process_tools.get_tools()
     output_tool = next(tool for tool in tools if tool.name == "get_process_output")
@@ -190,9 +184,7 @@ async def test_get_process_output_with_exit_code(
     assert result["exit_code"] == 0
 
 
-async def test_wait_for_process_success(
-    process_tools: ProcessTools, agent_ctx: AgentContext
-):
+async def test_wait_for_process_success(process_tools: ProcessTools, agent_ctx: AgentContext):
     """Test waiting for process completion."""
     process_tools.process_manager.get_output.return_value = ProcessOutput(
         stdout="Final output",
@@ -256,9 +248,7 @@ async def test_kill_process_success(process_tools: ProcessTools, agent_ctx: Agen
 
 async def test_kill_process_failure(process_tools: ProcessTools, agent_ctx: AgentContext):
     """Test killing a process that fails."""
-    process_tools.process_manager.kill_process.side_effect = ValueError(
-        "Process not found"
-    )
+    process_tools.process_manager.kill_process.side_effect = ValueError("Process not found")
 
     tools = await process_tools.get_tools()
     kill_tool = next(tool for tool in tools if tool.name == "kill_process")
@@ -279,9 +269,7 @@ async def test_kill_process_failure(process_tools: ProcessTools, agent_ctx: Agen
     assert call_args["success"] is False
 
 
-async def test_release_process_success(
-    process_tools: ProcessTools, agent_ctx: AgentContext
-):
+async def test_release_process_success(process_tools: ProcessTools, agent_ctx: AgentContext):
     """Test releasing process resources."""
     tools = await process_tools.get_tools()
     release_tool = next(tool for tool in tools if tool.name == "release_process")
@@ -303,9 +291,7 @@ async def test_release_process_success(
     agent_ctx.events.process_released.assert_called_once()
 
 
-async def test_list_processes_success(
-    process_tools: ProcessTools, agent_ctx: AgentContext
-):
+async def test_list_processes_success(process_tools: ProcessTools, agent_ctx: AgentContext):
     """Test listing processes."""
     tools = await process_tools.get_tools()
     list_tool = next(tool for tool in tools if tool.name == "list_processes")
@@ -339,9 +325,7 @@ async def test_list_processes_empty(process_tools: ProcessTools, agent_ctx: Agen
     assert "No active processes" in result["message"]
 
 
-async def test_generic_process_toolset_events(
-    process_tools: ProcessTools, agent_ctx: AgentContext
-):
+async def test_generic_process_toolset_events(process_tools: ProcessTools, agent_ctx: AgentContext):
     """Test that process toolset emits clean, generic events."""
     tools = await process_tools.get_tools()
     start_tool = next(tool for tool in tools if tool.name == "start_process")

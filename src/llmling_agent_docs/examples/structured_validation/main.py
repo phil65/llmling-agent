@@ -73,9 +73,7 @@ async def main() -> None:
             print(f"  • {point}")
 
         # Check if it's a truly raving review
-        is_raving = await critic.validate_against(
-            f"What did you think of {movie}?", RavingReview
-        )
+        is_raving = await critic.validate_against(f"What did you think of {movie}?", RavingReview)
         print(f"\n🌟 Absolute Rave Review: {'YES!' if is_raving else 'Nope.'}")
 
 

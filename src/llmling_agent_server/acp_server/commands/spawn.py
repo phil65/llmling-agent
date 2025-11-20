@@ -70,9 +70,7 @@ class SpawnSubagentCommand(SlashedCommand):
             # Check if agent exists in pool
             if not session.agent_pool or agent_name not in session.agent_pool.agents:
                 available = list(session.agent_pool.agents.keys())
-                error_msg = (
-                    f"Agent {agent_name!r} not found. Available agents: {available}"
-                )
+                error_msg = f"Agent {agent_name!r} not found. Available agents: {available}"
                 await ctx.print(f"❌ {error_msg}")
                 return
 

@@ -155,9 +155,7 @@ async def test_auto_run_handling(event_manager, agent):
 async def test_event_manager_cleanup(event_manager: EventManager):
     """Test cleanup of event manager."""
     # Add a simple event source
-    config = TimeEventConfig(
-        name="test_timer", schedule="* * * * *", prompt="Test prompt"
-    )
+    config = TimeEventConfig(name="test_timer", schedule="* * * * *", prompt="Test prompt")
     await event_manager.add_source(config)
 
     assert len(event_manager._sources) == 1

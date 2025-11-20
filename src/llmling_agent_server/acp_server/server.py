@@ -122,10 +122,7 @@ class ACPServer(BaseServer):
 
         # Validate specified agent exists if provided
         if agent and agent not in agent_names:
-            msg = (
-                f"Specified agent {agent!r} not found in config. "
-                f"Available agents: {agent_names}"
-            )
+            msg = f"Specified agent {agent!r} not found in config. Available agents: {agent_names}"
             raise ValueError(msg)
 
         server.log.info("Created ACP server with agent pool", agent_names=agent_names)

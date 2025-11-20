@@ -75,14 +75,10 @@ class ACPInputProvider(InputProvider):
             if tool.name in self._tool_approvals:
                 standing_decision = self._tool_approvals[tool.name]
                 if standing_decision == "allow_always":
-                    logger.debug(
-                        "Auto-allowing tool", tool_name=tool.name, reason="allow_always"
-                    )
+                    logger.debug("Auto-allowing tool", tool_name=tool.name, reason="allow_always")
                     return "allow"
                 if standing_decision == "reject_always":
-                    logger.debug(
-                        "Auto-rejecting tool", tool_name=tool.name, reason="reject_always"
-                    )
+                    logger.debug("Auto-rejecting tool", tool_name=tool.name, reason="reject_always")
                     return "skip"
 
             # Create a descriptive title for the permission request
@@ -95,15 +91,11 @@ class ACPInputProvider(InputProvider):
             )
             # Map ACP permission response to our confirmation result
             if response.outcome.outcome == "selected":
-                return self._handle_permission_response(
-                    response.outcome.option_id, tool.name
-                )
+                return self._handle_permission_response(response.outcome.option_id, tool.name)
             if response.outcome.outcome == "cancelled":
                 return "skip"
             # Handle other outcomes
-            logger.warning(
-                "Unexpected permission outcome", outcome=response.outcome.outcome
-            )
+            logger.warning("Unexpected permission outcome", outcome=response.outcome.outcome)
 
         except Exception:
             logger.exception("Failed to get tool confirmation")
@@ -112,26 +104,20 @@ class ACPInputProvider(InputProvider):
         else:
             return "abort_run"
 
-    def _handle_permission_response(
-        self, option_id: str, tool_name: str
-    ) -> ConfirmationResult:
+    def _handle_permission_response(self, option_id: str, tool_name: str) -> ConfirmationResult:
         """Handle permission response and update tool approval state."""
         match option_id:
             case "allow-once":
                 return "allow"
             case "allow-always":
                 self._tool_approvals[tool_name] = "allow_always"
-                logger.info(
-                    "Tool approval set", tool_name=tool_name, approval="allow_always"
-                )
+                logger.info("Tool approval set", tool_name=tool_name, approval="allow_always")
                 return "allow"
             case "reject-once":
                 return "skip"
             case "reject-always":
                 self._tool_approvals[tool_name] = "reject_always"
-                logger.info(
-                    "Tool approval set", tool_name=tool_name, approval="reject_always"
-                )
+                logger.info("Tool approval set", tool_name=tool_name, approval="reject_always")
                 return "skip"
             case _:
                 logger.warning("Unknown permission option", option_id=option_id)
@@ -170,9 +156,7 @@ class ACPInputProvider(InputProvider):
 
             # Check what type of schema we're dealing with
             if self._is_boolean_schema(schema):
-                options: list[PermissionOption] | None = (
-                    _create_boolean_elicitation_options()
-                )
+                options: list[PermissionOption] | None = _create_boolean_elicitation_options()
                 response = await self.session.requests.request_permission(
                     tool_call_id=tool_call_id,
                     title=title,
@@ -210,9 +194,7 @@ class ACPInputProvider(InputProvider):
 
         except Exception as e:
             logger.exception("Failed to handle elicitation")
-            return types.ErrorData(
-                code=types.INTERNAL_ERROR, message=f"Elicitation failed: {e}"
-            )
+            return types.ErrorData(code=types.INTERNAL_ERROR, message=f"Elicitation failed: {e}")
 
     def _is_boolean_schema(self, schema: dict[str, Any]) -> bool:
         """Check if the elicitation schema is requesting a boolean value."""
@@ -244,9 +226,7 @@ class ACPInputProvider(InputProvider):
                     properties = schema.get("properties", {})
                     if len(properties) == 1:
                         prop_name = next(iter(properties.keys()))
-                        return types.ElicitResult(
-                            action="accept", content={prop_name: True}
-                        )
+                        return types.ElicitResult(action="accept", content={prop_name: True})
                 return types.ElicitResult(action="accept", content={"value": True})
             if response.outcome.option_id == "false":
                 # Check if we need to wrap in object structure
@@ -254,9 +234,7 @@ class ACPInputProvider(InputProvider):
                     properties = schema.get("properties", {})
                     if len(properties) == 1:
                         prop_name = next(iter(properties.keys()))
-                        return types.ElicitResult(
-                            action="accept", content={prop_name: False}
-                        )
+                        return types.ElicitResult(action="accept", content={prop_name: False})
                 return types.ElicitResult(action="accept", content={"value": False})
             if response.outcome.option_id == "cancel":
                 return types.ElicitResult(action="cancel")
@@ -279,9 +257,7 @@ class ACPInputProvider(InputProvider):
 
         # Limit to 3 choices + cancel to keep ACP UI reasonable
         if len(enum_values) > 3:  # noqa: PLR2004
-            logger.warning(
-                "Enum truncated for UI", enum_count=len(enum_values), showing_count=3
-            )
+            logger.warning("Enum truncated for UI", enum_count=len(enum_values), showing_count=3)
             enum_values = enum_values[:3]
             enum_names = enum_names[:3]
 
@@ -330,9 +306,7 @@ class ACPInputProvider(InputProvider):
                         enum_values = schema.get("enum", [])
                         if 0 <= enum_index < len(enum_values):
                             selected_value = enum_values[enum_index]
-                            return types.ElicitResult(
-                                action="accept", content=selected_value
-                            )
+                            return types.ElicitResult(action="accept", content=selected_value)
                 except (ValueError, IndexError):
                     pass
 

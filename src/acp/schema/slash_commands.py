@@ -47,9 +47,5 @@ class AvailableCommand(AnnotatedObject):
         Returns:
             A new available command.
         """
-        spec = (
-            AvailableCommandInput(root=CommandInputHint(hint=input_hint))
-            if input_hint
-            else None
-        )
+        spec = AvailableCommandInput(root=CommandInputHint(hint=input_hint)) if input_hint else None
         return cls(name=name, description=description, input=spec)

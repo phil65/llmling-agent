@@ -96,8 +96,7 @@ class Interactions[TDeps, TResult]:
         initial_message: AnyPromptType,
         *,
         max_rounds: int | None = None,
-        end_condition: Callable[[list[ChatMessage[Any]], ChatMessage[Any]], bool]
-        | None = None,
+        end_condition: Callable[[list[ChatMessage[Any]], ChatMessage[Any]], bool] | None = None,
         store_history: bool = True,
     ) -> AsyncIterator[ChatMessage[Any]]:
         """Maintain conversation between two agents.
@@ -122,9 +121,7 @@ class Interactions[TDeps, TResult]:
                 logger.debug("Conversation ended", max_rounds=max_rounds)
                 return
 
-            response = await current_node.run(
-                current_message, store_history=store_history
-            )
+            response = await current_node.run(current_message, store_history=store_history)
             messages.append(response)
             yield response
 

@@ -235,9 +235,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
     @overload
     def __and__(self, other: Agent[Any, Any]) -> Team[Any]: ...
 
-    def __and__(
-        self, other: Team[Any] | Agent[Any, Any] | ProcessorCallback[Any]
-    ) -> Team[Any]:
+    def __and__(self, other: Team[Any] | Agent[Any, Any] | ProcessorCallback[Any]) -> Team[Any]:
         """Combine teams, preserving type safety for same types."""
         from llmling_agent.agent import Agent
         from llmling_agent.delegation.team import Team
@@ -325,9 +323,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
                     break
             return last_message
 
-        self._main_task = self.task_manager.create_task(
-            _continuous(), name="main_execution"
-        )
+        self._main_task = self.task_manager.create_task(_continuous(), name="main_execution")
         return self._team_talk
 
     @property

@@ -63,9 +63,7 @@ def upgrade(
 def downgrade(
     revision: Annotated[
         str,
-        typer.Argument(
-            help="Target revision (e.g., -1 for previous, or specific revision ID)"
-        ),
+        typer.Argument(help="Target revision (e.g., -1 for previous, or specific revision ID)"),
     ],
 ) -> int:
     """Downgrade database."""

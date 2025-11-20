@@ -96,7 +96,7 @@ class PlanProvider(ResourceProvider):
 
         await self._emit_plan_update(agent_ctx)
 
-        return f"Added plan entry at index {entry_index}: {content!r} (priority={priority!r})"  # noqa: E501
+        return f"Added plan entry at index {entry_index}: {content!r} (priority={priority!r})"
 
     async def update_plan_entry(
         self,
@@ -157,10 +157,7 @@ class PlanProvider(ResourceProvider):
         removed_entry = self._current_plan.pop(index)
         await self._emit_plan_update(agent_ctx)
         if self._current_plan:
-            return (
-                f"Removed entry {index}: {removed_entry.content!r}, "
-                f"remaining entries reindexed"
-            )
+            return f"Removed entry {index}: {removed_entry.content!r}, remaining entries reindexed"
         return f"Removed entry {index}: {removed_entry.content!r}, plan is now empty"
 
     async def _emit_plan_update(self, agent_ctx: AgentContext) -> None:

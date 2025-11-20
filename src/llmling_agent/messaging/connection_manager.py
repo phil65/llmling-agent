@@ -196,9 +196,7 @@ class ConnectionManager:
             else:
                 pool.connection_registry.register_auto(talk)
         else:
-            logger.debug(
-                "Could not register connection. no pool available", connection=name
-            )
+            logger.debug("Could not register connection. no pool available", connection=name)
         return talk
 
     async def trigger_all(self) -> dict[AgentName, list[ChatMessage[Any]]]:
@@ -233,16 +231,12 @@ class ConnectionManager:
                 talk.active = False
                 self._connections.remove(talk)
 
-    async def route_message(
-        self, message: ChatMessage[Any], wait: bool | None = None
-    ) -> None:
+    async def route_message(self, message: ChatMessage[Any], wait: bool | None = None) -> None:
         """Route message to all connections."""
         if wait is not None:
             should_wait = wait
         else:
-            should_wait = any(
-                self._wait_states.get(t.name, False) for t in self.get_targets()
-            )
+            should_wait = any(self._wait_states.get(t.name, False) for t in self.get_targets())
         msg = "ConnectionManager routing message"
         logger.debug(msg, sender=message.name, num_connections=len(self._connections))
         for talk in self._connections:

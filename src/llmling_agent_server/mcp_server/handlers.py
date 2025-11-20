@@ -34,9 +34,7 @@ def register_handlers(llm_server: MCPServer) -> None:  # noqa: PLR0915
             python_level = constants.MCP_TO_LOGGING[level]
             logger.setLevel(python_level)
             data = f"Log level set to {level}"
-            await llm_server.current_session.send_log_message(
-                level, data, logger=llm_server.name
-            )
+            await llm_server.current_session.send_log_message(level, data, logger=llm_server.name)
         except Exception as exc:
             error_data = mcp.ErrorData(
                 message="Error setting log level",

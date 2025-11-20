@@ -37,9 +37,7 @@ class MessageStats:
     @property
     def token_count(self) -> int:
         """Total tokens used."""
-        return sum(
-            m.cost_info.token_usage.total_tokens for m in self.messages if m.cost_info
-        )
+        return sum(m.cost_info.token_usage.total_tokens for m in self.messages if m.cost_info)
 
     @property
     def tool_calls(self) -> list[ToolCallInfo]:
@@ -106,9 +104,7 @@ class AggregatedMessageStats:
     @property
     def token_count(self) -> int:
         """Total tokens across all connections."""
-        return sum(
-            m.cost_info.token_usage.total_tokens for m in self.messages if m.cost_info
-        )
+        return sum(m.cost_info.token_usage.total_tokens for m in self.messages if m.cost_info)
 
     @property
     def total_cost(self) -> float:

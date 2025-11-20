@@ -134,9 +134,7 @@ class SkillsRegistry(BaseRegistry[str, Skill]):
             msg = f"{skill_file}: Skill name exceeds {SKILL_NAME_LIMIT} chars"
             raise ToolError(msg)
         if len(description) > SKILL_DESCRIPTION_LIMIT:
-            msg = (
-                f"{skill_file}: Skill description exceeds {SKILL_DESCRIPTION_LIMIT} chars"
-            )
+            msg = f"{skill_file}: Skill description exceeds {SKILL_DESCRIPTION_LIMIT} chars"
             raise ToolError(msg)
 
         return Skill(name=name, description=description, skill_path=UPath(skill_dir))

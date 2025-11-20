@@ -249,9 +249,7 @@ async def test_process_tools_availability_in_acp_provider(session: ACPSession):
     ]
 
     for tool_name in expected_process_tools:
-        assert tool_name in tool_names, (
-            f"Process tool '{tool_name}' not found in ACP provider"
-        )
+        assert tool_name in tool_names, f"Process tool '{tool_name}' not found in ACP provider"
 
 
 async def test_process_tools_have_acp_process_manager(session: ACPSession):

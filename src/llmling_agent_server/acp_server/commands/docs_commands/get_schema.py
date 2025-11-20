@@ -166,9 +166,7 @@ class GetSchemaCommand(SlashedCommand):
             )
 
         except Exception as e:
-            logger.exception(
-                "Unexpected error generating schema code", input_path=input_path
-            )
+            logger.exception("Unexpected error generating schema code", input_path=input_path)
             await session.notifications.tool_call_progress(
                 tool_call_id=tool_call_id,
                 status="failed",

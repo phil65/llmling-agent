@@ -77,9 +77,7 @@ class BaseImageContent(BaseContent):
 
         # For http(s) URLs, pass through as URL content
         if path_obj.protocol in {"http", "https"}:
-            return ImageURLContent(
-                url=str(path_obj), detail=detail, description=description
-            )
+            return ImageURLContent(url=str(path_obj), detail=detail, description=description)
 
         # For all other paths, read and convert to base64
         data = await read_path(path_obj, mode="rb")
@@ -169,9 +167,7 @@ class BasePDFContent(BaseContent):
 
         # For http(s) URLs, pass through as URL content
         if path_obj.protocol in {"http", "https"}:
-            return PDFURLContent(
-                url=str(path_obj), detail=detail, description=description
-            )
+            return PDFURLContent(url=str(path_obj), detail=detail, description=description)
 
         # For all other paths, read and convert to base64
         data = await read_path(path_obj, mode="rb")

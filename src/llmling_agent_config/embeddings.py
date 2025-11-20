@@ -88,9 +88,6 @@ class LiteLLMEmbeddingConfig(BaseEmbeddingConfig):
 
 # Union type for embedding configs
 EmbeddingConfig = Annotated[
-    SentenceTransformersConfig
-    | OpenAIEmbeddingConfig
-    | BGEConfig
-    | LiteLLMEmbeddingConfig,
+    SentenceTransformersConfig | OpenAIEmbeddingConfig | BGEConfig | LiteLLMEmbeddingConfig,
     Field(discriminator="type"),
 ]

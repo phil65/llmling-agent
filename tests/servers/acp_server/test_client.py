@@ -38,9 +38,7 @@ class ACPClient:
             self.process = None
         print("🛑 Server stopped")
 
-    def send_request(
-        self, method: str, params: dict[str, Any] | None = None
-    ) -> dict[str, Any]:
+    def send_request(self, method: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
         """Send a JSON-RPC request and return the response."""
         if not self.process or not self.process.stdin or not self.process.stdout:
             msg = "Server not started"
@@ -75,9 +73,7 @@ class ACPClient:
             msg = f"Invalid JSON response: {e}"
             raise RuntimeError(msg)  # noqa: B904
 
-    def send_notification(
-        self, method: str, params: dict[str, Any] | None = None
-    ) -> None:
+    def send_notification(self, method: str, params: dict[str, Any] | None = None) -> None:
         """Send a JSON-RPC notification (no response expected)."""
         if not self.process or not self.process.stdin:
             msg = "Server not started"
@@ -116,9 +112,7 @@ class ACPClient:
                         # Check if this is a stop reason (end of streaming)
                         if notification.get(
                             "method"
-                        ) == "session/update" and "stopReason" in notification.get(
-                            "params", {}
-                        ):
+                        ) == "session/update" and "stopReason" in notification.get("params", {}):
                             break
                     except json.JSONDecodeError:
                         print(f"⚠️ Invalid JSON: {line}")
@@ -172,9 +166,7 @@ def main() -> int:  # noqa: PLR0915
             print("✅ No authentication required")
 
         print("\n📝 Step 3: Create new session")
-        session_result = client.send_request(
-            "session/new", {"cwd": "/tmp", "mcpServers": []}
-        )
+        session_result = client.send_request("session/new", {"cwd": "/tmp", "mcpServers": []})
         session_id = session_result["sessionId"]
         print(f"✅ Session created: {session_id}")
 

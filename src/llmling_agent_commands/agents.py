@@ -85,9 +85,7 @@ class CreateAgentCommand(SlashedCommand):
             msg = f"✅ **Created agent** `{agent_name}`"
             if tool_list:
                 msg += f" with tools: `{', '.join(tool_list)}`"
-            await ctx.print(
-                f"{msg}\n\n💡 Use `/connect {agent_name}` to forward messages"
-            )
+            await ctx.print(f"{msg}\n\n💡 Use `/connect {agent_name}` to forward messages")
 
         except ValueError as e:
             msg = f"Failed to create agent: {e}"

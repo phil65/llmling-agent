@@ -142,9 +142,7 @@ async def test_rich_content(  # noqa: D417
             ],
             structured_content={"structured_data": "additional info", "count": 42},
         )
-    return (
-        f"Unknown content_type: {content_type}. Use 'image', 'audio', 'file', or 'mixed'"
-    )
+    return f"Unknown content_type: {content_type}. Use 'image', 'audio', 'file', or 'mixed'"
 
 
 @mcp.resource("resource://greeting")

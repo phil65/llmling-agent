@@ -311,10 +311,7 @@ class Tool[TOutputType = Any]:
 
         name = name_override or tool.name or tool.__class__.__name__.removesuffix("Tool")
         description = (
-            description_override
-            or tool.description
-            or inspect.getdoc(tool.__class__)
-            or ""
+            description_override or tool.description or inspect.getdoc(tool.__class__) or ""
         )
 
         async def wrapper(**kwargs: Any) -> Any:

@@ -141,17 +141,13 @@ class EmailConfig(EventSourceConfig):
     ssl: bool = Field(default=True)
     """Whether to use SSL/TLS connection"""
 
-    check_interval: int = Field(
-        default=60, gt=0, description="Seconds between inbox checks"
-    )
+    check_interval: int = Field(default=60, gt=0, description="Seconds between inbox checks")
     """How often to check for new emails (in seconds)"""
 
     mark_seen: bool = Field(default=True)
     """Whether to mark processed emails as seen"""
 
-    filters: dict[str, str] = Field(
-        default_factory=dict, description="Email filtering criteria"
-    )
+    filters: dict[str, str] = Field(default_factory=dict, description="Email filtering criteria")
     """Filtering rules for emails (subject, from, etc)"""
 
     max_size: int | None = Field(default=None, description="Maximum email size in bytes")
@@ -185,9 +181,7 @@ class ConnectionTriggerConfig(EventSourceConfig):
         # Check source/target filters
         if self.source and event.connection.source.name != self.source:
             return False
-        if self.target and not any(
-            t.name == self.target for t in event.connection.targets
-        ):
+        if self.target and not any(t.name == self.target for t in event.connection.targets):
             return False
 
         # Check condition if any
@@ -198,11 +192,7 @@ class ConnectionTriggerConfig(EventSourceConfig):
 
 
 EventConfig = Annotated[
-    FileWatchConfig
-    | WebhookConfig
-    | EmailConfig
-    | TimeEventConfig
-    | ConnectionTriggerConfig,
+    FileWatchConfig | WebhookConfig | EmailConfig | TimeEventConfig | ConnectionTriggerConfig,
     Field(discriminator="type"),
 ]
 

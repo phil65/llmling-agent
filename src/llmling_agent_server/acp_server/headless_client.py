@@ -137,9 +137,7 @@ class HeadlessACPClient(Client):
             logger.exception("Failed to read file", path=params.path)
             raise
 
-    async def write_text_file(
-        self, params: WriteTextFileRequest
-    ) -> WriteTextFileResponse:
+    async def write_text_file(self, params: WriteTextFileRequest) -> WriteTextFileResponse:
         """Write text to file."""
         if not self.allow_file_operations:
             msg = "File operations not allowed"
@@ -157,9 +155,7 @@ class HeadlessACPClient(Client):
             logger.exception("Failed to write file", path=params.path)
             raise
 
-    async def create_terminal(
-        self, params: CreateTerminalRequest
-    ) -> CreateTerminalResponse:
+    async def create_terminal(self, params: CreateTerminalRequest) -> CreateTerminalResponse:
         """Create a new terminal session using ProcessManager."""
         try:
             process_id = await self.process_manager.start_process(
@@ -183,9 +179,7 @@ class HeadlessACPClient(Client):
             logger.exception("Failed to create terminal", command=params.command)
             raise
 
-    async def terminal_output(
-        self, params: TerminalOutputRequest
-    ) -> TerminalOutputResponse:
+    async def terminal_output(self, params: TerminalOutputRequest) -> TerminalOutputResponse:
         """Get output from terminal."""
         terminal_id = params.terminal_id
 
@@ -196,9 +190,7 @@ class HeadlessACPClient(Client):
         try:
             process_id = self.terminals[terminal_id]
             output = await self.process_manager.get_output(process_id)
-            return TerminalOutputResponse(
-                output=output.combined, truncated=output.truncated
-            )
+            return TerminalOutputResponse(output=output.combined, truncated=output.truncated)
         except Exception:
             logger.exception("Failed to get output", terminal_id=terminal_id)
             raise

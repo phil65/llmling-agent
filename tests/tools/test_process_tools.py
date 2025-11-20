@@ -137,18 +137,14 @@ class TestErrorHandling:
 
     async def test_wait_for_nonexistent_process(self, tools):
         """Test waiting for process that doesn't exist."""
-        tools.process_manager.wait_for_exit = AsyncMock(
-            side_effect=ValueError("Process not found")
-        )
+        tools.process_manager.wait_for_exit = AsyncMock(side_effect=ValueError("Process not found"))
 
         result = await tools.wait_for_process("invalid_pid")
         assert "Process not found" in result
 
     async def test_get_output_for_killed_process(self, tools):
         """Test getting output from killed process."""
-        tools.process_manager.get_output = AsyncMock(
-            side_effect=RuntimeError("Process was killed")
-        )
+        tools.process_manager.get_output = AsyncMock(side_effect=RuntimeError("Process was killed"))
 
         result = await tools.get_process_output("killed_proc")
         assert "Error getting process output" in result
@@ -166,9 +162,7 @@ class TestErrorHandling:
 
     async def test_list_processes_with_partial_info_failure(self, tools):
         """Test listing when retrieving info for one process fails."""
-        tools.process_manager.list_processes = AsyncMock(
-            return_value=["proc_1", "proc_2"]
-        )
+        tools.process_manager.list_processes = AsyncMock(return_value=["proc_1", "proc_2"])
         tools.process_manager.get_process_info = AsyncMock(
             side_effect=[
                 {

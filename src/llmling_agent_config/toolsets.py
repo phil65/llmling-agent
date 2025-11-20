@@ -79,11 +79,7 @@ class ComposioToolSetConfig(BaseToolsetConfig):
         """Create provider from this config."""
         from llmling_agent_toolsets.composio_toolset import ComposioTools
 
-        key = (
-            self.api_key.get_secret_value()
-            if self.api_key
-            else os.getenv("COMPOSIO_API_KEY")
-        )
+        key = self.api_key.get_secret_value() if self.api_key else os.getenv("COMPOSIO_API_KEY")
         return ComposioTools(user_id=self.user_id, toolsets=self.toolsets, api_key=key)
 
 

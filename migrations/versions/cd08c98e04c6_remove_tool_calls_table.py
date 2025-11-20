@@ -52,7 +52,5 @@ def downgrade() -> None:
     op.create_index(
         op.f("ix_toolcall_conversation_id"), "toolcall", ["conversation_id"], unique=False
     )
-    op.create_index(
-        op.f("ix_toolcall_message_id"), "toolcall", ["message_id"], unique=False
-    )
+    op.create_index(op.f("ix_toolcall_message_id"), "toolcall", ["message_id"], unique=False)
     # ### end Alembic commands ###

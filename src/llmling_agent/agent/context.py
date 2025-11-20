@@ -121,9 +121,7 @@ class AgentContext[TDeps = Any](NodeContext[TDeps]):
         history = self.agent.conversation.get_history() if self.pool else []
         return await provider.get_elicitation(self, params, history)
 
-    async def report_progress(
-        self, progress: float, total: float | None, message: str
-    ) -> None:
+    async def report_progress(self, progress: float, total: float | None, message: str) -> None:
         """Report progress by emitting event into the agent's stream."""
         from llmling_agent.agent.events import ToolCallProgressEvent
 

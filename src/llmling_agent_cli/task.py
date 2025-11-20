@@ -51,9 +51,7 @@ async def execute_job(
 def task_command(
     agent_name: str = t.Argument(help="Name of agent to run task with"),
     task_name: str = t.Argument(help="Name of task to execute"),
-    config: str | None = t.Option(
-        None, "--config", "-c", help="Agent configuration file"
-    ),
+    config: str | None = t.Option(None, "--config", "-c", help="Agent configuration file"),
     prompt: str | None = t.Option(None, "--prompt", "-p", help="Additional prompt"),
 ) -> None:
     """Execute a task with the specified agent."""

@@ -30,7 +30,7 @@ def wrap_tool[TReturn](
     - Tools with AgentContext only: Treat as regular tools, inject AgentContext
     - Tools with both contexts: Present as RunContext-only to pydantic-ai, inject AgentContext
     - Tools with no context: Normal pydantic-ai handling
-    """  # noqa: E501
+    """
     fn = tool.callable
     run_ctx_key = get_argument_key(fn, RunContext)
     agent_ctx_key = get_argument_key(fn, AgentContext)
@@ -84,9 +84,7 @@ def wrap_tool[TReturn](
     # Must be done AFTER wraps to prevent overwriting
     if agent_ctx_key and not run_ctx_key:
         # Tool has AgentContext only - make it appear to have RunContext to pydantic-ai
-        new_sig = create_modified_signature(
-            fn, remove=agent_ctx_key, inject={"ctx": RunContext}
-        )
+        new_sig = create_modified_signature(fn, remove=agent_ctx_key, inject={"ctx": RunContext})
         update_signature(wrapped, new_sig)
     elif agent_ctx_key and run_ctx_key:
         # Tool has both contexts - hide AgentContext from pydantic-ai

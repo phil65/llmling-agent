@@ -55,10 +55,7 @@ def node_function(
     func: Callable[..., Any] | None = None,
     *,
     deps: Any | None = None,
-    depends_on: str
-    | Sequence[str | Callable[..., Any]]
-    | Callable[..., Any]
-    | None = None,
+    depends_on: str | Sequence[str | Callable[..., Any]] | Callable[..., Any] | None = None,
 ) -> Callable[..., Any]:
     """Mark a function for automatic node execution.
 

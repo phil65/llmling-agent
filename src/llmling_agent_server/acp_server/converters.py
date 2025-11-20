@@ -142,9 +142,7 @@ def from_content_blocks(blocks: Sequence[ContentBlock]) -> Sequence[str | BaseCo
                 format_type = mime_type.split("/")[-1] if mime_type else "mp3"
                 content.append(AudioBase64Content(data=data, format=format_type))
 
-            case ResourceContentBlock(
-                uri=uri, description=description, mime_type=mime_type
-            ):
+            case ResourceContentBlock(uri=uri, description=description, mime_type=mime_type):
                 # Convert to appropriate content type based on MIME type
                 if mime_type:
                     if mime_type.startswith("image/"):
@@ -170,14 +168,10 @@ def from_content_blocks(blocks: Sequence[ContentBlock]) -> Sequence[str | BaseCo
                     case BlobResourceContents(blob=blob, mime_type=mime_type):
                         # Convert embedded binary to appropriate content type
                         if mime_type and mime_type.startswith("image/"):
-                            content.append(
-                                ImageBase64Content(data=blob, mime_type=mime_type)
-                            )
+                            content.append(ImageBase64Content(data=blob, mime_type=mime_type))
                         elif mime_type and mime_type.startswith("audio/"):
                             format_type = mime_type.split("/")[-1]
-                            content.append(
-                                AudioBase64Content(data=blob, format=format_type)
-                            )
+                            content.append(AudioBase64Content(data=blob, format=format_type))
                         elif mime_type == "application/pdf":
                             content.append(PDFBase64Content(data=blob))
                         else:

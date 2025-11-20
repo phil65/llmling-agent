@@ -58,9 +58,7 @@ class ClientCapabilities(AnnotatedObject):
             A new instance of ClientCapabilities.
         """
         return cls(
-            fs=FileSystemCapability(
-                read_text_file=read_text_file, write_text_file=write_text_file
-            ),
+            fs=FileSystemCapability(read_text_file=read_text_file, write_text_file=write_text_file),
             terminal=terminal,
         )
 
@@ -119,9 +117,7 @@ class AgentCapabilities(AnnotatedObject):
     mcp_capabilities: McpCapabilities | None = Field(default_factory=McpCapabilities)
     """MCP capabilities supported by the agent."""
 
-    prompt_capabilities: PromptCapabilities | None = Field(
-        default_factory=PromptCapabilities
-    )
+    prompt_capabilities: PromptCapabilities | None = Field(default_factory=PromptCapabilities)
     """Prompt capabilities supported by the agent."""
 
     @classmethod

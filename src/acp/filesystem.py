@@ -27,9 +27,7 @@ logger = logging.getLogger(__name__)
 class ACPFile(AbstractBufferedFile):  # type: ignore[misc]
     """File-like object for ACP filesystem operations."""
 
-    def __init__(
-        self, fs: ACPFileSystem, path: str, mode: str = "rb", **kwargs: Any
-    ) -> None:
+    def __init__(self, fs: ACPFileSystem, path: str, mode: str = "rb", **kwargs: Any) -> None:
         """Initialize ACP file handle."""
         super().__init__(fs, path, mode, **kwargs)
         self._content: bytes | None = None
@@ -300,9 +298,7 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath]):
         except (OSError, ValueError):
             return False
         else:
-            return exists_cmd.parse_command(
-                output, exit_code if exit_code is not None else 1
-            )
+            return exists_cmd.parse_command(output, exit_code if exit_code is not None else 1)
 
     exists = sync_wrapper(_exists)  # pyright: ignore[reportAssignmentType]
 
@@ -327,9 +323,7 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath]):
         except (OSError, ValueError):
             return False
         else:
-            return isdir_cmd.parse_command(
-                output, exit_code if exit_code is not None else 1
-            )
+            return isdir_cmd.parse_command(output, exit_code if exit_code is not None else 1)
 
     isdir = sync_wrapper(_isdir)
 
@@ -354,9 +348,7 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath]):
         except (OSError, ValueError):
             return False
         else:
-            return isfile_cmd.parse_command(
-                output, exit_code if exit_code is not None else 1
-            )
+            return isfile_cmd.parse_command(output, exit_code if exit_code is not None else 1)
 
     isfile = sync_wrapper(_isfile)
 
@@ -377,9 +369,7 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath]):
                 command, args=args, timeout_seconds=5
             )
 
-            success = create_cmd.parse_command(
-                output, exit_code if exit_code is not None else 1
-            )
+            success = create_cmd.parse_command(output, exit_code if exit_code is not None else 1)
             if not success:
                 msg = f"Error creating directory {path}: {output}"
                 raise OSError(msg)  # noqa: TRY301
@@ -406,9 +396,7 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath]):
                 command, args=args, timeout_seconds=10
             )
 
-            success = remove_cmd.parse_command(
-                output, exit_code if exit_code is not None else 1
-            )
+            success = remove_cmd.parse_command(output, exit_code if exit_code is not None else 1)
             if not success:
                 msg = f"Error removing {path}: {output}"
                 raise OSError(msg)  # noqa: TRY301

@@ -31,10 +31,7 @@ def with_nodes[T, **P](
 def with_nodes[T, **P](
     pool: AgentPool,
     func: Callable[P, Awaitable[T]] | None = None,
-) -> (
-    Callable[P, Awaitable[T]]
-    | Callable[[Callable[P, Awaitable[T]]], Callable[P, Awaitable[T]]]
-):
+) -> Callable[P, Awaitable[T]] | Callable[[Callable[P, Awaitable[T]]], Callable[P, Awaitable[T]]]:
     """Inject nodes into function parameters."""
 
     def decorator(func: Callable[P, Awaitable[T]]) -> Callable[P, Awaitable[T]]:

@@ -99,15 +99,11 @@ async def test_initialize_and_new_session(
         new_sess = await agent_conn.new_session(request)
         assert new_sess.session_id == "test-session-123"
         load_resp = await agent_conn.load_session(
-            LoadSessionRequest(
-                session_id=new_sess.session_id, cwd="/test", mcp_servers=[]
-            )
+            LoadSessionRequest(session_id=new_sess.session_id, cwd="/test", mcp_servers=[])
         )
         assert isinstance(load_resp, LoadSessionResponse)
 
-        auth_resp = await agent_conn.authenticate(
-            AuthenticateRequest(method_id="password")
-        )
+        auth_resp = await agent_conn.authenticate(AuthenticateRequest(method_id="password"))
         assert isinstance(auth_resp, AuthenticateResponse)
 
         mode_resp = await agent_conn.set_session_mode(
@@ -121,9 +117,7 @@ async def test_initialize_and_new_session(
         assert isinstance(model_resp, SetSessionModelResponse)
 
 
-async def test_bidirectional_file_ops(
-    test_agent: TestAgent, test_client: DefaultACPClient
-) -> None:
+async def test_bidirectional_file_ops(test_agent: TestAgent, test_client: DefaultACPClient) -> None:
     async with _Server() as s:
         assert s.client_writer is not None
         assert s.client_reader is not None
@@ -132,12 +126,8 @@ async def test_bidirectional_file_ops(
         agent = test_agent
         client = test_client
         client.files["/test/file.txt"] = "Hello, World!"
-        _agent_conn = ClientSideConnection(
-            lambda _conn: client, s.client_writer, s.client_reader
-        )
-        client_conn = AgentSideConnection(
-            lambda _conn: agent, s.server_writer, s.server_reader
-        )
+        _agent_conn = ClientSideConnection(lambda _conn: client, s.client_writer, s.client_reader)
+        client_conn = AgentSideConnection(lambda _conn: agent, s.server_writer, s.server_reader)
 
         # Agent asks client to read
         read_request = ReadTextFileRequest(session_id="sess", path="/test/file.txt")
@@ -161,12 +151,8 @@ async def test_cancel_notification_and_capture_wire(
         # Build only agent-side (server) connection. Client side: reader to inspect wire
         agent = test_agent
         client = test_client
-        agent_conn = ClientSideConnection(
-            lambda _conn: client, s.client_writer, s.client_reader
-        )
-        _client_conn = AgentSideConnection(
-            lambda _conn: agent, s.server_writer, s.server_reader
-        )
+        agent_conn = ClientSideConnection(lambda _conn: client, s.client_writer, s.client_reader)
+        _client_conn = AgentSideConnection(lambda _conn: agent, s.server_writer, s.server_reader)
 
         # Send cancel notification from client-side connection to agent
         await agent_conn.cancel(CancelNotification(session_id="test-123"))
@@ -212,9 +198,7 @@ async def test_session_notifications_flow(
         assert test_client.notifications[0].session_id == "sess"
 
 
-async def test_concurrent_reads(
-    test_agent: TestAgent, test_client: DefaultACPClient
-) -> None:
+async def test_concurrent_reads(test_agent: TestAgent, test_client: DefaultACPClient) -> None:
     async with _Server() as s:
         assert s.client_writer is not None
         assert s.client_reader is not None
@@ -299,12 +283,8 @@ async def test_set_session_mode_and_extensions(
         assert s.server_reader is not None
         agent = test_agent
         client = test_client
-        agent_conn = ClientSideConnection(
-            lambda _conn: client, s.client_writer, s.client_reader
-        )
-        _client_conn = AgentSideConnection(
-            lambda _conn: agent, s.server_writer, s.server_reader
-        )
+        agent_conn = ClientSideConnection(lambda _conn: client, s.client_writer, s.client_reader)
+        _client_conn = AgentSideConnection(lambda _conn: agent, s.server_writer, s.server_reader)
 
         # set_session_mode
         request = SetSessionModeRequest(session_id="sess", mode_id="yolo")

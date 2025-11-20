@@ -567,10 +567,7 @@ class ACPNotifications:
                                             blob_size = len(blob_resource.blob) * 3 // 4
                                             size_mb = blob_size / (1024 * 1024)
                                             mime = blob_resource.mime_type or "unknown"
-                                            msg = (
-                                                f"Embedded resource: {mime} "
-                                                f"({size_mb:.2f} MB)"
-                                            )
+                                            msg = f"Embedded resource: {mime} ({size_mb:.2f} MB)"
                                             await self.send_user_message(msg)
                                         case _ as unreachable:
                                             assert_never(unreachable)

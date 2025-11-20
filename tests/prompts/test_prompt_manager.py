@@ -35,9 +35,7 @@ async def test_builtin_provider():
     assert result == "This is a simple prompt"
 
     # Test prompt with variables
-    result = await manifest.prompt_manager.get(
-        "template_prompt?name=Alice,place=Wonderland"
-    )
+    result = await manifest.prompt_manager.get("template_prompt?name=Alice,place=Wonderland")
     assert result == "Hello Alice, welcome to Wonderland!"
 
     # Test non-existent prompt

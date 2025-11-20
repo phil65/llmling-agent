@@ -33,9 +33,7 @@ class ResourceInfo:
     @classmethod
     async def from_mcp_resource(cls, resource: MCPResource) -> Self:
         """Create ResourceInfo from MCP resource."""
-        return cls(
-            name=resource.name, uri=str(resource.uri), description=resource.description
-        )
+        return cls(name=resource.name, uri=str(resource.uri), description=resource.description)
 
 
 class BaseResourceConfig(Schema):
@@ -77,6 +75,4 @@ class UnionResourceConfig(BaseResourceConfig):
 
 
 # Union type for resource configs
-ResourceConfig = Annotated[
-    SourceResourceConfig | UnionResourceConfig, Field(discriminator="type")
-]
+ResourceConfig = Annotated[SourceResourceConfig | UnionResourceConfig, Field(discriminator="type")]

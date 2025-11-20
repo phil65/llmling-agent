@@ -51,9 +51,7 @@ class TerminalOutputCommand(SlashedCommand):
                 and session.client_capabilities.terminal
                 and session.acp_agent.terminal_access
             ):
-                await session.notifications.send_agent_text(
-                    "❌ **Terminal access not available**"
-                )
+                await session.notifications.send_agent_text("❌ **Terminal access not available**")
                 return
 
             # Generate a tool call ID for this operation
@@ -125,9 +123,7 @@ class TerminalKillCommand(SlashedCommand):
                 and session.client_capabilities.terminal
                 and session.acp_agent.terminal_access
             ):
-                await session.notifications.send_agent_text(
-                    "❌ **Terminal access not available**"
-                )
+                await session.notifications.send_agent_text("❌ **Terminal access not available**")
                 return
 
             # Generate a tool call ID for this operation
@@ -168,9 +164,7 @@ class TerminalKillCommand(SlashedCommand):
                     title=f"Error: {e}",
                 )
             except Exception:  # noqa: BLE001
-                await session.notifications.send_agent_text(
-                    f"❌ **Failed to kill terminal:** {e}"
-                )
+                await session.notifications.send_agent_text(f"❌ **Failed to kill terminal:** {e}")
 
 
 class TerminalCreateCommand(SlashedCommand):
@@ -210,9 +204,7 @@ class TerminalCreateCommand(SlashedCommand):
                 and session.client_capabilities.terminal
                 and session.acp_agent.terminal_access
             ):
-                await session.notifications.send_agent_text(
-                    "❌ **Terminal access not available**"
-                )
+                await session.notifications.send_agent_text("❌ **Terminal access not available**")
                 return
 
             # Generate a tool call ID for this operation

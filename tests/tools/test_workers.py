@@ -209,9 +209,7 @@ async def test_structured_worker_output():
     main_agent.tools.register_tool(tool, enabled=True)
     # Test that both agents work together
     async with structured_agent, main_agent:
-        result = await main_agent.run(
-            "Ask structured_agent: return a message 'test' with value 42"
-        )
+        result = await main_agent.run("Ask structured_agent: return a message 'test' with value 42")
         tool_calls = result.get_tool_calls()
         assert len(tool_calls) > 0
         # Verify pydantic-ai properly converted the result to StructuredResponse

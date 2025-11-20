@@ -26,9 +26,7 @@ logger = get_logger(__name__)
 class FSSpecTools(ResourceProvider):
     """Provider for fsspec filesystem tools."""
 
-    def __init__(
-        self, filesystem: fsspec.AbstractFileSystem, name: str = "fsspec"
-    ) -> None:
+    def __init__(self, filesystem: fsspec.AbstractFileSystem, name: str = "fsspec") -> None:
         """Initialize with an fsspec filesystem.
 
         Args:
@@ -155,9 +153,7 @@ class FSSpecTools(ResourceProvider):
 
         except (OSError, ValueError) as e:
             # Emit failure event
-            await agent_ctx.events.file_operation(
-                "list", path=path, success=False, error=str(e)
-            )
+            await agent_ctx.events.file_operation("list", path=path, success=False, error=str(e))
 
             return {"error": f"Failed to list directory {path}: {e}"}
         else:
@@ -193,9 +189,7 @@ class FSSpecTools(ResourceProvider):
                 content = await self.fs._cat_file(path)
                 result = {
                     "path": path,
-                    "content": content.hex()
-                    if isinstance(content, bytes)
-                    else str(content),
+                    "content": content.hex() if isinstance(content, bytes) else str(content),
                     "size": len(content) if content else 0,
                     "encoding": "binary",
                 }
@@ -230,9 +224,7 @@ class FSSpecTools(ResourceProvider):
 
         except (OSError, ValueError) as e:
             # Emit failure event
-            await agent_ctx.events.file_operation(
-                "read", path=path, success=False, error=str(e)
-            )
+            await agent_ctx.events.file_operation("read", path=path, success=False, error=str(e))
 
             return {"error": f"Failed to read file {path}: {e}"}
         else:
@@ -291,14 +283,10 @@ class FSSpecTools(ResourceProvider):
             }
 
             # Emit success event
-            await agent_ctx.events.file_operation(
-                "write", path=path, success=True, size=size
-            )
+            await agent_ctx.events.file_operation("write", path=path, success=True, size=size)
         except (OSError, ValueError) as e:
             # Emit failure event
-            await agent_ctx.events.file_operation(
-                "write", path=path, success=False, error=str(e)
-            )
+            await agent_ctx.events.file_operation("write", path=path, success=False, error=str(e))
 
             return {"error": f"Failed to write file {path}: {e}"}
         else:
@@ -373,9 +361,7 @@ class FSSpecTools(ResourceProvider):
 
         except (OSError, ValueError) as e:
             # Emit failure event
-            await agent_ctx.events.file_operation(
-                "delete", path=path, success=False, error=str(e)
-            )
+            await agent_ctx.events.file_operation("delete", path=path, success=False, error=str(e))
 
             return {"error": f"Failed to delete {path}: {e}"}
         else:
@@ -439,9 +425,7 @@ class FSSpecTools(ResourceProvider):
                 original_content = original_content.decode("utf-8")
 
             try:  # Apply smart content replacement
-                new_content = replace_content(
-                    original_content, old_string, new_string, replace_all
-                )
+                new_content = replace_content(original_content, old_string, new_string, replace_all)
             except ValueError as e:
                 error_msg = f"Edit failed: {e}"
                 await agent_ctx.events.file_operation(
@@ -534,17 +518,13 @@ class FSSpecTools(ResourceProvider):
             if mode == "create":  # For create mode, don't read existing file
                 original_content = ""
                 prompt = _build_create_prompt(path, display_description)
-                sys_prompt = (
-                    "You are a code generator. Create the requested file content."
-                )
+                sys_prompt = "You are a code generator. Create the requested file content."
             elif mode == "overwrite":
                 # For overwrite mode, don't read file - agent
                 # already read it via system prompt requirement
                 original_content = ""  # Will be set later for diff purposes
                 prompt = _build_overwrite_prompt(path, display_description)
-                sys_prompt = (
-                    "You are a code editor. Output ONLY the complete new file content."
-                )
+                sys_prompt = "You are a code editor. Output ONLY the complete new file content."
             else:  # For edit mode, use structured editing approach
                 original_content = await self._read(path)
 

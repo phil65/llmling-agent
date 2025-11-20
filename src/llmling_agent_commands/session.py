@@ -44,6 +44,4 @@ class ResetCommand(SlashedCommand):
             ctx: Command context
         """
         await ctx.context.agent.reset()
-        await ctx.print(
-            "🔄 **Session state reset** - history cleared, tools and settings restored"
-        )
+        await ctx.print("🔄 **Session state reset** - history cleared, tools and settings restored")

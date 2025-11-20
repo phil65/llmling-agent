@@ -77,7 +77,5 @@ class ListPromptsCommand(SlashedCommand):
                     output_lines.append(f"- **{prompt_name}**{desc}")
             else:
                 # For other providers, just show names
-                output_lines.extend(
-                    f"- `{prompt_name}`" for prompt_name in sorted_prompts
-                )
+                output_lines.extend(f"- `{prompt_name}`" for prompt_name in sorted_prompts)
         await ctx.print("\n".join(output_lines))

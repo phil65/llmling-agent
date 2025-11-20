@@ -146,9 +146,7 @@ async def test_get_conversation_stats(provider: SQLModelProvider, sample_data: N
 async def test_complex_filtering(provider: SQLModelProvider, sample_data: None):
     """Test combined filtering capabilities."""
     since = BASE_TIME - timedelta(hours=1.5)
-    filters = QueryFilters(
-        agent_name="test_agent", model="gpt-5", since=since, query="Hello"
-    )
+    filters = QueryFilters(agent_name="test_agent", model="gpt-5", since=since, query="Hello")
     results = await provider.get_conversations(filters)
     assert len(results) == 1
     conv, msgs = results[0]

@@ -24,9 +24,7 @@ def api_command(
     host: str = t.Option("localhost", help="Host to bind server to"),
     port: int = t.Option(8000, help="Port to listen on"),
     cors: bool = t.Option(True, help="Enable CORS"),
-    show_messages: bool = t.Option(
-        False, "--show-messages", help="Show message activity"
-    ),
+    show_messages: bool = t.Option(False, "--show-messages", help="Show message activity"),
     docs: bool = t.Option(True, help="Enable API documentation"),
 ) -> None:
     """Run agents as a completions API server.

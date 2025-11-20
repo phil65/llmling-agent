@@ -75,9 +75,7 @@ class RegistryPackage(Schema):
     )
     """Environment variables."""
 
-    package_arguments: list[dict[str, Any]] = Field(
-        default_factory=list, alias="packageArguments"
-    )
+    package_arguments: list[dict[str, Any]] = Field(default_factory=list, alias="packageArguments")
     """Package arguments."""
 
     runtime_hint: str | None = Field(None, alias="runtimeHint")
@@ -146,13 +144,9 @@ class RegistryServer(Schema):
         # Provide helpful error message
         available_transports = []
         if self.packages:
-            available_transports.extend([
-                f"package:{pkg.registry_type}" for pkg in self.packages
-            ])
+            available_transports.extend([f"package:{pkg.registry_type}" for pkg in self.packages])
         if self.remotes:
-            available_transports.extend([
-                f"remote:{remote.type}" for remote in self.remotes
-            ])
+            available_transports.extend([f"remote:{remote.type}" for remote in self.remotes])
 
         if available_transports:
             error_msg = (
@@ -162,8 +156,7 @@ class RegistryServer(Schema):
             )
         else:
             error_msg = (
-                f"No transports available for {self.name}. "
-                f"Server metadata may be incomplete"
+                f"No transports available for {self.name}. Server metadata may be incomplete"
             )
 
         raise UnsupportedTransportError(error_msg)
@@ -208,9 +201,7 @@ class GetServerCacheEntry:
 class MCPRegistryClient:
     """Client for interacting with the MCP registry API."""
 
-    def __init__(
-        self, base_url: str = "https://registry.modelcontextprotocol.io"
-    ) -> None:
+    def __init__(self, base_url: str = "https://registry.modelcontextprotocol.io") -> None:
         self.base_url = base_url.rstrip("/")
         self.client = httpx.AsyncClient(timeout=30.0)
         self._cache_lists: dict[str, ListServersCacheEntry] = {}
@@ -245,9 +236,9 @@ class MCPRegistryClient:
                 wrappers = [
                     wrapper
                     for wrapper in wrappers
-                    if wrapper.meta.get(
-                        "io.modelcontextprotocol.registry/official", {}
-                    ).get("status")
+                    if wrapper.meta.get("io.modelcontextprotocol.registry/official", {}).get(
+                        "status"
+                    )
                     == status
                 ]
 
@@ -257,8 +248,7 @@ class MCPRegistryClient:
                 servers = [
                     s
                     for s in servers
-                    if search_lower in s.name.lower()
-                    or search_lower in s.description.lower()
+                    if search_lower in s.name.lower() or search_lower in s.description.lower()
                 ]
 
             # Cache the result

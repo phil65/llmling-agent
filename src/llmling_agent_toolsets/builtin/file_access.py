@@ -67,9 +67,7 @@ async def read_file(  # noqa: D417
         raise ToolError(msg) from e
     else:
         # Emit success event
-        await ctx.events.file_operation(
-            "read", path=path, success=True, size=len(content)
-        )
+        await ctx.events.file_operation("read", path=path, success=True, size=len(content))
         return content
 
 
@@ -170,14 +168,10 @@ async def download_file(  # noqa: D417
 
         duration = time.time() - start_time
         size_mb = size / 1_048_576
-        result = (
-            f"Downloaded {filename} ({size_mb:.1f}MB) at {size_mb / duration:.1f} MB/s"
-        )
+        result = f"Downloaded {filename} ({size_mb:.1f}MB) at {size_mb / duration:.1f} MB/s"
 
         # Emit success event
-        await ctx.events.file_operation(
-            "read", path=str(full_path), success=True, size=size
-        )
+        await ctx.events.file_operation("read", path=str(full_path), success=True, size=size)
 
     except httpx.ConnectError as e:
         error_msg = f"Connection error downloading {url}: {e}"

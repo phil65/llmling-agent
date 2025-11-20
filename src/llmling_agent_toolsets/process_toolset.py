@@ -109,9 +109,7 @@ class ProcessTools(ResourceProvider):
                 "status": "started",
             }
 
-    async def get_process_output(
-        self, agent_ctx: AgentContext, process_id: str
-    ) -> dict[str, Any]:
+    async def get_process_output(self, agent_ctx: AgentContext, process_id: str) -> dict[str, Any]:
         """Get current output from a background process.
 
         Args:
@@ -153,9 +151,7 @@ class ProcessTools(ResourceProvider):
         else:
             return result
 
-    async def wait_for_process(
-        self, agent_ctx: AgentContext, process_id: str
-    ) -> dict[str, Any]:
+    async def wait_for_process(self, agent_ctx: AgentContext, process_id: str) -> dict[str, Any]:
         """Wait for background process to complete and return final output.
 
         Args:
@@ -191,9 +187,7 @@ class ProcessTools(ResourceProvider):
                 "truncated": output.truncated,
             }
 
-    async def kill_process(
-        self, agent_ctx: AgentContext, process_id: str
-    ) -> dict[str, Any]:
+    async def kill_process(self, agent_ctx: AgentContext, process_id: str) -> dict[str, Any]:
         """Terminate a background process.
 
         Args:
@@ -234,9 +228,7 @@ class ProcessTools(ResourceProvider):
                 "message": f"Process {process_id} has been terminated",
             }
 
-    async def release_process(
-        self, agent_ctx: AgentContext, process_id: str
-    ) -> dict[str, Any]:
+    async def release_process(self, agent_ctx: AgentContext, process_id: str) -> dict[str, Any]:
         """Release resources for a background process.
 
         Args:

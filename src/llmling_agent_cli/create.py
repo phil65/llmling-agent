@@ -19,9 +19,7 @@ def create(
     add_to_store: bool = typer.Option(
         False, "-a", "--add-to-store", help="Add generated config to ConfigStore"
     ),
-    model: str = typer.Option(
-        "gpt-5", "-m", "--model", help="Model to use for generation"
-    ),
+    model: str = typer.Option("gpt-5", "-m", "--model", help="Model to use for generation"),
     provider: Provider = typer.Option(  # noqa: B008
         "pydantic_ai", "-p", "--provider", help="Provider to use"
     ),

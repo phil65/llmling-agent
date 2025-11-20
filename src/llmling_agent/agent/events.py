@@ -73,9 +73,7 @@ class TextContentItem:
 
 
 # Union type for all tool call content items
-ToolCallContentItem = (
-    TerminalContentItem | DiffContentItem | LocationContentItem | TextContentItem
-)
+ToolCallContentItem = TerminalContentItem | DiffContentItem | LocationContentItem | TextContentItem
 
 
 @dataclass(kw_only=True)

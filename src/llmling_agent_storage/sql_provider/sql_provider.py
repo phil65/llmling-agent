@@ -89,9 +89,7 @@ class SQLModelProvider(StorageProvider):
 
                     # For each table in our models
                     for table_name, table in SQLModel.metadata.tables.items():
-                        existing = {
-                            col["name"] for col in inspector.get_columns(table_name)
-                        }
+                        existing = {col["name"] for col in inspector.get_columns(table_name)}
 
                         # For each column in model that doesn't exist in DB
                         for col in table.columns:
@@ -245,9 +243,7 @@ class SQLModelProvider(StorageProvider):
         # Use existing get_conversations method
         conversations = await self.get_conversations(filters)
         return [
-            format_conversation(
-                conv, msgs, compact=compact, include_tokens=include_tokens
-            )
+            format_conversation(conv, msgs, compact=compact, include_tokens=include_tokens)
             for conv, msgs in conversations
         ]
 
@@ -286,9 +282,7 @@ class SQLModelProvider(StorageProvider):
             conv_query = select(Conversation)
 
             if filters.agent_name:
-                conv_query = conv_query.where(
-                    Conversation.agent_name == filters.agent_name
-                )
+                conv_query = conv_query.where(Conversation.agent_name == filters.agent_name)
 
             # Apply time filters if provided
             if filters.since:
@@ -400,16 +394,12 @@ class SQLModelProvider(StorageProvider):
                 return 0, 0
 
             # Get counts first
-            conv_count, msg_count = await self.get_conversation_counts(
-                agent_name=agent_name
-            )
+            conv_count, msg_count = await self.get_conversation_counts(agent_name=agent_name)
 
             # Delete data
             if agent_name:
                 await session.execute(text(DELETE_AGENT_MESSAGES), {"agent": agent_name})
-                await session.execute(
-                    text(DELETE_AGENT_CONVERSATIONS), {"agent": agent_name}
-                )
+                await session.execute(text(DELETE_AGENT_CONVERSATIONS), {"agent": agent_name})
             else:
                 await session.execute(text(DELETE_ALL_MESSAGES))
                 await session.execute(text(DELETE_ALL_CONVERSATIONS))
@@ -431,9 +421,7 @@ class SQLModelProvider(StorageProvider):
         if agent_name:
             conv_query = select(Conversation).where(Conversation.agent_name == agent_name)
             msg_query = (
-                select(Message)
-                .join(Conversation)
-                .where(Conversation.agent_name == agent_name)
+                select(Message).join(Conversation).where(Conversation.agent_name == agent_name)
             )
         else:
             conv_query = select(Conversation)

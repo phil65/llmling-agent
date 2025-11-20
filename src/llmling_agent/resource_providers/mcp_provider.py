@@ -44,9 +44,7 @@ class MCPResourceProvider(ResourceProvider):
         from llmling_agent.mcp_server import MCPClient
 
         super().__init__(name, owner=owner)
-        self.server = (
-            BaseMCPServerConfig.from_string(server) if isinstance(server, str) else server
-        )
+        self.server = BaseMCPServerConfig.from_string(server) if isinstance(server, str) else server
         self.context = context
         self.source = source
         self.exit_stack = AsyncExitStack()
@@ -201,9 +199,7 @@ class MCPResourceProvider(ResourceProvider):
                     continue
 
             self._resources_cache = all_resources
-            logger.debug(
-                "Refreshed MCP resources cache", num_resources=len(all_resources)
-            )
+            logger.debug("Refreshed MCP resources cache", num_resources=len(all_resources))
         except Exception:
             logger.exception("Failed to refresh MCP resources cache")
             self._resources_cache = []

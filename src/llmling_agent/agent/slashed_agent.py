@@ -125,16 +125,12 @@ class SlashedAgent[TDeps, OutputDataT]:
         # Set up event queue for this command execution
         self._event_queue = asyncio.Queue()
         context_data = (  # Create command context
-            self._context_data_factory()
-            if self._context_data_factory
-            else self.agent.context
+            self._context_data_factory() if self._context_data_factory else self.agent.context
         )
 
         cmd_ctx = self.command_store.create_context(data=context_data)
         command_str = f"{cmd_name} {args}".strip()
-        execute_task = asyncio.create_task(
-            self.command_store.execute_command(command_str, cmd_ctx)
-        )
+        execute_task = asyncio.create_task(self.command_store.execute_command(command_str, cmd_ctx))
 
         success = True
         try:
@@ -219,9 +215,7 @@ class SlashedAgent[TDeps, OutputDataT]:
 
         # If we have regular content, process it through the agent
         if regular_prompts:
-            logger.debug(
-                "Processing prompts through agent", num_prompts=len(regular_prompts)
-            )
+            logger.debug("Processing prompts through agent", num_prompts=len(regular_prompts))
             async for event in self.agent.run_stream(*regular_prompts, **kwargs):
                 yield event
 

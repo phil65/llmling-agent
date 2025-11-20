@@ -143,9 +143,9 @@ class FileProvider(StorageProvider):
             timestamp = datetime.fromisoformat(msg["timestamp"])
             if query.since and cutoff and (timestamp < cutoff):
                 continue
-            if query.until and datetime.fromisoformat(
-                msg["timestamp"]
-            ) > datetime.fromisoformat(query.until):
+            if query.until and datetime.fromisoformat(msg["timestamp"]) > datetime.fromisoformat(
+                query.until
+            ):
                 continue
             if query.contains and query.contains not in msg["content"]:
                 continue
@@ -318,9 +318,7 @@ class FileProvider(StorageProvider):
                 for m in self._data["messages"]
                 if m["conversation_id"]
                 not in {
-                    c["id"]
-                    for c in self._data["conversations"]
-                    if c["agent_name"] == agent_name
+                    c["id"] for c in self._data["conversations"] if c["agent_name"] == agent_name
                 }
             ]
         else:
@@ -346,11 +344,7 @@ class FileProvider(StorageProvider):
                 1
                 for m in self._data["messages"]
                 if m["conversation_id"]
-                in {
-                    c["id"]
-                    for c in self._data["conversations"]
-                    if c["agent_name"] == agent_name
-                }
+                in {c["id"] for c in self._data["conversations"] if c["agent_name"] == agent_name}
             )
         else:
             conv_count = len(self._data["conversations"])

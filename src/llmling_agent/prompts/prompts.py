@@ -82,9 +82,7 @@ class PromptParameter(Schema):
         """Convert to MCP PromptArgument."""
         from mcp.types import PromptArgument
 
-        return PromptArgument(
-            name=self.name, description=self.description, required=self.required
-        )
+        return PromptArgument(name=self.name, description=self.description, required=self.required)
 
 
 class PromptMessage(Schema):
@@ -142,9 +140,7 @@ class BasePrompt(Schema):
     """Additional metadata for storing custom prompt information."""
     # messages: list[PromptMessage]
 
-    async def format(
-        self, arguments: dict[str, Any] | None = None
-    ) -> list[PromptMessage]:
+    async def format(self, arguments: dict[str, Any] | None = None) -> list[PromptMessage]:
         """Format this prompt with given arguments.
 
         Args:
@@ -207,9 +203,7 @@ class StaticPrompt(BasePrompt):
             tags=set(),
         )
 
-    async def format(
-        self, arguments: dict[str, Any] | None = None
-    ) -> list[PromptMessage]:
+    async def format(self, arguments: dict[str, Any] | None = None) -> list[PromptMessage]:
         """Format static prompt messages with arguments."""
         args = arguments or {}
         self.validate_arguments(args)
@@ -311,9 +305,7 @@ class DynamicPrompt(BasePrompt):
                 logger.warning(msg, arg_name, import_path)
         return completion_funcs
 
-    async def format(
-        self, arguments: dict[str, Any] | None = None
-    ) -> list[PromptMessage]:
+    async def format(self, arguments: dict[str, Any] | None = None) -> list[PromptMessage]:
         """Format this prompt with given arguments."""
         args = arguments or {}
         try:
@@ -438,9 +430,7 @@ class MCPClientPrompt(BasePrompt):
             name=self.name,
             description=self.description,
             arguments=[
-                PromptArgument(
-                    name=i["name"], description=i["description"], required=i["required"]
-                )
+                PromptArgument(name=i["name"], description=i["description"], required=i["required"])
                 for i in self.arguments
             ],
         )
@@ -557,9 +547,7 @@ class FilePrompt(BasePrompt):
                 assert_never(unreachable)
         return [PromptMessage(role="user", content=msg)]
 
-    async def format(
-        self, arguments: dict[str, Any] | None = None
-    ) -> list[PromptMessage]:
+    async def format(self, arguments: dict[str, Any] | None = None) -> list[PromptMessage]:
         """Format the file content with arguments."""
         args = arguments or {}
         content = to_upath(self.path).read_text("utf-8")
@@ -583,9 +571,7 @@ class FilePrompt(BasePrompt):
 
 
 # Type to use in configuration
-PromptType = Annotated[
-    StaticPrompt | DynamicPrompt | FilePrompt, Field(discriminator="type")
-]
+PromptType = Annotated[StaticPrompt | DynamicPrompt | FilePrompt, Field(discriminator="type")]
 
 
 if __name__ == "__main__":

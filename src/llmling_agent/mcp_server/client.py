@@ -99,10 +99,7 @@ class MCPClient:
 
         except Exception as first_error:
             # OAuth fallback for HTTP/SSE if not already using OAuth
-            if (
-                not isinstance(self.config, StdioMCPServerConfig)
-                and not self.config.auth.oauth
-            ):
+            if not isinstance(self.config, StdioMCPServerConfig) and not self.config.auth.oauth:
                 try:
                     with contextlib.suppress(Exception):
                         await self._client.__aexit__(None, None, None)  # type: ignore[no-untyped-call]

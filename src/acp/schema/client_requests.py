@@ -117,9 +117,7 @@ class InitializeRequest(Request):
     See protocol docs: [Initialization](https://agentclientprotocol.com/protocol/initialization)
     """
 
-    client_capabilities: ClientCapabilities | None = Field(
-        default_factory=ClientCapabilities
-    )
+    client_capabilities: ClientCapabilities | None = Field(default_factory=ClientCapabilities)
     """Capabilities supported by the client."""
 
     client_info: Implementation | None = None

@@ -115,9 +115,7 @@ def show_history(
 def show_stats(
     agent_name: str | None = t.Argument(None, help=AGENT_NAME_HELP),
     config: str | None = t.Option(None, "--config", "-c", help=CONFIG_HELP),
-    period: str = t.Option(
-        "1d", "--period", "-p", help="Time period (1h, 1d, 1w, 1m, 1y)"
-    ),
+    period: str = t.Option("1d", "--period", "-p", help="Time period (1h, 1d, 1w, 1m, 1y)"),
     group_by: GroupBy = t.Option("agent", "--group-by", "-g", help="Group by"),  # noqa: B008
     output_format: OutputFormat = output_format_opt,
 ) -> None:
@@ -162,12 +160,8 @@ def show_stats(
 def reset_history(
     config: str | None = t.Option(None, "--config", "-c", help=CONFIG_HELP),
     confirm: bool = t.Option(False, "--confirm", "-y", help="Confirm deletion"),
-    agent_name: str | None = t.Option(
-        None, "--agent", "-a", help="Only delete for specific agent"
-    ),
-    hard: bool = t.Option(
-        False, "--hard", help="Drop and recreate tables (for schema changes)"
-    ),
+    agent_name: str | None = t.Option(None, "--agent", "-a", help="Only delete for specific agent"),
+    hard: bool = t.Option(False, "--hard", help="Drop and recreate tables (for schema changes)"),
 ) -> None:
     """Reset (clear) conversation history.
 
@@ -198,14 +192,10 @@ def reset_history(
 
         async def main() -> None:
             async with provider:
-                conv_count, msg_count = await provider.reset(
-                    agent_name=agent_name, hard=hard
-                )
+                conv_count, msg_count = await provider.reset(agent_name=agent_name, hard=hard)
 
                 what = f" for {agent_name}" if agent_name else ""
-                print(
-                    f"Deleted {conv_count} conversations and {msg_count} messages{what}."
-                )
+                print(f"Deleted {conv_count} conversations and {msg_count} messages{what}.")
 
         asyncio.run(main())
 

@@ -54,9 +54,7 @@ async def merge_queue_into_iterator[T, V](
         try:
             while not primary_done:
                 try:
-                    secondary_event = await asyncio.wait_for(
-                        secondary_queue.get(), timeout=0.1
-                    )
+                    secondary_event = await asyncio.wait_for(secondary_queue.get(), timeout=0.1)
                     await event_queue.put(secondary_event)
                 except TimeoutError:
                     continue

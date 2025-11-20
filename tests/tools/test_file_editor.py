@@ -233,15 +233,11 @@ class TestEditFileTool:
 
     async def test_directory_path_error(self, tmp_path):
         with pytest.raises(ValueError, match="directory, not a file"):
-            await edit_file_tool(
-                file_path=str(tmp_path), old_string="old", new_string="new"
-            )
+            await edit_file_tool(file_path=str(tmp_path), old_string="old", new_string="new")
 
     async def test_same_strings_error(self, temp_file):
         with pytest.raises(ValueError, match="must be different"):
-            await edit_file_tool(
-                file_path=temp_file, old_string="same", new_string="same"
-            )
+            await edit_file_tool(file_path=temp_file, old_string="same", new_string="same")
 
     async def test_string_not_found(self, temp_file):
         with pytest.raises(ValueError, match="not found"):

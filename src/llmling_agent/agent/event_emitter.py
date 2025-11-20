@@ -108,9 +108,7 @@ class AgentEventEmitter:
         """
         from llmling_agent.agent.events import PlanUpdateEvent
 
-        event = PlanUpdateEvent(
-            entries=entries.copy(), tool_call_id=self._context.tool_call_id
-        )
+        event = PlanUpdateEvent(entries=entries.copy(), tool_call_id=self._context.tool_call_id)
         await self.emit_event(event)
 
     async def progress(self, progress: float, total: float | None, message: str) -> None:

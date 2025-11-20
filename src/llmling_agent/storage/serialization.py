@@ -123,14 +123,10 @@ def serialize_messages(messages: Sequence[ModelMessage]) -> str | None:
 
             if isinstance(message, ModelRequest):
                 for part in message.parts:
-                    if isinstance(part, RetryPromptPart) and isinstance(
-                        part.content, list
-                    ):
+                    if isinstance(part, RetryPromptPart) and isinstance(part.content, list):
                         for content in part.content:
                             if isinstance(content, dict) and "ctx" in content:
-                                content["ctx"] = {
-                                    k: str(v) for k, v in content["ctx"].items()
-                                }
+                                content["ctx"] = {k: str(v) for k, v in content["ctx"].items()}
             serializable_messages.append(message)
 
         # Serialize using pydantic's JSON serialization

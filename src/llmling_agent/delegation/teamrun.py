@@ -200,9 +200,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
             final_prompt.insert(0, self.shared_prompt)
 
         responses = [
-            i
-            async for i in self.execute_iter(*final_prompt)
-            if isinstance(i, AgentResponse)
+            i async for i in self.execute_iter(*final_prompt) if isinstance(i, AgentResponse)
         ]
         return TeamResponse(responses, start_time)
 

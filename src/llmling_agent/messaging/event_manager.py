@@ -299,11 +299,7 @@ class EventManager:
             return self
 
         # Set up triggers from config
-        if (
-            self.node.context
-            and self.node.context.config
-            and self.node.context.config.triggers
-        ):
+        if self.node.context and self.node.context.config and self.node.context.config.triggers:
             for trigger in self.node.context.config.triggers:
                 await self.add_source(trigger)
 
@@ -323,9 +319,7 @@ class EventManager:
         event_name: str | None = None,
         **event_metadata: Any,
     ) -> (
-        Callable[
-            [Callable[..., Coroutine[Any, Any, T]]], Callable[..., Coroutine[Any, Any, T]]
-        ]
+        Callable[[Callable[..., Coroutine[Any, Any, T]]], Callable[..., Coroutine[Any, Any, T]]]
         | Callable[[Callable[..., T]], Callable[..., T]]
     ):
         """Track function calls as events.
@@ -393,9 +387,7 @@ class EventManager:
         event_type: str,
         interval: timedelta | None = None,
     ) -> (
-        Callable[
-            [Callable[..., Coroutine[Any, Any, T]]], Callable[..., Coroutine[Any, Any, T]]
-        ]
+        Callable[[Callable[..., Coroutine[Any, Any, T]]], Callable[..., Coroutine[Any, Any, T]]]
         | Callable[[Callable[..., T]], Callable[..., T]]
     ):
         """Decorator to register an event observer.
@@ -421,9 +413,7 @@ class EventManager:
                 if self.enabled:
                     typ = type(result).__name__
                     meta = {"type": "function_result", "output_type": typ}
-                    event = FunctionResultEventData(
-                        result=result, source=event_type, metadata=meta
-                    )
+                    event = FunctionResultEventData(result=result, source=event_type, metadata=meta)
                     await self.emit_event(event)
                 return result
 

@@ -17,9 +17,7 @@ if TYPE_CHECKING:
 class UpsonicTools(ResourceProvider):
     """Provider for upsonic tools."""
 
-    def __init__(
-        self, api_key: SecretStr | None = None, base_url: str | None = None
-    ) -> None:
+    def __init__(self, api_key: SecretStr | None = None, base_url: str | None = None) -> None:
         from upsonic import Tiger, Tiger_Admin  # type: ignore[import-untyped]
 
         super().__init__(name="tiger")

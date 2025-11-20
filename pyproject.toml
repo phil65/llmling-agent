@@ -216,7 +216,7 @@ asyncio_default_fixture_loop_scope = "function"
 asyncio_mode = "auto"
 
 [tool.ruff]
-line-length = 90
+line-length = 100
 extend-exclude = ["docs"]
 target-version = "py313"
 

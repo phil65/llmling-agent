@@ -30,9 +30,7 @@ def acp_command(
         "--terminal-access/--no-terminal-access",
         help="Enable terminal access for agents",
     ),
-    show_messages: bool = t.Option(
-        False, "--show-messages", help="Show message activity in logs"
-    ),
+    show_messages: bool = t.Option(False, "--show-messages", help="Show message activity in logs"),
     debug_messages: bool = t.Option(
         False, "--debug-messages", help="Save raw JSON-RPC messages to debug file"
     ),

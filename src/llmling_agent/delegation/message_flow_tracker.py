@@ -22,9 +22,7 @@ class MessageFlowTracker:
     def filter(self, message: ChatMessage[Any]) -> list[ChatMessage[Any]]:
         """Filter events for specific conversation."""
         return [
-            e.message
-            for e in self.events
-            if e.message.conversation_id == message.conversation_id
+            e.message for e in self.events if e.message.conversation_id == message.conversation_id
         ]
 
     def visualize(self, message: ChatMessage[Any]) -> str:

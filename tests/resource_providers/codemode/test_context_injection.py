@@ -26,9 +26,7 @@ def simple_tool(x: int) -> str:
     return f"Simple result: {x}"
 
 
-async def dual_context_tool(
-    run_ctx: RunContext[None], agent_ctx: AgentContext, value: int
-) -> str:
+async def dual_context_tool(run_ctx: RunContext[None], agent_ctx: AgentContext, value: int) -> str:
     """Tool that requires both RunContext and AgentContext."""
     return f"Dual context tool: {value}"
 
@@ -146,9 +144,7 @@ async def test_agent_context_signature_hiding():
     import re
 
     # Find the function signature line
-    signature_match = re.search(
-        r"async def tool_with_agent_context\([^)]*\)", description
-    )
+    signature_match = re.search(r"async def tool_with_agent_context\([^)]*\)", description)
     assert signature_match is not None, "Could not find function signature"
     signature = signature_match.group(0)
     assert "message:" in signature

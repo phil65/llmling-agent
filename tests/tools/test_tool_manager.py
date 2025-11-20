@@ -95,9 +95,7 @@ async def test_enabled_state_preservation():
             """Callback when tools change on the MCP server."""
             # Save current enabled states before invalidating cache
             if self._tools_cache:
-                self._saved_enabled_states = {
-                    tool.name: tool.enabled for tool in self._tools_cache
-                }
+                self._saved_enabled_states = {tool.name: tool.enabled for tool in self._tools_cache}
             self._tools_cache = None  # Invalidate cache
 
     provider = MockMCPProvider()

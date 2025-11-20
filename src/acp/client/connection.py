@@ -99,17 +99,13 @@ class ClientSideConnection(Agent):
         payload = resp if isinstance(resp, dict) else {}
         return LoadSessionResponse.model_validate(payload)
 
-    async def set_session_mode(
-        self, params: SetSessionModeRequest
-    ) -> SetSessionModeResponse:
+    async def set_session_mode(self, params: SetSessionModeRequest) -> SetSessionModeResponse:
         dct = params.model_dump(by_alias=True, exclude_none=True, exclude_defaults=True)
         resp = await self._conn.send_request("session/set_mode", dct)
         payload = resp if isinstance(resp, dict) else {}
         return SetSessionModeResponse.model_validate(payload)
 
-    async def set_session_model(
-        self, params: SetSessionModelRequest
-    ) -> SetSessionModelResponse:
+    async def set_session_model(self, params: SetSessionModelRequest) -> SetSessionModelResponse:
         dct = params.model_dump(by_alias=True, exclude_none=True, exclude_defaults=True)
         resp = await self._conn.send_request("session/set_model", dct)
         payload = resp if isinstance(resp, dict) else {}

@@ -56,9 +56,7 @@ class GoogleSpeechConverter(DocumentConverter):
 
         audio = speech.RecognitionAudio(content=content)
         config = speech.RecognitionConfig(
-            encoding=getattr(
-                speech.RecognitionConfig.AudioEncoding, self.config.encoding
-            ),
+            encoding=getattr(speech.RecognitionConfig.AudioEncoding, self.config.encoding),
             language_code=self.config.language,
             model=self.config.model,
         )

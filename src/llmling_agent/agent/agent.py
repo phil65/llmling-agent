@@ -208,9 +208,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         # TODO: use to_structured with tool_name / description?
         self._output_type = to_type(output_type, ctx.definition.responses)
         memory_cfg = (
-            session
-            if isinstance(session, MemoryConfig)
-            else MemoryConfig.from_value(session)
+            session if isinstance(session, MemoryConfig) else MemoryConfig.from_value(session)
         )
         # Initialize progress queue before super().__init__()
         self._event_queue = asyncio.Queue[RichAgentStreamEvent[Any]]()
@@ -381,9 +379,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
     @overload
     def __or__(self, other: ProcessorCallback[Any]) -> TeamRun[Any, Any]: ...
 
-    def __or__(
-        self, other: MessageNode[Any, Any] | ProcessorCallback[Any]
-    ) -> TeamRun[Any, Any]:
+    def __or__(self, other: MessageNode[Any, Any] | ProcessorCallback[Any]) -> TeamRun[Any, Any]:
         # Create new execution with sequential mode (for piping)
         from llmling_agent import TeamRun
 
@@ -551,13 +547,9 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         from llmling_agent.agent.tool_wrapping import wrap_tool
 
         tools = await self.tools.get_tools(state="enabled", names=tool_choice)
-        final_type = (
-            to_type(output_type) if output_type not in [None, str] else self._output_type
-        )
+        final_type = to_type(output_type) if output_type not in [None, str] else self._output_type
         actual_model = model or self._model
-        model_ = (
-            infer_model(actual_model) if isinstance(actual_model, str) else actual_model
-        )
+        model_ = infer_model(actual_model) if isinstance(actual_model, str) else actual_model
         agent = PydanticAgent(
             name=self.name,
             model=model_,
@@ -665,9 +657,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             UnexpectedModelBehavior: If the model fails or behaves unexpectedly
         """
         # Determine which conversation/history to use
-        conversation = (
-            message_history if message_history is not None else self.conversation
-        )
+        conversation = message_history if message_history is not None else self.conversation
         # Prepare prompts and create user message
         user_msg, processed_prompts, original_message = await prepare_prompts(*prompts)
         self.message_received.emit(user_msg)
@@ -702,14 +692,9 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                         await handler(ctx, event)
 
             result = await agentlet.run(
-                [
-                    i if isinstance(i, str) else i.to_pydantic_ai()
-                    for i in converted_prompts
-                ],
+                [i if isinstance(i, str) else i.to_pydantic_ai() for i in converted_prompts],
                 deps=deps,  # type: ignore[arg-type]
-                message_history=[
-                    m for run in message_history_list for m in run.to_pydantic_ai()
-                ],
+                message_history=[m for run in message_history_list for m in run.to_pydantic_ai()],
                 usage_limits=usage_limits,
                 event_stream_handler=event_distributor,
             )
@@ -793,9 +778,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         final_prompt = "\n\n".join(str(p) for p in prompts)
         self.context.current_prompt = final_prompt
         start_time = time.perf_counter()
-        message_history = (
-            messages if messages is not None else self.conversation.get_history()
-        )
+        message_history = messages if messages is not None else self.conversation.get_history()
         try:
             agentlet = await self.get_agentlet(
                 tool_choice, model, output_type, self.deps_type, input_provider
@@ -809,16 +792,12 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             stream_events = agentlet.run_stream_events(
                 converted,
                 deps=deps,  # type: ignore[arg-type]
-                message_history=[
-                    m for run in message_history for m in run.to_pydantic_ai()
-                ],
+                message_history=[m for run in message_history for m in run.to_pydantic_ai()],
                 usage_limits=usage_limits,
             )
 
             # Stream events through merge_queue for progress events
-            async with merge_queue_into_iterator(
-                stream_events, self._event_queue
-            ) as events:
+            async with merge_queue_into_iterator(stream_events, self._event_queue) as events:
                 # Track tool call starts to combine with results later
                 pending_tcs: dict[str, ToolCallPart] = {}
                 async for event in events:
@@ -835,9 +814,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                         ):
                             # Store tool call start info for later combination with result
                             pending_tcs[tool_part.tool_call_id] = tool_part
-                        case (
-                            FunctionToolResultEvent(tool_call_id=call_id) as result_event
-                        ):
+                        case FunctionToolResultEvent(tool_call_id=call_id) as result_event:
                             # Check if we have a pending tool call to combine with
                             if call_info := pending_tcs.pop(call_id, None):
                                 # Create and yield combined event
@@ -962,9 +939,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         try:
             # Register task tools temporarily
             tools = job.get_tools()
-            async with self.tools.temporary_tools(
-                tools, exclusive=not include_agent_tools
-            ):
+            async with self.tools.temporary_tools(tools, exclusive=not include_agent_tools):
                 # Execute job with job-specific tools
                 return await self.run(await job.get_prompt(), store_history=store_history)
 
@@ -992,9 +967,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
 
         async def _continuous() -> ChatMessage[Any]:
             count = 0
-            self.log.debug(
-                "Starting continuous run", max_count=max_count, interval=interval
-            )
+            self.log.debug("Starting continuous run", max_count=max_count, interval=interval)
             latest = None
             while max_count is None or count < max_count:
                 try:
@@ -1162,9 +1135,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         async with AsyncExitStack() as stack:
             if system_prompts is not None:  # System prompts
                 await stack.enter_async_context(
-                    self.sys_prompts.temporary_prompt(
-                        system_prompts, exclusive=replace_prompts
-                    )
+                    self.sys_prompts.temporary_prompt(system_prompts, exclusive=replace_prompts)
                 )
 
             if tools is not None:  # Tools
@@ -1174,9 +1145,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
 
             if history is not None:  # History
                 await stack.enter_async_context(
-                    self.conversation.temporary_state(
-                        history, replace_history=replace_history
-                    )
+                    self.conversation.temporary_state(history, replace_history=replace_history)
                 )
 
             if pause_routing:  # Routing

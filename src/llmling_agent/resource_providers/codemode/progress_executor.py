@@ -126,9 +126,7 @@ class ProgressTrackingExecutor:
         else:
             return "Code executed successfully"
 
-    async def execute_statements(
-        self, code: str
-    ) -> AsyncIterator[tuple[str, dict[str, Any]]]:
+    async def execute_statements(self, code: str) -> AsyncIterator[tuple[str, dict[str, Any]]]:
         """Execute code statement by statement, yielding each executed statement.
 
         This method is useful for external progress tracking or debugging.
@@ -205,9 +203,7 @@ for i in range(3):
         from llmling_agent.delegation import AgentPool
 
         async with AgentPool() as pool:
-            agent = await pool.add_agent(
-                "test-agent", model="openai:gpt-5-nano", tools=[run_me]
-            )
+            agent = await pool.add_agent("test-agent", model="openai:gpt-5-nano", tools=[run_me])
             print("🚀 Testing unified progress system...")
             async for event in agent.run_stream("Run run_me and show progress."):
                 print(f"Event: {event}")

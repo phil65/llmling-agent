@@ -85,9 +85,7 @@ agents:
 )
 async def test_logfire_provider_integration():
     """Test that Logfire provider can be initialized and works."""
-    manifest_str = LOGFIRE_MANIFEST.format(
-        logfire_token=os.getenv("LOGFIRE_TOKEN", "dummy_token")
-    )
+    manifest_str = LOGFIRE_MANIFEST.format(logfire_token=os.getenv("LOGFIRE_TOKEN", "dummy_token"))
 
     manifest = AgentsManifest.from_yaml(manifest_str)
 

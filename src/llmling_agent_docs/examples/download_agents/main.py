@@ -55,10 +55,7 @@ class CheerProgress:
 
     def create_prompt(self) -> str:
         """Create a prompt for the fan based on current situation."""
-        return (
-            f"Current situation: {self.situation}\n"
-            "Be an enthusiastic and encouraging fan!"
-        )
+        return f"Current situation: {self.situation}\nBe an enthusiastic and encouraging fan!"
 
     def update(self, situation: str) -> None:
         """Update the current situation and print it."""

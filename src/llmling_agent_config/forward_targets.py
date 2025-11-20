@@ -92,7 +92,7 @@ DEFAULT_MESSAGE_TEMPLATE = """
 {%- if message.forwarded_from %}
 (via: {{ message.forwarded_from|join(' -> ') }})
 {%- endif %}
-"""  # noqa: E501
+"""
 
 
 class FileConnectionConfig(ConnectionConfig):

@@ -96,9 +96,7 @@ def configure_logging(
     _LOGGING_CONFIGURED = True
 
 
-def get_logger(
-    name: str, log_level: LogLevel | None = None
-) -> structlog.stdlib.BoundLogger:
+def get_logger(name: str, log_level: LogLevel | None = None) -> structlog.stdlib.BoundLogger:
     """Get a structlog logger for the given name.
 
     Args:

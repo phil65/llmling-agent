@@ -182,7 +182,7 @@ class AddResourceCommand(SlashedCommand):
                         ctx.context.agent.conversation.add_context_message(
                             content, source=f"{resource_name}/{file}", **kwargs
                         )
-                    msg = f"Added {len(files)} files from {resource_name!r} matching {path!r}"  # noqa: E501
+                    msg = f"Added {len(files)} files from {resource_name!r} matching {path!r}"
                 else:
                     # Specific file
                     content = await registry.get_content(resource_name, path)

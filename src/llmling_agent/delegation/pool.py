@@ -456,13 +456,9 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         empty_teams: dict[str, BaseTeam[Any, Any]] = {}
         for name, config in self.manifest.teams.items():
             if config.mode == "parallel":
-                empty_teams[name] = Team(
-                    [], name=name, shared_prompt=config.shared_prompt
-                )
+                empty_teams[name] = Team([], name=name, shared_prompt=config.shared_prompt)
             else:
-                empty_teams[name] = TeamRun(
-                    [], name=name, shared_prompt=config.shared_prompt
-                )
+                empty_teams[name] = TeamRun([], name=name, shared_prompt=config.shared_prompt)
 
         # Phase 2: Resolve members
         for name, config in self.manifest.teams.items():
@@ -512,12 +508,8 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
                     filter_condition=target.filter_condition.check
                     if target.filter_condition
                     else None,
-                    stop_condition=target.stop_condition.check
-                    if target.stop_condition
-                    else None,
-                    exit_condition=target.exit_condition.check
-                    if target.exit_condition
-                    else None,
+                    stop_condition=target.stop_condition.check if target.stop_condition else None,
+                    exit_condition=target.exit_condition.check if target.exit_condition else None,
                 )
                 source.connections.set_wait_state(
                     target_node,

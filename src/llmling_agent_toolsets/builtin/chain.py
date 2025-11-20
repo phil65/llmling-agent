@@ -165,9 +165,7 @@ async def _execute_step(
                     raise  # Max retries exceeded
 
 
-async def _execute_sequential(
-    ctx: AgentContext, pipeline: Pipeline, results: StepResults
-) -> Any:
+async def _execute_sequential(ctx: AgentContext, pipeline: Pipeline, results: StepResults) -> Any:
     """Execute steps sequentially."""
     current = pipeline.input
 
@@ -180,9 +178,7 @@ async def _execute_sequential(
     return current
 
 
-async def _execute_parallel(
-    ctx: AgentContext, pipeline: Pipeline, results: StepResults
-) -> Any:
+async def _execute_parallel(ctx: AgentContext, pipeline: Pipeline, results: StepResults) -> Any:
     """Execute independent steps in parallel."""
     semaphore = asyncio.Semaphore(pipeline.max_parallel)
 
@@ -194,10 +190,7 @@ async def _execute_parallel(
                     await asyncio.sleep(0.1)
 
             # Get input from dependency or pipeline input
-            if step.depends_on:
-                input_value = results[step.depends_on[-1]].result
-            else:
-                input_value = pipeline.input
+            input_value = results[step.depends_on[-1]].result if step.depends_on else pipeline.input
 
             result = await _execute_step(ctx, step, input_value, results)
             if step.name:

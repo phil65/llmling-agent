@@ -116,9 +116,7 @@ async def test_read_text_file_success(
 ):
     """Test successful file reading."""
     # Mock filesystem read operation
-    fs_provider.fs._cat_file = AsyncMock(
-        return_value=b"Hello, World!\nThis is a test file.\n"
-    )
+    fs_provider.fs._cat_file = AsyncMock(return_value=b"Hello, World!\nThis is a test file.\n")
 
     # Get read_text_file tool from provider
     tools = await fs_provider.get_tools()
@@ -143,9 +141,7 @@ async def test_read_text_file_with_line_and_limit(
 ):
     """Test file reading with line and limit parameters."""
     # Mock filesystem read operation
-    fs_provider.fs._cat_file = AsyncMock(
-        return_value=b"Line 1\nLine 2\nLine 3\nLine 4\nLine 5"
-    )
+    fs_provider.fs._cat_file = AsyncMock(return_value=b"Line 1\nLine 2\nLine 3\nLine 4\nLine 5")
 
     # Get read_text_file tool from provider
     tools = await fs_provider.get_tools()
@@ -251,14 +247,10 @@ async def test_write_text_file_json(
     mock_file.write.assert_called_once_with(json_str)
 
 
-async def test_write_text_file_error(
-    acp_agent: LLMlingACPAgent, fs_provider: FSSpecTools
-):
+async def test_write_text_file_error(acp_agent: LLMlingACPAgent, fs_provider: FSSpecTools):
     """Test file writing error handling."""
     # Mock filesystem write error
-    fs_provider.fs.open_async = AsyncMock(
-        side_effect=PermissionError("Permission denied")
-    )
+    fs_provider.fs.open_async = AsyncMock(side_effect=PermissionError("Permission denied"))
 
     # Get write_text_file tool from provider
     tools = await fs_provider.get_tools()
@@ -321,9 +313,7 @@ async def test_write_empty_file(acp_agent: LLMlingACPAgent, fs_provider: FSSpecT
     mock_file.write.assert_called_once_with("")
 
 
-async def test_read_file_with_unicode(
-    acp_agent: LLMlingACPAgent, fs_provider: FSSpecTools
-):
+async def test_read_file_with_unicode(acp_agent: LLMlingACPAgent, fs_provider: FSSpecTools):
     """Test reading file with unicode content."""
     unicode_content = "Hello 世界! 🌍\nThis has émojis and spëcial chars: café"
 
@@ -344,9 +334,7 @@ async def test_read_file_with_unicode(
     assert "café" in content
 
 
-async def test_write_file_with_unicode(
-    acp_agent: LLMlingACPAgent, fs_provider: FSSpecTools
-):
+async def test_write_file_with_unicode(acp_agent: LLMlingACPAgent, fs_provider: FSSpecTools):
     """Test writing file with unicode content."""
     unicode_content = "Testing unicode: 日本語, русский, العربية 🎉"
 
@@ -370,15 +358,11 @@ async def test_write_file_with_unicode(
     assert result["path"] == "/home/user/unicode_output.txt"
 
     # Verify unicode content was written correctly
-    fs_provider.fs.open_async.assert_called_once_with(
-        "/home/user/unicode_output.txt", "wt"
-    )
+    fs_provider.fs.open_async.assert_called_once_with("/home/user/unicode_output.txt", "wt")
     mock_file.write.assert_called_once_with(unicode_content)
 
 
-async def test_file_operations_with_provider_session(
-    acp_agent: LLMlingACPAgent, fs_provider
-):
+async def test_file_operations_with_provider_session(acp_agent: LLMlingACPAgent, fs_provider):
     """Test that file operations work with the filesystem provider."""
     # Mock filesystem operations
     fs_provider.fs._cat_file = AsyncMock(return_value=b"session content")

@@ -63,9 +63,7 @@ class ConversionManager:
 
         for converter in self._converters:
             # Run support check in thread pool
-            supports = await loop.run_in_executor(
-                self._executor, converter.supports_file, path
-            )
+            supports = await loop.run_in_executor(self._executor, converter.supports_file, path)
             if not supports:
                 continue
             # Run conversion in thread pool

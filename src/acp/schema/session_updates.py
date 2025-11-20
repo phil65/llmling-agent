@@ -243,9 +243,7 @@ class BaseChunk(AnnotatedObject):
 class UserMessageChunk(BaseChunk):
     """A chunk of the user's message being streamed."""
 
-    session_update: Literal["user_message_chunk"] = Field(
-        default="user_message_chunk", init=False
-    )
+    session_update: Literal["user_message_chunk"] = Field(default="user_message_chunk", init=False)
     """User message chunk."""
 
 
@@ -270,9 +268,7 @@ class AgentThoughtChunk(BaseChunk):
 class ToolCallProgress(AnnotatedObject):
     """Update on the status or results of a tool call."""
 
-    session_update: Literal["tool_call_update"] = Field(
-        default="tool_call_update", init=False
-    )
+    session_update: Literal["tool_call_update"] = Field(default="tool_call_update", init=False)
     """Tool call update."""
 
     content: Sequence[ToolCallContent] | None = None

@@ -35,9 +35,7 @@ class PromptLayerProvider(BasePromptProvider):
         dct = self.client.templates.get(name)
         template = dct["prompt_template"]
         return (
-            str(template.get("content"))
-            if "content" in template
-            else str(template.get("messages"))
+            str(template.get("content")) if "content" in template else str(template.get("messages"))
         )
 
     async def list_prompts(self) -> list[str]:
@@ -52,9 +50,7 @@ if __name__ == "__main__":
     from llmling_agent_config.prompt_hubs import PromptLayerConfig
 
     async def main() -> None:
-        config = PromptLayerConfig(
-            api_key=SecretStr("pl_480ead79b098fc25c63cdb4c95115deb")
-        )
+        config = PromptLayerConfig(api_key=SecretStr("pl_480ead79b098fc25c63cdb4c95115deb"))
         provider = PromptLayerProvider(config)
         prompt = await provider.list_prompts()
         print(prompt)

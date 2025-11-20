@@ -194,9 +194,7 @@ class ToolManager:
                     prompts = await agg_provider.get_prompts()
                     all_prompts.extend(prompts)
                 except Exception:
-                    logger.exception(
-                        "Failed to get prompts from provider", provider=provider
-                    )
+                    logger.exception("Failed to get prompts from provider", provider=provider)
 
         return all_prompts
 

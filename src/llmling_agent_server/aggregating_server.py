@@ -187,9 +187,7 @@ class AggregatingServer(BaseServer):
             # Wait for any server to complete (indicates shutdown or failure)
             tasks = [task for _, task in server_tasks if task is not None]
             if tasks:
-                done, pending = await asyncio.wait(
-                    tasks, return_when=asyncio.FIRST_COMPLETED
-                )
+                done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
 
                 # Log which server completed first
                 for task in done:

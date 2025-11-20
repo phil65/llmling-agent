@@ -135,9 +135,7 @@ class Connection:
         self._notify_observers("outgoing", payload)
         return await future
 
-    async def send_notification(
-        self, method: str, params: JsonValue | None = None
-    ) -> None:
+    async def send_notification(self, method: str, params: JsonValue | None = None) -> None:
         payload = {"jsonrpc": "2.0", "method": method, "params": params}
         await self._sender.send(payload)
         self._notify_observers("outgoing", payload)
@@ -174,9 +172,7 @@ class Connection:
         if has_id:
             await self._handle_response(message)
 
-    def _notify_observers(
-        self, direction: StreamDirection, message: dict[str, Any]
-    ) -> None:
+    def _notify_observers(self, direction: StreamDirection, message: dict[str, Any]) -> None:
         if not self._observers:
             return
         snapshot = copy.deepcopy(message)

@@ -49,9 +49,7 @@ class StorageManager:
         """
         self.config = config
         self.task_manager = TaskManager()
-        self.providers = [
-            self._create_provider(cfg) for cfg in self.config.effective_providers
-        ]
+        self.providers = [self._create_provider(cfg) for cfg in self.config.effective_providers]
 
     async def __aenter__(self) -> Self:
         """Initialize all providers."""
@@ -102,15 +100,12 @@ class StorageManager:
                 else:
                     logged_agents = self.config.agents or config.agents or set()
             case "override":
-                logged_agents = (
-                    config.agents if config.agents is not None else self.config.agents
-                )
+                logged_agents = config.agents if config.agents is not None else self.config.agents
 
         provider_config = config.model_copy(
             update={
                 "log_messages": config.log_messages and self.config.log_messages,
-                "log_conversations": config.log_conversations
-                and self.config.log_conversations,
+                "log_conversations": config.log_conversations and self.config.log_conversations,
                 "log_commands": config.log_commands and self.config.log_commands,
                 "log_context": config.log_context and self.config.log_context,
                 "agents": logged_agents,
@@ -301,9 +296,7 @@ class StorageManager:
                 logger.exception("Error resetting provider", provider=cls_name)
                 return (0, 0)
 
-        results = await asyncio.gather(
-            *(reset_provider(provider) for provider in self.providers)
-        )
+        results = await asyncio.gather(*(reset_provider(provider) for provider in self.providers))
         # Return the counts from the last provider (maintaining existing behavior)
         return results[-1] if results else (0, 0)
 

@@ -71,9 +71,7 @@ class DebugSendTextCommand(SlashedCommand):
                 await ctx.print(f"❌ **Invalid chunk type:** `{chunk_type}`")
                 return
 
-            notification = SessionNotification(
-                session_id=session.session_id, update=update
-            )
+            notification = SessionNotification(session_id=session.session_id, update=update)
             await session.client.session_update(notification)  # pyright: ignore[reportArgumentType]
             await ctx.print(f"✅ **Sent {chunk_type} text chunk:** {text[:50]}...")
 
@@ -193,13 +191,8 @@ class DebugReplaySequenceCommand(SlashedCommand):
             with path.open() as f:
                 sequence_data = json.load(f)
 
-            if (
-                not isinstance(sequence_data, dict)
-                or "notifications" not in sequence_data
-            ):
-                await ctx.print(
-                    "❌ **Invalid replay file.** Expected: `{'notifications': [...]}`"
-                )
+            if not isinstance(sequence_data, dict) or "notifications" not in sequence_data:
+                await ctx.print("❌ **Invalid replay file.** Expected: `{'notifications': [...]}`")
                 return
 
             notifications = sequence_data["notifications"]
@@ -228,9 +221,7 @@ class DebugReplaySequenceCommand(SlashedCommand):
                         logger.warning("Unknown update type", update_type=update_type)
                         continue
 
-                    notification = SessionNotification(
-                        session_id=session.session_id, update=update
-                    )
+                    notification = SessionNotification(session_id=session.session_id, update=update)
 
                     await session.client.session_update(notification)  # pyright: ignore[reportArgumentType]
                     count += 1
@@ -259,9 +250,7 @@ class DebugSessionInfoCommand(SlashedCommand):
     name = "debug-session-info"
     category = "debug"
 
-    async def execute_command(
-        self, ctx: CommandContext[AgentContext[ACPSession]]
-    ) -> None:
+    async def execute_command(self, ctx: CommandContext[AgentContext[ACPSession]]) -> None:
         """Show current ACP session debugging information."""
         session = ctx.context.data
         assert session
@@ -340,9 +329,7 @@ class DebugCreateTemplateCommand(SlashedCommand):
             template = {
                 "description": "ACP notification replay sequence for debugging",
                 "delay_ms": 100,
-                "notifications": [
-                    notif.model_dump()["update"] for notif in notifications
-                ],
+                "notifications": [notif.model_dump()["update"] for notif in notifications],
             }
 
             with Path(file_path).open("w") as f:

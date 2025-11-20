@@ -89,18 +89,14 @@ async def test_capability_tools(default_model: str):
     async with AgentPool() as pool:
         toolsets = [AgentManagementToolsetConfig()]
         toolset_providers = [config.get_provider() for config in toolsets]
-        agent = await pool.add_agent(
-            name="test", model=default_model, toolsets=toolset_providers
-        )
+        agent = await pool.add_agent(name="test", model=default_model, toolsets=toolset_providers)
         prompt = "Get available agents using the list_agents tool and return all names."
         result = await agent.run(prompt)
         assert agent.name in str(result.content)
         agent_2 = await pool.add_agent(
             name="test_2", model=default_model, toolsets=toolset_providers
         )
-        await pool.add_agent(
-            "helper", system_prompt="You help with tasks", model=default_model
-        )
+        await pool.add_agent("helper", system_prompt="You help with tasks", model=default_model)
         result = await agent_2.run("Delegate 'say hello' to agent with name `helper`")
         assert result.get_tool_calls()
         assert result.get_tool_calls()[0].tool_name == "delegate_to"
@@ -172,9 +168,7 @@ async def test_context_sharing():
 
 async def test_dual_context_tool():
     """Test tool that requires both RunContext and AgentContext."""
-    async with Agent(
-        model=TestModel(call_tools=["dual_ctx_tool"]), name="dual-agent"
-    ) as agent:
+    async with Agent(model=TestModel(call_tools=["dual_ctx_tool"]), name="dual-agent") as agent:
         agent.tools.register_tool(dual_ctx_tool)
         # This should work if dual context injection is implemented
         result = await agent.run("Test")

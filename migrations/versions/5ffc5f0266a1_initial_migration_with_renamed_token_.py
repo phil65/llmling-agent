@@ -99,16 +99,10 @@ def upgrade() -> None:
         op.f("ix_message_conversation_id"), "message", ["conversation_id"], unique=False
     )
     op.create_index(op.f("ix_message_cost"), "message", ["cost"], unique=False)
-    op.create_index(
-        op.f("ix_message_model_name"), "message", ["model_name"], unique=False
-    )
-    op.create_index(
-        op.f("ix_message_model_provider"), "message", ["model_provider"], unique=False
-    )
+    op.create_index(op.f("ix_message_model_name"), "message", ["model_name"], unique=False)
+    op.create_index(op.f("ix_message_model_provider"), "message", ["model_provider"], unique=False)
     op.create_index(op.f("ix_message_name"), "message", ["name"], unique=False)
-    op.create_index(
-        op.f("ix_message_total_tokens"), "message", ["total_tokens"], unique=False
-    )
+    op.create_index(op.f("ix_message_total_tokens"), "message", ["total_tokens"], unique=False)
     op.create_table(
         "toolcall",
         sa.Column("id", sqlmodel.sql.sqltypes.AutoString(), nullable=False),
@@ -124,9 +118,7 @@ def upgrade() -> None:
     op.create_index(
         op.f("ix_toolcall_conversation_id"), "toolcall", ["conversation_id"], unique=False
     )
-    op.create_index(
-        op.f("ix_toolcall_message_id"), "toolcall", ["message_id"], unique=False
-    )
+    op.create_index(op.f("ix_toolcall_message_id"), "toolcall", ["message_id"], unique=False)
     # ### end Alembic commands ###
 
 

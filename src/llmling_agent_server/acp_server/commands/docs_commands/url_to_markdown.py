@@ -102,9 +102,7 @@ class UrlToMarkdownCommand(SlashedCommand):
             )
 
         except httpx.HTTPStatusError as e:
-            logger.exception(
-                "HTTP error converting URL", url=url, status=e.response.status_code
-            )
+            logger.exception("HTTP error converting URL", url=url, status=e.response.status_code)
             await session.notifications.tool_call_progress(
                 tool_call_id=tool_call_id,
                 status="failed",

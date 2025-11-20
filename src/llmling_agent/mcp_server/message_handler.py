@@ -93,9 +93,7 @@ class MCPMessageHandler:
     async def on_notification(self, message: mcp.types.ServerNotification) -> None:
         """Handle server notifications."""
 
-    async def on_tool_list_changed(
-        self, message: mcp.types.ToolListChangedNotification
-    ) -> None:
+    async def on_tool_list_changed(self, message: mcp.types.ToolListChangedNotification) -> None:
         """Handle tool list changes."""
         logger.info("MCP tool list changed", message=message)
         # Call the tool change callback if provided
@@ -111,9 +109,7 @@ class MCPMessageHandler:
         if self.resource_change_callback:
             await self.resource_change_callback()
 
-    async def on_resource_updated(
-        self, message: mcp.types.ResourceUpdatedNotification
-    ) -> None:
+    async def on_resource_updated(self, message: mcp.types.ResourceUpdatedNotification) -> None:
         """Handle resource updates."""
         # ResourceUpdatedNotification has uri directly, not in params
         logger.info("MCP resource updated", uri=getattr(message, "uri", "unknown"))
@@ -136,9 +132,7 @@ class MCPMessageHandler:
         """Handle cancelled operations."""
         logger.info("MCP operation cancelled", message=message)
 
-    async def on_logging_message(
-        self, message: mcp.types.LoggingMessageNotification
-    ) -> None:
+    async def on_logging_message(self, message: mcp.types.LoggingMessageNotification) -> None:
         """Handle server log messages."""
         # This is handled by _log_handler, but keep for completeness
 

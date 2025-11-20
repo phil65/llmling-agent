@@ -356,6 +356,4 @@ class PermissionOption(AnnotatedObject):
     """Unique identifier for this permission option."""
 
 
-ToolCallContent = (
-    ContentToolCallContent | FileEditToolCallContent | TerminalToolCallContent
-)
+ToolCallContent = ContentToolCallContent | FileEditToolCallContent | TerminalToolCallContent

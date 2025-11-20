@@ -47,16 +47,12 @@ async def test_run_result_not_modified_by_connections():
             result = await agent_a.run("Test message")
 
             # Then the returned message should only contain A as source
-            assert result.forwarded_from == [], (
-                "run() result should have empty forwarded_from"
-            )
+            assert result.forwarded_from == [], "run() result should have empty forwarded_from"
             # or possibly just [agent_a.name] if we decide that's the expected behavior
 
             # While messages received by B should have the full chain
             def collect_b(msg: ChatMessage[Any]):
-                assert msg.forwarded_from == ["agent-a"], (
-                    "Forwarded message should contain chain"
-                )
+                assert msg.forwarded_from == ["agent-a"], "Forwarded message should contain chain"
 
             agent_b.message_sent.connect(collect_b)
 

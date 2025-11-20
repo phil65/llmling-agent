@@ -123,18 +123,14 @@ class AgentSideConnection(Client):
         resp = await self._conn.send_request("fs/read_text_file", dct)
         return ReadTextFileResponse.model_validate(resp)
 
-    async def write_text_file(
-        self, params: WriteTextFileRequest
-    ) -> WriteTextFileResponse:
+    async def write_text_file(self, params: WriteTextFileRequest) -> WriteTextFileResponse:
         """Write text file to the client."""
         dct = params.model_dump(by_alias=True, exclude_none=True, exclude_defaults=True)
         r = await self._conn.send_request("fs/write_text_file", dct)
         return WriteTextFileResponse.model_validate(r)
 
     # async def createTerminal(self, params: CreateTerminalRequest) -> TerminalHandle:
-    async def create_terminal(
-        self, params: CreateTerminalRequest
-    ) -> CreateTerminalResponse:
+    async def create_terminal(self, params: CreateTerminalRequest) -> CreateTerminalResponse:
         """Create a terminal on the client."""
         dct = params.model_dump(by_alias=True, exclude_none=True, exclude_defaults=True)
         resp = await self._conn.send_request("terminal/create", dct)
@@ -150,17 +146,13 @@ class AgentSideConnection(Client):
         """Send an extension notification to the client."""
         await self._conn.send_notification(f"_{method}", params)
 
-    async def terminal_output(
-        self, params: TerminalOutputRequest
-    ) -> TerminalOutputResponse:
+    async def terminal_output(self, params: TerminalOutputRequest) -> TerminalOutputResponse:
         """Show terminal output on the client."""
         dct = params.model_dump(by_alias=True, exclude_none=True, exclude_defaults=True)
         resp = await self._conn.send_request("terminal/output", dct)
         return TerminalOutputResponse.model_validate(resp)
 
-    async def release_terminal(
-        self, params: ReleaseTerminalRequest
-    ) -> ReleaseTerminalResponse:
+    async def release_terminal(self, params: ReleaseTerminalRequest) -> ReleaseTerminalResponse:
         """Release a terminal on the client."""
         dct = params.model_dump(by_alias=True, exclude_none=True, exclude_defaults=True)
         resp = await self._conn.send_request("terminal/release", dct)

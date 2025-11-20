@@ -297,9 +297,7 @@ class OpenAPITools(ResourceProvider):
 
             # Get type
             param_type = self._get_type_for_schema(schema)
-            annotations[name] = (
-                param_type | None if not param.get("required") else param_type
-            )
+            annotations[name] = param_type | None if not param.get("required") else param_type
 
             # Track required params
             if param.get("required"):
@@ -340,9 +338,7 @@ class OpenAPITools(ResourceProvider):
             if not self._client:
                 import httpx
 
-                self._client = httpx.AsyncClient(
-                    base_url=self.base_url, headers=self.headers
-                )
+                self._client = httpx.AsyncClient(base_url=self.base_url, headers=self.headers)
             response = await self._client.request(
                 method=config["method"],
                 url=path,
@@ -404,8 +400,7 @@ class OpenAPITools(ResourceProvider):
             case "object":
                 if properties := schema.get("properties"):
                     prop_types = [
-                        f"{k}: {self._get_type_description(v)}"
-                        for k, v in properties.items()
+                        f"{k}: {self._get_type_description(v)}" for k, v in properties.items()
                     ]
                     return f"object with {', '.join(prop_types)}"
                 return "object"

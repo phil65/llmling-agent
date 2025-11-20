@@ -22,9 +22,7 @@ def get_acp_provider(session: ACPSession) -> AggregatingResourceProvider:
         ProcessTools(session.process_manager, name=f"acp_processes_{session.session_id}"),
         FSSpecTools(session.fs, name=f"acp_fs_{session.session_id}"),
     ]
-    return AggregatingResourceProvider(
-        providers=providers, name=f"acp_{session.session_id}"
-    )
+    return AggregatingResourceProvider(providers=providers, name=f"acp_{session.session_id}")
 
 
 __all__ = ["get_acp_provider"]

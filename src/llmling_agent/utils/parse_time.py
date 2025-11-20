@@ -27,9 +27,7 @@ def _OPTSEP(x: str) -> str:  # noqa: N802
 
 
 # All supported time formats
-_TIME_FORMAT = (
-    f"{_OPTSEP(_WEEKS)}{_OPTSEP(_DAYS)}{_OPTSEP(_HOURS)}{_OPTSEP(_MINS)}{_OPT(_SECS)}"
-)
+_TIME_FORMAT = f"{_OPTSEP(_WEEKS)}{_OPTSEP(_DAYS)}{_OPTSEP(_HOURS)}{_OPTSEP(_MINS)}{_OPT(_SECS)}"
 
 # Time unit multipliers in seconds
 _MULTIPLIERS = {

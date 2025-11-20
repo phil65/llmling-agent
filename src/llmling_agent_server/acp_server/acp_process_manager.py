@@ -188,9 +188,7 @@ class ACPProcessManager(ProcessManagerProtocol):
 
         try:
             # Wait for terminal exit via ACP
-            response = await self.session.requests.wait_for_terminal_exit(
-                process.terminal_id
-            )
+            response = await self.session.requests.wait_for_terminal_exit(process.terminal_id)
             exit_code = response.exit_code or 0
             process.exit_code = exit_code
         except Exception:  # noqa: BLE001

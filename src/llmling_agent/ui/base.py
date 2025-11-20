@@ -36,9 +36,7 @@ class InputProvider(ABC):
             message_history: Optional conversation history
         """
         if output_type:
-            return await self.get_structured_input(
-                context, prompt, output_type, message_history
-            )
+            return await self.get_structured_input(context, prompt, output_type, message_history)
         return await self.get_text_input(context, prompt, message_history)
 
     async def get_text_input(

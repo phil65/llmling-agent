@@ -116,16 +116,12 @@ class StdlibInputProvider(InputProvider):
                 content = anyenv.load_json(response, return_type=dict)
                 return types.ElicitResult(action="accept", content=content)
             except anyenv.JsonLoadError as e:
-                return types.ErrorData(
-                    code=types.INVALID_REQUEST, message=f"Invalid JSON: {e}"
-                )
+                return types.ErrorData(code=types.INVALID_REQUEST, message=f"Invalid JSON: {e}")
 
         except KeyboardInterrupt:
             return types.ElicitResult(action="cancel")
         except Exception as e:  # noqa: BLE001
-            return types.ErrorData(
-                code=types.INVALID_REQUEST, message=f"Elicitation failed: {e}"
-            )
+            return types.ErrorData(code=types.INVALID_REQUEST, message=f"Elicitation failed: {e}")
 
 
 async def _get_promptantic_result(output_type: type[BaseModel]) -> BaseModel | None:

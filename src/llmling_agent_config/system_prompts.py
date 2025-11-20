@@ -131,9 +131,7 @@ class PromptLibraryConfig(Schema):
         # Group prompts by type for template
         by_type = {
             "role_prompts": [p for p in prompts.values() if p.category == "role"],
-            "methodology_prompts": [
-                p for p in prompts.values() if p.category == "methodology"
-            ],
+            "methodology_prompts": [p for p in prompts.values() if p.category == "methodology"],
             "quality_prompts": [p for p in prompts.values() if p.category == "quality"],
             "task_prompts": [p for p in prompts.values() if p.category == "task"],
         }

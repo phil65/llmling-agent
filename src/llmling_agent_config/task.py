@@ -39,9 +39,7 @@ class Job[TDeps, TResult = str](Schema):
     prompt: str | ImportString[str] | BasePrompt
     """The task instruction/prompt."""
 
-    required_return_type: ImportString[type[TResult]] = Field(
-        default="str", validate_default=True
-    )
+    required_return_type: ImportString[type[TResult]] = Field(default="str", validate_default=True)
     """Expected type of the task result."""
 
     required_dependency: ImportString[type[TDeps]] | None = Field(
@@ -59,9 +57,7 @@ class Job[TDeps, TResult = str](Schema):
     - Prompt templates
     """
 
-    tools: list[ImportString[Callable[..., Any]] | ImportToolConfig] = Field(
-        default_factory=list
-    )
+    tools: list[ImportString[Callable[..., Any]] | ImportToolConfig] = Field(default_factory=list)
     """Tools needed for this task."""
 
     min_context_tokens: int | None = None
@@ -93,9 +89,7 @@ class Job[TDeps, TResult = str](Schema):
     def tool_configs(self) -> list[ImportToolConfig]:
         """Get all tools as ToolConfig instances."""
         return [
-            tool
-            if isinstance(tool, ImportToolConfig)
-            else ImportToolConfig(import_path=tool)
+            tool if isinstance(tool, ImportToolConfig) else ImportToolConfig(import_path=tool)
             for tool in self.tools
         ]
 

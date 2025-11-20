@@ -20,9 +20,7 @@ logger = get_logger(__name__)
 class ComposioTools(ResourceProvider):
     """Provider for composio tools."""
 
-    def __init__(
-        self, user_id: str, toolsets: list[str], api_key: str | None = None
-    ) -> None:
+    def __init__(self, user_id: str, toolsets: list[str], api_key: str | None = None) -> None:
         from composio import Composio
         from composio.core.provider._openai import OpenAIProvider
 
@@ -71,9 +69,7 @@ class ComposioTools(ResourceProvider):
                     tool_slug = tool_def["function"].get("name", "")
                     if tool_slug:
                         fn = self._create_tool_handler(tool_slug)
-                        tool = Tool.from_callable(
-                            fn, schema_override=tool_def["function"]
-                        )
+                        tool = Tool.from_callable(fn, schema_override=tool_def["function"])
                         self._tools.append(tool)
 
         except Exception:

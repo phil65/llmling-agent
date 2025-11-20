@@ -526,9 +526,7 @@ class ChatMessage[TContent]:
                     result=part.content,
                     tool_call_id=call_part.tool_call_id or str(uuid4()),
                     timestamp=part.timestamp,
-                    agent_tool_name=(
-                        t.agent_name if (t := tools.get(part.tool_name)) else None
-                    ),
+                    agent_tool_name=(t.agent_name if (t := tools.get(part.tool_name)) else None),
                 )
                 tool_calls.append(tool_info)
 

@@ -324,7 +324,5 @@ class AgentConfig(NodeConfig):
 
 if __name__ == "__main__":
     model = "openai:gpt-5-nano"
-    agent_cfg = AgentConfig(
-        name="test_agent", model=model, tools=["crewai_tools.BraveSearchTool"]
-    )
+    agent_cfg = AgentConfig(name="test_agent", model=model, tools=["crewai_tools.BraveSearchTool"])
     print(agent_cfg)

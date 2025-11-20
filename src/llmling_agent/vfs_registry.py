@@ -32,9 +32,7 @@ class VFSRegistry(BaseRegistry[str, AbstractFileSystem]):
             raise self._error_class(msg)
         return item
 
-    def register_from_config(
-        self, name: str, config: ResourceConfig
-    ) -> AbstractFileSystem:
+    def register_from_config(self, name: str, config: ResourceConfig) -> AbstractFileSystem:
         """Register a new resource from config."""
         from llmling_agent_config.resources import SourceResourceConfig
 

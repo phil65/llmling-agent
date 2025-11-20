@@ -56,9 +56,7 @@ class _WritePipeProtocol(asyncio.BaseProtocol):
             await self._drain_waiter
 
 
-def _start_stdin_feeder(
-    loop: asyncio.AbstractEventLoop, reader: asyncio.StreamReader
-) -> None:
+def _start_stdin_feeder(loop: asyncio.AbstractEventLoop, reader: asyncio.StreamReader) -> None:
     # Feed stdin from a background thread line-by-line
     def blocking_read() -> None:
         try:
@@ -159,9 +157,11 @@ async def spawn_stdio_connection(
     **transport_kwargs: Any,
 ) -> AsyncIterator[tuple[Connection, aio_subprocess.Process]]:
     """Spawn a subprocess and bind its stdio to a low-level Connection."""
-    async with spawn_stdio_transport(
-        command, *args, env=env, cwd=cwd, **transport_kwargs
-    ) as (reader, writer, process):
+    async with spawn_stdio_transport(command, *args, env=env, cwd=cwd, **transport_kwargs) as (
+        reader,
+        writer,
+        process,
+    ):
         conn = Connection(handler, writer, reader, observers=observers)
         try:
             yield conn, process
@@ -272,9 +272,7 @@ async def run_agent(
         def agent_factory(connection: AgentSideConnection) -> Agent:
             return agent
 
-    conn = AgentSideConnection(
-        agent_factory, input_stream, output_stream, **connection_kwargs
-    )
+    conn = AgentSideConnection(agent_factory, input_stream, output_stream, **connection_kwargs)
     try:
         # Keep the connection alive
         while True:
@@ -309,6 +307,4 @@ def connect_to_agent(
     def client_factory(connection: Agent) -> Client:
         return client
 
-    return ClientSideConnection(
-        client_factory, input_stream, output_stream, **connection_kwargs
-    )
+    return ClientSideConnection(client_factory, input_stream, output_stream, **connection_kwargs)

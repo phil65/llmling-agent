@@ -100,9 +100,7 @@ class GitDiffCommand(SlashedCommand):
                 return
 
             # Stage the diff content for use in agent context
-            staged_part = UserPromptPart(
-                content=f"Git diff for {display_title}:\n\n{diff_content}"
-            )
+            staged_part = UserPromptPart(content=f"Git diff for {display_title}:\n\n{diff_content}")
             session.add_staged_parts([staged_part])
 
             # Send successful result - wrap in code block for proper display

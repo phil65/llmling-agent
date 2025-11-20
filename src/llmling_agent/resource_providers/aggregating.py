@@ -18,9 +18,7 @@ if TYPE_CHECKING:
 class AggregatingResourceProvider(ResourceProvider):
     """Provider that combines resources from multiple providers."""
 
-    def __init__(
-        self, providers: list[ResourceProvider], name: str = "aggregating"
-    ) -> None:
+    def __init__(self, providers: list[ResourceProvider], name: str = "aggregating") -> None:
         """Initialize provider with list of providers to aggregate.
 
         Args:

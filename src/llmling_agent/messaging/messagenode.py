@@ -292,9 +292,7 @@ class MessageNode[TDeps, TResult](ABC):
     async def run(self, *prompts: Any, **kwargs: Any) -> ChatMessage[TResult]:
         """Execute node with prompts. Implementation-specific run logic."""
 
-    async def get_message_history(
-        self, limit: int | None = None
-    ) -> list[ChatMessage[Any]]:
+    async def get_message_history(self, limit: int | None = None) -> list[ChatMessage[Any]]:
         """Get message history from storage."""
         if not self.enable_db_logging:
             return []  # No history if not logging

@@ -157,9 +157,7 @@ class MemoryStorageProvider(StorageProvider):
         start_time: datetime | None = None,
     ) -> None:
         """Store conversation in memory."""
-        if next(
-            (i for i in self.messages if i["conversation_id"] == conversation_id), None
-        ):
+        if next((i for i in self.messages if i["conversation_id"] == conversation_id), None):
             msg = f"Duplicate conversation ID: {conversation_id}"
             raise ValueError(msg)
         self.conversations.append({
@@ -265,9 +263,7 @@ class MemoryStorageProvider(StorageProvider):
                         "timestamp": msg.timestamp.isoformat(),
                         "model": msg.model_name,
                         "name": msg.name,
-                        "token_usage": msg.cost_info.token_usage
-                        if msg.cost_info
-                        else None,
+                        "token_usage": msg.cost_info.token_usage if msg.cost_info else None,
                         "cost": msg.cost_info.total_cost if msg.cost_info else None,
                         "response_time": msg.response_time,
                     },
@@ -344,16 +340,12 @@ class MemoryStorageProvider(StorageProvider):
 
         if agent_name:
             # Filter out data for specific agent
-            self.conversations = [
-                c for c in self.conversations if c["agent_name"] != agent_name
-            ]
+            self.conversations = [c for c in self.conversations if c["agent_name"] != agent_name]
             self.messages = [
                 m
                 for m in self.messages
                 if m["conversation_id"]
-                not in {
-                    c["id"] for c in self.conversations if c["agent_name"] == agent_name
-                }
+                not in {c["id"] for c in self.conversations if c["agent_name"] == agent_name}
             ]
         else:
             # Clear all
@@ -370,9 +362,7 @@ class MemoryStorageProvider(StorageProvider):
     ) -> tuple[int, int]:
         """Get conversation and message counts."""
         if agent_name:
-            conv_count = sum(
-                1 for c in self.conversations if c["agent_name"] == agent_name
-            )
+            conv_count = sum(1 for c in self.conversations if c["agent_name"] == agent_name)
             msg_count = sum(
                 1
                 for m in self.messages

@@ -77,9 +77,7 @@ class MessageHistory:
         self.id = str(uuid4())
 
         if session_config and session_config.session:
-            self._current_history = self.storage.filter_messages.sync(
-                session_config.session
-            )
+            self._current_history = self.storage.filter_messages.sync(session_config.session)
             if session_config.session.name:
                 self.id = session_config.session.name
 
