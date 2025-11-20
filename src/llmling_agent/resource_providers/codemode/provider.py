@@ -48,7 +48,7 @@ class CodeModeResourceProvider(AggregatingResourceProvider):
     async def get_tools(self) -> list[Tool]:
         """Return single meta-tool for Python execution with available tools."""
         # Always generate fresh toolset to reflect current tools
-        toolset_generator = await self._get_fresh_code_generator()
+        toolset_generator = await self._get_code_generator()
         desc = toolset_generator.generate_tool_description()
         desc += self.usage_notes
 
@@ -77,7 +77,7 @@ class CodeModeResourceProvider(AggregatingResourceProvider):
         Returns:
             Result of the last expression or explicit return value
         """
-        toolset_generator = await self._get_fresh_code_generator()
+        toolset_generator = await self._get_code_generator()
         namespace = toolset_generator.generate_execution_namespace()
 
         # async def report_progress(current: int, total: int, message: str = ""):
@@ -105,7 +105,7 @@ class CodeModeResourceProvider(AggregatingResourceProvider):
         self._cached_tool = None
         # Note: We no longer cache the toolset generator, so no need to clear it
 
-    async def _get_fresh_code_generator(self) -> ToolsetCodeGenerator:
+    async def _get_code_generator(self) -> ToolsetCodeGenerator:
         """Get fresh toolset generator with current tools."""
         return tools_to_codegen(
             tools=await super().get_tools(),
