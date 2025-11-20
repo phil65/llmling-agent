@@ -3698,9 +3698,8 @@
       "title": "Jinja2Condition",
       "type": "object"
     },
-    "Job": {
+    "Job_Any_str_": {
       "additionalProperties": false,
-      "description": "A task is a piece of work that can be executed by an agent.\n\nRequirements:\n- The agent must have compatible dependencies (required_dependency)\n- The agent must produce the specified result type (required_return_type)\n\nEquipment:\n- The task provides necessary tools for execution (tools)\n- Tools are temporarily available during task execution",
       "properties": {
         "name": {
           "anyOf": [
@@ -3809,7 +3808,7 @@
       "required": [
         "prompt"
       ],
-      "title": "Job",
+      "title": "Job[Any, str]",
       "type": "object"
     },
     "Knowledge": {
@@ -5436,19 +5435,6 @@
           "default": null,
           "description": "Default value if argument is optional.",
           "title": "Default"
-        },
-        "completion_function": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Optional function to provide argument completions.",
-          "title": "Completion Function"
         }
       },
       "required": [
@@ -7951,32 +7937,6 @@
           "title": "Preserve Formatting",
           "type": "boolean"
         },
-        "cookies_path": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Optional path to cookies file for age-restricted videos.",
-          "title": "Cookies Path"
-        },
-        "https_proxy": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Optional HTTPS proxy URL (format: https://user:pass@domain:port).",
-          "title": "Https Proxy"
-        },
         "max_retries": {
           "default": 3,
           "description": "Maximum number of retries for failed requests.",
@@ -8085,7 +8045,7 @@
     },
     "jobs": {
       "additionalProperties": {
-        "$ref": "#/$defs/Job"
+        "$ref": "#/$defs/Job_Any_str_"
       },
       "description": "Pre-defined jobs, ready to be used by nodes.",
       "title": "Jobs",
