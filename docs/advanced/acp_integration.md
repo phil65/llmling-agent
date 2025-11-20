@@ -2,7 +2,7 @@
 
 ## What is ACP?
 
-The Agent Client Protocol (ACP) is a standardized JSON-RPC 2.0 protocol that enables communication between code editors and AI agents over stdio streams. It allows llmling-agent to integrate seamlessly with desktop applications and IDEs that support the protocol.
+The Agent Client Protocol (ACP) is a standardized JSON-RPC 2.0 protocol that enables communication between code editors and AI agents. It allows llmling-agent to integrate seamlessly with desktop applications and IDEs that support the protocol.
 
 ACP provides:
 - Bidirectional communication between editor and agent
@@ -55,7 +55,7 @@ Add this configuration to your Zed `settings.json`:
         "3.13",
         "llmling-agent[default]@latest",
         "serve-acp",
-        "https://raw.githubusercontent.com/phil65/llmling-agent/refs/heads/main/src/llmling_agent_docs/examples/pick_experts/config.yml",
+        "https://raw.githubusercontent.com/phil65/llmling-agent/refs/heads/main/src/llmling_agent_docs/examples/pick_experts/config.yml", # <- insert your agent config here
         "--model-provider",
         "openai"
       ],
@@ -127,3 +127,33 @@ Limit which providers are searched for models:
 ```bash
 llmling-agent serve-acp config.yml --model-provider openai --model-provider anthropic
 ```
+
+If not provider is passed, OpenRouter is used.
+
+Available model providers:
+
+- `anthropic`
+- `groq`
+- `mistral`
+- `openai`
+- `openrouter`
+- `github`
+- `copilot`
+- `cerebras`
+- `gemini`
+- `cohere`
+- `deepseek`
+- `requesty`
+- `xai`
+- `comet`
+- `novita`
+- `vercel-gateway`
+- `chutes`
+- `cortecs`
+- `azure`
+- `fireworks-ai`
+- `ollama`
+- `moonshotai`
+- `zai`
+
+The providers depend on environment variables being set, like `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, etc.
