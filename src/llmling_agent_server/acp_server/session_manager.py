@@ -130,29 +130,6 @@ class ACPSessionManager:
                     session_id=session_id,
                 )
 
-    async def cleanup_inactive_sessions(self) -> None:
-        """Remove any inactive sessions."""
-        async with self._lock:
-            inactive_sessions = [
-                session_id
-                for session_id, session in self._sessions.items()
-                if not session.active
-            ]
-
-            for session_id in inactive_sessions:
-                session = self._sessions.pop(session_id, None)
-                if session:
-                    try:
-                        await session.close()
-                    except Exception:
-                        logger.exception(
-                            "Error closing inactive session",
-                            session_id=session_id,
-                        )
-
-            if inactive_sessions:
-                logger.info("Cleaned up %d inactive sessions", len(inactive_sessions))
-
     async def __aenter__(self) -> Self:
         """Async context manager entry."""
         return self

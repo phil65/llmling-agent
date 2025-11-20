@@ -160,7 +160,6 @@ class ACPSession:
         """Initialize session state and set up providers."""
         self.mcp_servers = self.mcp_servers or []
         self.log = logger.bind(session_id=self.session_id)
-        self._active = True
         self._task_lock = asyncio.Lock()
         self._cancelled = False
         self._current_tool_inputs: dict[str, dict[str, Any]] = {}
@@ -318,11 +317,6 @@ class ACPSession:
         #     await self.notifications.update_session_model(new_model)
         await self.send_available_commands_update()
 
-    @property
-    def active(self) -> bool:
-        """Check if session is active."""
-        return self._active
-
     def cancel(self) -> None:
         """Cancel the current prompt turn."""
         self._cancelled = True
@@ -361,10 +355,6 @@ class ACPSession:
         Returns:
             Stop reason
         """
-        if not self._active:
-            self.log.warning("Attempted to process prompt on inactive session")
-            return "refusal"
-
         self._cancelled = False
         contents = from_content_blocks(content_blocks)
         self.log.debug("Converted content", content=contents)
@@ -713,10 +703,6 @@ class ACPSession:
 
     async def close(self) -> None:
         """Close the session and cleanup resources."""
-        if not self._active:
-            return
-
-        self._active = False
         self._current_tool_inputs.clear()
 
         try:
