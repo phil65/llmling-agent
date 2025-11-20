@@ -20,9 +20,18 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Callable, Mapping
     from pathlib import Path
 
-    from acp.agent import Agent
-    from acp.client import Client
+    from acp.agent.protocol import Agent
+    from acp.client.protocol import Client
     from acp.connection import MethodHandler, StreamObserver
+
+__all__ = [
+    "connect_to_agent",
+    "run_agent",
+    "spawn_agent_process",
+    "spawn_client_process",
+    "spawn_stdio_connection",
+    "stdio_streams",
+]
 
 
 class _WritePipeProtocol(asyncio.BaseProtocol):
@@ -208,3 +217,98 @@ async def spawn_client_process(
             yield conn, process
         finally:
             await conn.close()
+
+
+async def run_agent(
+    agent: Agent | Callable[[AgentSideConnection], Agent],
+    input_stream: asyncio.StreamWriter | None = None,
+    output_stream: asyncio.StreamReader | None = None,
+    **connection_kwargs: Any,
+) -> None:
+    """Run an ACP agent over stdio or provided streams.
+
+    This is the recommended entry point for running agents. It handles stream
+    setup and connection lifecycle automatically.
+
+    Args:
+        agent: An Agent implementation or a factory callable that takes
+            an AgentSideConnection and returns an Agent. Using a factory allows
+            the agent to access the connection for client communication.
+        input_stream: Optional StreamWriter for output (defaults to stdio).
+        output_stream: Optional StreamReader for input (defaults to stdio).
+        **connection_kwargs: Additional keyword arguments for AgentSideConnection.
+
+    Example with direct agent:
+        ```python
+        class MyAgent(Agent):
+            async def initialize(self, params: InitializeRequest) -> InitializeResponse:
+                return InitializeResponse(protocol_version=params.protocol_version)
+            # ... implement protocol methods ...
+
+        await run_agent(MyAgent())
+        ```
+
+    Example with factory:
+        ```python
+        class MyAgent(Agent):
+            def __init__(self, connection: AgentSideConnection):
+                self.connection = connection
+            # ... implement protocol methods ...
+
+        def create_agent(conn: AgentSideConnection) -> MyAgent:
+            return MyAgent(conn)
+
+        await run_agent(create_agent)
+        ```
+    """
+    if input_stream is None or output_stream is None:
+        output_stream, input_stream = await stdio_streams()
+
+    # Wrap agent instance in factory if needed
+    if callable(agent):
+        agent_factory = agent
+    else:
+
+        def agent_factory(connection: AgentSideConnection) -> Agent:
+            return agent
+
+    conn = AgentSideConnection(
+        agent_factory, input_stream, output_stream, **connection_kwargs
+    )
+    try:
+        # Keep the connection alive
+        while True:
+            await asyncio.sleep(3600)
+    except asyncio.CancelledError:
+        pass
+    finally:
+        await conn.close()
+
+
+def connect_to_agent(
+    client: Client,
+    input_stream: asyncio.StreamWriter,
+    output_stream: asyncio.StreamReader,
+    **connection_kwargs: Any,
+) -> ClientSideConnection:
+    """Create a ClientSideConnection to an ACP agent.
+
+    This is the recommended entry point for client-side connections.
+
+    Args:
+        client: The client implementation.
+        input_stream: StreamWriter for sending to the agent.
+        output_stream: StreamReader for receiving from the agent.
+        **connection_kwargs: Additional keyword arguments for ClientSideConnection.
+
+    Returns:
+        A ClientSideConnection connected to the agent.
+    """
+
+    # Create a factory that ignores the connection parameter
+    def client_factory(connection: Agent) -> Client:
+        return client
+
+    return ClientSideConnection(
+        client_factory, input_stream, output_stream, **connection_kwargs
+    )

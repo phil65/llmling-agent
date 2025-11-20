@@ -71,7 +71,7 @@ from acp.schema import (
     ToolCallStatus,
     ToolCall,
 )
-from acp.stdio import stdio_streams
+from acp.stdio import stdio_streams, run_agent, connect_to_agent
 from acp.exceptions import RequestError
 
 __version__ = "0.0.1"
@@ -151,6 +151,9 @@ __all__ = [  # noqa: RUF022
     "Client",
     "DefaultACPClient",
     "TerminalHandle",
+    # connection helpers (recommended)
+    "run_agent",
+    "connect_to_agent",
     # split protocols
     "FileSystemCapability",
     # stdio helper
