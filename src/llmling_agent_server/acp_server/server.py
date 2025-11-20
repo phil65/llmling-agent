@@ -136,11 +136,7 @@ class ACPServer(BaseServer):
     async def _start_async(self) -> None:
         """Start the ACP server (blocking async - runs until stopped)."""
         agent_names = list(self.pool.agents.keys())
-        self.log.info(
-            "Starting ACP server on stdio",
-            num_agents=len(agent_names),
-            agent_names=agent_names,
-        )
+        self.log.info("Starting ACP server on stdio", agent_names=agent_names)
         await self._initialize_models()  # Initialize models on first run
         create_acp_agent = functools.partial(
             LLMlingACPAgent,
