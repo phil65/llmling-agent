@@ -98,6 +98,8 @@ class ToolCallStartEvent:
     """Human-readable title describing what the tool is doing."""
     kind: ToolKind = "other"
     """Tool kind (read, edit, delete, move, search, execute, think, fetch, other)."""
+    content: list[ToolCallContentItem] = field(default_factory=list)
+    """Content produced by the tool call."""
     locations: list[LocationContentItem] = field(default_factory=list)
     """File locations affected by this tool call."""
     raw_input: dict[str, Any] = field(default_factory=dict)

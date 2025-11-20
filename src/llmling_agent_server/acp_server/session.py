@@ -523,6 +523,7 @@ class ACPSession:
                 tool_name=tool_name,
                 title=title,
                 kind=kind,
+                content=content,
                 locations=locations,
                 raw_input=raw_input,
             ):
@@ -531,7 +532,7 @@ class ACPSession:
                     tool_name=tool_name,
                     tool_call_id=tool_call_id,
                 )
-                # Convert locations to ACP format
+                # Convert LocationContentItem objects to ACP format
                 acp_locations = [
                     ToolCallLocation(path=loc.path, line=loc.line) for loc in locations
                 ]

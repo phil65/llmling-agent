@@ -9,7 +9,7 @@ from llmling_agent.agent.events import LocationContentItem
 
 if TYPE_CHECKING:
     from llmling_agent.agent.context import AgentContext
-    from llmling_agent.agent.events import RichAgentStreamEvent
+    from llmling_agent.agent.events import RichAgentStreamEvent, ToolCallContentItem
     from llmling_agent.resource_providers.plan_provider import PlanEntry
     from llmling_agent.tools.base import ToolKind
 
@@ -284,6 +284,7 @@ class AgentEventEmitter:
         self,
         title: str,
         kind: ToolKind = "other",
+        content: list[ToolCallContentItem] | None = None,
         locations: list[str | LocationContentItem] | None = None,
     ) -> None:
         """Emit tool call start event with rich ACP metadata.
@@ -291,18 +292,29 @@ class AgentEventEmitter:
         Args:
             title: Human-readable title describing what the tool is doing
             kind: Tool kind (read, edit, delete, move, search, execute, think, fetch, other)
+            content: Content produced by the tool call (terminals, diffs, text)
             locations: File paths or LocationContentItem objects affected by this tool call
         """
-        from llmling_agent.agent.events import LocationContentItem, ToolCallStartEvent
+        from llmling_agent.agent.events import ToolCallStartEvent
 
-        # Convert to LocationContentItem objects
-        location_items = []
+        # Convert string paths to LocationContentItem objects
+        location_items: list[LocationContentItem] = []
         if locations:
             for loc in locations:
                 if isinstance(loc, str):
                     location_items.append(LocationContentItem(path=loc))
                 else:
                     location_items.append(loc)
+
+        event = ToolCallStartEvent(
+            tool_call_id=self._context.tool_call_id or "",
+            tool_name=self._context.tool_name or "",
+            title=title,
+            kind=kind,
+            content=content or [],
+            locations=location_items,
+            raw_input=self._context.tool_input.copy(),
+        )
 
         event = ToolCallStartEvent(
             tool_call_id=self._context.tool_call_id or "",
