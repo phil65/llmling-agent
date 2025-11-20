@@ -266,7 +266,7 @@ class TextLogProvider(StorageProvider):
         path = await self._get_path("command", **entry)
         self._write(path)
 
-    def _write(self, path: UPath):
+    def _write(self, path: UPath) -> None:
         """Write current state to file at given path."""
         context = {"entries": self._entries}
         try:

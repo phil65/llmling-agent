@@ -145,7 +145,7 @@ def is_async_callable(obj: Any) -> Any:
 
     return inspect.iscoroutinefunction(obj) or (
         callable(obj) and inspect.iscoroutinefunction(obj.__call__)
-    )  # type: ignore
+    )
 
 
 def _type_to_string(type_hint: Any) -> str:
@@ -242,7 +242,7 @@ def call_with_context[T](
     return func(context.data)
 
 
-def validate_import(module_path: str, extras_name: str):
+def validate_import(module_path: str, extras_name: str) -> None:
     """Check existence of module, showing helpful error if not installed."""
     if not find_spec(module_path):
         msg = f"""

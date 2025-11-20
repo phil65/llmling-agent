@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import Field, PrivateAttr, SecretStr
 from schemez import Schema
@@ -31,7 +31,7 @@ class LogfireObservabilityConfig(BaseObservabilityConfig):
     _endpoint: str = PrivateAttr()
     _headers: dict[str, str] = PrivateAttr(default_factory=dict)
 
-    def model_post_init(self, __context, /) -> None:
+    def model_post_init(self, __context: Any, /) -> None:
         """Compute private attributes from user config."""
         endpoint = (
             "https://logfire-eu.pydantic.dev"
@@ -55,7 +55,7 @@ class LangsmithObservabilityConfig(BaseObservabilityConfig):
     _endpoint: str = PrivateAttr(default="https://api.smith.langchain.com")
     _headers: dict[str, str] = PrivateAttr(default_factory=dict)
 
-    def model_post_init(self, __context, /) -> None:
+    def model_post_init(self, __context: Any, /) -> None:
         """Compute private attributes from user config."""
         if self.api_key:
             headers = {"x-api-key": self.api_key.get_secret_value()}
@@ -71,7 +71,7 @@ class AgentOpsObservabilityConfig(BaseObservabilityConfig):
     _endpoint: str = PrivateAttr(default="https://api.agentops.ai")
     _headers: dict[str, str] = PrivateAttr(default_factory=dict)
 
-    def model_post_init(self, __context, /) -> None:
+    def model_post_init(self, __context: Any, /) -> None:
         """Compute private attributes from user config."""
         if self.api_key:
             headers = {"Authorization": f"Bearer {self.api_key.get_secret_value()}"}
@@ -89,7 +89,7 @@ class ArizePhoenixObservabilityConfig(BaseObservabilityConfig):
     _endpoint: str = PrivateAttr(default="https://api.arize.com")
     _headers: dict[str, str] = PrivateAttr(default_factory=dict)
 
-    def model_post_init(self, __context, /) -> None:
+    def model_post_init(self, __context: Any, /) -> None:
         """Compute private attributes from user config."""
         if self.api_key:
             headers = {"Authorization": f"Bearer {self.api_key.get_secret_value()}"}

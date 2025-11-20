@@ -132,7 +132,7 @@ class StdioMCPServerConfig(BaseMCPServerConfig):
         )
 
     async def check(self) -> ServerScoreCard:
-        from mcp_interviewer import MCPInterviewer  # type: ignore[import-untyped]
+        from mcp_interviewer import MCPInterviewer
         from mcp_interviewer.models import (  # type: ignore[import-untyped]
             StdioServerParameters,
         )

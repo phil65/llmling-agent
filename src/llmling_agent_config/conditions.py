@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
 from datetime import timedelta
-from typing import TYPE_CHECKING, Annotated, Literal, assert_never
+from typing import TYPE_CHECKING, Annotated, Any, Literal, assert_never
 
 from pydantic import ConfigDict, Field, ImportString
 from schemez import Schema
@@ -25,7 +25,7 @@ class ConnectionCondition(Schema):
 
     model_config = ConfigDict(frozen=True)
 
-    async def check(self, context: EventContext) -> bool:
+    async def check(self, context: EventContext[Any]) -> bool:
         """Check if condition is met."""
         raise NotImplementedError
 
@@ -39,7 +39,7 @@ class Jinja2Condition(ConnectionCondition):
     template: str
     """Jinja2 template to evaluate."""
 
-    async def check(self, ctx: EventContext) -> bool:
+    async def check(self, ctx: EventContext[Any]) -> bool:
         from jinjarope import Environment
 
         from llmling_agent.utils.now import get_now
@@ -68,7 +68,7 @@ class WordMatchCondition(ConnectionCondition):
     - all: Require all words to match
     """
 
-    async def check(self, context: EventContext) -> bool:
+    async def check(self, context: EventContext[Any]) -> bool:
         """Check if message contains specified words."""
         text = str(context.message.content)
         if not self.case_sensitive:
@@ -96,7 +96,7 @@ class MessageCountCondition(ConnectionCondition):
     - per_agent: Messages from each agent separately
     """
 
-    async def check(self, context: EventContext) -> bool:
+    async def check(self, context: EventContext[Any]) -> bool:
         """Check if message count threshold is reached."""
         if self.count_mode == "total":
             return context.stats.message_count >= self.max_messages
@@ -115,7 +115,7 @@ class TimeCondition(ConnectionCondition):
     duration: timedelta
     """How long the connection should stay active."""
 
-    async def check(self, context: EventContext) -> bool:
+    async def check(self, context: EventContext[Any]) -> bool:
         """Check if time duration has elapsed."""
         from llmling_agent.utils.now import get_now
 
@@ -139,7 +139,7 @@ class TokenThresholdCondition(ConnectionCondition):
     - completion: Only completion tokens
     """
 
-    async def check(self, context: EventContext) -> bool:
+    async def check(self, context: EventContext[Any]) -> bool:
         """Check if token threshold is reached."""
         if not context.message.cost_info:
             return False
@@ -168,7 +168,7 @@ class CostCondition(ConnectionCondition):
     max_cost: float = Field(gt=0.0)
     """Maximum cost in USD."""
 
-    async def check(self, context: EventContext) -> bool:
+    async def check(self, context: EventContext[Any]) -> bool:
         """Check if cost limit is reached."""
         return context.stats.total_cost >= self.max_cost
 
@@ -182,7 +182,7 @@ class CostLimitCondition(ConnectionCondition):
     max_cost: float = Field(gt=0.0)
     """Maximum cost in USD before triggering."""
 
-    async def check(self, context: EventContext) -> bool:
+    async def check(self, context: EventContext[Any]) -> bool:
         """Check if cost limit is reached."""
         if not context.message.cost_info:
             return False
@@ -204,7 +204,7 @@ class CallableCondition(ConnectionCondition):
         Whether condition is met
     """
 
-    async def check(self, context: EventContext) -> bool:
+    async def check(self, context: EventContext[Any]) -> bool:
         """Execute predicate function."""
         from llmling_agent.utils.inspection import execute
 
@@ -220,7 +220,7 @@ class AndCondition(ConnectionCondition):
     conditions: list[ConnectionCondition]
     """List of conditions to check."""
 
-    async def check(self, context: EventContext) -> bool:
+    async def check(self, context: EventContext[Any]) -> bool:
         """Check if all conditions are met."""
         results = [await c.check(context) for c in self.conditions]
         return all(results)
@@ -235,7 +235,7 @@ class OrCondition(ConnectionCondition):
     conditions: list[ConnectionCondition]
     """List of conditions to check."""
 
-    async def check(self, context: EventContext) -> bool:
+    async def check(self, context: EventContext[Any]) -> bool:
         """Check if any condition is met."""
         results = [await c.check(context) for c in self.conditions]
         return any(results)

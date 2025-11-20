@@ -307,7 +307,7 @@ class Tool[TOutputType = Any]:
             raise TypeError(msg)
         token = CancellationToken()
 
-        input_model = tool.__class__.__orig_bases__[0].__args__[0]  # type: ignore
+        input_model = tool.__class__.__orig_bases__[0].__args__[0]
 
         name = name_override or tool.name or tool.__class__.__name__.removesuffix("Tool")
         description = (
@@ -323,7 +323,7 @@ class Tool[TOutputType = Any]:
             return await tool.run(model, cancellation_token=token)
 
         return cls.from_callable(
-            wrapper,  # type: ignore
+            wrapper,
             name_override=name,
             description_override=description,
             schema_override=schema_override,
