@@ -41,7 +41,6 @@ class CodeModeResourceProvider(AggregatingResourceProvider):
         """
         super().__init__(providers=providers, name=name)
         self.include_docstrings = include_docstrings
-        self._toolset_generator: ToolsetCodeGenerator | None = None
         self._cached_tool: Tool | None = None
         self.usage_notes = usage_notes
 
