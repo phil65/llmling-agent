@@ -165,7 +165,11 @@ class ToolManager:
         results = await asyncio.gather(*provider_coroutines, return_exceptions=True)
         for provider, result in zip(self.providers, results, strict=False):
             if isinstance(result, BaseException):
-                logger.exception("Failed to get tools from provider", provider=provider)
+                logger.warning(
+                    "Failed to get tools from provider",
+                    provider=provider,
+                    result=result,
+                )
                 continue
             tools.extend(t for t in result if t.matches_filter(state))
 
