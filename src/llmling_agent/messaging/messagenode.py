@@ -52,7 +52,7 @@ class MessageNode[TDeps, TResult](ABC):
         description: str | None = None,
         context: NodeContext | None = None,
         mcp_servers: Sequence[str | MCPServerConfig] | None = None,
-        agent_pool: AgentPool | None = None,
+        agent_pool: AgentPool[Any] | None = None,
         enable_logging: bool = True,
     ) -> None:
         """Initialize message node."""

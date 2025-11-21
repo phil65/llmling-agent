@@ -442,6 +442,7 @@ class AgentsManifest(Schema):
             output_retries=config.output_retries,
             end_strategy=config.end_strategy,
             debug=config.debug,
+            input_provider=input_provider,
             output_type=resolved_output_type,
             event_handlers=event_handlers,
             agent_pool=pool,
