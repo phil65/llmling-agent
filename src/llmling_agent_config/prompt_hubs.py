@@ -11,10 +11,9 @@ from pydantic.networks import HttpUrl
 class BasePromptHubConfig(BaseModel):
     """Configuration for prompt providers."""
 
-    type: str = Field(
-        init=False,
-        title="Prompt hub type",
-    )
+    type: str = Field(init=False, title="Prompt hub type")
+    """Base prompt configuration."""
+
     model_config = ConfigDict(frozen=True, use_attribute_docstrings=True, extra="forbid")
 
 
@@ -24,9 +23,7 @@ class PromptLayerConfig(BasePromptHubConfig):
     type: Literal["promptlayer"] = Field("promptlayer", init=False)
     """Configuration for PromptLayer prompt provider."""
 
-    api_key: SecretStr = Field(
-        title="PromptLayer API key",
-    )
+    api_key: SecretStr = Field(title="PromptLayer API key")
     """API key for the PromptLayer API."""
 
 
@@ -36,14 +33,10 @@ class LangfuseConfig(BasePromptHubConfig):
     type: Literal["langfuse"] = Field("langfuse", init=False)
     """Configuration for Langfuse prompt provider."""
 
-    secret_key: SecretStr = Field(
-        title="Langfuse secret key",
-    )
+    secret_key: SecretStr = Field(title="Langfuse secret key")
     """Secret key for the Langfuse API."""
 
-    public_key: SecretStr = Field(
-        title="Langfuse public key",
-    )
+    public_key: SecretStr = Field(title="Langfuse public key")
     """Public key for the Langfuse API."""
 
     host: HttpUrl = Field(
@@ -61,12 +54,7 @@ class LangfuseConfig(BasePromptHubConfig):
     )
     """Cache TTL for responses in seconds."""
 
-    max_retries: int = Field(
-        default=2,
-        ge=0,
-        examples=[1, 2, 5],
-        title="Maximum retries",
-    )
+    max_retries: int = Field(default=2, ge=0, examples=[1, 2, 5], title="Maximum retries")
     """Maximum number of retries for failed requests."""
 
     fetch_timeout_seconds: int = Field(
@@ -84,11 +72,8 @@ class BraintrustConfig(BasePromptHubConfig):
     type: Literal["braintrust"] = Field("braintrust", init=False)
     """Configuration for Braintrust prompt provider."""
 
-    api_key: SecretStr | None = Field(
-        default=None,
-        title="Braintrust API key",
-    )  # Optional, defaults to BRAINTRUST_API_KEY env var
-    """API key for the Braintrust API."""
+    api_key: SecretStr | None = Field(default=None, title="Braintrust API key")
+    """API key for the Braintrust API. Defaults to BRAINTRUST_API_KEY env var"""
 
     project: str | None = Field(
         default=None,

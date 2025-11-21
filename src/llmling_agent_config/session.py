@@ -18,10 +18,7 @@ if TYPE_CHECKING:
 class MemoryConfig(Schema):
     """Configuration for agent memory and history handling."""
 
-    enable: bool = Field(
-        default=True,
-        title="Enable memory",
-    )
+    enable: bool = Field(default=True, title="Enable memory")
     """Whether to enable history tracking."""
 
     max_tokens: int | None = Field(
@@ -38,10 +35,7 @@ class MemoryConfig(Schema):
     )
     """Maximum number of messages to keep in context window."""
 
-    session: SessionQuery | None = Field(
-        default=None,
-        title="Session query",
-    )
+    session: SessionQuery | None = Field(default=None, title="Session query")
     """Query configuration for loading previous session."""
 
     provider: str | None = Field(
@@ -83,10 +77,7 @@ class SessionQuery(Schema):
     )
     """Session identifier to match."""
 
-    agents: set[str] | None = Field(
-        default=None,
-        title="Agent filter",
-    )
+    agents: set[str] | None = Field(default=None, title="Agent filter")
     """Filter by agent names."""
 
     since: str | None = Field(
@@ -96,11 +87,7 @@ class SessionQuery(Schema):
     )
     """Time period to look back (e.g. "1h", "2d")."""
 
-    until: str | None = Field(
-        default=None,
-        examples=["1h", "2d", "1w"],
-        title="Time period limit",
-    )
+    until: str | None = Field(default=None, examples=["1h", "2d", "1w"], title="Time period limit")
     """Time period to look up to."""
 
     contains: str | None = Field(
@@ -110,23 +97,13 @@ class SessionQuery(Schema):
     )
     """Filter by message content."""
 
-    roles: set[MessageRole] | None = Field(
-        default=None,
-        title="Role filter",
-    )
+    roles: set[MessageRole] | None = Field(default=None, title="Role filter")
     """Only include specific message roles."""
 
-    limit: int | None = Field(
-        default=None,
-        examples=[10, 50, 100],
-        title="Message limit",
-    )
+    limit: int | None = Field(default=None, examples=[10, 50, 100], title="Message limit")
     """Maximum number of messages to return."""
 
-    include_forwarded: bool = Field(
-        default=True,
-        title="Include forwarded messages",
-    )
+    include_forwarded: bool = Field(default=True, title="Include forwarded messages")
     """Whether to include messages forwarded through agents."""
 
     model_config = ConfigDict(frozen=True)

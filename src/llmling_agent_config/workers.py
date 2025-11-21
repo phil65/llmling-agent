@@ -44,19 +44,13 @@ class AgentWorkerConfig(BaseWorkerConfig):
     type: Literal["agent"] = Field("agent", init=False)
     """Agent worker configuration."""
 
-    reset_history_on_run: bool = Field(
-        default=True,
-        title="Reset history on run",
-    )
+    reset_history_on_run: bool = Field(default=True, title="Reset history on run")
     """Whether to clear worker's conversation history before each run.
     True (default): Fresh conversation each time
     False: Maintain conversation context between runs
     """
 
-    pass_message_history: bool = Field(
-        default=False,
-        title="Pass message history",
-    )
+    pass_message_history: bool = Field(default=False, title="Pass message history")
     """Whether to pass parent agent's message history to worker.
     True: Worker sees parent's conversation context
     False (default): Worker only sees current request

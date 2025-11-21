@@ -35,10 +35,7 @@ class NodeConfig(Schema):
     )
     """Optional description of the agent / team."""
 
-    triggers: list[EventConfig] = Field(
-        default_factory=list,
-        title="Event triggers",
-    )
+    triggers: list[EventConfig] = Field(default_factory=list, title="Event triggers")
     """Event sources that activate this agent / team"""
 
     connections: list[ForwardingTarget] = Field(
@@ -47,10 +44,7 @@ class NodeConfig(Schema):
     )
     """Targets to forward results to."""
 
-    mcp_servers: list[str | MCPServerConfig] = Field(
-        default_factory=list,
-        title="MCP servers",
-    )
+    mcp_servers: list[str | MCPServerConfig] = Field(default_factory=list, title="MCP servers")
     """List of MCP server configurations:
     - str entries are converted to StdioMCPServerConfig
     - MCPServerConfig for full server configuration

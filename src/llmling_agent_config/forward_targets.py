@@ -28,20 +28,14 @@ class ConnectionConfig(Schema):
     type: str = Field(init=False)
     """Connection type."""
 
-    wait_for_completion: bool = Field(
-        default=True,
-        title="Wait for completion",
-    )
+    wait_for_completion: bool = Field(default=True, title="Wait for completion")
     """Whether to wait for the result before continuing.
 
     If True, message processing will wait for the target to complete.
     If False, message will be forwarded asynchronously.
     """
 
-    queued: bool = Field(
-        default=False,
-        title="Enable message queueing",
-    )
+    queued: bool = Field(default=False, title="Enable message queueing")
     """Whether messages should be queued for manual processing."""
 
     queue_strategy: Literal["concat", "latest", "buffer"] = Field(
@@ -51,35 +45,19 @@ class ConnectionConfig(Schema):
     )
     """How to process queued messages."""
 
-    priority: int = Field(
-        default=0,
-        examples=[0, 1, 5],
-        title="Task priority",
-    )
+    priority: int = Field(default=0, examples=[0, 1, 5], title="Task priority")
     """Priority of the task. Lower = higher priority."""
 
-    delay: timedelta | None = Field(
-        default=None,
-        title="Processing delay",
-    )
+    delay: timedelta | None = Field(default=None, title="Processing delay")
     """Delay before processing."""
 
-    filter_condition: Condition | None = Field(
-        default=None,
-        title="Message filter condition",
-    )
+    filter_condition: Condition | None = Field(default=None, title="Message filter condition")
     """When to filter messages (using Talk.when())."""
 
-    stop_condition: Condition | None = Field(
-        default=None,
-        title="Connection stop condition",
-    )
+    stop_condition: Condition | None = Field(default=None, title="Connection stop condition")
     """When to disconnect the connection."""
 
-    exit_condition: Condition | None = Field(
-        default=None,
-        title="Application exit condition",
-    )
+    exit_condition: Condition | None = Field(default=None, title="Application exit condition")
     """When to exit the application (by raising SystemExit)."""
 
     transform: ImportString[Callable[[Any], Any | Awaitable[Any]]] | None = Field(
@@ -185,8 +163,6 @@ class FileConnectionConfig(ConnectionConfig):
 
     def resolve_path(self, context: dict[str, str]) -> UPath:
         """Resolve path template with context variables."""
-        from upath import UPath
-
         from llmling_agent.utils.now import get_now
 
         now = get_now()
@@ -232,10 +208,7 @@ class CallableConnectionConfig(ConnectionConfig):
     connection_type: Literal["run"] = Field("run", init=False, exclude=True)
     """Connection type (fixed to "run")"""
 
-    kw_args: dict[str, Any] = Field(
-        default_factory=dict,
-        title="Additional arguments",
-    )
+    kw_args: dict[str, Any] = Field(default_factory=dict, title="Additional arguments")
     """Additional kwargs to pass to the callable."""
 
     async def process_message(self, message: ChatMessage[Any]) -> Any:

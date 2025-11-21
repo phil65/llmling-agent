@@ -20,11 +20,7 @@ if TYPE_CHECKING:
 class BaseToolsetConfig(Schema):
     """Base configuration for toolsets."""
 
-    namespace: str | None = Field(
-        default=None,
-        examples=["web", "files", "code"],
-        title="Tool namespace",
-    )
+    namespace: str | None = Field(default=None, examples=["web", "files"], title="Tool namespace")
     """Optional namespace prefix for tool names"""
 
 
@@ -80,10 +76,7 @@ class ComposioToolSetConfig(BaseToolsetConfig):
     type: Literal["composio"] = Field("composio", init=False)
     """Composio Toolsets."""
 
-    api_key: SecretStr | None = Field(
-        default=None,
-        title="Composio API key",
-    )
+    api_key: SecretStr | None = Field(default=None, title="Composio API key")
     """Composio API Key."""
 
     user_id: EmailStr = Field(
@@ -121,10 +114,7 @@ class UpsonicToolSetConfig(BaseToolsetConfig):
     )
     """Upsonic API URL."""
 
-    api_key: SecretStr | None = Field(
-        default=None,
-        title="Upsonic API key",
-    )
+    api_key: SecretStr | None = Field(default=None, title="Upsonic API key")
     """Upsonic API Key."""
 
     entity_id: str = Field(
@@ -271,10 +261,7 @@ class FSSpecToolsetConfig(BaseToolsetConfig):
     )
     """Filesystem URL or protocol (e.g., 'file', 's3://bucket-name', etc.)."""
 
-    storage_options: dict[str, str] = Field(
-        default_factory=dict,
-        title="Storage options",
-    )
+    storage_options: dict[str, str] = Field(default_factory=dict, title="Storage options")
     """Additional options to pass to the filesystem constructor."""
 
     def get_provider(self) -> ResourceProvider:
@@ -331,9 +318,7 @@ class CodeModeToolsetConfig(BaseToolsetConfig):
     type: Literal["code_mode"] = Field("code_mode", init=False)
     """Code mode toolset."""
 
-    toolsets: list[ToolsetConfig] = Field(
-        title="Wrapped toolsets",
-    )
+    toolsets: list[ToolsetConfig] = Field(title="Wrapped toolsets")
     """List of toolsets to expose as a codemode toolset."""
 
     def get_provider(self) -> ResourceProvider:
@@ -350,14 +335,10 @@ class RemoteCodeModeToolsetConfig(BaseToolsetConfig):
     type: Literal["remote_code_mode"] = Field("remote_code_mode", init=False)
     """Code mode toolset."""
 
-    environment: ExecutionEnvironmentConfig = Field(
-        title="Execution environment",
-    )
+    environment: ExecutionEnvironmentConfig = Field(title="Execution environment")
     """Execution environment configuration."""
 
-    toolsets: list[ToolsetConfig] = Field(
-        title="Wrapped toolsets",
-    )
+    toolsets: list[ToolsetConfig] = Field(title="Wrapped toolsets")
     """List of toolsets to expose as a codemode toolset."""
 
     def get_provider(self) -> ResourceProvider:

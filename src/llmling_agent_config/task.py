@@ -70,16 +70,10 @@ class Job[TDeps, TResult = str](Schema):
     )
     """Dependencies or context data needed for task execution"""
 
-    requires_vision: bool = Field(
-        default=False,
-        title="Requires vision capabilities",
-    )
+    requires_vision: bool = Field(default=False, title="Requires vision capabilities")
     """Whether the agent requires vision"""
 
-    knowledge: Knowledge | None = Field(
-        default=None,
-        title="Task knowledge sources",
-    )
+    knowledge: Knowledge | None = Field(default=None, title="Task knowledge sources")
     """Optional knowledge sources for this task:
     - Simple file/URL paths
     - Rich resource definitions

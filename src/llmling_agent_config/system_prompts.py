@@ -78,10 +78,7 @@ class FilePromptConfig(BaseSystemPrompt):
     )
     """Path to the Jinja template file."""
 
-    variables: dict[str, Any] = Field(
-        default_factory=dict,
-        title="Template variables",
-    )
+    variables: dict[str, Any] = Field(default_factory=dict, title="Template variables")
     """Variables to pass to the template."""
 
 
@@ -110,10 +107,7 @@ class FunctionPromptConfig(BaseSystemPrompt):
     )
     """Import path to the function that generates the prompt."""
 
-    arguments: dict[str, Any] = Field(
-        default_factory=dict,
-        title="Function arguments",
-    )
+    arguments: dict[str, Any] = Field(default_factory=dict, title="Function arguments")
     """Arguments to pass to the function."""
 
 
@@ -141,10 +135,7 @@ class PromptLibraryConfig(Schema):
     """Optional template for combining prompts.
     Has access to prompts grouped by type."""
 
-    providers: list[PromptHubConfig] = Field(
-        default_factory=list,
-        title="Prompt hub providers",
-    )
+    providers: list[PromptHubConfig] = Field(default_factory=list, title="Prompt hub providers")
     """List of external prompt providers to use."""
 
     model_config = ConfigDict(frozen=True)

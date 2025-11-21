@@ -19,16 +19,10 @@ GoogleSpeechEncoding = Literal["LINEAR16", "FLAC", "MP3"]
 class BaseConverterConfig(Schema):
     """Base configuration for document converters."""
 
-    type: str = Field(
-        init=False,
-        title="Converter type",
-    )
+    type: str = Field(init=False, title="Converter type")
     """Type discriminator for converter configs."""
 
-    enabled: bool = Field(
-        default=True,
-        title="Converter enabled",
-    )
+    enabled: bool = Field(default=True, title="Converter enabled")
     """Whether this converter is currently active."""
 
     model_config = ConfigDict(frozen=True)
@@ -79,26 +73,13 @@ class YouTubeConverterConfig(BaseConverterConfig):
     )
     """Output format. One of: text, json, vtt, srt."""
 
-    preserve_formatting: bool = Field(
-        default=False,
-        title="Preserve HTML formatting",
-    )
+    preserve_formatting: bool = Field(default=False, title="Preserve HTML formatting")
     """Whether to keep HTML formatting elements like <i> and <b>."""
 
-    max_retries: int = Field(
-        default=3,
-        ge=0,
-        examples=[1, 3, 5],
-        title="Maximum retries",
-    )
+    max_retries: int = Field(default=3, ge=0, examples=[1, 3, 5], title="Maximum retries")
     """Maximum number of retries for failed requests."""
 
-    timeout: int = Field(
-        default=30,
-        gt=0,
-        examples=[15, 30, 60],
-        title="Request timeout",
-    )
+    timeout: int = Field(default=30, gt=0, examples=[15, 30, 60], title="Request timeout")
     """Request timeout in seconds."""
 
     def get_converter(self) -> DocumentConverter:
@@ -162,10 +143,7 @@ class WhisperAPIConfig(BaseConverterConfig):
     )
     """Optional model name."""
 
-    api_key: SecretStr | None = Field(
-        default=None,
-        title="OpenAI API key",
-    )
+    api_key: SecretStr | None = Field(default=None, title="OpenAI API key")
     """OpenAI API key."""
 
     language: str | None = Field(
@@ -222,10 +200,7 @@ class PlainConverterConfig(BaseConverterConfig):
     type: Literal["plain"] = Field("plain", init=False)
     """Type discriminator for plain text converter."""
 
-    force: bool = Field(
-        default=False,
-        title="Force conversion",
-    )
+    force: bool = Field(default=False, title="Force conversion")
     """Whether to attempt converting any file type."""
 
     def get_converter(self) -> DocumentConverter:
@@ -249,10 +224,7 @@ ConverterConfig = Annotated[
 class ConversionConfig(Schema):
     """Global conversion configuration."""
 
-    providers: list[ConverterConfig] | None = Field(
-        default=None,
-        title="Converter providers",
-    )
+    providers: list[ConverterConfig] | None = Field(default=None, title="Converter providers")
     """List of configured converter providers."""
 
     default_provider: str | None = Field(

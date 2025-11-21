@@ -11,17 +11,10 @@ from schemez import Schema
 class BaseChunkerConfig(Schema):
     """Base configuration for text chunkers."""
 
-    type: str = Field(
-        init=False,
-        title="Chunker type",
-    )
+    type: str = Field(init=False, title="Chunker type")
     """Type identifier for the chunker."""
 
-    chunk_overlap: int = Field(
-        default=200,
-        examples=[100, 200, 500],
-        title="Chunk overlap",
-    )
+    chunk_overlap: int = Field(default=200, examples=[100, 200, 500], title="Chunk overlap")
     """Number of characters to overlap between chunks."""
 
     model_config = ConfigDict(frozen=True)
@@ -31,6 +24,7 @@ class LangChainChunkerConfig(BaseChunkerConfig):
     """Configuration for LangChain chunkers."""
 
     type: Literal["langchain"] = Field(default="langchain", init=False)
+    """Langchain chunker configuration."""
 
     chunker_type: Literal["recursive", "markdown", "character"] = Field(
         default="recursive",
@@ -39,11 +33,7 @@ class LangChainChunkerConfig(BaseChunkerConfig):
     )
     """Which LangChain chunker to use."""
 
-    chunk_size: int = Field(
-        default=1000,
-        examples=[500, 1000, 2000],
-        title="Chunk size",
-    )
+    chunk_size: int = Field(default=1000, examples=[500, 1000, 2000], title="Chunk size")
     """Target size of chunks."""
 
 
@@ -51,6 +41,7 @@ class MarkoChunkerConfig(BaseChunkerConfig):
     """Configuration for marko-based markdown chunker."""
 
     type: Literal["marko"] = Field(default="marko", init=False)
+    """Marko chunker configuration."""
 
     split_on: Literal["headers", "paragraphs", "blocks"] = Field(
         default="headers",
@@ -68,10 +59,7 @@ class MarkoChunkerConfig(BaseChunkerConfig):
     )
     """Minimum header level to split on (if splitting on headers)."""
 
-    combine_small_sections: bool = Field(
-        default=True,
-        title="Combine small sections",
-    )
+    combine_small_sections: bool = Field(default=True, title="Combine small sections")
     """Whether to combine small sections with neighbors."""
 
     min_section_length: int = Field(
@@ -95,6 +83,7 @@ class LlamaIndexChunkerConfig(BaseChunkerConfig):
     """Configuration for LlamaIndex chunkers."""
 
     type: Literal["llamaindex"] = Field(default="llamaindex", init=False)
+    """LlamaIndex chunker configuration."""
 
     chunker_type: Literal["sentence", "token", "fixed", "markdown"] = Field(
         default="markdown",
@@ -103,23 +92,13 @@ class LlamaIndexChunkerConfig(BaseChunkerConfig):
     )
     """Which LlamaIndex chunker to use."""
 
-    chunk_size: int = Field(
-        default=1000,
-        examples=[500, 1000, 2000],
-        title="Chunk size",
-    )
+    chunk_size: int = Field(default=1000, examples=[500, 1000, 2000], title="Chunk size")
     """Target size of chunks."""
 
-    include_metadata: bool = Field(
-        default=True,
-        title="Include metadata",
-    )
+    include_metadata: bool = Field(default=True, title="Include metadata")
     """Whether to include document metadata in chunks."""
 
-    include_prev_next_rel: bool = Field(
-        default=False,
-        title="Include relationships",
-    )
+    include_prev_next_rel: bool = Field(default=False, title="Include relationships")
     """Whether to track relationships between chunks."""
 
 

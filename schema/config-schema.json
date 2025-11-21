@@ -2198,8 +2198,7 @@
           "description": "Optional namespace prefix for tool names",
           "examples": [
             "web",
-            "files",
-            "code"
+            "files"
           ],
           "title": "Tool namespace",
           "type": [
@@ -2225,11 +2224,13 @@
         "type": {
           "const": "agentops",
           "default": "agentops",
+          "description": "AgentOps observability configuration.",
           "title": "Type",
           "type": "string"
         },
         "enabled": {
           "default": true,
+          "description": "Provider enabled state.",
           "title": "Provider enabled",
           "type": "boolean"
         },
@@ -2286,6 +2287,7 @@
             }
           ],
           "default": null,
+          "description": "AgentOps API key.",
           "title": "AgentOps API key"
         }
       },
@@ -2379,11 +2381,13 @@
         "type": {
           "const": "arize",
           "default": "arize",
+          "description": "Arize observability configuration.",
           "title": "Type",
           "type": "string"
         },
         "enabled": {
           "default": true,
+          "description": "Provider enabled state.",
           "title": "Provider enabled",
           "type": "boolean"
         },
@@ -2440,10 +2444,12 @@
             }
           ],
           "default": null,
+          "description": "Arize API key.",
           "title": "Arize API key"
         },
         "space_key": {
           "default": null,
+          "description": "Arize space key.",
           "examples": [
             "default",
             "team-space",
@@ -2457,6 +2463,7 @@
         },
         "model_id": {
           "default": null,
+          "description": "Arize model ID.",
           "examples": [
             "gpt-4",
             "claude-3",
@@ -2678,7 +2685,7 @@
             }
           ],
           "default": null,
-          "description": "API key for the Braintrust API.",
+          "description": "API key for the Braintrust API. Defaults to BRAINTRUST_API_KEY env var",
           "title": "Braintrust API key"
         },
         "project": {
@@ -3075,8 +3082,7 @@
           "description": "Optional namespace prefix for tool names",
           "examples": [
             "web",
-            "files",
-            "code"
+            "files"
           ],
           "title": "Tool namespace",
           "type": [
@@ -3104,8 +3110,7 @@
           "description": "Optional namespace prefix for tool names",
           "examples": [
             "web",
-            "files",
-            "code"
+            "files"
           ],
           "title": "Tool namespace",
           "type": [
@@ -3222,8 +3227,7 @@
           "description": "Optional namespace prefix for tool names",
           "examples": [
             "web",
-            "files",
-            "code"
+            "files"
           ],
           "title": "Tool namespace",
           "type": [
@@ -3251,8 +3255,7 @@
           "description": "Optional namespace prefix for tool names",
           "examples": [
             "web",
-            "files",
-            "code"
+            "files"
           ],
           "title": "Tool namespace",
           "type": [
@@ -3570,11 +3573,13 @@
         "type": {
           "const": "custom",
           "default": "custom",
+          "description": "Custom OTEL endpoint configuration.",
           "title": "Type",
           "type": "string"
         },
         "enabled": {
           "default": true,
+          "description": "Provider enabled state.",
           "title": "Provider enabled",
           "type": "boolean"
         },
@@ -3620,6 +3625,7 @@
           "type": "string"
         },
         "endpoint": {
+          "description": "Custom OTEL endpoint URL.",
           "examples": [
             "https://otel.example.com",
             "http://localhost:4318"
@@ -3631,6 +3637,7 @@
           "additionalProperties": {
             "type": "string"
           },
+          "description": "Custom headers for the OTEL endpoint.",
           "title": "Custom headers",
           "type": "object"
         }
@@ -3650,8 +3657,7 @@
           "description": "Optional namespace prefix for tool names",
           "examples": [
             "web",
-            "files",
-            "code"
+            "files"
           ],
           "title": "Tool namespace",
           "type": [
@@ -4159,8 +4165,7 @@
           "description": "Optional namespace prefix for tool names",
           "examples": [
             "web",
-            "files",
-            "code"
+            "files"
           ],
           "title": "Tool namespace",
           "type": [
@@ -4200,8 +4205,7 @@
           "description": "Optional namespace prefix for tool names",
           "examples": [
             "web",
-            "files",
-            "code"
+            "files"
           ],
           "title": "Tool namespace",
           "type": [
@@ -4299,8 +4303,7 @@
           "description": "Optional namespace prefix for tool names",
           "examples": [
             "web",
-            "files",
-            "code"
+            "files"
           ],
           "title": "Tool namespace",
           "type": [
@@ -4927,11 +4930,10 @@
         },
         "encoding": {
           "default": "utf-8",
-          "description": "File encoding",
+          "description": "File encoding of the storage file.",
           "examples": [
             "utf-8",
-            "ascii",
-            "latin1"
+            "ascii"
           ],
           "title": "File encoding",
           "type": "string"
@@ -5196,8 +5198,7 @@
           "description": "Optional namespace prefix for tool names",
           "examples": [
             "web",
-            "files",
-            "code"
+            "files"
           ],
           "title": "Tool namespace",
           "type": [
@@ -5449,8 +5450,7 @@
           "description": "Optional namespace prefix for tool names",
           "examples": [
             "web",
-            "files",
-            "code"
+            "files"
           ],
           "title": "Tool namespace",
           "type": [
@@ -5877,11 +5877,13 @@
         "type": {
           "const": "langsmith",
           "default": "langsmith",
+          "description": "Langsmith observability configuration.",
           "title": "Type",
           "type": "string"
         },
         "enabled": {
           "default": true,
+          "description": "Provider enabled state.",
           "title": "Provider enabled",
           "type": "boolean"
         },
@@ -5938,6 +5940,7 @@
             }
           ],
           "default": null,
+          "description": "Langsmith API key.",
           "title": "Langsmith API key"
         },
         "project_name": {
@@ -6172,11 +6175,13 @@
         "type": {
           "const": "logfire",
           "default": "logfire",
+          "description": "Logfire endpoint type.",
           "title": "Type",
           "type": "string"
         },
         "enabled": {
           "default": true,
+          "description": "Provider enabled state.",
           "title": "Provider enabled",
           "type": "boolean"
         },
@@ -6233,10 +6238,12 @@
             }
           ],
           "default": null,
+          "description": "Logfire token.",
           "title": "Logfire token"
         },
         "region": {
           "default": "us",
+          "description": "Logfire region.",
           "enum": [
             "us",
             "eu"
@@ -6259,7 +6266,7 @@
         "enabled": {
           "default": false,
           "description": "Whether this server is currently enabled.",
-          "title": "Enabled",
+          "title": "Server enabled",
           "type": "boolean"
         },
         "serve_nodes": {
@@ -6276,7 +6283,17 @@
           ],
           "default": true,
           "description": "Which nodes to expose as tools:\n- True: All nodes\n- False: No nodes\n- list[str]: Specific node names",
-          "title": "Serve Nodes"
+          "examples": [
+            [
+              "node1",
+              "node2"
+            ],
+            [
+              "analysis",
+              "transform"
+            ]
+          ],
+          "title": "Serve nodes"
         },
         "serve_prompts": {
           "anyOf": [
@@ -6292,7 +6309,17 @@
           ],
           "default": true,
           "description": "Which prompts to expose:\n- True: All prompts from manifest\n- False: No prompts\n- list[str]: Specific prompt names",
-          "title": "Serve Prompts"
+          "examples": [
+            [
+              "prompt1",
+              "prompt2"
+            ],
+            [
+              "system",
+              "user"
+            ]
+          ],
+          "title": "Serve prompts"
         },
         "transport": {
           "default": "stdio",
@@ -6302,34 +6329,58 @@
             "sse",
             "streamable-http"
           ],
-          "title": "Transport",
+          "examples": [
+            "stdio",
+            "sse",
+            "streamable-http"
+          ],
+          "title": "Transport type",
           "type": "string"
         },
         "host": {
           "default": "localhost",
           "description": "Host to bind server to (SSE / Streamable-HTTP only).",
-          "title": "Host",
+          "examples": [
+            "localhost",
+            "0.0.0.0",
+            "127.0.0.1"
+          ],
+          "title": "Server host",
           "type": "string"
         },
         "port": {
           "default": 3001,
           "description": "Port to listen on (SSE / Streamable-HTTP only).",
+          "examples": [
+            3001,
+            8080,
+            9000
+          ],
           "exclusiveMinimum": 0,
-          "title": "Port",
+          "title": "Server port",
           "type": "integer"
         },
         "cors_origins": {
           "description": "Allowed CORS origins (SSE / Streamable-HTTP only).",
+          "examples": [
+            [
+              "*"
+            ],
+            [
+              "https://example.com",
+              "https://app.com"
+            ]
+          ],
           "items": {
             "type": "string"
           },
-          "title": "Cors Origins",
+          "title": "CORS origins",
           "type": "array"
         },
         "zed_mode": {
           "default": false,
           "description": "Enable Zed editor compatibility mode.",
-          "title": "Zed Mode",
+          "title": "Zed editor mode",
           "type": "boolean"
         }
       },
@@ -7044,8 +7095,7 @@
           "description": "Optional namespace prefix for tool names",
           "examples": [
             "web",
-            "files",
-            "code"
+            "files"
           ],
           "title": "Tool namespace",
           "type": [
@@ -7224,8 +7274,7 @@
           "description": "Optional namespace prefix for tool names",
           "examples": [
             "web",
-            "files",
-            "code"
+            "files"
           ],
           "title": "Tool namespace",
           "type": [
@@ -7418,8 +7467,7 @@
           "description": "Optional namespace prefix for tool names",
           "examples": [
             "web",
-            "files",
-            "code"
+            "files"
           ],
           "title": "Tool namespace",
           "type": [
@@ -9185,8 +9233,7 @@
           "description": "File encoding",
           "examples": [
             "utf-8",
-            "ascii",
-            "latin1"
+            "ascii"
           ],
           "title": "File encoding",
           "type": "string"
@@ -9422,8 +9469,7 @@
           "description": "Optional namespace prefix for tool names",
           "examples": [
             "web",
-            "files",
-            "code"
+            "files"
           ],
           "title": "Tool namespace",
           "type": [
@@ -9517,8 +9563,7 @@
           "description": "Optional namespace prefix for tool names",
           "examples": [
             "web",
-            "files",
-            "code"
+            "files"
           ],
           "title": "Tool namespace",
           "type": [
@@ -9649,8 +9694,7 @@
           "description": "Optional namespace prefix for tool names",
           "examples": [
             "web",
-            "files",
-            "code"
+            "files"
           ],
           "title": "Tool namespace",
           "type": [
@@ -9736,8 +9780,7 @@
           "description": "Optional namespace prefix for tool names",
           "examples": [
             "web",
-            "files",
-            "code"
+            "files"
           ],
           "title": "Tool namespace",
           "type": [

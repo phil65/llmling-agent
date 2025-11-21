@@ -9,6 +9,9 @@ from pydantic import Field
 from llmling_agent_config.nodes import NodeConfig
 
 
+ExecutionMode = Literal["parallel", "sequential"]
+
+
 class TeamConfig(NodeConfig):
     """Configuration for a team or chain of message nodes.
 
@@ -16,10 +19,7 @@ class TeamConfig(NodeConfig):
     They can contain both agents and other teams as members.
     """
 
-    mode: Literal["parallel", "sequential"] = Field(
-        examples=["parallel", "sequential"],
-        title="Execution mode",
-    )
+    mode: ExecutionMode = Field(examples=["parallel", "sequential"], title="Execution mode")
     """Execution mode for team members."""
 
     members: list[str] = Field(

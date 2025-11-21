@@ -17,10 +17,7 @@ if TYPE_CHECKING:
 class ConnectionCondition(Schema):
     """Base class for connection control conditions."""
 
-    type: str = Field(
-        init=False,
-        title="Condition type",
-    )
+    type: str = Field(init=False, title="Condition type")
     """Discriminator for condition types."""
 
     name: str | None = Field(
@@ -76,10 +73,7 @@ class WordMatchCondition(ConnectionCondition):
     )
     """Words or phrases to match in messages."""
 
-    case_sensitive: bool = Field(
-        default=False,
-        title="Case sensitive matching",
-    )
+    case_sensitive: bool = Field(default=False, title="Case sensitive matching")
     """Whether to match case-sensitively."""
 
     mode: Literal["any", "all"] = Field(
@@ -111,11 +105,7 @@ class MessageCountCondition(ConnectionCondition):
     type: Literal["message_count"] = Field("message_count", init=False)
     """Message-count-based condition."""
 
-    max_messages: int = Field(
-        gt=0,
-        examples=[10, 50, 100],
-        title="Maximum message count",
-    )
+    max_messages: int = Field(gt=0, examples=[10, 50, 100], title="Maximum message count")
     """Maximum number of messages before triggering."""
 
     count_mode: Literal["total", "per_agent"] = Field(
@@ -144,9 +134,7 @@ class TimeCondition(ConnectionCondition):
     type: Literal["time"] = Field("time", init=False)
     """Time-based condition."""
 
-    duration: timedelta = Field(
-        title="Duration threshold",
-    )
+    duration: timedelta = Field(title="Duration threshold")
     """How long the connection should stay active."""
 
     async def check(self, context: EventContext[Any]) -> bool:
@@ -163,11 +151,7 @@ class TokenThresholdCondition(ConnectionCondition):
     type: Literal["token_threshold"] = Field("token_threshold", init=False)
     """Type discriminator."""
 
-    max_tokens: int = Field(
-        gt=0,
-        examples=[1000, 4000, 8000],
-        title="Maximum token count",
-    )
+    max_tokens: int = Field(gt=0, examples=[1000, 4000, 8000], title="Maximum token count")
     """Maximum number of tokens allowed."""
 
     count_type: Literal["total", "prompt", "completion"] = Field(
@@ -203,11 +187,7 @@ class CostCondition(ConnectionCondition):
     type: Literal["cost"] = Field("cost", init=False)
     """Cost-based condition."""
 
-    max_cost: float = Field(
-        gt=0.0,
-        examples=[1.0, 5.0, 10.0],
-        title="Maximum cost threshold",
-    )
+    max_cost: float = Field(gt=0.0, examples=[1.0, 5.0, 10.0], title="Maximum cost threshold")
     """Maximum cost in USD."""
 
     async def check(self, context: EventContext[Any]) -> bool:
@@ -221,11 +201,7 @@ class CostLimitCondition(ConnectionCondition):
     type: Literal["cost_limit"] = Field("cost_limit", init=False)
     """Cost-limit condition."""
 
-    max_cost: float = Field(
-        gt=0.0,
-        examples=[1.0, 5.0, 10.0],
-        title="Cost limit",
-    )
+    max_cost: float = Field(gt=0.0, examples=[1.0, 5.0, 10.0], title="Cost limit")
     """Maximum cost in USD before triggering."""
 
     async def check(self, context: EventContext[Any]) -> bool:
@@ -266,9 +242,7 @@ class AndCondition(ConnectionCondition):
     type: Literal["and"] = Field("and", init=False)
     """Condition to AND-combine multiple conditions."""
 
-    conditions: list[ConnectionCondition] = Field(
-        title="AND conditions",
-    )
+    conditions: list[ConnectionCondition] = Field(title="AND conditions")
     """List of conditions to check."""
 
     async def check(self, context: EventContext[Any]) -> bool:
@@ -283,9 +257,7 @@ class OrCondition(ConnectionCondition):
     type: Literal["or"] = Field("or", init=False)
     """Condition to OR-combine multiple conditions."""
 
-    conditions: list[ConnectionCondition] = Field(
-        title="OR conditions",
-    )
+    conditions: list[ConnectionCondition] = Field(title="OR conditions")
     """List of conditions to check."""
 
     async def check(self, context: EventContext[Any]) -> bool:

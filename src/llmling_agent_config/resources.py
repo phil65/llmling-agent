@@ -39,10 +39,7 @@ class ResourceInfo:
 class BaseResourceConfig(Schema):
     """Base configuration for resources."""
 
-    type: str = Field(
-        init=False,
-        title="Resource config type",
-    )
+    type: str = Field(init=False, title="Resource config type")
     """Type discriminator for resource configs."""
 
     path: str | None = Field(
@@ -52,16 +49,10 @@ class BaseResourceConfig(Schema):
     )
     """Optional path prefix within the filesystem."""
 
-    cached: bool = Field(
-        default=False,
-        title="Enable caching",
-    )
+    cached: bool = Field(default=False, title="Enable caching")
     """Whether to wrap in caching filesystem."""
 
-    storage_options: dict[str, Any] = Field(
-        default_factory=dict,
-        title="Storage options",
-    )
+    storage_options: dict[str, Any] = Field(default_factory=dict, title="Storage options")
     """Protocol-specific storage options."""
 
     model_config = ConfigDict(frozen=True)
@@ -86,9 +77,7 @@ class UnionResourceConfig(BaseResourceConfig):
     type: Literal["union"] = Field("union", init=False)
     """Union of multiple resources."""
 
-    sources: list[ResourceConfig] = Field(
-        title="Resource sources",
-    )
+    sources: list[ResourceConfig] = Field(title="Resource sources")
     """List of resources to combine."""
 
 

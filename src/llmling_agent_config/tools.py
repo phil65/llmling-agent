@@ -33,28 +33,16 @@ class BaseToolConfig(Schema):
     )
     """Optional override for the tool description."""
 
-    enabled: bool = Field(
-        default=True,
-        title="Tool enabled",
-    )
+    enabled: bool = Field(default=True, title="Tool enabled")
     """Whether this tool is initially enabled."""
 
-    requires_confirmation: bool = Field(
-        default=False,
-        title="Requires confirmation",
-    )
+    requires_confirmation: bool = Field(default=False, title="Requires confirmation")
     """Whether tool execution needs confirmation."""
 
-    metadata: dict[str, str] = Field(
-        default_factory=dict,
-        title="Tool metadata",
-    )
+    metadata: dict[str, str] = Field(default_factory=dict, title="Tool metadata")
     """Additional tool metadata."""
 
-    hints: ToolHints | None = Field(
-        default=None,
-        title="Execution hints",
-    )
+    hints: ToolHints | None = Field(default=None, title="Execution hints")
     """Hints for tool execution."""
 
     model_config = ConfigDict(frozen=True)
@@ -67,28 +55,16 @@ class BaseToolConfig(Schema):
 class ToolHints(Schema):
     """Configuration for tool execution hints."""
 
-    read_only: bool | None = Field(
-        default=None,
-        title="Read-only operation",
-    )
+    read_only: bool | None = Field(default=None, title="Read-only operation")
     """Hints that this tool only reads data without modifying anything"""
 
-    destructive: bool | None = Field(
-        default=None,
-        title="Destructive operation",
-    )
+    destructive: bool | None = Field(default=None, title="Destructive operation")
     """Hints that this tool performs destructive operations that cannot be undone"""
 
-    idempotent: bool | None = Field(
-        default=None,
-        title="Idempotent operation",
-    )
+    idempotent: bool | None = Field(default=None, title="Idempotent operation")
     """Hints that this tool has idempotent behaviour"""
 
-    open_world: bool | None = Field(
-        default=None,
-        title="External resource access",
-    )
+    open_world: bool | None = Field(default=None, title="External resource access")
     """Hints that this tool can access / interact with external resources beyond the
     current system"""
 
@@ -131,10 +107,7 @@ class CrewAIToolConfig(BaseToolConfig):
     )
     """Import path to CrewAI tool class."""
 
-    params: dict[str, Any] = Field(
-        default_factory=dict,
-        title="Tool parameters",
-    )
+    params: dict[str, Any] = Field(default_factory=dict, title="Tool parameters")
     """Tool-specific parameters."""
 
     def get_tool(self) -> Tool:
@@ -167,10 +140,7 @@ class LangChainToolConfig(BaseToolConfig):
     )
     """Name of LangChain tool to use."""
 
-    params: dict[str, Any] = Field(
-        default_factory=dict,
-        title="Tool parameters",
-    )
+    params: dict[str, Any] = Field(default_factory=dict, title="Tool parameters")
     """Tool-specific parameters."""
 
     def get_tool(self) -> Tool:

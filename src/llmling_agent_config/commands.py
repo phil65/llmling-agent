@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 import inspect
+from pathlib import Path
 import re
 from typing import Annotated, Any, Literal
 
@@ -14,9 +15,7 @@ from schemez import Schema
 class BaseCommandConfig(Schema):
     """Base configuration for commands."""
 
-    type: str = Field(
-        title="Command type",
-    )
+    type: str = Field(title="Command type")
     """Type discriminator for command configurations."""
 
     name: str | None = Field(
@@ -95,7 +94,6 @@ class StaticCommandConfig(BaseCommandConfig):
             for name in param_names
         ]
         signature = inspect.Signature(parameters, return_annotation=str)
-
         # Set function metadata
         command_func.__name__ = self.name or "unnamed_command"
         command_func.__doc__ = self.description or self.content
@@ -188,12 +186,8 @@ class FileCommandConfig(BaseCommandConfig):
             FileNotFoundError: If the specified file doesn't exist
             UnicodeDecodeError: If file cannot be decoded with specified encoding
         """
-        from pathlib import Path
-
-        # Load content from file
         file_path = Path(self.path)
         content = file_path.read_text(encoding=self.encoding)
-
         # Extract parameter names from {param} placeholders
         param_names = list(set(re.findall(r"\{(\w+)\}", content)))
         param_names.sort()  # Consistent ordering

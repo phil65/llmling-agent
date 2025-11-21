@@ -9,6 +9,7 @@ import warnings
 
 from pydantic import ConfigDict, Field, SecretStr, model_validator
 from schemez import Schema
+import upath
 
 from llmling_agent.common_types import JsonObject
 from llmling_agent.utils.importing import import_callable
@@ -17,19 +18,32 @@ from llmling_agent.utils.importing import import_callable
 class BaseResourceLoaderConfig(Schema):
     """Base class for all resource types."""
 
-    type: str = Field(init=False)
+    type: str = Field(init=False, title="Resource type")
     """Type identifier for this resource."""
 
-    description: str = ""
+    description: str = Field(
+        default="",
+        title="Resource description",
+        examples=["Configuration file", "User data", "API response"],
+    )
     """Human-readable description of the resource."""
 
-    uri: str | None = None
+    uri: str | None = Field(
+        default=None,
+        title="Resource URI",
+        examples=["file:///path/to/file", "https://api.example.com/data"],
+    )
     """Canonical URI for this resource, set during registration if unset."""
 
     # watch: WatchConfig | None = None
     # """Configuration for file system watching, if supported."""
 
-    name: str | None = Field(None, exclude=True)
+    name: str | None = Field(
+        default=None,
+        exclude=True,
+        title="Resource name",
+        examples=["config", "user_data", "api_response"],
+    )
     """Technical identifier (automatically set from config key during registration)."""
 
     model_config = ConfigDict(frozen=True)
@@ -60,33 +74,30 @@ class BaseResourceLoaderConfig(Schema):
 class PathResourceLoaderConfig(BaseResourceLoaderConfig):
     """Resource loaded from a file or URL."""
 
-    type: Literal["path"] = Field(default="path", init=False)
+    type: Literal["path"] = Field(default="path", init=False, title="Resource type")
     """Discriminator field identifying this as a path-based resource."""
 
-    path: str
+    path: str = Field(
+        title="File path or URL",
+        examples=["/path/to/file.txt", "https://example.com/data.json", "config/settings.yml"],
+    )
     """Path to the file or URL to load."""
 
-    watch: WatchConfig | None = None
+    watch: WatchConfig | None = Field(default=None, title="Watch configuration")
     """Configuration for watching the file for changes."""
 
     def validate_resource(self) -> list[str]:
         """Check if path exists for local files."""
-        import upath
-
         warnings = []
         path = upath.UPath(self.path)
         prefixes = ("http://", "https://")
-
         if not path.exists() and not path.as_uri().startswith(prefixes):
             warnings.append(f"Resource path not found: {path}")
-
         return warnings
 
     @property
     def supports_watching(self) -> bool:
         """Whether this resource instance supports watching."""
-        import upath
-
         if not upath.UPath(self.path).exists():
             msg = f"Cannot watch non-existent path: {self.path}"
             warnings.warn(msg, UserWarning, stacklevel=2)
@@ -117,10 +128,13 @@ class PathResourceLoaderConfig(BaseResourceLoaderConfig):
 class TextResourceLoaderConfig(BaseResourceLoaderConfig):
     """Raw text resource."""
 
-    type: Literal["text"] = Field(default="text", init=False)
+    type: Literal["text"] = Field(default="text", init=False, title="Resource type")
     """Discriminator field identifying this as a text-based resource."""
 
-    content: str
+    content: str = Field(
+        title="Text content",
+        examples=["Hello World", '{ "key": "value" }', "---\nkey: value"],
+    )
     """The actual text content of the resource."""
 
     _mime_type: str | None = None  # Optional override
@@ -145,19 +159,30 @@ class TextResourceLoaderConfig(BaseResourceLoaderConfig):
 class CLIResourceLoaderConfig(BaseResourceLoaderConfig):
     """Resource from CLI command execution."""
 
-    type: Literal["cli"] = Field(default="cli", init=False)
+    type: Literal["cli"] = Field(default="cli", init=False, title="Resource type")
     """Discriminator field identifying this as a CLI-based resource."""
 
-    command: str | TypingSequence[str]
+    command: str | TypingSequence[str] = Field(
+        title="Command to execute",
+        examples=["ls -la", "git status", ["python", "script.py", "--arg"]],
+    )
     """Command to execute (string or sequence of arguments)."""
 
-    shell: bool = False
+    shell: bool = Field(default=False, title="Use shell")
     """Whether to run the command through a shell."""
 
-    cwd: str | None = None
+    cwd: str | None = Field(
+        default=None,
+        title="Working directory",
+        examples=["/path/to/project", "~/workspace"],
+    )
     """Working directory for command execution."""
 
-    timeout: float | None = None
+    timeout: float | None = Field(
+        default=None,
+        title="Timeout in seconds",
+        examples=[30.0, 60.0, 120.0],
+    )
     """Maximum time in seconds to wait for command completion."""
 
     @model_validator(mode="after")
@@ -179,23 +204,44 @@ class CLIResourceLoaderConfig(BaseResourceLoaderConfig):
 class RepositoryResource(BaseResourceLoaderConfig):
     """Git repository content."""
 
-    type: Literal["repository"] = Field("repository", init=False)
-    repo_url: str
+    type: Literal["repository"] = Field(default="repository", init=False, title="Resource type")
+    """Repository resource configuration."""
+
+    repo_url: str = Field(
+        title="Repository URL",
+        examples=["https://github.com/user/repo.git", "git@github.com:user/repo.git"],
+    )
     """URL of the git repository."""
 
-    ref: str = "main"
+    ref: str = Field(
+        default="main",
+        title="Git reference",
+        examples=["main", "develop", "v1.0.0", "abc123def"],
+    )
     """Git reference (branch, tag, or commit)."""
 
-    path: str = ""
+    path: str = Field(
+        default="",
+        title="Repository path",
+        examples=["", "src/", "docs/README.md"],
+    )
     """Path within the repository."""
 
-    sparse_checkout: list[str] | None = None
+    sparse_checkout: list[str] | None = Field(
+        default=None,
+        title="Sparse checkout paths",
+        examples=[["src/", "docs/"], ["*.py", "requirements.txt"]],
+    )
     """Optional list of paths for sparse checkout."""
 
-    user: str | None = None
+    user: str | None = Field(
+        default=None,
+        title="Username",
+        examples=["github_user", "git_username"],
+    )
     """Optional user name for authentication."""
 
-    password: SecretStr | None = None
+    password: SecretStr | None = Field(default=None, title="Password")
     """Optional password for authentication."""
 
     def validate_resource(self) -> list[str]:
@@ -208,16 +254,19 @@ class RepositoryResource(BaseResourceLoaderConfig):
 class SourceResourceLoaderConfig(BaseResourceLoaderConfig):
     """Resource from Python source code."""
 
-    type: Literal["source"] = Field(default="source", init=False)
-    """Discriminator field identifying this as a source code resource."""
+    type: Literal["source"] = Field(default="source", init=False, title="Resource type")
+    """Source code resource configuration."""
 
-    import_path: str
+    import_path: str = Field(
+        title="Import path",
+        examples=["mypackage.module", "utils.helpers", "app.models.User"],
+    )
     """Dotted import path to the Python module or object."""
 
-    recursive: bool = False
+    recursive: bool = Field(default=False, title="Include recursively")
     """Whether to include submodules recursively."""
 
-    include_tests: bool = False
+    include_tests: bool = Field(default=False, title="Include tests")
     """Whether to include test files and directories."""
 
     @model_validator(mode="after")
@@ -232,13 +281,16 @@ class SourceResourceLoaderConfig(BaseResourceLoaderConfig):
 class CallableResourceLoaderConfig(BaseResourceLoaderConfig):
     """Resource from executing a Python callable."""
 
-    type: Literal["callable"] = Field(default="callable", init=False)
-    """Discriminator field identifying this as a callable-based resource."""
+    type: Literal["callable"] = Field(default="callable", init=False, title="Resource type")
+    """Callable-based resource configuration."""
 
-    import_path: str
+    import_path: str = Field(
+        title="Callable import path",
+        examples=["mymodule.get_data", "utils.generators.create_content"],
+    )
     """Dotted import path to the callable to execute."""
 
-    keyword_args: JsonObject = Field(default_factory=dict)
+    keyword_args: JsonObject = Field(default_factory=dict, title="Keyword arguments")
     """Keyword arguments to pass to the callable."""
 
     @model_validator(mode="after")
@@ -259,12 +311,16 @@ class CallableResourceLoaderConfig(BaseResourceLoaderConfig):
 class LangChainResourceLoader(BaseResourceLoaderConfig):
     """Wrapper for LangChain document loaders."""
 
-    type: Literal["langchain"] = Field("langchain", init=False)
+    type: Literal["langchain"] = Field(default="langchain", init=False, title="Resource type")
+    """Langchain resource configuration."""
 
-    loader_class: str
+    loader_class: str = Field(
+        title="LangChain loader class",
+        examples=["langchain.document_loaders.TextLoader", "langchain.document_loaders.CSVLoader"],
+    )
     """Import path to LangChain loader class."""
 
-    loader_args: JsonObject = Field(default_factory=dict)
+    loader_args: JsonObject = Field(default_factory=dict, title="Loader arguments")
     """Arguments for loader initialization."""
 
     # async def load(self, **kwargs: Any) -> AsyncIterator[Content]:
@@ -305,11 +361,19 @@ Resource = Annotated[
 class WatchConfig(Schema):
     """Watch configuration for resources."""
 
-    enabled: bool = False
+    enabled: bool = Field(default=False, title="Watch enabled")
     """Whether the watch is enabled"""
 
-    patterns: list[str] | None = None
+    patterns: list[str] | None = Field(
+        default=None,
+        title="Watch patterns",
+        examples=[["*.py", "*.yml"], ["src/**", "!**/__pycache__"]],
+    )
     """List of pathspec patterns (.gitignore style)"""
 
-    ignore_file: str | None = None
+    ignore_file: str | None = Field(
+        default=None,
+        title="Ignore file path",
+        examples=[".gitignore", ".watchignore"],
+    )
     """Path to .gitignore-style file"""

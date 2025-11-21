@@ -36,10 +36,7 @@ Metadata:
 class EventSourceConfig(Schema):
     """Base configuration for event sources."""
 
-    type: str = Field(
-        init=False,
-        title="Event source type",
-    )
+    type: str = Field(init=False, title="Event source type")
     """Discriminator field for event source types."""
 
     name: str = Field(
@@ -48,10 +45,7 @@ class EventSourceConfig(Schema):
     )
     """Unique identifier for this event source."""
 
-    enabled: bool = Field(
-        default=True,
-        title="Source enabled",
-    )
+    enabled: bool = Field(default=True, title="Source enabled")
     """Whether this event source is active."""
 
     template: str = Field(
@@ -61,16 +55,10 @@ class EventSourceConfig(Schema):
     )
     """Jinja2 template for formatting events."""
 
-    include_metadata: bool = Field(
-        default=True,
-        title="Include metadata",
-    )
+    include_metadata: bool = Field(default=True, title="Include metadata")
     """Control metadata visibility in template."""
 
-    include_timestamp: bool = Field(
-        default=True,
-        title="Include timestamp",
-    )
+    include_timestamp: bool = Field(default=True, title="Include timestamp")
     """Control timestamp visibility in template."""
 
     model_config = ConfigDict(frozen=True)
@@ -102,10 +90,7 @@ class FileWatchConfig(EventSourceConfig):
     )
     """Paths or patterns to ignore."""
 
-    recursive: bool = Field(
-        default=True,
-        title="Recursive watching",
-    )
+    recursive: bool = Field(default=True, title="Recursive watching")
     """Whether to watch subdirectories."""
 
     debounce: int = Field(
@@ -123,10 +108,7 @@ class WebhookConfig(EventSourceConfig):
     type: Literal["webhook"] = Field("webhook", init=False)
     """webhook-based event."""
 
-    port: int = Field(
-        examples=[8080, 9000, 3000],
-        title="Listen port",
-    )
+    port: int = Field(examples=[8080, 9000, 3000], title="Listen port")
     """Port to listen on."""
 
     path: str = Field(
@@ -168,10 +150,7 @@ class TimeEventConfig(EventSourceConfig):
     )
     """Timezone for schedule (defaults to system timezone)"""
 
-    skip_missed: bool = Field(
-        default=False,
-        title="Skip missed executions",
-    )
+    skip_missed: bool = Field(default=False, title="Skip missed executions")
     """Whether to skip executions missed while agent was inactive"""
 
 
@@ -191,35 +170,19 @@ class EmailConfig(EventSourceConfig):
     )
     """IMAP server hostname (e.g. 'imap.gmail.com')"""
 
-    port: int = Field(
-        default=993,
-        examples=[993, 143, 465],
-        title="IMAP server port",
-    )
+    port: int = Field(default=993, examples=[993, 143, 465], title="IMAP server port")
     """Server port (defaults to 993 for IMAP SSL)"""
 
-    username: str = Field(
-        examples=["user@gmail.com", "admin@company.com"],
-        title="Email username",
-    )
+    username: str = Field(examples=["user@gmail.com", "admin@company.com"], title="Email username")
     """Email account username/address"""
 
-    password: SecretStr = Field(
-        title="Email password",
-    )
+    password: SecretStr = Field(title="Email password")
     """Account password or app-specific password"""
 
-    folder: str = Field(
-        default="INBOX",
-        examples=["INBOX", "Sent", "Drafts"],
-        title="Email folder",
-    )
+    folder: str = Field(default="INBOX", examples=["INBOX", "Sent", "Drafts"], title="Email folder")
     """Folder/mailbox to monitor"""
 
-    ssl: bool = Field(
-        default=True,
-        title="Use SSL/TLS",
-    )
+    ssl: bool = Field(default=True, title="Use SSL/TLS")
     """Whether to use SSL/TLS connection"""
 
     check_interval: int = Field(
@@ -231,10 +194,7 @@ class EmailConfig(EventSourceConfig):
     )
     """How often to check for new emails (in seconds)"""
 
-    mark_seen: bool = Field(
-        default=True,
-        title="Mark emails as seen",
-    )
+    mark_seen: bool = Field(default=True, title="Mark emails as seen")
     """Whether to mark processed emails as seen"""
 
     filters: dict[str, str] = Field(
@@ -279,10 +239,7 @@ class ConnectionTriggerConfig(EventSourceConfig):
     )
     """Event type to trigger on."""
 
-    condition: ConnectionEventConditionType | None = Field(
-        default=None,
-        title="Event condition",
-    )
+    condition: ConnectionEventConditionType | None = Field(default=None, title="Event condition")
     """Condition-based filter for the event."""
 
     async def matches_event(self, event: ConnectionEventData[Any]) -> bool:

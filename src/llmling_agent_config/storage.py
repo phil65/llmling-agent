@@ -43,34 +43,19 @@ class BaseStorageProviderConfig(Schema):
     type: str = Field(init=False)
     """Storage provider type."""
 
-    log_messages: bool = Field(
-        default=True,
-        title="Log messages",
-    )
+    log_messages: bool = Field(default=True, title="Log messages")
     """Whether to log messages"""
 
-    agents: set[str] | None = Field(
-        default=None,
-        title="Agent filter",
-    )
+    agents: set[str] | None = Field(default=None, title="Agent filter")
     """Optional set of agent names to include. If None, logs all agents."""
 
-    log_conversations: bool = Field(
-        default=True,
-        title="Log conversations",
-    )
+    log_conversations: bool = Field(default=True, title="Log conversations")
     """Whether to log conversations"""
 
-    log_commands: bool = Field(
-        default=True,
-        title="Log commands",
-    )
+    log_commands: bool = Field(default=True, title="Log commands")
     """Whether to log command executions"""
 
-    log_context: bool = Field(
-        default=True,
-        title="Log context",
-    )
+    log_context: bool = Field(default=True, title="Log context")
     """Whether to log context messages."""
 
     model_config = ConfigDict(frozen=True)
@@ -97,10 +82,7 @@ class SQLStorageConfig(BaseStorageProviderConfig):
     )
     """Connection pool size"""
 
-    auto_migration: bool = Field(
-        default=True,
-        title="Auto migration",
-    )
+    auto_migration: bool = Field(default=True, title="Auto migration")
     """Whether to automatically add missing columns"""
 
     def get_engine(self) -> AsyncEngine:
@@ -147,11 +129,7 @@ class TextLogConfig(BaseStorageProviderConfig):
     )
     """Template to use: either predefined name or path to custom template"""
 
-    encoding: str = Field(
-        default="utf-8",
-        examples=["utf-8", "ascii", "latin1"],
-        title="File encoding",
-    )
+    encoding: str = Field(default="utf-8", examples=["utf-8", "ascii"], title="File encoding")
     """File encoding"""
 
 
@@ -175,12 +153,8 @@ class FileStorageConfig(BaseStorageProviderConfig):
     )
     """Storage format (auto=detect from extension)"""
 
-    encoding: str = Field(
-        default="utf-8",
-        examples=["utf-8", "ascii", "latin1"],
-        title="File encoding",
-    )
-    """File encoding"""
+    encoding: str = Field(default="utf-8", examples=["utf-8", "ascii"], title="File encoding")
+    """File encoding of the storage file."""
 
 
 class MemoryStorageConfig(BaseStorageProviderConfig):
@@ -199,10 +173,7 @@ StorageProviderConfig = Annotated[
 class StorageConfig(Schema):
     """Global storage configuration."""
 
-    providers: list[StorageProviderConfig] | None = Field(
-        default=None,
-        title="Storage providers",
-    )
+    providers: list[StorageProviderConfig] | None = Field(default=None, title="Storage providers")
     """List of configured storage providers"""
 
     default_provider: str | None = Field(
@@ -213,10 +184,7 @@ class StorageConfig(Schema):
     """Name of default provider for history queries.
     If None, uses first configured provider."""
 
-    agents: set[str] | None = Field(
-        default=None,
-        title="Global agent filter",
-    )
+    agents: set[str] | None = Field(default=None, title="Global agent filter")
     """Global agent filter. Can be overridden by provider-specific filters."""
 
     filter_mode: FilterMode = Field(
@@ -229,28 +197,16 @@ class StorageConfig(Schema):
     - "override": Provider filter overrides global filter if set
     """
 
-    log_messages: bool = Field(
-        default=True,
-        title="Log messages",
-    )
+    log_messages: bool = Field(default=True, title="Log messages")
     """Whether to log messages."""
 
-    log_conversations: bool = Field(
-        default=True,
-        title="Log conversations",
-    )
+    log_conversations: bool = Field(default=True, title="Log conversations")
     """Whether to log conversations."""
 
-    log_commands: bool = Field(
-        default=True,
-        title="Log commands",
-    )
+    log_commands: bool = Field(default=True, title="Log commands")
     """Whether to log command executions."""
 
-    log_context: bool = Field(
-        default=True,
-        title="Log context",
-    )
+    log_context: bool = Field(default=True, title="Log context")
     """Whether to log additions to the context."""
 
     title_generation_model: str = Field(

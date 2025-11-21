@@ -17,11 +17,7 @@ from llmling_agent_config.tools import BaseToolConfig
 
 
 if TYPE_CHECKING:
-    from pydantic_ai.builtin_tools import (
-        AbstractBuiltinTool,
-        MemoryTool,
-        WebSearchUserLocation,
-    )
+    from pydantic_ai.builtin_tools import AbstractBuiltinTool, MemoryTool, WebSearchUserLocation
 
 
 class BaseBuiltinToolConfig(BaseToolConfig):
@@ -45,10 +41,7 @@ class WebSearchToolConfig(BaseBuiltinToolConfig):
     )
     """The search context size parameter controls how much context is retrieved."""
 
-    user_location: WebSearchUserLocation | None = Field(
-        default=None,
-        title="User location",
-    )
+    user_location: WebSearchUserLocation | None = Field(default=None, title="User location")
     """User location for localizing search results (city, country, region, timezone)."""
 
     blocked_domains: list[str] | None = Field(
@@ -65,11 +58,7 @@ class WebSearchToolConfig(BaseBuiltinToolConfig):
     )
     """Only these domains will be included in results."""
 
-    max_uses: int | None = Field(
-        default=None,
-        examples=[5, 10, 20],
-        title="Maximum uses",
-    )
+    max_uses: int | None = Field(default=None, examples=[5, 10, 20], title="Maximum uses")
     """Maximum number of times the tool can be used."""
 
     def get_builtin_tool(self) -> WebSearchTool:
@@ -234,10 +223,7 @@ class MCPServerToolConfig(BaseBuiltinToolConfig):
     )
     """A list of tools that the MCP server can use."""
 
-    headers: dict[str, str] | None = Field(
-        default=None,
-        title="HTTP headers",
-    )
+    headers: dict[str, str] | None = Field(default=None, title="HTTP headers")
     """Optional HTTP headers to send to the MCP server."""
 
     def get_builtin_tool(self) -> MCPServerTool:

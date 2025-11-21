@@ -11,10 +11,7 @@ from schemez import Schema
 class BaseEmbeddingConfig(Schema):
     """Base configuration for embedding models."""
 
-    type: str = Field(
-        init=False,
-        title="Embedding model type",
-    )
+    type: str = Field(init=False, title="Embedding model type")
     """Type identifier for the embedding model."""
 
     model_config = ConfigDict(frozen=True)
@@ -23,10 +20,7 @@ class BaseEmbeddingConfig(Schema):
 class SentenceTransformersConfig(BaseEmbeddingConfig):
     """Configuration for sentence-transformers models."""
 
-    type: Literal["sentence-transformers"] = Field(
-        default="sentence-transformers",
-        init=False,
-    )
+    type: Literal["sentence-transformers"] = Field(default="sentence-transformers", init=False)
 
     model_name: str = Field(
         default="all-MiniLM-L6-v2",
@@ -35,17 +29,10 @@ class SentenceTransformersConfig(BaseEmbeddingConfig):
     )
     """Name of the model to use."""
 
-    use_gpu: bool = Field(
-        default=False,
-        title="Use GPU",
-    )
+    use_gpu: bool = Field(default=False, title="Use GPU")
     """Whether to use GPU for inference."""
 
-    batch_size: int = Field(
-        default=32,
-        examples=[16, 32, 64],
-        title="Batch size",
-    )
+    batch_size: int = Field(default=32, examples=[16, 32, 64], title="Batch size")
     """Batch size for inference."""
 
 
@@ -61,10 +48,7 @@ class OpenAIEmbeddingConfig(BaseEmbeddingConfig):
     )
     """Model to use."""
 
-    api_key: SecretStr | None = Field(
-        default=None,
-        title="OpenAI API key",
-    )
+    api_key: SecretStr | None = Field(default=None, title="OpenAI API key")
     """OpenAI API key."""
 
 
@@ -80,17 +64,10 @@ class BGEConfig(BaseEmbeddingConfig):
     )
     """Name/size of BGE model to use."""
 
-    use_gpu: bool = Field(
-        default=False,
-        title="Use GPU",
-    )
+    use_gpu: bool = Field(default=False, title="Use GPU")
     """Whether to use GPU for inference."""
 
-    batch_size: int = Field(
-        default=32,
-        examples=[16, 32, 64],
-        title="Batch size",
-    )
+    batch_size: int = Field(default=32, examples=[16, 32, 64], title="Batch size")
     """Batch size for inference."""
 
 
@@ -106,10 +83,7 @@ class LiteLLMEmbeddingConfig(BaseEmbeddingConfig):
     """Model identifier (e.g., 'text-embedding-ada-002',
     'mistral/mistral-embed', 'gemini/text-embedding-004')."""
 
-    api_key: SecretStr | None = Field(
-        default=None,
-        title="Provider API key",
-    )
+    api_key: SecretStr | None = Field(default=None, title="Provider API key")
     """API key for the provider."""
 
     dimensions: int | None = Field(
@@ -119,11 +93,7 @@ class LiteLLMEmbeddingConfig(BaseEmbeddingConfig):
     )
     """Optional number of dimensions for the embeddings."""
 
-    batch_size: int = Field(
-        default=32,
-        examples=[16, 32, 64],
-        title="Batch size",
-    )
+    batch_size: int = Field(default=32, examples=[16, 32, 64], title="Batch size")
     """Batch size for inference."""
 
     additional_params: dict[str, str | int | float | bool] = Field(

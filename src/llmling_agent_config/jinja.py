@@ -24,55 +24,91 @@ class Jinja2EnvironmentConfig(Schema):
     See: https://jinja.palletsprojects.com/en/3.1.x/api/#jinja2.Environment
     """
 
-    block_start_string: str = "{%"
+    block_start_string: str = Field(default="{%", title="Block start string", examples=["{%", "<%"])
     """String denoting the beginning of a block (default: '{%')."""
 
-    block_end_string: str = "%}"
+    block_end_string: str = Field(default="%}", title="Block end string", examples=["%}", "%>"])
     """String denoting the end of a block (default: '%}')."""
 
-    variable_start_string: str = "{{"
+    variable_start_string: str = Field(
+        default="{{",
+        title="Variable start string",
+        examples=["{{", "${"],
+    )
     """String denoting the beginning of a variable (default: '{{')."""
 
-    variable_end_string: str = "}}"
+    variable_end_string: str = Field(
+        default="}}",
+        title="Variable end string",
+        examples=["}}", "}"],
+    )
     """String denoting the end of a variable (default: '}}')."""
 
-    comment_start_string: str = "{#"
+    comment_start_string: str = Field(
+        default="{#",
+        title="Comment start string",
+        examples=["{#", "<!--"],
+    )
     """String denoting the beginning of a comment (default: '{#')."""
 
-    comment_end_string: str = "#}"
+    comment_end_string: str = Field(
+        default="#}",
+        title="Comment end string",
+        examples=["#}", "-->"],
+    )
     """String denoting the end of a comment (default: '#}')."""
 
-    line_statement_prefix: str | None = None
+    line_statement_prefix: str | None = Field(
+        default=None,
+        title="Line statement prefix",
+        examples=["#", "%"],
+    )
     """Prefix that begins a line-based statement (e.g., '#' for line statements)."""
 
-    line_comment_prefix: str | None = None
+    line_comment_prefix: str | None = Field(
+        default=None,
+        title="Line comment prefix",
+        examples=["##", "//"],
+    )
     """Prefix that begins a line-based comment."""
 
-    trim_blocks: bool = False
+    trim_blocks: bool = Field(default=False, title="Trim blocks")
     """Remove first newline after a block (affects whitespace control)."""
 
-    lstrip_blocks: bool = False
+    lstrip_blocks: bool = Field(default=False, title="Left strip blocks")
     """Remove leading spaces and tabs from the start of a line to a block."""
 
-    newline_sequence: NewLineType = "\n"
+    newline_sequence: NewLineType = Field(
+        default="\n",
+        title="Newline sequence",
+        examples=["\n", "\r\n", "\r"],
+    )
     """Sequence that starts a newline (default: '\n')."""
 
-    keep_trailing_newline: bool = False
+    keep_trailing_newline: bool = Field(default=False, title="Keep trailing newline")
     """Preserve the trailing newline when rendering templates."""
 
-    extensions: list[str] = Field(default_factory=list)
+    extensions: list[str] = Field(
+        default_factory=list,
+        title="Jinja2 extensions",
+        examples=[["jinja2.ext.do", "jinja2.ext.loopcontrols"], ["jinja2.ext.i18n"]],
+    )
     """List of Jinja2 extensions to load (e.g., 'jinja2.ext.do')."""
 
-    undefined: UndefinedBehaviour = "default"
+    undefined: UndefinedBehaviour = Field(
+        default="default",
+        title="Undefined behavior",
+        examples=["strict", "debug", "chainable"],
+    )
     """Behavior when accessing undefined variables (default, strict, debug, chainable)."""
 
-    filters: list[ToolConfig] = Field(default_factory=list)
+    filters: list[ToolConfig] = Field(default_factory=list, title="Custom filters")
     """Custom filters as list of tool configurations."""
 
-    tests: list[ToolConfig] = Field(default_factory=list)
+    tests: list[ToolConfig] = Field(default_factory=list, title="Custom tests")
     """Custom tests as list of tool configurations."""
 
-    globals: dict[str, BaseModel] = Field(default_factory=dict)
+    globals: dict[str, BaseModel] = Field(default_factory=dict, title="Global variables")
     """Global variables available to all templates."""
 
     def create_environment(self, *, enable_async: bool = False) -> Environment:
@@ -117,10 +153,16 @@ class Jinja2EnvironmentConfig(Schema):
 class Jinja2Template(Schema):
     """Template with environment configuration."""
 
-    template: str
+    template: str = Field(
+        title="Template string",
+        examples=["Hello {{ name }}!", "{% for item in items %}{{ item }}{% endfor %}"],
+    )
     """The template string to render."""
 
-    environment: Jinja2EnvironmentConfig = Field(default_factory=Jinja2EnvironmentConfig)
+    environment: Jinja2EnvironmentConfig = Field(
+        default_factory=Jinja2EnvironmentConfig,
+        title="Environment configuration",
+    )
     """Environment configuration for this template."""
 
     def get_template(self, *, enable_async: bool = False) -> Template:

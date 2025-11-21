@@ -22,20 +22,14 @@ class Knowledge(Schema):
     )
     """Quick access to files and URLs."""
 
-    prompts: list[PromptType] = Field(
-        default_factory=list,
-        title="Dynamic prompts",
-    )
+    prompts: list[PromptType] = Field(default_factory=list, title="Dynamic prompts")
     """Prompts for dynamic content generation:
     - StaticPrompt: Fixed message templates
     - DynamicPrompt: Python function-based
     - FilePrompt: File-based with template support
     """
 
-    convert_to_markdown: bool = Field(
-        default=False,
-        title="Convert to markdown",
-    )
+    convert_to_markdown: bool = Field(default=False, title="Convert to markdown")
     """Whether to convert content to markdown when possible."""
 
     model_config = ConfigDict(frozen=True)

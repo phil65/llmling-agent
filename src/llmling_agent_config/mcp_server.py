@@ -25,17 +25,10 @@ class MCPServerAuthSettings(Schema):
     Minimal OAuth v2.1 support with sensible defaults.
     """
 
-    oauth: bool = Field(
-        default=False,
-        title="Enable OAuth",
-    )
+    oauth: bool = Field(default=False, title="Enable OAuth")
 
     # Local callback server configuration
-    redirect_port: int = Field(
-        default=3030,
-        examples=[3030, 8080, 9000],
-        title="Redirect port",
-    )
+    redirect_port: int = Field(default=3030, examples=[3030, 8080, 9000], title="Redirect port")
     redirect_path: str = Field(
         default="/callback",
         examples=["/callback", "/auth/callback", "/oauth"],
@@ -60,9 +53,7 @@ class MCPServerAuthSettings(Schema):
 class BaseMCPServerConfig(Schema):
     """Base model for MCP server configuration."""
 
-    type: str = Field(
-        title="Server type",
-    )
+    type: str = Field(title="Server type")
     """Type discriminator for MCP server configurations."""
 
     name: str | None = Field(
@@ -72,16 +63,10 @@ class BaseMCPServerConfig(Schema):
     )
     """Optional name for referencing the server."""
 
-    enabled: bool = Field(
-        default=True,
-        title="Server enabled",
-    )
+    enabled: bool = Field(default=True, title="Server enabled")
     """Whether this server is currently enabled."""
 
-    env: dict[str, str] | None = Field(
-        default=None,
-        title="Environment variables",
-    )
+    env: dict[str, str] | None = Field(default=None, title="Environment variables")
     """Environment variables to pass to the server process."""
 
     timeout: float = Field(
@@ -105,9 +90,6 @@ class BaseMCPServerConfig(Schema):
 
         Returns:
             A pydantic-ai MCP server instance
-
-        Raises:
-            NotImplementedError: Must be implemented by subclasses
         """
         raise NotImplementedError
 
@@ -200,10 +182,7 @@ class SSEMCPServerConfig(BaseMCPServerConfig):
     )
     """URL of the SSE server endpoint."""
 
-    headers: dict[str, str] | None = Field(
-        default=None,
-        title="HTTP headers",
-    )
+    headers: dict[str, str] | None = Field(default=None, title="HTTP headers")
     """Headers to send with the SSE request."""
 
     auth: MCPServerAuthSettings = Field(
@@ -221,22 +200,15 @@ class SSEMCPServerConfig(BaseMCPServerConfig):
         """Convert to pydantic-ai MCPServerSSE instance."""
         from pydantic_ai.mcp import MCPServerSSE
 
-        return MCPServerSSE(
-            url=str(self.url),
-            headers=self.headers,
-            id=self.name,
-            timeout=self.timeout,
-        )
+        url = str(self.url)
+        return MCPServerSSE(url=url, headers=self.headers, id=self.name, timeout=self.timeout)
 
     async def check(self) -> ServerScoreCard:
         from mcp_interviewer import MCPInterviewer
         from mcp_interviewer.models import SseServerParameters
 
-        params = SseServerParameters(
-            url=str(self.url),
-            timeout=self.timeout,
-            headers=self.headers,
-        )
+        url = str(self.url)
+        params = SseServerParameters(url=url, timeout=self.timeout, headers=self.headers)
         interviewer = MCPInterviewer(None, None)
         return await interviewer.interview_server(params)
 
@@ -256,10 +228,7 @@ class StreamableHTTPMCPServerConfig(BaseMCPServerConfig):
     )
     """URL of the HTTP server endpoint."""
 
-    headers: dict[str, str] | None = Field(
-        default=None,
-        title="HTTP headers",
-    )
+    headers: dict[str, str] | None = Field(default=None, title="HTTP headers")
     """Headers to send with the HTTP request."""
 
     auth: MCPServerAuthSettings = Field(
