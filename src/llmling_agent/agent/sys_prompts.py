@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from toprompt import AnyPromptType
 
     from llmling_agent.agent import Agent
-    from llmling_agent.agent.context import AgentContext
+    from llmling_agent.prompts.manager import PromptManager
 
 
 ToolInjectionMode = Literal["off", "all"]
@@ -60,7 +60,7 @@ class SystemPrompts:
         prompts: AnyPromptType | list[AnyPromptType] | None = None,
         template: str | None = None,
         dynamic: bool = True,
-        context: AgentContext | None = None,
+        prompt_manager: PromptManager | None = None,
         inject_agent_info: bool = True,
         inject_tools: ToolInjectionMode = "off",
         tool_usage_style: ToolUsageStyle = "suggestive",
@@ -76,7 +76,7 @@ class SystemPrompts:
                 self.prompts = []
             case _:
                 self.prompts = [prompts]
-        self.context = context
+        self.prompt_manager = prompt_manager
         self.template = template
         self.dynamic = dynamic
         self.inject_agent_info = inject_agent_info
@@ -109,12 +109,12 @@ class SystemPrompts:
             await sys_prompts.add_by_reference("code_review?language=python")
             await sys_prompts.add_by_reference("langfuse:expert@v2")
         """
-        if not self.context:
-            msg = "No context available to resolve prompts"
+        if not self.prompt_manager:
+            msg = "No prompt_manager available to resolve prompts"
             raise RuntimeError(msg)
 
         try:
-            content = await self.context.prompt_manager.get(reference)
+            content = await self.prompt_manager.get(reference)
             self.prompts.append(content)
         except Exception as e:
             msg = f"Failed to add prompt {reference!r}"
@@ -140,12 +140,12 @@ class SystemPrompts:
             await sys_prompts.add("code_review", variables={"language": "python"})
             await sys_prompts.add("expert", provider="langfuse", version="v2")
         """
-        if not self.context:
-            msg = "No context available to resolve prompts"
+        if not self.prompt_manager:
+            msg = "No prompt_manager available to resolve prompts"
             raise RuntimeError(msg)
 
         try:
-            content = await self.context.prompt_manager.get_from(
+            content = await self.prompt_manager.get_from(
                 identifier,
                 provider=provider,
                 version=version,

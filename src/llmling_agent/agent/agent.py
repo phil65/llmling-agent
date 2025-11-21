@@ -202,10 +202,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
 
         self.task_manager = TaskManager()
         self._infinite = False
-        # save some stuff for asnyc init
         self.deps_type = deps_type
-        # prepare context
-
         ctx = context or AgentContext[TDeps](
             input_provider=input_provider,
             node_name=name,
@@ -288,7 +285,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             all_prompts.extend(system_prompt)
         elif system_prompt:
             all_prompts.append(system_prompt)
-        self.sys_prompts = SystemPrompts(all_prompts, context=ctx)
+        self.sys_prompts = SystemPrompts(all_prompts, prompt_manager=ctx.prompt_manager)
 
     def __repr__(self) -> str:
         desc = f", {self.description!r}" if self.description else ""
