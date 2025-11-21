@@ -33,6 +33,28 @@
         },
         "triggers": {
           "description": "Event sources that activate this agent / team",
+          "examples": [
+            [
+              {
+                "name": "daily_check",
+                "prompt": "Daily status update",
+                "schedule": "0 9 * * *",
+                "type": "time"
+              }
+            ],
+            [
+              {
+                "extensions": [
+                  ".py"
+                ],
+                "name": "code_watcher",
+                "paths": [
+                  "./src"
+                ],
+                "type": "file"
+              }
+            ]
+          ],
           "items": {
             "discriminator": {
               "mapping": {
@@ -63,6 +85,23 @@
         },
         "connections": {
           "description": "Targets to forward results to.",
+          "examples": [
+            [
+              {
+                "connection_type": "run",
+                "name": "output_agent",
+                "type": "node",
+                "wait_for_completion": true
+              }
+            ],
+            [
+              {
+                "path": "logs/messages.txt",
+                "template": "{{ message.content }}",
+                "type": "file"
+              }
+            ]
+          ],
           "items": {
             "discriminator": {
               "mapping": {
@@ -89,6 +128,11 @@
         },
         "mcp_servers": {
           "description": "List of MCP server configurations:\n- str entries are converted to StdioMCPServerConfig\n- MCPServerConfig for full server configuration",
+          "examples": [
+            [
+              "uvx some-server"
+            ]
+          ],
           "items": {
             "anyOf": [
               {
@@ -123,10 +167,6 @@
         "input_provider": {
           "default": null,
           "description": "Provider for human-input-handling.",
-          "examples": [
-            "myapp.providers.ConsoleInput",
-            "ui.providers:WebInput"
-          ],
           "title": "Input provider",
           "type": [
             "string",
@@ -136,10 +176,6 @@
         "inherits": {
           "default": null,
           "description": "Name of agent config to inherit from",
-          "examples": [
-            "base_agent",
-            "coding_assistant"
-          ],
           "title": "Inheritance source",
           "type": [
             "string",
@@ -1838,6 +1874,19 @@
         },
         "tools": {
           "description": "A list of tools to register with this agent.",
+          "examples": [
+            [
+              "webbrowser:open",
+              "builtins:print"
+            ],
+            [
+              {
+                "import_path": "webbrowser:open",
+                "name": "web_browser",
+                "type": "import"
+              }
+            ]
+          ],
           "items": {
             "anyOf": [
               {
@@ -1871,6 +1920,32 @@
         },
         "toolsets": {
           "description": "Toolset configurations for extensible tool collections.",
+          "examples": [
+            [
+              {
+                "namespace": "api",
+                "spec": "https://api.example.com/openapi.json",
+                "type": "openapi"
+              }
+            ],
+            [
+              {
+                "entry_point": "llmling_agent_toolsets.composio",
+                "namespace": "external",
+                "type": "entry_point"
+              }
+            ],
+            [
+              {
+                "toolsets": [
+                  "github",
+                  "slack"
+                ],
+                "type": "composio",
+                "user_id": "user123@example.com"
+              }
+            ]
+          ],
           "items": {
             "discriminator": {
               "mapping": {
@@ -2005,6 +2080,7 @@
             1,
             3
           ],
+          "minimum": 0,
           "title": "Model retries",
           "type": "integer"
         },
@@ -2050,6 +2126,11 @@
         },
         "system_prompts": {
           "description": "System prompts for the agent. Can be strings or structured prompt configs.",
+          "examples": [
+            [
+              "You are an AI assistant."
+            ]
+          ],
           "items": {
             "anyOf": [
               {
@@ -2113,6 +2194,21 @@
         },
         "workers": {
           "description": "Worker agents which will be available as tools.",
+          "examples": [
+            [
+              {
+                "name": "web_agent",
+                "reset_history_on_run": true,
+                "type": "agent"
+              }
+            ],
+            [
+              {
+                "name": "analysis_team",
+                "type": "team"
+              }
+            ]
+          ],
           "items": {
             "discriminator": {
               "mapping": {
@@ -2606,13 +2702,21 @@
           ],
           "default": null,
           "description": "List of packages to install (pip for Python, npm for JS/TS).",
+          "examples": [
+            "numpy",
+            "pandas"
+          ],
           "title": "Dependencies"
         },
         "timeout": {
           "default": 60.0,
           "description": "Execution timeout in seconds.",
+          "examples": [
+            120.0,
+            300.0
+          ],
           "exclusiveMinimum": 0.0,
-          "title": "Timeout",
+          "title": "Execution Timeout",
           "type": "number"
         },
         "cpu": {
@@ -2626,7 +2730,15 @@
           ],
           "default": 1.0,
           "description": "CPU cores allocated to the container.",
-          "title": "Cpu"
+          "examples": [
+            0.5,
+            1.0,
+            2.0,
+            "1500m"
+          ],
+          "ge": 0.1,
+          "le": 64.0,
+          "title": "CPU Cores"
         },
         "memory": {
           "anyOf": [
@@ -2639,12 +2751,21 @@
           ],
           "default": 128,
           "description": "Memory allocated to the container in MiB.",
-          "title": "Memory"
+          "examples": [
+            128,
+            "1Gi"
+          ],
+          "title": "Memory (MiB)"
         },
         "keep_warm_seconds": {
           "default": 600,
           "description": "Seconds to keep sandbox alive, -1 for no timeout.",
-          "title": "Keep Warm Seconds",
+          "examples": [
+            300,
+            600,
+            -1
+          ],
+          "title": "Keep Warm Duration",
           "type": "integer"
         },
         "language": {
@@ -2655,7 +2776,12 @@
             "javascript",
             "typescript"
           ],
-          "title": "Language",
+          "examples": [
+            "python",
+            "javascript",
+            "typescript"
+          ],
+          "title": "Programming Language",
           "type": "string"
         }
       },
@@ -3528,6 +3654,20 @@
             "type": "string"
           },
           "description": "Additional tool metadata.",
+          "examples": [
+            {
+              "category": "web",
+              "version": "1.0"
+            },
+            {
+              "author": "system",
+              "tags": "search,utility"
+            },
+            {
+              "environment": "production",
+              "priority": "high"
+            }
+          ],
           "title": "Tool metadata",
           "type": "object"
         },
@@ -3712,19 +3852,31 @@
           ],
           "default": null,
           "description": "List of packages to install (pip for Python, npm for JS/TS).",
+          "examples": [
+            "numpy",
+            "pandas"
+          ],
           "title": "Dependencies"
         },
         "timeout": {
           "default": 60.0,
           "description": "Execution timeout in seconds.",
+          "examples": [
+            120.0,
+            300.0
+          ],
           "exclusiveMinimum": 0.0,
-          "title": "Timeout",
+          "title": "Execution Timeout",
           "type": "number"
         },
         "api_url": {
           "default": null,
           "description": "Daytona API URL (optional, uses env vars if not provided).",
-          "title": "Api Url",
+          "examples": [
+            "https://api.daytona.io",
+            "http://localhost:3986"
+          ],
+          "title": "API URL",
           "type": [
             "string",
             "null"
@@ -3743,12 +3895,17 @@
           ],
           "default": null,
           "description": "API key for authentication.",
-          "title": "Api Key"
+          "title": "API Key"
         },
         "target": {
           "default": null,
           "description": "Target configuration.",
-          "title": "Target",
+          "examples": [
+            "local",
+            "docker",
+            "kubernetes"
+          ],
+          "title": "Target Configuration",
           "type": [
             "string",
             "null"
@@ -3757,7 +3914,12 @@
         "image": {
           "default": "python:3.13-slim",
           "description": "Container image.",
-          "title": "Image",
+          "examples": [
+            "python:3.13-slim",
+            "node:20-alpine",
+            "ubuntu:22.04"
+          ],
+          "title": "Container Image",
           "type": "string"
         },
         "keep_alive": {
@@ -3863,19 +4025,32 @@
           ],
           "default": null,
           "description": "List of packages to install (pip for Python, npm for JS/TS).",
+          "examples": [
+            "numpy",
+            "pandas"
+          ],
           "title": "Dependencies"
         },
         "timeout": {
           "default": 60.0,
           "description": "Execution timeout in seconds.",
+          "examples": [
+            120.0,
+            300.0
+          ],
           "exclusiveMinimum": 0.0,
-          "title": "Timeout",
+          "title": "Execution Timeout",
           "type": "number"
         },
         "image": {
           "default": "python:3.13-slim",
           "description": "Docker image to use.",
-          "title": "Image",
+          "examples": [
+            "python:3.13-slim",
+            "node:20-alpine",
+            "ubuntu:22.04"
+          ],
+          "title": "Docker Image",
           "type": "string"
         },
         "language": {
@@ -3886,7 +4061,12 @@
             "javascript",
             "typescript"
           ],
-          "title": "Language",
+          "examples": [
+            "python",
+            "javascript",
+            "typescript"
+          ],
+          "title": "Programming Language",
           "type": "string"
         }
       },
@@ -3995,19 +4175,32 @@
           ],
           "default": null,
           "description": "List of packages to install (pip for Python, npm for JS/TS).",
+          "examples": [
+            "numpy",
+            "pandas"
+          ],
           "title": "Dependencies"
         },
         "timeout": {
           "default": 60.0,
           "description": "Execution timeout in seconds.",
+          "examples": [
+            120.0,
+            300.0
+          ],
           "exclusiveMinimum": 0.0,
-          "title": "Timeout",
+          "title": "Execution Timeout",
           "type": "number"
         },
         "template": {
           "default": null,
           "description": "E2B template to use.",
-          "title": "Template",
+          "examples": [
+            "python",
+            "nodejs",
+            "custom-template-id"
+          ],
+          "title": "E2B Template",
           "type": [
             "string",
             "null"
@@ -4027,7 +4220,12 @@
             "javascript",
             "typescript"
           ],
-          "title": "Language",
+          "examples": [
+            "python",
+            "javascript",
+            "typescript"
+          ],
+          "title": "Programming Language",
           "type": "string"
         }
       },
@@ -4047,7 +4245,12 @@
         },
         "name": {
           "description": "Unique identifier for this event source.",
-          "title": "Name",
+          "examples": [
+            "file_watcher",
+            "webhook_handler",
+            "daily_report"
+          ],
+          "title": "Event source name",
           "type": "string"
         },
         "enabled": {
@@ -4059,69 +4262,100 @@
         "template": {
           "default": "\n{%- if include_timestamp %}at {{ timestamp }}{% endif %}\nEvent from {{ source }}:\n{%- if include_metadata %}\nMetadata:\n{% for key, value in metadata.items() %}\n{{ key }}: {{ value }}\n{% endfor %}\n{% endif %}\n{{ content }}\n",
           "description": "Jinja2 template for formatting events.",
-          "title": "Template",
+          "examples": [
+            "Event: {{ content }}",
+            "{{ timestamp }}: {{ source }} - {{ content }}",
+            "Alert from {{ source }}: {{ content }}\nMetadata: {{ metadata }}"
+          ],
+          "title": "Event template",
           "type": "string"
         },
         "include_metadata": {
           "default": true,
           "description": "Control metadata visibility in template.",
-          "title": "Include Metadata",
+          "title": "Include metadata",
           "type": "boolean"
         },
         "include_timestamp": {
           "default": true,
           "description": "Control timestamp visibility in template.",
-          "title": "Include Timestamp",
+          "title": "Include timestamp",
           "type": "boolean"
         },
         "host": {
           "description": "IMAP server hostname (e.g. 'imap.gmail.com')",
-          "title": "Host",
+          "examples": [
+            "imap.gmail.com",
+            "imap.outlook.com",
+            "mail.company.com"
+          ],
+          "title": "IMAP server",
           "type": "string"
         },
         "port": {
           "default": 993,
           "description": "Server port (defaults to 993 for IMAP SSL)",
+          "examples": [
+            993,
+            143,
+            587
+          ],
           "maximum": 65535,
           "minimum": 1,
-          "title": "Port",
+          "title": "IMAP port",
           "type": "integer"
         },
         "username": {
           "description": "Email account username/address",
-          "title": "Username",
+          "examples": [
+            "user@gmail.com",
+            "notifications@company.com",
+            "monitor"
+          ],
+          "title": "Email username",
           "type": "string"
         },
         "password": {
           "description": "Account password or app-specific password",
           "format": "password",
-          "title": "Password",
+          "title": "Email password",
           "type": "string",
           "writeOnly": true
         },
         "folder": {
           "default": "INBOX",
           "description": "Folder/mailbox to monitor",
-          "title": "Folder",
+          "examples": [
+            "INBOX",
+            "Alerts",
+            "Notifications",
+            "INBOX/Reports"
+          ],
+          "title": "Email folder",
           "type": "string"
         },
         "ssl": {
           "default": true,
           "description": "Whether to use SSL/TLS connection",
-          "title": "Ssl",
+          "title": "Use SSL/TLS",
           "type": "boolean"
         },
         "check_interval": {
           "default": 60,
           "description": "How often to check for new emails (in seconds)",
+          "examples": [
+            30,
+            60,
+            300
+          ],
           "exclusiveMinimum": 0,
-          "title": "Check Interval",
+          "title": "Check interval (seconds)",
           "type": "integer"
         },
         "mark_seen": {
           "default": true,
           "description": "Whether to mark processed emails as seen",
-          "title": "Mark Seen",
+          "title": "Mark emails as seen",
           "type": "boolean"
         },
         "filters": {
@@ -4129,7 +4363,21 @@
             "type": "string"
           },
           "description": "Filtering rules for emails (subject, from, etc)",
-          "title": "Filters",
+          "examples": [
+            {
+              "FROM": "system@company.com",
+              "SUBJECT": "Alert"
+            },
+            {
+              "SUBJECT": "ERROR",
+              "TO": "alerts@company.com"
+            },
+            {
+              "FROM": "monitoring@company.com",
+              "SUBJECT": "Warning"
+            }
+          ],
+          "title": "Email filters",
           "type": "object"
         },
         "max_size": {
@@ -4144,7 +4392,12 @@
           ],
           "default": null,
           "description": "Size limit for processed emails in bytes",
-          "title": "Max Size"
+          "examples": [
+            1048576,
+            5242880,
+            10485760
+          ],
+          "title": "Max email size (bytes)"
         }
       },
       "required": [
@@ -4235,6 +4488,20 @@
             "type": "string"
           },
           "description": "Additional options to pass to the filesystem constructor.",
+          "examples": [
+            {
+              "profile": "default",
+              "region": "us-east-1"
+            },
+            {
+              "timeout": "30",
+              "token": "ghp_123456789"
+            },
+            {
+              "key": "value",
+              "ssl_verify": "true"
+            }
+          ],
           "title": "Storage options",
           "type": "object"
         }
@@ -4958,7 +5225,12 @@
         },
         "name": {
           "description": "Unique identifier for this event source.",
-          "title": "Name",
+          "examples": [
+            "file_watcher",
+            "webhook_handler",
+            "daily_report"
+          ],
+          "title": "Event source name",
           "type": "string"
         },
         "enabled": {
@@ -4970,27 +5242,42 @@
         "template": {
           "default": "\n{%- if include_timestamp %}at {{ timestamp }}{% endif %}\nEvent from {{ source }}:\n{%- if include_metadata %}\nMetadata:\n{% for key, value in metadata.items() %}\n{{ key }}: {{ value }}\n{% endfor %}\n{% endif %}\n{{ content }}\n",
           "description": "Jinja2 template for formatting events.",
-          "title": "Template",
+          "examples": [
+            "Event: {{ content }}",
+            "{{ timestamp }}: {{ source }} - {{ content }}",
+            "Alert from {{ source }}: {{ content }}\nMetadata: {{ metadata }}"
+          ],
+          "title": "Event template",
           "type": "string"
         },
         "include_metadata": {
           "default": true,
           "description": "Control metadata visibility in template.",
-          "title": "Include Metadata",
+          "title": "Include metadata",
           "type": "boolean"
         },
         "include_timestamp": {
           "default": true,
           "description": "Control timestamp visibility in template.",
-          "title": "Include Timestamp",
+          "title": "Include timestamp",
           "type": "boolean"
         },
         "paths": {
           "description": "Paths or patterns to watch for changes.",
+          "examples": [
+            [
+              "/home/user/documents",
+              "/var/log"
+            ],
+            [
+              "./config",
+              "./src"
+            ]
+          ],
           "items": {
             "type": "string"
           },
-          "title": "Paths",
+          "title": "Watch paths",
           "type": "array"
         },
         "extensions": {
@@ -5007,7 +5294,19 @@
           ],
           "default": null,
           "description": "File extensions to monitor (e.g. ['.py', '.md']).",
-          "title": "Extensions"
+          "examples": [
+            [
+              ".py",
+              ".js",
+              ".ts"
+            ],
+            [
+              ".yaml",
+              ".yml",
+              ".json"
+            ]
+          ],
+          "title": "File extensions"
         },
         "ignore_paths": {
           "anyOf": [
@@ -5023,18 +5322,34 @@
           ],
           "default": null,
           "description": "Paths or patterns to ignore.",
-          "title": "Ignore Paths"
+          "examples": [
+            [
+              ".git",
+              "__pycache__",
+              "node_modules"
+            ],
+            [
+              "/tmp/*",
+              "*.cache"
+            ]
+          ],
+          "title": "Ignore paths"
         },
         "recursive": {
           "default": true,
           "description": "Whether to watch subdirectories.",
-          "title": "Recursive",
+          "title": "Watch recursively",
           "type": "boolean"
         },
         "debounce": {
           "default": 1600,
           "description": "Minimum time (ms) between trigger events.",
-          "title": "Debounce",
+          "examples": [
+            500,
+            1000,
+            3000
+          ],
+          "title": "Debounce time (ms)",
           "type": "integer"
         }
       },
@@ -5303,6 +5618,20 @@
             "type": "string"
           },
           "description": "Additional tool metadata.",
+          "examples": [
+            {
+              "category": "web",
+              "version": "1.0"
+            },
+            {
+              "author": "system",
+              "tags": "search,utility"
+            },
+            {
+              "environment": "production",
+              "priority": "high"
+            }
+          ],
           "title": "Tool metadata",
           "type": "object"
         },
@@ -5322,8 +5651,8 @@
         "import_path": {
           "description": "Import path to the tool function.",
           "examples": [
-            "mymodule.my_function",
-            "package.tools:search_tool"
+            "webbrowser:open",
+            "builtins:print"
           ],
           "title": "Import path",
           "type": "string"
@@ -5349,7 +5678,12 @@
         "description": {
           "default": null,
           "description": "A description for this response definition.",
-          "title": "Description",
+          "examples": [
+            "User profile data",
+            "API response format",
+            "Configuration schema"
+          ],
+          "title": "Schema description",
           "type": [
             "string",
             "null"
@@ -5357,7 +5691,12 @@
         },
         "import_path": {
           "description": "The path to the pydantic model to use as the response type.",
-          "title": "Import Path",
+          "examples": [
+            "myapp.models.User",
+            "schemas.api:ResponseModel",
+            "models.core.BaseResponse"
+          ],
+          "title": "Import path",
           "type": "string"
         }
       },
@@ -5381,7 +5720,12 @@
         "description": {
           "default": null,
           "description": "A description for this response definition.",
-          "title": "Description",
+          "examples": [
+            "User profile data",
+            "API response format",
+            "Configuration schema"
+          ],
+          "title": "Schema description",
           "type": [
             "string",
             "null"
@@ -5392,7 +5736,20 @@
             "$ref": "#/$defs/SchemaField"
           },
           "description": "A dictionary containing all fields.",
-          "title": "Fields",
+          "examples": [
+            {
+              "age": {
+                "description": "User age",
+                "ge": 0,
+                "type": "int"
+              },
+              "name": {
+                "description": "User name",
+                "type": "str"
+              }
+            }
+          ],
+          "title": "Schema fields",
           "type": "object"
         }
       },
@@ -5554,7 +5911,7 @@
           "description": "The task instruction/prompt.",
           "examples": [
             "Analyze the following code",
-            "mymodule.prompts:analysis_prompt"
+            "llmling_agent.prompts.prompts:BasePrompt"
           ],
           "title": "Task prompt"
         },
@@ -5564,7 +5921,7 @@
           "examples": [
             "str",
             "dict",
-            "mymodule.models:AnalysisResult"
+            "builtins:str"
           ],
           "title": "Required return type",
           "type": "string"
@@ -5573,8 +5930,7 @@
           "default": null,
           "description": "Dependencies or context data needed for task execution",
           "examples": [
-            "mymodule.deps:DatabaseDeps",
-            "utils.context:TaskContext"
+            "llmling_agent.agent.context:AgentContext"
           ],
           "title": "Required dependencies",
           "type": [
@@ -5603,6 +5959,25 @@
         },
         "tools": {
           "description": "Tools needed for this task.",
+          "examples": [
+            [
+              {
+                "import_path": "webbrowser:open",
+                "name": "web_browser",
+                "type": "import"
+              }
+            ],
+            [
+              "builtins:print"
+            ],
+            [
+              {
+                "import_path": "builtins:print",
+                "requires_confirmation": true,
+                "type": "import"
+              }
+            ]
+          ],
           "items": {
             "anyOf": [
               {
@@ -5749,6 +6124,20 @@
             "type": "string"
           },
           "description": "Additional tool metadata.",
+          "examples": [
+            {
+              "category": "web",
+              "version": "1.0"
+            },
+            {
+              "author": "system",
+              "tags": "search,utility"
+            },
+            {
+              "environment": "production",
+              "priority": "high"
+            }
+          ],
           "title": "Tool metadata",
           "type": "object"
         },
@@ -6040,19 +6429,32 @@
           ],
           "default": null,
           "description": "List of packages to install (pip for Python, npm for JS/TS).",
+          "examples": [
+            "numpy",
+            "pandas"
+          ],
           "title": "Dependencies"
         },
         "timeout": {
           "default": 60.0,
           "description": "Execution timeout in seconds.",
+          "examples": [
+            120.0,
+            300.0
+          ],
           "exclusiveMinimum": 0.0,
-          "title": "Timeout",
+          "title": "Execution Timeout",
           "type": "number"
         },
         "executable": {
           "default": null,
           "description": "Python executable to use (if None, auto-detect based on language).",
-          "title": "Executable",
+          "examples": [
+            "/usr/bin/python3",
+            "python3.13",
+            "/opt/conda/bin/python"
+          ],
+          "title": "Python Executable",
           "type": [
             "string",
             "null"
@@ -6066,13 +6468,18 @@
             "javascript",
             "typescript"
           ],
-          "title": "Language",
+          "examples": [
+            "python",
+            "javascript",
+            "typescript"
+          ],
+          "title": "Programming Language",
           "type": "string"
         },
         "isolated": {
           "default": false,
           "description": "Whether to run code in a subprocess.",
-          "title": "Isolated",
+          "title": "Isolated Execution",
           "type": "boolean"
         }
       },
@@ -6403,6 +6810,8 @@
             8080,
             9000
           ],
+          "exclusiveMaximum": 65536,
+          "minimum": 1,
           "title": "Redirect port",
           "type": "integer"
         },
@@ -6523,13 +6932,21 @@
           ],
           "default": null,
           "description": "List of packages to install (pip for Python, npm for JS/TS).",
+          "examples": [
+            "numpy",
+            "pandas"
+          ],
           "title": "Dependencies"
         },
         "timeout": {
           "default": 60.0,
           "description": "Execution timeout in seconds.",
+          "examples": [
+            120.0,
+            300.0
+          ],
           "exclusiveMinimum": 0.0,
-          "title": "Timeout",
+          "title": "Execution Timeout",
           "type": "number"
         },
         "allow_networking": {
@@ -7345,6 +7762,19 @@
         },
         "providers": {
           "description": "List of external prompt providers to use.",
+          "examples": [
+            [
+              {
+                "api_key": "pl_abc123",
+                "type": "promptlayer"
+              }
+            ],
+            [
+              {
+                "type": "fabric"
+              }
+            ]
+          ],
           "items": {
             "discriminator": {
               "mapping": {
@@ -7870,14 +8300,59 @@
       "description": "Field definition for inline response types.\n\nDefines a single field in an inline response definition, including:\n- Data type specification\n- Optional description\n- Validation constraints\n- Enum values (when type is 'enum')\n- Field dependencies and relationships\n\nUsed by InlineSchemaDef to structure response fields.",
       "properties": {
         "type": {
+          "anyOf": [
+            {
+              "enum": [
+                "str",
+                "int",
+                "bool",
+                "float",
+                "list",
+                "dict",
+                "set",
+                "enum",
+                "list[str]",
+                "list[int]",
+                "list[float]",
+                "list[bool]",
+                "dict[str, str]",
+                "dict[str, int]",
+                "dict[str, float]",
+                "dict[str, bool]",
+                "dict[str, Any]",
+                "set[str]",
+                "set[int]",
+                "set[float]",
+                "set[bool]",
+                "tuple[str, ...]",
+                "tuple[int, ...]",
+                "Any"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "description": "Data type of the response field",
-          "title": "Type",
-          "type": "string"
+          "examples": [
+            "str",
+            "int",
+            "list[str]",
+            "dict[str, Any]",
+            "enum"
+          ],
+          "title": "Field type"
         },
         "description": {
           "default": null,
           "description": "Optional description of what this field represents",
-          "title": "Description",
+          "examples": [
+            "User name",
+            "Port number",
+            "Enable debug mode"
+          ],
+          "title": "Field description",
           "type": [
             "string",
             "null"
@@ -7895,7 +8370,19 @@
           ],
           "default": null,
           "description": "Values for enum type fields",
-          "title": "Values"
+          "examples": [
+            [
+              "active",
+              "inactive",
+              "pending"
+            ],
+            [
+              "small",
+              "medium",
+              "large"
+            ]
+          ],
+          "title": "Enum values"
         },
         "default": {
           "anyOf": [
@@ -7905,13 +8392,24 @@
             }
           ],
           "default": null,
+          "title": "Default value",
           "description": "Default value for the field",
-          "title": "Default"
+          "examples": [
+            "localhost",
+            8080,
+            true,
+            []
+          ]
         },
         "title": {
           "default": null,
           "description": "Title for the field in generated JSON Schema",
-          "title": "Title",
+          "examples": [
+            "Server Name",
+            "Port Number",
+            "Debug Mode"
+          ],
+          "title": "Field title",
           "type": [
             "string",
             "null"
@@ -7920,7 +8418,12 @@
         "pattern": {
           "default": null,
           "description": "Regex pattern for string validation",
-          "title": "Pattern",
+          "examples": [
+            "^[A-Za-z]+$",
+            "\\d{3}-\\d{3}-\\d{4}",
+            "^[a-z0-9_]+$"
+          ],
+          "title": "Regex pattern",
           "type": [
             "string",
             "null"
@@ -7938,7 +8441,12 @@
           ],
           "default": null,
           "description": "Minimum length for collections",
-          "title": "Min Length"
+          "examples": [
+            1,
+            3,
+            8
+          ],
+          "title": "Minimum length"
         },
         "max_length": {
           "anyOf": [
@@ -7952,12 +8460,22 @@
           ],
           "default": null,
           "description": "Maximum length for collections",
-          "title": "Max Length"
+          "examples": [
+            50,
+            255,
+            1000
+          ],
+          "title": "Maximum length"
         },
         "gt": {
           "default": null,
           "description": "Greater than (exclusive) validation for numbers",
-          "title": "Gt",
+          "examples": [
+            0,
+            1.0,
+            100
+          ],
+          "title": "Greater than",
           "type": [
             "number",
             "null"
@@ -7966,7 +8484,12 @@
         "ge": {
           "default": null,
           "description": "Greater than or equal (inclusive) validation for numbers",
-          "title": "Ge",
+          "examples": [
+            0,
+            1,
+            18
+          ],
+          "title": "Greater than or equal",
           "type": [
             "number",
             "null"
@@ -7975,7 +8498,12 @@
         "lt": {
           "default": null,
           "description": "Less than (exclusive) validation for numbers",
-          "title": "Lt",
+          "examples": [
+            100,
+            65536,
+            1.0
+          ],
+          "title": "Less than",
           "type": [
             "number",
             "null"
@@ -7984,7 +8512,12 @@
         "le": {
           "default": null,
           "description": "Less than or equal (inclusive) validation for numbers",
-          "title": "Le",
+          "examples": [
+            100,
+            255,
+            99.9
+          ],
+          "title": "Less than or equal",
           "type": [
             "number",
             "null"
@@ -8002,7 +8535,13 @@
           ],
           "default": null,
           "description": "Number must be a multiple of this value",
-          "title": "Multiple Of"
+          "examples": [
+            2,
+            5,
+            10,
+            0.5
+          ],
+          "title": "Multiple of"
         },
         "literal_value": {
           "anyOf": [
@@ -8013,7 +8552,12 @@
           ],
           "default": null,
           "description": "Value for Literal type constraint, makes field accept only this specific value",
-          "title": "Literal Value"
+          "examples": [
+            "production",
+            42,
+            true
+          ],
+          "title": "Literal value"
         },
         "examples": {
           "anyOf": [
@@ -8027,12 +8571,27 @@
           ],
           "default": null,
           "description": "Examples for this field in JSON Schema",
-          "title": "Examples"
+          "examples": [
+            [
+              "localhost",
+              "example.com"
+            ],
+            [
+              8080,
+              3000,
+              443
+            ],
+            [
+              true,
+              false
+            ]
+          ],
+          "title": "Field examples"
         },
         "optional": {
           "default": false,
           "description": "Whether this field is optional (None value allowed)",
-          "title": "Optional",
+          "title": "Optional field",
           "type": "boolean"
         },
         "json_schema_extra": {
@@ -8047,7 +8606,15 @@
           ],
           "default": null,
           "description": "Additional JSON Schema information",
-          "title": "Json Schema Extra"
+          "examples": [
+            {
+              "format": "email"
+            },
+            {
+              "contentMediaType": "application/json"
+            }
+          ],
+          "title": "JSON Schema extras"
         },
         "field_config": {
           "anyOf": [
@@ -8061,7 +8628,15 @@
           ],
           "default": null,
           "description": "Configuration for Pydantic model fields",
-          "title": "Field Config"
+          "examples": [
+            {
+              "alias": "userName"
+            },
+            {
+              "exclude": true
+            }
+          ],
+          "title": "Pydantic field config"
         },
         "dependent_required": {
           "additionalProperties": {
@@ -8071,7 +8646,21 @@
             "type": "array"
           },
           "description": "Field dependencies - when this field exists, dependent fields are required",
-          "title": "Dependent Required",
+          "examples": [
+            {
+              "payment_method": [
+                "card_number",
+                "expiry_date"
+              ]
+            },
+            {
+              "auth_enabled": [
+                "username",
+                "password"
+              ]
+            }
+          ],
+          "title": "Required field dependencies",
           "type": "object"
         },
         "dependent_schema": {
@@ -8080,12 +8669,49 @@
             "type": "object"
           },
           "description": "Schema dependencies - when this field exists, dependent fields must match schema",
-          "title": "Dependent Schema",
+          "examples": [
+            {
+              "ssl_enabled": {
+                "properties": {
+                  "ssl_cert": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            {
+              "debug": {
+                "properties": {
+                  "log_level": {
+                    "enum": [
+                      "debug",
+                      "trace"
+                    ]
+                  }
+                }
+              }
+            }
+          ],
+          "title": "Schema dependencies",
           "type": "object"
         },
         "constraints": {
           "additionalProperties": true,
-          "description": "Additional constraints not covered by explicit fields",
+          "description": "Additional Pydantic Field constraints not covered by explicit fields",
+          "examples": [
+            {
+              "max_length": 50,
+              "min_length": 3
+            },
+            {
+              "ge": 0,
+              "le": 100
+            },
+            {
+              "frozen": false,
+              "strict": true
+            }
+          ],
           "title": "Constraints",
           "type": "object"
         }
@@ -8252,6 +8878,21 @@
         "storage_options": {
           "additionalProperties": true,
           "description": "Protocol-specific storage options.",
+          "examples": [
+            {
+              "aws_access_key_id": "AKIAIOSFODNN7EXAMPLE",
+              "aws_secret_access_key": "secret123"
+            },
+            {
+              "timeout": 30,
+              "token": "github_pat_123"
+            },
+            {
+              "password": "pass",
+              "ssl": true,
+              "username": "user"
+            }
+          ],
           "title": "Storage options",
           "type": "object"
         },
@@ -8804,6 +9445,25 @@
             },
             "propertyName": "type"
           },
+          "examples": [
+            {
+              "import_path": "llmling_agent.models.content:ImageBase64Content",
+              "type": "import"
+            },
+            {
+              "fields": {
+                "age": {
+                  "description": "User age",
+                  "type": "int"
+                },
+                "name": {
+                  "description": "User name",
+                  "type": "str"
+                }
+              },
+              "type": "inline"
+            }
+          ],
           "oneOf": [
             {
               "$ref": "#/$defs/InlineSchemaDef"
@@ -8906,6 +9566,28 @@
         },
         "triggers": {
           "description": "Event sources that activate this agent / team",
+          "examples": [
+            [
+              {
+                "name": "daily_check",
+                "prompt": "Daily status update",
+                "schedule": "0 9 * * *",
+                "type": "time"
+              }
+            ],
+            [
+              {
+                "extensions": [
+                  ".py"
+                ],
+                "name": "code_watcher",
+                "paths": [
+                  "./src"
+                ],
+                "type": "file"
+              }
+            ]
+          ],
           "items": {
             "discriminator": {
               "mapping": {
@@ -8936,6 +9618,23 @@
         },
         "connections": {
           "description": "Targets to forward results to.",
+          "examples": [
+            [
+              {
+                "connection_type": "run",
+                "name": "output_agent",
+                "type": "node",
+                "wait_for_completion": true
+              }
+            ],
+            [
+              {
+                "path": "logs/messages.txt",
+                "template": "{{ message.content }}",
+                "type": "file"
+              }
+            ]
+          ],
           "items": {
             "discriminator": {
               "mapping": {
@@ -8962,6 +9661,11 @@
         },
         "mcp_servers": {
           "description": "List of MCP server configurations:\n- str entries are converted to StdioMCPServerConfig\n- MCPServerConfig for full server configuration",
+          "examples": [
+            [
+              "uvx some-server"
+            ]
+          ],
           "items": {
             "anyOf": [
               {
@@ -8996,10 +9700,6 @@
         "input_provider": {
           "default": null,
           "description": "Provider for human-input-handling.",
-          "examples": [
-            "myapp.providers.ConsoleInput",
-            "ui.providers:WebInput"
-          ],
           "title": "Input provider",
           "type": [
             "string",
@@ -9296,7 +9996,12 @@
         },
         "name": {
           "description": "Unique identifier for this event source.",
-          "title": "Name",
+          "examples": [
+            "file_watcher",
+            "webhook_handler",
+            "daily_report"
+          ],
+          "title": "Event source name",
           "type": "string"
         },
         "enabled": {
@@ -9308,34 +10013,55 @@
         "template": {
           "default": "\n{%- if include_timestamp %}at {{ timestamp }}{% endif %}\nEvent from {{ source }}:\n{%- if include_metadata %}\nMetadata:\n{% for key, value in metadata.items() %}\n{{ key }}: {{ value }}\n{% endfor %}\n{% endif %}\n{{ content }}\n",
           "description": "Jinja2 template for formatting events.",
-          "title": "Template",
+          "examples": [
+            "Event: {{ content }}",
+            "{{ timestamp }}: {{ source }} - {{ content }}",
+            "Alert from {{ source }}: {{ content }}\nMetadata: {{ metadata }}"
+          ],
+          "title": "Event template",
           "type": "string"
         },
         "include_metadata": {
           "default": true,
           "description": "Control metadata visibility in template.",
-          "title": "Include Metadata",
+          "title": "Include metadata",
           "type": "boolean"
         },
         "include_timestamp": {
           "default": true,
           "description": "Control timestamp visibility in template.",
-          "title": "Include Timestamp",
+          "title": "Include timestamp",
           "type": "boolean"
         },
         "schedule": {
           "description": "Cron expression for scheduling (e.g. '0 9 * * 1-5' for weekdays at 9am)",
-          "title": "Schedule",
+          "examples": [
+            "0 9 * * 1-5",
+            "*/15 * * * *",
+            "0 0 * * 0"
+          ],
+          "title": "Cron schedule",
           "type": "string"
         },
         "prompt": {
           "description": "Prompt to send to the agent when the schedule triggers.",
-          "title": "Prompt",
+          "examples": [
+            "Generate daily report",
+            "Check system status",
+            "Send weekly summary"
+          ],
+          "title": "Trigger prompt",
           "type": "string"
         },
         "timezone": {
           "default": null,
           "description": "Timezone for schedule (defaults to system timezone)",
+          "examples": [
+            "UTC",
+            "America/New_York",
+            "Europe/London",
+            "Asia/Tokyo"
+          ],
           "title": "Timezone",
           "type": [
             "string",
@@ -9345,7 +10071,7 @@
         "skip_missed": {
           "default": false,
           "description": "Whether to skip executions missed while agent was inactive",
-          "title": "Skip Missed",
+          "title": "Skip missed executions",
           "type": "boolean"
         }
       },
@@ -9522,6 +10248,21 @@
         "storage_options": {
           "additionalProperties": true,
           "description": "Protocol-specific storage options.",
+          "examples": [
+            {
+              "aws_access_key_id": "AKIAIOSFODNN7EXAMPLE",
+              "aws_secret_access_key": "secret123"
+            },
+            {
+              "timeout": 30,
+              "token": "github_pat_123"
+            },
+            {
+              "password": "pass",
+              "ssl": true,
+              "username": "user"
+            }
+          ],
           "title": "Storage options",
           "type": "object"
         },
@@ -9812,7 +10553,12 @@
         },
         "name": {
           "description": "Unique identifier for this event source.",
-          "title": "Name",
+          "examples": [
+            "file_watcher",
+            "webhook_handler",
+            "daily_report"
+          ],
+          "title": "Event source name",
           "type": "string"
         },
         "enabled": {
@@ -9824,31 +10570,45 @@
         "template": {
           "default": "\n{%- if include_timestamp %}at {{ timestamp }}{% endif %}\nEvent from {{ source }}:\n{%- if include_metadata %}\nMetadata:\n{% for key, value in metadata.items() %}\n{{ key }}: {{ value }}\n{% endfor %}\n{% endif %}\n{{ content }}\n",
           "description": "Jinja2 template for formatting events.",
-          "title": "Template",
+          "examples": [
+            "Event: {{ content }}",
+            "{{ timestamp }}: {{ source }} - {{ content }}",
+            "Alert from {{ source }}: {{ content }}\nMetadata: {{ metadata }}"
+          ],
+          "title": "Event template",
           "type": "string"
         },
         "include_metadata": {
           "default": true,
           "description": "Control metadata visibility in template.",
-          "title": "Include Metadata",
+          "title": "Include metadata",
           "type": "boolean"
         },
         "include_timestamp": {
           "default": true,
           "description": "Control timestamp visibility in template.",
-          "title": "Include Timestamp",
+          "title": "Include timestamp",
           "type": "boolean"
         },
         "port": {
           "description": "Port to listen on.",
+          "examples": [
+            8080,
+            3000
+          ],
           "maximum": 65535,
           "minimum": 1,
-          "title": "Port",
+          "title": "Server port",
           "type": "integer"
         },
         "path": {
           "description": "URL path to handle requests.",
-          "title": "Path",
+          "examples": [
+            "/webhook",
+            "/github-webhook",
+            "/api/events"
+          ],
+          "title": "Webhook path",
           "type": "string"
         },
         "secret": {
@@ -9864,7 +10624,7 @@
           ],
           "default": null,
           "description": "Optional secret for request validation.",
-          "title": "Secret"
+          "title": "Webhook secret"
         }
       },
       "required": [
@@ -10153,6 +10913,19 @@
         ]
       },
       "description": "Resource configurations defining available filesystems.\n\nSupports both full config and URI shorthand:\n    resources:\n      docs: \"file://./docs\"  # shorthand\n      data:  # full config\n        type: \"source\"\n        uri: \"s3://bucket/data\"\n        cached: true",
+      "examples": [
+        {
+          "data": "s3://bucket/data",
+          "docs": "file://./docs"
+        },
+        {
+          "api": {
+            "cached": true,
+            "type": "source",
+            "uri": "https://api.example.com"
+          }
+        }
+      ],
       "title": "Resources",
       "type": "object"
     },
@@ -10202,6 +10975,11 @@
     },
     "mcp_servers": {
       "description": "List of MCP server configurations:\n\nThese MCP servers are used to provide tools and other resources to the nodes.",
+      "examples": [
+        [
+          "uvx some-server"
+        ]
+      ],
       "items": {
         "anyOf": [
           {
@@ -10270,6 +11048,18 @@
         ]
       },
       "description": "Global command shortcuts for prompt injection.\n\nSupports both shorthand string syntax and full command configurations:\n    commands:\n      df: \"check disk space\"  # shorthand -> StaticCommandConfig\n      analyze:  # full config\n        type: file\n        path: \"./prompts/analysis.md\"",
+      "examples": [
+        {
+          "analyze": "Analyze the current situation",
+          "check_disk": "df -h"
+        },
+        {
+          "status": {
+            "content": "Show system status",
+            "type": "static"
+          }
+        }
+      ],
       "title": "Commands",
       "type": "object"
     }
