@@ -140,7 +140,7 @@ class TextLogConfig(BaseStorageProviderConfig):
     )
     """Log format template to use"""
 
-    template: Literal["chronological", "conversations"] | str | None = Field(
+    template: Literal["chronological", "conversations"] | str | None = Field(  # noqa: PYI051
         default="chronological",
         examples=["chronological", "conversations", "/path/to/template.j2"],
         title="Template",
