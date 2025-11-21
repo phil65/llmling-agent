@@ -198,6 +198,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         from llmling_agent.agent.conversation import MessageHistory
         from llmling_agent.agent.interactions import Interactions
         from llmling_agent.agent.sys_prompts import SystemPrompts
+        from llmling_agent.models import AgentConfig, AgentsManifest
 
         self.task_manager = TaskManager()
         self._infinite = False
@@ -205,9 +206,13 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         self.deps_type = deps_type
         self.agent_pool = agent_pool
         # prepare context
-        ctx = context or AgentContext[TDeps].create_default(
-            name,
+
+        ctx = context or AgentContext[TDeps](
             input_provider=input_provider,
+            node_name=name,
+            definition=AgentsManifest(),
+            config=AgentConfig(name=name),
+            pool=agent_pool,
         )
         self._context = ctx
         # TODO: use to_structured with tool_name / description?

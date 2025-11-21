@@ -6,7 +6,7 @@ from abc import abstractmethod
 import asyncio
 from contextlib import AsyncExitStack, asynccontextmanager
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Literal, Self, overload
+from typing import TYPE_CHECKING, Any, Self, overload
 
 from psygnal.containers import EventedList
 
@@ -50,26 +50,6 @@ class TeamContext[TDeps = object](NodeContext[TDeps]):
 
     pool: AgentPool | None = None
     """Pool the team is part of."""
-
-    @classmethod
-    def create_default(
-        cls,
-        name: str,
-        mode: Literal["sequential", "parallel"] = "sequential",
-        pool: AgentPool | None = None,
-    ) -> TeamContext[object]:
-        """Create a default agent context with minimal privileges.
-
-        Args:
-            name: Name of the agent
-            mode: Execution mode (sequential or parallel)
-            pool:(optional): Optional pool the agent is part of
-        """
-        from llmling_agent_config import TeamConfig
-
-        cfg = TeamConfig(name=name, mode=mode, members=[])
-        defn = AgentsManifest()
-        return cls(node_name=name, config=cfg, pool=pool, definition=defn)
 
 
 class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):

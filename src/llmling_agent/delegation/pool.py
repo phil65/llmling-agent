@@ -591,28 +591,15 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         """
         from llmling_agent.agent import Agent
 
-        # Get base agent
         base = agent if isinstance(agent, Agent) else self.agents[agent]
-
-        # Setup context and dependencies
-        # if base.context is None:
-        #     base.context = AgentContext[Any].create_default(
-        #         base.name, input_provider=self._input_provider
-        #     )
-
         # Use custom deps if provided, otherwise use shared deps
         # base.context.data = deps if deps is not None else self.shared_deps
         base.deps_type = deps_type
         base.context.pool = self
-
-        # Apply overrides
         if model_override:
             base.set_model(model_override)
-
         if session:
             base.conversation.load_history_from_database(session=session)
-
-        # Convert to structured if needed
         if return_type not in {str, None}:
             base.to_structured(return_type)
 

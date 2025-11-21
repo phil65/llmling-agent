@@ -14,12 +14,10 @@ from llmling_agent.prompts.conversion_manager import ConversionManager
 if TYPE_CHECKING:
     from mcp import types
 
-    from llmling_agent import AgentPool
     from llmling_agent.agent import Agent
     from llmling_agent.agent.event_emitter import AgentEventEmitter
     from llmling_agent.models.agents import AgentConfig
     from llmling_agent.tools.base import Tool
-    from llmling_agent.ui.base import InputProvider
 
 
 ConfirmationResult = Literal["allow", "skip", "abort_run", "abort_chain"]
@@ -50,36 +48,6 @@ class AgentContext[TDeps = Any](NodeContext[TDeps]):
 
     tool_input: dict[str, Any] = field(default_factory=dict)
     """Input arguments for the current tool call."""
-
-    @classmethod
-    def create_default(
-        cls,
-        name: str,
-        deps: TDeps | None = None,
-        pool: AgentPool | None = None,
-        input_provider: InputProvider | None = None,
-    ) -> AgentContext[TDeps]:
-        """Create a default agent context with minimal privileges.
-
-        Args:
-            name: Name of the agent
-
-            deps: Optional dependencies for the agent
-            pool: Optional pool the agent is part of
-            input_provider: Optional input provider for the agent
-        """
-        from llmling_agent.models import AgentConfig, AgentsManifest
-
-        defn = AgentsManifest()
-        cfg = AgentConfig(name=name)
-        return cls(
-            input_provider=input_provider,
-            node_name=name,
-            definition=defn,
-            config=cfg,
-            data=deps,
-            pool=pool,
-        )
 
     @cached_property
     def converter(self) -> ConversionManager:
