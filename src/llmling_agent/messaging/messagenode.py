@@ -68,6 +68,9 @@ class MessageNode[TDeps, TResult](ABC):
         self.description = description
         self.connections = ConnectionManager(self)
         self._events = EventManager(self, enable_events=True)
+        mcp_servers = list(mcp_servers) if mcp_servers else []
+        if context and (cfg := context.config) and cfg.mcp_servers:
+            mcp_servers.extend(cfg.get_mcp_servers())
         self.mcp = MCPManager(
             f"node_{self._name}",
             servers=mcp_servers,

@@ -67,13 +67,8 @@ class MCPManager:
 
     async def __aenter__(self) -> Self:
         try:
-            # Setup directly provided servers and context servers concurrently
-            tasks = [self._setup_server(server) for server in self.servers]
-            if self.context and (cfg := self.context.config) and cfg.mcp_servers:
-                tasks.extend(self._setup_server(s) for s in cfg.get_mcp_servers())
-            if tasks:
+            if tasks := [self._setup_server(server) for server in self.servers]:
                 await asyncio.gather(*tasks)
-
         except Exception as e:
             # Clean up in case of error
             await self.__aexit__(type(e), e, e.__traceback__)
