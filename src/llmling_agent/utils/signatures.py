@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import inspect
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, get_origin
 
 from llmling_agent.log import get_logger
 
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Awaitable, Callable
 
 
 logger = get_logger(__name__)
@@ -59,3 +59,148 @@ def update_signature(fn: Callable[..., Any], signature: inspect.Signature) -> No
     fn.__annotations__ = {
         name: param.annotation for name, param in signature.parameters.items()
     } | {"return": signature.return_annotation}
+
+
+def create_bound_callable(
+    original_callable: Callable[..., Any],
+    by_name: dict[str, Any] | None = None,
+    by_type: dict[type, Any] | None = None,
+    bind_kwargs: bool = False,
+) -> Callable[..., Awaitable[Any]]:
+    """Create a wrapper that pre-binds parameters by name or type.
+
+    Parameters are bound by their position in the function signature. Only
+    positional and positional-or-keyword parameters can be bound by default.
+    If bind_kwargs=True, keyword-only parameters can also be bound using the
+    same by_name/by_type logic. Binding by name takes priority over binding by type.
+
+    Args:
+        original_callable: The original callable that may need parameter binding
+        by_name: Parameters to bind by exact parameter name
+        by_type: Parameters to bind by parameter type annotation
+        bind_kwargs: Whether to also bind keyword-only parameters
+
+    Returns:
+        New callable with parameters pre-bound and proper introspection
+
+    Raises:
+        ValueError: If the callable's signature cannot be inspected
+    """
+    try:
+        sig = inspect.signature(original_callable)
+    except (ValueError, TypeError) as e:
+        msg = f"Cannot inspect signature of {original_callable}. Ensure callable is inspectable."
+        raise ValueError(msg) from e
+
+    # Build position-to-value mapping for positional binding
+    context_values = {}
+    # Build name-to-value mapping for keyword-only binding
+    kwarg_bindings = {}
+
+    for i, param in enumerate(sig.parameters.values()):
+        # Bind positional and positional-or-keyword parameters
+        if param.kind in (
+            inspect.Parameter.POSITIONAL_ONLY,
+            inspect.Parameter.POSITIONAL_OR_KEYWORD,
+        ):
+            # Bind by name first (higher priority)
+            if by_name and param.name in by_name:
+                context_values[i] = by_name[param.name]
+            # Then bind by type if not already bound
+            elif by_type and _find_matching_type(param.annotation, by_type) is not None:
+                context_values[i] = _find_matching_type(param.annotation, by_type)
+        # Bind keyword-only parameters if enabled
+        elif bind_kwargs and param.kind == inspect.Parameter.KEYWORD_ONLY:
+            # Bind by name first (higher priority)
+            if by_name and param.name in by_name:
+                kwarg_bindings[param.name] = by_name[param.name]
+            # Then bind by type if not already bound
+            elif by_type and _find_matching_type(param.annotation, by_type) is not None:
+                kwarg_bindings[param.name] = _find_matching_type(param.annotation, by_type)
+
+    async def wrapper(*args: Any, **kwargs: Any) -> Any:
+        # Filter out kwargs that would conflict with bound parameters
+        param_names = list(sig.parameters.keys())
+        bound_param_names = {param_names[i] for i in context_values}
+        bound_kwarg_names = set(kwarg_bindings.keys())
+        filtered_kwargs = {
+            k: v
+            for k, v in kwargs.items()
+            if k not in bound_param_names and k not in bound_kwarg_names
+        }
+
+        # Add bound keyword-only parameters
+        filtered_kwargs.update(kwarg_bindings)
+
+        # Build new_args with context values at correct positions
+        new_args = []
+        arg_index = 0
+        for param_index in range(len(sig.parameters)):
+            if param_index in context_values:
+                new_args.append(context_values[param_index])
+            elif arg_index < len(args):
+                new_args.append(args[arg_index])
+                arg_index += 1
+
+        # Add any remaining positional args
+        if arg_index < len(args):
+            new_args.extend(args[arg_index:])
+
+        if inspect.iscoroutinefunction(original_callable):
+            return await original_callable(*new_args, **filtered_kwargs)
+        return original_callable(*new_args, **filtered_kwargs)
+
+    # Preserve introspection attributes
+    wrapper.__name__ = getattr(original_callable, "__name__", "wrapper")
+    wrapper.__doc__ = getattr(original_callable, "__doc__", None)
+    wrapper.__module__ = getattr(original_callable, "__module__", None)
+
+    # Create modified signature without context parameters
+    try:
+        params = list(sig.parameters.values())
+        # Remove parameters at context positions and bound kwargs
+        context_positions = set(context_values.keys())
+        bound_kwarg_names = set(kwarg_bindings.keys())
+        new_params = [
+            param
+            for i, param in enumerate(params)
+            if i not in context_positions and param.name not in bound_kwarg_names
+        ]
+        new_sig = sig.replace(parameters=new_params)
+        wrapper.__signature__ = new_sig
+        wrapper.__annotations__ = {
+            name: param.annotation for name, param in new_sig.parameters.items()
+        }
+        if sig.return_annotation != inspect.Signature.empty:
+            wrapper.__annotations__["return"] = sig.return_annotation
+
+    except (ValueError, TypeError):
+        logger.debug("Failed to update wrapper signature", original=original_callable)
+
+    return wrapper
+
+
+def _find_matching_type(param_annotation: Any, by_type: dict[type, Any]) -> Any | None:
+    """Find a matching type binding for the given parameter annotation.
+
+    Supports exact matching and generic origin matching.
+
+    Args:
+        param_annotation: The parameter's type annotation
+        by_type: Dictionary of type bindings
+
+    Returns:
+        The bound value if a match is found, None otherwise
+    """
+    # First try exact match
+    if param_annotation in by_type:
+        return by_type[param_annotation]
+
+    # Then try origin type matching for generics
+    param_origin = get_origin(param_annotation)
+    if param_origin is not None:
+        # Check if the origin type has a binding
+        if param_origin in by_type:
+            return by_type[param_origin]
+
+    return None
