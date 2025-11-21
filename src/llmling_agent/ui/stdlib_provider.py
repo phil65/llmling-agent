@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import sys
 from textwrap import dedent
 from typing import TYPE_CHECKING, Any
 
+import anyenv
 from mcp import types
 
 from llmling_agent.log import get_logger
@@ -32,7 +34,8 @@ class StdlibInputProvider(InputProvider):
         prompt: str,
         message_history: list[ChatMessage[Any]] | None = None,
     ) -> str:
-        return input(f"{prompt}\n> ")
+        print(f"{prompt}\n> ", end="", file=sys.stderr, flush=True)
+        return input()
 
     async def get_structured_input(
         self,
@@ -61,8 +64,6 @@ class StdlibInputProvider(InputProvider):
         args: dict[str, Any],
         message_history: list[ChatMessage[Any]] | None = None,
     ) -> ConfirmationResult:
-        import anyenv
-
         agent_name = context.node_name
         prompt = dedent(f"""
             Tool Execution Confirmation
@@ -81,7 +82,8 @@ class StdlibInputProvider(InputProvider):
             - quit: abort entire chain
             """).strip()
 
-        response = input(f"{prompt}\nChoice [y/n/abort/quit]: ").lower()
+        print(f"{prompt}\nChoice [y/n/abort/quit]: ", end="", file=sys.stderr, flush=True)
+        response = input().lower()
         match response:
             case "y" | "yes":
                 return "allow"
@@ -100,19 +102,15 @@ class StdlibInputProvider(InputProvider):
     ) -> types.ElicitResult | types.ErrorData:
         """Get user response to elicitation request using stdlib input."""
         try:
-            print(f"\n{params.message}")
-
+            print(f"\n{params.message}", file=sys.stderr)
             # Handle structured input with schema
-            print("Please provide response as JSON:")
+            print("Please provide response as JSON:", file=sys.stderr)
             if params.requestedSchema:
-                import anyenv
-
                 schema_json = anyenv.dump_json(params.requestedSchema, indent=True)
-                print(f"Expected schema:\n{schema_json}")
-            response = input("> ")
+                print(f"Expected schema:\n{schema_json}", file=sys.stderr)
+            print("> ", end="", file=sys.stderr, flush=True)
+            response = input()
             try:
-                import anyenv
-
                 content = anyenv.load_json(response, return_type=dict)
                 return types.ElicitResult(action="accept", content=content)
             except anyenv.JsonLoadError as e:
