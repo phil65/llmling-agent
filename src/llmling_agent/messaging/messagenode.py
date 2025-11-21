@@ -71,12 +71,8 @@ class MessageNode[TDeps, TResult](ABC):
         mcp_servers = list(mcp_servers) if mcp_servers else []
         if context and (cfg := context.config) and cfg.mcp_servers:
             mcp_servers.extend(cfg.get_mcp_servers())
-        self.mcp = MCPManager(
-            f"node_{self._name}",
-            servers=mcp_servers,
-            context=context,
-            owner=self.name,
-        )
+        name_ = f"node_{self._name}"
+        self.mcp = MCPManager(name_, servers=mcp_servers, context=context, owner=self.name)
         self.enable_db_logging = enable_logging
         self.conversation_id = str(uuid4())
         # Connect to the combined signal to capture all messages
@@ -317,9 +313,5 @@ class MessageNode[TDeps, TResult](ABC):
         """Get message statistics for this node."""
 
     @abstractmethod
-    def run_iter(
-        self,
-        *prompts: Any,
-        **kwargs: Any,
-    ) -> AsyncIterator[ChatMessage[Any]]:
+    def run_iter(self, *prompts: Any, **kwargs: Any) -> AsyncIterator[ChatMessage[Any]]:
         """Yield messages during execution."""

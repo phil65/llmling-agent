@@ -70,7 +70,6 @@ class MCPManager:
             if tasks := [self._setup_server(server) for server in self.servers]:
                 await asyncio.gather(*tasks)
         except Exception as e:
-            # Clean up in case of error
             await self.__aexit__(type(e), e, e.__traceback__)
             msg = "Failed to initialize MCP manager"
             raise RuntimeError(msg) from e
@@ -98,7 +97,7 @@ class MCPManager:
 
         from llmling_agent.agent.context import AgentContext
 
-        if self.context and isinstance(self.context, AgentContext):
+        if isinstance(self.context, AgentContext):
             match await self.context.handle_elicitation(params):
                 case MCPElicitResult(action="accept", content=content):
                     return content
