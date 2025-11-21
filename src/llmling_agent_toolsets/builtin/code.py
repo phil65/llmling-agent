@@ -54,15 +54,10 @@ async def format_code(code: str, language: str | None = None) -> str:
         return f"❌ Error: {type(e).__name__}"
 
 
-def create_code_tools() -> list[Tool]:
-    """Create tools for code formatting and linting."""
-    return [
-        Tool.from_callable(format_code, source="builtin", category="execute"),
-    ]
-
-
 class CodeTools(StaticResourceProvider):
     """Provider for code formatting and linting tools."""
 
     def __init__(self, name: str = "code") -> None:
-        super().__init__(name=name, tools=create_code_tools())
+        super().__init__(
+            name=name, tools=[Tool.from_callable(format_code, source="builtin", category="execute")]
+        )

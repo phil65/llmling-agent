@@ -101,7 +101,7 @@ class AgentKwargs(TypedDict, total=False):
     tools: Sequence[ToolType | Tool] | None
     toolsets: Sequence[ResourceProvider] | None
     mcp_servers: Sequence[str | MCPServerConfig] | None
-    local_skills_dirs: Sequence[JoinablePathLike] | None
+    skills_paths: Sequence[JoinablePathLike] | None
     retries: int
     output_retries: int | None
     end_strategy: EndStrategy
@@ -146,7 +146,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         toolsets: Sequence[ResourceProvider] | None = None,
         mcp_servers: Sequence[str | MCPServerConfig] | None = None,
         resources: Sequence[PromptType | str] = (),
-        local_skills_dirs: Sequence[JoinablePathLike] | None = None,
+        skills_paths: Sequence[JoinablePathLike] | None = None,
         retries: int = 1,
         output_retries: int | None = None,
         end_strategy: EndStrategy = "early",
@@ -181,7 +181,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             toolsets: List of toolset resource providers for the agent
             mcp_servers: MCP servers to connect to
             resources: Additional resources to load
-            local_skills_dirs: Local directories to search for agent-specific skills
+            skills_paths: Local directories to search for agent-specific skills
             retries: Default number of retries for failed operations
             output_retries: Max retries for result validation (defaults to retries)
             end_strategy: Strategy for handling tool calls that are requested alongside
@@ -236,11 +236,11 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             self.tools.add_provider(toolset_provider)
 
         # # Add local skills provider if directories specified
-        # if local_skills_dirs:
+        # if skills_paths:
         #     from llmling_agent.resource_providers.skills import SkillsResourceProvider
 
         #     skills_paths = [
-        #         Path(d) if isinstance(d, str) else d for d in local_skills_dirs
+        #         Path(d) if isinstance(d, str) else d for d in skills_paths
         #     ]
         #     local_skills_provider = SkillsResourceProvider(
         #         skills_dirs=skills_paths,
