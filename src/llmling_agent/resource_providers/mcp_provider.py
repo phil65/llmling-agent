@@ -18,7 +18,6 @@ if TYPE_CHECKING:
     from fastmcp.client.elicitation import ElicitationHandler
     from fastmcp.client.sampling import ClientSamplingHandler
 
-    from llmling_agent.messaging.context import NodeContext
     from llmling_agent.prompts.prompts import MCPClientPrompt
     from llmling_agent.tools.base import Tool
     from llmling_agent_config.mcp_server import MCPServerConfig
@@ -35,7 +34,6 @@ class MCPResourceProvider(ResourceProvider):
         server: MCPServerConfig | str,
         name: str = "mcp",
         owner: str | None = None,
-        context: NodeContext | None = None,
         source: Literal["pool", "node"] = "node",
         elicitation_callback: ElicitationHandler | None = None,
         sampling_callback: ClientSamplingHandler[Any] | None = None,
@@ -45,7 +43,6 @@ class MCPResourceProvider(ResourceProvider):
 
         super().__init__(name, owner=owner)
         self.server = BaseMCPServerConfig.from_string(server) if isinstance(server, str) else server
-        self.context = context
         self.source = source
         self.exit_stack = AsyncExitStack()
         self._accessible_roots = accessible_roots

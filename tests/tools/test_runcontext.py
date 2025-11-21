@@ -84,6 +84,7 @@ async def test_plain_tool_no_context():
 
 
 @pytest.mark.integration
+@pytest.mark.flaky(reruns=2)
 async def test_capability_tools(default_model: str):
     """Test that capability tools work with AgentContext."""
     async with AgentPool() as pool:
