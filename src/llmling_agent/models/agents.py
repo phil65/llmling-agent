@@ -92,21 +92,15 @@ class AgentConfig(NodeConfig):
                     "type": "openapi",
                     "spec": "https://api.example.com/openapi.json",
                     "namespace": "api",
-                }
-            ],
-            [
+                },
                 {
-                    "type": "entry_point",
-                    "entry_point": "llmling_agent_toolsets.composio",
-                    "namespace": "external",
-                }
-            ],
-            [
+                    "type": "file_access",
+                },
                 {
                     "type": "composio",
                     "user_id": "user123@example.com",
                     "toolsets": ["github", "slack"],
-                }
+                },
             ],
         ],
         title="Toolset configurations",

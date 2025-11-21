@@ -23,11 +23,7 @@ from llmling_agent_config.storage import StorageConfig
 from llmling_agent_config.system_prompts import PromptLibraryConfig
 from llmling_agent_config.task import Job
 from llmling_agent_config.teams import TeamConfig
-from llmling_agent_config.workers import (
-    AgentWorkerConfig,
-    BaseWorkerConfig,
-    TeamWorkerConfig,
-)
+from llmling_agent_config.workers import AgentWorkerConfig, BaseWorkerConfig, TeamWorkerConfig
 
 
 if TYPE_CHECKING:
