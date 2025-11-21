@@ -97,6 +97,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         super().__init__()
         from llmling_agent.mcp_server.manager import MCPManager
         from llmling_agent.models.manifest import AgentsManifest
+        from llmling_agent.observability import registry
         from llmling_agent.skills.manager import SkillsManager
         from llmling_agent.storage import StorageManager
 
@@ -110,6 +111,8 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
             case _:
                 msg = f"Invalid config path: {manifest}"
                 raise ValueError(msg)
+
+        registry.configure_observability(self.manifest.observability)
         self.shared_deps = shared_deps
         self._input_provider = input_provider
         self.exit_stack = AsyncExitStack()

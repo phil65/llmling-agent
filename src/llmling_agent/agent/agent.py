@@ -198,7 +198,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         from llmling_agent.agent.conversation import MessageHistory
         from llmling_agent.agent.interactions import Interactions
         from llmling_agent.agent.sys_prompts import SystemPrompts
-        from llmling_agent.observability import registry
 
         self.task_manager = TaskManager()
         self._infinite = False
@@ -270,9 +269,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         self._end_strategy: EndStrategy = end_strategy
         self._output_retries = output_retries
 
-        if ctx and ctx.definition:
-            registry.configure_observability(ctx.definition.observability)
-
         # init variables
         self._debug = debug
         self.parallel_init = parallel_init
@@ -321,7 +317,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             # Add MCP aggregating provider after manager is initialized
             aggregating_provider = self.mcp.get_aggregating_provider()
             self.tools.add_provider(aggregating_provider)
-
             for toolset_provider in self.context.config.get_toolsets():
                 self.tools.add_provider(toolset_provider)
         except Exception as e:
@@ -565,7 +560,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             output_type=final_type,
         )
 
-        # If input_provider override is provided, create modified context
         context_for_tools = (
             self.context
             if input_provider is None
@@ -777,8 +771,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         message_id = message_id or str(uuid4())
         user_msg, prompts, _original_message = await prepare_prompts(*prompt)
         self.message_received.emit(user_msg)
-
-        # Set current prompt context
         final_prompt = "\n\n".join(str(p) for p in prompts)
         self.context.current_prompt = final_prompt
         start_time = time.perf_counter()
