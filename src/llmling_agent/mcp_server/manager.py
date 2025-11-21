@@ -127,57 +127,33 @@ class MCPManager:
 
         from llmling_agent.agent import Agent
 
+        # Convert messages to prompts for the agent
+        prompts: list[BaseContent | str] = []
+        for mcp_msg in messages:
+            match mcp_msg.content:
+                case types.TextContent(text=text):
+                    prompts.append(text)
+                case types.ImageContent(data=data, mimeType=mime_type):
+                    our_image = ImageBase64Content(data=data, mime_type=mime_type)
+                    prompts.append(our_image)
+                case types.AudioContent(data=data, mimeType=mime_type):
+                    fmt = mime_type.removeprefix("audio/")
+                    our_audio = AudioBase64Content(data=data, format=fmt)
+                    prompts.append(our_audio)
+
+        # Extract model from preferences
+        model = None
+        if (prefs := params.modelPreferences) and prefs.hints and prefs.hints[0].name:
+            model = prefs.hints[0].name
+        # Create usage limits from sampling parameters
+        limits = UsageLimits(output_tokens_limit=params.maxTokens, request_limit=1)
+        # TODO: Apply temperature from params.temperature
+        sys_prompt = params.systemPrompt or ""
+        agent = Agent(name="sampling-agent", model=model, system_prompt=sys_prompt, session=False)
         try:
-            # Convert messages to prompts for the agent
-            prompts: list[BaseContent | str] = []
-            for mcp_msg in messages:
-                match mcp_msg.content:
-                    case types.TextContent(text=text):
-                        prompts.append(text)
-                    case types.ImageContent(data=data, mimeType=mime_type):
-                        our_image = ImageBase64Content(data=data, mime_type=mime_type)
-                        prompts.append(our_image)
-                    case types.AudioContent(data=data, mimeType=mime_type):
-                        fmt = mime_type.removeprefix("audio/")
-                        our_audio = AudioBase64Content(data=data, format=fmt)
-                        prompts.append(our_audio)
-
-            # Extract model from preferences
-            model = None
-            if (
-                params.modelPreferences
-                and params.modelPreferences.hints
-                and params.modelPreferences.hints[0].name
-            ):
-                model = params.modelPreferences.hints[0].name
-
-            # Create usage limits from sampling parameters
-            usage_limits = UsageLimits(
-                output_tokens_limit=params.maxTokens,
-                request_limit=1,  # Single sampling request
-            )
-
-            # TODO: Apply temperature from params.temperature
-            # Currently no direct way to pass temperature to Agent constructor
-            # May need provider-level configuration or runtime model settings
-
-            # Create agent with sampling parameters
-            agent = Agent(
-                name="mcp-sampling-agent",
-                model=model,
-                system_prompt=params.systemPrompt or "",
-                session=False,  # Don't store history for sampling
-            )
-
             async with agent:
-                # Pass all prompts directly to the agent
-                result = await agent.run(
-                    *prompts,
-                    store_history=False,
-                    usage_limits=usage_limits,
-                )
-
-                return str(result.content)
+                result = await agent.run(*prompts, store_history=False, usage_limits=limits)
+                return result.content
 
         except Exception as e:
             logger.exception("Sampling failed")
@@ -198,8 +174,6 @@ class MCPManager:
             sampling_callback=self._sampling_callback,
             accessible_roots=self._accessible_roots,
         )
-
-        # Initialize the provider and add to exit stack
         provider = await self.exit_stack.enter_async_context(provider)
         self.providers.append(provider)
 
@@ -223,8 +197,6 @@ class MCPManager:
 
         # Add the config first
         self.add_server_config(config)
-
-        # Create and initialize the provider
         provider = MCPResourceProvider(
             server=config,
             name=f"{self.name}_{config.client_id}",
@@ -235,8 +207,6 @@ class MCPManager:
             sampling_callback=self._sampling_callback,
             accessible_roots=self._accessible_roots,
         )
-
-        # Initialize the provider and add to exit stack
         provider = await self.exit_stack.enter_async_context(provider)
         self.providers.append(provider)
         # Note: AggregatingResourceProvider automatically sees the new provider
@@ -286,21 +256,17 @@ if __name__ == "__main__":
         async with manager:
             providers = manager.get_mcp_providers()
             print(f"Found {len(providers)} providers")
-
-            if providers:
-                provider = providers[0]
-                prompts = await provider.get_prompts()
-                print(f"Found prompts: {prompts}")
-
-                if prompts:
-                    # Test static prompt (no arguments)
-                    static_prompt = next(p for p in prompts if p.name == "static_prompt")
-                    print(f"\n--- Testing static prompt: {static_prompt} ---")
-                    components = await static_prompt.get_components()
-                    assert components, "No prompt components found"
-                    print(f"Found {len(components)} prompt components:")
-                    for i, component in enumerate(components):
-                        comp_type = type(component).__name__
-                        print(f"  {i + 1}. {comp_type}: {component.content}")
+            provider = providers[0]
+            prompts = await provider.get_prompts()
+            print(f"Found prompts: {prompts}")
+            # Test static prompt (no arguments)
+            static_prompt = next(p for p in prompts if p.name == "static_prompt")
+            print(f"\n--- Testing static prompt: {static_prompt} ---")
+            components = await static_prompt.get_components()
+            assert components, "No prompt components found"
+            print(f"Found {len(components)} prompt components:")
+            for i, component in enumerate(components):
+                comp_type = type(component).__name__
+                print(f"  {i + 1}. {comp_type}: {component.content}")
 
     asyncio.run(main())
