@@ -26,6 +26,7 @@ if TYPE_CHECKING:
         ProcessorCallback,
         QueueStrategy,
     )
+    from llmling_agent.delegation import AgentPool
     from llmling_agent.messaging.context import NodeContext
     from llmling_agent.talk import Talk, TeamTalk
     from llmling_agent.talk.stats import AggregatedMessageStats, MessageStats
@@ -51,6 +52,7 @@ class MessageNode[TDeps, TResult](ABC):
         description: str | None = None,
         context: NodeContext | None = None,
         mcp_servers: Sequence[str | MCPServerConfig] | None = None,
+        agent_pool: AgentPool | None = None,
         enable_logging: bool = True,
     ) -> None:
         """Initialize message node."""
@@ -62,7 +64,7 @@ class MessageNode[TDeps, TResult](ABC):
         self.task_manager = TaskManager()
         self._name = name or self.__class__.__name__
         self.log = logger.bind(agent_name=self._name)
-
+        self.agent_pool = agent_pool
         self.description = description
         self.connections = ConnectionManager(self)
         self._events = EventManager(self, enable_events=True)

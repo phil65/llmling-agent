@@ -204,7 +204,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         self._infinite = False
         # save some stuff for asnyc init
         self.deps_type = deps_type
-        self.agent_pool = agent_pool
         # prepare context
 
         ctx = context or AgentContext[TDeps](
@@ -228,6 +227,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             description=description,
             enable_logging=memory_cfg.enable,
             mcp_servers=mcp_servers,
+            agent_pool=agent_pool,
         )
 
         # Initialize tool manager
