@@ -55,7 +55,7 @@ class AgentConfig(NodeConfig):
 
     inherits: str | None = Field(
         default=None,
-        examples=["base_agent", "coding_assistant"],
+        # examples=["base_agent", "coding_assistant"],
         title="Inheritance source",
     )
     """Name of agent config to inherit from"""
@@ -70,12 +70,45 @@ class AgentConfig(NodeConfig):
 
     tools: list[ToolConfig | str] = Field(
         default_factory=list,
+        examples=[
+            ["webbrowser:open", "builtins:print"],
+            [
+                {
+                    "type": "import",
+                    "import_path": "webbrowser:open",
+                    "name": "web_browser",
+                }
+            ],
+        ],
         title="Agent tools",
     )
     """A list of tools to register with this agent."""
 
     toolsets: list[ToolsetConfig] = Field(
         default_factory=list,
+        examples=[
+            [
+                {
+                    "type": "openapi",
+                    "spec": "https://api.example.com/openapi.json",
+                    "namespace": "api",
+                }
+            ],
+            [
+                {
+                    "type": "entry_point",
+                    "entry_point": "llmling_agent_toolsets.composio",
+                    "namespace": "external",
+                }
+            ],
+            [
+                {
+                    "type": "composio",
+                    "user_id": "user123@example.com",
+                    "toolsets": ["github", "slack"],
+                }
+            ],
+        ],
         title="Toolset configurations",
     )
     """Toolset configurations for extensible tool collections."""
@@ -119,8 +152,7 @@ class AgentConfig(NodeConfig):
     """URL or path to agent's avatar image"""
 
     system_prompts: Sequence[str | PromptConfig] = Field(
-        default_factory=list,
-        title="System prompts",
+        default_factory=list, title="System prompts", examples=[["You are an AI assistant."]]
     )
     """System prompts for the agent. Can be strings or structured prompt configs."""
 
@@ -142,6 +174,21 @@ class AgentConfig(NodeConfig):
 
     workers: list[WorkerConfig] = Field(
         default_factory=list,
+        examples=[
+            [
+                {
+                    "type": "agent",
+                    "name": "web_agent",
+                    "reset_history_on_run": True,
+                }
+            ],
+            [
+                {
+                    "type": "team",
+                    "name": "analysis_team",
+                }
+            ],
+        ],
         title="Worker agents",
     )
     """Worker agents which will be available as tools."""

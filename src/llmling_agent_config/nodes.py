@@ -35,16 +35,56 @@ class NodeConfig(Schema):
     )
     """Optional description of the agent / team."""
 
-    triggers: list[EventConfig] = Field(default_factory=list, title="Event triggers")
+    triggers: list[EventConfig] = Field(
+        default_factory=list,
+        examples=[
+            [
+                {
+                    "type": "time",
+                    "name": "daily_check",
+                    "schedule": "0 9 * * *",
+                    "prompt": "Daily status update",
+                }
+            ],
+            [
+                {
+                    "type": "file",
+                    "name": "code_watcher",
+                    "paths": ["./src"],
+                    "extensions": [".py"],
+                }
+            ],
+        ],
+        title="Event triggers",
+    )
     """Event sources that activate this agent / team"""
 
     connections: list[ForwardingTarget] = Field(
         default_factory=list,
+        examples=[
+            [
+                {
+                    "type": "node",
+                    "name": "output_agent",
+                    "connection_type": "run",
+                    "wait_for_completion": True,
+                }
+            ],
+            [
+                {
+                    "type": "file",
+                    "path": "logs/messages.txt",
+                    "template": "{{ message.content }}",
+                }
+            ],
+        ],
         title="Message forwarding targets",
     )
     """Targets to forward results to."""
 
-    mcp_servers: list[str | MCPServerConfig] = Field(default_factory=list, title="MCP servers")
+    mcp_servers: list[str | MCPServerConfig] = Field(
+        default_factory=list, title="MCP servers", examples=[["uvx some-server"]]
+    )
     """List of MCP server configurations:
     - str entries are converted to StdioMCPServerConfig
     - MCPServerConfig for full server configuration
@@ -52,7 +92,6 @@ class NodeConfig(Schema):
 
     input_provider: ImportString[InputProvider] | None = Field(
         default=None,
-        examples=["myapp.providers.ConsoleInput", "ui.providers:WebInput"],
         title="Input provider",
     )
     """Provider for human-input-handling."""

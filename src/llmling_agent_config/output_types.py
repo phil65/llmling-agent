@@ -9,7 +9,22 @@ from schemez import Schema, SchemaDef
 class StructuredResponseConfig(Schema):
     """Base class for response definitions."""
 
-    response_schema: SchemaDef = Field(title="Response schema")
+    response_schema: SchemaDef = Field(
+        examples=[
+            {
+                "type": "import",
+                "import_path": "llmling_agent.models.content:ImageBase64Content",
+            },
+            {
+                "type": "inline",
+                "fields": {
+                    "name": {"type": "str", "description": "User name"},
+                    "age": {"type": "int", "description": "User age"},
+                },
+            },
+        ],
+        title="Response schema",
+    )
     """A model describing the response schema. """
 
     description: str | None = Field(

@@ -135,7 +135,23 @@ class PromptLibraryConfig(Schema):
     """Optional template for combining prompts.
     Has access to prompts grouped by type."""
 
-    providers: list[PromptHubConfig] = Field(default_factory=list, title="Prompt hub providers")
+    providers: list[PromptHubConfig] = Field(
+        default_factory=list,
+        examples=[
+            [
+                {
+                    "type": "promptlayer",
+                    "api_key": "pl_abc123",
+                }
+            ],
+            [
+                {
+                    "type": "fabric",
+                }
+            ],
+        ],
+        title="Prompt hub providers",
+    )
     """List of external prompt providers to use."""
 
     model_config = ConfigDict(frozen=True)

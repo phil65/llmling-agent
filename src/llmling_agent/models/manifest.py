@@ -58,7 +58,19 @@ class AgentsManifest(Schema):
     INHERIT: str | list[str] | None = None
     """Inheritance references."""
 
-    resources: dict[str, ResourceConfig | str] = Field(default_factory=dict)
+    resources: dict[str, ResourceConfig | str] = Field(
+        default_factory=dict,
+        examples=[
+            {"docs": "file://./docs", "data": "s3://bucket/data"},
+            {
+                "api": {
+                    "type": "source",
+                    "uri": "https://api.example.com",
+                    "cached": True,
+                }
+            },
+        ],
+    )
     """Resource configurations defining available filesystems.
 
     Supports both full config and URI shorthand:
@@ -91,7 +103,9 @@ class AgentsManifest(Schema):
     jobs: dict[str, Job[Any]] = Field(default_factory=dict)
     """Pre-defined jobs, ready to be used by nodes."""
 
-    mcp_servers: list[str | MCPServerConfig] = Field(default_factory=list)
+    mcp_servers: list[str | MCPServerConfig] = Field(
+        default_factory=list, examples=[["uvx some-server"]]
+    )
     """List of MCP server configurations:
 
     These MCP servers are used to provide tools and other resources to the nodes.
@@ -104,7 +118,18 @@ class AgentsManifest(Schema):
 
     prompts: PromptLibraryConfig = Field(default_factory=PromptLibraryConfig)
 
-    commands: dict[str, CommandConfig | str] = Field(default_factory=dict)
+    commands: dict[str, CommandConfig | str] = Field(
+        default_factory=dict,
+        examples=[
+            {"check_disk": "df -h", "analyze": "Analyze the current situation"},
+            {
+                "status": {
+                    "type": "static",
+                    "content": "Show system status",
+                }
+            },
+        ],
+    )
     """Global command shortcuts for prompt injection.
 
     Supports both shorthand string syntax and full command configurations:
@@ -509,4 +534,4 @@ if __name__ == "__main__":
     model = {"type": "input"}
     agent_cfg = dict(name="test_agent", model=model)
     manifest = AgentsManifest(agents=dict(test_agent=agent_cfg))  # pyright: ignore[reportArgumentType]
-    print(manifest.agents["test_agent"].model)
+    print(AgentsManifest.generate_test_data(mode="maximal").model_dump_yaml())

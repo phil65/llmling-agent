@@ -49,7 +49,7 @@ class Job[TDeps, TResult = str](Schema):
     """Human-readable description of what this task does"""
 
     prompt: str | ImportString[str] | BasePrompt = Field(
-        examples=["Analyze the following code", "mymodule.prompts:analysis_prompt"],
+        examples=["Analyze the following code", "llmling_agent.prompts.prompts:BasePrompt"],
         title="Task prompt",
     )
     """The task instruction/prompt."""
@@ -57,7 +57,7 @@ class Job[TDeps, TResult = str](Schema):
     required_return_type: ImportString[type[TResult]] = Field(
         default="str",
         validate_default=True,
-        examples=["str", "dict", "mymodule.models:AnalysisResult"],
+        examples=["str", "dict", "builtins:str"],
         title="Required return type",
     )
     """Expected type of the task result."""
@@ -65,7 +65,7 @@ class Job[TDeps, TResult = str](Schema):
     required_dependency: ImportString[type[TDeps]] | None = Field(
         default=None,
         validate_default=True,
-        examples=["mymodule.deps:DatabaseDeps", "utils.context:TaskContext"],
+        examples=["llmling_agent.agent.context:AgentContext"],
         title="Required dependencies",
     )
     """Dependencies or context data needed for task execution"""
@@ -82,6 +82,23 @@ class Job[TDeps, TResult = str](Schema):
 
     tools: list[ImportString[Callable[..., Any]] | ImportToolConfig] = Field(
         default_factory=list,
+        examples=[
+            [
+                {
+                    "type": "import",
+                    "import_path": "webbrowser:open",
+                    "name": "web_browser",
+                }
+            ],
+            ["builtins:print"],
+            [
+                {
+                    "type": "import",
+                    "import_path": "builtins:print",
+                    "requires_confirmation": True,
+                }
+            ],
+        ],
         title="Task tools",
     )
     """Tools needed for this task."""
