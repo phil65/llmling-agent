@@ -11,7 +11,7 @@ from llmling_models.configs import AnyModelConfig  # noqa: TC002
 from pydantic import Field, model_validator
 from pydantic_ai import UsageLimits  # noqa: TC002
 from schemez import InlineSchemaDef
-from tokonomics.model_names import ModelName
+from tokonomics.model_names import ModelName  # noqa: TC002
 from toprompt import render_prompt
 
 from llmling_agent import log
