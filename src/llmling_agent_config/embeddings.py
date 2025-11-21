@@ -32,7 +32,7 @@ class SentenceTransformersConfig(BaseEmbeddingConfig):
     use_gpu: bool = Field(default=False, title="Use GPU")
     """Whether to use GPU for inference."""
 
-    batch_size: int = Field(default=32, examples=[16, 32, 64], title="Batch size")
+    batch_size: int = Field(default=32, ge=1, examples=[16, 32, 64], title="Batch size")
     """Batch size for inference."""
 
 
@@ -67,7 +67,7 @@ class BGEConfig(BaseEmbeddingConfig):
     use_gpu: bool = Field(default=False, title="Use GPU")
     """Whether to use GPU for inference."""
 
-    batch_size: int = Field(default=32, examples=[16, 32, 64], title="Batch size")
+    batch_size: int = Field(default=32, ge=1, examples=[16, 32, 64], title="Batch size")
     """Batch size for inference."""
 
 
@@ -93,7 +93,7 @@ class LiteLLMEmbeddingConfig(BaseEmbeddingConfig):
     )
     """Optional number of dimensions for the embeddings."""
 
-    batch_size: int = Field(default=32, examples=[16, 32, 64], title="Batch size")
+    batch_size: int = Field(default=32, ge=1, examples=[16, 32, 64], title="Batch size")
     """Batch size for inference."""
 
     additional_params: dict[str, str | int | float | bool] = Field(

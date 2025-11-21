@@ -123,6 +123,8 @@ class ImageGenerationToolConfig(BaseBuiltinToolConfig):
 
     output_compression: int = Field(
         default=100,
+        ge=0,
+        le=100,
         examples=[80, 90, 100],
         title="Output compression",
     )
@@ -137,6 +139,7 @@ class ImageGenerationToolConfig(BaseBuiltinToolConfig):
 
     partial_images: int = Field(
         default=0,
+        ge=0,
         examples=[0, 2, 4],
         title="Partial images count",
     )

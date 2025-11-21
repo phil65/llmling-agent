@@ -14,7 +14,7 @@ class BaseChunkerConfig(Schema):
     type: str = Field(init=False, title="Chunker type")
     """Type identifier for the chunker."""
 
-    chunk_overlap: int = Field(default=200, examples=[100, 200, 500], title="Chunk overlap")
+    chunk_overlap: int = Field(default=200, ge=0, examples=[100, 200, 500], title="Chunk overlap")
     """Number of characters to overlap between chunks."""
 
     model_config = ConfigDict(frozen=True)
@@ -33,7 +33,7 @@ class LangChainChunkerConfig(BaseChunkerConfig):
     )
     """Which LangChain chunker to use."""
 
-    chunk_size: int = Field(default=1000, examples=[500, 1000, 2000], title="Chunk size")
+    chunk_size: int = Field(default=1000, ge=1, examples=[500, 1000, 2000], title="Chunk size")
     """Target size of chunks."""
 
 
@@ -92,7 +92,7 @@ class LlamaIndexChunkerConfig(BaseChunkerConfig):
     )
     """Which LlamaIndex chunker to use."""
 
-    chunk_size: int = Field(default=1000, examples=[500, 1000, 2000], title="Chunk size")
+    chunk_size: int = Field(default=1000, ge=1, examples=[500, 1000, 2000], title="Chunk size")
     """Target size of chunks."""
 
     include_metadata: bool = Field(default=True, title="Include metadata")

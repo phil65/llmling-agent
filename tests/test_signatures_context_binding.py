@@ -1,7 +1,7 @@
 """Test context binding functionality in signatures utils."""
 
 import inspect
-from typing import Generic, TypeVar
+from typing import TypeVar
 
 import pytest
 
@@ -21,7 +21,7 @@ class MockRunContext:
 T = TypeVar("T")
 
 
-class GenericRunContext(Generic[T]):
+class GenericRunContext[T]:
     """Generic RunContext for testing generic type binding."""
 
     def __init__(self, deps: T, name: str = "generic_context"):
@@ -517,7 +517,7 @@ class TestCodeModeIntegration:
         deps2 = "string_deps"
 
         generic_context_mock = GenericRunContext(deps1)
-        generic_context_str = GenericRunContext(deps2)
+        GenericRunContext(deps2)
 
         def func_expecting_str_context(ctx: GenericRunContext[str], value: str) -> str:
             return f"value: {value}, deps: {ctx.deps}"

@@ -108,7 +108,7 @@ class WebhookConfig(EventSourceConfig):
     type: Literal["webhook"] = Field("webhook", init=False)
     """webhook-based event."""
 
-    port: int = Field(examples=[8080, 9000, 3000], title="Listen port")
+    port: int = Field(examples=[8080, 9000, 3000], title="Listen port", ge=1, lt=65536)
     """Port to listen on."""
 
     path: str = Field(
@@ -170,7 +170,9 @@ class EmailConfig(EventSourceConfig):
     )
     """IMAP server hostname (e.g. 'imap.gmail.com')"""
 
-    port: int = Field(default=993, examples=[993, 143, 465], title="IMAP server port")
+    port: int = Field(
+        default=993, ge=1, lt=65536, examples=[993, 143, 465], title="IMAP server port"
+    )
     """Server port (defaults to 993 for IMAP SSL)"""
 
     username: str = Field(examples=["user@gmail.com", "admin@company.com"], title="Email username")

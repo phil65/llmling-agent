@@ -127,7 +127,7 @@ class AgentConfig(NodeConfig):
     )
     """Name of the response definition to use"""
 
-    retries: int = Field(default=1, examples=[1, 3], title="Model retries")
+    retries: int = Field(default=1, ge=0, examples=[1, 3], title="Model retries")
     """Number of retries for failed operations (maps to pydantic-ai's retries)"""
 
     output_retries: int | None = Field(

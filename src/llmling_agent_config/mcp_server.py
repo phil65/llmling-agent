@@ -28,7 +28,9 @@ class MCPServerAuthSettings(Schema):
     oauth: bool = Field(default=False, title="Enable OAuth")
 
     # Local callback server configuration
-    redirect_port: int = Field(default=3030, examples=[3030, 8080, 9000], title="Redirect port")
+    redirect_port: int = Field(
+        default=3030, ge=1, lt=65536, examples=[3030, 8080, 9000], title="Redirect port"
+    )
     redirect_path: str = Field(
         default="/callback",
         examples=["/callback", "/auth/callback", "/oauth"],
