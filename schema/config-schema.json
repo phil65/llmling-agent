@@ -5,14 +5,6 @@
       "description": "Configuration for a single agent in the system.\n\nDefines an agent's complete configuration including its model, environment,\nand behavior settings. Each agent can have its own:\n- Language model configuration\n- Environment setup (tools and resources)\n- Response type definitions\n- System prompts and default user prompts\n\nThe configuration can be loaded from YAML or created programmatically.",
       "properties": {
         "name": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Name of the Agent / Team",
           "examples": [
@@ -20,24 +12,24 @@
             "web_searcher",
             "code_assistant"
           ],
-          "title": "Node name"
+          "title": "Node name",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "description": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Optional description of the agent / team.",
           "examples": [
             "Main conversation agent",
             "Handles web search requests"
           ],
-          "title": "Node description"
+          "title": "Node description",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "triggers": {
           "description": "Event sources that activate this agent / team",
@@ -129,38 +121,30 @@
           "type": "array"
         },
         "input_provider": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Provider for human-input-handling.",
           "examples": [
             "myapp.providers.ConsoleInput",
             "ui.providers:WebInput"
           ],
-          "title": "Input provider"
+          "title": "Input provider",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "inherits": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Name of agent config to inherit from",
           "examples": [
             "base_agent",
             "coding_assistant"
           ],
-          "title": "Inheritance source"
+          "title": "Inheritance source",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "model": {
           "anyOf": [
@@ -2025,21 +2009,17 @@
           "type": "integer"
         },
         "output_retries": {
-          "anyOf": [
-            {
-              "type": "integer"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Max retries for result validation",
           "examples": [
             1,
             3
           ],
-          "title": "Output retries"
+          "title": "Output retries",
+          "type": [
+            "integer",
+            "null"
+          ]
         },
         "end_strategy": {
           "default": "early",
@@ -2056,21 +2036,17 @@
           "type": "string"
         },
         "avatar": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "URL or path to agent's avatar image",
           "examples": [
             "https://example.com/avatar.png",
             "/assets/robot.jpg"
           ],
-          "title": "Avatar image"
+          "title": "Avatar image",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "system_prompts": {
           "description": "System prompts for the agent. Can be strings or structured prompt configs.",
@@ -2110,21 +2086,17 @@
           "type": "array"
         },
         "config_file_path": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Config file path for resolving environment.",
           "examples": [
             "/path/to/config.yml",
             "configs/agent.yaml"
           ],
-          "title": "Configuration file path"
+          "title": "Configuration file path",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "knowledge": {
           "anyOf": [
@@ -2222,14 +2194,6 @@
       "description": "Configuration for agent management toolset.",
       "properties": {
         "namespace": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Optional namespace prefix for tool names",
           "examples": [
@@ -2237,7 +2201,11 @@
             "files",
             "code"
           ],
-          "title": "Tool namespace"
+          "title": "Tool namespace",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "type": {
           "const": "agent_management",
@@ -2266,38 +2234,30 @@
           "type": "boolean"
         },
         "service_name": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "examples": [
             "llmling-agent",
             "my-ai-service",
             "production-bot"
           ],
-          "title": "Service name"
+          "title": "Service name",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "environment": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "examples": [
             "production",
             "staging",
             "development"
           ],
-          "title": "Environment"
+          "title": "Environment",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "protocol": {
           "default": "http/protobuf",
@@ -2384,14 +2344,6 @@
           "type": "string"
         },
         "name": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Optional name for the condition for referencing.",
           "examples": [
@@ -2399,7 +2351,11 @@
             "message_filter",
             "cost_check"
           ],
-          "title": "Condition name"
+          "title": "Condition name",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "conditions": {
           "description": "List of conditions to check.",
@@ -2432,38 +2388,30 @@
           "type": "boolean"
         },
         "service_name": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "examples": [
             "llmling-agent",
             "my-ai-service",
             "production-bot"
           ],
-          "title": "Service name"
+          "title": "Service name",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "environment": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "examples": [
             "production",
             "staging",
             "development"
           ],
-          "title": "Environment"
+          "title": "Environment",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "protocol": {
           "default": "http/protobuf",
@@ -2495,38 +2443,30 @@
           "title": "Arize API key"
         },
         "space_key": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "examples": [
             "default",
             "team-space",
             "production-space"
           ],
-          "title": "Space key"
+          "title": "Space key",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "model_id": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "examples": [
             "gpt-4",
             "claude-3",
             "my-model"
           ],
-          "title": "Model ID"
+          "title": "Model ID",
+          "type": [
+            "string",
+            "null"
+          ]
         }
       },
       "title": "ArizePhoenixObservabilityConfig",
@@ -2600,17 +2540,13 @@
       "description": "Base class for all prompts.",
       "properties": {
         "name": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Technical identifier (automatically set from config key during registration).",
-          "title": "Name"
+          "title": "Name",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "description": {
           "description": "Human-readable description of what this prompt does.",
@@ -2618,17 +2554,13 @@
           "type": "string"
         },
         "title": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Title of the prompt.",
-          "title": "Title"
+          "title": "Title",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "metadata": {
           "additionalProperties": true,
@@ -2750,14 +2682,6 @@
           "title": "Braintrust API key"
         },
         "project": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Braintrust Project name.",
           "examples": [
@@ -2765,7 +2689,11 @@
             "ai_agents",
             "production"
           ],
-          "title": "Braintrust project"
+          "title": "Braintrust project",
+          "type": [
+            "string",
+            "null"
+          ]
         }
       },
       "title": "BraintrustConfig",
@@ -2783,14 +2711,6 @@
           "type": "string"
         },
         "name": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Command name (optional, can be inferred from key).",
           "examples": [
@@ -2798,24 +2718,24 @@
             "code_review",
             "translate"
           ],
-          "title": "Command name"
+          "title": "Command name",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "description": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Optional description of what this command does.",
           "examples": [
             "Summarize the given text",
             "Review code for issues"
           ],
-          "title": "Command description"
+          "title": "Command description",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "function": {
           "description": "Python function import path (e.g., 'my.package.module.function_name').",
@@ -2846,14 +2766,6 @@
           "type": "string"
         },
         "name": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Optional name for the condition for referencing.",
           "examples": [
@@ -2861,7 +2773,11 @@
             "message_filter",
             "cost_check"
           ],
-          "title": "Condition name"
+          "title": "Condition name",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "predicate": {
           "description": "Function to evaluate condition:\nArgs:\n    message: Current message being processed\n    stats: Current connection statistics\nReturns:\n    Whether condition is met",
@@ -3109,21 +3025,17 @@
           "title": "Application exit condition"
         },
         "transform": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Optional function to transform messages before forwarding.",
           "examples": [
             "mymodule.transform_message",
             "utils.filters:clean_content"
           ],
-          "title": "Message transform function"
+          "title": "Message transform function",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "callable": {
           "description": "Import path to the message processing function.",
@@ -3159,14 +3071,6 @@
       "description": "Configuration for code execution toolset.",
       "properties": {
         "namespace": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Optional namespace prefix for tool names",
           "examples": [
@@ -3174,7 +3078,11 @@
             "files",
             "code"
           ],
-          "title": "Tool namespace"
+          "title": "Tool namespace",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "type": {
           "const": "code_execution",
@@ -3192,14 +3100,6 @@
       "description": "Configuration for code mode tools.",
       "properties": {
         "namespace": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Optional namespace prefix for tool names",
           "examples": [
@@ -3207,7 +3107,11 @@
             "files",
             "code"
           ],
-          "title": "Tool namespace"
+          "title": "Tool namespace",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "type": {
           "const": "code_mode",
@@ -3314,14 +3218,6 @@
       "description": "Configuration for code toolset.",
       "properties": {
         "namespace": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Optional namespace prefix for tool names",
           "examples": [
@@ -3329,7 +3225,11 @@
             "files",
             "code"
           ],
-          "title": "Tool namespace"
+          "title": "Tool namespace",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "type": {
           "const": "code",
@@ -3347,14 +3247,6 @@
       "description": "Configuration for Composio toolsets.",
       "properties": {
         "namespace": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Optional namespace prefix for tool names",
           "examples": [
@@ -3362,7 +3254,11 @@
             "files",
             "code"
           ],
-          "title": "Tool namespace"
+          "title": "Tool namespace",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "type": {
           "const": "composio",
@@ -3429,14 +3325,6 @@
           "type": "string"
         },
         "name": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Optional name for the condition for referencing.",
           "examples": [
@@ -3444,7 +3332,11 @@
             "message_filter",
             "cost_check"
           ],
-          "title": "Condition name"
+          "title": "Condition name",
+          "type": [
+            "string",
+            "null"
+          ]
         }
       },
       "required": [
@@ -3504,14 +3396,6 @@
           "title": "Converter providers"
         },
         "default_provider": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Name of default provider for conversions.",
           "examples": [
@@ -3519,17 +3403,13 @@
             "youtube",
             "whisper_api"
           ],
-          "title": "Default provider"
+          "title": "Default provider",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "max_size": {
-          "anyOf": [
-            {
-              "type": "integer"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Global size limit for all converters.",
           "examples": [
@@ -3537,7 +3417,11 @@
             10485760,
             52428800
           ],
-          "title": "Global size limit"
+          "title": "Global size limit",
+          "type": [
+            "integer",
+            "null"
+          ]
         }
       },
       "title": "ConversionConfig",
@@ -3555,14 +3439,6 @@
           "type": "string"
         },
         "name": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Optional name for the condition for referencing.",
           "examples": [
@@ -3570,7 +3446,11 @@
             "message_filter",
             "cost_check"
           ],
-          "title": "Condition name"
+          "title": "Condition name",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "max_cost": {
           "description": "Maximum cost in USD before triggering.",
@@ -3602,14 +3482,6 @@
           "type": "string"
         },
         "name": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Optional override for the tool name.",
           "examples": [
@@ -3617,24 +3489,24 @@
             "file_reader",
             "calculator"
           ],
-          "title": "Tool name override"
+          "title": "Tool name override",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "description": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Optional override for the tool description.",
           "examples": [
             "Search the web for information",
             "Read file contents"
           ],
-          "title": "Tool description override"
+          "title": "Tool description override",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "enabled": {
           "default": true,
@@ -3707,38 +3579,30 @@
           "type": "boolean"
         },
         "service_name": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "examples": [
             "llmling-agent",
             "my-ai-service",
             "production-bot"
           ],
-          "title": "Service name"
+          "title": "Service name",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "environment": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "examples": [
             "production",
             "staging",
             "development"
           ],
-          "title": "Environment"
+          "title": "Environment",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "protocol": {
           "default": "http/protobuf",
@@ -3782,14 +3646,6 @@
       "description": "Configuration for custom toolsets.",
       "properties": {
         "namespace": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Optional namespace prefix for tool names",
           "examples": [
@@ -3797,7 +3653,11 @@
             "files",
             "code"
           ],
-          "title": "Tool namespace"
+          "title": "Tool namespace",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "type": {
           "const": "custom",
@@ -3856,17 +3716,13 @@
           "type": "number"
         },
         "api_url": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Daytona API URL (optional, uses env vars if not provided).",
-          "title": "Api Url"
+          "title": "Api Url",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "api_key": {
           "anyOf": [
@@ -3884,17 +3740,13 @@
           "title": "Api Key"
         },
         "target": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Target configuration.",
-          "title": "Target"
+          "title": "Target",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "image": {
           "default": "python:3.13-slim",
@@ -4040,17 +3892,13 @@
       "description": "Dynamic prompt loaded from callable.",
       "properties": {
         "name": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Technical identifier (automatically set from config key during registration).",
-          "title": "Name"
+          "title": "Name",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "description": {
           "description": "Human-readable description of what this prompt does.",
@@ -4058,17 +3906,13 @@
           "type": "string"
         },
         "title": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Title of the prompt.",
-          "title": "Title"
+          "title": "Title",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "metadata": {
           "additionalProperties": true,
@@ -4082,17 +3926,13 @@
           "type": "string"
         },
         "template": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Optional template string for formatting the callable's output.",
-          "title": "Template"
+          "title": "Template",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "completions": {
           "anyOf": [
@@ -4159,17 +3999,13 @@
           "type": "number"
         },
         "template": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "E2B template to use.",
-          "title": "Template"
+          "title": "Template",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "keep_alive": {
           "default": false,
@@ -4319,14 +4155,6 @@
       "description": "Configuration for entry point toolsets.",
       "properties": {
         "namespace": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Optional namespace prefix for tool names",
           "examples": [
@@ -4334,7 +4162,11 @@
             "files",
             "code"
           ],
-          "title": "Tool namespace"
+          "title": "Tool namespace",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "type": {
           "const": "entry_points",
@@ -4364,14 +4196,6 @@
       "description": "Configuration for FSSpec filesystem toolsets.",
       "properties": {
         "namespace": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Optional namespace prefix for tool names",
           "examples": [
@@ -4379,7 +4203,11 @@
             "files",
             "code"
           ],
-          "title": "Tool namespace"
+          "title": "Tool namespace",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "type": {
           "const": "fsspec",
@@ -4467,14 +4295,6 @@
       "description": "Configuration for file access toolset.",
       "properties": {
         "namespace": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Optional namespace prefix for tool names",
           "examples": [
@@ -4482,7 +4302,11 @@
             "files",
             "code"
           ],
-          "title": "Tool namespace"
+          "title": "Tool namespace",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "type": {
           "const": "file_access",
@@ -4507,14 +4331,6 @@
           "type": "string"
         },
         "name": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Command name (optional, can be inferred from key).",
           "examples": [
@@ -4522,24 +4338,24 @@
             "code_review",
             "translate"
           ],
-          "title": "Command name"
+          "title": "Command name",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "description": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Optional description of what this command does.",
           "examples": [
             "Summarize the given text",
             "Review code for issues"
           ],
-          "title": "Command description"
+          "title": "Command description",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "path": {
           "description": "Path to file containing the prompt template.",
@@ -4799,21 +4615,17 @@
           "title": "Application exit condition"
         },
         "transform": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Optional function to transform messages before forwarding.",
           "examples": [
             "mymodule.transform_message",
             "utils.filters:clean_content"
           ],
-          "title": "Message transform function"
+          "title": "Message transform function",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "connection_type": {
           "const": "run",
@@ -4866,17 +4678,13 @@
       "description": "Prompt loaded from a file.\n\nThis type of prompt loads its content from a file, allowing for longer or more\ncomplex prompts to be managed in separate files. The file content is loaded\nand parsed according to the specified format.",
       "properties": {
         "name": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Technical identifier (automatically set from config key during registration).",
-          "title": "Name"
+          "title": "Name",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "description": {
           "description": "Human-readable description of what this prompt does.",
@@ -4884,17 +4692,13 @@
           "type": "string"
         },
         "title": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Title of the prompt.",
-          "title": "Title"
+          "title": "Title",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "metadata": {
           "additionalProperties": true,
@@ -4919,16 +4723,12 @@
                   "type": "string"
                 },
                 "protocol": {
-                  "anyOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ],
                   "default": null,
-                  "title": "Protocol"
+                  "title": "Protocol",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
                 },
                 "storage_options": {
                   "additionalProperties": true,
@@ -5392,14 +5192,6 @@
       "description": "Configuration for history toolset.",
       "properties": {
         "namespace": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Optional namespace prefix for tool names",
           "examples": [
@@ -5407,7 +5199,11 @@
             "files",
             "code"
           ],
-          "title": "Tool namespace"
+          "title": "Tool namespace",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "type": {
           "const": "history",
@@ -5463,14 +5259,6 @@
           "type": "string"
         },
         "name": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Optional override for the tool name.",
           "examples": [
@@ -5478,24 +5266,24 @@
             "file_reader",
             "calculator"
           ],
-          "title": "Tool name override"
+          "title": "Tool name override",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "description": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Optional override for the tool description.",
           "examples": [
             "Search the web for information",
             "Read file contents"
           ],
-          "title": "Tool description override"
+          "title": "Tool description override",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "enabled": {
           "default": true,
@@ -5558,17 +5346,13 @@
           "type": "string"
         },
         "description": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "A description for this response definition.",
-          "title": "Description"
+          "title": "Description",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "import_path": {
           "description": "The path to the pydantic model to use as the response type.",
@@ -5594,17 +5378,13 @@
           "type": "string"
         },
         "description": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "A description for this response definition.",
-          "title": "Description"
+          "title": "Description",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "fields": {
           "additionalProperties": {
@@ -5665,14 +5445,6 @@
       "description": "Configuration for integration toolset.",
       "properties": {
         "namespace": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Optional namespace prefix for tool names",
           "examples": [
@@ -5680,7 +5452,11 @@
             "files",
             "code"
           ],
-          "title": "Tool namespace"
+          "title": "Tool namespace",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "type": {
           "const": "integrations",
@@ -5705,14 +5481,6 @@
           "type": "string"
         },
         "name": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Optional name for the condition for referencing.",
           "examples": [
@@ -5720,7 +5488,11 @@
             "message_filter",
             "cost_check"
           ],
-          "title": "Condition name"
+          "title": "Condition name",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "template": {
           "description": "Jinja2 template to evaluate.",
@@ -5743,14 +5515,6 @@
       "additionalProperties": false,
       "properties": {
         "name": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Technical identifier (automatically set from config key during registration)",
           "examples": [
@@ -5758,17 +5522,13 @@
             "generate_summary",
             "translate_text"
           ],
-          "title": "Task name"
+          "title": "Task name",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "description": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Human-readable description of what this task does",
           "examples": [
@@ -5776,7 +5536,11 @@
             "Generate a summary",
             "Translate text to target language"
           ],
-          "title": "Task description"
+          "title": "Task description",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "prompt": {
           "anyOf": [
@@ -5806,21 +5570,17 @@
           "type": "string"
         },
         "required_dependency": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Dependencies or context data needed for task execution",
           "examples": [
             "mymodule.deps:DatabaseDeps",
             "utils.context:TaskContext"
           ],
-          "title": "Required dependencies"
+          "title": "Required dependencies",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "requires_vision": {
           "default": false,
@@ -5857,14 +5617,6 @@
           "type": "array"
         },
         "min_context_tokens": {
-          "anyOf": [
-            {
-              "type": "integer"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Minimum amount of required context size.",
           "examples": [
@@ -5872,7 +5624,11 @@
             4000,
             8000
           ],
-          "title": "Minimum context tokens"
+          "title": "Minimum context tokens",
+          "type": [
+            "integer",
+            "null"
+          ]
         }
       },
       "required": [
@@ -5950,14 +5706,6 @@
           "type": "string"
         },
         "name": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Optional override for the tool name.",
           "examples": [
@@ -5965,24 +5713,24 @@
             "file_reader",
             "calculator"
           ],
-          "title": "Tool name override"
+          "title": "Tool name override",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "description": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Optional override for the tool description.",
           "examples": [
             "Search the web for information",
             "Read file contents"
           ],
-          "title": "Tool description override"
+          "title": "Tool description override",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "enabled": {
           "default": true,
@@ -6138,38 +5886,30 @@
           "type": "boolean"
         },
         "service_name": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "examples": [
             "llmling-agent",
             "my-ai-service",
             "production-bot"
           ],
-          "title": "Service name"
+          "title": "Service name",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "environment": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "examples": [
             "production",
             "staging",
             "development"
           ],
-          "title": "Environment"
+          "title": "Environment",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "protocol": {
           "default": "http/protobuf",
@@ -6201,21 +5941,17 @@
           "title": "Langsmith API key"
         },
         "project_name": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "examples": [
             "my-project",
             "ai-agents",
             "production"
           ],
-          "title": "Project name"
+          "title": "Project name",
+          "type": [
+            "string",
+            "null"
+          ]
         }
       },
       "title": "LangsmithObservabilityConfig",
@@ -6311,17 +6047,13 @@
           "type": "number"
         },
         "executable": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Python executable to use (if None, auto-detect based on language).",
-          "title": "Executable"
+          "title": "Executable",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "language": {
           "default": "python",
@@ -6362,21 +6094,17 @@
           "type": "boolean"
         },
         "model": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Optional model name.",
           "examples": [
             "whisper-1",
             "whisper-large"
           ],
-          "title": "Whisper model"
+          "title": "Whisper model",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "model_size": {
           "default": "base",
@@ -6453,38 +6181,30 @@
           "type": "boolean"
         },
         "service_name": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "examples": [
             "llmling-agent",
             "my-ai-service",
             "production-bot"
           ],
-          "title": "Service name"
+          "title": "Service name",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "environment": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "examples": [
             "production",
             "staging",
             "development"
           ],
-          "title": "Environment"
+          "title": "Environment",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "protocol": {
           "default": "http/protobuf",
@@ -6782,14 +6502,6 @@
           "type": "boolean"
         },
         "max_tokens": {
-          "anyOf": [
-            {
-              "type": "integer"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Maximum number of tokens to keep in context window.",
           "examples": [
@@ -6797,17 +6509,13 @@
             4000,
             8000
           ],
-          "title": "Maximum context tokens"
+          "title": "Maximum context tokens",
+          "type": [
+            "integer",
+            "null"
+          ]
         },
         "max_messages": {
-          "anyOf": [
-            {
-              "type": "integer"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Maximum number of messages to keep in context window.",
           "examples": [
@@ -6815,7 +6523,11 @@
             50,
             100
           ],
-          "title": "Maximum message count"
+          "title": "Maximum message count",
+          "type": [
+            "integer",
+            "null"
+          ]
         },
         "session": {
           "anyOf": [
@@ -6831,14 +6543,6 @@
           "title": "Session query"
         },
         "provider": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Override default storage provider for this agent.\nIf None, uses manifest's default provider or first available.",
           "examples": [
@@ -6846,7 +6550,11 @@
             "memory",
             "file"
           ],
-          "title": "Storage provider"
+          "title": "Storage provider",
+          "type": [
+            "string",
+            "null"
+          ]
         }
       },
       "title": "MemoryConfig",
@@ -6927,16 +6635,12 @@
           "type": "string"
         },
         "alt_text": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
-          "title": "Alt Text"
+          "title": "Alt Text",
+          "type": [
+            "string",
+            "null"
+          ]
         }
       },
       "required": [
@@ -6958,14 +6662,6 @@
           "type": "string"
         },
         "name": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Optional name for the condition for referencing.",
           "examples": [
@@ -6973,7 +6669,11 @@
             "message_filter",
             "cost_check"
           ],
-          "title": "Condition name"
+          "title": "Condition name",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "max_messages": {
           "description": "Maximum number of messages before triggering.",
@@ -7237,21 +6937,17 @@
           "title": "Application exit condition"
         },
         "transform": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Optional function to transform messages before forwarding.",
           "examples": [
             "mymodule.transform_message",
             "utils.filters:clean_content"
           ],
-          "title": "Message transform function"
+          "title": "Message transform function",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "name": {
           "description": "Name of target agent.",
@@ -7344,14 +7040,6 @@
       "description": "Configuration for OpenAPI toolsets.",
       "properties": {
         "namespace": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Optional namespace prefix for tool names",
           "examples": [
@@ -7359,7 +7047,11 @@
             "files",
             "code"
           ],
-          "title": "Tool namespace"
+          "title": "Tool namespace",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "type": {
           "const": "openapi",
@@ -7381,16 +7073,12 @@
                   "type": "string"
                 },
                 "protocol": {
-                  "anyOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ],
                   "default": null,
-                  "title": "Protocol"
+                  "title": "Protocol",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
                 },
                 "storage_options": {
                   "additionalProperties": true,
@@ -7450,14 +7138,6 @@
           "type": "string"
         },
         "name": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Optional name for the condition for referencing.",
           "examples": [
@@ -7465,7 +7145,11 @@
             "message_filter",
             "cost_check"
           ],
-          "title": "Condition name"
+          "title": "Condition name",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "conditions": {
           "description": "List of conditions to check.",
@@ -7536,14 +7220,6 @@
       "description": "Configuration for process management toolset.",
       "properties": {
         "namespace": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Optional namespace prefix for tool names",
           "examples": [
@@ -7551,7 +7227,11 @@
             "files",
             "code"
           ],
-          "title": "Tool namespace"
+          "title": "Tool namespace",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "type": {
           "const": "process_management",
@@ -7602,21 +7282,17 @@
           "type": "object"
         },
         "template": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Optional template for combining prompts.\nHas access to prompts grouped by type.",
           "examples": [
             "Role: {{role}}\nMethod: {{method}}",
             "{{content}}"
           ],
-          "title": "Combination template"
+          "title": "Combination template",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "providers": {
           "description": "List of external prompt providers to use.",
@@ -7701,17 +7377,13 @@
           "type": "string"
         },
         "description": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Human-readable description of the argument.",
-          "title": "Description"
+          "title": "Description",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "required": {
           "default": false,
@@ -7742,14 +7414,6 @@
       "description": "Configuration for code mode tools.",
       "properties": {
         "namespace": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Optional namespace prefix for tool names",
           "examples": [
@@ -7757,7 +7421,11 @@
             "files",
             "code"
           ],
-          "title": "Tool namespace"
+          "title": "Tool namespace",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "type": {
           "const": "remote_code_mode",
@@ -8062,14 +7730,6 @@
           "type": "string"
         },
         "name": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Optional name for referencing the server.",
           "examples": [
@@ -8077,7 +7737,11 @@
             "api_connector",
             "file_handler"
           ],
-          "title": "Server name"
+          "title": "Server name",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "enabled": {
           "default": true,
@@ -8163,17 +7827,13 @@
           "type": "string"
         },
         "description": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Optional description of what this field represents",
-          "title": "Description"
+          "title": "Description",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "values": {
           "anyOf": [
@@ -8201,30 +7861,22 @@
           "title": "Default"
         },
         "title": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Title for the field in generated JSON Schema",
-          "title": "Title"
+          "title": "Title",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "pattern": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Regex pattern for string validation",
-          "title": "Pattern"
+          "title": "Pattern",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "min_length": {
           "anyOf": [
@@ -8255,56 +7907,40 @@
           "title": "Max Length"
         },
         "gt": {
-          "anyOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Greater than (exclusive) validation for numbers",
-          "title": "Gt"
+          "title": "Gt",
+          "type": [
+            "number",
+            "null"
+          ]
         },
         "ge": {
-          "anyOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Greater than or equal (inclusive) validation for numbers",
-          "title": "Ge"
+          "title": "Ge",
+          "type": [
+            "number",
+            "null"
+          ]
         },
         "lt": {
-          "anyOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Less than (exclusive) validation for numbers",
-          "title": "Lt"
+          "title": "Lt",
+          "type": [
+            "number",
+            "null"
+          ]
         },
         "le": {
-          "anyOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Less than or equal (inclusive) validation for numbers",
-          "title": "Le"
+          "title": "Le",
+          "type": [
+            "number",
+            "null"
+          ]
         },
         "multiple_of": {
           "anyOf": [
@@ -8417,14 +8053,6 @@
       "description": "Query configuration for session recovery.",
       "properties": {
         "name": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Session identifier to match.",
           "examples": [
@@ -8432,7 +8060,11 @@
             "user_123",
             "conversation_01"
           ],
-          "title": "Session name"
+          "title": "Session name",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "agents": {
           "anyOf": [
@@ -8452,14 +8084,6 @@
           "title": "Agent filter"
         },
         "since": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Time period to look back (e.g. \"1h\", \"2d\").",
           "examples": [
@@ -8467,17 +8091,13 @@
             "2d",
             "1w"
           ],
-          "title": "Time period lookback"
+          "title": "Time period lookback",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "until": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Time period to look up to.",
           "examples": [
@@ -8485,17 +8105,13 @@
             "2d",
             "1w"
           ],
-          "title": "Time period limit"
+          "title": "Time period limit",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "contains": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Filter by message content.",
           "examples": [
@@ -8503,7 +8119,11 @@
             "important",
             "task completed"
           ],
-          "title": "Content filter"
+          "title": "Content filter",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "roles": {
           "anyOf": [
@@ -8527,14 +8147,6 @@
           "title": "Role filter"
         },
         "limit": {
-          "anyOf": [
-            {
-              "type": "integer"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Maximum number of messages to return.",
           "examples": [
@@ -8542,7 +8154,11 @@
             50,
             100
           ],
-          "title": "Message limit"
+          "title": "Message limit",
+          "type": [
+            "integer",
+            "null"
+          ]
         },
         "include_forwarded": {
           "default": true,
@@ -8566,14 +8182,6 @@
           "type": "string"
         },
         "path": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Optional path prefix within the filesystem.",
           "examples": [
@@ -8581,7 +8189,11 @@
             "documents",
             "config/templates"
           ],
-          "title": "Path prefix"
+          "title": "Path prefix",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "cached": {
           "default": false,
@@ -8624,14 +8236,6 @@
           "type": "string"
         },
         "name": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Command name (optional, can be inferred from key).",
           "examples": [
@@ -8639,24 +8243,24 @@
             "code_review",
             "translate"
           ],
-          "title": "Command name"
+          "title": "Command name",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "description": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Optional description of what this command does.",
           "examples": [
             "Summarize the given text",
             "Review code for issues"
           ],
-          "title": "Command description"
+          "title": "Command description",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "content": {
           "description": "The prompt template content. Supports ${env.VAR} substitution.",
@@ -8680,17 +8284,13 @@
       "description": "Static prompt defined by message list.",
       "properties": {
         "name": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Technical identifier (automatically set from config key during registration).",
-          "title": "Name"
+          "title": "Name",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "description": {
           "description": "Human-readable description of what this prompt does.",
@@ -8698,17 +8298,13 @@
           "type": "string"
         },
         "title": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Title of the prompt.",
-          "title": "Title"
+          "title": "Title",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "metadata": {
           "additionalProperties": true,
@@ -8804,14 +8400,6 @@
           "type": "string"
         },
         "name": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Optional name for referencing the server.",
           "examples": [
@@ -8819,7 +8407,11 @@
             "api_connector",
             "file_handler"
           ],
-          "title": "Server name"
+          "title": "Server name",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "enabled": {
           "default": true,
@@ -8937,14 +8529,6 @@
           "title": "Storage providers"
         },
         "default_provider": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Name of default provider for history queries.\nIf None, uses first configured provider.",
           "examples": [
@@ -8952,7 +8536,11 @@
             "file",
             "memory"
           ],
-          "title": "Default provider"
+          "title": "Default provider",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "agents": {
           "anyOf": [
@@ -9045,14 +8633,6 @@
           "type": "string"
         },
         "name": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Optional name for referencing the server.",
           "examples": [
@@ -9060,7 +8640,11 @@
             "api_connector",
             "file_handler"
           ],
-          "title": "Server name"
+          "title": "Server name",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "enabled": {
           "default": true,
@@ -9183,14 +8767,6 @@
           "title": "Response schema"
         },
         "description": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "A description for this response definition.",
           "examples": [
@@ -9198,7 +8774,11 @@
             "Search results",
             "Code analysis output"
           ],
-          "title": "Response description"
+          "title": "Response description",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "result_tool_name": {
           "default": "final_result",
@@ -9212,31 +8792,19 @@
           "type": "string"
         },
         "result_tool_description": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "The tool description for the Agent tool to create the structured response.",
           "examples": [
             "Submit the final result",
             "Return structured data"
           ],
-          "title": "Result tool description"
+          "title": "Result tool description",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "output_retries": {
-          "anyOf": [
-            {
-              "type": "integer"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Retry override. How often the Agent should try to validate the response.",
           "examples": [
@@ -9244,7 +8812,11 @@
             3,
             5
           ],
-          "title": "Output retries"
+          "title": "Output retries",
+          "type": [
+            "integer",
+            "null"
+          ]
         }
       },
       "required": [
@@ -9258,14 +8830,6 @@
       "description": "Configuration for a team or chain of message nodes.\n\nTeams can be either parallel execution groups or sequential chains.\nThey can contain both agents and other teams as members.",
       "properties": {
         "name": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Name of the Agent / Team",
           "examples": [
@@ -9273,24 +8837,24 @@
             "web_searcher",
             "code_assistant"
           ],
-          "title": "Node name"
+          "title": "Node name",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "description": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Optional description of the agent / team.",
           "examples": [
             "Main conversation agent",
             "Handles web search requests"
           ],
-          "title": "Node description"
+          "title": "Node description",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "triggers": {
           "description": "Event sources that activate this agent / team",
@@ -9382,21 +8946,17 @@
           "type": "array"
         },
         "input_provider": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Provider for human-input-handling.",
           "examples": [
             "myapp.providers.ConsoleInput",
             "ui.providers:WebInput"
           ],
-          "title": "Input provider"
+          "title": "Input provider",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "mode": {
           "description": "Execution mode for team members.",
@@ -9431,21 +8991,17 @@
           "type": "array"
         },
         "shared_prompt": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Optional shared prompt for this team.",
           "examples": [
             "Work together to solve this problem",
             "Follow the team guidelines"
           ],
-          "title": "Shared prompt"
+          "title": "Shared prompt",
+          "type": [
+            "string",
+            "null"
+          ]
         }
       },
       "required": [
@@ -9495,17 +9051,13 @@
           "type": "string"
         },
         "custom_output_text": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Optional custom text to return from the test model.",
-          "title": "Custom Output Text"
+          "title": "Custom Output Text",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "call_tools": {
           "anyOf": [
@@ -9658,14 +9210,6 @@
           "type": "string"
         },
         "name": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Optional name for the condition for referencing.",
           "examples": [
@@ -9673,7 +9217,11 @@
             "message_filter",
             "cost_check"
           ],
-          "title": "Condition name"
+          "title": "Condition name",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "duration": {
           "description": "How long the connection should stay active.",
@@ -9739,17 +9287,13 @@
           "type": "string"
         },
         "timezone": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Timezone for schedule (defaults to system timezone)",
-          "title": "Timezone"
+          "title": "Timezone",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "skip_missed": {
           "default": false,
@@ -9778,14 +9322,6 @@
           "type": "string"
         },
         "name": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Optional name for the condition for referencing.",
           "examples": [
@@ -9793,7 +9329,11 @@
             "message_filter",
             "cost_check"
           ],
-          "title": "Condition name"
+          "title": "Condition name",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "max_tokens": {
           "description": "Maximum number of tokens allowed.",
@@ -9834,56 +9374,40 @@
       "description": "Configuration for tool execution hints.",
       "properties": {
         "read_only": {
-          "anyOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Hints that this tool only reads data without modifying anything",
-          "title": "Read-only operation"
+          "title": "Read-only operation",
+          "type": [
+            "boolean",
+            "null"
+          ]
         },
         "destructive": {
-          "anyOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Hints that this tool performs destructive operations that cannot be undone",
-          "title": "Destructive operation"
+          "title": "Destructive operation",
+          "type": [
+            "boolean",
+            "null"
+          ]
         },
         "idempotent": {
-          "anyOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Hints that this tool has idempotent behaviour",
-          "title": "Idempotent operation"
+          "title": "Idempotent operation",
+          "type": [
+            "boolean",
+            "null"
+          ]
         },
         "open_world": {
-          "anyOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Hints that this tool can access / interact with external resources beyond the\ncurrent system",
-          "title": "External resource access"
+          "title": "External resource access",
+          "type": [
+            "boolean",
+            "null"
+          ]
         }
       },
       "title": "ToolHints",
@@ -9894,14 +9418,6 @@
       "description": "Configuration for tool management toolset.",
       "properties": {
         "namespace": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Optional namespace prefix for tool names",
           "examples": [
@@ -9909,7 +9425,11 @@
             "files",
             "code"
           ],
-          "title": "Tool namespace"
+          "title": "Tool namespace",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "type": {
           "const": "tool_management",
@@ -9934,14 +9454,6 @@
           "type": "string"
         },
         "path": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Optional path prefix within the filesystem.",
           "examples": [
@@ -9949,7 +9461,11 @@
             "documents",
             "config/templates"
           ],
-          "title": "Path prefix"
+          "title": "Path prefix",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "cached": {
           "default": false,
@@ -9997,14 +9513,6 @@
       "description": "Configuration for Upsonic toolsets.",
       "properties": {
         "namespace": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Optional namespace prefix for tool names",
           "examples": [
@@ -10012,7 +9520,11 @@
             "files",
             "code"
           ],
-          "title": "Tool namespace"
+          "title": "Tool namespace",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "type": {
           "const": "upsonic",
@@ -10074,69 +9586,49 @@
     "UsageLimits": {
       "properties": {
         "request_limit": {
-          "anyOf": [
-            {
-              "type": "integer"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": 50,
           "description": "The maximum number of requests allowed to the model.",
-          "title": "Request Limit"
+          "title": "Request Limit",
+          "type": [
+            "integer",
+            "null"
+          ]
         },
         "tool_calls_limit": {
-          "anyOf": [
-            {
-              "type": "integer"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "The maximum number of successful tool calls allowed to be executed.",
-          "title": "Tool Calls Limit"
+          "title": "Tool Calls Limit",
+          "type": [
+            "integer",
+            "null"
+          ]
         },
         "input_tokens_limit": {
-          "anyOf": [
-            {
-              "type": "integer"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "The maximum number of input/prompt tokens allowed.",
-          "title": "Input Tokens Limit"
+          "title": "Input Tokens Limit",
+          "type": [
+            "integer",
+            "null"
+          ]
         },
         "output_tokens_limit": {
-          "anyOf": [
-            {
-              "type": "integer"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "The maximum number of output/response tokens allowed.",
-          "title": "Output Tokens Limit"
+          "title": "Output Tokens Limit",
+          "type": [
+            "integer",
+            "null"
+          ]
         },
         "total_tokens_limit": {
-          "anyOf": [
-            {
-              "type": "integer"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "The maximum number of tokens allowed in requests and responses combined.",
-          "title": "Total Tokens Limit"
+          "title": "Total Tokens Limit",
+          "type": [
+            "integer",
+            "null"
+          ]
         },
         "count_tokens_before_request": {
           "default": false,
@@ -10153,14 +9645,6 @@
       "description": "Configuration for user interaction toolset.",
       "properties": {
         "namespace": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Optional namespace prefix for tool names",
           "examples": [
@@ -10168,7 +9652,11 @@
             "files",
             "code"
           ],
-          "title": "Tool namespace"
+          "title": "Tool namespace",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "type": {
           "const": "user_interaction",
@@ -10244,14 +9732,6 @@
       "description": "Configuration for VFS registry filesystem toolset.",
       "properties": {
         "namespace": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Optional namespace prefix for tool names",
           "examples": [
@@ -10259,7 +9739,11 @@
             "files",
             "code"
           ],
-          "title": "Tool namespace"
+          "title": "Tool namespace",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "type": {
           "const": "vfs",
@@ -10366,21 +9850,17 @@
           "type": "boolean"
         },
         "model": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Optional model name.",
           "examples": [
             "whisper-1",
             "whisper-large-v2"
           ],
-          "title": "OpenAI model"
+          "title": "OpenAI model",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "api_key": {
           "anyOf": [
@@ -10398,14 +9878,6 @@
           "title": "OpenAI API key"
         },
         "language": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Optional language code.",
           "examples": [
@@ -10414,7 +9886,11 @@
             "fr",
             "de"
           ],
-          "title": "Language code"
+          "title": "Language code",
+          "type": [
+            "string",
+            "null"
+          ]
         }
       },
       "title": "WhisperAPIConfig",
@@ -10432,14 +9908,6 @@
           "type": "string"
         },
         "name": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
           "description": "Optional name for the condition for referencing.",
           "examples": [
@@ -10447,7 +9915,11 @@
             "message_filter",
             "cost_check"
           ],
-          "title": "Condition name"
+          "title": "Condition name",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "words": {
           "description": "Words or phrases to match in messages.",
