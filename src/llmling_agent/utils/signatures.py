@@ -154,6 +154,8 @@ def create_bound_callable(
     wrapper.__name__ = getattr(original_callable, "__name__", "wrapper")
     wrapper.__doc__ = getattr(original_callable, "__doc__", None)
     wrapper.__module__ = getattr(original_callable, "__module__", None)
+    wrapper.__wrapped__ = original_callable
+    wrapper.__llmling_wrapped__ = original_callable
 
     # Create modified signature without context parameters
     try:

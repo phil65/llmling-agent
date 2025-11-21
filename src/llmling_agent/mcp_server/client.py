@@ -327,7 +327,7 @@ class MCPClient:
 if __name__ == "__main__":
     import asyncio
 
-    path = "/home/phil65/dev/oss/llmling-agent/tests/mcp/server.py"
+    path = "/home/phil65/dev/oss/llmling-agent/tests/mcp_server/server.py"
     # path = Path(__file__).parent / "test_mcp_server.py"
     config = StdioMCPServerConfig(
         command="uv",

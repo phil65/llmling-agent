@@ -23,7 +23,7 @@ EXPECTED_PROGRESS_EVENTS = 3
 PROGRESS_COMPLETION_THRESHOLD = 99
 TEST_PROGRESS_VALUE = 50.0
 
-SERVER_PATH = Path(__file__).parent / ".." / "mcp" / "server.py"
+SERVER_PATH = Path(__file__).parent / ".." / "mcp_server" / "server.py"
 ARGS = ["run", str(SERVER_PATH)]
 mcp_server = StdioMCPServerConfig(name="progress_test", command="uv", args=ARGS)
 

@@ -245,7 +245,7 @@ if __name__ == "__main__":
 
     cfg = StdioMCPServerConfig(
         command="uv",
-        args=["run", "/home/phil65/dev/oss/llmling-agent/tests/mcp/server.py"],
+        args=["run", "/home/phil65/dev/oss/llmling-agent/tests/mcp_server/server.py"],
     )
 
     async def main() -> None:
