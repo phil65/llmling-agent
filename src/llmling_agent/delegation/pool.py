@@ -37,14 +37,11 @@ if TYPE_CHECKING:
 
     from psygnal.containers._evented_dict import DictEvents
     from pydantic_ai.output import OutputSpec
+    from tokonomics import ModelName
     from upath.types import JoinablePathLike
 
     from llmling_agent.agent.agent import AgentKwargs
-    from llmling_agent.common_types import (
-        AgentName,
-        IndividualEventHandler,
-        SessionIdType,
-    )
+    from llmling_agent.common_types import AgentName, IndividualEventHandler, SessionIdType
     from llmling_agent.delegation.base_team import BaseTeam
     from llmling_agent.models.manifest import AgentsManifest
     from llmling_agent.ui.base import InputProvider
@@ -74,7 +71,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         self,
         manifest: JoinablePathLike | AgentsManifest | None = None,
         *,
-        shared_deps: TPoolDeps | None = None,
+        shared_deps_type: type[TPoolDeps] | None = None,
         connect_nodes: bool = True,
         input_provider: InputProvider | None = None,
         parallel_load: bool = True,
@@ -84,7 +81,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
 
         Args:
             manifest: Agent configuration manifest
-            shared_deps: Dependencies to share across all nodes
+            shared_deps_type: Dependencies to share across all nodes
             connect_nodes: Whether to set up forwarding connections
             input_provider: Input provider for tool / step confirmations / HumanAgents
             parallel_load: Whether to load nodes in parallel (async)
@@ -113,13 +110,12 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
                 raise ValueError(msg)
 
         registry.configure_observability(self.manifest.observability)
-        self.shared_deps = shared_deps
+        self.shared_deps_type = shared_deps_type
         self._input_provider = input_provider
         self.exit_stack = AsyncExitStack()
         self.parallel_load = parallel_load
         self.storage = StorageManager(self.manifest.storage)
         self.event_handlers = event_handlers or []
-
         self.connection_registry = ConnectionRegistry()
         servers = self.manifest.get_mcp_servers()
         self.mcp = MCPManager(name="pool_mcp", servers=servers, owner="pool")
@@ -130,24 +126,20 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
             self._tasks.register(name, task)
         self.process_manager = ProcessManager()
         self.pool_talk = TeamTalk[Any].from_nodes(list(self.nodes.values()))
-        # MCP server is now managed externally
-        self.server = None
         # Create requested agents immediately
         for name in self.manifest.agents:
             agent = self.manifest.get_agent(
                 name,
-                deps=shared_deps,
+                deps_type=shared_deps_type,
                 input_provider=self._input_provider,
                 pool=self,
                 event_handlers=self.event_handlers,
             )
             self.register(name, agent)
 
-        # Then set up worker relationships
         for agent in self.agents.values():
             self.setup_agent_workers(agent)
         self._create_teams()
-        # Set up forwarding connections
         if connect_nodes:
             self._connect_nodes()
 
@@ -543,7 +535,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         agent: AgentName | Agent[Any, str],
         *,
         return_type: type[TResult] = str,  # type: ignore
-        model_override: str | None = None,
+        model_override: ModelName | str | None = None,
         session: SessionIdType | SessionQuery = None,
     ) -> Agent[TPoolDeps, TResult]: ...
 
@@ -554,7 +546,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         *,
         deps_type: type[TCustomDeps],
         return_type: type[TResult] = str,  # type: ignore
-        model_override: str | None = None,
+        model_override: ModelName | str | None = None,
         session: SessionIdType | SessionQuery = None,
     ) -> Agent[TCustomDeps, TResult]: ...
 
@@ -564,7 +556,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         *,
         deps_type: Any | None = None,
         return_type: Any = str,
-        model_override: str | None = None,
+        model_override: ModelName | str | None = None,
         session: SessionIdType | SessionQuery = None,
     ) -> Agent[Any, Any]:
         """Get or configure an agent from the pool.

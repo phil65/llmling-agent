@@ -360,7 +360,7 @@ class AgentsManifest(Schema):
     def get_agent[TAgentDeps](
         self,
         name: str,
-        deps: TAgentDeps | None = None,
+        deps_type: type[TAgentDeps] | None = None,
         input_provider: InputProvider | None = None,
         pool: AgentPool[Any] | None = None,
         event_handlers: list[IndividualEventHandler] | None = None,
@@ -370,7 +370,6 @@ class AgentsManifest(Schema):
         config = self.agents[name]
         context = AgentContext[TAgentDeps](
             node_name=name,
-            data=deps,
             definition=self,
             config=config,
             input_provider=input_provider,
@@ -436,6 +435,7 @@ class AgentsManifest(Schema):
             else config.model.get_model(),
             system_prompt=sys_prompts,
             name=name,
+            deps_type=deps_type,
             description=config.description,
             retries=config.retries,
             session=config.get_session_config(),
