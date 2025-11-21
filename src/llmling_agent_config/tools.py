@@ -39,7 +39,15 @@ class BaseToolConfig(Schema):
     requires_confirmation: bool = Field(default=False, title="Requires confirmation")
     """Whether tool execution needs confirmation."""
 
-    metadata: dict[str, str] = Field(default_factory=dict, title="Tool metadata")
+    metadata: dict[str, str] = Field(
+        default_factory=dict,
+        examples=[
+            {"category": "web", "version": "1.0"},
+            {"author": "system", "tags": "search,utility"},
+            {"priority": "high", "environment": "production"},
+        ],
+        title="Tool metadata",
+    )
     """Additional tool metadata."""
 
     hints: ToolHints | None = Field(default=None, title="Execution hints")

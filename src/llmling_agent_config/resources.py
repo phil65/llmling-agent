@@ -52,7 +52,15 @@ class BaseResourceConfig(Schema):
     cached: bool = Field(default=False, title="Enable caching")
     """Whether to wrap in caching filesystem."""
 
-    storage_options: dict[str, Any] = Field(default_factory=dict, title="Storage options")
+    storage_options: dict[str, Any] = Field(
+        default_factory=dict,
+        examples=[
+            {"aws_access_key_id": "AKIAIOSFODNN7EXAMPLE", "aws_secret_access_key": "secret123"},
+            {"token": "github_pat_123", "timeout": 30},
+            {"username": "user", "password": "pass", "ssl": True},
+        ],
+        title="Storage options",
+    )
     """Protocol-specific storage options."""
 
     model_config = ConfigDict(frozen=True)

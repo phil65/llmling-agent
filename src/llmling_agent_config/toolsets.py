@@ -261,7 +261,15 @@ class FSSpecToolsetConfig(BaseToolsetConfig):
     )
     """Filesystem URL or protocol (e.g., 'file', 's3://bucket-name', etc.)."""
 
-    storage_options: dict[str, str] = Field(default_factory=dict, title="Storage options")
+    storage_options: dict[str, str] = Field(
+        default_factory=dict,
+        examples=[
+            {"region": "us-east-1", "profile": "default"},
+            {"token": "ghp_123456789", "timeout": "30"},
+            {"key": "value", "ssl_verify": "true"},
+        ],
+        title="Storage options",
+    )
     """Additional options to pass to the filesystem constructor."""
 
     def get_provider(self) -> ResourceProvider:
