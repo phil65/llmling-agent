@@ -89,11 +89,7 @@ composio = ["composio"]
 default = [
   "pydantic-ai-slim[openai,google,anthropic,mistral,retries]>=1.0.0",
 ]
-events = [
-  "watchfiles",
-  "aioimaplib>=2.0.1",
-  "croniter>=6.0.0",
-]
+events = ["evented[all]"]
 git = ["pygit2"]  # for fsspec git support
 image = ["pillow"]
 langfuse = ["langfuse"]
