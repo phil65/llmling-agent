@@ -83,7 +83,12 @@ class NodeConfig(Schema):
     """Targets to forward results to."""
 
     mcp_servers: list[str | MCPServerConfig] = Field(
-        default_factory=list, title="MCP servers", examples=[["uvx some-server"]]
+        default_factory=list,
+        title="MCP servers",
+        examples=[
+            ["uvx some-server"],
+            [{"type": "streamable-http", "url": "http://mcp.example.com"}],
+        ],
     )
     """List of MCP server configurations:
     - str entries are converted to StdioMCPServerConfig

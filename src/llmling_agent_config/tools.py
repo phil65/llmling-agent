@@ -50,7 +50,13 @@ class BaseToolConfig(Schema):
     )
     """Additional tool metadata."""
 
-    hints: ToolHints | None = Field(default=None, title="Execution hints")
+    hints: ToolHints | None = Field(
+        default=None,
+        title="Execution hints",
+        examples=[
+            {"read_only": True, "destructive": False, "open_world": True, "idempotent": False},
+        ],
+    )
     """Hints for tool execution."""
 
     model_config = ConfigDict(frozen=True)

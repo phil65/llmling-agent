@@ -100,7 +100,11 @@ class AgentsManifest(Schema):
     """Pre-defined jobs, ready to be used by nodes."""
 
     mcp_servers: list[str | MCPServerConfig] = Field(
-        default_factory=list, examples=[["uvx some-server"]]
+        default_factory=list,
+        examples=[
+            ["uvx some-server"],
+            [{"type": "streamable-http", "url": "http://mcp.example.com"}],
+        ],
     )
     """List of MCP server configurations:
 

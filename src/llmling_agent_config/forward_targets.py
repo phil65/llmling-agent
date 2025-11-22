@@ -50,14 +50,25 @@ class ConnectionConfig(Schema):
 
     delay: timedelta | None = Field(default=None, title="Processing delay")
     """Delay before processing."""
-
-    filter_condition: Condition | None = Field(default=None, title="Message filter condition")
+    filter_condition: Condition | None = Field(
+        default=None,
+        title="Message filter condition",
+        examples=[{"type": "word_match", "words": ["bad word"]}],
+    )
     """When to filter messages (using Talk.when())."""
 
-    stop_condition: Condition | None = Field(default=None, title="Connection stop condition")
+    stop_condition: Condition | None = Field(
+        default=None,
+        title="Connection stop condition",
+        examples=[{"type": "cost", "max_cost": 0.1}],
+    )
     """When to disconnect the connection."""
 
-    exit_condition: Condition | None = Field(default=None, title="Application exit condition")
+    exit_condition: Condition | None = Field(
+        default=None,
+        title="Application exit condition",
+        examples=[{"type": "cost", "max_cost": 0.2}],
+    )
     """When to exit the application (by raising SystemExit)."""
 
     transform: ImportString[Callable[[Any], Any | Awaitable[Any]]] | None = Field(

@@ -131,6 +131,12 @@
           "examples": [
             [
               "uvx some-server"
+            ],
+            [
+              {
+                "type": "streamable-http",
+                "url": "http://mcp.example.com"
+              }
             ]
           ],
           "items": {
@@ -1926,16 +1932,10 @@
                 "namespace": "api",
                 "spec": "https://api.example.com/openapi.json",
                 "type": "openapi"
-              }
-            ],
-            [
+              },
               {
-                "entry_point": "llmling_agent_toolsets.composio",
-                "namespace": "external",
-                "type": "entry_point"
-              }
-            ],
-            [
+                "type": "file_access"
+              },
               {
                 "toolsets": [
                   "github",
@@ -3045,6 +3045,14 @@
           ],
           "default": null,
           "description": "When to filter messages (using Talk.when()).",
+          "examples": [
+            {
+              "type": "word_match",
+              "words": [
+                "bad word"
+              ]
+            }
+          ],
           "title": "Message filter condition"
         },
         "stop_condition": {
@@ -3100,6 +3108,12 @@
           ],
           "default": null,
           "description": "When to disconnect the connection.",
+          "examples": [
+            {
+              "max_cost": 0.1,
+              "type": "cost"
+            }
+          ],
           "title": "Connection stop condition"
         },
         "exit_condition": {
@@ -3155,6 +3169,12 @@
           ],
           "default": null,
           "description": "When to exit the application (by raising SystemExit).",
+          "examples": [
+            {
+              "max_cost": 0.2,
+              "type": "cost"
+            }
+          ],
           "title": "Application exit condition"
         },
         "transform": {
@@ -3682,6 +3702,14 @@
           ],
           "default": null,
           "description": "Hints for tool execution.",
+          "examples": [
+            {
+              "destructive": false,
+              "idempotent": false,
+              "open_world": true,
+              "read_only": true
+            }
+          ],
           "title": "Execution hints"
         },
         "import_path": {
@@ -4772,6 +4800,14 @@
           ],
           "default": null,
           "description": "When to filter messages (using Talk.when()).",
+          "examples": [
+            {
+              "type": "word_match",
+              "words": [
+                "bad word"
+              ]
+            }
+          ],
           "title": "Message filter condition"
         },
         "stop_condition": {
@@ -4827,6 +4863,12 @@
           ],
           "default": null,
           "description": "When to disconnect the connection.",
+          "examples": [
+            {
+              "max_cost": 0.1,
+              "type": "cost"
+            }
+          ],
           "title": "Connection stop condition"
         },
         "exit_condition": {
@@ -4882,6 +4924,12 @@
           ],
           "default": null,
           "description": "When to exit the application (by raising SystemExit).",
+          "examples": [
+            {
+              "max_cost": 0.2,
+              "type": "cost"
+            }
+          ],
           "title": "Application exit condition"
         },
         "transform": {
@@ -5646,6 +5694,14 @@
           ],
           "default": null,
           "description": "Hints for tool execution.",
+          "examples": [
+            {
+              "destructive": false,
+              "idempotent": false,
+              "open_world": true,
+              "read_only": true
+            }
+          ],
           "title": "Execution hints"
         },
         "import_path": {
@@ -6152,6 +6208,14 @@
           ],
           "default": null,
           "description": "Hints for tool execution.",
+          "examples": [
+            {
+              "destructive": false,
+              "idempotent": false,
+              "open_world": true,
+              "read_only": true
+            }
+          ],
           "title": "Execution hints"
         },
         "tool_name": {
@@ -7292,6 +7356,14 @@
           ],
           "default": null,
           "description": "When to filter messages (using Talk.when()).",
+          "examples": [
+            {
+              "type": "word_match",
+              "words": [
+                "bad word"
+              ]
+            }
+          ],
           "title": "Message filter condition"
         },
         "stop_condition": {
@@ -7347,6 +7419,12 @@
           ],
           "default": null,
           "description": "When to disconnect the connection.",
+          "examples": [
+            {
+              "max_cost": 0.1,
+              "type": "cost"
+            }
+          ],
           "title": "Connection stop condition"
         },
         "exit_condition": {
@@ -7402,6 +7480,12 @@
           ],
           "default": null,
           "description": "When to exit the application (by raising SystemExit).",
+          "examples": [
+            {
+              "max_cost": 0.2,
+              "type": "cost"
+            }
+          ],
           "title": "Application exit condition"
         },
         "transform": {
@@ -9664,6 +9748,12 @@
           "examples": [
             [
               "uvx some-server"
+            ],
+            [
+              {
+                "type": "streamable-http",
+                "url": "http://mcp.example.com"
+              }
             ]
           ],
           "items": {
@@ -10978,6 +11068,12 @@
       "examples": [
         [
           "uvx some-server"
+        ],
+        [
+          {
+            "type": "streamable-http",
+            "url": "http://mcp.example.com"
+          }
         ]
       ],
       "items": {
