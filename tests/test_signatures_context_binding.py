@@ -599,7 +599,7 @@ class TestCodeModeIntegration:
             generic_ctx: GenericRunContext[MockDeps],
             value: str,
         ) -> str:
-            return f"agent: {agent_ctx.__class__.__name__}, generic: {generic_ctx.name}, value: {value}"
+            return f"agent: {agent_ctx.__class__.__name__}, generic: {generic_ctx.name}, value: {value}"  # noqa: E501
 
         bound_func = create_bound_callable(
             mixed_func,

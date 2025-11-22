@@ -61,7 +61,7 @@ def update_signature(fn: Callable[..., Any], signature: inspect.Signature) -> No
     } | {"return": signature.return_annotation}
 
 
-def create_bound_callable(
+def create_bound_callable(  # noqa: PLR0915
     original_callable: Callable[..., Any],
     by_name: dict[str, Any] | None = None,
     by_type: dict[type, Any] | None = None,
@@ -153,9 +153,9 @@ def create_bound_callable(
     # Preserve introspection attributes
     wrapper.__name__ = getattr(original_callable, "__name__", "wrapper")
     wrapper.__doc__ = getattr(original_callable, "__doc__", None)
-    wrapper.__module__ = getattr(original_callable, "__module__", None)
-    wrapper.__wrapped__ = original_callable
-    wrapper.__llmling_wrapped__ = original_callable
+    wrapper.__module__ = getattr(original_callable, "__module__", None)  # type: ignore[assignment]
+    wrapper.__wrapped__ = original_callable  # type: ignore[attr-defined]
+    wrapper.__llmling_wrapped__ = original_callable  # type: ignore[attr-defined]
 
     # Create modified signature without context parameters
     try:
@@ -169,7 +169,7 @@ def create_bound_callable(
             if i not in context_positions and param.name not in bound_kwarg_names
         ]
         new_sig = sig.replace(parameters=new_params)
-        wrapper.__signature__ = new_sig
+        wrapper.__signature__ = new_sig  # type: ignore[attr-defined]
         wrapper.__annotations__ = {
             name: param.annotation for name, param in new_sig.parameters.items()
         }
@@ -200,9 +200,7 @@ def _find_matching_type(param_annotation: Any, by_type: dict[type, Any]) -> Any 
 
     # Then try origin type matching for generics
     param_origin = get_origin(param_annotation)
-    if param_origin is not None:
-        # Check if the origin type has a binding
-        if param_origin in by_type:
-            return by_type[param_origin]
+    if param_origin is not None and param_origin in by_type:
+        return by_type[param_origin]
 
     return None
