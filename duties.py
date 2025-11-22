@@ -94,3 +94,9 @@ def ui(ctx, *args: str):
     ctx.run(
         rf'uv run --python 3.13 --project ../toad/ textual run ../toad/src/toad/__main__.py acp "uv run --python 3.13 --project . llmling-agent serve-acp --model-provider openai"{args_str}'  # noqa: E501
     )
+
+
+@duty(capture=False)
+def schema_html(ctx):
+    """Create HTML documentation for JSON schema."""
+    ctx.run(r"generate-schema-doc")
