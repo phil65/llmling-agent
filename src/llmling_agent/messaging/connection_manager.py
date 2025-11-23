@@ -17,12 +17,7 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator
     from datetime import timedelta
 
-    from llmling_agent.common_types import (
-        AgentName,
-        AnyTransformFn,
-        AsyncFilterFn,
-        QueueStrategy,
-    )
+    from llmling_agent.common_types import AgentName, AnyTransformFn, AsyncFilterFn, QueueStrategy
     from llmling_agent.messaging import ChatMessage, MessageNode
     from llmling_agent_config.forward_targets import ConnectionType
 

@@ -173,7 +173,11 @@ StorageProviderConfig = Annotated[
 class StorageConfig(Schema):
     """Global storage configuration."""
 
-    providers: list[StorageProviderConfig] | None = Field(default=None, title="Storage providers")
+    providers: list[StorageProviderConfig] | None = Field(
+        default=None,
+        title="Storage providers",
+        examples=[[{"type": "file", "path": "/data/storage.json"}]],
+    )
     """List of configured storage providers"""
 
     default_provider: str | None = Field(

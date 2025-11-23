@@ -41,9 +41,7 @@ def get_tools(
 
         case "langchain":
             # Need to import each tool module separately
-            from langchain_community.tools import (  # type: ignore[import-not-found]
-                _module_lookup,
-            )
+            from langchain_community.tools import _module_lookup  # type: ignore[import-not-found]
 
             for cls_name, module_path in _module_lookup.items():
                 try:

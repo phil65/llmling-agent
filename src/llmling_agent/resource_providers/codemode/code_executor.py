@@ -168,8 +168,6 @@ class ToolServerLifecycleHandler:
         exc_tb: TracebackType | None,
     ) -> None:
         """Stop FastAPI server."""
-        import asyncio
-
         # Stop server gracefully
         if self.server:
             with contextlib.suppress(Exception):

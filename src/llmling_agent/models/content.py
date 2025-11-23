@@ -7,13 +7,7 @@ import io
 from typing import TYPE_CHECKING, Annotated, Literal, Self
 
 from pydantic import ConfigDict, Field
-from pydantic_ai import (
-    AudioUrl,
-    BinaryContent,
-    BinaryImage,
-    DocumentUrl,
-    ImageUrl,
-)
+from pydantic_ai import AudioUrl, BinaryContent, BinaryImage, DocumentUrl, ImageUrl
 from schemez import Schema
 from upathtools import read_path
 

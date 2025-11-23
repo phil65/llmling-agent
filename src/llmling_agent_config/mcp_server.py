@@ -11,12 +11,7 @@ from schemez import Schema
 
 if TYPE_CHECKING:
     from mcp_interviewer import ServerScoreCard  # type: ignore[import-untyped]
-    from pydantic_ai.mcp import (
-        MCPServer,
-        MCPServerSSE,
-        MCPServerStdio,
-        MCPServerStreamableHTTP,
-    )
+    from pydantic_ai.mcp import MCPServer, MCPServerSSE, MCPServerStdio, MCPServerStreamableHTTP
 
 
 class MCPServerAuthSettings(Schema):

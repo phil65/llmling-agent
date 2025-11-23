@@ -22,9 +22,7 @@ if TYPE_CHECKING:
     from fastapi import Header, Response
 
     from llmling_agent import AgentPool
-    from llmling_agent_server.openai_api_server.completions.models import (
-        ChatCompletionRequest,
-    )
+    from llmling_agent_server.openai_api_server.completions.models import ChatCompletionRequest
     from llmling_agent_server.openai_api_server.responses.models import (
         Response as ResponsesResponse,
         ResponseRequest,

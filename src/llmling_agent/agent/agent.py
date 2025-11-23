@@ -212,7 +212,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         )
         self._context = ctx
         # TODO: use to_structured with tool_name / description?
-        self._output_type = to_type(output_type, ctx.definition.responses)
+        self._output_type = to_type(output_type)
         memory_cfg = (
             session if isinstance(session, MemoryConfig) else MemoryConfig.from_value(session)
         )
@@ -230,7 +230,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         # Initialize tool manager
         self.event_handler = MultiEventHandler[IndividualEventHandler](event_handlers)
         all_tools = list(tools or [])
-        effective_tool_mode = tool_mode or (ctx.config.tool_mode if ctx else None)
+        effective_tool_mode = tool_mode
         self.tools = ToolManager(all_tools, tool_mode=effective_tool_mode)
 
         # MCP manager will be initialized in __aenter__ and providers added there

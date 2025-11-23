@@ -15,11 +15,7 @@ from llmling_agent.utils.now import get_now
 from llmling_agent.utils.parse_time import parse_time_period
 from llmling_agent_storage.base import StorageProvider
 from llmling_agent_storage.models import QueryFilters
-from llmling_agent_storage.sql_provider.models import (
-    CommandHistory,
-    Conversation,
-    Message,
-)
+from llmling_agent_storage.sql_provider.models import CommandHistory, Conversation, Message
 from llmling_agent_storage.sql_provider.utils import (
     build_message_query,
     format_conversation,

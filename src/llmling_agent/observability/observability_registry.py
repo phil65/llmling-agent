@@ -12,10 +12,7 @@ from llmling_agent.log import get_logger
 
 
 if TYPE_CHECKING:
-    from llmling_agent_config.observability import (
-        BaseObservabilityConfig,
-        ObservabilityConfig,
-    )
+    from llmling_agent_config.observability import BaseObservabilityConfig, ObservabilityConfig
 
 logger = get_logger(__name__)
 
