@@ -107,7 +107,6 @@ class BaseChunk(AnnotatedObject):
         cls,
         data: str | bytes,
         mime_type: str,
-        uri: str | None = None,
         audience: Audience | None = None,
         last_modified: datetime | str | None = None,
         priority: float | None = None,
@@ -117,7 +116,6 @@ class BaseChunk(AnnotatedObject):
         Args:
             data: The audio data.
             mime_type: The MIME type of the audio data.
-            uri: The URI of the audio data.
             audience: The audience for the audio chunk.
             last_modified: The last modified date of the audio chunk.
             priority: The priority of the audio chunk.
@@ -132,7 +130,6 @@ class BaseChunk(AnnotatedObject):
         content = AudioContentBlock(
             data=data,
             mime_type=mime_type,
-            uri=uri,
             annotations=annotations,
         )
         return cls(content=content)

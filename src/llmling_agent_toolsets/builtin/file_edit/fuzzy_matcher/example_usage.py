@@ -7,9 +7,7 @@ in a code editor or AI assistant.
 
 import time
 
-from llmling_agent_toolsets.builtin.file_edit.fuzzy_matcher import (
-    StreamingFuzzyMatcher,
-)
+from llmling_agent_toolsets.builtin.file_edit.fuzzy_matcher import StreamingFuzzyMatcher
 
 
 def simulate_streaming_input(
