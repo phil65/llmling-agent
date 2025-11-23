@@ -69,7 +69,10 @@ class AgentConfig(NodeConfig):
         },
     )
     """The model to use for this agent. Can be either a simple model name
-    string (e.g. 'openai:gpt-5') or a structured model definition."""
+    string (e.g. 'openai:gpt-5') or a structured model definition.
+
+    Docs: https://phil65.github.io/llmling-agent/YAML%20Configuration/model_configuration/
+    """
 
     tools: list[ToolConfig | str] = Field(
         default_factory=list,
@@ -88,7 +91,10 @@ class AgentConfig(NodeConfig):
             "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/tool_configuration/"
         },
     )
-    """A list of tools to register with this agent."""
+    """A list of tools to register with this agent.
+
+    Docs: https://phil65.github.io/llmling-agent/YAML%20Configuration/tool_configuration/
+    """
 
     toolsets: list[ToolsetConfig] = Field(
         default_factory=list,
@@ -114,7 +120,10 @@ class AgentConfig(NodeConfig):
             "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/toolset_configuration/"
         },
     )
-    """Toolset configurations for extensible tool collections."""
+    """Toolset configurations for extensible tool collections.
+
+    Docs: https://phil65.github.io/llmling-agent/YAML%20Configuration/toolset_configuration/
+    """
 
     session: str | SessionQuery | MemoryConfig | None = Field(
         default=None,
@@ -124,7 +133,10 @@ class AgentConfig(NodeConfig):
             "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/session_configuration/"
         },
     )
-    """Session configuration for conversation recovery."""
+    """Session configuration for conversation recovery.
+
+    Docs: https://phil65.github.io/llmling-agent/YAML%20Configuration/session_configuration/
+    """
 
     output_type: str | StructuredResponseConfig | None = Field(
         default=None,
@@ -134,7 +146,10 @@ class AgentConfig(NodeConfig):
             "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/response_configuration/"
         },
     )
-    """Name of the response definition to use"""
+    """Name of the response definition to use.
+
+    Docs: https://phil65.github.io/llmling-agent/YAML%20Configuration/response_configuration/
+    """
 
     retries: int = Field(default=1, ge=0, examples=[1, 3], title="Model retries")
     """Number of retries for failed operations (maps to pydantic-ai's retries)"""
@@ -168,7 +183,9 @@ class AgentConfig(NodeConfig):
             "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/system_prompts_configuration/"
         },
     )
-    """System prompts for the agent. Can be strings or structured prompt configs."""
+    """System prompts for the agent. Can be strings or structured prompt configs.
+
+    Docs: https://phil65.github.io/llmling-agent/YAML%20Configuration/system_prompts_configuration/"""
 
     # context_sources: list[ContextSource] = Field(default_factory=list)
     # """Initial context sources to load"""
@@ -187,7 +204,10 @@ class AgentConfig(NodeConfig):
             "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/knowledge_configuration/"
         },
     )
-    """Knowledge sources for this agent."""
+    """Knowledge sources for this agent.
+
+    Docs: https://phil65.github.io/llmling-agent/YAML%20Configuration/knowledge_configuration/
+    """
 
     workers: list[WorkerConfig] = Field(
         default_factory=list,
@@ -211,7 +231,10 @@ class AgentConfig(NodeConfig):
             "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/worker_configuration/"
         },
     )
-    """Worker agents which will be available as tools."""
+    """Worker agents which will be available as tools.
+
+    Docs: https://phil65.github.io/llmling-agent/YAML%20Configuration/worker_configuration/
+    """
 
     requires_tool_confirmation: ToolConfirmationMode = Field(
         default="per_tool",
@@ -224,16 +247,10 @@ class AgentConfig(NodeConfig):
     - "per_tool": Use individual tool settings
     """
 
-    debug: bool = Field(
-        default=False,
-        title="Debug mode",
-    )
+    debug: bool = Field(default=False, title="Debug mode")
     """Enable debug output for this agent."""
 
-    usage_limits: UsageLimits | None = Field(
-        default=None,
-        title="Usage limits",
-    )
+    usage_limits: UsageLimits | None = Field(default=None, title="Usage limits")
     """Usage limits for this agent."""
 
     tool_mode: ToolMode | None = Field(

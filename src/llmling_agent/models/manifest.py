@@ -84,7 +84,10 @@ class AgentsManifest(Schema):
             "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/agent_configuration/"
         },
     )
-    """Mapping of agent IDs to their configurations"""
+    """Mapping of agent IDs to their configurations.
+
+    Docs: https://phil65.github.io/llmling-agent/YAML%20Configuration/agent_configuration/
+    """
 
     teams: dict[str, TeamConfig] = Field(
         default_factory=dict,
@@ -92,7 +95,10 @@ class AgentsManifest(Schema):
             "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/team_configuration/"
         },
     )
-    """Mapping of team IDs to their configurations"""
+    """Mapping of team IDs to their configurations.
+
+    Docs: https://phil65.github.io/llmling-agent/YAML%20Configuration/team_configuration/
+    """
 
     storage: StorageConfig = Field(
         default_factory=StorageConfig,
@@ -100,7 +106,10 @@ class AgentsManifest(Schema):
             "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/storage_configuration/"
         },
     )
-    """Storage provider configuration."""
+    """Storage provider configuration.
+
+    Docs: https://phil65.github.io/llmling-agent/YAML%20Configuration/storage_configuration/
+    """
 
     observability: ObservabilityConfig = Field(default_factory=ObservabilityConfig)
     """Observability provider configuration."""
@@ -114,7 +123,10 @@ class AgentsManifest(Schema):
             "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/response_configuration/"
         },
     )
-    """Mapping of response names to their definitions"""
+    """Mapping of response names to their definitions.
+
+    Docs: https://phil65.github.io/llmling-agent/YAML%20Configuration/response_configuration/
+    """
 
     jobs: dict[str, Job[Any]] = Field(default_factory=dict)
     """Pre-defined jobs, ready to be used by nodes."""
@@ -132,6 +144,8 @@ class AgentsManifest(Schema):
     """List of MCP server configurations:
 
     These MCP servers are used to provide tools and other resources to the nodes.
+
+    Docs: https://phil65.github.io/llmling-agent/YAML%20Configuration/mcp_configuration/
     """
     pool_server: MCPPoolServerConfig = Field(default_factory=MCPPoolServerConfig)
     """Pool server configuration.
@@ -145,6 +159,12 @@ class AgentsManifest(Schema):
             "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/prompt_configuration/"
         },
     )
+    """Prompt library configuration.
+
+    This configuration defines the prompt library, which is used to provide prompts to the nodes.
+
+    Docs: https://phil65.github.io/llmling-agent/YAML%20Configuration/prompt_configuration/
+    """
 
     commands: dict[str, CommandConfig | str] = Field(
         default_factory=dict,

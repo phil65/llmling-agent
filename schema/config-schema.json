@@ -1872,7 +1872,7 @@
             }
           ],
           "default": null,
-          "description": "The model to use for this agent. Can be either a simple model name\nstring (e.g. 'openai:gpt-5') or a structured model definition.",
+          "description": "The model to use for this agent. Can be either a simple model name\nstring (e.g. 'openai:gpt-5') or a structured model definition.\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/model_configuration/",
           "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/model_configuration/",
           "examples": [
             "openai:gpt-5-nano"
@@ -1880,7 +1880,7 @@
           "title": "Model configuration or name"
         },
         "tools": {
-          "description": "A list of tools to register with this agent.",
+          "description": "A list of tools to register with this agent.\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/tool_configuration/",
           "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/tool_configuration/",
           "examples": [
             [
@@ -1927,7 +1927,7 @@
           "type": "array"
         },
         "toolsets": {
-          "description": "Toolset configurations for extensible tool collections.",
+          "description": "Toolset configurations for extensible tool collections.\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/toolset_configuration/",
           "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/toolset_configuration/",
           "examples": [
             [
@@ -2049,7 +2049,7 @@
             }
           ],
           "default": null,
-          "description": "Session configuration for conversation recovery.",
+          "description": "Session configuration for conversation recovery.\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/session_configuration/",
           "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/session_configuration/",
           "examples": [
             "main_session",
@@ -2070,7 +2070,7 @@
             }
           ],
           "default": null,
-          "description": "Name of the response definition to use",
+          "description": "Name of the response definition to use.\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/response_configuration/",
           "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/response_configuration/",
           "examples": [
             "json_response",
@@ -2130,7 +2130,7 @@
           ]
         },
         "system_prompts": {
-          "description": "System prompts for the agent. Can be strings or structured prompt configs.",
+          "description": "System prompts for the agent. Can be strings or structured prompt configs.\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/system_prompts_configuration/",
           "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/system_prompts_configuration/",
           "examples": [
             [
@@ -2195,12 +2195,12 @@
             }
           ],
           "default": null,
-          "description": "Knowledge sources for this agent.",
+          "description": "Knowledge sources for this agent.\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/knowledge_configuration/",
           "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/knowledge_configuration/",
           "title": "Knowledge sources"
         },
         "workers": {
-          "description": "Worker agents which will be available as tools.",
+          "description": "Worker agents which will be available as tools.\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/worker_configuration/",
           "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/worker_configuration/",
           "examples": [
             [
@@ -10974,6 +10974,7 @@
   },
   "additionalProperties": false,
   "description": "Complete agent configuration manifest defining all available agents.\n\nThis is the root configuration that:\n- Defines available response types (both inline and imported)\n- Configures all agent instances and their settings\n- Sets up custom role definitions and capabilities\n- Manages environment configurations\n\nA single manifest can define multiple agents that can work independently\nor collaborate through the orchestrator.",
+  "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/manifest_configuration/",
   "properties": {
     "INHERIT": {
       "anyOf": [
@@ -11040,7 +11041,7 @@
       "additionalProperties": {
         "$ref": "#/$defs/AgentConfig"
       },
-      "description": "Mapping of agent IDs to their configurations",
+      "description": "Mapping of agent IDs to their configurations.\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/agent_configuration/",
       "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/agent_configuration/",
       "title": "Agents",
       "type": "object"
@@ -11049,14 +11050,14 @@
       "additionalProperties": {
         "$ref": "#/$defs/TeamConfig"
       },
-      "description": "Mapping of team IDs to their configurations",
+      "description": "Mapping of team IDs to their configurations.\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/team_configuration/",
       "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/team_configuration/",
       "title": "Teams",
       "type": "object"
     },
     "storage": {
       "$ref": "#/$defs/StorageConfig",
-      "description": "Storage provider configuration.",
+      "description": "Storage provider configuration.\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/storage_configuration/",
       "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/storage_configuration/"
     },
     "observability": {
@@ -11071,7 +11072,7 @@
       "additionalProperties": {
         "$ref": "#/$defs/StructuredResponseConfig"
       },
-      "description": "Mapping of response names to their definitions",
+      "description": "Mapping of response names to their definitions.\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/response_configuration/",
       "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/response_configuration/",
       "title": "Responses",
       "type": "object"
@@ -11085,7 +11086,7 @@
       "type": "object"
     },
     "mcp_servers": {
-      "description": "List of MCP server configurations:\n\nThese MCP servers are used to provide tools and other resources to the nodes.",
+      "description": "List of MCP server configurations:\n\nThese MCP servers are used to provide tools and other resources to the nodes.\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/mcp_configuration/",
       "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/mcp_configuration/",
       "examples": [
         [
@@ -11135,6 +11136,7 @@
     },
     "prompts": {
       "$ref": "#/$defs/PromptLibraryConfig",
+      "description": "Prompt library configuration.\n\nThis configuration defines the prompt library, which is used to provide prompts to the nodes.\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/prompt_configuration/",
       "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/prompt_configuration/"
     },
     "commands": {
