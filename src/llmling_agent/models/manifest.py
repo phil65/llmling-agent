@@ -51,12 +51,6 @@ class AgentsManifest(Schema):
     or collaborate through the orchestrator.
     """
 
-    model_config = ConfigDict(
-        json_schema_extra={
-            "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/manifest_configuration/"
-        }
-    )
-
     INHERIT: str | list[str] | None = None
     """Inheritance references."""
 
@@ -174,7 +168,11 @@ class AgentsManifest(Schema):
             path: "./prompts/analysis.md"
     """
 
-    model_config = ConfigDict(use_attribute_docstrings=True, extra="forbid")
+    model_config = ConfigDict(
+        json_schema_extra={
+            "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/manifest_configuration/"
+        },
+    )
 
     @model_validator(mode="before")
     @classmethod
