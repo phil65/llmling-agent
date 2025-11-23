@@ -125,7 +125,6 @@ class ACPInputProvider(InputProvider):
 
     async def get_elicitation(  # noqa: PLR0911
         self,
-        context: AgentContext[Any],
         params: types.ElicitRequestParams,
     ) -> types.ElicitResult | types.ErrorData:
         """Get user response to elicitation request with basic schema support.
@@ -134,7 +133,6 @@ class ACPInputProvider(InputProvider):
         Other schemas fall back to accept/decline options.
 
         Args:
-            context: Current agent context
             params: MCP elicit request parameters
 
         Returns:

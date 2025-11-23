@@ -75,9 +75,12 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
         self.agents.events.inserted.connect(self._on_node_added)
         self.agents.events.removed.connect(self._on_node_removed)
         self.agents.events.changed.connect(self._on_node_changed)
+        mcp_servers = list(mcp_servers) if mcp_servers else []
+        if self.context and (cfg := self.context.config) and cfg.mcp_servers:
+            mcp_servers.extend(cfg.get_mcp_servers())
         super().__init__(
             name=self._name,
-            context=self.context,
+            input_provider=self.context.get_input_provider(),
             mcp_servers=mcp_servers,
             description=description,
         )

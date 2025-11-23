@@ -218,9 +218,12 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         )
         # Initialize progress queue before super().__init__()
         self._event_queue = asyncio.Queue[RichAgentStreamEvent[Any]]()
+        mcp_servers = list(mcp_servers) if mcp_servers else []
+        if ctx and (cfg := ctx.config) and cfg.mcp_servers:
+            mcp_servers.extend(cfg.get_mcp_servers())
         super().__init__(
             name=name,
-            context=ctx,
+            input_provider=ctx.get_input_provider(),
             description=description,
             enable_logging=memory_cfg.enable,
             mcp_servers=mcp_servers,
@@ -445,7 +448,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
     def context(self, value: AgentContext[TDeps]) -> None:
         """Set agent context and propagate to provider."""
         self._context = value
-        self.mcp.context = value
 
     def to_structured[NewOutputDataT](
         self,

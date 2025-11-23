@@ -70,12 +70,11 @@ class MockInputProvider(InputProvider):
 
     async def get_elicitation(
         self,
-        context: AgentContext,
         params: types.ElicitRequestParams,
     ) -> types.ElicitResult | types.ErrorData:
         from mcp import types
 
         result = types.ElicitResult(action="accept", content=self.elicitation_response)
-        call = InputCall("get_elicitation", (context, params), {}, result=result)
+        call = InputCall("get_elicitation", (params,), {}, result=result)
         self.calls.append(call)
         return result

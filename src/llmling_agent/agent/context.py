@@ -86,18 +86,13 @@ class AgentContext[TDeps = Any](NodeContext[TDeps]):
     ) -> types.ElicitResult | types.ErrorData:
         """Handle elicitation request for additional information."""
         provider = self.get_input_provider()
-        return await provider.get_elicitation(self, params)
+        return await provider.get_elicitation(params)
 
     async def report_progress(self, progress: float, total: float | None, message: str) -> None:
         """Report progress by emitting event into the agent's stream."""
         from llmling_agent.agent.events import ToolCallProgressEvent
 
-        logger.info(
-            "Reporting tool call progress",
-            progress=progress,
-            total=total,
-            message=message,
-        )
+        logger.info("Reporting tool call progress", progress=progress, total=total, message=message)
         progress_event = ToolCallProgressEvent(
             progress=int(progress),
             total=int(total) if total is not None else 100,

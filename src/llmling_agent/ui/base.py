@@ -78,7 +78,6 @@ class InputProvider(ABC):
     @abstractmethod
     def get_elicitation(
         self,
-        context: AgentContext[Any],
         params: types.ElicitRequestParams,
     ) -> Coroutine[Any, Any, types.ElicitResult | types.ErrorData]:
         """Get user response to elicitation request.

@@ -24,8 +24,8 @@ if TYPE_CHECKING:
     from mcp.shared.context import RequestContext
     from mcp.types import SamplingMessage
 
-    from llmling_agent.messaging.context import NodeContext
     from llmling_agent.models.content import BaseContent
+    from llmling_agent.ui.base import InputProvider
     from llmling_agent_config.mcp_server import MCPServerConfig
 
 
@@ -40,7 +40,7 @@ class MCPManager:
         name: str = "mcp",
         owner: str | None = None,
         servers: Sequence[MCPServerConfig | str] | None = None,
-        context: NodeContext | None = None,
+        input_provider: InputProvider | None = None,
         accessible_roots: list[str] | None = None,
     ) -> None:
         self.name = name
@@ -48,7 +48,7 @@ class MCPManager:
         self.servers: list[MCPServerConfig] = []
         for server in servers or []:
             self.add_server_config(server)
-        self.context = context
+        self.input_provider = input_provider
         self.providers: list[MCPResourceProvider] = []
         self.aggregating_provider = AggregatingResourceProvider(
             providers=cast(list[ResourceProvider], self.providers),
@@ -95,10 +95,8 @@ class MCPManager:
         from fastmcp.client.elicitation import ElicitResult
         from mcp.types import ElicitResult as MCPElicitResult, ErrorData
 
-        from llmling_agent.agent.context import AgentContext
-
-        if isinstance(self.context, AgentContext):
-            match await self.context.handle_elicitation(params):
+        if self.input_provider:
+            match await self.input_provider.get_elicitation(params):
                 case MCPElicitResult(action="accept", content=content):
                     return content
                 case MCPElicitResult(action="cancel"):

@@ -96,7 +96,6 @@ class StdlibInputProvider(InputProvider):
 
     async def get_elicitation(
         self,
-        context: AgentContext,
         params: types.ElicitRequestParams,
     ) -> types.ElicitResult | types.ErrorData:
         """Get user response to elicitation request using stdlib input."""
