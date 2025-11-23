@@ -7,7 +7,10 @@ from schemez import Schema, SchemaDef
 
 
 class StructuredResponseConfig(Schema):
-    """Base class for response definitions."""
+    """Base class for response definitions.
+
+    Docs: https://phil65.github.io/llmling-agent/YAML%20Configuration/response_configuration/
+    """
 
     response_schema: SchemaDef = Field(
         examples=[
@@ -25,7 +28,7 @@ class StructuredResponseConfig(Schema):
         ],
         title="Response schema",
     )
-    """A model describing the response schema. """
+    """A model describing the response schema."""
 
     description: str | None = Field(
         default=None,

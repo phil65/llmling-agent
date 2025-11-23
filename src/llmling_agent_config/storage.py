@@ -171,7 +171,10 @@ StorageProviderConfig = Annotated[
 
 
 class StorageConfig(Schema):
-    """Global storage configuration."""
+    """Global storage configuration.
+
+    Docs: https://phil65.github.io/llmling-agent/YAML%20Configuration/storage_configuration/
+    """
 
     providers: list[StorageProviderConfig] | None = Field(
         default=None,

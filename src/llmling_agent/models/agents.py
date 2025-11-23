@@ -44,20 +44,12 @@ class AgentConfig(NodeConfig):
     """Configuration for a single agent in the system.
 
     Defines an agent's complete configuration including its model, environment,
-    and behavior settings. Each agent can have its own:
-    - Language model configuration
-    - Environment setup (tools and resources)
-    - Response type definitions
-    - System prompts and default user prompts
+    and behavior settings.
 
-    The configuration can be loaded from YAML or created programmatically.
+    Docs: https://phil65.github.io/llmling-agent/YAML%20Configuration/agent_configuration/
     """
 
-    inherits: str | None = Field(
-        default=None,
-        # examples=["base_agent", "coding_assistant"],
-        title="Inheritance source",
-    )
+    inherits: str | None = Field(default=None, title="Inheritance source")
     """Name of agent config to inherit from"""
 
     model: str | ModelName | AnyModelConfig | None = Field(
@@ -185,7 +177,8 @@ class AgentConfig(NodeConfig):
     )
     """System prompts for the agent. Can be strings or structured prompt configs.
 
-    Docs: https://phil65.github.io/llmling-agent/YAML%20Configuration/system_prompts_configuration/"""
+    Docs: https://phil65.github.io/llmling-agent/YAML%20Configuration/system_prompts_configuration/
+    """
 
     # context_sources: list[ContextSource] = Field(default_factory=list)
     # """Initial context sources to load"""

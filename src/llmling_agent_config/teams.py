@@ -17,6 +17,8 @@ class TeamConfig(NodeConfig):
 
     Teams can be either parallel execution groups or sequential chains.
     They can contain both agents and other teams as members.
+
+    Docs: https://phil65.github.io/llmling-agent/YAML%20Configuration/team_configuration/
     """
 
     mode: ExecutionMode = Field(examples=["parallel", "sequential"], title="Execution mode")

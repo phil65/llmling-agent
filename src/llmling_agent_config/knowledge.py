@@ -13,6 +13,8 @@ class Knowledge(Schema):
 
     Supports both simple paths and rich resource types for content loading,
     plus LLMling's prompt system for dynamic content generation.
+
+    Docs: https://phil65.github.io/llmling-agent/YAML%20Configuration/knowledge_configuration/
     """
 
     paths: list[str] = Field(

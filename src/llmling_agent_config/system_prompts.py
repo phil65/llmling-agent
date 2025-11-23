@@ -119,7 +119,10 @@ PromptConfig = Annotated[
 
 
 class PromptLibraryConfig(Schema):
-    """Complete prompt configuration."""
+    """Complete prompt configuration.
+
+    Docs: https://phil65.github.io/llmling-agent/YAML%20Configuration/prompt_configuration/
+    """
 
     system_prompts: dict[str, StaticPromptConfig] = Field(
         default_factory=dict,
