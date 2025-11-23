@@ -51,6 +51,12 @@ class AgentsManifest(Schema):
     or collaborate through the orchestrator.
     """
 
+    model_config = ConfigDict(
+        json_schema_extra={
+            "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/manifest_configuration/"
+        }
+    )
+
     INHERIT: str | list[str] | None = None
     """Inheritance references."""
 
@@ -78,13 +84,28 @@ class AgentsManifest(Schema):
             cached: true
     """
 
-    agents: dict[str, AgentConfig] = Field(default_factory=dict)
+    agents: dict[str, AgentConfig] = Field(
+        default_factory=dict,
+        json_schema_extra={
+            "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/agent_configuration/"
+        },
+    )
     """Mapping of agent IDs to their configurations"""
 
-    teams: dict[str, TeamConfig] = Field(default_factory=dict)
+    teams: dict[str, TeamConfig] = Field(
+        default_factory=dict,
+        json_schema_extra={
+            "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/team_configuration/"
+        },
+    )
     """Mapping of team IDs to their configurations"""
 
-    storage: StorageConfig = Field(default_factory=StorageConfig)
+    storage: StorageConfig = Field(
+        default_factory=StorageConfig,
+        json_schema_extra={
+            "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/storage_configuration/"
+        },
+    )
     """Storage provider configuration."""
 
     observability: ObservabilityConfig = Field(default_factory=ObservabilityConfig)
@@ -93,7 +114,12 @@ class AgentsManifest(Schema):
     conversion: ConversionConfig = Field(default_factory=ConversionConfig)
     """Document conversion configuration."""
 
-    responses: dict[str, StructuredResponseConfig] = Field(default_factory=dict)
+    responses: dict[str, StructuredResponseConfig] = Field(
+        default_factory=dict,
+        json_schema_extra={
+            "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/response_configuration/"
+        },
+    )
     """Mapping of response names to their definitions"""
 
     jobs: dict[str, Job[Any]] = Field(default_factory=dict)
@@ -105,6 +131,9 @@ class AgentsManifest(Schema):
             ["uvx some-server"],
             [{"type": "streamable-http", "url": "http://mcp.example.com"}],
         ],
+        json_schema_extra={
+            "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/mcp_configuration/"
+        },
     )
     """List of MCP server configurations:
 
@@ -116,7 +145,12 @@ class AgentsManifest(Schema):
     This MCP server configuration is used for the pool MCP server,
     which exposes pool functionality to other applications / clients."""
 
-    prompts: PromptLibraryConfig = Field(default_factory=PromptLibraryConfig)
+    prompts: PromptLibraryConfig = Field(
+        default_factory=PromptLibraryConfig,
+        json_schema_extra={
+            "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/prompt_configuration/"
+        },
+    )
 
     commands: dict[str, CommandConfig | str] = Field(
         default_factory=dict,

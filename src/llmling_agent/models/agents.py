@@ -64,6 +64,9 @@ class AgentConfig(NodeConfig):
         default=None,
         examples=["openai:gpt-5-nano"],
         title="Model configuration or name",
+        json_schema_extra={
+            "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/model_configuration/"
+        },
     )
     """The model to use for this agent. Can be either a simple model name
     string (e.g. 'openai:gpt-5') or a structured model definition."""
@@ -80,7 +83,10 @@ class AgentConfig(NodeConfig):
                 }
             ],
         ],
-        title="Agent tools",
+        title="Tool configurations",
+        json_schema_extra={
+            "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/tool_configuration/"
+        },
     )
     """A list of tools to register with this agent."""
 
@@ -104,6 +110,9 @@ class AgentConfig(NodeConfig):
             ],
         ],
         title="Toolset configurations",
+        json_schema_extra={
+            "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/toolset_configuration/"
+        },
     )
     """Toolset configurations for extensible tool collections."""
 
@@ -111,13 +120,19 @@ class AgentConfig(NodeConfig):
         default=None,
         examples=["main_session", "user_123"],
         title="Session configuration",
+        json_schema_extra={
+            "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/session_configuration/"
+        },
     )
     """Session configuration for conversation recovery."""
 
     output_type: str | StructuredResponseConfig | None = Field(
         default=None,
         examples=["json_response", "code_output"],
-        title="Output type definition",
+        title="Response type",
+        json_schema_extra={
+            "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/response_configuration/"
+        },
     )
     """Name of the response definition to use"""
 
@@ -146,7 +161,12 @@ class AgentConfig(NodeConfig):
     """URL or path to agent's avatar image"""
 
     system_prompts: Sequence[str | PromptConfig] = Field(
-        default_factory=list, title="System prompts", examples=[["You are an AI assistant."]]
+        default_factory=list,
+        title="System prompts",
+        examples=[["You are an AI assistant."]],
+        json_schema_extra={
+            "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/system_prompts_configuration/"
+        },
     )
     """System prompts for the agent. Can be strings or structured prompt configs."""
 
@@ -163,6 +183,9 @@ class AgentConfig(NodeConfig):
     knowledge: Knowledge | None = Field(
         default=None,
         title="Knowledge sources",
+        json_schema_extra={
+            "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/knowledge_configuration/"
+        },
     )
     """Knowledge sources for this agent."""
 
@@ -184,6 +207,9 @@ class AgentConfig(NodeConfig):
             ],
         ],
         title="Worker agents",
+        json_schema_extra={
+            "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/worker_configuration/"
+        },
     )
     """Worker agents which will be available as tools."""
 

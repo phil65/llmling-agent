@@ -1,101 +1,28 @@
 # Agent Manifest
 
-The agent manifest is a YAML file that defines your complete agent setup.
+The agent manifest is a YAML file that defines your complete agent setup at the top level.
 The config part is powered by [Pydantic](https://docs.pydantic.dev/latest/) and provides excellent validation
 and IDE support for YAML linters by providing an extensive, detailed schema.
 
-Let's look at a complete, correctly structured example:
+## Top-Level Structure
+
+Here's the complete manifest structure with all available top-level sections:
 
 ```yaml
-# Root level configuration
+# Agent definitions
 agents:
-  analyzer:  # Agent name (key in agents dict)
-    # Basic configuration
-    name: "analyzer"  # Optional override for agent name
-    inherits: "base_agent"  # Optional parent config to inherit from
+  analyzer:
+    # See Agent Configuration documentation
+    model: "openai:gpt-5"
     description: "Code analysis specialist"
-    model: "openai:gpt-5"  # or structured model definition
-    debug: false
-
-    # Provider behavior
-    retries: 1
-    end_strategy: "early"  # "early" | "complete" | "confirm"
-
-    # Structured output
-    output_type:
-      type: "inline"  # or "import" for Python types
-      fields:
-        success:
-          type: "bool"
-          description: "Whether analysis succeeded"
-    result_tool_name: "final_result"  # Name for result validation tool
-    result_tool_description: "Create final response"  # Optional description
-    output_retries: 3  # Validation retry count
-
-    # Agent behavior
-    system_prompts: ["You are a code analyzer..."]
-    user_prompts: ["Example query..."]  # Default queries
-    model_settings: {}  # Additional model parameters
-
-    # State management
-    session:                 # Initial session loading
-      name: my_session       # Optional session identifier
-      since: 1h             # Only messages from last hour
-    avatar: "path/to/avatar.png"  # Optional UI avatar
-
-    # Toolsets
-    toolsets:
-      - type: agent_management  # Enables delegation
-      - type: resource_access   # Enables resource loading
-
-
-    # Knowledge configuration
-    knowledge:
-      paths: ["docs/**/*.md"]
-      resources:
-        - type: "repository"
-          url: "https://github.com/user/repo"
-      prompts:
-        - type: "file"
-          path: "prompts/analysis.txt"
-
-    # MCP integration
-    mcp_servers:
-      - type: "stdio"
-        command: "python"
-        args: ["-m", "mcp_server"]
-      - "python -m other_server"  # shorthand syntax
-
-    # Agent relationships
-    workers:
-      - type: agent
-        name: "formatter"
-        reset_history_on_run: true
-        pass_message_history: false
-      - "linter"  # shorthand syntax
-
-    # Message routing
-    connections:
-      - type: node
-        name: "reporter"
-        connection_type: "run"  # "run" | "context" | "forward"
-        wait_for_completion: true
-
-    # Event handling
-    triggers:
-      - type: "file"
-        name: "code_change"
-        paths: ["src/**/*.py"]
-        extensions: [".py"]
-        recursive: true
-
-  # Additional agents...
+    # ... full agent config
+  
   planner:
-    model: "openai:gpt-5-nano"
-    # ... configuration for planner agent
+    model: "openai:gpt-5-nano" 
+    # ... additional agent configs
 
+# Team definitions for multi-agent workflows
 teams:
-  # Complex workflows via YAML
   full_pipeline:
     mode: sequential
     members:
@@ -105,10 +32,8 @@ teams:
       - type: node
         name: final_reviewer
         wait_for_completion: true
-      - type: file
-        path: "reports/{date}_workflow.txt"
 
-# Shared response definitions
+# Shared response type definitions
 responses:
   AnalysisResult:
     response_schema:
@@ -117,11 +42,11 @@ responses:
         severity:
           type: "str"
           description: "Issue severity"
-    CodeMetrics:
-      type: "import"
-      import_path: "myapp.types.CodeMetrics"
+  CodeMetrics:
+    type: "import"
+    import_path: "myapp.types.CodeMetrics"
 
-# Storage configuration
+# Storage and logging configuration
 storage:
   providers:
     - type: "sql"
@@ -134,7 +59,45 @@ storage:
   log_conversations: true
   log_commands: true
 
-# Pre-defined tasks
+# Observability configuration
+observability:
+  providers:
+    - type: "opentelemetry"
+      endpoint: "http://localhost:4317"
+
+# Document conversion settings
+conversion:
+  audio:
+    provider: "whisper"
+  video:
+    provider: "ffmpeg"
+
+# Global MCP server configurations
+mcp_servers:
+  - type: "stdio"
+    command: "python"
+    args: ["-m", "mcp_server"]
+  - "python -m other_server"  # shorthand syntax
+
+# Pool server for external access
+pool_server:
+  type: "stdio"
+  host: "localhost"
+  port: 8080
+
+# Global prompt library
+prompts:
+  library_path: "prompts/"
+  auto_reload: true
+
+# Global command shortcuts
+commands:
+  check_disk: "df -h"
+  analyze:
+    type: "static"
+    content: "Analyze the current situation"
+
+# Pre-defined reusable tasks
 jobs:
   analyze_code:
     prompt: "Analyze this code: {code}"
@@ -144,40 +107,106 @@ jobs:
     tools:
       - "analyze_complexity"
       - import_path: "myapp.tools.analyze_security"
+
+# Resource definitions (filesystems, APIs, etc.)
+resources:
+  docs: "file://./docs"
+  api:
+    type: "source"
+    uri: "https://api.example.com"
+    cached: true
 ```
 
-## Key Concepts
+## Top-Level Sections
 
-### Agent Configuration
-Each agent entry defines:
-- Provider type and model
-- Response formatting
-- Capabilities and permissions
-- Environment and knowledge sources
-- Connections to other agents
+### `agents`
+Dictionary of individual agent configurations. Each key is an agent identifier, and the value is the complete agent configuration.
 
-### Response Types
-Define structured output formats either:
-- Inline in the YAML (`type: "inline"`)
-- By importing Python types (`type: "import"`)
+See [Agent Configuration](agent_config.md) for detailed agent setup options.
 
-### Storage
-Configure how agent interactions are stored:
-- SQL databases
-- Text logs
-- File storage
-- Memory storage (for testing)
+### `teams`  
+Dictionary of team configurations for multi-agent workflows. Teams can run agents in parallel or sequence.
 
-### Tasks
-Predefine common operations with:
-- Prompt templates
-- Required knowledge
-- Expected response types
-- Tool configurations
+See [Team Configuration](team_config.md) for team setup and coordination.
+
+### `responses`
+Dictionary of shared response type definitions that can be referenced by agents. Supports both inline schema definitions and imported Python types.
+
+See [Response Configuration](response_config.md) for structured output setup.
+
+### `storage`
+Configuration for how agent interactions are stored and logged. Supports multiple storage providers.
+
+See [Storage Configuration](storage_config.md) for persistence and logging options.
+
+### `observability`
+Configuration for monitoring and telemetry collection.
+
+### `conversion`
+Settings for document and media conversion capabilities.
+
+### `mcp_servers`
+Global Model Context Protocol server configurations that provide tools and resources to agents.
+
+See [MCP Configuration](mcp_config.md) for server setup and integration.
+
+### `pool_server`
+Configuration for the pool server that exposes agent functionality to external clients.
+
+### `prompts`
+Global prompt library configuration and management.
+
+See [Prompt Configuration](prompt_config.md) for prompt organization.
+
+### `commands`
+Global command shortcuts that can be used across agents for prompt injection.
+
+### `jobs`
+Pre-defined reusable tasks with templates, knowledge requirements, and expected outputs.
+
+See [Task Configuration](task_config.md) for job definitions.
+
+### `resources`
+Global resource definitions for filesystems, APIs, and data sources that agents can access.
+
+## Configuration Inheritance
+
+The manifest supports YAML inheritance using the `INHERIT` key at the top level, similar to MkDocs:
+
+```yaml
+# base-config.yml
+storage:
+  log_messages: true
+agents:
+  base_agent:
+    model: "openai:gpt-5"
+    retries: 2
+
+# main-config.yml  
+INHERIT: base-config.yml
+agents:
+  my_agent:
+    inherits: base_agent
+    description: "Specialized agent"
+```
+
+LLMling-Agent supports UPaths (universal-pathlib) for inheritance, allowing remote configurations.
+
+## Schema Validation
+
+You can get IDE linter support by adding this line at the top of your YAML:
+
+```yaml
+# yaml-language-server: $schema=https://raw.githubusercontent.com/phil65/llmling-agent/refs/heads/main/schema/config-schema.json
+```
+
+!!! note
+    Versioned config files will arrive soon for better stability!
 
 ## Usage
 
-Load a manifest i your code:
+Load a manifest in your code:
+
 ```python
 from llmling_agent import AgentPool
 
@@ -186,16 +215,9 @@ async with AgentPool("agents.yml") as pool:
     result = await agent.run("Analyze this code...")
 ```
 
-!!! note
-    You can get linter support by adding this line at the top of your YAML:
-    `# yaml-language-server: $schema=https://raw.githubusercontent.com/phil65/llmling-agent/refs/heads/main/schema/config-schema.json`
-    Versioned config files will arrive soon!
+## Next Steps
 
-LLMling-Agent supports the YAML inheritance functionality for the manifest also known from MkDocs, using the
-`INHERIT` key on the top level. It even supports UPaths (universal-pathlib)
-
-
- ## Next Steps
- - [Environment Configuration](environment.md) for detailed tool/resource setup
- - [Response Types](responses.md) for structured output configuration
- - [Storage Configuration](storage.md) for history and logging options
+- [Agent Configuration](agent_config.md) for individual agent setup
+- [Team Configuration](team_config.md) for multi-agent workflows  
+- [Storage Configuration](storage_config.md) for persistence options
+- [Response Configuration](response_config.md) for structured outputs

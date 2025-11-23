@@ -14,10 +14,10 @@ def _(page: mk.MkPage) -> None:
     page += mk.MkTemplate("docs/config_file/manifest.md")
 
 
-@nav.route.page("Provider Configuration", icon="octicon:plug-16")
+@nav.route.page("Agent Configuration", icon="octicon:plug-16")
 def _(page: mk.MkPage) -> None:
-    """Agent provider setup and options."""
-    page += mk.MkTemplate("docs/config_file/provider_config.md")
+    """Agent configuration."""
+    page += mk.MkTemplate("docs/config_file/agent_config.md")
 
 
 @nav.route.page("Model Configuration", icon="octicon:cpu-16")
