@@ -69,6 +69,7 @@ if TYPE_CHECKING:
         ToolType,
     )
     from llmling_agent.delegation import AgentPool, Team, TeamRun
+    from llmling_agent.models import AgentConfig
     from llmling_agent.models.agents import ToolMode
     from llmling_agent.prompts.prompts import PromptType
     from llmling_agent.resource_providers import ResourceProvider
@@ -105,7 +106,7 @@ class AgentKwargs(TypedDict, total=False):
     retries: int
     output_retries: int | None
     end_strategy: EndStrategy
-    context: AgentContext[Any] | None  # x
+    # context: AgentContext[Any] | None  # x
     session: SessionIdType | SessionQuery | MemoryConfig | bool | int
     input_provider: InputProvider | None
     debug: bool
@@ -138,7 +139,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         deps_type: type[TDeps] | None = None,
         model: ModelType = None,
         output_type: OutputSpec[OutputDataT] = str,  # type: ignore[assignment]
-        context: AgentContext[TDeps] | None = None,
+        # context: AgentContext[TDeps] | None = None,
         session: SessionIdType | SessionQuery | MemoryConfig | bool | int = None,
         system_prompt: AnyPromptType | Sequence[AnyPromptType] = (),
         description: str | None = None,
@@ -157,6 +158,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         agent_pool: AgentPool[Any] | None = None,
         tool_mode: ToolMode | None = None,
         knowledge: Knowledge | None = None,
+        agent_config: AgentConfig | None = None,
     ) -> None:
         """Initialize agent.
 
@@ -193,6 +195,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             agent_pool: AgentPool instance for managing agent resources
             tool_mode: Tool execution mode (None or "codemode")
             knowledge: Knowledge sources for this agent
+            agent_config: Agent configuration
         """
         from llmling_agent.agent import AgentContext
         from llmling_agent.agent.conversation import MessageHistory
@@ -203,11 +206,11 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         self.task_manager = TaskManager()
         self._infinite = False
         self.deps_type = deps_type
-        ctx = context or AgentContext[TDeps](
-            input_provider=input_provider,
+        ctx = AgentContext[TDeps](
             node_name=name,
-            definition=AgentsManifest(),
-            config=AgentConfig(name=name),
+            definition=agent_pool.manifest if agent_pool else AgentsManifest(),
+            config=agent_config or AgentConfig(name=name),
+            input_provider=input_provider,
             pool=agent_pool,
         )
         self._context = ctx

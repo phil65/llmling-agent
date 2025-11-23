@@ -442,18 +442,8 @@ class AgentsManifest(Schema):
         pool: AgentPool[Any] | None = None,
         event_handlers: list[IndividualEventHandler] | None = None,
     ) -> Agent[TAgentDeps, Any]:
-        from llmling_agent import Agent, AgentContext
-
-        config = self.agents[name]
-        context = AgentContext[TAgentDeps](
-            node_name=name,
-            definition=self,
-            config=config,
-            input_provider=input_provider,
-            pool=pool,
-        )
-
-        # Resolve system prompts with new PromptConfig types
+        from llmling_agent import Agent
+        from llmling_agent.utils.result_utils import to_type
         from llmling_agent_config.system_prompts import (
             FilePromptConfig,
             FunctionPromptConfig,
@@ -461,6 +451,7 @@ class AgentsManifest(Schema):
             StaticPromptConfig,
         )
 
+        config = self.agents[name]
         sys_prompts: list[str] = []
         for prompt in config.system_prompts:
             match prompt:
@@ -495,18 +486,13 @@ class AgentsManifest(Schema):
         toolsets_list = []
         if config_tool_provider := config.get_tool_provider():
             toolsets_list.append(config_tool_provider)
-
-        # Resolve output type using the same two-step process as before
-        from llmling_agent.utils.result_utils import to_type
-
         # Step 1: Get agent-specific output type (same as before)
         agent_output_type = self.get_output_type(name) or str
         # Step 2: Resolve it fully with to_type (same as before)
         resolved_output_type = to_type(agent_output_type, self.responses)
 
-        # Create agent with runtime and context
         return Agent(
-            context=context,
+            # context=context,
             model=config.model
             if isinstance(config.model, str) or config.model is None
             else config.model.get_model(),
@@ -519,6 +505,7 @@ class AgentsManifest(Schema):
             output_retries=config.output_retries,
             end_strategy=config.end_strategy,
             debug=config.debug,
+            agent_config=config,
             input_provider=input_provider,
             output_type=resolved_output_type,
             event_handlers=event_handlers,

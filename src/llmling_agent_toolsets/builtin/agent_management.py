@@ -148,7 +148,7 @@ async def create_worker_agent[TDeps](
         raise ToolError(msg)
 
     model = model or ctx.agent.model_name
-    agent = Agent[TDeps](name=name, model=model, system_prompt=system_prompt, context=ctx)
+    agent = Agent[TDeps](name=name, model=model, system_prompt=system_prompt, agent_pool=ctx.pool)
     assert ctx.agent
     tool_info = ctx.agent.register_worker(agent)
     return f"Created worker agent and registered as tool: {tool_info.name}"
@@ -174,7 +174,7 @@ async def spawn_delegate[TDeps](
 
     name = f"delegate_{uuid4().hex[:8]}"
     model = model or ctx.agent.model_name
-    agent = Agent[TDeps](name=name, model=model, system_prompt=system_prompt, context=ctx)
+    agent = Agent[TDeps](name=name, model=model, system_prompt=system_prompt, agent_pool=ctx.pool)
 
     if connect_back:
         assert ctx.agent
