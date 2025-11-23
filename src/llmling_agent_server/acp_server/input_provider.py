@@ -127,7 +127,6 @@ class ACPInputProvider(InputProvider):
         self,
         context: AgentContext[Any],
         params: types.ElicitRequestParams,
-        message_history: list[ChatMessage[Any]] | None = None,
     ) -> types.ElicitResult | types.ErrorData:
         """Get user response to elicitation request with basic schema support.
 
@@ -137,7 +136,6 @@ class ACPInputProvider(InputProvider):
         Args:
             context: Current agent context
             params: MCP elicit request parameters
-            message_history: Optional conversation history
 
         Returns:
             Elicit result with user's response or error data

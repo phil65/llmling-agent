@@ -79,11 +79,10 @@ class MockInputProvider(InputProvider):
         self,
         context: AgentContext,
         params: types.ElicitRequestParams,
-        message_history: list[ChatMessage[Any]] | None = None,
     ) -> types.ElicitResult | types.ErrorData:
         from mcp import types
 
-        kwargs = {"message_history": message_history}
+        kwargs = {}
         args_ = (context, params)
         result = types.ElicitResult(action="accept", content=self.elicitation_response)
         call = InputCall("get_elicitation", args_, kwargs, result=result)

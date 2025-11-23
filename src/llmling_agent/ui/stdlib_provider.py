@@ -98,7 +98,6 @@ class StdlibInputProvider(InputProvider):
         self,
         context: AgentContext,
         params: types.ElicitRequestParams,
-        message_history: list[ChatMessage[Any]] | None = None,
     ) -> types.ElicitResult | types.ErrorData:
         """Get user response to elicitation request using stdlib input."""
         try:

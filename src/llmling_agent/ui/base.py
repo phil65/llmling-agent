@@ -80,12 +80,10 @@ class InputProvider(ABC):
         self,
         context: AgentContext[Any],
         params: types.ElicitRequestParams,
-        message_history: list[ChatMessage[Any]] | None = None,
     ) -> Coroutine[Any, Any, types.ElicitResult | types.ErrorData]:
         """Get user response to elicitation request.
 
         Args:
             context: Current agent context
             params: MCP elicit request parameters
-            message_history: Optional conversation history
         """
