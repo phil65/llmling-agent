@@ -404,7 +404,6 @@ class ACPNotifications:
         data: str | bytes,
         mime_type: str,
         *,
-        uri: str | None = None,
         audience: Audience | None = None,
         last_modified: datetime | str | None = None,
         priority: float | None = None,
@@ -422,7 +421,6 @@ class ACPNotifications:
         update = UserMessageChunk.audio(
             data=data,
             mime_type=mime_type,
-            uri=uri,
             audience=audience,
             last_modified=last_modified,
             priority=priority,

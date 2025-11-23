@@ -15,12 +15,7 @@ if TYPE_CHECKING:
     from llmling_agent.messaging import ChatMessage
     from llmling_agent.tools.base import Tool
 
-InputMethod = Literal[
-    "get_input",
-    "get_streaming_input",
-    "get_tool_confirmation",
-    "get_elicitation",
-]
+InputMethod = Literal["get_input", "get_tool_confirmation", "get_elicitation"]
 
 
 @dataclass
@@ -56,8 +51,7 @@ class MockInputProvider(InputProvider):
         message_history: list[ChatMessage[Any]] | None = None,
     ) -> Any:
         kwargs = {"output_type": output_type, "message_history": message_history}
-        args_ = (context, prompt)
-        call = InputCall("get_input", args_, kwargs, result=self.input_response)
+        call = InputCall("get_input", (context, prompt), kwargs, result=self.input_response)
         self.calls.append(call)
         return self.input_response
 
@@ -69,9 +63,8 @@ class MockInputProvider(InputProvider):
         message_history: list[ChatMessage[Any]] | None = None,
     ) -> ConfirmationResult:
         kwargs = {"message_history": message_history}
-        args_ = (context, tool, args)
         result = self.tool_confirmation
-        call = InputCall("get_tool_confirmation", args_, kwargs, result=result)
+        call = InputCall("get_tool_confirmation", (context, tool, args), kwargs, result=result)
         self.calls.append(call)
         return result  # pyright: ignore
 
@@ -82,9 +75,7 @@ class MockInputProvider(InputProvider):
     ) -> types.ElicitResult | types.ErrorData:
         from mcp import types
 
-        kwargs = {}
-        args_ = (context, params)
         result = types.ElicitResult(action="accept", content=self.elicitation_response)
-        call = InputCall("get_elicitation", args_, kwargs, result=result)
+        call = InputCall("get_elicitation", (context, params), {}, result=result)
         self.calls.append(call)
         return result
