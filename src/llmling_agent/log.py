@@ -28,6 +28,7 @@ def configure_logging(
     use_colors: bool | None = None,
     json_logs: bool = False,
     force: bool = False,
+    log_file: str | None = None,
 ) -> None:
     """Configure structlog and standard logging.
 
@@ -36,6 +37,7 @@ def configure_logging(
         use_colors: Whether to use colored output (auto-detected if None)
         json_logs: Force JSON output regardless of TTY detection
         force: Force reconfiguration even if already configured
+        log_file: Optional file path to write logs to instead of stderr
     """
     global _LOGGING_CONFIGURED
 
@@ -45,9 +47,58 @@ def configure_logging(
     if isinstance(level, str):
         level = getattr(logging, level.upper())
 
-    # Determine output format first
-    colors = sys.stderr.isatty() and not json_logs if use_colors is not None else False
-    use_console_renderer = not (json_logs or (not colors and not sys.stderr.isatty()))
+    if log_file:
+        _configure_file_logging(level, log_file)
+    else:
+        _configure_console_logging(level, use_colors=use_colors, json_logs=json_logs)
+
+    _LOGGING_CONFIGURED = True
+
+
+def _configure_file_logging(level: LogLevel, log_file: str) -> None:
+    """Configure logging to write to a file with human-readable format."""
+    if isinstance(level, str):
+        level = getattr(logging, level.upper())
+
+    # Set up file handler
+    handler = logging.FileHandler(log_file)
+    handler.setFormatter(logging.Formatter("%(message)s"))
+    logging.basicConfig(level=level, handlers=[handler], force=True)
+
+    # Configure structlog processors for file output
+    processors: list[Any] = [
+        structlog.stdlib.filter_by_level,
+        structlog.stdlib.add_log_level,
+        structlog.stdlib.add_logger_name,
+        structlog.stdlib.PositionalArgumentsFormatter(),
+        structlog.processors.TimeStamper(fmt="iso"),
+        structlog.processors.StackInfoRenderer(),
+        structlog.processors.format_exc_info,
+        structlog.processors.UnicodeDecoder(),
+        structlog.dev.ConsoleRenderer(
+            colors=False, exception_formatter=structlog.dev.plain_traceback
+        ),
+    ]
+
+    structlog.configure(
+        processors=processors,
+        context_class=dict,
+        logger_factory=structlog.stdlib.LoggerFactory(),
+        wrapper_class=structlog.stdlib.BoundLogger,
+        cache_logger_on_first_use=True,
+    )
+
+
+def _configure_console_logging(
+    level: LogLevel, *, use_colors: bool | None = None, json_logs: bool = False
+) -> None:
+    """Configure logging to stderr with console or JSON format."""
+    if isinstance(level, str):
+        level = getattr(logging, level.upper())
+
+    # Determine output format
+    colors = sys.stderr.isatty() and not json_logs if use_colors is None else use_colors or False
+    use_console_renderer = not json_logs and (colors or sys.stderr.isatty())
 
     # Configure standard logging as backend
     if use_console_renderer:
@@ -92,8 +143,6 @@ def configure_logging(
         wrapper_class=structlog.stdlib.BoundLogger,
         cache_logger_on_first_use=True,
     )
-
-    _LOGGING_CONFIGURED = True
 
 
 def get_logger(name: str, log_level: LogLevel | None = None) -> structlog.stdlib.BoundLogger:

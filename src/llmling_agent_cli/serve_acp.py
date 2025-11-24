@@ -39,6 +39,11 @@ def acp_command(
         "--debug-file",
         help="File to save JSON-RPC debug messages (default: acp-debug.jsonl)",
     ),
+    log_file: str | None = t.Option(
+        None,
+        "--log-file",
+        help="File to save logs to (default: acp.log when serving over stdio)",
+    ),
     providers: list[str] | None = t.Option(  # noqa: B008
         None,
         "--model-provider",
@@ -61,15 +66,6 @@ def acp_command(
     streams, enabling your agents to work with desktop applications that support
     the Agent Client Protocol.
 
-    The ACP protocol provides:
-    - Bidirectional JSON-RPC 2.0 communication
-    - Session management and conversation history
-    - Agent switching via session modes (if multiple agents configured)
-    - File system operations with permission handling
-    - Terminal integration (optional)
-    - Content blocks (text, image, audio, resources)
-    - Debug slash commands for testing ACP notifications (optional)
-
     Configuration:
     Config file is optional. Without a config file, creates a general-purpose
     agent with default settings. This is useful for clients/installers that
@@ -84,44 +80,14 @@ def acp_command(
     If your config defines multiple agents, the IDE will show a mode selector
     allowing users to switch between agents mid-conversation. Each agent appears
     as a different "mode" with its own name and capabilities.
-
-    Examples:
-        # Run ACP server with config file
-        llmling-agent serve-acp config.yml
-
-        # Run without config (minimal setup)
-        llmling-agent serve-acp
-
-        # Run without config with custom agent name
-        llmling-agent serve-acp --agent my-assistant
-
-        # Run with specific agent by name
-        llmling-agent serve-acp config.yml --agent my-agent
-
-        # Run with multiple agents (enables mode switching)
-        llmling-agent serve-acp multi-agent-config.yml
-
-        # Run with file system access enabled
-        llmling-agent serve-acp config.yml --file-access
-
-        # Run with full capabilities
-        llmling-agent serve-acp config.yml --file-access --terminal-access
-
-        # Run with debug commands for testing
-        llmling-agent serve-acp config.yml --debug-commands
-
-        # Test with ACP client (example)
-        echo '{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":1},"id":1}' | llmling-agent serve-acp
-
-    Protocol Flow:
-        1. Client sends initialize request
-        2. Server responds with capabilities
-        3. Client creates new session with available agent modes
-        4. User can switch modes (agents) via IDE interface
-        5. Client sends prompt requests
-        6. Server streams responses via session updates
-    """  # noqa: E501
+    """
+    from llmling_agent import log
     from llmling_agent_server.acp_server import ACPServer
+
+    if log_file:  # Default to file logging for ACP
+        actual_log_file = log_file or "acp.log"
+        log.configure_logging(force=True, log_file=actual_log_file)
+        logger.info("Configured file logging", log_file=actual_log_file)
 
     if config:
         # Use config file
