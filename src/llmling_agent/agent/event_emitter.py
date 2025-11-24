@@ -4,7 +4,19 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Literal
 
-from llmling_agent.agent.events import LocationContentItem
+from llmling_agent.agent.events import (
+    CustomEvent,
+    FileEditProgressEvent,
+    FileOperationEvent,
+    LocationContentItem,
+    PlanUpdateEvent,
+    ProcessExitEvent,
+    ProcessKillEvent,
+    ProcessOutputEvent,
+    ProcessReleaseEvent,
+    ProcessStartEvent,
+    ToolCallStartEvent,
+)
 
 
 if TYPE_CHECKING:
@@ -54,8 +66,6 @@ class AgentEventEmitter:
             locations: File paths affected by the operation
             raw_output: Tool result data for failed operations
         """
-        from llmling_agent.agent.events import FileOperationEvent
-
         event = FileOperationEvent(
             operation=operation,
             path=path,
@@ -88,8 +98,6 @@ class AgentEventEmitter:
             status: Current status of the edit operation
             changed_lines: Line numbers that were changed
         """
-        from llmling_agent.agent.events import FileEditProgressEvent
-
         event = FileEditProgressEvent(
             path=path,
             old_text=old_text,
@@ -106,8 +114,6 @@ class AgentEventEmitter:
         Args:
             entries: Current plan entries
         """
-        from llmling_agent.agent.events import PlanUpdateEvent
-
         event = PlanUpdateEvent(entries=entries.copy(), tool_call_id=self._context.tool_call_id)
         await self.emit_event(event)
 
@@ -131,8 +137,6 @@ class AgentEventEmitter:
             event_type: Type identifier for the custom event
             source: Optional source identifier
         """
-        from llmling_agent.agent.events import CustomEvent
-
         custom_event = CustomEvent(
             event_data=event_data,
             event_type=event_type,
@@ -163,8 +167,6 @@ class AgentEventEmitter:
             success: Whether the process started successfully
             error: Error message if start failed
         """
-        from llmling_agent.agent.events import ProcessStartEvent
-
         event = ProcessStartEvent(
             process_id=process_id,
             command=command,
@@ -195,8 +197,6 @@ class AgentEventEmitter:
             stderr: Standard error (if separated)
             truncated: Whether output was truncated due to limits
         """
-        from llmling_agent.agent.events import ProcessOutputEvent
-
         event = ProcessOutputEvent(
             process_id=process_id,
             output=output,
@@ -222,8 +222,6 @@ class AgentEventEmitter:
             final_output: Final process output
             truncated: Whether output was truncated due to limits
         """
-        from llmling_agent.agent.events import ProcessExitEvent
-
         event = ProcessExitEvent(
             process_id=process_id,
             exit_code=exit_code,
@@ -247,8 +245,6 @@ class AgentEventEmitter:
             success: Whether the process was successfully killed
             error: Error message if kill failed
         """
-        from llmling_agent.agent.events import ProcessKillEvent
-
         event = ProcessKillEvent(
             process_id=process_id,
             success=success,
@@ -270,8 +266,6 @@ class AgentEventEmitter:
             success: Whether resources were successfully released
             error: Error message if release failed
         """
-        from llmling_agent.agent.events import ProcessReleaseEvent
-
         event = ProcessReleaseEvent(
             process_id=process_id,
             success=success,
@@ -295,8 +289,6 @@ class AgentEventEmitter:
             content: Content produced by the tool call (terminals, diffs, text)
             locations: File paths or LocationContentItem objects affected by this tool call
         """
-        from llmling_agent.agent.events import ToolCallStartEvent
-
         # Convert string paths to LocationContentItem objects
         location_items: list[LocationContentItem] = []
         if locations:
