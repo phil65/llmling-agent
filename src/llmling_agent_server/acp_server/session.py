@@ -233,18 +233,17 @@ class ACPSession:
     async def init_client_skills(self) -> None:
         """Discover and load skills from client-side .claude/skills directory."""
         try:
-            from fsspec.implementations.dirfs import DirFileSystem  # type: ignore[import-untyped]
-
             from llmling_agent.resource_providers.skills import SkillsResourceProvider
             from llmling_agent.skills.registry import SkillsRegistry
 
-            # Create skills registry for client-side skills
             registry = SkillsRegistry()
-            wrapped_fs = DirFileSystem(".claude/skills", self.fs, asynchronious=True)
-            await registry.register_skills_from_path(wrapped_fs)
-            # Discover skills using ACP filesystem
+            path = self.fs.get_upath(".claude/skills")
+            # from fsspec.implementations.dirfs import DirFileSystem  # type: ignore[import-untyped]
+            # wrapped_fs = DirFileSystem(".claude", self.fs, asynchronious=True)
+            # self.log.info("hello", files=str(await self.fs._info(".claude")))
+            # self.log.info("hello", files=str(await wrapped_fs._ls("")))
+            await registry.register_skills_from_path(path)
             if not registry.is_empty:
-                # Create provider
                 client_skills_provider = SkillsResourceProvider(
                     registry=registry,
                     name="client_skills",

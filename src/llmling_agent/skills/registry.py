@@ -77,10 +77,12 @@ class SkillsRegistry(BaseRegistry[str, Skill]):
         except FileNotFoundError:
             logger.warning("Skills directory not found", path=skills_dir)
             return
-
         # Filter for directories that might contain skills
         skill_dirs = [entry for entry in entries if entry.get("type") == "directory"]
-
+        if not skill_dirs:
+            logger.info("No skills found", skills_dir=skills_dir)
+            return
+        logger.info("Found skills", skills=skill_dirs, skills_dir=skills_dir)
         for skill_entry in skill_dirs:
             skill_name = skill_entry["name"].lstrip("./")
             skill_dir_path = skills_dir / skill_name

@@ -181,7 +181,7 @@ def acp_command(
     if agent_count == 0:
         logger.error("No agents found in configuration")
         raise t.Exit(1)
-    logger.info("Configured %d agents for ACP protocol", agent_count)
+    logger.info("Configured agents for ACP protocol", count=agent_count)
     if show_messages:
         logger.info("Message activity logging enabled")
     if debug_messages:
