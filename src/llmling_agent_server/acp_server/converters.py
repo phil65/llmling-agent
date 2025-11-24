@@ -183,8 +183,5 @@ def from_content_blocks(blocks: Sequence[ContentBlock]) -> Sequence[str | BaseCo
 
 
 def agent_to_mode(agent: Agent) -> SessionMode:
-    return SessionMode(
-        id=agent.name,
-        name=agent.name,
-        description=(agent.description or f"Switch to {agent.name} agent"),
-    )
+    desc = agent.description or f"Switch to {agent.name} agent"
+    return SessionMode(id=agent.name, name=agent.name, description=desc)

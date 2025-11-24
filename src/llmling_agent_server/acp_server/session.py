@@ -35,7 +35,7 @@ from acp.notifications import ACPNotifications
 from acp.schema import (
     AvailableCommand,
     ClientCapabilities,
-    PlanEntry as ACPPlanEntry,
+    PlanEntry,
     TerminalToolCallContent,
     ToolCallLocation,
 )
@@ -159,25 +159,19 @@ class ACPSession:
 
     def __post_init__(self) -> None:
         """Initialize session state and set up providers."""
+        from llmling_agent_server.acp_server.acp_process_manager import ACPProcessManager
+        from llmling_agent_server.acp_server.commands.acp_commands import get_acp_commands
+        from llmling_agent_server.acp_server.commands.docs_commands import get_docs_commands
+        from llmling_agent_server.acp_server.commands.terminal_commands import get_terminal_commands
+
         self.mcp_servers = self.mcp_servers or []
         self.log = logger.bind(session_id=self.session_id)
         self._task_lock = asyncio.Lock()
         self._cancelled = False
         self._current_tool_inputs: dict[str, dict[str, Any]] = {}
         self.fs = ACPFileSystem(self.client, session_id=self.session_id)
-        from llmling_agent_server.acp_server.acp_process_manager import ACPProcessManager
-
         self.process_manager = ACPProcessManager(self)
         self._acp_provider: AggregatingResourceProvider | None = None
-        # Staged prompt parts for context building
-        from llmling_agent_server.acp_server.commands.acp_commands import get_acp_commands
-        from llmling_agent_server.acp_server.commands.docs_commands import (
-            get_docs_commands,
-        )
-        from llmling_agent_server.acp_server.commands.terminal_commands import (
-            get_terminal_commands,
-        )
-
         cmds = [
             *get_commands(
                 enable_set_model=False,
@@ -195,10 +189,7 @@ class ACPSession:
         self._update_callbacks: list[Callable[[], None]] = []
 
         self._staged_parts: list[SystemPromptPart | UserPromptPart] = []
-        self.notifications = ACPNotifications(
-            client=self.client,
-            session_id=self.session_id,
-        )
+        self.notifications = ACPNotifications(client=self.client, session_id=self.session_id)
         self.requests = ACPRequests(client=self.client, session_id=self.session_id)
         self.input_provider = ACPInputProvider(self)
 
@@ -242,9 +233,7 @@ class ACPSession:
     async def init_client_skills(self) -> None:
         """Discover and load skills from client-side .claude/skills directory."""
         try:
-            from fsspec.implementations.dirfs import (  # type: ignore[import-untyped]
-                DirFileSystem,
-            )
+            from fsspec.implementations.dirfs import DirFileSystem  # type: ignore[import-untyped]
 
             from llmling_agent.resource_providers.skills import SkillsResourceProvider
             from llmling_agent.skills.registry import SkillsRegistry
@@ -584,7 +573,7 @@ class ACPSession:
 
             case PlanUpdateEvent(entries=entries, tool_call_id=tool_call_id):
                 acp_entries = [
-                    ACPPlanEntry(content=e.content, priority=e.priority, status=e.status)
+                    PlanEntry(content=e.content, priority=e.priority, status=e.status)
                     for e in entries
                 ]
                 await self.notifications.update_plan(acp_entries)
