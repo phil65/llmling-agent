@@ -78,7 +78,7 @@ plugins:
             inherited_members: false
             signature_crossrefs: true
             separate_signature: true
-            line_length: 90
+            line_length: 100
 markdown_extensions:
   - attr_list
   - pymdownx.emoji
