@@ -34,9 +34,6 @@ class AgentContext[TDeps = Any](NodeContext[TDeps]):
     config: AgentConfig
     """Current agent's specific configuration."""
 
-    model_settings: dict[str, Any] = field(default_factory=dict)
-    """Model-specific settings."""
-
     data: TDeps | None = None
     """Custom context data."""
 

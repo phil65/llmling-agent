@@ -15,6 +15,7 @@ from llmling_models import function_to_model, infer_model
 import logfire
 from psygnal import Signal
 from pydantic import ValidationError
+from pydantic._internal import _typing_extra
 from pydantic_ai import (
     Agent as PydanticAgent,
     AgentRunResultEvent,
@@ -36,6 +37,7 @@ from llmling_agent.agent.events import (
 from llmling_agent.common_types import IndividualEventHandler
 from llmling_agent.log import get_logger
 from llmling_agent.messaging import ChatMessage, MessageNode
+from llmling_agent.messaging.processing import finalize_message, prepare_prompts
 from llmling_agent.prompts.convert import convert_prompts
 from llmling_agent.talk.stats import MessageStats
 from llmling_agent.tools import Tool, ToolManager
@@ -58,6 +60,7 @@ if TYPE_CHECKING:
     from upath.types import JoinablePathLike
 
     from llmling_agent.agent import AgentContext
+    from llmling_agent.agent.conversation import MessageHistory
     from llmling_agent.common_types import (
         AgentName,
         EndStrategy,
@@ -77,14 +80,6 @@ if TYPE_CHECKING:
     from llmling_agent_config.mcp_server import MCPServerConfig
     from llmling_agent_config.session import MemoryConfig, SessionQuery
     from llmling_agent_config.task import Job
-
-
-from llmling_agent.messaging.processing import finalize_message, prepare_prompts
-
-
-# Import for type hints
-if TYPE_CHECKING:
-    from llmling_agent.agent.conversation import MessageHistory
 
 
 logger = get_logger(__name__)
@@ -201,14 +196,16 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         from llmling_agent.agent.interactions import Interactions
         from llmling_agent.agent.sys_prompts import SystemPrompts
         from llmling_agent.models import AgentConfig, AgentsManifest
+        from llmling_agent.prompts.conversion_manager import ConversionManager
         from llmling_agent_config.session import MemoryConfig
 
         self.task_manager = TaskManager()
         self._infinite = False
         self.deps_type = deps_type
+        self._manifest = agent_pool.manifest if agent_pool else AgentsManifest()
         ctx = AgentContext[TDeps](
             node_name=name,
-            definition=agent_pool.manifest if agent_pool else AgentsManifest(),
+            definition=self._manifest,
             config=agent_config or AgentConfig(name=name),
             input_provider=input_provider,
             pool=agent_pool,
@@ -264,7 +261,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             resources.extend(effective_knowledge.get_resources())
         self.conversation = MessageHistory(
             storage=ctx.storage,
-            converter=ctx.converter,
+            converter=ConversionManager(config=self._manifest.conversion),
             session_config=memory_cfg,
             resources=resources,
         )
@@ -311,18 +308,13 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         try:
             # Collect all coroutines that need to be run
             coros: list[Coroutine[Any, Any, Any]] = []
-
             coros.append(super().__aenter__())
             coros.extend(self.conversation.get_initialization_tasks())
-
-            # Execute coroutines either in parallel or sequentially
             if self.parallel_init and coros:
                 await asyncio.gather(*coros)
             else:
                 for coro in coros:
                     await coro
-
-            # Add MCP aggregating provider after manager is initialized
             aggregating_provider = self.mcp.get_aggregating_provider()
             self.tools.add_provider(aggregating_provider)
             for toolset_provider in self.context.config.get_toolsets():
@@ -414,8 +406,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             name: Optional name for the agent
             kwargs: Additional arguments for agent
         """
-        from pydantic._internal import _typing_extra
-
         name = name or callback.__name__ or "processor"
         model = function_to_model(callback)
         return_type = _typing_extra.get_function_type_hints(callback).get("return")
@@ -425,12 +415,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             and return_type.__origin__ is Awaitable
         ):
             return_type = return_type.__args__[0]
-        return Agent(  # pyright: ignore[reportReturnType]
-            model=model,
-            name=name,
-            output_type=return_type or str,
-            **kwargs,
-        )
+        return Agent(model=model, name=name, output_type=return_type or str, **kwargs)  # pyright: ignore[reportReturnType]
 
     @property
     def name(self) -> str:
@@ -499,9 +484,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             pass_message_history: Pass parent's message history to agent
             parent: Optional parent agent for history/context sharing
         """
-        tool_name = name or f"ask_{self.name}"
-        # Create wrapper function with correct return type annotation
-        output_type = self._output_type or Any
 
         async def wrapped_tool(prompt: str) -> Any:
             if pass_message_history and not parent:
@@ -522,13 +504,13 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             return result.data
 
         # Set the correct return annotation dynamically
-        wrapped_tool.__annotations__ = {"prompt": str, "return": output_type}
+        wrapped_tool.__annotations__ = {"prompt": str, "return": self._output_type or Any}
 
         normalized_name = self.name.replace("_", " ").title()
         docstring = f"Get expert answer from specialized agent: {normalized_name}"
         if self.description:
             docstring = f"{docstring}\n\n{self.description}"
-
+        tool_name = name or f"ask_{self.name}"
         wrapped_tool.__doc__ = docstring
         wrapped_tool.__name__ = tool_name
 
