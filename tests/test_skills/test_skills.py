@@ -10,7 +10,6 @@ from typing import TYPE_CHECKING
 import pytest
 
 from llmling_agent.skills.registry import SkillsRegistry
-from llmling_agent.skills.skill import Skill
 
 
 if TYPE_CHECKING:
@@ -59,14 +58,3 @@ def isolated_registry(temp_skills_dir):
         yield registry
     finally:
         SkillsRegistry.DEFAULT_SKILL_PATHS = original_paths
-
-
-@pytest.fixture
-def sample_skill(temp_skills_dir):
-    """Create a sample skill for testing."""
-    return Skill(
-        name="test_skill",
-        description="A test skill for unit testing",
-        skill_path=temp_skills_dir / "test_skill",
-        source=temp_skills_dir,
-    )

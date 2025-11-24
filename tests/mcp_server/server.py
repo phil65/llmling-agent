@@ -2,7 +2,7 @@
 
 import asyncio
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 from fastmcp import Context, FastMCP
 from fastmcp.tools.tool import ToolResult
@@ -74,7 +74,7 @@ class StructuredResponse(BaseModel):
 @mcp.tool
 async def test_return_types(  # noqa: D417
     ctx: Context, return_type: Literal["text", "structured", "mixed"]
-) -> str | StructuredResponse | list:
+) -> str | StructuredResponse | list[dict[str, Any]]:
     """Test different PydanticAI return types based on the return_type parameter.
 
     Args:

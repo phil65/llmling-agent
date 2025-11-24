@@ -205,7 +205,7 @@ class TestCodeModeIntegration:
         class MockFSSpecTool:
             async def _read_file(
                 self, agent_ctx: AgentContext, path: str, encoding: str = "utf-8"
-            ) -> dict:
+            ) -> dict[str, str]:
                 """Mock FSSpec read file method."""
                 return {"path": path, "encoding": encoding, "agent": agent_ctx.__class__.__name__}
 

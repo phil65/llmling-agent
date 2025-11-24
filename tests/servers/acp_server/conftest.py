@@ -37,8 +37,8 @@ class TestAgent(Agent):
     def __init__(self) -> None:
         self.prompts: list[PromptRequest] = []
         self.cancellations: list[str] = []
-        self.ext_calls: list[tuple[str, dict]] = []
-        self.ext_notes: list[tuple[str, dict]] = []
+        self.ext_calls: list[tuple[str, dict[str, Any]]] = []
+        self.ext_notes: list[tuple[str, dict[str, Any]]] = []
 
     async def initialize(self, params: InitializeRequest) -> InitializeResponse:
         return InitializeResponse(

@@ -238,7 +238,7 @@ class TestEdgeCases:
                 combined="Killed\n",
                 truncated=False,
                 exit_code=-15,
-                signal=15,
+                signal="15",
             )
         )
 

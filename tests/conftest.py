@@ -91,7 +91,7 @@ agents:
 @pytest.fixture
 def valid_config(default_model: str) -> dict[str, Any]:
     """Fixture providing valid agent configuration."""
-    return yamling.load_yaml(VALID_CONFIG.format(default_model=default_model))
+    return yamling.load_yaml(VALID_CONFIG.format(default_model=default_model), verify_type=dict)
 
 
 @pytest.fixture
