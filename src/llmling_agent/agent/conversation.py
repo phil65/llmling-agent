@@ -14,7 +14,6 @@ from upathtools import read_path, to_upath
 from llmling_agent.log import get_logger
 from llmling_agent.utils.count_tokens import count_tokens
 from llmling_agent.utils.now import get_now
-from llmling_agent_config.session import SessionQuery
 
 
 if TYPE_CHECKING:
@@ -31,7 +30,7 @@ if TYPE_CHECKING:
     from llmling_agent.prompts.conversion_manager import ConversionManager
     from llmling_agent.prompts.prompts import PromptType
     from llmling_agent.storage import StorageManager
-    from llmling_agent_config.session import MemoryConfig
+    from llmling_agent_config.session import MemoryConfig, SessionQuery
 
 logger = get_logger(__name__)
 
@@ -220,6 +219,8 @@ class MessageHistory:
             roles: Only include messages with these roles (override)
             limit: Maximum number of messages to return (override)
         """
+        from llmling_agent_config.session import SessionQuery
+
         match session:
             case SessionQuery() as query:
                 # Override query params if provided

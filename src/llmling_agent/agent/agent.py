@@ -45,7 +45,6 @@ from llmling_agent.utils.now import get_now
 from llmling_agent.utils.result_utils import to_type
 from llmling_agent.utils.streams import merge_queue_into_iterator
 from llmling_agent.utils.tasks import TaskManager
-from llmling_agent_config.session import MemoryConfig
 
 
 if TYPE_CHECKING:
@@ -76,7 +75,7 @@ if TYPE_CHECKING:
     from llmling_agent.ui.base import InputProvider
     from llmling_agent_config.knowledge import Knowledge
     from llmling_agent_config.mcp_server import MCPServerConfig
-    from llmling_agent_config.session import SessionQuery
+    from llmling_agent_config.session import MemoryConfig, SessionQuery
     from llmling_agent_config.task import Job
 
 
@@ -202,6 +201,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         from llmling_agent.agent.interactions import Interactions
         from llmling_agent.agent.sys_prompts import SystemPrompts
         from llmling_agent.models import AgentConfig, AgentsManifest
+        from llmling_agent_config.session import MemoryConfig
 
         self.task_manager = TaskManager()
         self._infinite = False

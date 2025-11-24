@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from evented.configs import EventConfig
 from pydantic import ConfigDict, Field, ImportString
 from schemez import Schema
 
-from llmling_agent.ui.base import InputProvider
 from llmling_agent_config.forward_targets import ForwardingTarget
 from llmling_agent_config.mcp_server import (
     BaseMCPServerConfig,
@@ -94,8 +95,8 @@ class NodeConfig(Schema):
     - str entries are converted to StdioMCPServerConfig
     - MCPServerConfig for full server configuration
     """
-
-    input_provider: ImportString[InputProvider] | None = Field(
+    # Any should be InputProvider, but this leads to circular import
+    input_provider: ImportString[Any] | None = Field(
         default=None,
         title="Input provider",
     )

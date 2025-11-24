@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Self
+from typing import TYPE_CHECKING, Literal, Self
 from uuid import UUID
 
 from pydantic import ConfigDict, Field
 from schemez import Schema
 
-from llmling_agent.common_types import MessageRole
+
+MessageRole = Literal["user", "assistant"]
 
 
 if TYPE_CHECKING:
