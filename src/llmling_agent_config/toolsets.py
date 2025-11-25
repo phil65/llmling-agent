@@ -278,16 +278,21 @@ class FSSpecToolsetConfig(BaseToolsetConfig):
     )
     """Additional options to pass to the filesystem constructor."""
 
+    conversion: ConversionConfig | None = Field(default=None, title="Conversion config")
+    """Optional conversion configuration for markdown conversion."""
+
     def get_provider(self) -> ResourceProvider:
         """Create FSSpec filesystem tools provider."""
         import fsspec  # type: ignore[import-untyped]
 
+        from llmling_agent.prompts.conversion_manager import ConversionManager
         from llmling_agent_toolsets.fsspec_toolset import FSSpecTools
 
         fs, _url_path = fsspec.url_to_fs(self.url, **self.storage_options)
         # Extract protocol name for the provider name
         protocol = self.url.split("://")[0] if "://" in self.url else self.url
-        return FSSpecTools(fs, name=f"fsspec_{protocol}")
+        converter = ConversionManager(self.conversion) if self.conversion else None
+        return FSSpecTools(fs, name=f"fsspec_{protocol}", converter=converter)
 
 
 class VFSToolsetConfig(BaseToolsetConfig):

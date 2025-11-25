@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import difflib
+import mimetypes
 from pathlib import Path
 import re
 from typing import TYPE_CHECKING, Any
 
-from pydantic_ai import Agent as PydanticAgent, ModelRetry
+from pydantic_ai import Agent as PydanticAgent, BinaryContent, ModelRetry
 
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.log import get_logger
@@ -19,15 +20,31 @@ from llmling_agent_toolsets.builtin.file_edit import replace_content
 if TYPE_CHECKING:
     import fsspec  # type: ignore[import-untyped]
 
+    from llmling_agent.prompts.conversion_manager import ConversionManager
+
 
 logger = get_logger(__name__)
+
+# MIME types that should be treated as text
+TEXT_MIME_PREFIXES = ("text/", "application/json", "application/xml", "application/javascript")
+
+
+def _is_text_mime(mime_type: str | None) -> bool:
+    """Check if a MIME type represents text content."""
+    if mime_type is None:
+        return False
+    return any(mime_type.startswith(prefix) for prefix in TEXT_MIME_PREFIXES)
 
 
 class FSSpecTools(ResourceProvider):
     """Provider for fsspec filesystem tools."""
 
     def __init__(
-        self, filesystem: fsspec.AbstractFileSystem, name: str = "fsspec", cwd: str | None = None
+        self,
+        filesystem: fsspec.AbstractFileSystem,
+        name: str = "fsspec",
+        cwd: str | None = None,
+        converter: ConversionManager | None = None,
     ) -> None:
         """Initialize with an fsspec filesystem.
 
@@ -35,6 +52,7 @@ class FSSpecTools(ResourceProvider):
             filesystem: The fsspec filesystem instance to operate on
             name: Name for this toolset provider
             cwd: Optional cwd to resolve relative paths against
+            converter: Optional conversion manager for markdown conversion
         """
         from fsspec.asyn import AsyncFileSystem  # type: ignore[import-untyped]
         from fsspec.implementations.asyn_wrapper import (  # type: ignore[import-untyped]
@@ -48,6 +66,7 @@ class FSSpecTools(ResourceProvider):
             else AsyncFileSystemWrapper(filesystem)
         )
         self.cwd = cwd
+        self.converter = converter
         self._tools: list[Tool] | None = None
 
     def _resolve_path(self, path: str) -> str:
@@ -79,8 +98,11 @@ class FSSpecTools(ResourceProvider):
             ),
             Tool.from_callable(
                 self._read_file,
-                name_override="read_text_file",
-                description_override="Read contents of a file",
+                name_override="read_file",
+                description_override=(
+                    "Read file natively - returns text for text files, "
+                    "binary content for documents/images (for model vision/doc capabilities)"
+                ),
             ),
             Tool.from_callable(
                 self._write_file,
@@ -107,6 +129,22 @@ class FSSpecTools(ResourceProvider):
                 category="edit",
             ),
         ]
+
+        # Only add read_as_markdown if converter is available
+        if self.converter:
+            self._tools.append(
+                Tool.from_callable(
+                    self._read_as_markdown,
+                    name_override="read_as_markdown",
+                    description_override=(
+                        "Read file and convert to markdown text representation. "
+                        "Useful for extracting text from PDFs, documents, etc."
+                    ),
+                    source="filesystem",
+                    category="read",
+                )
+            )
+
         return self._tools
 
     async def _list_directory(self, agent_ctx: AgentContext, path: str) -> dict[str, Any]:
@@ -188,18 +226,18 @@ class FSSpecTools(ResourceProvider):
         encoding: str = "utf-8",
         line: int | None = None,
         limit: int | None = None,
-    ) -> dict[str, Any]:
-        """Read contents of a file.
+    ) -> str | BinaryContent | dict[str, Any]:
+        """Read file natively - text for text files, binary for documents/images.
 
         Args:
             agent_ctx: Agent execution context
             path: File path to read
-            encoding: Text encoding to use (default: utf-8)
-            line: Optional line number to start reading from (1-based indexing)
-            limit: Optional maximum number of lines to read from the starting line
+            encoding: Text encoding to use for text files (default: utf-8)
+            line: Optional line number to start reading from (1-based, text files only)
+            limit: Optional maximum number of lines to read (text files only)
 
         Returns:
-            Dictionary with file contents or error info
+            Text content for text files, BinaryContent for binary files
         """
         if self.cwd:
             path = self._resolve_path(path)
@@ -208,50 +246,67 @@ class FSSpecTools(ResourceProvider):
         )
 
         try:
-            if encoding == "binary":
-                content = await self.fs._cat_file(path)
-                result = {
-                    "path": path,
-                    "content": content.hex() if isinstance(content, bytes) else str(content),
-                    "size": len(content) if content else 0,
-                    "encoding": "binary",
-                }
-            else:
+            mime_type = mimetypes.guess_type(path)[0]
+
+            if _is_text_mime(mime_type):
                 content = await self._read(path, encoding=encoding)
-                # Ensure content is string
                 if isinstance(content, bytes):
                     content = content.decode(encoding)
 
                 # Apply line filtering if specified
-                if line is not None:
+                if line is not None or limit is not None:
                     lines = content.splitlines()
-                    start_idx = max(0, line - 1)  # Convert to 0-based indexing
-                    if limit is not None:
-                        end_idx = start_idx + limit
-                        selected_lines = lines[start_idx:end_idx]
-                    else:
-                        selected_lines = lines[start_idx:]
-                    content = "\n".join(selected_lines)
+                    start_idx = max(0, (line - 1) if line else 0)
+                    end_idx = start_idx + limit if limit is not None else len(lines)
+                    content = "\n".join(lines[start_idx:end_idx])
 
-                result = {
-                    "path": path,
-                    "content": content,
-                    "size": len(content),
-                    "encoding": encoding,
-                }
+                await agent_ctx.events.file_operation(
+                    "read", path=path, success=True, size=len(content)
+                )
+                return content
 
-            # Emit success event
-            await agent_ctx.events.file_operation(
-                "read", path=path, success=True, size=len(content)
+            # Binary file - return as BinaryContent for native model handling
+            data = await self.fs._cat_file(path)
+            await agent_ctx.events.file_operation("read", path=path, success=True, size=len(data))
+            return BinaryContent(
+                data=data, media_type=mime_type or "application/octet-stream", identifier=path
             )
 
         except (OSError, ValueError) as e:
-            # Emit failure event
             await agent_ctx.events.file_operation("read", path=path, success=False, error=str(e))
-
             return {"error": f"Failed to read file {path}: {e}"}
-        else:
-            return result
+
+    async def _read_as_markdown(
+        self,
+        agent_ctx: AgentContext,
+        path: str,
+    ) -> str | dict[str, Any]:
+        """Read file and convert to markdown text representation.
+
+        Args:
+            agent_ctx: Agent execution context
+            path: Path to read
+
+        Returns:
+            File content converted to markdown
+        """
+        assert self.converter is not None, "Converter required for read_as_markdown"
+
+        if self.cwd:
+            path = self._resolve_path(path)
+        await agent_ctx.events.tool_call_start(
+            title=f"Reading file as markdown: {path}", kind="read", locations=[path]
+        )
+
+        try:
+            content = await self.converter.convert_file(path)
+            await agent_ctx.events.file_operation(
+                "read", path=path, success=True, size=len(content)
+            )
+            return content
+        except Exception as e:
+            await agent_ctx.events.file_operation("read", path=path, success=False, error=str(e))
+            return {"error": f"Failed to convert file {path}: {e}"}
 
     async def _write_file(
         self,

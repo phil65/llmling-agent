@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import asyncio
+import mimetypes
 import time
 from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 
+from pydantic_ai import BinaryContent
 from upath import UPath
 from upathtools import list_files, read_path
 
@@ -22,6 +24,16 @@ if TYPE_CHECKING:
 
 
 logger = get_logger(__name__)
+
+# MIME types that should be treated as text
+TEXT_MIME_PREFIXES = ("text/", "application/json", "application/xml", "application/javascript")
+
+
+def _is_text_mime(mime_type: str | None) -> bool:
+    """Check if a MIME type represents text content."""
+    if mime_type is None:
+        return False
+    return any(mime_type.startswith(prefix) for prefix in TEXT_MIME_PREFIXES)
 
 
 class FileAccessTools(ResourceProvider):
@@ -51,7 +63,10 @@ class FileAccessTools(ResourceProvider):
             Tool.from_callable(
                 self.read_file,
                 name_override="read_file",
-                description_override="Read file content from local or remote path",
+                description_override=(
+                    "Read file natively - returns text for text files, "
+                    "binary content for documents/images (for model vision/doc capabilities)"
+                ),
                 source="builtin",
                 category="read",
             ),
@@ -70,6 +85,22 @@ class FileAccessTools(ResourceProvider):
                 category="read",
             ),
         ]
+
+        # Only add read_as_markdown if converter is available
+        if self.converter:
+            self._tools.append(
+                Tool.from_callable(
+                    self.read_as_markdown,
+                    name_override="read_as_markdown",
+                    description_override=(
+                        "Read file and convert to markdown text representation. "
+                        "Useful for extracting text from PDFs, documents, etc."
+                    ),
+                    source="builtin",
+                    category="read",
+                )
+            )
+
         return self._tools
 
     async def read_file(  # noqa: D417
@@ -77,41 +108,67 @@ class FileAccessTools(ResourceProvider):
         ctx: AgentContext,
         path: str,
         *,
-        convert_to_markdown: bool = True,
         encoding: str = "utf-8",
         line: int | None = None,
         limit: int | None = None,
-    ) -> str:
-        """Read file content from local or remote path.
+    ) -> str | BinaryContent:
+        """Read file natively - text for text files, binary for documents/images.
 
         Args:
             path: Path or URL to read
-            convert_to_markdown: Whether to convert content to markdown
-            encoding: Text encoding to use (default: utf-8)
-            line: Optional line number to start reading from (1-based)
-            limit: Optional maximum number of lines to read
+            encoding: Text encoding to use for text files (default: utf-8)
+            line: Optional line number to start reading from (1-based, text files only)
+            limit: Optional maximum number of lines to read (text files only)
 
         Returns:
-            File content, optionally converted to markdown
+            Text content for text files, BinaryContent for binary files
         """
         try:
-            content = await read_path(path, encoding=encoding)
+            mime_type = mimetypes.guess_type(path)[0]
 
-            if convert_to_markdown and self.converter:
-                try:
-                    content = await self.converter.convert_file(path)
-                except Exception as e:  # noqa: BLE001
-                    msg = f"Failed to convert to markdown: {e}"
-                    logger.warning(msg)
+            if _is_text_mime(mime_type):
+                content = await read_path(path, encoding=encoding)
 
-            if line is not None or limit is not None:
-                lines = content.splitlines(keepends=True)
-                start_idx = (line - 1) if line is not None else 0
-                end_idx = start_idx + limit if limit is not None else len(lines)
-                content = "".join(lines[start_idx:end_idx])
+                if line is not None or limit is not None:
+                    lines = content.splitlines(keepends=True)
+                    start_idx = (line - 1) if line is not None else 0
+                    end_idx = start_idx + limit if limit is not None else len(lines)
+                    content = "".join(lines[start_idx:end_idx])
+
+                await ctx.events.file_operation("read", path=path, success=True, size=len(content))
+                return content
+
+            # Binary file - return as BinaryContent for native model handling
+            data = await read_path(path, mode="rb")
+            await ctx.events.file_operation("read", path=path, success=True, size=len(data))
+            return BinaryContent(
+                data=data, media_type=mime_type or "application/octet-stream", identifier=path
+            )
 
         except Exception as e:
             msg = f"Failed to read file {path}: {e}"
+            await ctx.events.file_operation("read", path=path, success=False, error=msg)
+            raise ToolError(msg) from e
+
+    async def read_as_markdown(  # noqa: D417
+        self,
+        ctx: AgentContext,
+        path: str,
+    ) -> str:
+        """Read file and convert to markdown text representation.
+
+        Args:
+            path: Path or URL to read
+
+        Returns:
+            File content converted to markdown
+        """
+        assert self.converter is not None, "Converter required for read_as_markdown"
+
+        try:
+            content = await self.converter.convert_file(path)
+        except Exception as e:
+            msg = f"Failed to convert file {path}: {e}"
             await ctx.events.file_operation("read", path=path, success=False, error=msg)
             raise ToolError(msg) from e
         else:
