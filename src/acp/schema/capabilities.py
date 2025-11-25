@@ -102,6 +102,42 @@ class McpCapabilities(AnnotatedObject):
     """Agent supports [`McpServer::Sse`]."""
 
 
+class SessionListCapabilities(AnnotatedObject):
+    """Capabilities for the `session/list` method.
+
+    **UNSTABLE**: This capability is not part of the spec yet,
+    and may be removed or changed at any point.
+
+    By supplying `{}` it means that the agent supports listing of sessions.
+    Further capabilities can be added in the future for other means of
+    filtering or searching the list.
+    """
+
+
+class SessionCapabilities(AnnotatedObject):
+    """Session capabilities supported by the agent.
+
+    As a baseline, all Agents **MUST** support `session/new`, `session/prompt`,
+    `session/cancel`, and `session/update`.
+
+    Optionally, they **MAY** support other session methods and notifications
+    by specifying additional capabilities.
+
+    Note: `session/load` is still handled by the top-level `load_session` capability.
+    This will be unified in future versions of the protocol.
+
+    See protocol docs: [Session Capabilities](https://agentclientprotocol.com/protocol/initialization#session-capabilities)
+    """
+
+    list: SessionListCapabilities | None = None
+    """**UNSTABLE**
+
+    This capability is not part of the spec yet, and may be removed or changed at any point.
+
+    Whether the agent supports `session/list`.
+    """
+
+
 class AgentCapabilities(AnnotatedObject):
     """Capabilities supported by the agent.
 
@@ -120,6 +156,9 @@ class AgentCapabilities(AnnotatedObject):
     prompt_capabilities: PromptCapabilities | None = Field(default_factory=PromptCapabilities)
     """Prompt capabilities supported by the agent."""
 
+    session_capabilities: SessionCapabilities | None = Field(default_factory=SessionCapabilities)
+    """Session capabilities supported by the agent."""
+
     @classmethod
     def create(
         cls,
@@ -129,6 +168,7 @@ class AgentCapabilities(AnnotatedObject):
         audio_prompts: bool = False,
         embedded_context_prompts: bool = False,
         image_prompts: bool = False,
+        list_sessions: bool = False,
     ) -> Self:
         """Create an instance of AgentCapabilities.
 
@@ -139,7 +179,11 @@ class AgentCapabilities(AnnotatedObject):
             audio_prompts: Whether the agent supports audio prompts.
             embedded_context_prompts: Whether the agent supports embedded context prompts.
             image_prompts: Whether the agent supports image prompts.
+            list_sessions: Whether the agent supports `session/list` (unstable).
         """
+        session_caps = SessionCapabilities(
+            list=SessionListCapabilities() if list_sessions else None,
+        )
         return cls(
             load_session=load_session,
             mcp_capabilities=McpCapabilities(
@@ -151,4 +195,5 @@ class AgentCapabilities(AnnotatedObject):
                 embedded_context=embedded_context_prompts,
                 image=image_prompts,
             ),
+            session_capabilities=session_caps,
         )
