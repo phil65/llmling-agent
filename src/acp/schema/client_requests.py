@@ -55,6 +55,21 @@ class LoadSessionRequest(Request):
     """The ID of the session to load."""
 
 
+class ListSessionsRequest(Request):
+    """**UNSTABLE**: This capability is not part of the spec yet.
+
+    Request parameters for listing existing sessions.
+
+    Only available if the Agent supports the `listSessions` capability.
+    """
+
+    cursor: str | None = None
+    """Opaque cursor token from a previous response's nextCursor field for pagination."""
+
+    cwd: str | None = None
+    """Filter sessions by working directory. Must be an absolute path."""
+
+
 class SetSessionModeRequest(Request):
     """Request parameters for setting a session mode."""
 
@@ -95,9 +110,7 @@ class PromptRequest(Request):
 
 
 class SetSessionModelRequest(Request):
-    """**UNSTABLE**.
-
-    This capability is not part of the spec yet.
+    """**UNSTABLE**: This capability is not part of the spec yet.
 
     Request parameters for setting a session model.
     """
@@ -148,6 +161,7 @@ ClientRequest = (
     | AuthenticateRequest
     | NewSessionRequest
     | LoadSessionRequest
+    | ListSessionsRequest
     | SetSessionModeRequest
     | PromptRequest
     | SetSessionModelRequest
