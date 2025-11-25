@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TypeVar
+from typing import Any, TypeVar
 
 from acp.schema.base import AnnotatedObject
 from acp.schema.session_updates import SessionUpdate
@@ -33,8 +33,35 @@ class SessionNotification[TSessionUpdate_co: SessionUpdate = SessionUpdate](Anno
 class CancelNotification(AnnotatedObject):
     """Notification to cancel ongoing operations for a session.
 
+    This is a notification sent by the client to cancel an ongoing prompt turn.
+
+    Upon receiving this notification, the Agent SHOULD:
+    - Stop all language model requests as soon as possible
+    - Abort all tool call invocations in progress
+    - Send any pending `session/update` notifications
+    - Respond to the original `session/prompt` request with `StopReason::Cancelled`
+
     See protocol docs: [Cancellation](https://agentclientprotocol.com/protocol/prompt-turn#cancellation)
     """
 
     session_id: str
     """The ID of the session to cancel operations for."""
+
+
+class ExtNotification(AnnotatedObject):
+    """Extension notification from client or agent.
+
+    Allows sending arbitrary notifications that are not part of the ACP spec.
+    Extension notifications provide a way to send one-way messages for custom
+    functionality while maintaining protocol compatibility.
+
+    The method name should be prefixed with an underscore (e.g., `_myExtension/notify`).
+
+    See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/extensibility)
+    """
+
+    method: str
+    """The extension method name (should be prefixed with underscore)."""
+
+    params: dict[str, Any] | None = None
+    """Optional parameters for the notification."""
