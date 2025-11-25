@@ -96,6 +96,7 @@ logger = get_logger(__name__)
 # maintenance of this list and provide better type safety.
 ACP_SELF_NOTIFYING_TOOLS = {
     "read_text_file",
+    "read_file",
     "write_text_file",
     "run_command",
     "start_process",
