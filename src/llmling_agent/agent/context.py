@@ -59,11 +59,7 @@ class AgentContext[TDeps = Any](NodeContext[TDeps]):
         assert self.node_name, "No agent name available"
         return self.pool.agents[self.node_name]
 
-    async def handle_confirmation(
-        self,
-        tool: Tool,
-        args: dict[str, Any],
-    ) -> ConfirmationResult:
+    async def handle_confirmation(self, tool: Tool, args: dict[str, Any]) -> ConfirmationResult:
         """Handle tool execution confirmation.
 
         Returns True if:
