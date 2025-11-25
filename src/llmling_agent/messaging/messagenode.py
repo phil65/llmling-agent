@@ -11,6 +11,7 @@ from psygnal import Signal
 
 from llmling_agent.log import get_logger
 from llmling_agent.messaging import ChatMessage
+from llmling_agent.storage import StorageManager
 from llmling_agent.talk import AggregatedTalkStats
 from llmling_agent.utils.tasks import TaskManager
 
@@ -81,8 +82,8 @@ class MessageNode[TDeps, TResult](ABC):
 
     async def __aenter__(self) -> Self:
         """Initialize base message node."""
-        if self.enable_db_logging:
-            await self.context.storage.log_conversation(
+        if self.enable_db_logging and self.storage:
+            await self.storage.log_conversation(
                 conversation_id=self.conversation_id,
                 node_name=self.name,
             )
@@ -117,6 +118,11 @@ class MessageNode[TDeps, TResult](ABC):
     def context(self) -> NodeContext:
         """Get node context."""
         raise NotImplementedError
+
+    @property
+    def storage(self) -> StorageManager | None:
+        """Get storage manager from pool."""
+        return self.agent_pool.storage if self.agent_pool else None
 
     @property
     def name(self) -> str:
@@ -295,18 +301,18 @@ class MessageNode[TDeps, TResult](ABC):
 
     async def get_message_history(self, limit: int | None = None) -> list[ChatMessage[Any]]:
         """Get message history from storage."""
-        if not self.enable_db_logging:
-            return []  # No history if not logging
+        if not self.enable_db_logging or not self.storage:
+            return []
 
         from llmling_agent_config.session import SessionQuery
 
         query = SessionQuery(name=self.conversation_id, limit=limit)
-        return await self.context.storage.filter_messages(query)
+        return await self.storage.filter_messages(query)
 
     async def log_message(self, message: ChatMessage[Any]) -> None:
         """Handle message from chat signal."""
-        if self.enable_db_logging:
-            await self.context.storage.log_message(message)  # pyright: ignore
+        if self.enable_db_logging and self.storage:
+            await self.storage.log_message(message)
 
     @abstractmethod
     async def get_stats(self) -> MessageStats | AggregatedMessageStats:

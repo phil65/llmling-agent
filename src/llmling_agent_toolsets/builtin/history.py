@@ -20,7 +20,9 @@ async def search_history(
     """Search conversation history."""
     from llmling_agent_storage.formatters import format_output
 
-    provider = ctx.storage.get_history_provider()
+    if not ctx.pool:
+        return "No agent pool available for history search"
+    provider = ctx.pool.storage.get_history_provider()
     results = await provider.get_filtered_conversations(
         query=query,
         period=f"{hours}h",
@@ -41,7 +43,9 @@ async def show_statistics(
     cutoff = get_now() - timedelta(hours=hours)
     filters = StatsFilters(cutoff=cutoff, group_by=group_by)
 
-    provider = ctx.storage.get_history_provider()
+    if not ctx.pool:
+        return "No agent pool available for statistics"
+    provider = ctx.pool.storage.get_history_provider()
     stats = await provider.get_conversation_stats(filters)
 
     return format_output(

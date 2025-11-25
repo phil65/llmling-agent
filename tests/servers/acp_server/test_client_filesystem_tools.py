@@ -110,7 +110,7 @@ async def fs_provider(session: ACPSession):
     return FSSpecTools(filesystem=session.fs)
 
 
-async def test_read_text_file_success(
+async def test_read_file_success(
     acp_agent: LLMlingACPAgent,
     fs_provider: FSSpecTools,
 ):
@@ -118,24 +118,21 @@ async def test_read_text_file_success(
     # Mock filesystem read operation
     fs_provider.fs._cat_file = AsyncMock(return_value=b"Hello, World!\nThis is a test file.\n")
 
-    # Get read_text_file tool from provider
+    # Get read_file tool from provider
     tools = await fs_provider.get_tools()
-    read_tool = next(tool for tool in tools if tool.name == "read_text_file")
+    read_tool = next(tool for tool in tools if tool.name == "read_file")
     result = await read_tool.execute(agent_ctx=CTX, path="/home/user/test.txt")
 
-    # Verify result format (FSSpec tools return dictionaries)
-    assert isinstance(result, dict)
-    assert "content" in result
-    assert "Hello, World!" in result["content"]
-    assert "This is a test file." in result["content"]
-    assert result["path"] == "/home/user/test.txt"
-    assert "size" in result
+    # read_file returns content directly as string for text files
+    assert isinstance(result, str)
+    assert "Hello, World!" in result
+    assert "This is a test file." in result
 
     # Verify filesystem call was made
     fs_provider.fs._cat_file.assert_called_once_with("/home/user/test.txt")
 
 
-async def test_read_text_file_with_line_and_limit(
+async def test_read_file_with_line_and_limit(
     acp_agent: LLMlingACPAgent,
     fs_provider: FSSpecTools,
 ):
@@ -143,9 +140,9 @@ async def test_read_text_file_with_line_and_limit(
     # Mock filesystem read operation
     fs_provider.fs._cat_file = AsyncMock(return_value=b"Line 1\nLine 2\nLine 3\nLine 4\nLine 5")
 
-    # Get read_text_file tool from provider
+    # Get read_file tool from provider
     tools = await fs_provider.get_tools()
-    read_tool = next(tool for tool in tools if tool.name == "read_text_file")
+    read_tool = next(tool for tool in tools if tool.name == "read_file")
     result = await read_tool.execute(
         agent_ctx=CTX,
         path="/home/user/large_file.txt",
@@ -154,9 +151,8 @@ async def test_read_text_file_with_line_and_limit(
     )
 
     # Verify result - should contain lines 2 and 3 (line parameter is 1-based)
-    assert isinstance(result, dict)
-    assert "content" in result
-    content_lines = result["content"].split("\n")
+    assert isinstance(result, str)
+    content_lines = result.split("\n")
     assert "Line 2" in content_lines
     assert "Line 3" in content_lines
     assert len(content_lines) == 2  # noqa: PLR2004
@@ -165,7 +161,7 @@ async def test_read_text_file_with_line_and_limit(
     fs_provider.fs._cat_file.assert_called_once_with("/home/user/large_file.txt")
 
 
-async def test_read_text_file_error(
+async def test_read_file_error(
     acp_agent: LLMlingACPAgent,
     fs_provider: FSSpecTools,
 ):
@@ -173,13 +169,13 @@ async def test_read_text_file_error(
     # Mock filesystem read error
     fs_provider.fs._cat_file = AsyncMock(side_effect=FileNotFoundError("File not found"))
 
-    # Get read_text_file tool from provider
+    # Get read_file tool from provider
     tools = await fs_provider.get_tools()
-    read_tool = next(tool for tool in tools if tool.name == "read_text_file")
+    read_tool = next(tool for tool in tools if tool.name == "read_file")
 
     result = await read_tool.execute(agent_ctx=CTX, path="/home/user/nonexistent.txt")
 
-    # Verify error handling - FSSpec tools return error dict
+    # Verify error handling - FSSpec tools return error dict on failure
     assert isinstance(result, dict)
     assert "error" in result
     assert "File not found" in result["error"]
@@ -272,18 +268,17 @@ async def test_read_empty_file(acp_agent: LLMlingACPAgent, fs_provider: FSSpecTo
     # Mock empty filesystem read
     fs_provider.fs._cat_file = AsyncMock(return_value=b"")
 
-    # Get read_text_file tool from provider
+    # Get read_file tool from provider
     tools = await fs_provider.get_tools()
-    read_tool = next(tool for tool in tools if tool.name == "read_text_file")
+    read_tool = next(tool for tool in tools if tool.name == "read_file")
     result = await read_tool.execute(
         agent_ctx=CTX,
         path="/home/user/empty.txt",
     )
 
     # Verify empty content is handled correctly
-    assert isinstance(result, dict)
-    assert result["content"] == ""
-    assert result["size"] == 0
+    assert isinstance(result, str)
+    assert result == ""
 
 
 async def test_write_empty_file(acp_agent: LLMlingACPAgent, fs_provider: FSSpecTools):
@@ -320,18 +315,17 @@ async def test_read_file_with_unicode(acp_agent: LLMlingACPAgent, fs_provider: F
     # Mock filesystem read with unicode
     fs_provider.fs._cat_file = AsyncMock(return_value=unicode_content.encode("utf-8"))
 
-    # Get read_text_file tool from provider
+    # Get read_file tool from provider
     tools = await fs_provider.get_tools()
-    read_tool = next(tool for tool in tools if tool.name == "read_text_file")
+    read_tool = next(tool for tool in tools if tool.name == "read_file")
     result = await read_tool.execute(agent_ctx=CTX, path="/home/user/unicode.txt")
 
     # Verify unicode content is preserved
-    assert isinstance(result, dict)
-    content = result["content"]
-    assert "世界" in content
-    assert "🌍" in content
-    assert "émojis" in content
-    assert "café" in content
+    assert isinstance(result, str)
+    assert "世界" in result
+    assert "🌍" in result
+    assert "émojis" in result
+    assert "café" in result
 
 
 async def test_write_file_with_unicode(acp_agent: LLMlingACPAgent, fs_provider: FSSpecTools):
@@ -373,7 +367,7 @@ async def test_file_operations_with_provider_session(acp_agent: LLMlingACPAgent,
 
     # Get tools from provider
     tools = await fs_provider.get_tools()
-    read_tool = next(tool for tool in tools if tool.name == "read_text_file")
+    read_tool = next(tool for tool in tools if tool.name == "read_file")
     await read_tool.execute(agent_ctx=CTX, path="/home/user/test.txt")
 
     write_tool = next(tool for tool in tools if tool.name == "write_text_file")

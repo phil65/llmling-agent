@@ -39,6 +39,7 @@ from llmling_agent.log import get_logger
 from llmling_agent.messaging import ChatMessage, MessageNode
 from llmling_agent.messaging.processing import finalize_message, prepare_prompts
 from llmling_agent.prompts.convert import convert_prompts
+from llmling_agent.storage import StorageManager
 from llmling_agent.talk.stats import MessageStats
 from llmling_agent.tools import Tool, ToolManager
 from llmling_agent.tools.exceptions import ToolError
@@ -259,8 +260,9 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         effective_knowledge = knowledge or (ctx.config.knowledge if ctx else None)
         if effective_knowledge:
             resources.extend(effective_knowledge.get_resources())
+        storage = agent_pool.storage if agent_pool else StorageManager(self._manifest.storage)
         self.conversation = MessageHistory(
-            storage=ctx.storage,
+            storage=storage,
             converter=ConversionManager(config=self._manifest.conversion),
             session_config=memory_cfg,
             resources=resources,
