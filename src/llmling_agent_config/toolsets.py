@@ -11,6 +11,7 @@ from schemez import Schema
 from upath import UPath
 
 from llmling_agent.utils.importing import import_class
+from llmling_agent_config.converters import ConversionConfig
 
 
 if TYPE_CHECKING:
@@ -151,11 +152,16 @@ class FileAccessToolsetConfig(BaseToolsetConfig):
     type: Literal["file_access"] = Field("file_access", init=False)
     """File access toolset."""
 
+    conversion: ConversionConfig | None = Field(default=None, title="Conversion config")
+    """Optional conversion configuration for markdown conversion."""
+
     def get_provider(self) -> ResourceProvider:
         """Create file access tools provider."""
+        from llmling_agent.prompts.conversion_manager import ConversionManager
         from llmling_agent_toolsets.builtin import FileAccessTools
 
-        return FileAccessTools(name="file_access")
+        converter = ConversionManager(self.conversion) if self.conversion else None
+        return FileAccessTools(name="file_access", converter=converter)
 
 
 class CodeExecutionToolsetConfig(BaseToolsetConfig):

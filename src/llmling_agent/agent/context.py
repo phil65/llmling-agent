@@ -3,12 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from functools import cached_property
 from typing import TYPE_CHECKING, Any, Literal
 
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.context import NodeContext
-from llmling_agent.prompts.conversion_manager import ConversionManager
 
 
 if TYPE_CHECKING:
@@ -45,11 +43,6 @@ class AgentContext[TDeps = Any](NodeContext[TDeps]):
 
     tool_input: dict[str, Any] = field(default_factory=dict)
     """Input arguments for the current tool call."""
-
-    @cached_property
-    def converter(self) -> ConversionManager:
-        """Get conversion manager from global config."""
-        return ConversionManager(self.definition.conversion)
 
     # TODO: perhaps add agent directly to context?
     @property
