@@ -303,10 +303,11 @@ class FSSpecTools(ResourceProvider):
             await agent_ctx.events.file_operation(
                 "read", path=path, success=True, size=len(content)
             )
-            return content
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             await agent_ctx.events.file_operation("read", path=path, success=False, error=str(e))
             return {"error": f"Failed to convert file {path}: {e}"}
+        else:
+            return content
 
     async def _write_file(
         self,
