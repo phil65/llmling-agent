@@ -351,6 +351,7 @@ unresolved-import = "ignore"
 
 [tool.uv]
 default-groups = ["dev", "lint", "docs"]
+constraint-dependencies = ["extism-sys<1.13.0"]
 
 [tool.uv.build-backend]
 module-name = [
