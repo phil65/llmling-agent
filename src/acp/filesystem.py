@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import mimetypes
 from pathlib import Path
 import shlex
 from typing import TYPE_CHECKING, Any, Literal, Required, overload
@@ -32,6 +33,16 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
+
+# MIME types that should be treated as text
+TEXT_MIME_PREFIXES = ("text/", "application/json", "application/xml", "application/javascript")
+
+
+def _is_text_mime(mime_type: str | None) -> bool:
+    """Check if a MIME type represents text content."""
+    if mime_type is None:
+        return True  # Default to text for unknown types
+    return any(mime_type.startswith(prefix) for prefix in TEXT_MIME_PREFIXES)
 
 
 class ACPFile(AbstractBufferedFile):  # type: ignore[misc]
@@ -137,9 +148,29 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
             msg = "ACP filesystem does not support byte range reads"
             raise NotImplementedError(msg)
 
+        mime_type = mimetypes.guess_type(path)[0]
+
+        if _is_text_mime(mime_type):
+            # Text file - use read_text_file directly
+            try:
+                content = await self.requests.read_text_file(path)
+                return content.encode("utf-8")
+            except Exception as e:
+                msg = f"Could not read file {path}: {e}"
+                raise FileNotFoundError(msg) from e
+
+        # Binary file - use base64 encoding via terminal command
         try:
-            content = await self.requests.read_text_file(path)
-            return content.encode("utf-8")
+            b64_cmd = self.command_provider.get_command("base64_encode")
+            cmd_str = b64_cmd.create_command(path)
+            cmd, args = self._parse_command(cmd_str)
+            output, exit_code = await self.requests.run_command(cmd, args=args, timeout_seconds=30)
+
+            if exit_code != 0:
+                msg = f"Could not read binary file {path}: {output}"
+                raise FileNotFoundError(msg)
+
+            return b64_cmd.parse_command(output)
         except Exception as e:
             msg = f"Could not read file {path}: {e}"
             raise FileNotFoundError(msg) from e
