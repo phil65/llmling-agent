@@ -4689,6 +4689,19 @@
           ],
           "title": "Storage options",
           "type": "object"
+        },
+        "conversion": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ConversionConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional conversion configuration for markdown conversion.",
+          "title": "Conversion config"
         }
       },
       "required": [
@@ -4769,6 +4782,19 @@
           "description": "File access toolset.",
           "title": "Type",
           "type": "string"
+        },
+        "conversion": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ConversionConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional conversion configuration for markdown conversion.",
+          "title": "Conversion config"
         }
       },
       "title": "FileAccessToolsetConfig",
