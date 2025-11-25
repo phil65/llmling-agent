@@ -20,10 +20,7 @@ from schemez import FunctionSchema
 from llmling_agent.agent.context import AgentContext
 from llmling_agent.log import get_logger
 from llmling_agent.mcp_server.constants import MCP_TO_LOGGING
-from llmling_agent.mcp_server.helpers import (
-    extract_text_content,
-    mcp_tool_to_fn_schema,
-)
+from llmling_agent.mcp_server.helpers import extract_text_content, mcp_tool_to_fn_schema
 from llmling_agent.mcp_server.message_handler import MCPMessageHandler
 from llmling_agent.tools.base import Tool
 from llmling_agent.utils.signatures import create_modified_signature
@@ -53,7 +50,7 @@ if TYPE_CHECKING:
         Tool as MCPTool,
     )
     from pydantic_ai import BinaryContent
-    from upathtools.filesystems.mcp_fs import MCPFileSystem
+    from upathtools.filesystems import MCPFileSystem
 
     from llmling_agent_config.mcp_server import MCPServerConfig
 
@@ -122,7 +119,7 @@ class MCPClient:
 
     def get_resource_fs(self) -> MCPFileSystem:
         """Get a filesystem for accessing MCP resources."""
-        from upathtools.filesystems.mcp_fs import MCPFileSystem
+        from upathtools.filesystems import MCPFileSystem
 
         return MCPFileSystem(client=self._client)
 
