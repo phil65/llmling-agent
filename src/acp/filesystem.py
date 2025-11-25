@@ -6,7 +6,7 @@ import asyncio
 import logging
 from pathlib import Path
 import shlex
-from typing import TYPE_CHECKING, Any, Literal, overload
+from typing import TYPE_CHECKING, Any, Literal, Required, overload
 
 from anyenv import get_os_command_provider
 from fsspec.asyn import sync_wrapper  # type: ignore[import-untyped]
@@ -21,8 +21,10 @@ class AcpInfo(FileInfo, total=False):
     """Info dict for ACP filesystem paths."""
 
     path: str
+    islink: bool
     timestamp: str | None
     permissions: str | None
+    size: Required[int]
 
 
 if TYPE_CHECKING:
@@ -204,8 +206,9 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
                     AcpInfo(
                         name=item.name,
                         path=item.path,
-                        type=item.type,
+                        type="file" if item.type == "link" else item.type,
                         size=item.size,
+                        islink=item.type == "link",
                         timestamp=item.timestamp,
                         permissions=item.permissions,
                     )
@@ -248,8 +251,9 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
             return AcpInfo(
                 name=file_info.name,
                 path=file_info.path,
-                type=file_info.type,
+                type="file" if file_info.type == "link" else file_info.type,
                 size=file_info.size,
+                islink=file_info.type == "link",
                 timestamp=file_info.timestamp,
                 permissions=file_info.permissions,
             )
@@ -267,6 +271,7 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
                             path=path,
                             type=item["type"],
                             size=item["size"],
+                            islink=item.get("islink", False),
                             timestamp=item.get("timestamp"),
                             permissions=item.get("permissions"),
                         )
@@ -420,13 +425,14 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
             File-like object
         """
         # Convert text modes to binary modes for fsspec compatibility
-        if mode == "r":
-            mode = "rb"
-        elif mode == "w":
-            mode = "wb"
-        elif mode == "a":
-            mode = "ab"
-        elif mode == "x":
-            mode = "xb"
+        match mode:
+            case "r":
+                mode = "rb"
+            case "w":
+                mode = "wb"
+            case "a":
+                mode = "ab"
+            case "x":
+                mode = "xb"
 
         return ACPFile(self, path, mode, **kwargs)
