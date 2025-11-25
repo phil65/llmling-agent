@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from pydantic import Field
-
 from acp.schema.base import Response
 from acp.schema.terminal import TerminalExitStatus  # noqa: TC001
 from acp.schema.tool_call import AllowedOutcome, DeniedOutcome  # noqa: TC001
@@ -43,7 +41,7 @@ class TerminalOutputResponse(Response):
 class WaitForTerminalExitResponse(Response):
     """Response containing the exit status of a terminal command."""
 
-    exit_code: int | None = Field(default=None, ge=0)
+    exit_code: int | None = None
     """The process exit code (may be null if terminated by signal)."""
 
     signal: str | None = None
