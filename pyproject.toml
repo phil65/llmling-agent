@@ -85,6 +85,7 @@ acp = "acp.filesystem:ACPPath"
 a2a = ["fasta2a"]
 braintrust = ["braintrust", "autoevals"]
 clipboard = ["clipman"]
+coding = ["ast-grep-py>=0.40.0"]
 composio = ["composio"]
 default = [
   "pydantic-ai-slim[openai,google,anthropic,mistral,retries]>=1.0.0",
