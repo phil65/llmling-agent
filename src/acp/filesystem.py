@@ -11,10 +11,18 @@ from typing import TYPE_CHECKING, Any, Literal, overload
 from anyenv import get_os_command_provider
 from fsspec.asyn import sync_wrapper  # type: ignore[import-untyped]
 from fsspec.spec import AbstractBufferedFile  # type: ignore[import-untyped]
-from upathtools.filesystems.base import BaseAsyncFileSystem, BaseUPath
+from upathtools.filesystems.base import BaseAsyncFileSystem, BaseUPath, FileInfo
 
 from acp.acp_requests import ACPRequests
 from acp.notifications import ACPNotifications
+
+
+class AcpInfo(FileInfo, total=False):
+    """Info dict for ACP filesystem paths."""
+
+    path: str
+    timestamp: str | None
+    permissions: str | None
 
 
 if TYPE_CHECKING:
@@ -54,13 +62,13 @@ class ACPFile(AbstractBufferedFile):  # type: ignore[misc]
         return True
 
 
-class ACPPath(BaseUPath):
+class ACPPath(BaseUPath[AcpInfo]):
     """Path for ACP filesystem."""
 
     __slots__ = ()
 
 
-class ACPFileSystem(BaseAsyncFileSystem[ACPPath]):
+class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
     """Async filesystem for ACP sessions."""
 
     protocol = "acp"
@@ -156,18 +164,12 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath]):
     put_file = sync_wrapper(_put_file)
 
     @overload
-    async def _ls(
-        self, path: str = "", detail: Literal[True] = True, **kwargs: Any
-    ) -> list[dict[str, Any]]: ...
+    async def _ls(self, path: str, detail: Literal[True] = ..., **kwargs: Any) -> list[AcpInfo]: ...
 
     @overload
-    async def _ls(
-        self, path: str = "", detail: Literal[False] = False, **kwargs: Any
-    ) -> list[str]: ...
+    async def _ls(self, path: str, detail: Literal[False], **kwargs: Any) -> list[str]: ...
 
-    async def _ls(
-        self, path: str = "", detail: bool = True, **kwargs: Any
-    ) -> list[dict[str, Any]] | list[str]:
+    async def _ls(self, path: str, detail: bool = True, **kwargs: Any) -> list[AcpInfo] | list[str]:
         """List directory contents via terminal command.
 
         Uses 'ls -la' command through ACP terminal to get directory listings.
@@ -199,14 +201,14 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath]):
             # Convert DirectoryEntry objects to dict format or simple names
             if detail:
                 return [
-                    {
-                        "name": item.name,
-                        "path": item.path,
-                        "type": item.type,
-                        "size": item.size,
-                        "timestamp": item.timestamp,
-                        "permissions": item.permissions,
-                    }
+                    AcpInfo(
+                        name=item.name,
+                        path=item.path,
+                        type=item.type,
+                        size=item.size,
+                        timestamp=item.timestamp,
+                        permissions=item.permissions,
+                    )
                     for item in result
                 ]
             return [item.name for item in result]
@@ -219,7 +221,7 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath]):
 
     ls = sync_wrapper(_ls)
 
-    async def _info(self, path: str, **kwargs: Any) -> dict[str, Any]:
+    async def _info(self, path: str, **kwargs: Any) -> AcpInfo:
         """Get file information via stat command.
 
         Args:
@@ -243,14 +245,14 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath]):
                 msg = f"File not found: {path}"
                 raise FileNotFoundError(msg)
             file_info = info_cmd.parse_command(output.strip(), path)
-            return {  # noqa: TRY300
-                "name": file_info.name,
-                "path": file_info.path,
-                "type": file_info.type,
-                "size": file_info.size,
-                "timestamp": file_info.timestamp,
-                "permissions": file_info.permissions,
-            }
+            return AcpInfo(
+                name=file_info.name,
+                path=file_info.path,
+                type=file_info.type,
+                size=file_info.size,
+                timestamp=file_info.timestamp,
+                permissions=file_info.permissions,
+            )
 
         except (OSError, ValueError) as e:
             # Fallback: try to get basic info from ls
@@ -260,14 +262,14 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath]):
 
                 for item in ls_result:
                     if item["name"] == filename:
-                        return {
-                            "name": item["name"],
-                            "path": path,
-                            "type": item["type"],
-                            "size": item["size"],
-                            "timestamp": item.get("timestamp"),
-                            "permissions": item.get("permissions"),
-                        }
+                        return AcpInfo(
+                            name=item["name"],
+                            path=path,
+                            type=item["type"],
+                            size=item["size"],
+                            timestamp=item.get("timestamp"),
+                            permissions=item.get("permissions"),
+                        )
 
                 msg = f"File not found: {path}"
                 raise FileNotFoundError(msg)
