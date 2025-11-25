@@ -189,18 +189,14 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
         ls_cmd = list_cmd.create_command(path)
 
         try:
-            command, args = self._parse_command(ls_cmd)
-            output, exit_code = await self.requests.run_command(
-                command, args=args, timeout_seconds=10
-            )
+            cmd, args = self._parse_command(ls_cmd)
+            output, exit_code = await self.requests.run_command(cmd, args=args, timeout_seconds=10)
 
             if exit_code != 0:
                 msg = f"Error listing directory {path!r}: {output}"
                 raise FileNotFoundError(msg)  # noqa: TRY301
 
             result = list_cmd.parse_command(output, path)
-
-            # Convert DirectoryEntry objects to dict format or simple names
             if detail:
                 return [
                     AcpInfo(
@@ -219,8 +215,6 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
         except Exception as e:
             msg = f"Could not list directory {path}: {e}"
             raise FileNotFoundError(msg) from e
-        else:
-            return result
 
     ls = sync_wrapper(_ls)
 
@@ -234,15 +228,12 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
         Returns:
             File information dictionary
         """
-        # Use OS-specific command to get file information
         info_cmd = self.command_provider.get_command("file_info")
         stat_cmd = info_cmd.create_command(path)
 
         try:
-            command, args = self._parse_command(stat_cmd)
-            output, exit_code = await self.requests.run_command(
-                command, args=args, timeout_seconds=5
-            )
+            cmd, args = self._parse_command(stat_cmd)
+            output, exit_code = await self.requests.run_command(cmd, args=args, timeout_seconds=5)
 
             if exit_code != 0:
                 msg = f"File not found: {path}"
@@ -298,10 +289,8 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
         test_cmd = exists_cmd.create_command(path)
 
         try:
-            command, args = self._parse_command(test_cmd)
-            output, exit_code = await self.requests.run_command(
-                command, args=args, timeout_seconds=5
-            )
+            cmd, args = self._parse_command(test_cmd)
+            output, exit_code = await self.requests.run_command(cmd, args=args, timeout_seconds=5)
         except (OSError, ValueError):
             return False
         else:
@@ -323,10 +312,8 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
         test_cmd = isdir_cmd.create_command(path)
 
         try:
-            command, args = self._parse_command(test_cmd)
-            output, exit_code = await self.requests.run_command(
-                command, args=args, timeout_seconds=5
-            )
+            cmd, args = self._parse_command(test_cmd)
+            output, exit_code = await self.requests.run_command(cmd, args=args, timeout_seconds=5)
         except (OSError, ValueError):
             return False
         else:
@@ -348,10 +335,8 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
         test_cmd = isfile_cmd.create_command(path)
 
         try:
-            command, args = self._parse_command(test_cmd)
-            output, exit_code = await self.requests.run_command(
-                command, args=args, timeout_seconds=5
-            )
+            cmd, args = self._parse_command(test_cmd)
+            output, exit_code = await self.requests.run_command(cmd, args=args, timeout_seconds=5)
         except (OSError, ValueError):
             return False
         else:
@@ -371,11 +356,8 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
         mkdir_cmd = create_cmd.create_command(path, parents=exist_ok)
 
         try:
-            command, args = self._parse_command(mkdir_cmd)
-            output, exit_code = await self.requests.run_command(
-                command, args=args, timeout_seconds=5
-            )
-
+            cmd, args = self._parse_command(mkdir_cmd)
+            output, exit_code = await self.requests.run_command(cmd, args=args, timeout_seconds=5)
             success = create_cmd.parse_command(output, exit_code if exit_code is not None else 1)
             if not success:
                 msg = f"Error creating directory {path}: {output}"
@@ -398,11 +380,8 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
         rm_cmd = remove_cmd.create_command(path, recursive=recursive)
 
         try:
-            command, args = self._parse_command(rm_cmd)
-            output, exit_code = await self.requests.run_command(
-                command, args=args, timeout_seconds=10
-            )
-
+            cmd, args = self._parse_command(rm_cmd)
+            output, exit_code = await self.requests.run_command(cmd, args=args, timeout_seconds=10)
             success = remove_cmd.parse_command(output, exit_code if exit_code is not None else 1)
             if not success:
                 msg = f"Error removing {path}: {output}"
