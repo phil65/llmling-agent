@@ -8,7 +8,7 @@ from pydantic import Field
 from acp.schema.base import Response
 from acp.schema.capabilities import AgentCapabilities
 from acp.schema.common import AuthMethod, Implementation  # noqa: TC001
-from acp.schema.session_state import SessionModelState, SessionModeState  # noqa: TC001
+from acp.schema.session_state import SessionInfo, SessionModelState, SessionModeState  # noqa: TC001
 
 
 class CustomResponse(Response):
@@ -28,9 +28,7 @@ StopReason = Literal[
 
 
 class SetSessionModelResponse(Response):
-    """**UNSTABLE**.
-
-    This capability is not part of the spec yet.
+    """**UNSTABLE**: This capability is not part of the spec yet.
 
     Response to `session/set_model` method.
     """
@@ -139,6 +137,7 @@ class InitializeResponse(Response):
         audio_prompts: bool = False,
         embedded_context_prompts: bool = False,
         image_prompts: bool = False,
+        list_sessions: bool = False,
         auth_methods: Sequence[AuthMethod] | None = None,
     ) -> Self:
         """Create an instance of AgentCapabilities.
@@ -154,6 +153,7 @@ class InitializeResponse(Response):
             audio_prompts: Whether the agent supports audio prompts.
             embedded_context_prompts: Whether the agent supports embedded context prompts.
             image_prompts: Whether the agent supports image prompts.
+            list_sessions: Whether the agent supports `session/list` (unstable).
             auth_methods: The authentication methods supported by the agent.
         """
         caps = AgentCapabilities.create(
@@ -163,6 +163,7 @@ class InitializeResponse(Response):
             audio_prompts=audio_prompts,
             embedded_context_prompts=embedded_context_prompts,
             image_prompts=image_prompts,
+            list_sessions=list_sessions,
         )
         return cls(
             agent_info=Implementation(name=name, title=title, version=version),
@@ -172,11 +173,26 @@ class InitializeResponse(Response):
         )
 
 
+class ListSessionsResponse(Response):
+    """**UNSTABLE**: This capability is not part of the spec yet.
+
+    Response from listing sessions.
+    """
+
+    next_cursor: str | None = None
+    """Opaque cursor token. If present, pass this in the next request's cursor parameter
+    to fetch the next page. If absent, there are no more results."""
+
+    sessions: Sequence[SessionInfo] = Field(default_factory=list)
+    """Array of session information objects."""
+
+
 AgentResponse = (
     InitializeResponse
     | AuthenticateResponse
     | NewSessionResponse
     | LoadSessionResponse
+    | ListSessionsResponse
     | SetSessionModeResponse
     | PromptResponse
     | SetSessionModelResponse

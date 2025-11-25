@@ -2,142 +2,165 @@
 
 from acp.schema.agent_plan import PlanEntry, PlanEntryPriority, PlanEntryStatus
 from acp.schema.agent_requests import (
+    AgentRequest,
+    CreateTerminalRequest,
+    KillTerminalCommandRequest,
     ReadTextFileRequest,
     ReleaseTerminalRequest,
     RequestPermissionRequest,
-    CreateTerminalRequest,
     TerminalOutputRequest,
-    KillTerminalCommandRequest,
     WaitForTerminalExitRequest,
     WriteTextFileRequest,
-    AgentRequest,
-)
-from acp.schema.client_responses import (
-    CreateTerminalResponse,
-    KillTerminalCommandResponse,
-    ReadTextFileResponse,
-    WriteTextFileResponse,
-    ReleaseTerminalResponse,
-    RequestPermissionResponse,
-    TerminalOutputResponse,
-    WaitForTerminalExitResponse,
-    ClientResponse,
-)
-from acp.schema.client_requests import (
-    InitializeRequest,
-    AuthenticateRequest,
-    LoadSessionRequest,
-    NewSessionRequest,
-    SetSessionModeRequest,
-    SetSessionModelRequest,
-    PromptRequest,
-    CustomRequest,
-    ClientRequest,
 )
 from acp.schema.agent_responses import (
-    InitializeResponse,
+    AgentResponse,
     AuthenticateResponse,
+    CustomResponse,
+    InitializeResponse,
     LoadSessionResponse,
     NewSessionResponse,
+    ListSessionsResponse,
+    PromptResponse,
     SetSessionModeResponse,
     SetSessionModelResponse,
-    PromptResponse,
-    CustomResponse,
     StopReason,
-    AgentResponse,
 )
 from acp.schema.capabilities import (
     AgentCapabilities,
     ClientCapabilities,
+    FileSystemCapability,
     McpCapabilities,
     PromptCapabilities,
-    FileSystemCapability,
+    SessionCapabilities,
+    SessionListCapabilities,
+)
+from acp.schema.client_requests import (
+    AuthenticateRequest,
+    ClientRequest,
+    CustomRequest,
+    InitializeRequest,
+    ListSessionsRequest,
+    LoadSessionRequest,
+    NewSessionRequest,
+    PromptRequest,
+    SetSessionModeRequest,
+    SetSessionModelRequest,
+)
+from acp.schema.client_responses import (
+    ClientResponse,
+    CreateTerminalResponse,
+    KillTerminalCommandResponse,
+    ReadTextFileResponse,
+    ReleaseTerminalResponse,
+    RequestPermissionResponse,
+    TerminalOutputResponse,
+    WaitForTerminalExitResponse,
+    WriteTextFileResponse,
+)
+from acp.schema.common import AuthMethod, EnvVariable, Implementation
+from acp.schema.content_blocks import (
+    Annotations,
+    AudioContentBlock,
+    Audience,
+    BlobResourceContents,
+    ContentBlock,
+    EmbeddedResourceContentBlock,
+    ImageContentBlock,
+    ResourceContentBlock,
+    TextContentBlock,
+    TextResourceContents,
 )
 from acp.schema.mcp import (
-    SseMcpServer,
-    StdioMcpServer,
     HttpHeader,
     HttpMcpServer,
     McpServer,
+    SseMcpServer,
+    StdioMcpServer,
 )
 from acp.schema.messages import AgentMethod, ClientMethod
-from acp.schema.notifications import CancelNotification, SessionNotification
-from acp.schema.common import EnvVariable, Implementation, AuthMethod
+from acp.schema.notifications import (
+    CancelNotification,
+    ExtNotification,
+    SessionNotification,
+)
 from acp.schema.session_state import (
+    ModelInfo,
+    SessionInfo,
     SessionMode,
     SessionModeState,
     SessionModelState,
-    ModelInfo,
 )
 from acp.schema.slash_commands import (
     AvailableCommand,
     AvailableCommandInput,
     CommandInputHint,
 )
+from acp.schema.terminal import TerminalExitStatus
 from acp.schema.tool_call import (
-    ToolCall,
-    ToolCallLocation,
-    ToolCallKind,
+    AllowedOutcome,
     ContentToolCallContent,
+    DeniedOutcome,
     FileEditToolCallContent,
-    TerminalToolCallContent,
-    ToolCallContent,
     PermissionKind,
     PermissionOption,
+    TerminalToolCallContent,
+    ToolCall,
+    ToolCallContent,
+    ToolCallKind,
+    ToolCallLocation,
     ToolCallStatus,
-    AllowedOutcome,
-    DeniedOutcome,
 )
 from acp.schema.session_updates import (
     AgentMessageChunk,
-    AgentThoughtChunk,
     AgentPlanUpdate,
-    UserMessageChunk,
-    CurrentModeUpdate,
+    AgentThoughtChunk,
     AvailableCommandsUpdate,
-    ToolCallStart,
-    ToolCallProgress,
+    CurrentModeUpdate,
     SessionUpdate,
-)
-from acp.schema.content_blocks import (
-    TextContentBlock,
-    AudioContentBlock,
-    ImageContentBlock,
-    ResourceContentBlock,
-    EmbeddedResourceContentBlock,
-    Annotations,
-    TextResourceContents,
-    BlobResourceContents,
-    ContentBlock,
-    Audience,
+    ToolCallProgress,
+    ToolCallStart,
+    UserMessageChunk,
 )
 
 PROTOCOL_VERSION = 1
 
 __all__ = [
+    # Protocol version
     "PROTOCOL_VERSION",
+    # Agent capabilities
     "AgentCapabilities",
+    # Session updates
     "AgentMessageChunk",
+    # Messages/Methods
     "AgentMethod",
     "AgentPlanUpdate",
+    # Agent requests (agent -> client)
     "AgentRequest",
+    # Agent responses
     "AgentResponse",
     "AgentThoughtChunk",
+    # Tool calls
     "AllowedOutcome",
+    # Content blocks
     "Annotations",
     "Audience",
     "AudioContentBlock",
+    # Common types
     "AuthMethod",
+    # Client requests (client -> agent)
     "AuthenticateRequest",
     "AuthenticateResponse",
+    # Slash commands
     "AvailableCommand",
     "AvailableCommandInput",
     "AvailableCommandsUpdate",
     "BlobResourceContents",
+    # Notifications
     "CancelNotification",
     "ClientCapabilities",
     "ClientMethod",
     "ClientRequest",
+    # Client responses
     "ClientResponse",
     "CommandInputHint",
     "ContentBlock",
@@ -150,8 +173,10 @@ __all__ = [
     "DeniedOutcome",
     "EmbeddedResourceContentBlock",
     "EnvVariable",
+    "ExtNotification",
     "FileEditToolCallContent",
     "FileSystemCapability",
+    # MCP servers
     "HttpHeader",
     "HttpMcpServer",
     "ImageContentBlock",
@@ -160,15 +185,19 @@ __all__ = [
     "InitializeResponse",
     "KillTerminalCommandRequest",
     "KillTerminalCommandResponse",
+    "ListSessionsRequest",
+    "ListSessionsResponse",
     "LoadSessionRequest",
     "LoadSessionResponse",
     "McpCapabilities",
     "McpServer",
+    # Session state
     "ModelInfo",
     "NewSessionRequest",
     "NewSessionResponse",
     "PermissionKind",
     "PermissionOption",
+    # Plan
     "PlanEntry",
     "PlanEntryPriority",
     "PlanEntryStatus",
@@ -182,6 +211,9 @@ __all__ = [
     "RequestPermissionRequest",
     "RequestPermissionResponse",
     "ResourceContentBlock",
+    "SessionCapabilities",
+    "SessionInfo",
+    "SessionListCapabilities",
     "SessionMode",
     "SessionModeState",
     "SessionModelState",
@@ -194,6 +226,8 @@ __all__ = [
     "SseMcpServer",
     "StdioMcpServer",
     "StopReason",
+    # Terminal
+    "TerminalExitStatus",
     "TerminalOutputRequest",
     "TerminalOutputResponse",
     "TerminalToolCallContent",
