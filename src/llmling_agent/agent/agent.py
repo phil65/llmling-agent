@@ -19,13 +19,12 @@ from pydantic._internal import _typing_extra
 from pydantic_ai import (
     Agent as PydanticAgent,
     AgentRunResultEvent,
+    BaseToolCallPart,
     FunctionToolCallEvent,
     FunctionToolResultEvent,
     PartStartEvent,
     RunContext,
-    ToolCallPart,
     ToolReturnPart,
-    models,
 )
 from pydantic_ai.models import Model
 
@@ -128,7 +127,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
     run_failed = Signal(str, Exception)
     agent_reset = Signal(AgentReset)
 
-    def __init__(  # noqa: PLR0915
+    def __init__(
         # we dont use AgentKwargs here so that we can work with explicit ones in the ctor
         self,
         name: str = "llmling-agent",
@@ -272,23 +271,16 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             session_config=memory_cfg,
             resources=resources,
         )
-
-        # Store pydantic-ai configuration
-        if model and not isinstance(model, str):
-            assert isinstance(model, models.Model)
         self._model = model
         self._retries = retries
         self._end_strategy: EndStrategy = end_strategy
         self._output_retries = output_retries
-
         # init variables
         self._debug = debug
         self.parallel_init = parallel_init
         self._name = name
         self._background_task: asyncio.Task[ChatMessage[Any]] | None = None
-
         self.talk = Interactions(self)
-
         # Set working directory
         self.cwd: UPath = UPath(cwd) if cwd else UPath(".")
 
@@ -380,10 +372,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
     def __or__(self, other: MessageNode[TDeps, Any]) -> TeamRun[TDeps, Any]: ...
 
     @overload
-    def __or__[TOtherDeps](
-        self,
-        other: MessageNode[TOtherDeps, Any],
-    ) -> TeamRun[Any, Any]: ...
+    def __or__[TOtherDeps](self, other: MessageNode[TOtherDeps, Any]) -> TeamRun[Any, Any]: ...
 
     @overload
     def __or__(self, other: ProcessorCallback[Any]) -> TeamRun[Any, Any]: ...
@@ -587,7 +576,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         usage_limits: UsageLimits | None = None,
         message_id: str | None = None,
         conversation_id: str | None = None,
-        messages: list[ChatMessage[Any]] | None = None,
         message_history: MessageHistory | None = None,
         deps: TDeps | None = None,
         input_provider: InputProvider | None = None,
@@ -798,7 +786,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             # Stream events through merge_queue for progress events
             async with merge_queue_into_iterator(stream_events, self._event_queue) as events:
                 # Track tool call starts to combine with results later
-                pending_tcs: dict[str, ToolCallPart] = {}
+                pending_tcs: dict[str, BaseToolCallPart] = {}
                 async for event in events:
                     # Call event handlers for all events
                     for handler in self.event_handler._wrapped_handlers:
@@ -808,7 +796,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                     yield event  # type: ignore[misc]
                     match event:
                         case (
-                            PartStartEvent(part=ToolCallPart() as tool_part)
+                            PartStartEvent(part=BaseToolCallPart() as tool_part)
                             | FunctionToolCallEvent(part=tool_part)
                         ):
                             # Store tool call start info for later combination with result
@@ -847,10 +835,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             await self.log_message(response_msg)
             if store_history:
                 self.conversation.add_chat_messages([user_msg, response_msg])
-            await self.connections.route_message(
-                response_msg,
-                wait=wait_for_connections,
-            )
+            await self.connections.route_message(response_msg, wait=wait_for_connections)
 
         except Exception as e:
             self.log.exception("Agent stream failed")
