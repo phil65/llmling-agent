@@ -128,7 +128,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
     run_failed = Signal(str, Exception)
     agent_reset = Signal(AgentReset)
 
-    def __init__(
+    def __init__(  # noqa: PLR0915
         # we dont use AgentKwargs here so that we can work with explicit ones in the ctor
         self,
         name: str = "llmling-agent",
