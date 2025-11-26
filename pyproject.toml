@@ -55,6 +55,7 @@ dependencies = [
   "rich",
   "schemez",
   # "schemez @ file:///home/phil65/dev/oss/schemez",
+  "searchly>=2.0.1",
   "slashed>=0.1.0",
   "sqlalchemy[aiosqlite]",
   "sqlmodel>=0.0.22",

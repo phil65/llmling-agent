@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Annotated, Literal
 from anyenv.code_execution.configs import ExecutionEnvironmentConfig
 from pydantic import EmailStr, Field, HttpUrl, SecretStr
 from schemez import Schema
+from searchly.config import NewsSearchProviderConfig, WebSearchProviderConfig
 from upath import UPath
 
 from llmling_agent.utils.importing import import_class
@@ -308,6 +309,27 @@ class VFSToolsetConfig(BaseToolsetConfig):
         return VFSTools(name="vfs")
 
 
+class SearchToolsetConfig(BaseToolsetConfig):
+    """Configuration for web/news search toolset."""
+
+    type: Literal["search"] = Field("search", init=False)
+    """Search toolset."""
+
+    web_search: WebSearchProviderConfig | None = Field(default=None, title="Web search")
+    """Web search provider configuration."""
+
+    news_search: NewsSearchProviderConfig | None = Field(default=None, title="News search")
+    """News search provider configuration."""
+
+    def get_provider(self) -> ResourceProvider:
+        """Create search tools provider."""
+        from llmling_agent_toolsets.search_toolset import SearchTools
+
+        web = self.web_search.get_provider() if self.web_search else None
+        news = self.news_search.get_provider() if self.news_search else None
+        return SearchTools(web_search=web, news_search=news)
+
+
 class CustomToolsetConfig(BaseToolsetConfig):
     """Configuration for custom toolsets."""
 
@@ -389,6 +411,7 @@ ToolsetConfig = Annotated[
     | VFSToolsetConfig
     | CodeModeToolsetConfig
     | RemoteCodeModeToolsetConfig
+    | SearchToolsetConfig
     | CustomToolsetConfig,
     Field(discriminator="type"),
 ]
