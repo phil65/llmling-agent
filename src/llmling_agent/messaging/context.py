@@ -31,9 +31,6 @@ class NodeContext[TDeps = object]:
     definition: AgentsManifest
     """Complete agent definition with all configurations."""
 
-    current_prompt: str | None = None
-    """Current prompt text for the agent."""
-
     input_provider: InputProvider | None = None
     """Provider for human-input-handling."""
 

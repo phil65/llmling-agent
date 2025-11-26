@@ -659,8 +659,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         # Prepare prompts and create user message
         user_msg, processed_prompts, original_message = await prepare_prompts(*prompts)
         self.message_received.emit(user_msg)
-        final_prompt = "\n\n".join(str(p) for p in processed_prompts)
-        self.context.current_prompt = final_prompt  # Set current prompt context
         message_id = message_id or str(uuid4())
         start_time = time.perf_counter()
         message_history_list = list(conversation.chat_messages)
@@ -771,8 +769,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         message_id = message_id or str(uuid4())
         user_msg, prompts, _original_message = await prepare_prompts(*prompt)
         self.message_received.emit(user_msg)
-        final_prompt = "\n\n".join(str(p) for p in prompts)
-        self.context.current_prompt = final_prompt
         start_time = time.perf_counter()
         message_history = messages if messages is not None else self.conversation.get_history()
         try:
