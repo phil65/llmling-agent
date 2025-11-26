@@ -168,7 +168,7 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
 
             if exit_code != 0:
                 msg = f"Could not read binary file {path}: {output}"
-                raise FileNotFoundError(msg)
+                raise FileNotFoundError(msg)  # noqa: TRY301
 
             return b64_cmd.parse_command(output)
         except Exception as e:

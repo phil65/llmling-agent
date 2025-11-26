@@ -209,7 +209,7 @@ class StreamingFuzzyMatcher:
 
             # Process each source line
             for col, source_line in enumerate(self.source_lines):
-                source_line = source_line.strip()
+                line = source_line.strip()
 
                 # Calculate costs for each direction
                 up_cost = self.matrix.get(row, col + 1).cost + DELETION_COST
@@ -217,7 +217,7 @@ class StreamingFuzzyMatcher:
 
                 # Diagonal cost depends on character match
                 diagonal_cost = self.matrix.get(row, col).cost
-                if not _fuzzy_eq(query_line, source_line):
+                if not _fuzzy_eq(query_line, line):
                     diagonal_cost += REPLACEMENT_COST
 
                 # Choose minimum cost direction

@@ -11,7 +11,6 @@ from psygnal import Signal
 
 from llmling_agent.log import get_logger
 from llmling_agent.messaging import ChatMessage
-from llmling_agent.storage import StorageManager
 from llmling_agent.talk import AggregatedTalkStats
 from llmling_agent.utils.tasks import TaskManager
 
@@ -29,6 +28,7 @@ if TYPE_CHECKING:
     )
     from llmling_agent.delegation import AgentPool
     from llmling_agent.messaging.context import NodeContext
+    from llmling_agent.storage import StorageManager
     from llmling_agent.talk import Talk, TeamTalk
     from llmling_agent.talk.stats import AggregatedMessageStats, MessageStats
     from llmling_agent.ui.base import InputProvider

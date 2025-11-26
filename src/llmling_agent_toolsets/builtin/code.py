@@ -7,7 +7,7 @@ from pathlib import Path
 import re
 from typing import TYPE_CHECKING, Any
 
-from fsspec import AbstractFileSystem
+from fsspec import AbstractFileSystem  # type: ignore[import-untyped]
 
 from llmling_agent.log import get_logger
 from llmling_agent.resource_providers import ResourceProvider
@@ -15,7 +15,7 @@ from llmling_agent.tools.base import Tool
 
 
 if TYPE_CHECKING:
-    import fsspec  # type: ignore[import-untyped]
+    import fsspec
 
 logger = get_logger(__name__)
 
