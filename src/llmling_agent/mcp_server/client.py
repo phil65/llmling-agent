@@ -6,6 +6,10 @@ standard progress callbacks with tool execution context (tool name, call ID, and
 
 The key innovation is the signature injection system that allows MCP tools to work
 seamlessly with PydanticAI's RunContext while providing rich progress information.
+
+Elicitation is handled via a forwarding callback pattern: a stable callback is
+registered at connection time, but it delegates to a mutable handler that can
+be swapped per tool call (allowing AgentContext.handle_elicitation to be used).
 """
 
 from __future__ import annotations
@@ -40,9 +44,11 @@ if TYPE_CHECKING:
     from fastmcp.client.logging import LogMessage
     from fastmcp.client.messages import MessageHandler, MessageHandlerT
     from fastmcp.client.sampling import ClientSamplingHandler
+    from mcp.shared.context import RequestContext
     from mcp.types import (
         BlobResourceContents,
         ContentBlock,
+        ElicitRequestParams,
         GetPromptResult,
         Prompt as MCPPrompt,
         Resource as MCPResource,
@@ -72,7 +78,9 @@ class MCPClient:
         prompt_change_callback: Callable[[], Awaitable[None]] | None = None,
         resource_change_callback: Callable[[], Awaitable[None]] | None = None,
     ) -> None:
-        self._elicitation_callback = elicitation_callback
+        self._default_elicitation_callback = elicitation_callback
+        # Mutable handler swapped per call_tool for dynamic elicitation
+        self._current_elicitation_handler: ElicitationHandler | None = None
         self.config = config
         self._sampling_callback = sampling_callback
         # Store message handler or mark for lazy creation
@@ -128,6 +136,29 @@ class MCPClient:
         level = MCP_TO_LOGGING.get(message.level, logging.INFO)
         logger.log(level, "MCP Server: ", data=message.data)
 
+    async def _forwarding_elicitation_callback[T](
+        self,
+        message: str,
+        response_type: type[T],
+        params: ElicitRequestParams,
+        context: RequestContext,
+    ) -> T | dict[str, Any] | Any:
+        """Forwarding callback that delegates to current handler.
+
+        This callback is registered once at connection time, but delegates to
+        _current_elicitation_handler which can be swapped per tool call.
+        """
+        from fastmcp.client.elicitation import ElicitResult
+
+        # Try current handler first (set per call_tool)
+        if self._current_elicitation_handler:
+            return await self._current_elicitation_handler(message, response_type, params, context)
+        # Fall back to default callback if configured
+        if self._default_elicitation_callback:
+            return await self._default_elicitation_callback(message, response_type, params, context)
+        # No handler available
+        return ElicitResult(action="decline")
+
     def _get_client(
         self, config: MCPServerConfig, force_oauth: bool = False
     ) -> fastmcp.Client[Any]:
@@ -169,7 +200,7 @@ class MCPClient:
             log_handler=self._log_handler,
             roots=self._accessible_roots,
             timeout=config.timeout,
-            elicitation_handler=self._elicitation_callback,
+            elicitation_handler=self._forwarding_elicitation_callback,
             sampling_handler=self._sampling_callback,
             message_handler=msg_handler,
             auth="oauth" if (force_oauth or oauth) else None,
@@ -288,6 +319,33 @@ class MCPClient:
 
             progress_handler = fastmcp_progress_handler
 
+        # Set up per-call elicitation handler from AgentContext
+        if agent_ctx:
+
+            async def elicitation_handler[T](
+                message: str,
+                response_type: type[T],
+                params: ElicitRequestParams,
+                context: RequestContext,
+            ) -> T | dict[str, Any] | Any:
+                from fastmcp.client.elicitation import ElicitResult
+                from mcp.types import ElicitResult as MCPElicitResult, ErrorData
+
+                result = await agent_ctx.handle_elicitation(params)
+                match result:
+                    case MCPElicitResult(action="accept", content=content):
+                        return content
+                    case MCPElicitResult(action="cancel"):
+                        return ElicitResult(action="cancel")
+                    case MCPElicitResult(action="decline"):
+                        return ElicitResult(action="decline")
+                    case ErrorData():
+                        return ElicitResult(action="decline")
+                    case _:
+                        return ElicitResult(action="decline")
+
+            self._current_elicitation_handler = elicitation_handler
+
         try:
             result = await self._client.call_tool(
                 name, arguments, progress_handler=progress_handler
@@ -310,6 +368,9 @@ class MCPClient:
         except Exception as e:
             msg = f"MCP tool call failed: {e}"
             raise RuntimeError(msg) from e
+        finally:
+            # Clear per-call handler
+            self._current_elicitation_handler = None
 
     async def _convert_mcp_content(
         self,
