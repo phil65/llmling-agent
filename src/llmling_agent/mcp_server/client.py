@@ -56,7 +56,7 @@ if TYPE_CHECKING:
         Tool as MCPTool,
     )
     from pydantic_ai import BinaryContent
-    from upathtools.filesystems import MCPFileSystem
+    from upathtools.filesystems import MCPFileSystem, MCPToolsFileSystem
 
     from llmling_agent_config.mcp_server import MCPServerConfig
 
@@ -128,6 +128,12 @@ class MCPClient:
         from upathtools.filesystems import MCPFileSystem
 
         return MCPFileSystem(client=self._client)
+
+    def get_tools_fs(self) -> MCPToolsFileSystem:
+        """Get a filesystem for accessing MCP tools as code."""
+        from upathtools.filesystems import MCPToolsFileSystem
+
+        return MCPToolsFileSystem(client=self._client)
 
     async def _log_handler(self, message: LogMessage) -> None:
         """Handle server log messages."""
