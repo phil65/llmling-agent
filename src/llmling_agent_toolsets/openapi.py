@@ -280,11 +280,7 @@ class OpenAPITools(ResourceProvider):
             case _:
                 return Any
 
-    def _create_operation_method(
-        self,
-        op_id: str,
-        config: dict[str, Any],
-    ) -> Any:
+    def _create_operation_method(self, op_id: str, config: dict[str, Any]) -> Any:
         """Create a method for an operation with proper type hints."""
         # Create parameter annotations
         annotations: dict[str, Any] = {}
