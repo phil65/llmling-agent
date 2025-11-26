@@ -2115,6 +2115,7 @@
                 "openapi": "#/$defs/OpenAPIToolsetConfig",
                 "process_management": "#/$defs/ProcessManagementToolsetConfig",
                 "remote_code_mode": "#/$defs/RemoteCodeModeToolsetConfig",
+                "search": "#/$defs/SearchToolsetConfig",
                 "tool_management": "#/$defs/ToolManagementToolsetConfig",
                 "upsonic": "#/$defs/UpsonicToolSetConfig",
                 "user_interaction": "#/$defs/UserInteractionToolsetConfig",
@@ -2173,6 +2174,9 @@
               },
               {
                 "$ref": "#/$defs/RemoteCodeModeToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/SearchToolsetConfig"
               },
               {
                 "$ref": "#/$defs/CustomToolsetConfig"
@@ -2989,6 +2993,59 @@
       "title": "BraintrustConfig",
       "type": "object"
     },
+    "BraveSearchConfig": {
+      "additionalProperties": false,
+      "description": "Brave Search provider configuration.\n\nUses the Brave Search API for web and news search.\nSupports country and language filtering.",
+      "properties": {
+        "type": {
+          "const": "brave",
+          "default": "brave",
+          "title": "Type",
+          "type": "string"
+        },
+        "api_key": {
+          "anyOf": [
+            {
+              "format": "password",
+              "type": "string",
+              "writeOnly": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Brave Search API key. Defaults to BRAVE_API_KEY env var.",
+          "title": "API Key"
+        },
+        "retries": {
+          "default": 0,
+          "description": "Number of retries for failed requests.",
+          "examples": [
+            0,
+            3,
+            5
+          ],
+          "minimum": 0,
+          "title": "Retries",
+          "type": "integer"
+        },
+        "wait_time": {
+          "default": 2,
+          "description": "Time to wait between retries in seconds.",
+          "examples": [
+            1,
+            2,
+            5
+          ],
+          "minimum": 0,
+          "title": "Wait Time",
+          "type": "integer"
+        }
+      },
+      "title": "BraveSearchConfig",
+      "type": "object"
+    },
     "CallableCommandConfig": {
       "additionalProperties": false,
       "description": "Callable command that references a Python function.",
@@ -3447,6 +3504,7 @@
                 "openapi": "#/$defs/OpenAPIToolsetConfig",
                 "process_management": "#/$defs/ProcessManagementToolsetConfig",
                 "remote_code_mode": "#/$defs/RemoteCodeModeToolsetConfig",
+                "search": "#/$defs/SearchToolsetConfig",
                 "tool_management": "#/$defs/ToolManagementToolsetConfig",
                 "upsonic": "#/$defs/UpsonicToolSetConfig",
                 "user_interaction": "#/$defs/UserInteractionToolsetConfig",
@@ -3505,6 +3563,9 @@
               },
               {
                 "$ref": "#/$defs/RemoteCodeModeToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/SearchToolsetConfig"
               },
               {
                 "$ref": "#/$defs/CustomToolsetConfig"
@@ -4011,6 +4072,56 @@
         "import_path"
       ],
       "title": "CustomToolsetConfig",
+      "type": "object"
+    },
+    "DataForSEOConfig": {
+      "additionalProperties": false,
+      "description": "DataForSEO provider configuration.\n\nUses the DataForSEO API for web and news search.\nSupports country and language filtering with device/OS options.",
+      "properties": {
+        "type": {
+          "const": "dataforseo",
+          "default": "dataforseo",
+          "title": "Type",
+          "type": "string"
+        },
+        "login": {
+          "anyOf": [
+            {
+              "format": "password",
+              "type": "string",
+              "writeOnly": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "DataForSEO login. Defaults to DATAFORSEO_LOGIN env var.",
+          "title": "Login"
+        },
+        "password": {
+          "anyOf": [
+            {
+              "format": "password",
+              "type": "string",
+              "writeOnly": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "DataForSEO password. Defaults to DATAFORSEO_PASSWORD env var.",
+          "title": "Password"
+        },
+        "base_url": {
+          "default": "https://api.dataforseo.com/v3",
+          "description": "Base URL for the API.",
+          "title": "Base URL",
+          "type": "string"
+        }
+      },
+      "title": "DataForSEOConfig",
       "type": "object"
     },
     "DaytonaExecutionEnvironmentConfig": {
@@ -4632,6 +4743,35 @@
         "module"
       ],
       "title": "EntryPointToolsetConfig",
+      "type": "object"
+    },
+    "ExaConfig": {
+      "additionalProperties": false,
+      "description": "Exa provider configuration.\n\nUses the Exa API for neural/semantic web search.\nSupports domain filtering and date ranges but not country/language.",
+      "properties": {
+        "type": {
+          "const": "exa",
+          "default": "exa",
+          "title": "Type",
+          "type": "string"
+        },
+        "api_key": {
+          "anyOf": [
+            {
+              "format": "password",
+              "type": "string",
+              "writeOnly": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Exa API key. Defaults to EXA_API_KEY env var.",
+          "title": "API Key"
+        }
+      },
+      "title": "ExaConfig",
       "type": "object"
     },
     "FSSpecToolsetConfig": {
@@ -6066,6 +6206,41 @@
       "title": "IntegrationToolsetConfig",
       "type": "object"
     },
+    "JigsawStackConfig": {
+      "additionalProperties": false,
+      "description": "JigsawStack provider configuration.\n\nUses the JigsawStack API for web search with AI overview.\nLimited filtering options.",
+      "properties": {
+        "type": {
+          "const": "jigsawstack",
+          "default": "jigsawstack",
+          "title": "Type",
+          "type": "string"
+        },
+        "api_key": {
+          "anyOf": [
+            {
+              "format": "password",
+              "type": "string",
+              "writeOnly": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "JigsawStack API key. Defaults to JIGSAWSTACK_API_KEY env var.",
+          "title": "API Key"
+        },
+        "base_url": {
+          "default": "https://api.jigsawstack.com/v1",
+          "description": "Base URL for the API.",
+          "title": "Base URL",
+          "type": "string"
+        }
+      },
+      "title": "JigsawStackConfig",
+      "type": "object"
+    },
     "Jinja2Condition": {
       "additionalProperties": false,
       "description": "Evaluate condition using Jinja2 template.",
@@ -6250,6 +6425,41 @@
         "prompt"
       ],
       "title": "Job[Any, str]",
+      "type": "object"
+    },
+    "KagiConfig": {
+      "additionalProperties": false,
+      "description": "Kagi provider configuration.\n\nUses the Kagi API for web search.\nAlso supports summarization via the Universal Summarizer.",
+      "properties": {
+        "type": {
+          "const": "kagi",
+          "default": "kagi",
+          "title": "Type",
+          "type": "string"
+        },
+        "api_key": {
+          "anyOf": [
+            {
+              "format": "password",
+              "type": "string",
+              "writeOnly": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Kagi API key. Defaults to KAGI_API_KEY env var.",
+          "title": "API Key"
+        },
+        "base_url": {
+          "default": "https://kagi.com/api/v0",
+          "description": "Base URL for the API.",
+          "title": "Base URL",
+          "type": "string"
+        }
+      },
+      "title": "KagiConfig",
       "type": "object"
     },
     "Knowledge": {
@@ -6651,6 +6861,41 @@
         "reference"
       ],
       "title": "LibraryPromptConfig",
+      "type": "object"
+    },
+    "LinkUpConfig": {
+      "additionalProperties": false,
+      "description": "LinkUp provider configuration.\n\nUses the LinkUp API for web search with sourced answers.\nLimited filtering options.",
+      "properties": {
+        "type": {
+          "const": "linkup",
+          "default": "linkup",
+          "title": "Type",
+          "type": "string"
+        },
+        "api_key": {
+          "anyOf": [
+            {
+              "format": "password",
+              "type": "string",
+              "writeOnly": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "LinkUp API key. Defaults to LINKUP_API_KEY env var.",
+          "title": "API Key"
+        },
+        "base_url": {
+          "default": "https://api.linkup.so/v1",
+          "description": "Base URL for the API.",
+          "title": "Base URL",
+          "type": "string"
+        }
+      },
+      "title": "LinkUpConfig",
       "type": "object"
     },
     "LocalExecutionEnvironmentConfig": {
@@ -8234,6 +8479,7 @@
                 "openapi": "#/$defs/OpenAPIToolsetConfig",
                 "process_management": "#/$defs/ProcessManagementToolsetConfig",
                 "remote_code_mode": "#/$defs/RemoteCodeModeToolsetConfig",
+                "search": "#/$defs/SearchToolsetConfig",
                 "tool_management": "#/$defs/ToolManagementToolsetConfig",
                 "upsonic": "#/$defs/UpsonicToolSetConfig",
                 "user_interaction": "#/$defs/UserInteractionToolsetConfig",
@@ -8292,6 +8538,9 @@
               },
               {
                 "$ref": "#/$defs/RemoteCodeModeToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/SearchToolsetConfig"
               },
               {
                 "$ref": "#/$defs/CustomToolsetConfig"
@@ -8988,6 +9237,239 @@
         "type"
       ],
       "title": "SchemaField",
+      "type": "object"
+    },
+    "Search1Config": {
+      "additionalProperties": false,
+      "description": "Search1API provider configuration.\n\nUses the Search1API for web search via Google or Bing.\nSupports language filtering and time ranges.",
+      "properties": {
+        "type": {
+          "const": "search1",
+          "default": "search1",
+          "title": "Type",
+          "type": "string"
+        },
+        "api_key": {
+          "anyOf": [
+            {
+              "format": "password",
+              "type": "string",
+              "writeOnly": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Search1API key. Defaults to SEARCH1API_KEY env var.",
+          "title": "API Key"
+        },
+        "base_url": {
+          "default": "https://api.search1api.com",
+          "description": "Base URL for the API.",
+          "title": "Base URL",
+          "type": "string"
+        }
+      },
+      "title": "Search1Config",
+      "type": "object"
+    },
+    "SearchToolsetConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for web/news search toolset.",
+      "properties": {
+        "namespace": {
+          "default": null,
+          "description": "Optional namespace prefix for tool names",
+          "examples": [
+            "web",
+            "files"
+          ],
+          "title": "Tool namespace",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "type": {
+          "const": "search",
+          "default": "search",
+          "description": "Search toolset.",
+          "title": "Type",
+          "type": "string"
+        },
+        "web_search": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "brave": "#/$defs/BraveSearchConfig",
+                  "dataforseo": "#/$defs/DataForSEOConfig",
+                  "exa": "#/$defs/ExaConfig",
+                  "jigsawstack": "#/$defs/JigsawStackConfig",
+                  "kagi": "#/$defs/KagiConfig",
+                  "linkup": "#/$defs/LinkUpConfig",
+                  "search1": "#/$defs/Search1Config",
+                  "serpapi": "#/$defs/SerpAPIConfig",
+                  "serper": "#/$defs/SerperConfig",
+                  "tavily": "#/$defs/TavilyConfig",
+                  "you": "#/$defs/YouConfig"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/BraveSearchConfig"
+                },
+                {
+                  "$ref": "#/$defs/DataForSEOConfig"
+                },
+                {
+                  "$ref": "#/$defs/ExaConfig"
+                },
+                {
+                  "$ref": "#/$defs/JigsawStackConfig"
+                },
+                {
+                  "$ref": "#/$defs/KagiConfig"
+                },
+                {
+                  "$ref": "#/$defs/LinkUpConfig"
+                },
+                {
+                  "$ref": "#/$defs/Search1Config"
+                },
+                {
+                  "$ref": "#/$defs/SerpAPIConfig"
+                },
+                {
+                  "$ref": "#/$defs/SerperConfig"
+                },
+                {
+                  "$ref": "#/$defs/TavilyConfig"
+                },
+                {
+                  "$ref": "#/$defs/YouConfig"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Web search provider configuration.",
+          "title": "Web search"
+        },
+        "news_search": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "brave": "#/$defs/BraveSearchConfig",
+                  "dataforseo": "#/$defs/DataForSEOConfig",
+                  "serpapi": "#/$defs/SerpAPIConfig",
+                  "serper": "#/$defs/SerperConfig",
+                  "tavily": "#/$defs/TavilyConfig",
+                  "you": "#/$defs/YouConfig"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/BraveSearchConfig"
+                },
+                {
+                  "$ref": "#/$defs/DataForSEOConfig"
+                },
+                {
+                  "$ref": "#/$defs/SerpAPIConfig"
+                },
+                {
+                  "$ref": "#/$defs/SerperConfig"
+                },
+                {
+                  "$ref": "#/$defs/TavilyConfig"
+                },
+                {
+                  "$ref": "#/$defs/YouConfig"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "News search provider configuration.",
+          "title": "News search"
+        }
+      },
+      "title": "SearchToolsetConfig",
+      "type": "object"
+    },
+    "SerpAPIConfig": {
+      "additionalProperties": false,
+      "description": "SerpAPI provider configuration.\n\nUses SerpAPI for web and news search via Google.\nFull support for country, language, and location filtering.",
+      "properties": {
+        "type": {
+          "const": "serpapi",
+          "default": "serpapi",
+          "title": "Type",
+          "type": "string"
+        },
+        "api_key": {
+          "anyOf": [
+            {
+              "format": "password",
+              "type": "string",
+              "writeOnly": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "SerpAPI key. Defaults to SERPAPI_KEY env var.",
+          "title": "API Key"
+        }
+      },
+      "title": "SerpAPIConfig",
+      "type": "object"
+    },
+    "SerperConfig": {
+      "additionalProperties": false,
+      "description": "Serper provider configuration.\n\nUses the Serper.dev API for web and news search via Google.\nSupports country, language, and location filtering.",
+      "properties": {
+        "type": {
+          "const": "serper",
+          "default": "serper",
+          "title": "Type",
+          "type": "string"
+        },
+        "api_key": {
+          "anyOf": [
+            {
+              "format": "password",
+              "type": "string",
+              "writeOnly": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Serper.dev API key. Defaults to SERPER_API_KEY env var.",
+          "title": "API Key"
+        },
+        "base_url": {
+          "default": "https://google.serper.dev",
+          "description": "Base URL for the API.",
+          "title": "Base URL",
+          "type": "string"
+        }
+      },
+      "title": "SerperConfig",
       "type": "object"
     },
     "SessionQuery": {
@@ -9807,6 +10289,35 @@
         "response_schema"
       ],
       "title": "StructuredResponseConfig",
+      "type": "object"
+    },
+    "TavilyConfig": {
+      "additionalProperties": false,
+      "description": "Tavily provider configuration.\n\nUses the Tavily API for web and news search.\nSupports domain filtering and search depth options.",
+      "properties": {
+        "type": {
+          "const": "tavily",
+          "default": "tavily",
+          "title": "Type",
+          "type": "string"
+        },
+        "api_key": {
+          "anyOf": [
+            {
+              "format": "password",
+              "type": "string",
+              "writeOnly": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Tavily API key. Defaults to TAVILY_API_KEY env var.",
+          "title": "API Key"
+        }
+      },
+      "title": "TavilyConfig",
       "type": "object"
     },
     "TeamConfig": {
@@ -11053,6 +11564,41 @@
         "words"
       ],
       "title": "WordMatchCondition",
+      "type": "object"
+    },
+    "YouConfig": {
+      "additionalProperties": false,
+      "description": "You.com provider configuration.\n\nUses the You.com API for web and news search.\nSupports country, language, and freshness filtering.",
+      "properties": {
+        "type": {
+          "const": "you",
+          "default": "you",
+          "title": "Type",
+          "type": "string"
+        },
+        "api_key": {
+          "anyOf": [
+            {
+              "format": "password",
+              "type": "string",
+              "writeOnly": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "You.com API key. Defaults to YOU_API_KEY env var.",
+          "title": "API Key"
+        },
+        "base_url": {
+          "default": "https://api.ydc-index.io",
+          "description": "Base URL for the API.",
+          "title": "Base URL",
+          "type": "string"
+        }
+      },
+      "title": "YouConfig",
       "type": "object"
     },
     "YouTubeConverterConfig": {
