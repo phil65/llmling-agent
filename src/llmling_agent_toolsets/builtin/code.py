@@ -3,62 +3,47 @@
 from __future__ import annotations
 
 import importlib.util
+from pathlib import Path
 import re
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from llmling_agent.resource_providers import StaticResourceProvider
+from fsspec import AbstractFileSystem
+
+from llmling_agent.log import get_logger
+from llmling_agent.resource_providers import ResourceProvider
 from llmling_agent.tools.base import Tool
 
 
-async def format_code(code: str, language: str | None = None) -> str:
-    """Format and lint code, returning a concise summary.
+if TYPE_CHECKING:
+    import fsspec  # type: ignore[import-untyped]
 
-    Args:
-        code: Source code to format and lint
-        language: Programming language (auto-detected if not provided)
+logger = get_logger(__name__)
 
-    Returns:
-        Short status message about formatting/linting results
-    """
-    from anyenv.language_formatters import FormatterRegistry
-
-    registry = FormatterRegistry("local")
-    registry.register_default_formatters()
-
-    # Get formatter by language or try to detect
-    formatter = None
-    if language:
-        formatter = registry.get_formatter_by_language(language)
-
-    if not formatter:
-        # Try to detect from content
-        detected = registry.detect_language_from_content(code)
-        if detected:
-            formatter = registry.get_formatter_by_language(detected)
-
-    if not formatter:
-        return f"❌ Unsupported language: {language or 'unknown'}"
-
-    try:
-        result = await formatter.format_and_lint_string(code, fix=True)
-
-        if result.success:
-            changes = "formatted" if result.format_result.formatted else "no changes"
-            lint_status = "clean" if result.lint_result.success else "has issues"
-            duration = f"{result.total_duration:.2f}s"
-            return f"✅ Code {changes}, {lint_status} ({duration})"
-        errors = []
-        if not result.format_result.success:
-            errors.append(f"format: {result.format_result.error_type}")
-        if not result.lint_result.success:
-            errors.append(f"lint: {result.lint_result.error_type}")
-        return f"❌ Failed: {', '.join(errors)}"
-
-    except Exception as e:  # noqa: BLE001
-        return f"❌ Error: {type(e).__name__}"
+# Map file extensions to ast-grep language identifiers
+EXTENSION_TO_LANGUAGE: dict[str, str] = {
+    ".py": "python",
+    ".js": "javascript",
+    ".jsx": "javascript",
+    ".ts": "typescript",
+    ".tsx": "tsx",
+    ".rs": "rust",
+    ".go": "go",
+    ".c": "c",
+    ".h": "c",
+    ".cpp": "cpp",
+    ".cc": "cpp",
+    ".cxx": "cpp",
+    ".hpp": "cpp",
+    ".java": "java",
+    ".kt": "kotlin",
+    ".rb": "ruby",
+    ".swift": "swift",
+    ".lua": "lua",
+    ".cs": "csharp",
+}
 
 
-def _substitute_metavars(match, fix_pattern: str, source_code: str) -> str:
+def _substitute_metavars(match: Any, fix_pattern: str, source_code: str) -> str:
     """Substitute $METAVARS and $$$METAVARS in fix pattern with captured values."""
     result = fix_pattern
 
@@ -66,7 +51,6 @@ def _substitute_metavars(match, fix_pattern: str, source_code: str) -> str:
     for metavar in re.findall(r"\$\$\$([A-Z_][A-Z0-9_]*)", fix_pattern):
         captured_list = match.get_multiple_matches(metavar)
         if captured_list:
-            # Extract original text span to preserve formatting
             first = captured_list[0]
             last = captured_list[-1]
             start_idx = first.range().start.index
@@ -83,125 +67,260 @@ def _substitute_metavars(match, fix_pattern: str, source_code: str) -> str:
     return result
 
 
-async def ast_grep(
-    code: str,
-    language: str,
-    rule: dict[str, Any],
-    fix: str | None = None,
-) -> dict[str, Any]:
-    """Search or transform code using AST patterns.
-
-    Uses ast-grep for structural code search and rewriting based on abstract syntax trees.
-    More precise than regex - understands code structure.
-
-    Args:
-        code: Source code to analyze
-        language: Programming language (python, javascript, typescript, rust, go, etc.)
-        rule: AST matching rule dict (see examples below)
-        fix: Optional replacement pattern using $METAVARS from the rule
-
-    Returns:
-        Dict with matches and optionally transformed code
-
-    ## Pattern Syntax
-
-    - `$NAME` - captures single node (identifier, expression, etc.)
-    - `$$$ITEMS` - captures multiple nodes (arguments, statements, etc.)
-    - Patterns match structurally, not textually
-
-    ## Rule Keys
-
-    | Key | Description | Example |
-    |-----|-------------|---------|
-    | pattern | Code pattern with metavars | `"print($MSG)"` |
-    | kind | AST node type | `"function_definition"` |
-    | regex | Regex on node text | `"^test_"` |
-    | inside | Must be inside matching node | `{"kind": "class_definition"}` |
-    | has | Must contain matching node | `{"pattern": "return"}` |
-    | all | All rules must match | `[{"kind": "call"}, {"has": ...}]` |
-    | any | Any rule must match | `[{"pattern": "print"}, {"pattern": "log"}]` |
-
-    ## Examples
-
-    **Find all print calls:**
-    ```
-    rule={"pattern": "print($MSG)"}
-    ```
-
-    **Find and replace console.log:**
-    ```
-    rule={"pattern": "console.log($MSG)"}
-    fix="logger.info($MSG)"
-    ```
-
-    **Find functions containing await:**
-    ```
-    rule={
-        "kind": "function_definition",
-        "has": {"pattern": "await $EXPR"}
-    }
-    ```
-
-    **Find unused imports (no references):**
-    ```
-    rule={
-        "pattern": "import $MOD",
-        "not": {"precedes": {"pattern": "$MOD"}}
-    }
-    ```
-
-    **Rename function arguments:**
-    ```
-    rule={"pattern": "def $FN($$$ARGS): $$$BODY"}
-    fix="def $FN($$$ARGS) -> None: $$$BODY"
-    ```
-    """
-    from ast_grep_py import SgRoot
-
-    root = SgRoot(code, language)
-    node = root.root()
-
-    matches = node.find_all(**rule)
-
-    result: dict[str, Any] = {
-        "match_count": len(matches),
-        "matches": [
-            {
-                "text": m.text(),
-                "range": {
-                    "start": {"line": m.range().start.line, "column": m.range().start.column},
-                    "end": {"line": m.range().end.line, "column": m.range().end.column},
-                },
-                "kind": m.kind(),
-            }
-            for m in matches
-        ],
-    }
-
-    if fix and matches:
-        edits = [m.replace(_substitute_metavars(m, fix, code)) for m in matches]
-        result["fixed_code"] = node.commit_edits(edits)
-
-    return result
+def _detect_language(path: str) -> str | None:
+    """Detect ast-grep language from file extension."""
+    suffix = Path(path).suffix.lower()
+    return EXTENSION_TO_LANGUAGE.get(suffix)
 
 
-class CodeTools(StaticResourceProvider):
-    """Provider for code formatting and linting tools."""
+class CodeTools(ResourceProvider):
+    """Provider for code analysis and transformation tools."""
 
-    def __init__(self, name: str = "code") -> None:
-        tools = [Tool.from_callable(format_code, source="builtin", category="execute")]
+    def __init__(
+        self,
+        filesystem: fsspec.AbstractFileSystem | None = None,
+        name: str = "code",
+        cwd: str | None = None,
+    ) -> None:
+        """Initialize with an fsspec filesystem.
+
+        Args:
+            filesystem: The fsspec filesystem instance to operate on
+            name: Name for this toolset provider
+            cwd: Optional cwd to resolve relative paths against
+        """
+        from fsspec.asyn import AsyncFileSystem  # type: ignore[import-untyped]
+        from fsspec.implementations.asyn_wrapper import (  # type: ignore[import-untyped]
+            AsyncFileSystemWrapper,
+        )
+        from morefs.asyn_local import AsyncLocalFileSystem
+
+        super().__init__(name=name)
+        match filesystem:
+            case AsyncFileSystem():
+                self.fs = filesystem
+            case AbstractFileSystem():
+                self.fs = AsyncFileSystemWrapper(filesystem)
+            case None:
+                self.fs = AsyncLocalFileSystem()
+        self.fs = (
+            filesystem
+            if isinstance(filesystem, AsyncFileSystem)
+            else AsyncFileSystemWrapper(filesystem)
+        )
+        self.cwd = cwd
+        self._tools: list[Tool] | None = None
+
+    def _resolve_path(self, path: str) -> str:
+        """Resolve a potentially relative path to an absolute path."""
+        if self.cwd and not (path.startswith("/") or (len(path) > 1 and path[1] == ":")):
+            return str(Path(self.cwd) / path)
+        return path
+
+    async def get_tools(self) -> list[Tool]:
+        """Get code analysis tools."""
+        if self._tools is not None:
+            return self._tools
+
+        self._tools = [
+            Tool.from_callable(
+                self._format_code,
+                name_override="format_code",
+                description_override="Format and lint a code file",
+                source=self.name,
+                category="execute",
+            ),
+        ]
 
         if importlib.util.find_spec("ast_grep_py"):
-            tools.append(
+            self._tools.append(
                 Tool.from_callable(
-                    ast_grep,
-                    source="builtin",
+                    self._ast_grep,
+                    name_override="ast_grep",
+                    description_override="Search or transform code using AST patterns",
+                    source=self.name,
                     category="search",
-                    description_override=(
-                        "Search or transform code using AST patterns. "
-                        "More precise than regex - understands code structure."
-                    ),
                 )
             )
 
-        super().__init__(name=name, tools=tools)
+        return self._tools
+
+    async def _format_code(self, path: str, language: str | None = None) -> str:
+        """Format and lint a code file, returning a concise summary.
+
+        Args:
+            path: Path to the file to format
+            language: Programming language (auto-detected from extension if not provided)
+
+        Returns:
+            Short status message about formatting/linting results
+        """
+        from anyenv.language_formatters import FormatterRegistry
+
+        resolved = self._resolve_path(path)
+
+        try:
+            content = await self.fs._cat_file(resolved)
+            code = content.decode("utf-8") if isinstance(content, bytes) else content
+        except FileNotFoundError:
+            return f"❌ File not found: {path}"
+
+        registry = FormatterRegistry("local")
+        registry.register_default_formatters()
+
+        # Get formatter by language or detect from extension/content
+        formatter = None
+        if language:
+            formatter = registry.get_formatter_by_language(language)
+
+        if not formatter:
+            detected = _detect_language(path)
+            if detected:
+                formatter = registry.get_formatter_by_language(detected)
+
+        if not formatter:
+            detected = registry.detect_language_from_content(code)
+            if detected:
+                formatter = registry.get_formatter_by_language(detected)
+
+        if not formatter:
+            return f"❌ Unsupported language: {language or 'unknown'}"
+
+        try:
+            result = await formatter.format_and_lint_string(code, fix=True)
+
+            if result.success:
+                # Write back if formatted
+                if result.format_result.formatted and result.format_result.output:
+                    await self.fs._pipe_file(resolved, result.format_result.output.encode("utf-8"))
+                    changes = "formatted and saved"
+                else:
+                    changes = "no changes needed"
+                lint_status = "clean" if result.lint_result.success else "has issues"
+                duration = f"{result.total_duration:.2f}s"
+                return f"✅ {path}: {changes}, {lint_status} ({duration})"
+
+            errors = []
+            if not result.format_result.success:
+                errors.append(f"format: {result.format_result.error_type}")
+            if not result.lint_result.success:
+                errors.append(f"lint: {result.lint_result.error_type}")
+            return f"❌ Failed: {', '.join(errors)}"
+
+        except Exception as e:  # noqa: BLE001
+            return f"❌ Error: {type(e).__name__}: {e}"
+
+    async def _ast_grep(
+        self,
+        path: str,
+        rule: dict[str, Any],
+        fix: str | None = None,
+        dry_run: bool = True,
+    ) -> dict[str, Any]:
+        """Search or transform code in a file using AST patterns.
+
+        Uses ast-grep for structural code search and rewriting based on abstract
+        syntax trees. More precise than regex - understands code structure.
+
+        Args:
+            path: Path to the file to analyze
+            rule: AST matching rule dict (see examples below)
+            fix: Optional replacement pattern using $METAVARS from the rule
+            dry_run: If True, show changes without applying. If False, write changes.
+
+        Returns:
+            Dict with matches and optionally transformed code
+
+        ## Pattern Syntax
+
+        - `$NAME` - captures single node (identifier, expression, etc.)
+        - `$$$ITEMS` - captures multiple nodes (arguments, statements, etc.)
+        - Patterns match structurally, not textually
+
+        ## Rule Keys
+
+        | Key | Description | Example |
+        |-----|-------------|---------|
+        | pattern | Code pattern with metavars | `"print($MSG)"` |
+        | kind | AST node type | `"function_definition"` |
+        | regex | Regex on node text | `"^test_"` |
+        | inside | Must be inside matching node | `{"kind": "class_definition"}` |
+        | has | Must contain matching node | `{"pattern": "return"}` |
+        | all | All rules must match | `[{"kind": "call"}, {"has": ...}]` |
+        | any | Any rule must match | `[{"pattern": "print"}, {"pattern": "log"}]` |
+
+        ## Examples
+
+        **Find all print calls:**
+        ```
+        rule={"pattern": "print($MSG)"}
+        ```
+
+        **Find and replace console.log:**
+        ```
+        rule={"pattern": "console.log($MSG)"}
+        fix="logger.info($MSG)"
+        ```
+
+        **Find functions containing await:**
+        ```
+        rule={
+            "kind": "function_definition",
+            "has": {"pattern": "await $EXPR"}
+        }
+        ```
+        """
+        from ast_grep_py import SgRoot
+
+        resolved = self._resolve_path(path)
+
+        # Detect language from extension
+        language = _detect_language(path)
+        if not language:
+            return {"error": f"Cannot detect language for: {path}"}
+
+        # Read file
+        try:
+            content = await self.fs._cat_file(resolved)
+            code = content.decode("utf-8") if isinstance(content, bytes) else content
+        except FileNotFoundError:
+            return {"error": f"File not found: {path}"}
+
+        root = SgRoot(code, language)
+        node = root.root()
+        matches = node.find_all(**rule)
+
+        result: dict[str, Any] = {
+            "path": path,
+            "language": language,
+            "match_count": len(matches),
+            "matches": [
+                {
+                    "text": m.text(),
+                    "range": {
+                        "start": {
+                            "line": m.range().start.line,
+                            "column": m.range().start.column,
+                        },
+                        "end": {
+                            "line": m.range().end.line,
+                            "column": m.range().end.column,
+                        },
+                    },
+                    "kind": m.kind(),
+                }
+                for m in matches
+            ],
+        }
+
+        if fix and matches:
+            edits = [m.replace(_substitute_metavars(m, fix, code)) for m in matches]
+            fixed_code = node.commit_edits(edits)
+            result["fixed_code"] = fixed_code
+            result["dry_run"] = dry_run
+
+            if not dry_run:
+                await self.fs._pipe_file(resolved, fixed_code.encode("utf-8"))
+                result["written"] = True
+
+        return result
