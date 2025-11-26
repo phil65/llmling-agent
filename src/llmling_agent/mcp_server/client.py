@@ -139,7 +139,7 @@ class MCPClient:
         message: str,
         response_type: type[T],
         params: ElicitRequestParams,
-        context: RequestContext,
+        context: RequestContext[Any, Any],
     ) -> T | dict[str, Any] | Any:
         """Forwarding callback that delegates to current handler.
 
@@ -321,7 +321,7 @@ class MCPClient:
                 message: str,
                 response_type: type[T],
                 params: ElicitRequestParams,
-                context: RequestContext,
+                context: RequestContext[Any, Any],
             ) -> T | dict[str, Any] | Any:
                 from fastmcp.client.elicitation import ElicitResult
                 from mcp.types import ElicitResult as MCPElicitResult, ErrorData
