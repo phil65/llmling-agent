@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from contextlib import AsyncExitStack
-from typing import TYPE_CHECKING, Any, Self, assert_never, cast
+from typing import TYPE_CHECKING, Any, Self, cast
 
 from pydantic_ai import UsageLimits
 
@@ -19,13 +19,11 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
     from types import TracebackType
 
-    from fastmcp.client.elicitation import ElicitResult
     from mcp import types
     from mcp.shared.context import RequestContext
     from mcp.types import SamplingMessage
 
     from llmling_agent.models.content import BaseContent
-    from llmling_agent.ui.base import InputProvider
     from llmling_agent_config.mcp_server import MCPServerConfig
 
 
@@ -40,7 +38,6 @@ class MCPManager:
         name: str = "mcp",
         owner: str | None = None,
         servers: Sequence[MCPServerConfig | str] | None = None,
-        input_provider: InputProvider | None = None,
         accessible_roots: list[str] | None = None,
     ) -> None:
         self.name = name
@@ -48,7 +45,6 @@ class MCPManager:
         self.servers: list[MCPServerConfig] = []
         for server in servers or []:
             self.add_server_config(server)
-        self.input_provider = input_provider
         self.providers: list[MCPResourceProvider] = []
         self.aggregating_provider = AggregatingResourceProvider(
             providers=cast(list[ResourceProvider], self.providers),
@@ -83,35 +79,6 @@ class MCPManager:
         exc_tb: TracebackType | None,
     ) -> None:
         await self.cleanup()
-
-    async def _elicitation_callback(
-        self,
-        message: str,
-        response_type: type[Any],
-        params: types.ElicitRequestParams,
-        context: RequestContext[Any, Any, Any],
-    ) -> ElicitResult[dict[str, Any]] | dict[str, Any] | None:
-        """Handle elicitation requests from MCP server."""
-        from fastmcp.client.elicitation import ElicitResult
-        from mcp.types import ElicitResult as MCPElicitResult, ErrorData
-
-        if self.input_provider:
-            match await self.input_provider.get_elicitation(params):
-                case MCPElicitResult(action="accept", content=content):
-                    return content
-                case MCPElicitResult(action="cancel"):
-                    return ElicitResult(action="cancel")
-                case MCPElicitResult(action="decline"):
-                    return ElicitResult(action="decline")
-                case MCPElicitResult():
-                    msg = "Invalid elicitation result"
-                    raise ValueError(msg)
-                case ErrorData():
-                    return ElicitResult(action="decline")
-                case _ as unreachable:
-                    assert_never(unreachable)
-
-        return ElicitResult(action="decline")
 
     async def _sampling_callback(
         self,
@@ -166,7 +133,6 @@ class MCPManager:
             name=f"{self.name}_{config.client_id}",
             owner=self.owner,
             source="pool" if self.owner == "pool" else "node",
-            elicitation_callback=self._elicitation_callback,
             sampling_callback=self._sampling_callback,
             accessible_roots=self._accessible_roots,
         )
@@ -198,7 +164,6 @@ class MCPManager:
             name=f"{self.name}_{config.client_id}",
             owner=self.owner,
             source="pool" if self.owner == "pool" else "node",
-            elicitation_callback=self._elicitation_callback,
             sampling_callback=self._sampling_callback,
             accessible_roots=self._accessible_roots,
         )

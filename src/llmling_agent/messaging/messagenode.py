@@ -31,7 +31,6 @@ if TYPE_CHECKING:
     from llmling_agent.storage import StorageManager
     from llmling_agent.talk import Talk, TeamTalk
     from llmling_agent.talk.stats import AggregatedMessageStats, MessageStats
-    from llmling_agent.ui.base import InputProvider
     from llmling_agent_config.forward_targets import ConnectionType
     from llmling_agent_config.mcp_server import MCPServerConfig
 
@@ -52,7 +51,6 @@ class MessageNode[TDeps, TResult](ABC):
         self,
         name: str | None = None,
         description: str | None = None,
-        input_provider: InputProvider | None = None,
         mcp_servers: Sequence[str | MCPServerConfig] | None = None,
         agent_pool: AgentPool[Any] | None = None,
         enable_logging: bool = True,
@@ -71,9 +69,7 @@ class MessageNode[TDeps, TResult](ABC):
         self.connections = ConnectionManager(self)
         self._events = EventManager(self, enable_events=True)
         name_ = f"node_{self._name}"
-        self.mcp = MCPManager(
-            name_, servers=mcp_servers, input_provider=input_provider, owner=self.name
-        )
+        self.mcp = MCPManager(name_, servers=mcp_servers, owner=self.name)
         self.enable_db_logging = enable_logging
         self.conversation_id = str(uuid4())
         # Connect to the combined signal to capture all messages

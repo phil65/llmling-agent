@@ -230,7 +230,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             mcp_servers.extend(cfg.get_mcp_servers())
         super().__init__(
             name=name,
-            input_provider=ctx.get_input_provider(),
             description=description,
             enable_logging=memory_cfg.enable,
             mcp_servers=mcp_servers,

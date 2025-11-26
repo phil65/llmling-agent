@@ -15,7 +15,6 @@ from llmling_agent_config.resources import ResourceInfo
 if TYPE_CHECKING:
     from typing import Literal
 
-    from fastmcp.client.elicitation import ElicitationHandler
     from fastmcp.client.sampling import ClientSamplingHandler
 
     from llmling_agent.prompts.prompts import MCPClientPrompt
@@ -35,7 +34,6 @@ class MCPResourceProvider(ResourceProvider):
         name: str = "mcp",
         owner: str | None = None,
         source: Literal["pool", "node"] = "node",
-        elicitation_callback: ElicitationHandler | None = None,
         sampling_callback: ClientSamplingHandler[Any] | None = None,
         accessible_roots: list[str] | None = None,
     ) -> None:
@@ -46,7 +44,6 @@ class MCPResourceProvider(ResourceProvider):
         self.source = source
         self.exit_stack = AsyncExitStack()
         self._accessible_roots = accessible_roots
-        self._elicitation_callback = elicitation_callback
         self._sampling_callback = sampling_callback
 
         # Tool caching
@@ -61,7 +58,6 @@ class MCPResourceProvider(ResourceProvider):
 
         self.client = MCPClient(
             config=self.server,
-            elicitation_callback=self._elicitation_callback,
             sampling_callback=self._sampling_callback,
             accessible_roots=self._accessible_roots,
             tool_change_callback=self._on_tools_changed,

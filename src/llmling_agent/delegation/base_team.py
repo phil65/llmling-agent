@@ -80,7 +80,6 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
             mcp_servers.extend(cfg.get_mcp_servers())
         super().__init__(
             name=self._name,
-            input_provider=self.context.get_input_provider(),
             mcp_servers=mcp_servers,
             description=description,
         )

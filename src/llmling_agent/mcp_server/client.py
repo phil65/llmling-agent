@@ -70,7 +70,6 @@ class MCPClient:
     def __init__(
         self,
         config: MCPServerConfig,
-        elicitation_callback: ElicitationHandler | None = None,
         sampling_callback: ClientSamplingHandler[Any] | None = None,
         message_handler: MessageHandlerT | MessageHandler | None = None,
         accessible_roots: list[str] | None = None,
@@ -78,7 +77,6 @@ class MCPClient:
         prompt_change_callback: Callable[[], Awaitable[None]] | None = None,
         resource_change_callback: Callable[[], Awaitable[None]] | None = None,
     ) -> None:
-        self._default_elicitation_callback = elicitation_callback
         # Mutable handler swapped per call_tool for dynamic elicitation
         self._current_elicitation_handler: ElicitationHandler | None = None
         self.config = config
@@ -153,10 +151,7 @@ class MCPClient:
         # Try current handler first (set per call_tool)
         if self._current_elicitation_handler:
             return await self._current_elicitation_handler(message, response_type, params, context)
-        # Fall back to default callback if configured
-        if self._default_elicitation_callback:
-            return await self._default_elicitation_callback(message, response_type, params, context)
-        # No handler available
+        # No handler available - decline by default
         return ElicitResult(action="decline")
 
     def _get_client(
