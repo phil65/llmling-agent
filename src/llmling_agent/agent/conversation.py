@@ -12,6 +12,7 @@ from psygnal import Signal
 from upathtools import read_path, to_upath
 
 from llmling_agent.log import get_logger
+from llmling_agent.storage import StorageManager
 from llmling_agent.utils.count_tokens import count_tokens
 from llmling_agent.utils.now import get_now
 from llmling_agent_config.session import SessionQuery
@@ -30,7 +31,6 @@ if TYPE_CHECKING:
     from llmling_agent.messaging import ChatMessage
     from llmling_agent.prompts.conversion_manager import ConversionManager
     from llmling_agent.prompts.prompts import PromptType
-    from llmling_agent.storage import StorageManager
     from llmling_agent_config.session import MemoryConfig
 
 logger = get_logger(__name__)
@@ -50,10 +50,11 @@ class MessageHistory:
 
     def __init__(
         self,
-        storage: StorageManager,
-        converter: ConversionManager,
-        session_config: MemoryConfig | None = None,
+        storage: StorageManager | None = None,
+        converter: ConversionManager | None = None,
         *,
+        messages: list[ChatMessage[Any]] | None = None,
+        session_config: MemoryConfig | None = None,
         resources: Sequence[PromptType | str] = (),
     ) -> None:
         """Initialize conversation manager.
@@ -61,14 +62,21 @@ class MessageHistory:
         Args:
             storage: Storage manager for persistence
             converter: Content converter for file processing
+            messages: Optional list of initial messages
             session_config: Optional MemoryConfig
             resources: Optional paths to load as context
         """
-        from llmling_agent.messaging import ChatMessageContainer
+        from llmling_agent.messaging import ChatMessageList
+        from llmling_agent.prompts.conversion_manager import ConversionManager
+        from llmling_agent_config.storage import MemoryStorageConfig, StorageConfig
 
-        self._storage = storage
-        self._converter = converter
-        self.chat_messages = ChatMessageContainer()
+        self._storage = storage or StorageManager(
+            config=StorageConfig(providers=[MemoryStorageConfig()])
+        )
+        self._converter = converter or ConversionManager([])
+        self.chat_messages = ChatMessageList()
+        if messages:
+            self.chat_messages.extend(messages)
         self._last_messages: list[ChatMessage[Any]] = []
         self._pending_messages: deque[ChatMessage[Any]] = deque()
         self._config = session_config
@@ -315,9 +323,9 @@ class MessageHistory:
 
     def clear(self) -> None:
         """Clear conversation history and prompts."""
-        from llmling_agent.messaging import ChatMessageContainer
+        from llmling_agent.messaging import ChatMessageList
 
-        self.chat_messages = ChatMessageContainer()
+        self.chat_messages = ChatMessageList()
         self._last_messages = []
         event = self.HistoryCleared(session_id=str(self.id))
         self.history_cleared.emit(event)
@@ -339,12 +347,11 @@ class MessageHistory:
         """
         from toprompt import to_prompt
 
+        from llmling_agent.messaging import ChatMessage, ChatMessageList
+
         old_history = self.chat_messages.copy()
-
-        from llmling_agent.messaging import ChatMessage, ChatMessageContainer
-
         try:
-            messages: Sequence[ChatMessage[Any]] = ChatMessageContainer()
+            messages: Sequence[ChatMessage[Any]] = ChatMessageList()
             if history is not None:
                 if isinstance(history, SessionQuery):
                     messages = await self.storage.filter_messages(history)
@@ -356,7 +363,7 @@ class MessageHistory:
                     ]
 
             if replace_history:
-                self.chat_messages = ChatMessageContainer(messages)
+                self.chat_messages = ChatMessageList(messages)
             else:
                 self.chat_messages.extend(messages)
 

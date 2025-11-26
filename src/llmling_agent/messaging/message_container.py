@@ -25,7 +25,7 @@ logger = get_logger(__name__)
 DEFAULT_TOKEN_MODEL = "gpt-4.1"
 
 
-class ChatMessageContainer(EventedList[ChatMessage[Any]]):
+class ChatMessageList(EventedList[ChatMessage[Any]]):
     """Container for tracking and managing chat messages.
 
     Extends EventedList to provide:
