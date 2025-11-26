@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from functools import wraps
 import inspect
 from typing import TYPE_CHECKING, Any
@@ -53,11 +54,14 @@ def wrap_tool[TReturn](
                     agent_ctx.data = ctx.deps
 
                 if agent_ctx_key:  # inject AgentContext
-                    # Populate tool execution fields from RunContext
-                    agent_ctx.tool_name = ctx.tool_name
-                    agent_ctx.tool_call_id = ctx.tool_call_id
-                    agent_ctx.tool_input = kwargs.copy()
-                    kwargs[agent_ctx_key] = agent_ctx
+                    # Create per-call copy with tool execution fields (avoids race condition)
+                    call_ctx = replace(
+                        agent_ctx,
+                        tool_name=ctx.tool_name,
+                        tool_call_id=ctx.tool_call_id,
+                        tool_input=kwargs.copy(),
+                    )
+                    kwargs[agent_ctx_key] = call_ctx
 
                 if run_ctx_key:
                     # Pass RunContext to original function
