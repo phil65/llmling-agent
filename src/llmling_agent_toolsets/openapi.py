@@ -191,7 +191,7 @@ class OpenAPITools(ResourceProvider):
 
     async def _load_spec(self) -> Schema:
         import httpx
-        import yaml
+        import yamling
 
         # Create client if needed
         if not self._client:
@@ -206,7 +206,7 @@ class OpenAPITools(ResourceProvider):
             else:
                 content = await read_path(self.spec_url)
 
-            self._spec = yaml.safe_load(content)
+            self._spec = yamling.load_yaml(content, verify_type=dict)
             assert self._spec
             self._schemas = self._spec.get("components", {}).get("schemas", {})
             self._operations = parse_operations(self._spec.get("paths", {}))

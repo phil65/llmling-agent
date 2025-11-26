@@ -348,8 +348,6 @@ class MCPRegistryError(Exception):
 if __name__ == "__main__":
     import asyncio
 
-    import devtools
-
     async def main() -> None:
         """Test the MCP registry client with caching and transport resolution."""
         async with MCPRegistryClient() as client:
@@ -373,6 +371,6 @@ if __name__ == "__main__":
                 except UnsupportedTransportError as e:
                     print(f"Transport error: {e}")
 
-                devtools.debug(server)
+                print(server)
 
     asyncio.run(main())

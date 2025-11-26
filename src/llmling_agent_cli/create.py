@@ -34,7 +34,6 @@ def create(
     from textual.containers import ScrollableContainer
     from textual.widgets import Header, Input, Static
     from upath import UPath
-    from yaml import YAMLError
 
     from llmling_agent import Agent, AgentsManifest
     from llmling_agent.agent.architect import create_architect_agent
@@ -139,6 +138,8 @@ def create(
 
         async def on_input_submitted(self, message: Input.Submitted) -> None:
             """Generate config when user hits enter."""
+            from yamling import YAMLError
+
             yaml = await self.agent.run(message.value)
             self.current_config = yaml.content.code
             try:

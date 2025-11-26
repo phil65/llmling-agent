@@ -82,9 +82,7 @@ async def get_mcp_servers(
 if __name__ == "__main__":
     import asyncio
 
-    import devtools
-
     servers = asyncio.run(get_mcp_servers(count_per_page=100))
     print(f"Found {len(servers)} MCP servers")
     for server in servers:
-        devtools.debug(server)
+        print(server)
