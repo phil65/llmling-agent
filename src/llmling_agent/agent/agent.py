@@ -592,6 +592,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         deps: TDeps | None = None,
         input_provider: InputProvider | None = None,
         wait_for_connections: bool | None = None,
+        instructions: str | None = None,
     ) -> ChatMessage[OutputDataT]: ...
 
     @overload
@@ -609,6 +610,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         deps: TDeps | None = None,
         input_provider: InputProvider | None = None,
         wait_for_connections: bool | None = None,
+        instructions: str | None = None,
     ) -> ChatMessage[OutputTypeT]: ...
 
     @method_spawner  # type: ignore[misc]
@@ -626,6 +628,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         deps: TDeps | None = None,
         input_provider: InputProvider | None = None,
         wait_for_connections: bool | None = None,
+        instructions: str | None = None,
     ) -> ChatMessage[Any]:
         """Run agent with prompt and get response.
 
@@ -646,6 +649,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             deps: Optional dependencies for the agent
             input_provider: Optional input provider for the agent
             wait_for_connections: Whether to wait for connected agents to complete
+            instructions: Optional instructions to override the agent's system prompt
 
         Returns:
             Result containing response and run information
@@ -692,6 +696,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                 message_history=[m for run in message_history_list for m in run.to_pydantic_ai()],
                 usage_limits=usage_limits,
                 event_stream_handler=event_distributor,
+                instructions=instructions,
             )
 
             response_time = time.perf_counter() - start_time
@@ -741,6 +746,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         input_provider: InputProvider | None = None,
         wait_for_connections: bool | None = None,
         deps: TDeps | None = None,
+        instructions: str | None = None,
     ) -> AsyncIterator[RichAgentStreamEvent[OutputDataT]]:
         """Run agent with prompt and get a streaming response.
 
@@ -759,6 +765,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             input_provider: Optional input provider for the agent
             wait_for_connections: Whether to wait for connected agents to complete
             deps: Optional dependencies for the agent
+            instructions: Optional instructions to override the agent's system prompt
         Returns:
             An async iterator yielding streaming events with final message embedded.
 
@@ -785,6 +792,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                 deps=deps,  # type: ignore[arg-type]
                 message_history=[m for run in message_history for m in run.to_pydantic_ai()],
                 usage_limits=usage_limits,
+                instructions=instructions,
             )
 
             # Stream events through merge_queue for progress events
