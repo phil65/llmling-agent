@@ -34,20 +34,25 @@ dependencies = [
   "bigtree>=0.23.1",
   "datamodel-code-generator>=0.35.0",
   "docstring-parser>=0.17.0",
+  "epregistry",
   "evented>=1.0.5",
   "fastmcp>=2.12.4",
-  "griffe>=1.5.4",
+  "fsspec",
+  "httpx",
+  "jinja2",
   "jinjarope",
   "llmling-models>=0.2.0",
   "logfire",
   "mcp>=1.2.0",
   "mcp-interviewer>=0.0.12",
+  "platformdirs",
   "promptantic>=0.4.5",
   "psygnal>=0.11.1",
   "pydantic>=2.12.0",
   "pydantic-ai-slim>=1.0.0",
   # Only add below (Copier)
   "python-dotenv>=1.0.1",
+  "rich",
   "schemez",
   # "schemez @ file:///home/phil65/dev/oss/schemez",
   "slashed>=0.1.0",
@@ -57,6 +62,7 @@ dependencies = [
   "tokonomics>=0.1.2",
   "toprompt>=0.0.1",
   "typer",
+  "universal-pathlib",
   "upathtools>=0.1.0",
   "yamling>=2.0.2",
 ]
@@ -82,7 +88,7 @@ llmling_agent = "llmling_agent.utils:setup_env"
 acp = "acp.filesystem:ACPPath"
 
 [project.optional-dependencies]
-a2a = ["fasta2a"]
+a2a = ["fasta2a", "starlette"]
 braintrust = ["braintrust", "autoevals"]
 clipboard = ["clipman"]
 coding = ["ast-grep-py>=0.40.0"]
@@ -91,7 +97,7 @@ default = [
   "pydantic-ai-slim[openai,google,anthropic,mistral,retries]>=1.0.0",
 ]
 events = ["evented[all]"]
-git = ["pygit2"]  # for fsspec git support
+git = ["fsspec[git]"]
 image = ["pillow"]
 langfuse = ["langfuse"]
 litellm = ["litellm; python_version < '3.14'"]
@@ -99,7 +105,7 @@ markitdown = ["markitdown"]
 mcp_run = ["mcpx-py>=0.7.0"]
 oauth = ["keyring>=25.6.0"]
 promptlayer = ["promptlayer"]
-server = ["logfire[fastapi]", "fastapi", "uvicorn", "websockets"]
+server = ["logfire[fastapi]", "fastapi", "uvicorn[standard]"]
 textual = ["textual>=1.0.0"]
 tiktoken = ["tiktoken"]
 upsonic = ["upsonic"]
