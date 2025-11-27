@@ -227,12 +227,14 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         mcp_servers = list(mcp_servers) if mcp_servers else []
         if ctx and (cfg := ctx.config) and cfg.mcp_servers:
             mcp_servers.extend(cfg.get_mcp_servers())
+        event_configs = agent_config.triggers if agent_config else []
         super().__init__(
             name=name,
             description=description,
             enable_logging=memory_cfg.enable,
             mcp_servers=mcp_servers,
             agent_pool=agent_pool,
+            event_configs=event_configs,
         )
 
         # Initialize tool manager

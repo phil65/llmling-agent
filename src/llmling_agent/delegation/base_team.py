@@ -22,6 +22,7 @@ from llmling_agent_config.teams import TeamConfig
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Iterator, Sequence
 
+    from evented.configs import EventConfig
     from psygnal.containers._evented_list import ListEvents
     from toprompt import AnyPromptType
 
@@ -66,6 +67,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
         picker: Agent[Any, Any] | None = None,
         num_picks: int | None = None,
         pick_prompt: str | None = None,
+        event_configs: Sequence[EventConfig] | None = None,
     ) -> None:
         """Common variables only for typing."""
         from llmling_agent.delegation.teamrun import ExtendedTeamTalk
@@ -82,6 +84,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
             name=self._name,
             mcp_servers=mcp_servers,
             description=description,
+            event_configs=event_configs,
         )
         self.agents.extend(list(agents))
         self._team_talk = ExtendedTeamTalk()

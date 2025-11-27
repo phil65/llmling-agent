@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from datetime import timedelta
     from types import TracebackType
 
+    from evented.configs import EventConfig
     from evented.event_data import EventData
 
     from llmling_agent.common_types import (
@@ -56,6 +57,7 @@ class MessageNode[TDeps, TResult](ABC):
         mcp_servers: Sequence[str | MCPServerConfig] | None = None,
         agent_pool: AgentPool[Any] | None = None,
         enable_logging: bool = True,
+        event_configs: Sequence[EventConfig] | None = None,
     ) -> None:
         """Initialize message node."""
         super().__init__()
@@ -74,7 +76,11 @@ class MessageNode[TDeps, TResult](ABC):
         self.agent_pool = agent_pool
         self.description = description
         self.connections = ConnectionManager(self)
-        self._events = EventManager(event_callbacks=[_event_handler], enable_events=True)
+        self._events = EventManager(
+            configs=list(event_configs) if event_configs else None,
+            event_callbacks=[_event_handler],
+            enable_events=True,
+        )
         name_ = f"node_{self._name}"
         self.mcp = MCPManager(name_, servers=mcp_servers, owner=self.name)
         self.enable_db_logging = enable_logging
