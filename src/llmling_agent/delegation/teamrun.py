@@ -9,6 +9,8 @@ from time import perf_counter
 from typing import TYPE_CHECKING, Any, Literal, overload
 from uuid import uuid4
 
+from pydantic_ai import PartDeltaEvent, TextPartDelta
+
 from llmling_agent.delegation.base_team import BaseTeam
 from llmling_agent.delegation.team import normalize_stream_for_teams
 from llmling_agent.log import get_logger
@@ -141,7 +143,6 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
         # Prepare prompts and create user message
         user_msg, processed_prompts, original_message = await prepare_prompts(*prompts)
         self.message_received.emit(user_msg)
-
         # Execute sequential logic
         message_id = str(uuid4())  # Always generate unique response ID
         result = await self.execute(*processed_prompts, **kwargs)
@@ -172,13 +173,9 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
             },
         )
 
-        # Teams typically don't store history by default, but allow it
         if store_history:
-            # Teams could implement their own history management here if needed
-            pass
-
-        # Finalize and route message
-        return await finalize_message(
+            pass  # Teams could implement their own history management here if needed
+        return await finalize_message(  # Finalize and route message
             message,
             user_msg,
             self,
@@ -286,13 +283,10 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
             Tuples of (agent, event) where agent is the Agent instance
             and event is the streaming event.
         """
-        from pydantic_ai import PartDeltaEvent, TextPartDelta
-
         from llmling_agent.agent.events import StreamCompleteEvent
 
         current_message = prompts
         collected_content = []
-
         for agent in self.agents:
             try:
                 agent_content = []
@@ -330,7 +324,6 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
 
 
 if __name__ == "__main__":
-    import asyncio
 
     async def main() -> None:
         from llmling_agent import Agent, Team
@@ -338,11 +331,8 @@ if __name__ == "__main__":
         agent1 = Agent(name="Agent1", model="test")
         agent2 = Agent(name="Agent2", model="test")
         agent3 = Agent(name="Agent3", model="test")
-
-        # Test TeamRun containing Team (sequential containing parallel)
         inner_team = Team([agent1, agent2], name="Parallel")
         outer_run = TeamRun([inner_team, agent3], name="Sequential")
-
         print("Testing TeamRun containing Team...")
         try:
             async for node, event in outer_run.run_stream("test"):
