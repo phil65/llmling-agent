@@ -271,13 +271,6 @@ class EventManager:
         except Exception:
             logger.exception("Error processing events")
 
-    async def cleanup(self) -> None:
-        """Clean up all event sources and tasks."""
-        self.enabled = False
-
-        for name in list(self._sources):
-            await self.remove_source(name)
-
     async def __aenter__(self) -> Self:
         """Allow using manager as async context manager."""
         if not self.enabled:
@@ -293,7 +286,10 @@ class EventManager:
         exc_tb: TracebackType | None,
     ) -> None:
         """Clean up when exiting context."""
-        await self.cleanup()
+        self.enabled = False
+
+        for name in list(self._sources):
+            await self.remove_source(name)
 
     def track[T](
         self,

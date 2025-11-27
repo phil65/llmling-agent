@@ -85,13 +85,8 @@ class Team[TDeps = None](BaseTeam[TDeps, Any]):
         # Create Talk connections for monitoring this execution
         execution_talks: list[Talk[Any]] = []
         for node in all_nodes:
-            talk = Talk[Any](
-                node,
-                [],  # No actual forwarding, just for tracking
-                connection_type="run",
-                queued=True,
-                queue_strategy="latest",
-            )
+            # No actual forwarding, just for tracking
+            talk = Talk[Any](node, [], connection_type="run", queued=True, queue_strategy="latest")
             execution_talks.append(talk)
             self._team_talk.append(talk)  # Add to base class's TeamTalk
 
@@ -102,7 +97,6 @@ class Team[TDeps = None](BaseTeam[TDeps, Any]):
                 timing = perf_counter() - start
                 r = AgentResponse(agent_name=node.name, message=message, timing=timing)
                 responses.append(r)
-
                 # Update talk stats for this agent
                 talk = next(t for t in execution_talks if t.source == node)
                 talk._stats.messages.append(message)

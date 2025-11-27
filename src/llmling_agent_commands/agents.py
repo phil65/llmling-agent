@@ -67,12 +67,7 @@ class CreateAgentCommand(SlashedCommand):
 
             # Get model from args or current agent
             current_agent = ctx.context.agent
-
-            # Parse tools if provided
-            tool_list = None
-            if tools:
-                tool_list = [t.strip() for t in tools.split("|")]
-
+            tool_list = [t.strip() for t in tools.split("|")] if tools else None
             # Create and register the new agent
             await ctx.context.pool.add_agent(
                 name=agent_name,
@@ -123,10 +118,8 @@ class ShowAgentCommand(SlashedCommand):
 
         # Get the agent's config with current overrides
         config = ctx.context.node.context.config
-
         # Get base config as dict
         config_dict = config.model_dump(exclude_none=True)
-
         # Format as annotated YAML
         yaml_config = yamling.dump_yaml(
             config_dict,
@@ -136,13 +129,7 @@ class ShowAgentCommand(SlashedCommand):
             allow_unicode=True,
         )
         # Add header and format for display
-        sections = [
-            "\n**Current Node Configuration:**",
-            "```yaml",
-            yaml_config,
-            "```",
-        ]
-
+        sections = ["\n**Current Node Configuration:**", "```yaml", yaml_config, "```"]
         await ctx.print("\n".join(sections))
 
 

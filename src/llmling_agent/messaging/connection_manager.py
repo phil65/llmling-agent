@@ -300,11 +300,7 @@ class ConnectionManager:
                     details.append(f"stop:{talk.stop_condition.__name__}")
                 if talk.exit_condition:
                     details.append(f"exit:{talk.exit_condition.__name__}")
-                elif any([
-                    talk.filter_condition,
-                    talk.stop_condition,
-                    talk.exit_condition,
-                ]):
+                elif any([talk.filter_condition, talk.stop_condition, talk.exit_condition]):
                     details.append("conditions")
 
                 label = f"|{' '.join(details)}|" if details else ""

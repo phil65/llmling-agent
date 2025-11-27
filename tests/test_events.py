@@ -118,7 +118,7 @@ async def test_timed_event_basic(event_manager: EventManager):
     assert source.config.schedule == "* * * * *"
     assert source.config.prompt == "Test prompt"
     assert "test_timer" in event_manager._sources
-    await event_manager.cleanup()
+    await event_manager.__aexit__(None, None, None)
 
 
 async def test_event_callback_receives_prompt():
@@ -149,7 +149,7 @@ async def test_event_manager_cleanup(event_manager: EventManager):
     await event_manager.add_source(config)
 
     assert len(event_manager._sources) == 1
-    await event_manager.cleanup()
+    await event_manager.__aexit__(None, None, None)
     assert len(event_manager._sources) == 0
 
 

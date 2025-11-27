@@ -2,12 +2,7 @@
 
 from __future__ import annotations
 
-from slashed import (  # noqa: TC002
-    CommandContext,
-    CommandError,
-    CompletionContext,
-    SlashedCommand,
-)
+from slashed import CommandContext, CommandError, CompletionContext, SlashedCommand  # noqa: TC002
 from slashed.completers import CallbackCompleter
 
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
@@ -234,4 +229,4 @@ class RegisterToolCommand(SlashedCommand):
 
 async def get_tool_names(ctx: CompletionContext[AgentContext]) -> list[str]:
     manager = ctx.command_context.context.agent.tools
-    return list({t.name for t in await manager.get_tools() if t.matches_filter(state)})
+    return list({t.name for t in await manager.get_tools()})

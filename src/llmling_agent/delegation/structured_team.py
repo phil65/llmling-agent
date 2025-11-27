@@ -30,11 +30,8 @@ class StructuredTeam[TResult](TeamRun[Any, TResult]):
             name: Optional name for this team
             description: Optional description
         """
-        super().__init__(
-            agents=[worker, processor],
-            name=name or f"{worker.name}>{processor.name}",
-            description=description,
-        )
+        name = name or f"{worker.name}>{processor.name}"
+        super().__init__(agents=[worker, processor], name=name, description=description)
 
     @property
     def worker(self) -> MessageNode[Any, Any]:
