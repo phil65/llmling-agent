@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Self
 from urllib.parse import urljoin
 
 import httpx
@@ -41,7 +41,7 @@ class OpenAPIResolver:
             self._client.close()
             self._client = None
 
-    def __enter__(self) -> OpenAPIResolver:
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(self, *args: object) -> None:
@@ -121,21 +121,19 @@ class OpenAPIResolver:
             return self._cache[url]
 
         logger.debug("Fetching external ref: %s", url)
-
         try:
             response = self.client.get(url)
             response.raise_for_status()
             content = response.text
-
             # Parse YAML/JSON
             doc = yamling.load_yaml(content, verify_type=dict)
             self._cache[url] = doc
-            return doc
-
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.warning("Failed to fetch %s: %s", url, e)
             # Return empty dict to avoid breaking the whole spec
             return {}
+        else:
+            return doc
 
     def _navigate_pointer(self, doc: dict[str, Any], pointer: str) -> Any:
         """Navigate a JSON pointer within a document.

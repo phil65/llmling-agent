@@ -6,7 +6,6 @@ from datetime import date, datetime
 from typing import TYPE_CHECKING, Any, Literal, Union
 from uuid import UUID
 
-import httpx
 from upath import UPath
 from upathtools import read_path
 
@@ -17,6 +16,7 @@ from llmling_agent_toolsets.openapi.loader import load_openapi_spec, parse_opera
 
 
 if TYPE_CHECKING:
+    import httpx
     from upath.types import JoinablePathLike
 
 logger = get_logger(__name__)
@@ -98,7 +98,7 @@ class OpenAPITools(ResourceProvider):
 
             if not self._spec:
                 msg = f"Empty or invalid OpenAPI spec from {self.spec_url}"
-                raise ValueError(msg)
+                raise ValueError(msg)  # noqa: TRY301
 
             self._schemas = self._spec.get("components", {}).get("schemas", {})
             self._operations = parse_operations(self._spec.get("paths", {}))
@@ -117,7 +117,7 @@ class OpenAPITools(ResourceProvider):
 
     def _resolve_schema_ref(self, schema: dict[str, Any]) -> dict[str, Any]:
         """Resolve schema reference."""
-        if ref := schema.get("$ref"):
+        if ref := schema.get("$ref"):  # noqa: SIM102
             if isinstance(ref, str) and ref.startswith("#/components/schemas/"):
                 name = ref.split("/")[-1]
                 return self._schemas.get(name, schema)
@@ -128,6 +128,8 @@ class OpenAPITools(ResourceProvider):
         schema = self._resolve_schema_ref(schema)
 
         if "$ref" in schema:
+            # Fallback for circular refs or refs to missing components
+            logger.debug("Unresolved $ref in schema, using Any: %s", schema.get("$ref"))
             return Any
 
         match schema.get("type"):
