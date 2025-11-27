@@ -343,6 +343,32 @@ class SearchToolsetConfig(BaseToolsetConfig):
         return SearchTools(web_search=web, news_search=news)
 
 
+class NotificationsToolsetConfig(BaseToolsetConfig):
+    """Configuration for Apprise-based notifications toolset."""
+
+    type: Literal["notifications"] = Field("notifications", init=False)
+    """Notifications toolset."""
+
+    channels: dict[str, str | list[str]] = Field(
+        default_factory=dict,
+        examples=[
+            {
+                "team_slack": "slack://TokenA/TokenB/TokenC/",
+                "personal": "tgram://bottoken/ChatID",
+                "ops_alerts": ["slack://ops/", "mailto://ops@company.com"],
+            }
+        ],
+        title="Notification channels",
+    )
+    """Named notification channels. Values can be a single Apprise URL or list of URLs."""
+
+    def get_provider(self) -> ResourceProvider:
+        """Create notifications tools provider."""
+        from llmling_agent_toolsets.notifications import NotificationsTools
+
+        return NotificationsTools(channels=self.channels)
+
+
 class CustomToolsetConfig(BaseToolsetConfig):
     """Configuration for custom toolsets."""
 
@@ -425,6 +451,7 @@ ToolsetConfig = Annotated[
     | CodeModeToolsetConfig
     | RemoteCodeModeToolsetConfig
     | SearchToolsetConfig
+    | NotificationsToolsetConfig
     | CustomToolsetConfig,
     Field(discriminator="type"),
 ]
