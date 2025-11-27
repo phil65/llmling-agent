@@ -2,38 +2,31 @@
 
 from __future__ import annotations
 
-import difflib
 import mimetypes
 from pathlib import Path
-import re
 from typing import TYPE_CHECKING, Any
 
-from pydantic_ai import Agent as PydanticAgent, BinaryContent, ModelRetry
+from pydantic_ai import Agent as PydanticAgent, BinaryContent
 
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.log import get_logger
 from llmling_agent.resource_providers import ResourceProvider
-from llmling_agent.tools.base import Tool
 from llmling_agent_toolsets.builtin.file_edit import replace_content
+from llmling_agent_toolsets.fsspec_toolset.helpers import (
+    apply_structured_edits,
+    get_changed_line_numbers,
+    is_text_mime,
+)
 
 
 if TYPE_CHECKING:
     import fsspec  # type: ignore[import-untyped]
 
     from llmling_agent.prompts.conversion_manager import ConversionManager
+    from llmling_agent.tools.base import Tool
 
 
 logger = get_logger(__name__)
-
-# MIME types that should be treated as text
-TEXT_MIME_PREFIXES = ("text/", "application/json", "application/xml", "application/javascript")
-
-
-def _is_text_mime(mime_type: str | None) -> bool:
-    """Check if a MIME type represents text content."""
-    if mime_type is None:
-        return False
-    return any(mime_type.startswith(prefix) for prefix in TEXT_MIME_PREFIXES)
 
 
 class FSSpecTools(ResourceProvider):
@@ -55,8 +48,8 @@ class FSSpecTools(ResourceProvider):
             converter: Optional conversion manager for markdown conversion
         """
         from fsspec.asyn import AsyncFileSystem  # type: ignore[import-untyped]
-        from fsspec.implementations.asyn_wrapper import (  # type: ignore[import-untyped]
-            AsyncFileSystemWrapper,
+        from fsspec.implementations.asyn_wrapper import (
+            AsyncFileSystemWrapper,  # type: ignore[import-untyped]
         )
 
         super().__init__(name=name)
@@ -91,63 +84,20 @@ class FSSpecTools(ResourceProvider):
             return self._tools
 
         self._tools = [
-            Tool.from_callable(
-                self._list_directory,
-                name_override="list_directory",
-                description_override="List contents of a directory",
-            ),
-            Tool.from_callable(
-                self._read_file,
-                name_override="read_file",
-                description_override=(
-                    "Read file natively - returns text for text files, "
-                    "binary content for documents/images (for model vision/doc capabilities)"
-                ),
-            ),
-            Tool.from_callable(
-                self._write_file,
-                name_override="write_text_file",
-                description_override="Write content to a file",
-            ),
-            Tool.from_callable(
-                self._delete_path,
-                name_override="delete_path",
-                description_override="Delete a file or directory",
-            ),
-            Tool.from_callable(
-                self.edit_file,
-                name_override="edit_file",
-                description_override="Edit a file by replacing specific content",
-                source="filesystem",
-                category="edit",
-            ),
-            Tool.from_callable(
-                self.agentic_edit,
-                name_override="agentic_edit",
-                description_override="Edit a file using AI agent with natural language instructions",  # noqa: E501
-                source="filesystem",
-                category="edit",
-            ),
+            self.create_tool(self.list_directory, category="read"),
+            self.create_tool(self.read_file, category="read"),
+            self.create_tool(self.write_file, category="edit"),
+            self.create_tool(self.delete_path, category="delete"),
+            self.create_tool(self.edit_file, category="edit"),
+            self.create_tool(self.agentic_edit, category="edit"),
         ]
 
-        # Only add read_as_markdown if converter is available
-        if self.converter:
-            self._tools.append(
-                Tool.from_callable(
-                    self._read_as_markdown,
-                    name_override="read_as_markdown",
-                    description_override=(
-                        "Read file and convert to markdown text representation. "
-                        "Useful for extracting text from PDFs, documents, etc."
-                    ),
-                    source="filesystem",
-                    category="read",
-                )
-            )
+        if self.converter:  # Only add read_as_markdown if converter is available
+            self._tools.append(self.create_tool(self.read_as_markdown, category="read"))
 
         return self._tools
 
-    async def _list_directory(self, agent_ctx: AgentContext, path: str) -> dict[str, Any]:
+    async def list_directory(self, agent_ctx: AgentContext, path: str) -> dict[str, Any]:
         """List contents of a directory.
 
         Args:
@@ -160,66 +110,44 @@ class FSSpecTools(ResourceProvider):
         # Emit tool call start event for ACP notifications
         if self.cwd:
             path = self._resolve_path(path)
-        await agent_ctx.events.tool_call_start(
-            title=f"Listing directory: {path}", kind="read", locations=[path]
-        )
-
+        msg = f"Listing directory: {path}"
+        await agent_ctx.events.tool_call_start(title=msg, kind="read", locations=[path])
         try:
-            # Get detailed file information
             entries = await self.fs._ls(path, detail=True)
-
             files = []
-            directories = []
-
+            dirs = []
             for entry in entries:
                 if isinstance(entry, dict):
                     name = entry.get("name", "")
                     entry_type = entry.get("type", "unknown")
                     size = entry.get("size", 0)
-
-                    item_info = {
-                        "name": Path(name).name,
-                        "full_path": name,
-                        "size": size,
-                        "type": entry_type,
-                    }
-
+                    fname = Path(name).name
+                    item_info = {"name": fname, "full_path": name, "size": size, "type": entry_type}
                     # Add modification time if available
                     if "mtime" in entry:
                         item_info["modified"] = entry["mtime"]
 
                     if entry_type == "directory":
-                        directories.append(item_info)
+                        dirs.append(item_info)
                     else:
                         files.append(item_info)
                 else:
                     # Fallback for simple string entries
-                    item_info = {
-                        "name": Path(str(entry)).name,
-                        "full_path": str(entry),
-                        "type": "unknown",
-                    }
+                    fname = Path(str(entry)).name
+                    item_info = {"name": fname, "full_path": str(entry), "type": "unknown"}
                     files.append(item_info)
-
-            result = {
-                "path": path,
-                "directories": directories,
-                "files": files,
-                "total_items": len(directories) + len(files),
-            }
-
+            total = len(dirs) + len(files)
+            result = {"path": path, "directories": dirs, "files": files, "total_items": total}
             # Emit success event
             await agent_ctx.events.file_operation("list", path=path, success=True)
 
         except (OSError, ValueError) as e:
-            # Emit failure event
             await agent_ctx.events.file_operation("list", path=path, success=False, error=str(e))
-
             return {"error": f"Failed to list directory {path}: {e}"}
         else:
             return result
 
-    async def _read_file(
+    async def read_file(
         self,
         agent_ctx: AgentContext,
         path: str,
@@ -241,18 +169,15 @@ class FSSpecTools(ResourceProvider):
         """
         if self.cwd:
             path = self._resolve_path(path)
-        await agent_ctx.events.tool_call_start(
-            title=f"Reading file: {path}", kind="read", locations=[path]
-        )
-
+        msg = f"Reading file: {path}"
+        await agent_ctx.events.tool_call_start(title=msg, kind="read", locations=[path])
         try:
             mime_type = mimetypes.guess_type(path)[0]
 
-            if _is_text_mime(mime_type):
+            if is_text_mime(mime_type):
                 content = await self._read(path, encoding=encoding)
                 if isinstance(content, bytes):
                     content = content.decode(encoding)
-
                 # Apply line filtering if specified
                 if line is not None or limit is not None:
                     lines = content.splitlines()
@@ -268,19 +193,13 @@ class FSSpecTools(ResourceProvider):
             # Binary file - return as BinaryContent for native model handling
             data = await self.fs._cat_file(path)
             await agent_ctx.events.file_operation("read", path=path, success=True, size=len(data))
-            return BinaryContent(
-                data=data, media_type=mime_type or "application/octet-stream", identifier=path
-            )
-
+            mime = mime_type or "application/octet-stream"
+            return BinaryContent(data=data, media_type=mime, identifier=path)
         except (OSError, ValueError) as e:
             await agent_ctx.events.file_operation("read", path=path, success=False, error=str(e))
             return {"error": f"Failed to read file {path}: {e}"}
 
-    async def _read_as_markdown(
-        self,
-        agent_ctx: AgentContext,
-        path: str,
-    ) -> str | dict[str, Any]:
+    async def read_as_markdown(self, agent_ctx: AgentContext, path: str) -> str | dict[str, Any]:
         """Read file and convert to markdown text representation.
 
         Args:
@@ -294,10 +213,8 @@ class FSSpecTools(ResourceProvider):
 
         if self.cwd:
             path = self._resolve_path(path)
-        await agent_ctx.events.tool_call_start(
-            title=f"Reading file as markdown: {path}", kind="read", locations=[path]
-        )
-
+        msg = f"Reading file as markdown: {path}"
+        await agent_ctx.events.tool_call_start(title=msg, kind="read", locations=[path])
         try:
             content = await self.converter.convert_file(path)
             await agent_ctx.events.file_operation(
@@ -309,7 +226,7 @@ class FSSpecTools(ResourceProvider):
         else:
             return content
 
-    async def _write_file(
+    async def write_file(
         self,
         agent_ctx: AgentContext,
         path: str,
@@ -331,48 +248,29 @@ class FSSpecTools(ResourceProvider):
         """
         if self.cwd:
             path = self._resolve_path(path)
-        await agent_ctx.events.tool_call_start(
-            title=f"Writing file: {path}", kind="edit", locations=[path]
-        )
+        msg = f"Writing file: {path}"
+        await agent_ctx.events.tool_call_start(title=msg, kind="edit", locations=[path])
         try:
-            # Validate mode
-            if mode not in ("w", "a"):
-                error_msg = f"Invalid mode '{mode}'. Use 'w' (write) or 'a' (append)"
-
-                # Emit failure event
-                await agent_ctx.events.file_operation(
-                    "write", path=path, success=False, error=error_msg
-                )
-
-                return {"error": error_msg}
+            if mode not in ("w", "a"):  # Validate mode
+                msg = f"Invalid mode '{mode}'. Use 'w' (write) or 'a' (append)"
+                await agent_ctx.events.file_operation("write", path=path, success=False, error=msg)
+                return {"error": msg}
 
             await self._write(path, content)
-            # Try to get file size after writing
-            try:
+            try:  # Try to get file size after writing
                 info = await self.fs._info(path)
                 size = info.get("size", len(content))
             except (OSError, KeyError):
                 size = len(content)
-
-            result = {
-                "path": path,
-                "bytes_written": len(content.encode(encoding)),
-                "size": size,
-                "mode": mode,
-                "encoding": encoding,
-            }
-
-            # Emit success event
+            result = {"path": path, "size": size, "mode": mode, "encoding": encoding}
             await agent_ctx.events.file_operation("write", path=path, success=True, size=size)
         except (OSError, ValueError) as e:
-            # Emit failure event
             await agent_ctx.events.file_operation("write", path=path, success=False, error=str(e))
-
             return {"error": f"Failed to write file {path}: {e}"}
         else:
             return result
 
-    async def _delete_path(
+    async def delete_path(
         self, agent_ctx: AgentContext, path: str, recursive: bool = False
     ) -> dict[str, Any]:
         """Delete a file or directory.
@@ -387,40 +285,27 @@ class FSSpecTools(ResourceProvider):
         """
         if self.cwd:
             path = self._resolve_path(path)
-        await agent_ctx.events.tool_call_start(
-            title=f"Deleting path: {path}", kind="delete", locations=[path]
-        )
-
+        msg = f"Deleting path: {path}"
+        await agent_ctx.events.tool_call_start(title=msg, kind="delete", locations=[path])
         try:
             # Check if path exists and get its type
             try:
                 info = await self.fs._info(path)
                 path_type = info.get("type", "unknown")
             except FileNotFoundError:
-                error_msg = f"Path does not exist: {path}"
-
-                # Emit failure event
-                await agent_ctx.events.file_operation(
-                    "delete", path=path, success=False, error=error_msg
-                )
-
-                return {"error": error_msg}
+                msg = f"Path does not exist: {path}"
+                await agent_ctx.events.file_operation("delete", path=path, success=False, error=msg)
+                return {"error": msg}
             except (OSError, ValueError) as e:
-                error_msg = f"Could not check path {path}: {e}"
-
-                # Emit failure event
-                await agent_ctx.events.file_operation(
-                    "delete", path=path, success=False, error=error_msg
-                )
-
-                return {"error": error_msg}
+                msg = f"Could not check path {path}: {e}"
+                await agent_ctx.events.file_operation("delete", path=path, success=False, error=msg)
+                return {"error": msg}
 
             if path_type == "directory":
                 if not recursive:
-                    # Check if directory is empty
                     try:
                         contents = await self.fs._ls(path)
-                        if contents:
+                        if contents:  # Check if directory is empty
                             error_msg = (
                                 f"Directory {path} is not empty. "
                                 f"Use recursive=True to delete non-empty directories"
@@ -436,26 +321,15 @@ class FSSpecTools(ResourceProvider):
                         pass  # Continue with deletion attempt
 
                 await self.fs._rm(path, recursive=recursive)
-            else:
-                # It's a file
+            else:  # It's a file
                 await self.fs._rm(path)  # or _rm_file?
 
         except (OSError, ValueError) as e:
-            # Emit failure event
             await agent_ctx.events.file_operation("delete", path=path, success=False, error=str(e))
-
             return {"error": f"Failed to delete {path}: {e}"}
         else:
-            result = {
-                "path": path,
-                "deleted": True,
-                "type": path_type,
-                "recursive": recursive,
-            }
-
-            # Emit success event
+            result = {"path": path, "deleted": True, "type": path_type, "recursive": recursive}
             await agent_ctx.events.file_operation("delete", path=path, success=True)
-
             return result
 
     async def edit_file(  # noqa: D417
@@ -484,10 +358,8 @@ class FSSpecTools(ResourceProvider):
         """
         if self.cwd:
             path = self._resolve_path(path)
-        await agent_ctx.events.tool_call_start(
-            title=f"Editing file: {path}", kind="edit", locations=[path]
-        )
-
+        msg = f"Editing file: {path}"
+        await agent_ctx.events.tool_call_start(title=msg, kind="edit", locations=[path])
         if old_string == new_string:
             return "Error: old_string and new_string must be different"
 
@@ -583,15 +455,13 @@ class FSSpecTools(ResourceProvider):
         """
         if self.cwd:
             path = self._resolve_path(path)
-        await agent_ctx.events.tool_call_start(
-            title=f"AI editing file: {path}", kind="edit", locations=[path]
-        )
-
+        title = f"AI editing file: {path}"
+        await agent_ctx.events.tool_call_start(title=title, kind="edit", locations=[path])
         # Send initial pending notification
         await agent_ctx.events.file_operation(
             "edit",
             path=path,
-            success=True,  # Initial state
+            success=True,
             title=f"Editing file: {path}",
             kind="edit",
             locations=[path],
@@ -613,20 +483,19 @@ class FSSpecTools(ResourceProvider):
 
                 # Ensure content is string
                 if isinstance(original_content, bytes):
-                    original_content = original_content.decode("utf-8")
+                    original_content = original_content.decode()
                 prompt = _build_edit_prompt(path, display_description)
                 sys_prompt = (
                     "You are a code editor. Output ONLY structured edits "
                     "using the specified format."
                 )
-
             # Create the editor agent using the same model
             editor_agent = PydanticAgent(model="openai:gpt-4", system_prompt=sys_prompt)
 
             if mode == "edit":
                 # For structured editing, get the full response and parse the edits
                 edit = await editor_agent.run(prompt)
-                new_content = await _apply_structured_edits(original_content, edit.output)
+                new_content = await apply_structured_edits(original_content, edit.output)
             else:
                 # For overwrite mode we need to read the current content for diff purposes
                 if mode == "overwrite":
@@ -685,7 +554,6 @@ class FSSpecTools(ResourceProvider):
 
             # Get changed line numbers for precise UI highlighting
             changed_line_numbers = get_changed_line_numbers(original_content, new_content)
-
             # Send final completion update with complete diff and line numbers
             await agent_ctx.events.file_edit_progress(
                 path=path,
@@ -779,114 +647,6 @@ NEW TEXT 2 HERE
 Tool calls have been disabled. You MUST start your response with <edits>."""
 
 
-async def _apply_structured_edits(original_content: str, edits_response: str) -> str:
-    """Apply structured edits from the agent response."""
-    # Parse the edits from the response
-    edits_match = re.search(r"<edits>(.*?)</edits>", edits_response, re.DOTALL)
-    if not edits_match:
-        logger.warning("No edits block found in response")
-        return original_content
-
-    edits_content = edits_match.group(1)
-
-    # Find all old_text/new_text pairs
-    old_text_pattern = r"<old_text[^>]*>(.*?)</old_text>"
-    new_text_pattern = r"<new_text>(.*?)</new_text>"
-
-    old_texts = re.findall(old_text_pattern, edits_content, re.DOTALL)
-    new_texts = re.findall(new_text_pattern, edits_content, re.DOTALL)
-
-    if len(old_texts) != len(new_texts):
-        logger.warning("Mismatch between old_text and new_text blocks")
-        return original_content
-
-    # Apply edits sequentially
-    content = original_content
-    applied_edits = 0
-
-    failed_matches = []
-    multiple_matches = []
-
-    for old_text, new_text in zip(old_texts, new_texts, strict=False):
-        old_text = old_text.strip()
-        new_text = new_text.strip()
-
-        # Check for multiple matches (ambiguity)
-        match_count = content.count(old_text)
-        if match_count > 1:
-            multiple_matches.append(old_text[:50])
-        elif match_count == 1:
-            content = content.replace(old_text, new_text, 1)
-            applied_edits += 1
-        else:
-            failed_matches.append(old_text[:50])
-
-    # Raise ModelRetry for specific failure cases
-    if applied_edits == 0 and len(old_texts) > 0:
-        msg = (
-            "Some edits were produced but none of them could be applied. "
-            "Read the relevant sections of the file again so that "
-            "I can perform the requested edits."
-        )
-        raise ModelRetry(msg)
-
-    if multiple_matches:
-        matches_str = ", ".join(multiple_matches)
-        msg = (
-            f"<old_text> matches multiple positions in the file: {matches_str}... "
-            "Read the relevant sections of the file again and extend <old_text> "
-            "to be more specific."
-        )
-        raise ModelRetry(msg)
-
-    logger.info("Applied structured edits", num=applied_edits, total=len(old_texts))
-    return content
-
-
-def get_changed_lines(original_content: str, new_content: str, path: str) -> list[str]:
-    old = original_content.splitlines(keepends=True)
-    new = new_content.splitlines(keepends=True)
-    diff = list(difflib.unified_diff(old, new, fromfile=path, tofile=path, lineterm=""))
-    return [line for line in diff if line.startswith(("+", "-"))]
-
-
-def get_changed_line_numbers(original_content: str, new_content: str) -> list[int]:
-    """Extract line numbers where changes occurred for ACP UI highlighting.
-
-    Similar to Claude Code's line tracking for precise change location reporting.
-    Returns line numbers in the new content where changes happened.
-
-    Args:
-        original_content: Original file content
-        new_content: Modified file content
-
-    Returns:
-        List of line numbers (1-based) where changes occurred in new content
-    """
-    old_lines = original_content.splitlines(keepends=True)
-    new_lines = new_content.splitlines(keepends=True)
-
-    # Use SequenceMatcher to find changed blocks
-    matcher = difflib.SequenceMatcher(None, old_lines, new_lines)
-    changed_line_numbers = set()
-
-    for tag, _i1, _i2, j1, j2 in matcher.get_opcodes():
-        if tag in ("replace", "insert", "delete"):
-            # For replacements and insertions, mark lines in new content
-            # For deletions, mark the position where deletion occurred
-            if tag == "delete":
-                # Mark the line where deletion occurred (or next line if at end)
-                line_num = min(j1 + 1, len(new_lines))
-                if line_num > 0:
-                    changed_line_numbers.add(line_num)
-            else:
-                # Mark all affected lines in new content
-                for line_num in range(j1 + 1, j2 + 1):  # Convert to 1-based
-                    changed_line_numbers.add(line_num)
-
-    return sorted(changed_line_numbers)
-
-
 if __name__ == "__main__":
     import asyncio
 
@@ -900,7 +660,7 @@ if __name__ == "__main__":
         async with AgentPool() as pool:
             agent = await pool.add_agent("test", model="openai:gpt-5-nano")
             ctx = agent.context
-            result = await tools._list_directory(ctx, path="/")
+            result = await tools.list_directory(ctx, path="/")
             print(result)
 
     asyncio.run(main())
