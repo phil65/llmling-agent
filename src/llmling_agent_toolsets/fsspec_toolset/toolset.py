@@ -6,6 +6,7 @@ import mimetypes
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from anyenv.code_execution.base import ExecutionEnvironment
 from pydantic_ai import Agent as PydanticAgent, BinaryContent
 
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
@@ -35,16 +36,16 @@ class FSSpecTools(ResourceProvider):
 
     def __init__(
         self,
-        filesystem: fsspec.AbstractFileSystem,
+        source: fsspec.AbstractFileSystem | ExecutionEnvironment,
         name: str = "fsspec",
         cwd: str | None = None,
         edit_model: ModelType | None = None,
         converter: ConversionManager | None = None,
     ) -> None:
-        """Initialize with an fsspec filesystem.
+        """Initialize with an fsspec filesystem or execution environment.
 
         Args:
-            filesystem: The fsspec filesystem instance to operate on
+            source: Filesystem or execution environment to operate on
             name: Name for this toolset provider
             cwd: Optional cwd to resolve relative paths against
             edit_model: Optional edit model for text editing
@@ -56,11 +57,14 @@ class FSSpecTools(ResourceProvider):
         )
 
         super().__init__(name=name)
-        self.fs = (
-            filesystem
-            if isinstance(filesystem, AsyncFileSystem)
-            else AsyncFileSystemWrapper(filesystem)
-        )
+
+        if isinstance(source, ExecutionEnvironment):
+            self.execution_env: ExecutionEnvironment | None = source
+            fs = source.get_fs()
+        else:
+            self.execution_env = None
+            fs = source
+        self.fs = fs if isinstance(fs, AsyncFileSystem) else AsyncFileSystemWrapper(fs)
         self.edit_model = edit_model
         self.cwd = cwd
         self.converter = converter
