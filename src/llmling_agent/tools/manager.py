@@ -294,7 +294,3 @@ if __name__ == "__main__":
     def with_params(query: str) -> str:
         """With parameters."""
         return query.upper()
-
-    result: str = with_params("test")
-    print(f"no_parens: {result}")
-    print(f"Tools registered: {[t.name for t in manager.builtin_provider._tools]}")
