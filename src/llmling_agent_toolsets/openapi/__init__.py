@@ -9,10 +9,7 @@ from __future__ import annotations
 
 from llmling_agent_toolsets.openapi.callable_factory import OpenAPICallableFactory
 from llmling_agent_toolsets.openapi.loader import load_openapi_spec, parse_operations
-from llmling_agent_toolsets.openapi.resolver import (
-    OpenAPIResolver,
-    resolve_openapi_refs,
-)
+from llmling_agent_toolsets.openapi.resolver import OpenAPIResolver, resolve_openapi_refs
 from llmling_agent_toolsets.openapi.toolset import OpenAPITools
 
 

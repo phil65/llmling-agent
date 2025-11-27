@@ -126,27 +126,9 @@ async def vfs_info(ctx: AgentContext) -> str:
 def create_vfs_tools() -> list[Tool]:
     """Create tools for VFS operations."""
     return [
-        Tool.from_callable(
-            vfs_list,
-            name_override="vfs_list",
-            description_override="List contents of configured VFS resources",
-            source="builtin",
-            category="search",
-        ),
-        Tool.from_callable(
-            vfs_read,
-            name_override="vfs_read",
-            description_override="Read content from configured VFS resources",
-            source="builtin",
-            category="read",
-        ),
-        Tool.from_callable(
-            vfs_info,
-            name_override="vfs_info",
-            description_override="Get information about configured VFS resources",
-            source="builtin",
-            category="info",
-        ),
+        Tool.from_callable(vfs_list, source="builtin", category="search"),
+        Tool.from_callable(vfs_read, source="builtin", category="read"),
+        Tool.from_callable(vfs_info, source="builtin", category="info"),
     ]
 
 
