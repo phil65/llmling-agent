@@ -68,12 +68,7 @@ async def run_nodes_async(
 
     # Run with pool
     async with AgentPool(config) as pool:
-        return await execute_functions(
-            discovered,
-            pool,
-            inputs=inputs,
-            parallel=parallel,
-        )
+        return await execute_functions(discovered, pool, inputs=inputs, parallel=parallel)
 
 
 def run_nodes(config: JoinablePathLike | AgentsManifest, **kwargs: Any) -> dict[str, Any]:

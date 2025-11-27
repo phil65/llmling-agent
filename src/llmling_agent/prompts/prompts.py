@@ -277,13 +277,7 @@ class DynamicPrompt(BasePrompt):
     def to_fastmcp_prompt(self) -> FunctionPrompt:
         from fastmcp.prompts.prompt import FunctionPrompt
 
-        return FunctionPrompt.from_function(
-            self.fn,
-            title=self.title,
-            description=self.description,
-            tags=None,
-            icons=None,
-        )
+        return FunctionPrompt.from_function(self.fn, title=self.title, description=self.description)
 
     @property
     def fn(self) -> Callable[..., str | Awaitable[str]]:
@@ -426,14 +420,11 @@ class MCPClientPrompt(BasePrompt):
 
     def to_mcp_prompt(self) -> MCPPrompt:
         """Convert to MCP Prompt."""
-        return MCPPrompt(
-            name=self.name,
-            description=self.description,
-            arguments=[
-                PromptArgument(name=i["name"], description=i["description"], required=i["required"])
-                for i in self.arguments
-            ],
-        )
+        args = [
+            PromptArgument(name=i["name"], description=i["description"], required=i["required"])
+            for i in self.arguments
+        ]
+        return MCPPrompt(name=self.name, description=self.description, arguments=args)
 
     @classmethod
     def from_fastmcp(cls, client: MCPClient, prompt: MCPPrompt) -> Self:

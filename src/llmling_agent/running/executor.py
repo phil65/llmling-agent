@@ -142,12 +142,8 @@ def _group_parallel(
             group = by_deps[key]
             groups.append(group)
             seen_funcs.update(f.name for f in group)
-    logger.debug(
-        "Grouped functions into groups",
-        num_funcs=len(sorted_funcs),
-        num_groups=len(groups),
-        group_names=[[f.name for f in g] for g in groups],
-    )
+    names = [[f.name for f in g] for g in groups]
+    logger.debug("Grouped functions into groups", num_funcs=len(sorted_funcs), group_names=names)
     return groups
 
 
@@ -251,7 +247,6 @@ async def execute_functions(
     msg = "Executing functions"
     logger.info(msg, num_functions=len(functions), parallel=parallel)
     results: dict[str, Any] = {}
-
     # Sort by order/dependencies
     sorted_funcs = _sort_functions(functions)
     _validate_dependency_types(sorted_funcs)
@@ -269,15 +264,12 @@ async def execute_functions(
 
             # Ensure previous results are available
             logger.debug("Available results", results=sorted(results))
-
             # Run group in parallel
             tasks = [execute_single(func, pool, results, inputs) for func in group]
             group_results = await asyncio.gather(*tasks)
-
             # Update results after group completes
             results.update(dict(group_results))
             logger.debug("Group complete", num=i + 1)
-
             # Add small delay between groups to ensure timing separation
             if i < len(groups) - 1:
                 await asyncio.sleep(0.02)  # 20ms between groups

@@ -114,11 +114,6 @@ class OpenAPITools(ResourceProvider):
 
             self._client = httpx.AsyncClient(base_url=self.base_url, headers=self.headers)
 
-        response = await self._client.request(
-            method=method,
-            url=path,
-            params=params,
-            json=body,
-        )
+        response = await self._client.request(method=method, url=path, params=params, json=body)
         response.raise_for_status()
         return response.json()  # type: ignore[no-any-return]

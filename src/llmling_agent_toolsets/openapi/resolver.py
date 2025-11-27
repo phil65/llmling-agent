@@ -82,34 +82,23 @@ class OpenAPIResolver:
             The resolved schema/object.
         """
         # Split ref into URL part and JSON pointer
-        if "#" in ref:
-            url_part, pointer = ref.split("#", 1)
-        else:
-            url_part, pointer = ref, ""
-
+        url_part, pointer = ref.split("#", 1) if "#" in ref else (ref, "")
         # Handle internal refs (same document)
         if not url_part:
             # Internal ref like #/components/schemas/Foo
             # Keep as-is, will be resolved in second pass
             return {"$ref": ref}
-
         # Build absolute URL with pointer for cycle detection
         abs_url = urljoin(current_url, url_part)
         full_ref = f"{abs_url}#{pointer}" if pointer else abs_url
-
-        # Detect circular references
-        if full_ref in self._resolving:
+        if full_ref in self._resolving:  # Detect circular references
             logger.debug("Circular reference detected: %s", full_ref)
             return {"$ref": ref}  # Keep original ref to break cycle
 
         self._resolving.add(full_ref)
         try:
-            # Fetch and cache the external document
-            doc = self._fetch_document(abs_url)
-
-            # Navigate to the pointer location
-            result = self._navigate_pointer(doc, pointer) if pointer else doc
-
+            doc = self._fetch_document(abs_url)  # Fetch and cache the external document
+            result = _navigate_pointer(doc, pointer) if pointer else doc  # nav to the pointer
             # Recursively resolve any refs in the fetched content
             return self._resolve_value(result, abs_url)  # type: ignore[no-any-return]
         finally:
@@ -125,7 +114,6 @@ class OpenAPIResolver:
             response = self.client.get(url)
             response.raise_for_status()
             content = response.text
-            # Parse YAML/JSON
             doc = yamling.load_yaml(content, verify_type=dict)
             self._cache[url] = doc
         except Exception as e:  # noqa: BLE001
@@ -135,38 +123,38 @@ class OpenAPIResolver:
         else:
             return doc
 
-    def _navigate_pointer(self, doc: dict[str, Any], pointer: str) -> Any:
-        """Navigate a JSON pointer within a document.
 
-        Args:
-            doc: The document to navigate.
-            pointer: JSON pointer like '/codes' or '/components/schemas/Foo'.
+def _navigate_pointer(doc: dict[str, Any], pointer: str) -> Any:
+    """Navigate a JSON pointer within a document.
 
-        Returns:
-            The value at the pointer location.
-        """
-        if not pointer or pointer == "/":
-            return doc
+    Args:
+        doc: The document to navigate.
+        pointer: JSON pointer like '/codes' or '/components/schemas/Foo'.
 
-        # Remove leading slash and split
-        parts = pointer.lstrip("/").split("/")
-        current: Any = doc
+    Returns:
+        The value at the pointer location.
+    """
+    if not pointer or pointer == "/":
+        return doc
 
-        for part in parts:
-            # Handle JSON pointer escaping
-            part = part.replace("~1", "/").replace("~0", "~")
+    # Remove leading slash and split
+    parts = pointer.lstrip("/").split("/")
+    current: Any = doc
 
-            if isinstance(current, dict):
-                current = current.get(part, {})
-            elif isinstance(current, list):
-                try:
-                    current = current[int(part)]
-                except (ValueError, IndexError):
-                    return {}
-            else:
+    for part in parts:
+        # Handle JSON pointer escaping
+        part = part.replace("~1", "/").replace("~0", "~")
+        if isinstance(current, dict):
+            current = current.get(part, {})
+        elif isinstance(current, list):
+            try:
+                current = current[int(part)]
+            except (ValueError, IndexError):
                 return {}
+        else:
+            return {}
 
-        return current
+    return current
 
 
 def resolve_openapi_refs(

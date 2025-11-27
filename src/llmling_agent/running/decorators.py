@@ -41,17 +41,13 @@ def with_nodes[T, **P](
             sig = inspect.signature(func)
             bound_args = sig.bind_partial(*args)
             all_kwargs = {**bound_args.arguments, **kwargs}
-
             # Get needed nodes
             nodes = inject_nodes(func, pool, all_kwargs)
-
             # Create kwargs with nodes first, then other args
             final_kwargs = {**nodes, **kwargs}
-
             # Convert back to args/kwargs using signature
             bound = sig.bind(**final_kwargs)
             bound.apply_defaults()
-
             # Call with proper args/kwargs
             return await func(*bound.args, **bound.kwargs)
 

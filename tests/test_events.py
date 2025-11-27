@@ -108,15 +108,13 @@ async def test_timed_event_basic(event_manager: EventManager):
 
     # Add timed event through public API
     source = await event_manager.add_timed_event(
-        schedule="* * * * *",  # every minute
-        prompt="Test prompt",
-        name="test_timer",
+        schedule="* * * * *", prompt="Test", name="test_timer"
     )
 
     # Verify source was created and configured correctly
     assert source.config.name == "test_timer"
     assert source.config.schedule == "* * * * *"
-    assert source.config.prompt == "Test prompt"
+    assert source.config.prompt == "Test"
     assert "test_timer" in event_manager._sources
     await event_manager.__aexit__(None, None, None)
 
@@ -130,24 +128,17 @@ async def test_event_callback_receives_prompt():
             received_prompts.append(prompt)
 
     manager = EventManager(event_callbacks=[prompt_handler], enable_events=True)
-
-    event = _TestEvent(
-        source="test",
-        timestamp=get_now(),
-        message="Test prompt",
-    )
+    event = _TestEvent(source="test", timestamp=get_now(), message="Test")
     await manager.emit_event(event)
-
     assert len(received_prompts) == 1
-    assert received_prompts[0] == "Test prompt"
+    assert received_prompts[0] == "Test"
 
 
 async def test_event_manager_cleanup(event_manager: EventManager):
     """Test cleanup of event manager."""
     # Add a simple event source
-    config = TimeEventConfig(name="test_timer", schedule="* * * * *", prompt="Test prompt")
+    config = TimeEventConfig(name="test_timer", schedule="* * * * *", prompt="Test")
     await event_manager.add_source(config)
-
     assert len(event_manager._sources) == 1
     await event_manager.__aexit__(None, None, None)
     assert len(event_manager._sources) == 0
@@ -169,7 +160,6 @@ async def test_event_manager_with_initial_callbacks():
     manager = EventManager(event_callbacks=[callback], enable_events=True)
     event = _TestEvent(source="test", message="hello")
     await manager.emit_event(event)
-
     assert len(events) == 1
     assert events[0].message == "hello"
 
