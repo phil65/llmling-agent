@@ -50,11 +50,6 @@ class ExtendedTeamTalk(TeamTalk):
         """Track errors from AgentResponses."""
         self.errors.append((agent, error, get_now()))
 
-    @property
-    def error_log(self) -> list[tuple[str, str, datetime]]:
-        """Errors from failed responses."""
-        return self.errors
-
 
 class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
     """Handles team operations with monitoring."""
@@ -192,13 +187,10 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
         """Start execution with optional monitoring."""
         self._team_talk.clear()
         start_time = get_now()
-        final_prompt = list(prompts)
+        prompts_ = list(prompts)
         if self.shared_prompt:
-            final_prompt.insert(0, self.shared_prompt)
-
-        responses = [
-            i async for i in self.execute_iter(*final_prompt) if isinstance(i, AgentResponse)
-        ]
+            prompts_.insert(0, self.shared_prompt)
+        responses = [i async for i in self.execute_iter(*prompts_) if isinstance(i, AgentResponse)]
         return TeamResponse(responses, start_time)
 
     async def run_iter(
