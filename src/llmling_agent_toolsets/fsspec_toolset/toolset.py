@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any
 from pydantic_ai import Agent as PydanticAgent, BinaryContent
 
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
+from llmling_agent.common_types import ModelType
 from llmling_agent.log import get_logger
 from llmling_agent.resource_providers import ResourceProvider
 from llmling_agent_toolsets.builtin.file_edit import replace_content
@@ -37,6 +38,7 @@ class FSSpecTools(ResourceProvider):
         filesystem: fsspec.AbstractFileSystem,
         name: str = "fsspec",
         cwd: str | None = None,
+        edit_model: ModelType | None = None,
         converter: ConversionManager | None = None,
     ) -> None:
         """Initialize with an fsspec filesystem.
@@ -45,6 +47,7 @@ class FSSpecTools(ResourceProvider):
             filesystem: The fsspec filesystem instance to operate on
             name: Name for this toolset provider
             cwd: Optional cwd to resolve relative paths against
+            edit_model: Optional edit model for text editing
             converter: Optional conversion manager for markdown conversion
         """
         from fsspec.asyn import AsyncFileSystem  # type: ignore[import-untyped]
@@ -58,6 +61,7 @@ class FSSpecTools(ResourceProvider):
             if isinstance(filesystem, AsyncFileSystem)
             else AsyncFileSystemWrapper(filesystem)
         )
+        self.edit_model = edit_model
         self.cwd = cwd
         self.converter = converter
         self._tools: list[Tool] | None = None
@@ -490,8 +494,8 @@ class FSSpecTools(ResourceProvider):
                     "using the specified format."
                 )
             # Create the editor agent using the same model
-            editor_agent = PydanticAgent(model="openai:gpt-4", system_prompt=sys_prompt)
-
+            model = self.edit_model or agent_ctx.agent.model_name
+            editor_agent = PydanticAgent(model=model, system_prompt=sys_prompt)
             if mode == "edit":
                 # For structured editing, get the full response and parse the edits
                 edit = await editor_agent.run(prompt)
