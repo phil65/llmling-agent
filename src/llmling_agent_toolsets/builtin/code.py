@@ -17,6 +17,9 @@ from llmling_agent.tools.base import Tool
 if TYPE_CHECKING:
     import fsspec
 
+from anyenv.code_execution.base import ExecutionEnvironment
+
+
 logger = get_logger(__name__)
 
 # Map file extensions to ast-grep language identifiers
@@ -78,14 +81,14 @@ class CodeTools(ResourceProvider):
 
     def __init__(
         self,
-        filesystem: fsspec.AbstractFileSystem | None = None,
+        source: fsspec.AbstractFileSystem | ExecutionEnvironment | None = None,
         name: str = "code",
         cwd: str | None = None,
     ) -> None:
-        """Initialize with an fsspec filesystem.
+        """Initialize with an fsspec filesystem or execution environment.
 
         Args:
-            filesystem: The fsspec filesystem instance to operate on
+            source: Filesystem or execution environment to operate on
             name: Name for this toolset provider
             cwd: Optional cwd to resolve relative paths against
         """
@@ -96,18 +99,21 @@ class CodeTools(ResourceProvider):
         from morefs.asyn_local import AsyncLocalFileSystem
 
         super().__init__(name=name)
-        match filesystem:
+
+        if isinstance(source, ExecutionEnvironment):
+            self.execution_env: ExecutionEnvironment | None = source
+            fs = source.get_fs()
+        else:
+            self.execution_env = None
+            fs = source
+
+        match fs:
             case AsyncFileSystem():
-                self.fs = filesystem
+                self.fs = fs
             case AbstractFileSystem():
-                self.fs = AsyncFileSystemWrapper(filesystem)
+                self.fs = AsyncFileSystemWrapper(fs)
             case None:
                 self.fs = AsyncLocalFileSystem()
-        self.fs = (
-            filesystem
-            if isinstance(filesystem, AsyncFileSystem)
-            else AsyncFileSystemWrapper(filesystem)
-        )
         self.cwd = cwd
         self._tools: list[Tool] | None = None
 
