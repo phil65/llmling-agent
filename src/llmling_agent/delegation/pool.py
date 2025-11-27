@@ -513,7 +513,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
 
     def setup_agent_workers(self, agent: Agent[Any, Any]) -> None:
         """Set up workers for an agent from configuration."""
-        for worker_config in agent.context.config.workers:
+        for worker_config in self.manifest.agents[agent.name].workers:
             try:
                 worker = self.nodes[worker_config.name]
                 match worker_config:

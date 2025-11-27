@@ -246,8 +246,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             self.tools.add_provider(toolset_provider)
         aggregating_provider = self.mcp.get_aggregating_provider()
         self.tools.add_provider(aggregating_provider)
-        for toolset_provider in self.context.config.get_toolsets():
-            self.tools.add_provider(toolset_provider)
+
         # # Add local skills provider if directories specified
         # if skills_paths:
         #     from llmling_agent.resource_providers.skills import SkillsResourceProvider

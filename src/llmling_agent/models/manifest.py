@@ -483,14 +483,13 @@ class AgentsManifest(Schema):
                     content = function(**arguments)  # Call function to get prompt content
                     sys_prompts.append(content)
         # Prepare toolsets list with config's tool provider
-        toolsets_list = []
+        toolsets_list = config.get_toolsets()
         if config_tool_provider := config.get_tool_provider():
             toolsets_list.append(config_tool_provider)
         # Step 1: Get agent-specific output type (same as before)
         agent_output_type = self.get_output_type(name) or str
         # Step 2: Resolve it fully with to_type (same as before)
         resolved_output_type = to_type(agent_output_type, self.responses)
-
         return Agent(
             # context=context,
             model=config.model
