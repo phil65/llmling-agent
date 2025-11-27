@@ -202,10 +202,6 @@ class ToolManager:
             raise ToolError(msg)
         return tool
 
-    async def get_tool_names(self, state: ToolState = "all") -> set[str]:
-        """Get tool names based on state."""
-        return {t.name for t in await self.get_tools() if t.matches_filter(state)}
-
     async def list_prompts(self) -> list[MCPClientPrompt]:
         """Get all prompts from all providers.
 

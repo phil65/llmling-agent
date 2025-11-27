@@ -233,4 +233,5 @@ class RegisterToolCommand(SlashedCommand):
 
 
 async def get_tool_names(ctx: CompletionContext[AgentContext]) -> list[str]:
-    return list(await ctx.command_context.context.agent.tools.get_tool_names())
+    manager = ctx.command_context.context.agent.tools
+    return list({t.name for t in await manager.get_tools() if t.matches_filter(state)})
