@@ -70,14 +70,8 @@ async def finalize_message(
     # For chain processing, update the response's chain if input was forwarded
     if original_message:
         message = message.forwarded(original_message)
-
-    # Emit signals
-    node.message_sent.emit(message)
-
-    # Log message if enabled
-    await node.log_message(message)
-
+    node.message_sent.emit(message)  # Emit signals
+    await node.log_message(message)  # Log message if enabled
     # Route to connections
     await connections.route_message(message, wait=wait_for_connections)
-
     return message

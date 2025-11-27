@@ -144,14 +144,10 @@ class SlashedAgent[TDeps, OutputDataT]:
                         case SlashedCommandOutputEvent(output=output):
                             yield CommandOutputEvent(command=cmd_name, output=output)
                         case CommandExecutedEvent(success=False, error=error) if error:
-                            yield CommandOutputEvent(
-                                command=cmd_name,
-                                output=f"Command error: {error}",
-                            )
+                            output = f"Command error: {error}"
+                            yield CommandOutputEvent(command=cmd_name, output=output)
                             success = False
-
                 except TimeoutError:
-                    # No events in queue, continue checking if command is done
                     continue
 
             # Ensure command task completes and handle any remaining events
@@ -245,11 +241,7 @@ if __name__ == "__main__":
 
         # Add a simple test command that outputs multiple lines
         @slashed.command_store.command(name="test-streaming", category="test")
-        async def test_streaming(
-            ctx: CommandContext[Any],
-            *args: Any,
-            **kwargs: Any,
-        ) -> None:
+        async def test_streaming(ctx: CommandContext[Any], *args: Any, **kwargs: Any) -> None:
             """Test command that outputs multiple lines."""
             await ctx.print("Starting streaming test...")
             for i in range(3):

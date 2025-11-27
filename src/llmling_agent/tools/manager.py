@@ -11,7 +11,6 @@ from llmling_agent.log import get_logger
 from llmling_agent.resource_providers import StaticResourceProvider
 from llmling_agent.tools.base import Tool
 from llmling_agent.utils.baseregistry import LLMLingError
-from llmling_agent.utils.importing import import_class
 
 
 if TYPE_CHECKING:
@@ -126,15 +125,7 @@ class ToolManager:
         match item:
             case Tool():
                 return item
-            case str():
-                if item.startswith("crewai_tools"):
-                    obj = import_class(item)()
-                    return Tool.from_crewai_tool(obj)
-                if item.startswith("langchain"):
-                    obj = import_class(item)()
-                    return Tool.from_langchain_tool(obj)
-                return Tool.from_callable(item)
-            case Callable():  # type: ignore[misc]
+            case Callable() | str():  # type: ignore[misc]
                 return Tool.from_callable(item)
             case _:
                 typ = type(item)
