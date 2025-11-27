@@ -53,7 +53,7 @@ MARKDOWN_TEMPLATE = """### Tool Call: {{ tool_name }}
 ```
 {%- endif %}
 
-{%- if timing %}
+{%- if show_timing and timing %}
 *Execution time: {{ "%.2f"|format(timing) }}s*
 {%- endif %}
 {%- if agent_tool_name %}
@@ -108,7 +108,6 @@ class ToolCallInfo(Schema):
         template: str | None = None,
         variables: dict[str, Any] | None = None,
         show_timing: bool = True,
-        show_ids: bool = False,
     ) -> str:
         """Format tool call information with configurable style.
 
@@ -120,10 +119,6 @@ class ToolCallInfo(Schema):
             template: Optional custom template (required if style="custom")
             variables: Additional variables for template rendering
             show_timing: Whether to include execution timing
-            show_ids: Whether to include tool_call_id and message_id
-
-        Returns:
-            Formatted tool call information
 
         Raises:
             ValueError: If style is invalid or custom template is missing
@@ -139,29 +134,11 @@ class ToolCallInfo(Schema):
             msg = f"Invalid style: {style}"
             raise ValueError(msg)
 
-        # Prepare template variables
-        vars_ = {
-            "tool_name": self.tool_name,
-            "args": self.args,  # No pre-formatting needed
-            "result": self.result,
-            "error": self.error,
-            "agent_name": self.agent_name,
-            "timestamp": self.timestamp,
-            "timing": self.timing if show_timing else None,
-            "agent_tool_name": self.agent_tool_name,
-        }
-
-        if show_ids:
-            vars_.update({
-                "tool_call_id": self.tool_call_id,
-                "message_id": self.message_id,
-            })
-
+        env = Environment(trim_blocks=True, lstrip_blocks=True)
+        env.filters["repr"] = repr
+        template_obj = env.from_string(template_str)
+        vars_ = self.model_dump()
+        vars_["show_timing"] = show_timing
         if variables:
             vars_.update(variables)
-
-        # Render template
-        env = Environment(trim_blocks=True, lstrip_blocks=True)
-        env.filters["repr"] = repr  # Add repr filter
-        template_obj = env.from_string(template_str)
         return template_obj.render(**vars_)

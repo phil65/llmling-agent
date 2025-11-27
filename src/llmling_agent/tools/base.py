@@ -221,7 +221,7 @@ class Tool[TOutputType = Any]:
             category=category,
             hints=hints,
             enabled=enabled,
-            source=source or "callable",
+            source=source or "dynamic",
             **kwargs,
         )
 
