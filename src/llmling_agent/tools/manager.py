@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from contextlib import asynccontextmanager
-from typing import TYPE_CHECKING, Any, Literal, assert_never
+from typing import TYPE_CHECKING, Literal, assert_never
 
 from llmling_agent.log import get_logger
 from llmling_agent.resource_providers import StaticResourceProvider
@@ -17,8 +17,7 @@ from llmling_agent.utils.importing import import_class
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
-    from llmling_agent import Agent, MessageNode
-    from llmling_agent.common_types import ToolSource, ToolType
+    from llmling_agent.common_types import ToolType
     from llmling_agent.prompts.prompts import MCPClientPrompt
     from llmling_agent.resource_providers import ResourceProvider
     from llmling_agent.resource_providers.codemode.provider import CodeModeResourceProvider
@@ -61,7 +60,11 @@ class ToolManager:
         from llmling_agent.resource_providers.codemode.provider import CodeModeResourceProvider
 
         self._codemode_provider: CodeModeResourceProvider = CodeModeResourceProvider([])
+
+        # Forward to provider methods
         self.tool = self.builtin_provider.tool
+        self.register_tool = self.builtin_provider.register_tool
+        self.register_worker = self.worker_provider.register_worker
 
         # Register initial tools
         for tool in tools or []:
@@ -225,92 +228,6 @@ class ToolManager:
                     logger.exception("Failed to get prompts from provider", provider=provider)
 
         return all_prompts
-
-    def register_tool(
-        self,
-        tool: ToolType | Tool,
-        *,
-        name_override: str | None = None,
-        description_override: str | None = None,
-        enabled: bool = True,
-        source: ToolSource = "dynamic",
-        requires_confirmation: bool = False,
-        metadata: dict[str, str] | None = None,
-    ) -> Tool:
-        """Register a new tool with custom settings.
-
-        Args:
-            tool: Tool to register (callable, or import path)
-            enabled: Whether tool is initially enabled
-            name_override: Optional name override for the tool
-            description_override: Optional description override for the tool
-            source: Tool source (runtime/agent/builtin/dynamic)
-            requires_confirmation: Whether tool needs confirmation
-            metadata: Additional tool metadata
-
-        Returns:
-            Created Tool instance
-        """
-        # First convert to basic Tool
-        match tool:
-            case Tool():
-                tool.description = description_override or tool.description
-                tool.name = name_override or tool.name
-                tool.source = source
-                tool.metadata = tool.metadata | (metadata or {})
-
-            case _:
-                tool = Tool.from_callable(
-                    tool,
-                    enabled=enabled,
-                    source=source,
-                    name_override=name_override,
-                    description_override=description_override,
-                    requires_confirmation=requires_confirmation,
-                    metadata=metadata or {},
-                )
-
-        # Register the tool
-        self.builtin_provider.add_tool(tool)
-        return tool
-
-    def register_worker(
-        self,
-        worker: MessageNode[Any, Any],
-        *,
-        name: str | None = None,
-        reset_history_on_run: bool = True,
-        pass_message_history: bool = False,
-        parent: Agent[Any, Any] | None = None,
-    ) -> Tool:
-        """Register an agent as a worker tool.
-
-        Args:
-            worker: Agent to register as worker
-            name: Optional name override for the worker tool
-            reset_history_on_run: Whether to clear history before each run
-            pass_message_history: Whether to pass parent's message history
-            parent: Optional parent agent for history/context sharing
-        """
-        from llmling_agent import Agent, BaseTeam
-
-        match worker:
-            case BaseTeam():
-                tool = worker.to_tool(name=name)
-            case Agent():
-                tool = worker.to_tool(
-                    parent=parent,
-                    name=name,
-                    reset_history_on_run=reset_history_on_run,
-                    pass_message_history=pass_message_history,
-                )
-            case _:
-                msg = f"Unsupported worker type: {type(worker)}"
-                raise ValueError(msg)
-        msg = "Registering worker as tool"
-        logger.debug(msg, worker_name=worker.name, tool_name=tool.name)
-        self.worker_provider.add_tool(tool)
-        return tool
 
     @asynccontextmanager
     async def temporary_tools(

@@ -9,7 +9,10 @@ from llmling_agent.resource_providers import ResourceProvider
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
+    from typing import Any
 
+    from llmling_agent import Agent, MessageNode
+    from llmling_agent.common_types import ToolSource, ToolType
     from llmling_agent.prompts.prompts import BasePrompt
     from llmling_agent.tools.base import Tool
     from llmling_agent_config.resources import ResourceInfo
@@ -123,6 +126,92 @@ class StaticResourceProvider(ResourceProvider):
                 self._resources.pop(i)
                 return True
         return False
+
+    def register_tool(
+        self,
+        tool: ToolType | Tool,
+        *,
+        name_override: str | None = None,
+        description_override: str | None = None,
+        enabled: bool = True,
+        source: ToolSource = "dynamic",
+        requires_confirmation: bool = False,
+        metadata: dict[str, str] | None = None,
+    ) -> Tool:
+        """Register a new tool with custom settings.
+
+        Args:
+            tool: Tool to register (callable, Tool instance, or import path)
+            name_override: Optional name override for the tool
+            description_override: Optional description override for the tool
+            enabled: Whether tool is initially enabled
+            source: Tool source (runtime/agent/builtin/dynamic)
+            requires_confirmation: Whether tool needs confirmation
+            metadata: Additional tool metadata
+
+        Returns:
+            Created Tool instance
+        """
+        from llmling_agent.tools.base import Tool as ToolClass
+
+        match tool:
+            case ToolClass():
+                tool.description = description_override or tool.description
+                tool.name = name_override or tool.name
+                tool.source = source
+                tool.metadata = tool.metadata | (metadata or {})
+                tool.enabled = enabled
+
+            case _:
+                tool = ToolClass.from_callable(
+                    tool,
+                    enabled=enabled,
+                    source=source,
+                    name_override=name_override,
+                    description_override=description_override,
+                    requires_confirmation=requires_confirmation,
+                    metadata=metadata or {},
+                )
+
+        self.add_tool(tool)
+        return tool
+
+    def register_worker(
+        self,
+        worker: MessageNode[Any, Any],
+        *,
+        name: str | None = None,
+        reset_history_on_run: bool = True,
+        pass_message_history: bool = False,
+        parent: Agent[Any, Any] | None = None,
+    ) -> Tool:
+        """Register an agent as a worker tool.
+
+        Args:
+            worker: Agent to register as worker
+            name: Optional name override for the worker tool
+            reset_history_on_run: Whether to clear history before each run
+            pass_message_history: Whether to pass parent's message history
+            parent: Optional parent agent for history/context sharing
+        """
+        from llmling_agent import Agent, BaseTeam
+
+        match worker:
+            case BaseTeam():
+                tool = worker.to_tool(name=name)
+            case Agent():
+                tool = worker.to_tool(
+                    parent=parent,
+                    name=name,
+                    reset_history_on_run=reset_history_on_run,
+                    pass_message_history=pass_message_history,
+                )
+            case _:
+                msg = f"Unsupported worker type: {type(worker)}"
+                raise ValueError(msg)
+
+        self.add_tool(tool)
+        return tool
 
     @overload
     def tool(self, func: Callable[..., Any]) -> Callable[..., Any]: ...
