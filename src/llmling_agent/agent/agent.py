@@ -127,7 +127,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
     run_failed = Signal(str, Exception)
     agent_reset = Signal(AgentReset)
 
-    def __init__(
+    def __init__(  # noqa: PLR0915
         # we dont use AgentKwargs here so that we can work with explicit ones in the ctor
         self,
         name: str = "llmling-agent",
@@ -244,7 +244,10 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         # MCP manager will be initialized in __aenter__ and providers added there
         for toolset_provider in toolsets or []:
             self.tools.add_provider(toolset_provider)
-
+        aggregating_provider = self.mcp.get_aggregating_provider()
+        self.tools.add_provider(aggregating_provider)
+        for toolset_provider in self.context.config.get_toolsets():
+            self.tools.add_provider(toolset_provider)
         # # Add local skills provider if directories specified
         # if skills_paths:
         #     from llmling_agent.resource_providers.skills import SkillsResourceProvider
@@ -317,10 +320,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             else:
                 for coro in coros:
                     await coro
-            aggregating_provider = self.mcp.get_aggregating_provider()
-            self.tools.add_provider(aggregating_provider)
-            for toolset_provider in self.context.config.get_toolsets():
-                self.tools.add_provider(toolset_provider)
         except Exception as e:
             msg = "Failed to initialize agent"
             raise RuntimeError(msg) from e
