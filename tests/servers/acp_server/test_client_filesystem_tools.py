@@ -177,7 +177,7 @@ async def test_write_text_file_success(fs_provider: FSSpecTools):
 
     # Get write_text_file tool from provider
     tools = await fs_provider.get_tools()
-    write_tool = next(tool for tool in tools if tool.name == "write_text_file")
+    write_tool = next(tool for tool in tools if tool.name == "write_file")
     result = await write_tool.execute(
         agent_ctx=CTX,
         path="/home/user/output.txt",
@@ -187,9 +187,7 @@ async def test_write_text_file_success(fs_provider: FSSpecTools):
     # Verify result format
     assert isinstance(result, dict)
     assert result["path"] == "/home/user/output.txt"
-    assert "bytes_written" in result
     assert "size" in result
-
     # Verify filesystem calls were made
     fs_provider.fs.open_async.assert_called_once_with("/home/user/output.txt", "wt")
     mock_file.write.assert_called_once_with("Hello, World!\nThis is written content.\n")
@@ -207,7 +205,7 @@ async def test_write_text_file_json(fs_provider: FSSpecTools):
 
     # Get write_text_file tool from provider
     tools = await fs_provider.get_tools()
-    write_tool = next(tool for tool in tools if tool.name == "write_text_file")
+    write_tool = next(tool for tool in tools if tool.name == "write_file")
     result = await write_tool.execute(
         agent_ctx=CTX,
         path="/home/user/config.json",
@@ -230,7 +228,7 @@ async def test_write_text_file_error(fs_provider: FSSpecTools):
 
     # Get write_text_file tool from provider
     tools = await fs_provider.get_tools()
-    write_tool = next(tool for tool in tools if tool.name == "write_text_file")
+    write_tool = next(tool for tool in tools if tool.name == "write_file")
     result = await write_tool.execute(
         agent_ctx=CTX,
         path="/root/protected.txt",
@@ -271,7 +269,7 @@ async def test_write_empty_file(fs_provider: FSSpecTools):
 
     # Get write_text_file tool from provider
     tools = await fs_provider.get_tools()
-    write_tool = next(tool for tool in tools if tool.name == "write_text_file")
+    write_tool = next(tool for tool in tools if tool.name == "write_file")
     result = await write_tool.execute(
         agent_ctx=CTX,
         path="/home/user/empty_output.txt",
@@ -281,7 +279,6 @@ async def test_write_empty_file(fs_provider: FSSpecTools):
     # Verify result
     assert isinstance(result, dict)
     assert result["path"] == "/home/user/empty_output.txt"
-    assert result["bytes_written"] == 0
 
     # Verify empty content was written
     fs_provider.fs.open_async.assert_called_once_with("/home/user/empty_output.txt", "wt")
@@ -320,7 +317,7 @@ async def test_write_file_with_unicode(fs_provider: FSSpecTools):
 
     # Get write_text_file tool from provider
     tools = await fs_provider.get_tools()
-    write_tool = next(tool for tool in tools if tool.name == "write_text_file")
+    write_tool = next(tool for tool in tools if tool.name == "write_file")
     result = await write_tool.execute(
         agent_ctx=CTX,
         path="/home/user/unicode_output.txt",
@@ -350,7 +347,7 @@ async def test_file_operations_with_provider_session(fs_provider):
     read_tool = next(tool for tool in tools if tool.name == "read_file")
     await read_tool.execute(agent_ctx=CTX, path="/home/user/test.txt")
 
-    write_tool = next(tool for tool in tools if tool.name == "write_text_file")
+    write_tool = next(tool for tool in tools if tool.name == "write_file")
     await write_tool.execute(
         agent_ctx=CTX,
         path="/home/user/test.txt",
