@@ -9,7 +9,6 @@ from typing import TYPE_CHECKING, Any
 from pydantic_ai import Agent as PydanticAgent, BinaryContent
 
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
-from llmling_agent.common_types import ModelType
 from llmling_agent.log import get_logger
 from llmling_agent.resource_providers import ResourceProvider
 from llmling_agent_toolsets.builtin.file_edit import replace_content
@@ -23,6 +22,7 @@ from llmling_agent_toolsets.fsspec_toolset.helpers import (
 if TYPE_CHECKING:
     import fsspec  # type: ignore[import-untyped]
 
+    from llmling_agent.common_types import ModelType
     from llmling_agent.prompts.conversion_manager import ConversionManager
     from llmling_agent.tools.base import Tool
 
@@ -51,8 +51,8 @@ class FSSpecTools(ResourceProvider):
             converter: Optional conversion manager for markdown conversion
         """
         from fsspec.asyn import AsyncFileSystem  # type: ignore[import-untyped]
-        from fsspec.implementations.asyn_wrapper import (
-            AsyncFileSystemWrapper,  # type: ignore[import-untyped]
+        from fsspec.implementations.asyn_wrapper import (  # type: ignore[import-untyped]
+            AsyncFileSystemWrapper,
         )
 
         super().__init__(name=name)
@@ -235,7 +235,6 @@ class FSSpecTools(ResourceProvider):
         agent_ctx: AgentContext,
         path: str,
         content: str,
-        encoding: str = "utf-8",
         mode: str = "w",
     ) -> dict[str, Any]:
         """Write content to a file.
@@ -244,7 +243,6 @@ class FSSpecTools(ResourceProvider):
             agent_ctx: Agent execution context
             path: File path to write
             content: Content to write
-            encoding: Text encoding to use (default: utf-8)
             mode: Write mode ('w' for overwrite, 'a' for append)
 
         Returns:
@@ -266,7 +264,7 @@ class FSSpecTools(ResourceProvider):
                 size = info.get("size", len(content))
             except (OSError, KeyError):
                 size = len(content)
-            result = {"path": path, "size": size, "mode": mode, "encoding": encoding}
+            result = {"path": path, "size": size, "mode": mode}
             await agent_ctx.events.file_operation("write", path=path, success=True, size=size)
         except (OSError, ValueError) as e:
             await agent_ctx.events.file_operation("write", path=path, success=False, error=str(e))
