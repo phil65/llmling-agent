@@ -121,8 +121,6 @@ class ProcessTools(ResourceProvider):
         """
         try:
             output = await self.process_manager.get_output(process_id)
-
-            # Emit output event
             await agent_ctx.events.process_output(
                 process_id=process_id,
                 output=output.combined or "",
@@ -164,7 +162,6 @@ class ProcessTools(ResourceProvider):
         try:
             exit_code = await self.process_manager.wait_for_exit(process_id)
             output = await self.process_manager.get_output(process_id)
-
             # Emit exit event
             await agent_ctx.events.process_exit(
                 process_id=process_id,
@@ -199,27 +196,12 @@ class ProcessTools(ResourceProvider):
         """
         try:
             await self.process_manager.kill_process(process_id)
-
-            # Emit kill event
-            await agent_ctx.events.process_killed(
-                process_id=process_id,
-                success=True,
-            )
+            await agent_ctx.events.process_killed(process_id=process_id, success=True)
         except ValueError as e:
-            # Emit failure event
-            await agent_ctx.events.process_killed(
-                process_id=process_id,
-                success=False,
-                error=str(e),
-            )
+            await agent_ctx.events.process_killed(process_id, success=False, error=str(e))
             return {"error": str(e)}
         except Exception as e:  # noqa: BLE001
-            # Emit failure event
-            await agent_ctx.events.process_killed(
-                process_id=process_id,
-                success=False,
-                error=str(e),
-            )
+            await agent_ctx.events.process_killed(process_id, success=False, error=str(e))
             return {"error": f"Error killing process: {e}"}
         else:
             return {
@@ -240,27 +222,12 @@ class ProcessTools(ResourceProvider):
         """
         try:
             await self.process_manager.release_process(process_id)
-
-            # Emit release event
-            await agent_ctx.events.process_released(
-                process_id=process_id,
-                success=True,
-            )
+            await agent_ctx.events.process_released(process_id=process_id, success=True)
         except ValueError as e:
-            # Emit failure event
-            await agent_ctx.events.process_released(
-                process_id=process_id,
-                success=False,
-                error=str(e),
-            )
+            await agent_ctx.events.process_released(process_id, success=False, error=str(e))
             return {"error": str(e)}
         except Exception as e:  # noqa: BLE001
-            # Emit failure event
-            await agent_ctx.events.process_released(
-                process_id=process_id,
-                success=False,
-                error=str(e),
-            )
+            await agent_ctx.events.process_released(process_id, success=False, error=str(e))
             return {"error": f"Error releasing process: {e}"}
         else:
             return {
@@ -280,14 +247,8 @@ class ProcessTools(ResourceProvider):
         """
         try:
             process_ids = await self.process_manager.list_processes()
-
             if not process_ids:
-                return {
-                    "processes": [],
-                    "count": 0,
-                    "message": "No active processes",
-                }
-
+                return {"processes": [], "count": 0, "message": "No active processes"}
             processes = []
             for process_id in process_ids:
                 try:
@@ -307,10 +268,7 @@ class ProcessTools(ResourceProvider):
                         "error": f"Error getting info: {e}",
                     })
 
-            return {
-                "processes": processes,
-                "count": len(processes),
-            }
+            return {"processes": processes, "count": len(processes)}
 
         except Exception as e:  # noqa: BLE001
             return {"error": f"Error listing processes: {e}"}
