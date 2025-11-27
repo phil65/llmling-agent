@@ -6,9 +6,11 @@ import os
 from typing import TYPE_CHECKING, Annotated, Literal
 
 from anyenv.code_execution.configs import ExecutionEnvironmentConfig
+from llmling_models.configs.model_configs import AnyModelConfig
 from pydantic import EmailStr, Field, HttpUrl, SecretStr
 from schemez import Schema
 from searchly.config import NewsSearchProviderConfig, WebSearchProviderConfig
+from tokonomics import ModelName
 from upath import UPath
 
 from llmling_agent.utils.importing import import_class
@@ -268,6 +270,12 @@ class FSSpecToolsetConfig(BaseToolsetConfig):
     )
     """Filesystem URL or protocol (e.g., 'file', 's3://bucket-name', etc.)."""
 
+    model: str | ModelName | AnyModelConfig | None = Field(
+        default=None,
+        examples=["openai:gpt-5-nano"],
+        title="Model for edit sub-agent",
+    )
+
     storage_options: dict[str, str] = Field(
         default_factory=dict,
         examples=[
@@ -289,11 +297,16 @@ class FSSpecToolsetConfig(BaseToolsetConfig):
         from llmling_agent.prompts.conversion_manager import ConversionManager
         from llmling_agent_toolsets.fsspec_toolset import FSSpecTools
 
+        model = (
+            self.model
+            if isinstance(self.model, str) or self.model is None
+            else self.model.get_model()
+        )
         fs, _url_path = fsspec.url_to_fs(self.url, **self.storage_options)
         # Extract protocol name for the provider name
         protocol = self.url.split("://")[0] if "://" in self.url else self.url
         converter = ConversionManager(self.conversion) if self.conversion else None
-        return FSSpecTools(fs, name=f"fsspec_{protocol}", converter=converter)
+        return FSSpecTools(fs, name=f"fsspec_{protocol}", converter=converter, edit_model=model)
 
 
 class VFSToolsetConfig(BaseToolsetConfig):
