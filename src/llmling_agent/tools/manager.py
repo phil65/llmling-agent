@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Callable, Sequence
+from collections.abc import Sequence
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, Any, Literal, assert_never
 
@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
     from llmling_agent import Agent, MessageNode
-    from llmling_agent.common_types import AnyCallable, ToolSource, ToolType
+    from llmling_agent.common_types import ToolSource, ToolType
     from llmling_agent.prompts.prompts import MCPClientPrompt
     from llmling_agent.resource_providers import ResourceProvider
     from llmling_agent.resource_providers.codemode.provider import CodeModeResourceProvider
@@ -61,6 +61,7 @@ class ToolManager:
         from llmling_agent.resource_providers.codemode.provider import CodeModeResourceProvider
 
         self._codemode_provider: CodeModeResourceProvider = CodeModeResourceProvider([])
+        self.tool = self.builtin_provider.tool
 
         # Register initial tools
         for tool in tools or []:
@@ -368,50 +369,15 @@ class ToolManager:
                     t_ = await self.get_tool(name_)
                     t_.enabled = was_enabled
 
-    def tool(
-        self,
-        name: str | None = None,
-        *,
-        description: str | None = None,
-        enabled: bool = True,
-        source: ToolSource = "dynamic",
-        requires_confirmation: bool = False,
-        metadata: dict[str, str] | None = None,
-    ) -> Callable[[AnyCallable], AnyCallable]:
-        """Decorator to register a function as a tool.
 
-        Args:
-            name: Optional override for tool name (defaults to function name)
-            description: Optional description override
-            enabled: Whether tool is initially enabled
-            source: Tool source type
-            requires_confirmation: Whether tool needs confirmation
-            metadata: Additional tool metadata
+if __name__ == "__main__":
+    manager = ToolManager()
 
-        Returns:
-            Decorator function that registers the tool
+    @manager.tool(name="custom_name", description="Custom description")
+    def with_params(query: str) -> str:
+        """With parameters."""
+        return query.upper()
 
-        Example:
-            @tool_manager.register(
-                name="search_docs",
-                description="Search documentation",
-                requires_confirmation=True
-            )
-            async def search(query: str) -> str:
-                '''Search the docs.'''
-                return "Results..."
-        """
-
-        def decorator(func: AnyCallable) -> AnyCallable:
-            self.register_tool(
-                func,
-                name_override=name,
-                description_override=description,
-                enabled=enabled,
-                source=source,
-                requires_confirmation=requires_confirmation,
-                metadata=metadata,
-            )
-            return func
-
-        return decorator
+    result: str = with_params("test")
+    print(f"no_parens: {result}")
+    print(f"Tools registered: {[t.name for t in manager.builtin_provider._tools]}")
