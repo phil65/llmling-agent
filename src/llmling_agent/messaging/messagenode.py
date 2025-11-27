@@ -20,6 +20,8 @@ if TYPE_CHECKING:
     from datetime import timedelta
     from types import TracebackType
 
+    from evented.event_data import EventData
+
     from llmling_agent.common_types import (
         AnyTransformFn,
         AsyncFilterFn,
@@ -57,9 +59,14 @@ class MessageNode[TDeps, TResult](ABC):
     ) -> None:
         """Initialize message node."""
         super().__init__()
+
         from llmling_agent.mcp_server.manager import MCPManager
         from llmling_agent.messaging import EventManager
         from llmling_agent.messaging.connection_manager import ConnectionManager
+
+        async def _event_handler(event: EventData) -> None:
+            if prompt := event.to_prompt():
+                await self.run(prompt)
 
         self.task_manager = TaskManager()
         self._name = name or self.__class__.__name__
@@ -67,7 +74,7 @@ class MessageNode[TDeps, TResult](ABC):
         self.agent_pool = agent_pool
         self.description = description
         self.connections = ConnectionManager(self)
-        self._events = EventManager(self, enable_events=True)
+        self._events = EventManager(event_callbacks=[_event_handler], enable_events=True)
         name_ = f"node_{self._name}"
         self.mcp = MCPManager(name_, servers=mcp_servers, owner=self.name)
         self.enable_db_logging = enable_logging

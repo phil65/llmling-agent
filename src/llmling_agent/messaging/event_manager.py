@@ -18,6 +18,7 @@ from pydantic import SecretStr
 from llmling_agent.log import get_logger
 from llmling_agent.utils.inspection import execute
 from llmling_agent.utils.now import get_now
+from llmling_agent.utils.tasks import TaskManager
 
 
 if TYPE_CHECKING:
@@ -28,8 +29,6 @@ if TYPE_CHECKING:
     from evented.base import EventSource
     from evented.configs import EventConfig
     from evented.timed_watcher import TimeEventSource
-
-    from llmling_agent.messaging import MessageNode
 
 
 logger = get_logger(__name__)
@@ -45,28 +44,23 @@ class EventManager:
 
     def __init__(
         self,
-        node: MessageNode[Any, Any],
+        configs: list[EventConfig] | None = None,
+        event_callbacks: list[EventCallback] | None = None,
         enable_events: bool = True,
-        auto_run: bool = True,
     ) -> None:
         """Initialize event manager.
 
         Args:
-            node: Agent to manage events for
+            configs: List of event configurations
+            event_callbacks: List of event callbacks
             enable_events: Whether to enable event processing
-            auto_run: Whether to automatically call run() for event callbacks
         """
-        self.node = node
+        self.task_manager = TaskManager()
+        self.configs = configs or []
         self.enabled = enable_events
         self._sources: dict[str, EventSource] = {}
-        self._callbacks: list[EventCallback] = []
-        self.auto_run = auto_run
+        self._callbacks = event_callbacks or []
         self._observers = defaultdict[str, list[EventObserver]](list)
-
-    async def _default_handler(self, event: EventData) -> None:
-        """Default event handler that converts events to node runs."""
-        if prompt := event.to_prompt():  # Only run if event provides a prompt
-            await self.node.run(prompt)
 
     def add_callback(self, callback: EventCallback) -> None:
         """Register an event callback."""
@@ -81,7 +75,6 @@ class EventManager:
         if not self.enabled:
             return
 
-        # Run custom callbacks
         for callback in self._callbacks:
             try:
                 result = callback(event)
@@ -90,14 +83,6 @@ class EventManager:
             except Exception:
                 logger.exception("Error in event callback", name=callback.__name__)
 
-        # Run default handler if enabled
-        if self.auto_run:
-            try:
-                prompt = event.to_prompt()
-                if prompt:
-                    await self.node.run(prompt)
-            except Exception:
-                logger.exception("Error in default event handler")
         self.event_processed.emit(event)
 
     async def add_file_watch(
@@ -246,7 +231,7 @@ class EventManager:
             self._sources[config.name] = source
             # Start processing events
             name = f"event_processor_{config.name}"
-            self.node.task_manager.create_task(self._process_events(source), name=name)
+            self.task_manager.create_task(self._process_events(source), name=name)
             logger.debug("Added event source", name=config.name)
         except Exception as e:
             msg = "Failed to add event source"
@@ -297,12 +282,8 @@ class EventManager:
         """Allow using manager as async context manager."""
         if not self.enabled:
             return self
-
-        # Set up triggers from config
-        if self.node.context and self.node.context.config and self.node.context.config.triggers:
-            for trigger in self.node.context.config.triggers:
-                await self.add_source(trigger)
-
+        for trigger in self.configs:
+            await self.add_source(trigger)
         return self
 
     async def __aexit__(
@@ -367,13 +348,13 @@ class EventManager:
                     if self.enabled:
                         meta |= {"status": "success", "duration": get_now() - start_time}
                         event = EventData.create(name, content=result, metadata=meta)
-                        self.node.task_manager.run_background(self.emit_event(event))
+                        self.task_manager.run_background(self.emit_event(event))
                 except Exception as e:
                     if self.enabled:
                         dur = get_now() - start_time
                         meta |= {"status": "error", "error": str(e), "duration": dur}
                         event = EventData.create(name, content=str(e), metadata=meta)
-                        self.node.task_manager.run_background(self.emit_event(event))
+                        self.task_manager.run_background(self.emit_event(event))
                     raise
                 else:
                     return result
@@ -439,8 +420,10 @@ class EventObserver:
 
 
 if __name__ == "__main__":
-    # Example usage of the event manager
-    from llmling_agent import Agent
+    from evented.event_data import EventData
 
-    agent = Agent()
-    event_manager = EventManager(node=agent)
+    async def dummy_callback(event: EventData) -> None:
+        if prompt := event.to_prompt():
+            print(f"Received: {prompt}")
+
+    event_manager = EventManager(event_callbacks=[dummy_callback])

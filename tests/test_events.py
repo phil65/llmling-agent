@@ -4,22 +4,14 @@ from evented.configs import TimeEventConfig
 from evented.event_data import EventData
 import pytest
 
-from llmling_agent.messaging import ChatMessage, EventManager
+from llmling_agent.messaging import EventManager
 from llmling_agent.utils.now import get_now
 
 
 @pytest.fixture
-def agent():
-    """Mock agent for testing."""
-    from llmling_agent import Agent
-
-    return Agent(name="test_agent")
-
-
-@pytest.fixture
-def event_manager(agent):
+def event_manager():
     """Create event manager for testing."""
-    return EventManager(agent, enable_events=True)
+    return EventManager(enable_events=True)
 
 
 class _TestEvent(EventData):
@@ -71,9 +63,9 @@ async def test_event_manager_multiple_callbacks(event_manager: EventManager):
     assert counter2 == 1
 
 
-async def test_event_manager_disabled(agent):
+async def test_event_manager_disabled():
     """Test that disabled event manager doesn't emit events."""
-    manager = EventManager(agent, enable_events=False)
+    manager = EventManager(enable_events=False)
     counter = 0
 
     async def callback(event):
@@ -129,27 +121,25 @@ async def test_timed_event_basic(event_manager: EventManager):
     await event_manager.cleanup()
 
 
-async def test_auto_run_handling(event_manager, agent):
-    """Test auto_run feature with message handling."""
-    received_messages = []
+async def test_event_callback_receives_prompt():
+    """Test that event callbacks can handle prompts like auto_run did."""
+    received_prompts: list[str] = []
 
-    # Mock agent's run method
-    async def mock_run(*args, **kwargs):
-        received_messages.append(args[0])
-        return ChatMessage(content="response", role="assistant")
+    async def prompt_handler(event: EventData) -> None:
+        if prompt := event.to_prompt():
+            received_prompts.append(prompt)
 
-    agent.run = mock_run
+    manager = EventManager(event_callbacks=[prompt_handler], enable_events=True)
 
-    # Create and emit event with a prompt
     event = _TestEvent(
         source="test",
         timestamp=get_now(),
         message="Test prompt",
     )
-    await event_manager.emit_event(event)
+    await manager.emit_event(event)
 
-    assert len(received_messages) == 1
-    assert received_messages[0] == "Test prompt"
+    assert len(received_prompts) == 1
+    assert received_prompts[0] == "Test prompt"
 
 
 async def test_event_manager_cleanup(event_manager: EventManager):
@@ -163,11 +153,25 @@ async def test_event_manager_cleanup(event_manager: EventManager):
     assert len(event_manager._sources) == 0
 
 
-async def test_event_manager_async_context(agent):
+async def test_event_manager_async_context():
     """Test async context management."""
-    async with EventManager(agent) as manager:
+    async with EventManager() as manager:
         assert manager.enabled
-        assert manager.node == agent
+
+
+async def test_event_manager_with_initial_callbacks():
+    """Test creating event manager with callbacks passed at init."""
+    events: list[EventData] = []
+
+    async def callback(event: EventData) -> None:
+        events.append(event)
+
+    manager = EventManager(event_callbacks=[callback], enable_events=True)
+    event = _TestEvent(source="test", message="hello")
+    await manager.emit_event(event)
+
+    assert len(events) == 1
+    assert events[0].message == "hello"
 
 
 if __name__ == "__main__":
