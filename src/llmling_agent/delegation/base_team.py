@@ -515,6 +515,4 @@ if __name__ == "__main__":
         async with team:
             print(await agent.tools.get_tools())
 
-    import asyncio
-
     asyncio.run(main())

@@ -10,8 +10,6 @@ from llmling_agent.prompts.base import BasePromptProvider
 
 
 if TYPE_CHECKING:
-    from langfuse.api.client import FernLangfuse
-
     from llmling_agent_config.prompt_hubs import LangfuseConfig
 
 
@@ -28,10 +26,9 @@ class LangfusePromptHub(BasePromptProvider):
         pub = config.public_key.get_secret_value()
         self._client = Langfuse(secret_key=secret, public_key=pub, host=str(config.host))
 
-        # Initialize the API client for listing prompts
         from langfuse.api.client import FernLangfuse
 
-        self._api_client: FernLangfuse = FernLangfuse(
+        self._api_client = FernLangfuse(
             base_url=str(config.host),
             x_langfuse_public_key=pub,
             username=pub,
@@ -70,9 +67,11 @@ class LangfusePromptHub(BasePromptProvider):
 if __name__ == "__main__":
     import asyncio
 
+    from pydantic import SecretStr
+
     from llmling_agent_config.prompt_hubs import LangfuseConfig
 
-    config = LangfuseConfig(secret_key="test", public_key="")
+    config = LangfuseConfig(secret_key=SecretStr("test"), public_key=SecretStr(""))
     prompt_hub = LangfusePromptHub(config)
 
     async def main() -> None:

@@ -687,6 +687,4 @@ if __name__ == "__main__":
             agent = pool.get_agent("overseer")
             print(agent)
 
-    import asyncio
-
     asyncio.run(main())

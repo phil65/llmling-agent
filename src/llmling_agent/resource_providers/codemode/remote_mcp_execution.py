@@ -140,6 +140,4 @@ print(f"Addition: {result1}, Multiplication: {result2}")
             result = await provider.execute_code(code)
             print(f"Result: {result.result}")
 
-    import asyncio
-
     asyncio.run(main())

@@ -136,7 +136,6 @@ class RemoteCodeModeResourceProvider(CodeModeResourceProvider):
 
 
 if __name__ == "__main__":
-    import asyncio
     import webbrowser
 
     from anyenv.code_execution.configs import LocalExecutionEnvironmentConfig

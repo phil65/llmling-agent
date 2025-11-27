@@ -123,12 +123,11 @@ class BraintrustPromptHub(BasePromptProvider):
         import jinjarope
 
         env = jinjarope.Environment(enable_async=True)
-        variables = variables or {}
         prompt = load_prompt(slug=name, version=version, project=self.config.project)
         assert prompt.prompt
         string = prompt.prompt.messages[0].content  # type: ignore
         assert isinstance(string, str)
-        return await env.render_string_async(string, **variables)
+        return await env.render_string_async(string, **(variables or {}))
 
     async def list_prompts(self) -> list[str]:
         """List available prompts from Braintrust with pagination support."""
@@ -136,30 +135,26 @@ class BraintrustPromptHub(BasePromptProvider):
             msg = "API key is required to list prompts"
             raise RuntimeError(msg)
 
-        headers = {"Authorization": f"Bearer {self.api_key}"}
-        url = "https://api.braintrust.dev/v1/prompt"
-
-        # Add project filter if specified
         params: dict[str, Any] = {"limit": 100}  # Get up to 100 per page
-        if self.config.project:
+        if self.config.project:  # Add project filter if specified
             params["project_name"] = self.config.project
 
         all_prompts = []
-
         async with httpx.AsyncClient() as client:
             while True:
+                url = "https://api.braintrust.dev/v1/prompt"
+                headers = {"Authorization": f"Bearer {self.api_key}"}
                 response = await client.get(url, headers=headers, params=params)
-
-                if response.status_code == 401:  # noqa: PLR2004
-                    msg = "Unauthorized: Check your Braintrust API key"
-                    raise RuntimeError(msg)
-                if response.status_code == 403:  # noqa: PLR2004
-                    msg = "Forbidden: API key doesn't have permission to list prompts"
-                    raise RuntimeError(msg)
-                if response.status_code != 200:  # noqa: PLR2004
-                    msg = f"Failed to list prompts: {response.status_code} - {response.text}"
-                    raise RuntimeError(msg)
-
+                match response.status_code:
+                    case 401:
+                        msg = "Unauthorized: Check your Braintrust API key"
+                        raise RuntimeError(msg)
+                    case 403:
+                        msg = "Forbidden: API key doesn't have permission to list prompts"
+                        raise RuntimeError(msg)
+                    case 200:
+                        msg = f"Failed to list prompts: {response.status_code} - {response.text}"
+                        raise RuntimeError(msg)
                 try:
                     data = response.json()
                 except Exception as e:

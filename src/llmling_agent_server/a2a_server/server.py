@@ -474,8 +474,6 @@ class A2AServer(BaseServer):
 
 
 if __name__ == "__main__":
-    import asyncio
-
     import httpx
 
     from llmling_agent import AgentPool

@@ -10,6 +10,8 @@ from llmling_agent.tools.base import Tool
 
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
+
     import apprise  # type: ignore[import-untyped]
 
 logger = get_logger(__name__)
@@ -25,7 +27,7 @@ class NotificationsTools(ResourceProvider):
 
     def __init__(
         self,
-        channels: dict[str, str | list[str]],
+        channels: Mapping[str, str | list[str]],
         name: str = "notifications",
     ) -> None:
         """Initialize notifications provider.
@@ -42,9 +44,9 @@ class NotificationsTools(ResourceProvider):
 
     def _get_apprise(self) -> apprise.Apprise:
         """Get or create Apprise instance with configured channels."""
-        if self._apprise is None:
-            import apprise
+        import apprise
 
+        if self._apprise is None:
             self._apprise = apprise.Apprise()
             for channel_name, urls in self.channels.items():
                 # Normalize to list
@@ -63,17 +65,10 @@ class NotificationsTools(ResourceProvider):
             return self._tools
 
         channel_names = sorted(self.channels.keys())
-
         # Build schema with enum for available channels
         properties: dict[str, Any] = {
-            "message": {
-                "type": "string",
-                "description": "The notification message body",
-            },
-            "title": {
-                "type": "string",
-                "description": "Optional notification title",
-            },
+            "message": {"type": "string", "description": "The notification message body"},
+            "title": {"type": "string", "description": "Optional notification title"},
         }
 
         if channel_names:
@@ -95,24 +90,19 @@ class NotificationsTools(ResourceProvider):
                 "Specify a channel name to send to that channel only, "
                 "or omit to broadcast to all channels."
             ),
-            "parameters": {
-                "type": "object",
-                "properties": properties,
-                "required": ["message"],
-            },
+            "parameters": {"type": "object", "properties": properties, "required": ["message"]},
         }
 
         self._tools = [
             Tool.from_callable(
-                self._send_notification,
-                name_override="send_notification",
+                self.send_notification,
                 schema_override=schema_override,  # type: ignore[arg-type]
                 source="toolset",
             )
         ]
         return self._tools
 
-    async def _send_notification(
+    async def send_notification(
         self,
         message: str,
         title: str | None = None,
@@ -143,26 +133,13 @@ class NotificationsTools(ResourceProvider):
             notify_tag = "all"
             target_desc = "all channels"
 
-        logger.info(
-            "Sending notification",
-            target=target_desc,
-            title=title,
-            message_length=len(message),
-        )
+        logger.info("Sending notification", target=target_desc, title=title, length=len(message))
 
         try:
-            success = apobj.notify(
-                body=message,
-                title=title or "",
-                tag=notify_tag,
-            )
+            success = apobj.notify(body=message, title=title or "", tag=notify_tag)
         except Exception as e:
             logger.exception("Failed to send notification")
-            return {
-                "success": False,
-                "error": str(e),
-                "target": target_desc,
-            }
+            return {"success": False, "error": str(e), "target": target_desc}
 
         if success:
             logger.info("Notification sent successfully", target=target_desc)

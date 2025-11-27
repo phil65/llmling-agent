@@ -52,8 +52,7 @@ class OpenAPITools(ResourceProvider):
         tools = []
         for op_id, config in self._operations.items():
             method = self._factory.create_callable(op_id, config)
-            meta = {"operation": op_id}
-            tool = Tool.from_callable(method, source="openapi", metadata=meta)
+            tool = Tool.from_callable(method, source="openapi", metadata={"operation": op_id})
             tools.append(tool)
         return tools
 
