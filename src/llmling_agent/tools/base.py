@@ -190,6 +190,9 @@ class Tool[TOutputType = Any]:
         description_override: str | None = None,
         schema_override: schemez.OpenAIFunctionDefinition | None = None,
         hints: ToolHints | None = None,
+        category: ToolKind | None = None,
+        enabled: bool = True,
+        source: str | None = None,
         **kwargs: Any,
     ) -> Tool[TOutputType]:
         if isinstance(fn, str):
@@ -215,7 +218,10 @@ class Tool[TOutputType = Any]:
             description=description_override or inspect.getdoc(callable_obj) or "",
             import_path=import_path,
             schema_override=schema_override,
+            category=category,
             hints=hints,
+            enabled=enabled,
+            source=source or "callable",
             **kwargs,
         )
 

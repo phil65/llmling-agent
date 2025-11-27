@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from llmling_agent.resource_providers import StaticResourceProvider
-from llmling_agent.tools.base import Tool
 
 
 if TYPE_CHECKING:
@@ -123,17 +122,13 @@ async def vfs_info(ctx: AgentContext) -> str:
     return "\n".join(sections)
 
 
-def create_vfs_tools() -> list[Tool]:
-    """Create tools for VFS operations."""
-    return [
-        Tool.from_callable(vfs_list, source="builtin", category="search"),
-        Tool.from_callable(vfs_read, source="builtin", category="read"),
-        Tool.from_callable(vfs_info, source="builtin", category="info"),
-    ]
-
-
 class VFSTools(StaticResourceProvider):
     """Provider for VFS registry filesystem tools."""
 
     def __init__(self, name: str = "vfs") -> None:
-        super().__init__(name=name, tools=create_vfs_tools())
+        tools = [
+            self.create_tool(vfs_list, category="search"),
+            self.create_tool(vfs_read, category="read"),
+            self.create_tool(vfs_info, category="read"),
+        ]
+        super().__init__(name=name, tools=tools)
