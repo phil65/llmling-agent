@@ -98,11 +98,16 @@ async def test_openapi_toolset_remote(mock_openapi_spec, caplog, monkeypatch):
     caplog.set_level("DEBUG")
     url = mock_openapi_spec["remote_url"]
     mock_response = MockResponse()
-    mock_client = MagicMock()
-    mock_get = AsyncMock(return_value=mock_response)
-    mock_client.get = mock_get
 
-    # Create sync client factory (no need for async here)
+    # Mock sync httpx.get (used by load_openapi_spec)
+    mock_sync_get = MagicMock(return_value=mock_response)
+    monkeypatch.setattr("httpx.get", mock_sync_get)
+
+    # Mock async client for runtime requests
+    mock_client = MagicMock()
+    mock_async_get = AsyncMock(return_value=mock_response)
+    mock_client.get = mock_async_get
+
     def mock_client_factory(*args, **kwargs):
         return mock_client
 
@@ -110,7 +115,7 @@ async def test_openapi_toolset_remote(mock_openapi_spec, caplog, monkeypatch):
     toolset = OpenAPITools(spec=url, base_url=BASE_URL)
     spec = await toolset._load_spec()
     validate(spec)
-    mock_get.assert_called_once_with(url)  # Verify mocks were called correctly
+    mock_sync_get.assert_called_once()  # Verify sync get was called for spec loading
     tools = await toolset.get_tools()
     assert len(tools) == 1, f"Expected 1 tool, got {len(tools)}: {tools}"
 
