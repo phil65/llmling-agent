@@ -82,7 +82,7 @@ def node_function(
                 depends_on_ = []
             case str():
                 depends_on_ = [depends_on]
-            case Callable():  # type: ignore[misc]
+            case Callable():
                 depends_on_ = [depends_on.__name__]
 
             case [*items]:

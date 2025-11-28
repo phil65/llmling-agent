@@ -125,7 +125,7 @@ class ToolManager:
         match item:
             case Tool():
                 return item
-            case Callable() | str():  # type: ignore[misc]
+            case Callable() | str():
                 return Tool.from_callable(item)
             case _:
                 typ = type(item)

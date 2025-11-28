@@ -157,7 +157,7 @@ class Talk[TTransmittedData = Any]:
         from llmling_agent.talk import TeamTalk
 
         match other:
-            case Callable():  # type: ignore[misc]
+            case Callable():
                 other = Agent.from_callback(other)
                 if pool := self.source.context.pool:
                     pool.register(other.name, other)
@@ -521,7 +521,7 @@ class TeamTalk[TTransmittedData = Any](list["Talk | TeamTalk"]):
         from llmling_agent.talk import TeamTalk
 
         match other:
-            case Callable():  # type: ignore[misc]
+            case Callable():
                 other = Agent.from_callback(other)
                 for talk_ in self.iter_talks():
                     if pool := talk_.source.context.pool:

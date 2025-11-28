@@ -358,7 +358,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         match other:
             case Team():
                 return Team([self, *other.agents])
-            case Callable():  # type: ignore[misc]
+            case Callable():
                 agent_2 = Agent.from_callback(other)
                 agent_2.context.pool = self.context.pool
                 return Team([self, agent_2])
