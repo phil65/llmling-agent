@@ -161,11 +161,11 @@ class FastA2A(Starlette):
         a2a_request = a2a_request_ta.validate_json(data)
 
         if a2a_request["method"] == "message/send":
-            jsonrpc_response = await self.task_manager.send_message(a2a_request)
+            jsonrpc_response = await self.task_manager.send_message(a2a_request)  # pyright: ignore[reportArgumentType]
         elif a2a_request["method"] == "tasks/get":
-            jsonrpc_response = await self.task_manager.get_task(a2a_request)
+            jsonrpc_response = await self.task_manager.get_task(a2a_request)  # pyright: ignore[reportArgumentType]
         elif a2a_request["method"] == "tasks/cancel":
-            jsonrpc_response = await self.task_manager.cancel_task(a2a_request)
+            jsonrpc_response = await self.task_manager.cancel_task(a2a_request)  # pyright: ignore[reportArgumentType]
         else:
             raise NotImplementedError(f"Method {a2a_request['method']} not implemented.")
         return Response(
@@ -200,7 +200,7 @@ class TaskManager:
         # Store task in storage for processing
         await self.storage.store_task(task_id, request)
         await self.broker.submit_task(task_id)
-        return {
+        return {  # pyright: ignore[reportReturnType]
             "jsonrpc": "2.0",
             "id": request.get("id"),
             "result": {"status": "submitted", "task_id": task_id},
@@ -210,7 +210,7 @@ class TaskManager:
         """Handle tasks/get requests."""
         task_id = request.get("params", {}).get("task_id")
         if not task_id or not isinstance(task_id, str):
-            return {
+            return {  # pyright: ignore[reportReturnType]
                 "jsonrpc": "2.0",
                 "id": request.get("id"),
                 "result": {
@@ -220,7 +220,7 @@ class TaskManager:
                 },
             }
         task_status = await self.storage.get_task_status(task_id)
-        return {
+        return {  # pyright: ignore[reportReturnType]
             "jsonrpc": "2.0",
             "id": request.get("id"),
             "result": {
@@ -234,13 +234,13 @@ class TaskManager:
         """Handle tasks/cancel requests."""
         task_id = request.get("params", {}).get("task_id")
         if not task_id or not isinstance(task_id, str):
-            return {
+            return {  # pyright: ignore[reportReturnType]
                 "jsonrpc": "2.0",
                 "id": request.get("id"),
                 "result": {"status": "invalid_request"},
             }
         await self.storage.cancel_task(task_id)
-        return {
+        return {  # pyright: ignore[reportReturnType]
             "jsonrpc": "2.0",
             "id": request.get("id"),
             "result": {"status": "cancelled"},

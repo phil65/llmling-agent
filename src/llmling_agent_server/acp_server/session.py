@@ -640,13 +640,7 @@ class ACPSession:
                         raw_output=f"Process start failed: {error}",
                     )
 
-            case ProcessOutputEvent(
-                process_id=process_id,
-                output=output,
-                # truncated=truncated,
-                tool_call_id=tool_call_id,
-            ):
-                # Handle ProcessOutputEvent
+            case ProcessOutputEvent(process_id=process_id, tool_call_id=tool_call_id):
                 if tool_call_id:
                     await self.notifications.terminal_progress(
                         tool_call_id=tool_call_id,
