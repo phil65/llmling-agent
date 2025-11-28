@@ -116,9 +116,7 @@ async def _execute_step(
             if step.condition and not step.condition.evaluate_with_value(input_value):
                 return StepResult(success=True, result=input_value, duration=0)
 
-            # Get the tool
-            tool_info = await ctx.agent.tools.get_tool(step.tool)
-
+            tool_info = await ctx.agent.tools.get_tool(step.tool)  # Get the tool
             if isinstance(input_value, dict):  # Prepare kwargs
                 kwargs = {**input_value, **step.keyword_args}
             else:
@@ -168,13 +166,11 @@ async def _execute_step(
 async def _execute_sequential(ctx: AgentContext, pipeline: Pipeline, results: StepResults) -> Any:
     """Execute steps sequentially."""
     current = pipeline.input
-
     for step in pipeline.steps:
         result = await _execute_step(ctx, step, current, results)
         if step.name:
             results[step.name] = result
         current = result.result
-
     return current
 
 
@@ -191,7 +187,6 @@ async def _execute_parallel(ctx: AgentContext, pipeline: Pipeline, results: Step
 
             # Get input from dependency or pipeline input
             input_value = results[step.depends_on[-1]].result if step.depends_on else pipeline.input
-
             result = await _execute_step(ctx, step, input_value, results)
             if step.name:
                 results[step.name] = result
@@ -199,7 +194,6 @@ async def _execute_parallel(ctx: AgentContext, pipeline: Pipeline, results: Step
     # Create tasks for all steps
     tasks = [run_step(step) for step in pipeline.steps]
     await asyncio.gather(*tasks)
-
     # Return last result
     return results[name].result if (name := pipeline.steps[-1].name) else None
 

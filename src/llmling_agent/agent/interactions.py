@@ -369,14 +369,11 @@ List your selections, one per line, followed by your reasoning."""
             prompt: Optional custom prompt
             include_tools: Whether to include other tools (tool_calls mode only)
         """
-        # Create model for single instance
         item_model = Schema.for_class_ctor(as_type)
-
         # Create extraction prompt
         final_prompt = prompt or f"Extract {as_type.__name__} from: {text}"
         schema_obj = create_constructor_schema(as_type)
         schema = schema_obj.model_dump_openai()["function"]
-
         if mode == "structured":
 
             class Extraction(Schema):
@@ -386,7 +383,6 @@ List your selections, one per line, followed by your reasoning."""
             result = await self.agent.run(final_prompt, output_type=Extraction)
             # Convert model instance to actual type
             return as_type(**result.content.instance.model_dump())  # type: ignore
-
         # Legacy tool-calls approach
 
         async def construct(**kwargs: Any) -> T:
@@ -397,7 +393,6 @@ List your selections, one per line, followed by your reasoning."""
             construct,
             name_override=schema["name"],
             description_override=schema["description"],
-            # schema_override=schema,
         )
         async with self.agent.tools.temporary_tools(tool, exclusive=not include_tools):
             result = await self.agent.run(final_prompt, output_type=item_model)  # type: ignore

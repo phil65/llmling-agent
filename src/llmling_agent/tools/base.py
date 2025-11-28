@@ -171,7 +171,7 @@ class Tool[TOutputType = Any]:
         if not func:
             msg = "No callable found in provided code"
             raise ValueError(msg)
-        return cls.from_callable(func, name_override=name, description_override=description)
+        return cls.from_callable(func, name_override=name, description_override=description)  # pyright: ignore[reportArgumentType]
 
     @classmethod
     def from_callable(

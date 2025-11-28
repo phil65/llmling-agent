@@ -79,16 +79,12 @@ async def register_code_tool(  # noqa: D417
     return f"Successfully registered code tool: {registered_tool.name}"
 
 
-def create_tool_management_tools() -> list[Tool]:
-    """Create tools for tool management operations."""
-    return [
-        Tool.from_callable(register_tool, source="builtin", category="other"),
-        Tool.from_callable(register_code_tool, source="builtin", category="other"),
-    ]
-
-
 class ToolManagementTools(StaticResourceProvider):
     """Provider for tool management tools."""
 
     def __init__(self, name: str = "tool_management") -> None:
-        super().__init__(name=name, tools=create_tool_management_tools())
+        super().__init__(name=name)
+        self._tools = [
+            self.create_tool(register_tool, category="other"),
+            self.create_tool(register_code_tool, category="other"),
+        ]

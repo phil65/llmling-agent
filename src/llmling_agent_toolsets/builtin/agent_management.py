@@ -12,7 +12,6 @@ from pydantic_ai import ModelRetry
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.log import get_logger
 from llmling_agent.resource_providers import StaticResourceProvider
-from llmling_agent.tools.base import Tool
 from llmling_agent.tools.exceptions import ToolError
 from llmling_agent.utils.result_utils import to_type
 
@@ -372,26 +371,23 @@ async def connect_nodes(  # noqa: D417
     )
 
 
-def create_agent_management_tools() -> list[Tool]:
-    """Create tools for agent and team management operations."""
-    return [
-        Tool.from_callable(delegate_to, source="builtin", category="other"),
-        Tool.from_callable(list_available_agents, source="builtin", category="search"),
-        Tool.from_callable(list_available_teams, source="builtin", category="search"),
-        Tool.from_callable(create_worker_agent, source="builtin", category="other"),
-        Tool.from_callable(spawn_delegate, source="builtin", category="other"),
-        Tool.from_callable(add_agent, source="builtin", category="other"),
-        Tool.from_callable(add_team, source="builtin", category="other"),
-        Tool.from_callable(ask_agent, source="builtin", category="other"),
-        Tool.from_callable(connect_nodes, source="builtin", category="other"),
-    ]
-
-
 class AgentManagementTools(StaticResourceProvider):
     """Provider for agent management tools."""
 
     def __init__(self, name: str = "agent_management") -> None:
-        super().__init__(name=name, tools=create_agent_management_tools())
+        super().__init__(name=name)
+        for tool in [
+            self.create_tool(delegate_to, category="other"),
+            self.create_tool(list_available_agents, category="search"),
+            self.create_tool(list_available_teams, category="search"),
+            self.create_tool(create_worker_agent, category="other"),
+            self.create_tool(spawn_delegate, category="other"),
+            self.create_tool(add_agent, category="other"),
+            self.create_tool(add_team, category="other"),
+            self.create_tool(ask_agent, category="other"),
+            self.create_tool(connect_nodes, category="other"),
+        ]:
+            self.add_tool(tool)
 
 
 if __name__ == "__main__":

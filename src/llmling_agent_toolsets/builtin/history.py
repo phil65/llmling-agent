@@ -7,7 +7,6 @@ from typing import Literal
 
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.resource_providers import StaticResourceProvider
-from llmling_agent.tools.base import Tool
 from llmling_agent.utils.now import get_now
 
 
@@ -66,16 +65,12 @@ async def show_statistics(
     )
 
 
-def create_history_tools() -> list[Tool]:
-    """Create tools for history and statistics access."""
-    return [
-        Tool.from_callable(search_history, source="builtin", category="search"),
-        Tool.from_callable(show_statistics, source="builtin", category="read"),
-    ]
-
-
 class HistoryTools(StaticResourceProvider):
     """Provider for history tools."""
 
     def __init__(self, name: str = "history") -> None:
-        super().__init__(name=name, tools=create_history_tools())
+        super().__init__(name=name)
+        self._tools = [
+            self.create_tool(search_history, category="search"),
+            self.create_tool(show_statistics, category="read"),
+        ]

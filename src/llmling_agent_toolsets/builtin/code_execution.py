@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import contextlib
 import io
+import os
 
 from anyenv import create_shell_process
 
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.resource_providers import StaticResourceProvider
-from llmling_agent.tools.base import Tool
 
 
 async def execute_python(ctx: AgentContext, code: str) -> str:
@@ -23,8 +23,7 @@ async def execute_python(ctx: AgentContext, code: str) -> str:
         return f"Error executing code: {e}"
 
 
-async def execute_command(  # noqa: D417
-    ctx: AgentContext,
+async def execute_command(
     command: str,
     env: dict[str, str] | None = None,
     output_limit: int | None = None,
@@ -36,10 +35,7 @@ async def execute_command(  # noqa: D417
         env: Environment variables to add to current environment
         output_limit: Maximum bytes of output to return
     """
-    import os
-
     try:
-        # Prepare environment
         env = dict(os.environ)
         if env:
             env.update(env)
@@ -58,16 +54,12 @@ async def execute_command(  # noqa: D417
         return output
 
 
-def create_code_execution_tools() -> list[Tool]:
-    """Create tools for code execution operations."""
-    return [
-        Tool.from_callable(execute_python, source="builtin", category="execute"),
-        Tool.from_callable(execute_command, source="builtin", category="execute"),
-    ]
-
-
 class CodeExecutionTools(StaticResourceProvider):
     """Provider for code execution tools."""
 
     def __init__(self, name: str = "code_execution") -> None:
-        super().__init__(name=name, tools=create_code_execution_tools())
+        super().__init__(name=name)
+        self._tools = [
+            self.create_tool(execute_python, category="execute"),
+            self.create_tool(execute_command, category="execute"),
+        ]

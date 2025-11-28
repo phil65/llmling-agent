@@ -6,7 +6,6 @@ from typing import Any, assert_never
 
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.resource_providers import StaticResourceProvider
-from llmling_agent.tools.base import Tool
 
 
 async def ask_user(  # noqa: D417
@@ -45,13 +44,9 @@ async def ask_user(  # noqa: D417
             assert_never(unreachable)
 
 
-def create_user_interaction_tools() -> list[Tool]:
-    """Create tools for user interaction operations."""
-    return [Tool.from_callable(ask_user, source="builtin", category="other")]
-
-
 class UserInteractionTools(StaticResourceProvider):
     """Provider for user interaction tools."""
 
     def __init__(self, name: str = "user_interaction") -> None:
-        super().__init__(name=name, tools=create_user_interaction_tools())
+        super().__init__(name=name)
+        self._tools = [self.create_tool(ask_user, category="other")]

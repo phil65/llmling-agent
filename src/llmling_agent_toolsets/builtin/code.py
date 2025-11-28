@@ -11,11 +11,12 @@ from fsspec import AbstractFileSystem  # type: ignore[import-untyped]
 
 from llmling_agent.log import get_logger
 from llmling_agent.resource_providers import ResourceProvider
-from llmling_agent.tools.base import Tool
 
 
 if TYPE_CHECKING:
     import fsspec
+
+    from llmling_agent.tools.base import Tool
 
 from anyenv.code_execution.base import ExecutionEnvironment
 
@@ -128,30 +129,12 @@ class CodeTools(ResourceProvider):
         if self._tools is not None:
             return self._tools
 
-        self._tools = [
-            Tool.from_callable(
-                self._format_code,
-                name_override="format_code",
-                description_override="Format and lint a code file",
-                source=self.name,
-                category="execute",
-            ),
-        ]
-
+        self._tools = [self.create_tool(self.format_code, category="execute")]
         if importlib.util.find_spec("ast_grep_py"):
-            self._tools.append(
-                Tool.from_callable(
-                    self._ast_grep,
-                    name_override="ast_grep",
-                    description_override="Search or transform code using AST patterns",
-                    source=self.name,
-                    category="search",
-                )
-            )
-
+            self._tools.append(self.create_tool(self.ast_grep, category="search"))
         return self._tools
 
-    async def _format_code(self, path: str, language: str | None = None) -> str:
+    async def format_code(self, path: str, language: str | None = None) -> str:
         """Format and lint a code file, returning a concise summary.
 
         Args:
@@ -164,7 +147,6 @@ class CodeTools(ResourceProvider):
         from anyenv.language_formatters import FormatterRegistry
 
         resolved = self._resolve_path(path)
-
         try:
             content = await self.fs._cat_file(resolved)
             code = content.decode("utf-8") if isinstance(content, bytes) else content
@@ -173,22 +155,18 @@ class CodeTools(ResourceProvider):
 
         registry = FormatterRegistry("local")
         registry.register_default_formatters()
-
         # Get formatter by language or detect from extension/content
         formatter = None
         if language:
             formatter = registry.get_formatter_by_language(language)
-
         if not formatter:
             detected = _detect_language(path)
             if detected:
                 formatter = registry.get_formatter_by_language(detected)
-
         if not formatter:
             detected = registry.detect_language_from_content(code)
             if detected:
                 formatter = registry.get_formatter_by_language(detected)
-
         if not formatter:
             return f"❌ Unsupported language: {language or 'unknown'}"
 
@@ -216,7 +194,7 @@ class CodeTools(ResourceProvider):
         except Exception as e:  # noqa: BLE001
             return f"❌ Error: {type(e).__name__}: {e}"
 
-    async def _ast_grep(
+    async def ast_grep(
         self,
         path: str,
         rule: dict[str, Any],

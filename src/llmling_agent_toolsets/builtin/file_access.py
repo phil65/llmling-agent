@@ -88,19 +88,7 @@ class FileAccessTools(ResourceProvider):
 
         # Only add read_as_markdown if converter is available
         if self.converter:
-            self._tools.append(
-                Tool.from_callable(
-                    self.read_as_markdown,
-                    name_override="read_as_markdown",
-                    description_override=(
-                        "Read file and convert to markdown text representation. "
-                        "Useful for extracting text from PDFs, documents, etc."
-                    ),
-                    source="builtin",
-                    category="read",
-                )
-            )
-
+            self._tools.append(self.create_tool(self.read_as_markdown, category="read"))
         return self._tools
 
     async def read_file(  # noqa: D417
@@ -150,11 +138,7 @@ class FileAccessTools(ResourceProvider):
             await ctx.events.file_operation("read", path=path, success=False, error=msg)
             raise ToolError(msg) from e
 
-    async def read_as_markdown(  # noqa: D417
-        self,
-        ctx: AgentContext,
-        path: str,
-    ) -> str:
+    async def read_as_markdown(self, ctx: AgentContext, path: str) -> str:  # noqa: D417
         """Read file and convert to markdown text representation.
 
         Args:
