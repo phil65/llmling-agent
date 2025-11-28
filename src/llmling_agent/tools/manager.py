@@ -160,11 +160,8 @@ class ToolManager:
         results = await asyncio.gather(*provider_coroutines, return_exceptions=True)
         for provider, result in zip(self.providers, results, strict=False):
             if isinstance(result, BaseException):
-                logger.warning(
-                    "Failed to get tools from provider",
-                    provider=provider,
-                    result=result,
-                )
+                msg = "Failed to get tools from provider"
+                logger.warning(msg, provider=provider, result=result)
                 continue
             tools.extend(t for t in result if t.matches_filter(state))
 
@@ -186,8 +183,7 @@ class ToolManager:
         Returns:
             Tool instance if found, None otherwise
         """
-        all_tools = await self.get_tools()
-        tool = next((tool for tool in all_tools if tool.name == name), None)
+        tool = next((tool for tool in await self.get_tools() if tool.name == name), None)
         if not tool:
             msg = f"Tool not found: {tool}"
             raise ToolError(msg)
@@ -202,7 +198,6 @@ class ToolManager:
         from llmling_agent.mcp_server.manager import MCPManager
 
         all_prompts: list[MCPClientPrompt] = []
-
         # Get prompts from all external providers (check if they're MCP providers)
         for provider in self.external_providers:
             if isinstance(provider, MCPManager):
