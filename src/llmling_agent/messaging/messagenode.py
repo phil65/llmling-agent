@@ -76,11 +76,8 @@ class MessageNode[TDeps, TResult](ABC):
         self.agent_pool = agent_pool
         self.description = description
         self.connections = ConnectionManager(self)
-        self._events = EventManager(
-            configs=list(event_configs) if event_configs else None,
-            event_callbacks=[_event_handler],
-            enable_events=True,
-        )
+        cfgs = list(event_configs) if event_configs else None
+        self._events = EventManager(configs=cfgs, event_callbacks=[_event_handler])
         name_ = f"node_{self._name}"
         self.mcp = MCPManager(name_, servers=mcp_servers, owner=self.name)
         self.enable_db_logging = enable_logging
