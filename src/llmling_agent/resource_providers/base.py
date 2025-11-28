@@ -132,6 +132,8 @@ class ResourceProvider:
         requires_confirmation: bool = False,
         metadata: dict[str, Any] | None = None,
         category: ToolKind | None = None,
+        name_override: str | None = None,
+        description_override: str | None = None,
         schema_override: OpenAIFunctionDefinition | None = None,
     ) -> Tool:
         """Create a tool from a function.
@@ -145,6 +147,8 @@ class ResourceProvider:
             requires_confirmation: Whether the tool requires confirmation
             metadata: Metadata for the tool
             category: Category of the tool
+            name_override: Override the name of the tool
+            description_override: Override the description of the tool
             schema_override: Override the schema of the tool
 
         Returns:
@@ -156,6 +160,8 @@ class ResourceProvider:
             source=self.name,
             requires_confirmation=requires_confirmation,
             metadata=metadata,
+            name_override=name_override,
+            description_override=description_override,
             schema_override=schema_override,
             hints=ToolHints(
                 read_only=read_only,

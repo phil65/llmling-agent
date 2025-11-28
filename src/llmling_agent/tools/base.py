@@ -65,7 +65,7 @@ class Tool[TOutputType = Any]:
     enabled: bool = True
     """Whether the tool is currently enabled"""
 
-    source: ToolSource = "dynamic"
+    source: ToolSource | str = "dynamic"
     """Where the tool came from."""
 
     requires_confirmation: bool = False
@@ -84,11 +84,7 @@ class Tool[TOutputType = Any]:
 
     def to_pydantic_ai(self) -> PydanticAiTool:
         """Convert tool to Pydantic AI tool."""
-        metadata = {
-            **self.metadata,
-            "agent_name": self.agent_name,
-            "category": self.category,
-        }
+        metadata = {**self.metadata, "agent_name": self.agent_name, "category": self.category}
         return PydanticAiTool(
             function=self.callable,
             name=self.name,
@@ -175,11 +171,7 @@ class Tool[TOutputType = Any]:
         if not func:
             msg = "No callable found in provided code"
             raise ValueError(msg)
-        return cls.from_callable(
-            func,  # pyright: ignore[reportArgumentType]
-            name_override=name,
-            description_override=description,
-        )
+        return cls.from_callable(func, name_override=name, description_override=description)
 
     @classmethod
     def from_callable(
@@ -192,7 +184,7 @@ class Tool[TOutputType = Any]:
         hints: ToolHints | None = None,
         category: ToolKind | None = None,
         enabled: bool = True,
-        source: str | None = None,
+        source: ToolSource | str | None = None,
         **kwargs: Any,
     ) -> Tool[TOutputType]:
         if isinstance(fn, str):

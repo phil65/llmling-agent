@@ -8,7 +8,6 @@ from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.log import get_logger
 from llmling_agent.resource_providers import ResourceProvider
 from llmling_agent.skills.registry import SkillsRegistry
-from llmling_agent.tools.base import Tool
 
 
 if TYPE_CHECKING:
@@ -17,6 +16,7 @@ if TYPE_CHECKING:
     from upath.types import JoinablePathLike
 
     from llmling_agent.skills.skill import Skill
+    from llmling_agent.tools.base import Tool
 
 
 logger = get_logger(__name__)
@@ -119,9 +119,8 @@ class SkillsResourceProvider(ResourceProvider):
 
         skills_list = [f"- {s.name}: {s.description}" for s in skills]
         return [
-            Tool.from_callable(
+            self.create_tool(
                 load_skill,
-                source="skills",
                 category="read",
                 description_override=BASE_DESC + "\n" + "\n".join(skills_list),
             )

@@ -4,15 +4,17 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from schemez.functionschema.typedefs import OpenAIFunctionDefinition
+
 from llmling_agent.log import get_logger
 from llmling_agent.resource_providers import ResourceProvider
-from llmling_agent.tools.base import Tool
 
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
 
-    import apprise  # type: ignore[import-untyped]
+    from llmling_agent.tools.base import Tool
+
 
 logger = get_logger(__name__)
 
@@ -37,27 +39,19 @@ class NotificationsTools(ResourceProvider):
                       Values can be a single URL string or list of URLs.
             name: Provider name
         """
+        import apprise  # type: ignore[import-untyped]
+
         super().__init__(name=name)
         self.channels = channels
-        self._apprise: apprise.Apprise | None = None
         self._tools: list[Tool] | None = None
-
-    def _get_apprise(self) -> apprise.Apprise:
-        """Get or create Apprise instance with configured channels."""
-        import apprise
-
-        if self._apprise is None:
-            self._apprise = apprise.Apprise()
-            for channel_name, urls in self.channels.items():
-                # Normalize to list
-                url_list = [urls] if isinstance(urls, str) else urls
-                for url in url_list:
-                    # Tag each URL with the channel name for filtering
-                    self._apprise.add(url, tag=channel_name)
-                    logger.debug(
-                        "Added notification URL", channel=channel_name, url=url[:30] + "..."
-                    )
-        return self._apprise
+        self._apprise = apprise.Apprise()
+        for channel_name, urls in self.channels.items():
+            # Normalize to list
+            url_list = [urls] if isinstance(urls, str) else urls
+            for url in url_list:
+                # Tag each URL with the channel name for filtering
+                self._apprise.add(url, tag=channel_name)
+                logger.debug("Added notification URL", channel=channel_name, url=url[:30] + "...")
 
     async def get_tools(self) -> list[Tool]:
         """Get notification tools with dynamic schema based on configured channels."""
@@ -83,23 +77,17 @@ class NotificationsTools(ResourceProvider):
                 "description": "Send to a specific channel. If not specified, sends to all channels.",  # noqa: E501
             }
 
-        schema_override = {
-            "name": "send_notification",
-            "description": (
+        schema_override = OpenAIFunctionDefinition(
+            name="send_notification",
+            description=(
                 "Send a notification via configured channels. "
                 "Specify a channel name to send to that channel only, "
                 "or omit to broadcast to all channels."
             ),
-            "parameters": {"type": "object", "properties": properties, "required": ["message"]},
-        }
+            parameters={"type": "object", "properties": properties, "required": ["message"]},
+        )
 
-        self._tools = [
-            Tool.from_callable(
-                self.send_notification,
-                schema_override=schema_override,  # type: ignore[arg-type]
-                source="toolset",
-            )
-        ]
+        self._tools = [self.create_tool(self.send_notification, schema_override=schema_override)]
         return self._tools
 
     async def send_notification(
@@ -118,8 +106,6 @@ class NotificationsTools(ResourceProvider):
         Returns:
             Result dict with success status and details
         """
-        apobj = self._get_apprise()
-
         if channel:
             if channel not in self.channels:
                 return {
@@ -136,7 +122,7 @@ class NotificationsTools(ResourceProvider):
         logger.info("Sending notification", target=target_desc, title=title, length=len(message))
 
         try:
-            success = apobj.notify(body=message, title=title or "", tag=notify_tag)
+            success = self._apprise.notify(body=message, title=title or "", tag=notify_tag)
         except Exception as e:
             logger.exception("Failed to send notification")
             return {"success": False, "error": str(e), "target": target_desc}
