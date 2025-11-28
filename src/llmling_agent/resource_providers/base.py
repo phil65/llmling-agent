@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     from types import TracebackType
 
     from pydantic_ai import ModelRequestPart
+    from schemez import OpenAIFunctionDefinition
 
     from llmling_agent.prompts.prompts import BasePrompt
     from llmling_agent.skills.skill import Skill
@@ -131,6 +132,7 @@ class ResourceProvider:
         requires_confirmation: bool = False,
         metadata: dict[str, Any] | None = None,
         category: ToolKind | None = None,
+        schema_override: OpenAIFunctionDefinition | None = None,
     ) -> Tool:
         """Create a tool from a function.
 
@@ -143,6 +145,7 @@ class ResourceProvider:
             requires_confirmation: Whether the tool requires confirmation
             metadata: Metadata for the tool
             category: Category of the tool
+            schema_override: Override the schema of the tool
 
         Returns:
             Tool created from the function
@@ -153,6 +156,7 @@ class ResourceProvider:
             source=self.name,
             requires_confirmation=requires_confirmation,
             metadata=metadata,
+            schema_override=schema_override,
             hints=ToolHints(
                 read_only=read_only,
                 destructive=destructive,
