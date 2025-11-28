@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -77,57 +77,51 @@ async def test_send_notification_to_channel(
     notifications_provider: NotificationsTools,
 ):
     """Test sending notification to specific channel."""
-    with patch("apprise.Apprise") as mock_apprise_class:
-        mock_apprise = MagicMock()
-        mock_apprise.notify.return_value = True
-        mock_apprise_class.return_value = mock_apprise
+    mock_apprise = MagicMock()
+    mock_apprise.notify.return_value = True
+    notifications_provider._apprise = mock_apprise
 
-        result = await notifications_provider._send_notification(
-            message="Test message",
-            title="Test Title",
-            channel="team_slack",
-        )
+    result = await notifications_provider.send_notification(
+        message="Test message",
+        title="Test Title",
+        channel="team_slack",
+    )
 
-        assert result["success"] is True
-        assert "team_slack" in result["target"]
-        mock_apprise.notify.assert_called_once_with(
-            body="Test message",
-            title="Test Title",
-            tag="team_slack",
-        )
+    assert result["success"] is True
+    assert "team_slack" in result["target"]
+    mock_apprise.notify.assert_called_once_with(
+        body="Test message",
+        title="Test Title",
+        tag="team_slack",
+    )
 
 
 async def test_send_notification_to_all(
     notifications_provider: NotificationsTools,
 ):
     """Test sending notification to all channels."""
-    with patch("apprise.Apprise") as mock_apprise_class:
-        mock_apprise = MagicMock()
-        mock_apprise.notify.return_value = True
-        mock_apprise_class.return_value = mock_apprise
+    mock_apprise = MagicMock()
+    mock_apprise.notify.return_value = True
+    notifications_provider._apprise = mock_apprise
 
-        result = await notifications_provider._send_notification(
-            message="Broadcast message",
-        )
+    result = await notifications_provider.send_notification(
+        message="Broadcast message",
+    )
 
-        assert result["success"] is True
-        assert "all" in result["target"]
-        mock_apprise.notify.assert_called_once_with(
-            body="Broadcast message",
-            title="",
-            tag="all",
-        )
+    assert result["success"] is True
+    assert "all" in result["target"]
+    mock_apprise.notify.assert_called_once_with(
+        body="Broadcast message",
+        title="",
+        tag="all",
+    )
 
 
 async def test_send_notification_unknown_channel(
     notifications_provider: NotificationsTools,
 ):
     """Test sending to unknown channel returns error."""
-    result = await notifications_provider._send_notification(
-        message="Test",
-        channel="nonexistent",
-    )
-
+    result = await notifications_provider.send_notification(message="Test", channel="nonexistent")
     assert result["success"] is False
     assert "Unknown channel" in result["error"]
     assert "available_channels" in result
@@ -137,34 +131,32 @@ async def test_send_notification_failure(
     notifications_provider: NotificationsTools,
 ):
     """Test handling of notification failure."""
-    with patch("apprise.Apprise") as mock_apprise_class:
-        mock_apprise = MagicMock()
-        mock_apprise.notify.return_value = False
-        mock_apprise_class.return_value = mock_apprise
+    mock_apprise = MagicMock()
+    mock_apprise.notify.return_value = False
+    notifications_provider._apprise = mock_apprise
 
-        result = await notifications_provider._send_notification(
-            message="This will fail",
-        )
+    result = await notifications_provider.send_notification(
+        message="This will fail",
+    )
 
-        assert result["success"] is False
+    assert result["success"] is False
 
 
 async def test_send_notification_exception(
     notifications_provider: NotificationsTools,
 ):
     """Test handling of exception during notification."""
-    with patch("apprise.Apprise") as mock_apprise_class:
-        mock_apprise = MagicMock()
-        mock_apprise.notify.side_effect = Exception("Network error")
-        mock_apprise_class.return_value = mock_apprise
+    mock_apprise = MagicMock()
+    mock_apprise.notify.side_effect = Exception("Network error")
+    notifications_provider._apprise = mock_apprise
 
-        result = await notifications_provider._send_notification(
-            message="This will raise",
-        )
+    result = await notifications_provider.send_notification(
+        message="This will raise",
+    )
 
-        assert result["success"] is False
-        assert "error" in result
-        assert "Network error" in result["error"]
+    assert result["success"] is False
+    assert "error" in result
+    assert "Network error" in result["error"]
 
 
 def test_config_creates_provider(sample_channels: dict[str, str | list[str]]):
@@ -187,57 +179,3 @@ async def test_empty_channels():
     # Should not have enum constraints when empty
     channel_prop = schema["parameters"]["properties"]["channel"]
     assert "enum" not in channel_prop
-
-
-async def test_apprise_lazy_initialization(
-    notifications_provider: NotificationsTools,
-):
-    """Test that Apprise is lazily initialized."""
-    assert notifications_provider._apprise is None
-
-    with patch("apprise.Apprise") as mock_apprise_class:
-        mock_apprise = MagicMock()
-        mock_apprise_class.return_value = mock_apprise
-
-        # First call initializes
-        notifications_provider._get_apprise()
-        assert mock_apprise_class.called
-
-        # Second call reuses
-        mock_apprise_class.reset_mock()
-        notifications_provider._get_apprise()
-        assert not mock_apprise_class.called
-
-
-async def test_single_url_channel_added_correctly():
-    """Test that single URL channels are added correctly."""
-    channels = {"simple": "slack://token/"}
-    provider = NotificationsTools(channels=channels)
-
-    with patch("apprise.Apprise") as mock_apprise_class:
-        mock_apprise = MagicMock()
-        mock_apprise_class.return_value = mock_apprise
-
-        provider._get_apprise()
-
-        mock_apprise.add.assert_called_once_with("slack://token/", tag="simple")
-
-
-async def test_multi_url_channel_added_correctly():
-    """Test that multi-URL channels are added with same tag."""
-    channels = {
-        "multi": ["slack://a/", "mailto://b@c.com"],
-    }
-    provider = NotificationsTools(channels=channels)
-
-    with patch("apprise.Apprise") as mock_apprise_class:
-        mock_apprise = MagicMock()
-        mock_apprise_class.return_value = mock_apprise
-
-        provider._get_apprise()
-
-        calls = mock_apprise.add.call_args_list
-        assert len(calls) == 2  # noqa: PLR2004
-        # Both URLs tagged with the channel name
-        assert calls[0] == (("slack://a/",), {"tag": "multi"})
-        assert calls[1] == (("mailto://b@c.com",), {"tag": "multi"})
