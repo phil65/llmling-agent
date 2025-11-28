@@ -99,7 +99,7 @@ async def fs_provider(session: ACPSession):
     session.fs._cat_file = AsyncMock()
     session.fs._put_file = AsyncMock()
     session.fs._info = AsyncMock()
-    return FSSpecTools(filesystem=session.fs)
+    return FSSpecTools(session.fs)
 
 
 async def test_read_file_success(fs_provider: FSSpecTools):

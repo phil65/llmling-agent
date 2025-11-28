@@ -90,10 +90,7 @@ class ImportToolConfig(BaseToolConfig):
     """Import path based tool."""
 
     import_path: ImportString[Callable[..., Any]] = Field(
-        examples=[
-            "webbrowser:open",
-            "builtins:print",
-        ],
+        examples=["webbrowser:open", "builtins:print"],
         title="Import path",
     )
     """Import path to the tool function."""
