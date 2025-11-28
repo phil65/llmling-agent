@@ -24,11 +24,12 @@ from acp.schema import (
     TerminalToolCallContent,
     TextContentBlock,
     TextResourceContents,
-    ToolCallLocation,
     ToolCallProgress,
     ToolCallStart,
     UserMessageChunk,
 )
+from acp.schema.tool_call import ToolCallLocation
+from acp.tool_call_reporter import ToolCallReporter
 from acp.utils import infer_tool_kind, to_acp_content_blocks
 from llmling_agent.log import get_logger
 
@@ -72,6 +73,62 @@ class ACPNotifications:
         self.id = session_id
         self.log = logger.bind(session_id=session_id)
         self._tool_call_inputs: dict[str, dict[str, Any]] = {}
+
+    async def create_tool_reporter(
+        self,
+        tool_call_id: str,
+        title: str,
+        *,
+        kind: ToolCallKind | None = None,
+        status: ToolCallStatus = "pending",
+        locations: Sequence[ToolCallLocation] | None = None,
+        content: Sequence[ToolCallContent] | None = None,
+        raw_input: Any | None = None,
+        auto_start: bool = True,
+    ) -> ToolCallReporter:
+        """Create a stateful tool call reporter.
+
+        The reporter maintains the current state and sends updates when fields change,
+        avoiding the need to repeat unchanged fields on every update.
+
+        Args:
+            tool_call_id: Unique identifier for this tool call
+            title: Human-readable title describing the tool action
+            kind: Category of tool being invoked
+            status: Initial execution status
+            locations: File locations affected by this tool call
+            content: Initial content produced by the tool call
+            raw_input: Raw input parameters sent to the tool
+            auto_start: Whether to send the initial notification immediately
+
+        Returns:
+            A ToolCallReporter instance for sending updates
+
+        Example:
+            ```python
+            reporter = await notifications.create_tool_reporter(
+                tool_call_id="abc123",
+                title="Reading file",
+                kind="read",
+            )
+            await reporter.update(status="in_progress", message="Opening...")
+            await reporter.update(message="Processing...")
+            await reporter.complete(message="Done!")
+            ```
+        """
+        reporter = ToolCallReporter(
+            notifications=self,
+            tool_call_id=tool_call_id,
+            title=title,
+            kind=kind,
+            status=status,
+            locations=locations,
+            content=content,
+            raw_input=raw_input,
+        )
+        if auto_start:
+            await reporter.start()
+        return reporter
 
     async def tool_call(
         self,
@@ -179,6 +236,7 @@ class ACPNotifications:
         *,
         title: str | None = None,
         raw_output: Any | None = None,
+        kind: ToolCallKind | None = None,
         locations: Sequence[ToolCallLocation] | None = None,
         content: ContentType | None = None,
     ) -> None:
@@ -189,6 +247,7 @@ class ACPNotifications:
             status: Progress status
             title: Optional title for the progress update
             raw_output: Optional raw output text
+            kind: Optional kind of tool call
             locations: Optional sequence of file/path locations
             content: Optional sequence of content blocks or strings to display
         """
@@ -197,6 +256,7 @@ class ACPNotifications:
             status=status,
             title=title,
             raw_output=raw_output,
+            kind=kind,
             locations=locations,
             content=[
                 ContentToolCallContent(content=TextContentBlock(text=i))
