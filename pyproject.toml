@@ -200,8 +200,8 @@ reportSelfClsParameterName = false
 reportPrivateImportUsage = false
 reportUnusedExpression = false
 
-[tool.pytest.ini_options]
-addopts = "-m 'not slow'"
+[tool.pytest]
+addopts = ["-m", "not slow"]
 filterwarnings = [
   "ignore::DeprecationWarning:pydantic.*:",
   "ignore::DeprecationWarning:typer.*",
@@ -217,6 +217,7 @@ markers = [
   "unit: marks tests as unit tests",
   "integration: marks tests as integration tests",
 ]
+minversion = "9.0"
 python_files = ["test_*.py"]
 pythonpath = ["src"]
 testpaths = ["tests"]
@@ -307,8 +308,8 @@ ignore = [
   "D401",  # First line of docstring should be in imperative mood: "{first_line}"
   "D408",  # Section underline should be in the line following the section's name ("{name}")
   "D413",  # Missing blank line after last section ("{name}")
-  "EM101", # Exception must not use a string literal, assign to variable first
-  "EM102", # Exception must not use an f-string literal, assign to variable first
+  "EM101",  # Exception must not use a string literal, assign to variable first
+  "EM102",  # Exception must not use an f-string literal, assign to variable first
   "ISC001",
   "PLC0415",
   "PLR0912",  # Too many branches
