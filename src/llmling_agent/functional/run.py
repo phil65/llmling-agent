@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-import asyncio
 from typing import TYPE_CHECKING, Any, Unpack, overload
+
+from anyenv import run_sync
 
 from llmling_agent import Agent
 from llmling_agent.models.content import ImageURLContent
@@ -76,4 +77,4 @@ def run_agent_sync(
 ) -> Any:
     """Sync wrapper for run_agent."""
     coro = run_agent(prompt, image_url, output_type=output_type, **kwargs)  # type: ignore
-    return asyncio.run(coro)
+    return run_sync(coro)
