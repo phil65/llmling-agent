@@ -158,6 +158,5 @@ class Job[TDeps, TResult = str](Schema):
                 case Tool():
                     tools.append(tool)
                 case _:
-                    msg = f"Invalid tool type: {type(tool)}"
-                    raise ValueError(msg)
+                    raise ValueError(f"Invalid tool type: {type(tool)}")
         return tools

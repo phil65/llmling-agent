@@ -49,8 +49,7 @@ class FabricPromptHub(BasePromptProvider):
             response = await client.get(self._API_URL, headers=headers)
 
             if response.status_code != 200:  # noqa: PLR2004
-                msg = f"Failed to list prompts: {response.status_code}"
-                raise RuntimeError(msg)
+                raise RuntimeError(f"Failed to list prompts: {response.status_code}")
 
             content = response.json()
             return [item["name"] for item in content if item["type"] == "dir"]

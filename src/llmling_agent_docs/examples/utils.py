@@ -38,8 +38,7 @@ def get_config_path(module_path: str | None = None, filename: str = "config.yml"
     if is_pyodide():
         return Path(filename)
     if module_path is None:
-        msg = "module_path is required in non-Pyodide environment"
-        raise ValueError(msg)
+        raise ValueError("module_path is required in non-Pyodide environment")
     return Path(module_path).parent / filename
 
 
@@ -127,8 +126,7 @@ def get_example(name: str, root: Path | str | None = None) -> Example:
     for example in iter_examples(root):
         if example.name == name:
             return example
-    msg = f"Example {name!r} not found"
-    raise KeyError(msg)
+    raise KeyError(f"Example {name!r} not found")
 
 
 if __name__ == "__main__":

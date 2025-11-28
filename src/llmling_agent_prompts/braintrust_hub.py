@@ -132,8 +132,7 @@ class BraintrustPromptHub(BasePromptProvider):
     async def list_prompts(self) -> list[str]:
         """List available prompts from Braintrust with pagination support."""
         if not self.api_key:
-            msg = "API key is required to list prompts"
-            raise RuntimeError(msg)
+            raise RuntimeError("API key is required to list prompts")
 
         params: dict[str, Any] = {"limit": 100}  # Get up to 100 per page
         if self.config.project:  # Add project filter if specified
@@ -147,8 +146,7 @@ class BraintrustPromptHub(BasePromptProvider):
                 response = await client.get(url, headers=headers, params=params)
                 match response.status_code:
                     case 401:
-                        msg = "Unauthorized: Check your Braintrust API key"
-                        raise RuntimeError(msg)
+                        raise RuntimeError("Unauthorized: Check your Braintrust API key")
                     case 403:
                         msg = "Forbidden: API key doesn't have permission to list prompts"
                         raise RuntimeError(msg)

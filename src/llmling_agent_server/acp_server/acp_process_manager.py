@@ -37,14 +37,12 @@ class ACPRunningProcess:
     async def wait(self) -> int:
         """Wait for process to complete and return exit code."""
         # This would be implemented by the caller
-        msg = "Use ACPProcessManager.wait_for_exit"
-        raise NotImplementedError(msg)
+        raise NotImplementedError("Use ACPProcessManager.wait_for_exit")
 
     async def kill(self) -> None:
         """Terminate the process."""
         # This would be implemented by the caller
-        msg = "Use ACPProcessManager.kill_process"
-        raise NotImplementedError(msg)
+        raise NotImplementedError("Use ACPProcessManager.kill_process")
 
 
 class ACPProcessManager(ProcessManagerProtocol):
@@ -133,8 +131,7 @@ class ACPProcessManager(ProcessManagerProtocol):
             ValueError: If process ID not found
         """
         if process_id not in self._processes:
-            msg = f"Process {process_id} not found"
-            raise ValueError(msg)
+            raise ValueError(f"Process {process_id} not found")
 
         process = self._processes[process_id]
 
@@ -178,8 +175,7 @@ class ACPProcessManager(ProcessManagerProtocol):
             ValueError: If process ID not found
         """
         if process_id not in self._processes:
-            msg = f"Process {process_id} not found"
-            raise ValueError(msg)
+            raise ValueError(f"Process {process_id} not found")
 
         process = self._processes[process_id]
 
@@ -208,8 +204,7 @@ class ACPProcessManager(ProcessManagerProtocol):
             ValueError: If process ID not found
         """
         if process_id not in self._processes:
-            msg = f"Process {process_id} not found"
-            raise ValueError(msg)
+            raise ValueError(f"Process {process_id} not found")
 
         process = self._processes[process_id]
 
@@ -233,8 +228,7 @@ class ACPProcessManager(ProcessManagerProtocol):
             ValueError: If process ID not found
         """
         if process_id not in self._processes:
-            msg = f"Process {process_id} not found"
-            raise ValueError(msg)
+            raise ValueError(f"Process {process_id} not found")
 
         process = self._processes[process_id]
 
@@ -267,8 +261,7 @@ class ACPProcessManager(ProcessManagerProtocol):
             ValueError: If process ID not found
         """
         if process_id not in self._processes:
-            msg = f"Process {process_id} not found"
-            raise ValueError(msg)
+            raise ValueError(f"Process {process_id} not found")
 
         process = self._processes[process_id]
 

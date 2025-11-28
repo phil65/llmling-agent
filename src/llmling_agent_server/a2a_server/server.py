@@ -112,8 +112,7 @@ class FastA2A(Starlette):
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] == "http" and not self.task_manager.is_running:
-            msg = "TaskManager was not properly initialized."
-            raise RuntimeError(msg)
+            raise RuntimeError("TaskManager was not properly initialized.")
         await super().__call__(scope, receive, send)
 
     async def _agent_card_endpoint(self, request: Request) -> Response:
@@ -168,8 +167,7 @@ class FastA2A(Starlette):
         elif a2a_request["method"] == "tasks/cancel":
             jsonrpc_response = await self.task_manager.cancel_task(a2a_request)
         else:
-            msg = f"Method {a2a_request['method']} not implemented."
-            raise NotImplementedError(msg)
+            raise NotImplementedError(f"Method {a2a_request['method']} not implemented.")
         return Response(
             content=a2a_response_ta.dump_json(jsonrpc_response, by_alias=True),
             media_type="application/json",
@@ -310,8 +308,7 @@ class AgentWorker:
         """Run a task using the agent."""
         task_data = await self.storage.get_task(task_id)
         if not task_data:
-            msg = f"Task {task_id} not found"
-            raise ValueError(msg)
+            raise ValueError(f"Task {task_id} not found")
 
         context_id = task_data["context_id"]
         await self.storage.update_task_status(task_id, "working")
@@ -430,8 +427,7 @@ class A2AServer(BaseServer):
         # Get the first agent from the pool for now
         # TODO: Support multiple agents or agent selection
         if not self.pool.agents:
-            msg = "No agents available in pool"
-            raise ValueError(msg)
+            raise ValueError("No agents available in pool")
 
         agent = next(iter(self.pool.agents.values()))
 

@@ -153,15 +153,13 @@ class LLMlingACPAgent(ACPAgent):
     async def new_session(self, params: NewSessionRequest) -> NewSessionResponse:
         """Create a new session."""
         if not self._initialized:
-            msg = "Agent not initialized"
-            raise RuntimeError(msg)
+            raise RuntimeError("Agent not initialized")
 
         try:
             names = list(self.agent_pool.agents.keys())
             if not names:
                 logger.error("No agents available for session creation")
-                msg = "No agents available"
-                raise RuntimeError(msg)  # noqa: TRY301
+                raise RuntimeError("No agents available")  # noqa: TRY301
 
             # Use specified default agent or fall back to first agent
             if self.default_agent and self.default_agent in names:
@@ -209,8 +207,7 @@ class LLMlingACPAgent(ACPAgent):
     async def load_session(self, params: LoadSessionRequest) -> LoadSessionResponse:
         """Load an existing session."""
         if not self._initialized:
-            msg = "Agent not initialized"
-            raise RuntimeError(msg)
+            raise RuntimeError("Agent not initialized")
 
         try:
             session = self.session_manager.get_session(params.session_id)
@@ -233,15 +230,13 @@ class LLMlingACPAgent(ACPAgent):
     async def prompt(self, params: PromptRequest) -> PromptResponse:
         """Process a prompt request."""
         if not self._initialized:
-            msg = "Agent not initialized"
-            raise RuntimeError(msg)
+            raise RuntimeError("Agent not initialized")
 
         logger.info("Processing prompt", session_id=params.session_id)
         session = self.session_manager.get_session(params.session_id)
         try:
             if not session:
-                msg = f"Session {params.session_id} not found"
-                raise ValueError(msg)  # noqa: TRY301
+                raise ValueError(f"Session {params.session_id} not found")  # noqa: TRY301
             stop_reason = await session.process_prompt(params.prompt)
             # Return the actual stop reason from the session
         except Exception as e:

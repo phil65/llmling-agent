@@ -74,8 +74,7 @@ class MarkoChunkerConfig(BaseChunkerConfig):
     def validate_section_length(self) -> MarkoChunkerConfig:
         """Ensure min_section_length is only used with combine_small_sections."""
         if not self.combine_small_sections and self.min_section_length > 0:
-            msg = "min_section_length only valid when combine_small_sections=True"
-            raise ValueError(msg)
+            raise ValueError("min_section_length only valid when combine_small_sections=True")
         return self
 
 

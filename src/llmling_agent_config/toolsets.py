@@ -387,8 +387,7 @@ class CustomToolsetConfig(BaseToolsetConfig):
 
         provider_cls = import_class(self.import_path)
         if not issubclass(provider_cls, ResourceProvider):
-            msg = f"{self.import_path} must be a ResourceProvider subclass"
-            raise ValueError(msg)  # noqa: TRY004
+            raise ValueError(f"{self.import_path} must be a ResourceProvider subclass")  # noqa: TRY004
         return provider_cls(name=provider_cls.__name__)
 
 

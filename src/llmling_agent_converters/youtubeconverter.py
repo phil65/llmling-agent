@@ -86,8 +86,7 @@ class YouTubeTranscriptConverter(DocumentConverter):
 
     def convert_content(self, content: Any, mime_type: str | None = None) -> str:
         """Not supported - use convert_file instead."""
-        msg = "Raw content conversion not supported"
-        raise NotImplementedError(msg)
+        raise NotImplementedError("Raw content conversion not supported")
 
     def convert_file(self, path: JoinablePathLike) -> str:
         """Convert YouTube transcript to text.
@@ -103,8 +102,7 @@ class YouTubeTranscriptConverter(DocumentConverter):
         """
         video_id = self.extract_video_id(str(path))
         if not video_id:
-            msg = f"Invalid YouTube URL/ID: {path}"
-            raise ValueError(msg)
+            raise ValueError(f"Invalid YouTube URL/ID: {path}")
 
         try:
             transcript = YouTubeTranscriptApi().fetch(

@@ -61,8 +61,7 @@ class LocalWhisperConverter(DocumentConverter):
     def convert_content(self, content: bytes, mime_type: str | None = None) -> str:
         """Convert audio content to text."""
         if not self.supports_content(content, mime_type):
-            msg = f"Unsupported audio format: {mime_type}"
-            raise ValueError(msg)
+            raise ValueError(f"Unsupported audio format: {mime_type}")
 
         self._ensure_model()
         import whisper  # pyright: ignore

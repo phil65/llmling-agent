@@ -141,8 +141,7 @@ class CrewAIToolConfig(BaseToolConfig):
                 metadata={"type": "crewai", **self.metadata},
             )
         except ImportError as e:
-            msg = "CrewAI not installed. Install with: pip install crewai-tools"
-            raise ImportError(msg) from e
+            raise ImportError("CrewAI not installed.") from e
 
 
 class LangChainToolConfig(BaseToolConfig):
@@ -176,8 +175,7 @@ class LangChainToolConfig(BaseToolConfig):
                 metadata={"type": "langchain", **self.metadata},
             )
         except ImportError as e:
-            msg = "LangChain not installed. Install with: pip install langchain"
-            raise ImportError(msg) from e
+            raise ImportError("LangChain not installed.") from e
 
 
 # Union type for tool configs

@@ -64,8 +64,7 @@ class MemoryConfig(Schema):
             case None | True:
                 return cls()
             case _:
-                msg = f"Invalid memory configuration: type: {value}"
-                raise ValueError(msg)
+                raise ValueError(f"Invalid memory configuration: type: {value}")
 
 
 class SessionQuery(Schema):
