@@ -7,9 +7,22 @@ from datetime import timedelta
 from typing import TYPE_CHECKING, Any, Literal
 from uuid import uuid4
 
-from pydantic_ai import ModelRetry
+from pydantic_ai import (
+    FunctionToolCallEvent,
+    FunctionToolResultEvent,
+    ModelRetry,
+    PartDeltaEvent,
+    PartStartEvent,
+    RetryPromptPart,
+    TextPart,
+    TextPartDelta,
+    ThinkingPart,
+    ThinkingPartDelta,
+    ToolReturnPart,
+)
 
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
+from llmling_agent.agent.events import ToolCallProgressEvent
 from llmling_agent.log import get_logger
 from llmling_agent.resource_providers import StaticResourceProvider
 from llmling_agent.tools.exceptions import ToolError
@@ -285,12 +298,82 @@ async def ask_agent(  # noqa: D417
         )
         raise ModelRetry(msg)
     agent = ctx.pool.get_agent(agent_name)
+    aggregated: list[str] = []
+    tool_call_id = ctx.tool_call_id or ""
+
     try:
-        result = await agent.run(message, model=model, store_history=store_history)
+        async for event in agent.run_stream(message, model=model, store_history=store_history):
+            match event:
+                case (
+                    PartStartEvent(part=TextPart(content=delta))
+                    | PartDeltaEvent(delta=TextPartDelta(content_delta=delta))
+                ):
+                    aggregated.append(delta)
+                    progress = ToolCallProgressEvent(
+                        tool_call_id=tool_call_id,
+                        status="in_progress",
+                        message="".join(aggregated),
+                        tool_name=ctx.tool_name,
+                    )
+                    await ctx.events.emit_event(progress)
+
+                case (
+                    PartStartEvent(part=ThinkingPart(content=delta))
+                    | PartDeltaEvent(delta=ThinkingPartDelta(content_delta=delta))
+                ):
+                    if delta:
+                        aggregated.append(f"💭 {delta}")
+                        progress = ToolCallProgressEvent(
+                            tool_call_id=tool_call_id,
+                            status="in_progress",
+                            message="".join(aggregated),
+                            tool_name=ctx.tool_name,
+                        )
+                        await ctx.events.emit_event(progress)
+
+                case FunctionToolCallEvent(part=part):
+                    aggregated.append(f"\n🔧 Using tool: {part.tool_name}\n")
+                    progress = ToolCallProgressEvent(
+                        tool_call_id=tool_call_id,
+                        status="in_progress",
+                        message="".join(aggregated),
+                        tool_name=ctx.tool_name,
+                    )
+                    await ctx.events.emit_event(progress)
+
+                case FunctionToolResultEvent(
+                    result=ToolReturnPart(content=content, tool_name=tool_name),
+                ):
+                    aggregated.append(f"✅ {tool_name}: {content}\n")
+                    progress = ToolCallProgressEvent(
+                        tool_call_id=tool_call_id,
+                        status="in_progress",
+                        message="".join(aggregated),
+                        tool_name=ctx.tool_name,
+                    )
+                    await ctx.events.emit_event(progress)
+
+                case FunctionToolResultEvent(
+                    result=RetryPromptPart(tool_name=tool_name) as result,
+                ):
+                    error_message = result.model_response()
+                    aggregated.append(f"❌ {tool_name or 'unknown'}: {error_message}\n")
+                    progress = ToolCallProgressEvent(
+                        tool_call_id=tool_call_id,
+                        status="in_progress",
+                        message="".join(aggregated),
+                        tool_name=ctx.tool_name,
+                    )
+                    await ctx.events.emit_event(progress)
+
+                case _:
+                    pass
+
     except Exception as e:
         msg = f"Failed to ask agent {agent_name}: {e}"
         raise ModelRetry(msg) from e
-    return str(result.content)
+
+    return "".join(aggregated).strip()
 
 
 async def connect_nodes(  # noqa: D417
