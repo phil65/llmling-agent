@@ -16,10 +16,7 @@ def sample_channels() -> dict[str, str | list[str]]:
     return {
         "team_slack": "slack://TokenA/TokenB/TokenC/",
         "personal_telegram": "tgram://bottoken/ChatID",
-        "ops_alerts": [
-            "slack://ops-channel/",
-            "mailto://ops@company.com",
-        ],
+        "ops_alerts": ["slack://ops-channel/", "mailto://ops@company.com"],
     }
 
 
@@ -64,20 +61,11 @@ async def test_send_notification_to_channel(notifications_provider: Notification
     mock_apprise = MagicMock()
     mock_apprise.notify.return_value = True
     notifications_provider._apprise = mock_apprise
-
-    result = await notifications_provider.send_notification(
-        message="Test message",
-        title="Test Title",
-        channel="team_slack",
-    )
-
+    call = {"message": "Test message", "title": "Test Title", "channel": "team_slack"}
+    result = await notifications_provider.send_notification(**call)
     assert result["success"] is True
     assert "team_slack" in result["target"]
-    mock_apprise.notify.assert_called_once_with(
-        body="Test message",
-        title="Test Title",
-        tag="team_slack",
-    )
+    mock_apprise.notify.assert_called_once_with(**call)
 
 
 async def test_send_notification_to_all(notifications_provider: NotificationsTools):
