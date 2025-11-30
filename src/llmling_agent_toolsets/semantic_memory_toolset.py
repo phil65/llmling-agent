@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import UTC, datetime
 import os
+import re
+import time
 from typing import TYPE_CHECKING, Any, Literal, Self
 
 from llmling_agent.resource_providers import ResourceProvider
@@ -147,9 +149,7 @@ class SemanticMemoryTools(ResourceProvider):
         # Create minimal agent for LLM sampling
         self._agent = Agent(model=self.model, name=f"{self.name}-sampler")
         await self._agent.__aenter__()
-
-        # Build TypeAgent processing context
-        self._context = await self._make_context()
+        self._context = await self._make_context()  # Build TypeAgent processing context
         return self
 
     async def __aexit__(
@@ -179,7 +179,6 @@ class SemanticMemoryTools(ResourceProvider):
             raise RuntimeError(msg)
 
         settings = ConversationSettings()
-
         # Set up storage provider (SQLite or memory)
         settings.storage_provider = await create_storage_provider(
             settings.message_text_index_settings,
@@ -187,35 +186,18 @@ class SemanticMemoryTools(ResourceProvider):
             self.dbname,
             podcast.PodcastMessage,
         )
-
         lang_search_options = searchlang.LanguageSearchOptions(
-            compile_options=searchlang.LanguageQueryCompileOptions(
-                exact_scope=False,
-                verb_scope=True,
-                term_filter=None,
-                apply_scope=True,
-            ),
-            exact_match=False,
+            compile_options=searchlang.LanguageQueryCompileOptions(),
             max_message_matches=25,
         )
+        answer_context_options = answers.AnswerContextOptions(entities_top_k=50, topics_top_k=50)
 
-        answer_context_options = answers.AnswerContextOptions(
-            entities_top_k=50,
-            topics_top_k=50,
-            messages_top_k=None,
-            chunking=None,
-        )
-
-        # Load or create conversation index
-        query_context = await self._load_conversation_index(settings)
-
+        query_context = await self._load_conversation_index(settings)  # Load / create conv index
         # Create Agent-backed TypeChat model
         model = AgentTypeChatModel(self._agent)
-
         # Create translators for structured extraction
         query_translator = utils.create_translator(model, SearchQuery)
         answer_translator = utils.create_translator(model, AnswerResponse)
-
         return ProcessingContext(
             lang_search_options=lang_search_options,
             answer_context_options=answer_context_options,
@@ -275,21 +257,13 @@ class SemanticMemoryTools(ResourceProvider):
         Returns:
             QueryResponse with success status, answer text, and timing
         """
-        import time
-
         from typeagent.knowpro import answers, searchlang
         import typechat
 
         if self._context is None:
-            return QueryResponse(
-                success=False,
-                answer="Semantic memory not initialized",
-                time_ms=0,
-            )
-
+            return QueryResponse(success=False, answer="Semantic memory not initialized", time_ms=0)
         t0 = time.time()
         question = question.strip()
-
         if not question:
             dt = int((time.time() - t0) * 1000)
             return QueryResponse(success=False, answer="No question provided", time_ms=dt)
@@ -319,23 +293,13 @@ class SemanticMemoryTools(ResourceProvider):
 
         match combined_answer.type:
             case "NoAnswer":
-                return QueryResponse(
-                    success=False,
-                    answer=combined_answer.whyNoAnswer or "No answer found",
-                    time_ms=dt,
-                )
+                answer = combined_answer.whyNoAnswer or "No answer found"
+                return QueryResponse(success=False, answer=answer, time_ms=dt)
             case "Answered":
-                return QueryResponse(
-                    success=True,
-                    answer=combined_answer.answer or "",
-                    time_ms=dt,
-                )
+                answer = combined_answer.answer or ""
+                return QueryResponse(success=True, answer=answer, time_ms=dt)
             case _:
-                return QueryResponse(
-                    success=False,
-                    answer="Unexpected response type",
-                    time_ms=dt,
-                )
+                return QueryResponse(success=False, answer="Unexpected response type", time_ms=dt)
 
     async def ingest_transcript(
         self,
@@ -418,16 +382,10 @@ class SemanticMemoryTools(ResourceProvider):
                     continue
 
                 offset_seconds = webvtt_timestamp_to_seconds(caption.start)
-                timestamp = format_timestamp_utc(UNIX_EPOCH + timedelta(seconds=offset_seconds))
-
+                ts = format_timestamp_utc(UNIX_EPOCH + timedelta(seconds=offset_seconds))
                 metadata = ConversationMessageMeta(speaker=speaker, recipients=[])
-                message = ConversationMessage(
-                    text_chunks=[text],
-                    metadata=metadata,
-                    timestamp=timestamp,
-                )
+                message = ConversationMessage(text_chunks=[text], metadata=metadata, timestamp=ts)
                 messages.append(message)
-
         if not messages:
             return IngestResponse(
                 success=False,
@@ -443,14 +401,8 @@ class SemanticMemoryTools(ResourceProvider):
             semantic_refs_added=result.semrefs_added,
         )
 
-    async def _ingest_text_file(
-        self,
-        file_path: str,
-        name: str | None,
-    ) -> IngestResponse:
+    async def _ingest_text_file(self, file_path: str, name: str | None) -> IngestResponse:
         """Ingest a plain text transcript file."""
-        import re
-
         from typeagent.knowpro.universal_message import (
             UNIX_EPOCH,
             ConversationMessage,
@@ -477,14 +429,11 @@ class SemanticMemoryTools(ResourceProvider):
             if match:
                 # Save previous message if exists
                 if current_chunks:
-                    metadata = ConversationMessageMeta(speaker=current_speaker, recipients=[])
-                    message = ConversationMessage(
-                        text_chunks=[" ".join(current_chunks)],
-                        metadata=metadata,
-                        timestamp=format_timestamp_utc(UNIX_EPOCH),
-                    )
+                    meta = ConversationMessageMeta(speaker=current_speaker, recipients=[])
+                    ts = format_timestamp_utc(UNIX_EPOCH)
+                    chunks = [" ".join(current_chunks)]
+                    message = ConversationMessage(text_chunks=chunks, metadata=meta, timestamp=ts)
                     messages.append(message)
-
                 current_speaker = match.group("speaker").strip()
                 current_chunks = [match.group("text").strip()]
             elif current_chunks:
@@ -496,21 +445,14 @@ class SemanticMemoryTools(ResourceProvider):
         # Don't forget last message
         if current_chunks:
             metadata = ConversationMessageMeta(speaker=current_speaker, recipients=[])
-            message = ConversationMessage(
-                text_chunks=[" ".join(current_chunks)],
-                metadata=metadata,
-                timestamp=format_timestamp_utc(UNIX_EPOCH),
-            )
+            chunks = [" ".join(current_chunks)]
+            ts = format_timestamp_utc(UNIX_EPOCH)
+            message = ConversationMessage(text_chunks=chunks, metadata=metadata, timestamp=ts)
             messages.append(message)
 
         if not messages:
-            return IngestResponse(
-                success=False,
-                messages_added=0,
-                semantic_refs_added=0,
-                error="No messages found in text file",
-            )
-
+            err = "No messages found in text file"
+            return IngestResponse(success=False, messages_added=0, semantic_refs_added=0, error=err)
         result = await self.conversation.add_messages_with_indexing(messages)
         return IngestResponse(
             success=True,
@@ -564,13 +506,8 @@ class SemanticMemoryTools(ResourceProvider):
         if timestamp is None:
             timestamp = format_timestamp_utc(datetime.now(UTC))
 
-        metadata = ConversationMessageMeta(speaker=speaker, recipients=[])
-        message = ConversationMessage(
-            text_chunks=[content],
-            metadata=metadata,
-            timestamp=timestamp,
-        )
-
+        meta = ConversationMessageMeta(speaker=speaker, recipients=[])
+        message = ConversationMessage(text_chunks=[content], metadata=meta, timestamp=timestamp)
         try:
             result = await self.conversation.add_messages_with_indexing([message])
             return IngestResponse(
