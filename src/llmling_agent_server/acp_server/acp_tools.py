@@ -7,9 +7,8 @@ from typing import TYPE_CHECKING
 from anyenv.code_execution.acp_provider import ACPExecutionEnvironment
 
 from llmling_agent.resource_providers import PlanProvider
-from llmling_agent_toolsets.builtin import CodeTools
+from llmling_agent_toolsets.builtin import CodeTools, ExecutionEnvironmentTools
 from llmling_agent_toolsets.fsspec_toolset import FSSpecTools
-from llmling_agent_toolsets.process_toolset import ProcessTools
 
 
 if TYPE_CHECKING:
@@ -24,7 +23,7 @@ def get_acp_provider(session: ACPSession) -> AggregatingResourceProvider:
 
     providers = [
         PlanProvider(),
-        ProcessTools(session.process_manager, name=f"acp_processes_{session.session_id}"),
+        ExecutionEnvironmentTools(env=execution_env, name=f"acp_execution_{session.session_id}"),
         FSSpecTools(execution_env, name=f"acp_fs_{session.session_id}", cwd=session.cwd),
         CodeTools(execution_env, name=f"acp_code_{session.session_id}", cwd=session.cwd),
     ]

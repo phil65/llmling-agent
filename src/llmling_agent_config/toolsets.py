@@ -180,30 +180,24 @@ class FileAccessToolsetConfig(BaseToolsetConfig):
         return FileAccessTools(name="file_access", converter=converter)
 
 
-class CodeExecutionToolsetConfig(BaseToolsetConfig):
-    """Configuration for code execution toolset."""
+class ExecutionEnvironmentToolsetConfig(BaseToolsetConfig):
+    """Configuration for execution environment toolset (code + process management)."""
 
-    type: Literal["code_execution"] = Field("code_execution", init=False)
-    """Code execution toolset."""
+    type: Literal["execution"] = Field("execution", init=False)
+    """Execution environment toolset."""
 
-    def get_provider(self) -> ResourceProvider:
-        """Create code execution tools provider."""
-        from llmling_agent_toolsets.builtin import CodeExecutionTools
-
-        return CodeExecutionTools(name="code_execution")
-
-
-class ProcessManagementToolsetConfig(BaseToolsetConfig):
-    """Configuration for process management toolset."""
-
-    type: Literal["process_management"] = Field("process_management", init=False)
-    """Process management toolset."""
+    environment: ExecutionEnvironmentConfig | None = Field(
+        default=None,
+        title="Execution environment",
+    )
+    """Optional execution environment configuration (defaults to local)."""
 
     def get_provider(self) -> ResourceProvider:
-        """Create process management tools provider."""
-        from llmling_agent_toolsets.builtin import ProcessManagementTools
+        """Create execution environment tools provider."""
+        from llmling_agent_toolsets.builtin import ExecutionEnvironmentTools
 
-        return ProcessManagementTools(name="process_management")
+        env = self.environment.get_provider() if self.environment else None
+        return ExecutionEnvironmentTools(env=env, name="execution")
 
 
 class ToolManagementToolsetConfig(BaseToolsetConfig):
@@ -483,8 +477,7 @@ ToolsetConfig = Annotated[
     | UpsonicToolSetConfig
     | AgentManagementToolsetConfig
     | FileAccessToolsetConfig
-    | CodeExecutionToolsetConfig
-    | ProcessManagementToolsetConfig
+    | ExecutionEnvironmentToolsetConfig
     | ToolManagementToolsetConfig
     | UserInteractionToolsetConfig
     | HistoryToolsetConfig

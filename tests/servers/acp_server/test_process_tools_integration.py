@@ -1,4 +1,4 @@
-"""Test integration of ProcessTools with ACP session."""
+"""Test integration of ExecutionEnvironmentTools with ACP session."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from llmling_agent.agent.event_emitter import AgentEventEmitter
 from llmling_agent.models.agents import AgentConfig
 from llmling_agent_server.acp_server.acp_agent import LLMlingACPAgent
 from llmling_agent_server.acp_server.session import ACPSession
-from llmling_agent_toolsets.process_toolset import ProcessTools
+from llmling_agent_toolsets.builtin.execution_environment import ExecutionEnvironmentTools
 
 
 def create_mock_agent_context() -> AgentContext:
@@ -51,7 +51,6 @@ def mock_agent_pool() -> AgentPool:
 @pytest.fixture
 async def acp_agent(mock_connection, mock_agent_pool: AgentPool):
     """Create ACP agent."""
-    # Create mock agent
     mock_agent = Mock()
     mock_tools = {}
 
@@ -62,7 +61,6 @@ async def acp_agent(mock_connection, mock_agent_pool: AgentPool):
     mock_agent.tools.register_tool = register_tool
     mock_agent_pool.agents = {"test_agent": mock_agent}
 
-    # Create ACP agent (terminal access enabled for process tools)
     return LLMlingACPAgent(
         connection=mock_connection,
         agent_pool=mock_agent_pool,
@@ -87,24 +85,25 @@ async def session(acp_agent: LLMlingACPAgent, mock_connection):
 
 
 @pytest.fixture
-async def process_tools(session: ACPSession):
-    """Create process tools provider for testing."""
-    return ProcessTools(session.process_manager, name="test_process_tools")
+async def execution_tools(session: ACPSession):
+    """Create execution environment tools provider for testing."""
+    from anyenv.code_execution.acp_provider import ACPExecutionEnvironment
+
+    env = ACPExecutionEnvironment(fs=session.fs, requests=session.requests)
+    return ExecutionEnvironmentTools(env=env, name="test_execution_tools")
 
 
 async def test_start_process_with_acp_session(
-    process_tools: ProcessTools,
+    execution_tools: ExecutionEnvironmentTools,
     session: ACPSession,
 ):
     """Test starting process with ACP session."""
-    # Mock the ACP terminal creation response
     mock_response = Mock()
     mock_response.terminal_id = "term_123"
     session.requests = Mock()
     session.requests.create_terminal = AsyncMock(return_value=mock_response)
 
-    # Get start_process tool
-    tools = await process_tools.get_tools()
+    tools = await execution_tools.get_tools()
     start_tool = next(tool for tool in tools if tool.name == "start_process")
 
     result = await start_tool.execute(
@@ -114,58 +113,45 @@ async def test_start_process_with_acp_session(
         cwd="/tmp",
     )
 
-    # Verify result contains terminal ID as process ID
     assert isinstance(result, dict)
-    assert result["process_id"] == "term_123"  # terminal_id is now used directly
+    assert result["process_id"] == "term_123"
     assert result["command"] == "echo"
     assert result["args"] == ["hello", "world"]
     assert result["status"] == "started"
 
-    # Verify ACP terminal creation was called
     session.requests.create_terminal.assert_called_once()
     call_args = session.requests.create_terminal.call_args[1]
     assert call_args["command"] == "echo"
     assert call_args["args"] == ["hello", "world"]
     assert call_args["cwd"] == "/tmp"
 
-    # Verify process is tracked
-    assert len(session.process_manager._processes) == 1
-    process = next(iter(session.process_manager._processes.values()))
-    assert process.terminal_id == "term_123"
-    assert process.command == "echo"
-
-    # Verify generic event was emitted (session will add ACP context)
     CTX.events.process_started.assert_called_once()
     call_args = CTX.events.process_started.call_args[1]
-    assert "terminal_id" not in call_args  # Generic event shouldn't have ACP fields
-    assert call_args["process_id"] == "term_123"  # terminal_id is now used directly
+    assert "terminal_id" not in call_args
+    assert call_args["process_id"] == "term_123"
     assert call_args["command"] == "echo"
     assert call_args["success"] is True
 
 
 async def test_get_process_output_with_acp_session(
-    process_tools: ProcessTools,
+    execution_tools: ExecutionEnvironmentTools,
     session: ACPSession,
 ):
     """Test getting process output through ACP."""
-    # Set up a tracked process
     mock_terminal_response = Mock()
     mock_terminal_response.terminal_id = "term_123"
     session.requests = Mock()
     session.requests.create_terminal = AsyncMock(return_value=mock_terminal_response)
 
-    # Start a process first
-    await session.process_manager.start_process("echo", ["test"])
-    process_id = next(iter(session.process_manager._processes.keys()))
+    await execution_tools.env.process_manager.start_process("echo", ["test"])
+    process_id = next(iter(execution_tools.env.process_manager._terminals.keys()))
 
-    # Mock terminal output response
     mock_output_response = Mock()
     mock_output_response.output = "test output\n"
     mock_output_response.truncated = False
     session.requests.terminal_output = AsyncMock(return_value=mock_output_response)
 
-    # Get process output
-    tools = await process_tools.get_tools()
+    tools = await execution_tools.get_tools()
     output_tool = next(tool for tool in tools if tool.name == "get_process_output")
 
     result = await output_tool.execute(
@@ -173,38 +159,31 @@ async def test_get_process_output_with_acp_session(
         process_id=process_id,
     )
 
-    # Verify result
     assert isinstance(result, dict)
     assert result["process_id"] == process_id
     assert result["stdout"] == "test output\n"
     assert result["combined"] == "test output\n"
     assert result["status"] == "running"
 
-    # Verify ACP terminal output was called
     session.requests.terminal_output.assert_called_once_with("term_123")
-
-    # Verify event was emitted
     CTX.events.process_output.assert_called_once()
 
 
 async def test_kill_process_with_acp_session(
-    process_tools: ProcessTools,
+    execution_tools: ExecutionEnvironmentTools,
     session: ACPSession,
 ):
     """Test killing process through ACP."""
-    # Set up a tracked process
     mock_terminal_response = Mock()
     mock_terminal_response.terminal_id = "term_123"
     session.requests = Mock()
     session.requests.create_terminal = AsyncMock(return_value=mock_terminal_response)
     session.requests.kill_terminal = AsyncMock()
 
-    # Start a process first
-    await session.process_manager.start_process("sleep", ["10"])
-    process_id = next(iter(session.process_manager._processes.keys()))
+    await execution_tools.env.process_manager.start_process("sleep", ["10"])
+    process_id = next(iter(execution_tools.env.process_manager._terminals.keys()))
 
-    # Kill the process
-    tools = await process_tools.get_tools()
+    tools = await execution_tools.get_tools()
     kill_tool = next(tool for tool in tools if tool.name == "kill_process")
 
     result = await kill_tool.execute(
@@ -212,34 +191,30 @@ async def test_kill_process_with_acp_session(
         process_id=process_id,
     )
 
-    # Verify result
     assert isinstance(result, dict)
     assert result["process_id"] == process_id
     assert result["status"] == "killed"
 
-    # Verify ACP kill terminal was called
     session.requests.kill_terminal.assert_called_once_with("term_123")
 
-    # Verify generic event was emitted (session will add ACP context)
     CTX.events.process_killed.assert_called_once()
     call_args = CTX.events.process_killed.call_args[1]
-    assert "terminal_id" not in call_args  # Generic event shouldn't have ACP fields
+    assert "terminal_id" not in call_args
     assert call_args["process_id"] == process_id
     assert call_args["success"] is True
 
 
-async def test_process_tools_availability_in_acp_provider(session: ACPSession):
-    """Test that process tools are available through ACP provider."""
-    # Get the ACP provider
+async def test_execution_tools_availability_in_acp_provider(session: ACPSession):
+    """Test that execution tools are available through ACP provider."""
     provider = session._acp_provider
     assert provider is not None, "ACP provider not initialized"
 
-    # Get all tools
     tools = await provider.get_tools()
     tool_names = [tool.name for tool in tools]
 
-    # Verify process tools are available
-    expected_process_tools = [
+    expected_tools = [
+        "execute_code",
+        "execute_command",
         "start_process",
         "get_process_output",
         "wait_for_process",
@@ -248,27 +223,25 @@ async def test_process_tools_availability_in_acp_provider(session: ACPSession):
         "list_processes",
     ]
 
-    for tool_name in expected_process_tools:
-        assert tool_name in tool_names, f"Process tool '{tool_name}' not found in ACP provider"
+    for tool_name in expected_tools:
+        assert tool_name in tool_names, f"Tool '{tool_name}' not found in ACP provider"
 
 
-async def test_process_tools_have_acp_process_manager(session: ACPSession):
-    """Test that process tools use ACP process manager."""
+async def test_execution_tools_use_acp_environment(session: ACPSession):
+    """Test that execution tools use ACP execution environment."""
+    from anyenv.code_execution.acp_provider import ACPExecutionEnvironment
+
     provider = session._acp_provider
     assert provider is not None, "ACP provider not initialized"
 
-    # Find the ProcessTools provider
-    process_provider = None
+    execution_provider = None
     for p in provider.providers:
-        if hasattr(p, "process_manager"):
-            process_provider = p
+        if isinstance(p, ExecutionEnvironmentTools):
+            execution_provider = p
             break
 
-    assert process_provider is not None, "ProcessTools provider not found"
-
-    # Verify it uses the ACP process manager
-    assert process_provider.process_manager is session.process_manager
-    assert hasattr(process_provider.process_manager, "_processes")
+    assert execution_provider is not None, "ExecutionEnvironmentTools provider not found"
+    assert isinstance(execution_provider.env, ACPExecutionEnvironment)
 
 
 if __name__ == "__main__":

@@ -10,8 +10,8 @@ from llmling_agent.delegation.pool import AgentPool
 from llmling_agent.models.agents import AgentConfig
 from llmling_agent.models.manifest import AgentsManifest
 from llmling_agent_config.toolsets import (
+    ExecutionEnvironmentToolsetConfig,
     FileAccessToolsetConfig,
-    ProcessManagementToolsetConfig,
 )
 
 
@@ -45,17 +45,17 @@ def get_temp_dir() -> str:
 
 @pytest.fixture
 def process_manifest():
-    """Create manifest with process management toolsets."""
+    """Create manifest with execution environment toolsets."""
     agent_cfg = AgentConfig(
         name="ProcessAgent",
         model="test",
-        toolsets=[ProcessManagementToolsetConfig(), FileAccessToolsetConfig()],
+        toolsets=[ExecutionEnvironmentToolsetConfig(), FileAccessToolsetConfig()],
     )
     return AgentsManifest(agents={"process_agent": agent_cfg})
 
 
 async def test_process_tools_registration(process_manifest):
-    """Test that process management tools are properly registered."""
+    """Test that execution environment tools are properly registered."""
     async with AgentPool(process_manifest) as pool:
         agent = pool.agents["process_agent"]
 
@@ -63,8 +63,10 @@ async def test_process_tools_registration(process_manifest):
         tools = await agent.tools.get_tools()
         tool_names = [tool.name for tool in tools]
 
-        # Verify process management tools are available
+        # Verify execution and process management tools are available
         expected_tools = [
+            "execute_code",
+            "execute_command",
             "start_process",
             "get_process_output",
             "wait_for_process",
@@ -109,7 +111,7 @@ async def test_pool_cleanup_kills_processes(process_manifest):
 
 async def test_toolset_requirement_enforcement():
     """Test that tools are not available without proper toolsets."""
-    # Create agent without process management toolset
+    # Create agent without execution environment toolset
     agent_config = AgentConfig(name="LimitedAgent", model="test")
     manifest = AgentsManifest(agents={"limited_agent": agent_config})
 
@@ -118,8 +120,10 @@ async def test_toolset_requirement_enforcement():
         tools = await agent.tools.get_tools()
         tool_names = [tool.name for tool in tools]
 
-        # Verify process tools are NOT available
-        process_tools = [
+        # Verify execution/process tools are NOT available
+        execution_tools = [
+            "execute_code",
+            "execute_command",
             "start_process",
             "get_process_output",
             "wait_for_process",
@@ -128,8 +132,8 @@ async def test_toolset_requirement_enforcement():
             "list_processes",
         ]
 
-        for process_tool in process_tools:
-            assert process_tool not in tool_names, f"Tool {process_tool} should not be available"
+        for tool in execution_tools:
+            assert tool not in tool_names, f"Tool {tool} should not be available"
 
 
 async def test_multiple_processes_management(process_manifest):
