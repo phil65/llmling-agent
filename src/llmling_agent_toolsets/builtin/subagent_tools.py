@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic_ai import (
     FunctionToolCallEvent,
@@ -26,6 +26,8 @@ from llmling_agent.tools.exceptions import ToolError
 
 
 if TYPE_CHECKING:
+    from collections.abc import AsyncIterator
+
     from llmling_agent.agent.events import RichAgentStreamEvent
 
 
@@ -34,7 +36,7 @@ logger = get_logger(__name__)
 
 async def _stream_agent_with_progress(
     ctx: AgentContext,
-    stream,
+    stream: AsyncIterator[RichAgentStreamEvent[Any]],
 ) -> str:
     """Stream an agent's execution and emit progress events.
 
@@ -49,7 +51,6 @@ async def _stream_agent_with_progress(
     tool_call_id = ctx.tool_call_id or ""
 
     async for event in stream:
-        event: RichAgentStreamEvent
         match event:
             case (
                 PartStartEvent(part=TextPart(content=delta))
