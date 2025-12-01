@@ -6,6 +6,7 @@ from __future__ import annotations
 # Import provider classes
 from llmling_agent_toolsets.builtin.agent_management import AgentManagementTools
 from llmling_agent_toolsets.builtin.code import CodeTools
+from llmling_agent_toolsets.builtin.subagent_tools import SubagentTools
 from llmling_agent_toolsets.builtin.code_execution import CodeExecutionTools
 from llmling_agent_toolsets.builtin.file_access import FileAccessTools
 from llmling_agent_toolsets.builtin.history import HistoryTools
@@ -24,6 +25,7 @@ __all__ = [
     "HistoryTools",
     "IntegrationTools",
     "ProcessManagementTools",
+    "SubagentTools",
     "ToolManagementTools",
     "UserInteractionTools",
 ]

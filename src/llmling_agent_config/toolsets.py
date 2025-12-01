@@ -137,16 +137,29 @@ class UpsonicToolSetConfig(BaseToolsetConfig):
 
 
 class AgentManagementToolsetConfig(BaseToolsetConfig):
-    """Configuration for agent management toolset."""
+    """Configuration for agent pool building tools."""
 
     type: Literal["agent_management"] = Field("agent_management", init=False)
-    """Agent management toolset."""
+    """Agent pool building toolset (create_worker_agent, add_agent, add_team, connect_nodes)."""
 
     def get_provider(self) -> ResourceProvider:
         """Create agent management tools provider."""
         from llmling_agent_toolsets.builtin import AgentManagementTools
 
         return AgentManagementTools(name="agent_management")
+
+
+class SubagentToolsetConfig(BaseToolsetConfig):
+    """Configuration for subagent interaction tools."""
+
+    type: Literal["subagent"] = Field("subagent", init=False)
+    """Subagent interaction toolset (delegate_to, ask_agent, list_available_agents/teams)."""
+
+    def get_provider(self) -> ResourceProvider:
+        """Create subagent tools provider."""
+        from llmling_agent_toolsets.builtin.subagent_tools import SubagentTools
+
+        return SubagentTools(name="subagent_tools")
 
 
 class FileAccessToolsetConfig(BaseToolsetConfig):
@@ -479,6 +492,7 @@ ToolsetConfig = Annotated[
     | CodeToolsetConfig
     | FSSpecToolsetConfig
     | VFSToolsetConfig
+    | SubagentToolsetConfig
     | CodeModeToolsetConfig
     | RemoteCodeModeToolsetConfig
     | SearchToolsetConfig
