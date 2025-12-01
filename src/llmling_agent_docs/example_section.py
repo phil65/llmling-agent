@@ -24,11 +24,11 @@ documentation generation.
 for example in iter_examples():
 
     @nav.route.page(example.title, icon=example.icon, hide="toc")
-    def _(page: mk.MkPage, ex=example) -> None:  # type: ignore
+    async def _(page: mk.MkPage, ex=example) -> None:  # type: ignore
         """Add example page with description from its docstring."""
         if ex.files:
             link = mk.MkLink.for_pydantic_playground(ex.files)
-            page += mk.MkIFrame(link.url, width=1200, height=900)
+            page += mk.MkIFrame(await link.get_url(), width=1200, height=900)
         if ex.docs:
             page += mk.MkTemplate(str(ex.docs))
         if ex.files:
