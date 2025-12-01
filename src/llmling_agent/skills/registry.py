@@ -101,7 +101,7 @@ class SkillsRegistry(BaseRegistry[str, Skill]):
     def _parse_skill(self, skill_dir: JoinablePathLike) -> Skill:
         """Parse a SKILL.md file and extract metadata."""
         skill_file = UPath(skill_dir) / "SKILL.md"
-        content = skill_file.read_text()
+        content = skill_file.read_text("utf-8")
 
         # Extract YAML frontmatter
         frontmatter_match = re.match(r"^---\s*\n(.*?)\n---\s*\n", content, re.DOTALL)

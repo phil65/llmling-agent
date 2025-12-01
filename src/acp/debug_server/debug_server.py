@@ -233,7 +233,7 @@ app = FastAPI(
 async def debug_interface() -> HTMLResponse:
     """Serve debug interface HTML."""
     content = Path(__file__).parent / "debug.html"
-    return HTMLResponse(content.read_text())
+    return HTMLResponse(content.read_text("utf-8"))
 
 
 @app.get("/status")

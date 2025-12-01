@@ -189,7 +189,7 @@ class TestEditFileTool:
         )
 
         assert result["success"] is True
-        assert "Hello, Python!" in Path(temp_file).read_text()
+        assert "Hello, Python!" in Path(temp_file).read_text("utf-8")
         assert result["diff"]
         assert result["lines_changed"] >= 1
 
@@ -211,7 +211,7 @@ class TestEditFileTool:
         )
 
         assert result["success"] is True
-        content = Path(temp_file).read_text()
+        content = Path(temp_file).read_text("utf-8")
         assert "TypeError" in content
         assert "Sum:" in content
 
@@ -221,7 +221,7 @@ class TestEditFileTool:
         )
 
         assert result["success"] is True
-        content = Path(temp_file).read_text()
+        content = Path(temp_file).read_text("utf-8")
         assert "result" not in content
         assert "total" in content
 
@@ -258,7 +258,7 @@ class TestEditFileTool:
             )
 
             assert result["success"] is True
-            assert Path(temp_path).read_text() == "new content"
+            assert Path(temp_path).read_text("utf-8") == "new content"
         finally:
             Path(temp_path).unlink()
 
@@ -293,7 +293,7 @@ class TestEditFileTool:
             )
 
             assert result["success"] is True
-            assert "greet()" in Path(relative_path).read_text()
+            assert "greet()" in Path(relative_path).read_text("utf-8")
         finally:
             os.chdir(original_cwd)
 

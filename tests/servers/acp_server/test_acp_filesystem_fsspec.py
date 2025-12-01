@@ -46,7 +46,7 @@ async def test_acp_filesystem_fsspec_operations():
             new_file = temp_path / "written.txt"
             await fs._put_file(str(new_file), "New content")
             assert new_file.exists()
-            assert new_file.read_text() == "New content"
+            assert new_file.read_text("utf-8") == "New content"
 
             # Test directory listing
             files = await fs._ls(str(temp_path), detail=True)
@@ -116,7 +116,7 @@ async def test_acp_filesystem_fsspec_operations():
 #             new_nested_file = level2 / "created.txt"
 #             await fs._put_file(str(new_nested_file), "Created in nested dir")
 #             assert new_nested_file.exists()
-#             assert new_nested_file.read_text() == "Created in nested dir"
+#             assert new_nested_file.read_text("utf-8") == "Created in nested dir"
 
 #             print("✅ Nested directory operations working!")
 
