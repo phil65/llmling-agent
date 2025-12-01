@@ -34,7 +34,7 @@ class ACPRunningProcess:
         """Check if process is still running."""
         return self.exit_code is None
 
-    async def wait(self) -> int:
+    async def wait_for_exit(self) -> int:
         """Wait for process to complete and return exit code."""
         # This would be implemented by the caller
         raise NotImplementedError("Use ACPProcessManager.wait_for_exit")
@@ -149,7 +149,6 @@ class ACPProcessManager(ProcessManagerProtocol):
                 combined=combined_output,
                 truncated=response.truncated,
                 exit_code=process.exit_code,
-                signal=None,
             )
         except Exception as e:  # noqa: BLE001
             # Return empty output on error
@@ -157,9 +156,7 @@ class ACPProcessManager(ProcessManagerProtocol):
                 stdout="",
                 stderr=f"Error getting output: {e}",
                 combined=f"Error getting output: {e}",
-                truncated=False,
                 exit_code=process.exit_code,
-                signal=None,
             )
 
     async def wait_for_exit(self, process_id: str) -> int:
