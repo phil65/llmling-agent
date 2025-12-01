@@ -27,7 +27,7 @@ class Schema(BaseModel):
 class AnnotatedObject(Schema):
     """Base class for generated models."""
 
-    field_meta: Any | None = None
+    field_meta: dict[str, Any] | None = None
     """Extension point for implementations."""
 
 
