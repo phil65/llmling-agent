@@ -29,19 +29,23 @@ agents:
 - `create_worker_agent` - Create worker agents as tools
 - `spawn_delegate` - Create temporary delegate agents
 
-### File Access (`file_access`)
-Basic file system operations:
+### File Access (`fsspec`)
+File system operations via fsspec (supports local, S3, GCS, etc.):
 
 ```yaml
 agents:
   reader:
     toolsets:
-      - type: file_access
+      - type: file_access  # Local filesystem by default, or use url: s3://bucket, etc.
 ```
 
 **Provides tools:**
-- `read_file` - Read local and remote files
-- `list_directory` - List directory contents
+- `read_file` - Read files (text or binary)
+- `list_directory` - List directory contents with filtering
+- `write_file` - Write content to files
+- `delete_path` - Delete files or directories
+- `edit_file` - Edit files with smart matching
+- `download_file` - Download files from URLs
 
 ### Resource Access (`resource_access`)
 Access to LLMling resources and configurations:
@@ -200,7 +204,7 @@ agents:
 Toolsets provide different levels of system access:
 
 **Low Risk:**
-- `file_access` - Read-only file operations
+- `fsspec` - File system operations (configurable scope)
 - `resource_access` - Access to configured resources
 - `user_interaction` - User prompts only
 

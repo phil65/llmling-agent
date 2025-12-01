@@ -162,24 +162,6 @@ class SubagentToolsetConfig(BaseToolsetConfig):
         return SubagentTools(name="subagent_tools")
 
 
-class FileAccessToolsetConfig(BaseToolsetConfig):
-    """Configuration for file access toolset."""
-
-    type: Literal["file_access"] = Field("file_access", init=False)
-    """File access toolset."""
-
-    conversion: ConversionConfig | None = Field(default=None, title="Conversion config")
-    """Optional conversion configuration for markdown conversion."""
-
-    def get_provider(self) -> ResourceProvider:
-        """Create file access tools provider."""
-        from llmling_agent.prompts.conversion_manager import ConversionManager
-        from llmling_agent_toolsets.builtin import FileAccessTools
-
-        converter = ConversionManager(self.conversion) if self.conversion else None
-        return FileAccessTools(name="file_access", converter=converter)
-
-
 class ExecutionEnvironmentToolsetConfig(BaseToolsetConfig):
     """Configuration for execution environment toolset (code + process management)."""
 
@@ -266,16 +248,17 @@ class CodeToolsetConfig(BaseToolsetConfig):
 
 
 class FSSpecToolsetConfig(BaseToolsetConfig):
-    """Configuration for FSSpec filesystem toolsets."""
+    """Configuration for file access toolset (supports local and remote filesystems)."""
 
-    type: Literal["fsspec"] = Field("fsspec", init=False)
-    """FSSpec filesystem toolset."""
+    type: Literal["file_access"] = Field("file_access", init=False)
+    """File access toolset."""
 
     url: str = Field(
-        examples=["s3://my-bucket", "file:///tmp", "gcs://bucket-name"],
+        default="file:///",
+        examples=["file:///", "s3://my-bucket", "gcs://bucket-name"],
         title="Filesystem URL",
     )
-    """Filesystem URL or protocol (e.g., 'file', 's3://bucket-name', etc.)."""
+    """Filesystem URL or protocol. Defaults to local filesystem."""
 
     model: str | ModelName | AnyModelConfig | None = Field(
         default=None,
@@ -313,7 +296,9 @@ class FSSpecToolsetConfig(BaseToolsetConfig):
         # Extract protocol name for the provider name
         protocol = self.url.split("://")[0] if "://" in self.url else self.url
         converter = ConversionManager(self.conversion) if self.conversion else None
-        return FSSpecTools(fs, name=f"fsspec_{protocol}", converter=converter, edit_model=model)
+        return FSSpecTools(
+            fs, name=f"file_access_{protocol}", converter=converter, edit_model=model
+        )
 
 
 class VFSToolsetConfig(BaseToolsetConfig):
@@ -476,7 +461,6 @@ ToolsetConfig = Annotated[
     | ComposioToolSetConfig
     | UpsonicToolSetConfig
     | AgentManagementToolsetConfig
-    | FileAccessToolsetConfig
     | ExecutionEnvironmentToolsetConfig
     | ToolManagementToolsetConfig
     | UserInteractionToolsetConfig

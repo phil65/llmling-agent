@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+from fnmatch import fnmatch
 import mimetypes
+import os
 from pathlib import Path
+import time
 from typing import TYPE_CHECKING, Any
+from urllib.parse import urlparse
 
 from anyenv.code_execution.base import ExecutionEnvironment
 from pydantic_ai import Agent as PydanticAgent, BinaryContent
@@ -98,6 +102,7 @@ class FSSpecTools(ResourceProvider):
             self.create_tool(self.delete_path, category="delete"),
             self.create_tool(self.edit_file, category="edit"),
             self.create_tool(self.agentic_edit, category="edit"),
+            self.create_tool(self.download_file, category="read"),
         ]
 
         if self.converter:  # Only add read_as_markdown if converter is available
@@ -105,55 +110,92 @@ class FSSpecTools(ResourceProvider):
 
         return self._tools
 
-    async def list_directory(self, agent_ctx: AgentContext, path: str) -> dict[str, Any]:
-        """List contents of a directory.
+    async def list_directory(
+        self,
+        agent_ctx: AgentContext,
+        path: str,
+        *,
+        pattern: str = "**/*",
+        recursive: bool = True,
+        include_dirs: bool = False,
+        exclude: list[str] | None = None,
+        max_depth: int | None = None,
+    ) -> dict[str, Any]:
+        """List files in a directory with filtering support.
 
         Args:
             agent_ctx: Agent execution context
-            path: Directory path to list
+            path: Base directory to list
+            pattern: Glob pattern to match files against (e.g. "**/*.py" for Python files)
+            recursive: Whether to search subdirectories
+            include_dirs: Whether to include directories in results
+            exclude: List of patterns to exclude (uses fnmatch against relative paths)
+            max_depth: Maximum directory depth for recursive search
 
         Returns:
-            Dictionary with directory contents and metadata
+            Dictionary with matching files and metadata
         """
-        # Emit tool call start event for ACP notifications
         if self.cwd:
             path = self._resolve_path(path)
         msg = f"Listing directory: {path}"
         await agent_ctx.events.tool_call_start(title=msg, kind="read", locations=[path])
-        try:
-            entries = await self.fs._ls(path, detail=True)
-            files = []
-            dirs = []
-            for entry in entries:
-                if isinstance(entry, dict):
-                    name = entry.get("name", "")
-                    entry_type = entry.get("type", "unknown")
-                    size = entry.get("size", 0)
-                    fname = Path(name).name
-                    item_info = {"name": fname, "full_path": name, "size": size, "type": entry_type}
-                    # Add modification time if available
-                    if "mtime" in entry:
-                        item_info["modified"] = entry["mtime"]
 
-                    if entry_type == "directory":
+        try:
+            # Check if path exists
+            if not await self.fs._exists(path):
+                error_msg = f"Path does not exist: {path}"
+                await agent_ctx.events.file_operation(
+                    "list", path=path, success=False, error=error_msg
+                )
+                return {"error": error_msg}
+
+            # Build glob path
+            glob_pattern = (
+                f"{path.rstrip('/')}/{pattern}" if recursive else f"{path.rstrip('/')}/{pattern}"
+            )
+            paths = await self.fs._glob(glob_pattern, maxdepth=max_depth, detail=True)
+
+            files: list[dict[str, Any]] = []
+            dirs: list[dict[str, Any]] = []
+
+            for file_path, file_info in paths.items():
+                rel_path = os.path.relpath(str(file_path), path)
+
+                # Skip excluded patterns
+                if exclude and any(fnmatch(rel_path, pat) for pat in exclude):
+                    continue
+
+                is_dir = await self.fs._isdir(file_path)
+
+                item_info = {
+                    "name": os.path.basename(file_path),
+                    "path": file_path,
+                    "relative_path": rel_path,
+                    "size": file_info.get("size", 0),
+                    "type": "directory" if is_dir else "file",
+                }
+                if "mtime" in file_info:
+                    item_info["modified"] = file_info["mtime"]
+
+                if is_dir:
+                    if include_dirs:
                         dirs.append(item_info)
-                    else:
-                        files.append(item_info)
                 else:
-                    # Fallback for simple string entries
-                    fname = Path(str(entry)).name
-                    item_info = {"name": fname, "full_path": str(entry), "type": "unknown"}
                     files.append(item_info)
-            total = len(dirs) + len(files)
-            result = {"path": path, "directories": dirs, "files": files, "total_items": total}
-            # Emit success event
+
+            result = {
+                "path": path,
+                "pattern": pattern,
+                "directories": dirs,
+                "files": files,
+                "total_items": len(dirs) + len(files),
+            }
             await agent_ctx.events.file_operation("list", path=path, success=True)
+            return result
 
         except (OSError, ValueError) as e:
             await agent_ctx.events.file_operation("list", path=path, success=False, error=str(e))
             return {"error": f"Failed to list directory {path}: {e}"}
-        else:
-            return result
 
     async def read_file(
         self,
@@ -432,8 +474,106 @@ class FSSpecTools(ResourceProvider):
         mode = "wt" if isinstance(content, str) else "wb"
         file = await self.fs.open_async(path, mode)
         await file.write(content)
-        # with self.fs.open(path, mode="r") as f:
-        #     f.write(content)
+
+    async def download_file(
+        self,
+        agent_ctx: AgentContext,
+        url: str,
+        target_dir: str = "downloads",
+        chunk_size: int = 8192,
+    ) -> dict[str, Any]:
+        """Download a file from URL to the toolset's filesystem.
+
+        Args:
+            agent_ctx: Agent execution context
+            url: URL to download from
+            target_dir: Directory to save the file (relative to cwd if set)
+            chunk_size: Size of chunks to download
+
+        Returns:
+            Status information about the download
+        """
+        import asyncio
+
+        import httpx
+
+        start_time = time.time()
+
+        # Resolve target directory
+        if self.cwd:
+            target_dir = self._resolve_path(target_dir)
+
+        msg = f"Downloading: {url}"
+        await agent_ctx.events.tool_call_start(title=msg, kind="read", locations=[url])
+
+        # Extract filename from URL
+        filename = Path(urlparse(url).path).name or "downloaded_file"
+        full_path = f"{target_dir.rstrip('/')}/{filename}"
+
+        try:
+            # Ensure target directory exists
+            await self.fs._makedirs(target_dir, exist_ok=True)
+
+            async with (
+                httpx.AsyncClient(verify=False) as client,
+                client.stream("GET", url, timeout=30.0) as response,
+            ):
+                response.raise_for_status()
+
+                total = (
+                    int(response.headers["Content-Length"])
+                    if "Content-Length" in response.headers
+                    else None
+                )
+
+                # Collect all data
+                data = bytearray()
+                async for chunk in response.aiter_bytes(chunk_size):
+                    data.extend(chunk)
+                    size = len(data)
+
+                    if total and (size % (chunk_size * 100) == 0 or size == total):
+                        progress = size / total * 100
+                        speed_mbps = (size / 1_048_576) / (time.time() - start_time)
+                        progress_msg = f"\r{filename}: {progress:.1f}% ({speed_mbps:.1f} MB/s)"
+                        await agent_ctx.events.progress(progress, 100, progress_msg)
+                        await asyncio.sleep(0)
+
+                # Write to filesystem
+                await self._write(full_path, bytes(data))
+
+            duration = time.time() - start_time
+            size_mb = len(data) / 1_048_576
+
+            await agent_ctx.events.file_operation(
+                "read", path=full_path, success=True, size=len(data)
+            )
+
+            return {
+                "path": full_path,
+                "filename": filename,
+                "size_bytes": len(data),
+                "size_mb": round(size_mb, 2),
+                "duration_seconds": round(duration, 2),
+                "speed_mbps": round(size_mb / duration, 2) if duration > 0 else 0,
+            }
+
+        except httpx.ConnectError as e:
+            error_msg = f"Connection error downloading {url}: {e}"
+            await agent_ctx.events.file_operation("read", path=url, success=False, error=error_msg)
+            return {"error": error_msg}
+        except httpx.TimeoutException:
+            error_msg = f"Timeout downloading {url}"
+            await agent_ctx.events.file_operation("read", path=url, success=False, error=error_msg)
+            return {"error": error_msg}
+        except httpx.HTTPStatusError as e:
+            error_msg = f"HTTP error {e.response.status_code} downloading {url}"
+            await agent_ctx.events.file_operation("read", path=url, success=False, error=error_msg)
+            return {"error": error_msg}
+        except Exception as e:  # noqa: BLE001
+            error_msg = f"Error downloading {url}: {e!s}"
+            await agent_ctx.events.file_operation("read", path=url, success=False, error=error_msg)
+            return {"error": error_msg}
 
     async def agentic_edit(  # noqa: D417, PLR0915
         self,
