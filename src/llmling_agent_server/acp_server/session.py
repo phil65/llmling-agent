@@ -160,7 +160,6 @@ class ACPSession:
 
     def __post_init__(self) -> None:
         """Initialize session state and set up providers."""
-        from llmling_agent_server.acp_server.acp_process_manager import ACPProcessManager
         from llmling_agent_server.acp_server.commands.acp_commands import get_acp_commands
         from llmling_agent_server.acp_server.commands.docs_commands import get_docs_commands
         from llmling_agent_server.acp_server.commands.terminal_commands import get_terminal_commands
@@ -171,7 +170,6 @@ class ACPSession:
         self._cancelled = False
         self._current_tool_inputs: dict[str, dict[str, Any]] = {}
         self.fs = ACPFileSystem(self.client, session_id=self.session_id)
-        self.process_manager = ACPProcessManager(self)
         self._acp_provider: AggregatingResourceProvider | None = None
         cmds = [
             *get_commands(
