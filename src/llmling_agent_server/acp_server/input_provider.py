@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
+import webbrowser
 
 from mcp import types
 
@@ -139,6 +140,33 @@ class ACPInputProvider(InputProvider):
             Elicit result with user's response or error data
         """
         try:
+            # Handle URL mode elicitation (OAuth, credentials, payments)
+            if isinstance(params, types.ElicitRequestURLParams):
+                logger.info(
+                    "URL elicitation request",
+                    message=params.message,
+                    url=params.url,
+                    elicitation_id=params.elicitationId,
+                )
+                tool_call_id = f"elicit_url_{params.elicitationId}"
+                title = f"URL Authorization: {params.message}"
+                url_options = [
+                    PermissionOption(option_id="accept", name="Open URL", kind="allow_once"),
+                    PermissionOption(option_id="decline", name="Decline", kind="reject_once"),
+                ]
+                response = await self.session.requests.request_permission(
+                    tool_call_id=tool_call_id,
+                    title=title,
+                    options=url_options,
+                )
+                if response.outcome.outcome == "selected":
+                    if response.outcome.option_id == "accept":
+                        webbrowser.open(params.url)
+                        return types.ElicitResult(action="accept")
+                    return types.ElicitResult(action="decline")
+                return types.ElicitResult(action="cancel")
+
+            # Form mode elicitation
             schema = params.requestedSchema
             logger.info(
                 "Elicitation request",

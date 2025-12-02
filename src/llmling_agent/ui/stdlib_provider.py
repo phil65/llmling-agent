@@ -101,7 +101,20 @@ class StdlibInputProvider(InputProvider):
         """Get user response to elicitation request using stdlib input."""
         try:
             print(f"\n{params.message}", file=sys.stderr)
-            # Handle structured input with schema
+
+            # URL mode: prompt user to open external URL
+            if isinstance(params, types.ElicitRequestURLParams):
+                print(f"URL: {params.url}", file=sys.stderr)
+                print("Open this URL? [y/n]: ", end="", file=sys.stderr, flush=True)
+                response = input().strip().lower()
+                action = (
+                    "accept"
+                    if response in ("y", "yes")
+                    else ("decline" if response in ("n", "no") else "cancel")
+                )
+                return types.ElicitResult(action=action)
+
+            # Form mode: collect structured JSON input
             print("Please provide response as JSON:", file=sys.stderr)
             if params.requestedSchema:
                 schema_json = anyenv.dump_json(params.requestedSchema, indent=True)

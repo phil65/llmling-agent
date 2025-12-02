@@ -73,6 +73,8 @@ class MCPMessageHandler:
                         await self.on_prompt_list_changed(message.root)
                     case mcp.types.ResourceUpdatedNotification():
                         await self.on_resource_updated(message.root)
+                    case mcp.types.ElicitCompleteNotification():
+                        await self.on_elicit_complete(message.root)
 
             case Exception():
                 await self.on_exception(message)
@@ -148,3 +150,13 @@ class MCPMessageHandler:
 
     async def on_create_message(self, message: mcp.types.CreateMessageRequest) -> None:
         """Handle create message requests."""
+
+    async def on_elicit_complete(self, message: mcp.types.ElicitCompleteNotification) -> None:
+        """Handle elicitation completion notifications.
+
+        Sent by servers when a URL mode elicitation completes out-of-band.
+        """
+        logger.info(
+            "MCP elicitation completed",
+            elicitation_id=message.params.elicitationId,
+        )

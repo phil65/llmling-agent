@@ -25,10 +25,10 @@ async def ask_user(  # noqa: D417
     Returns:
         The user's response as a string
     """
-    from mcp.types import ElicitRequestParams, ElicitResult, ErrorData
+    from mcp.types import ElicitRequestFormParams, ElicitResult, ErrorData
 
     schema = response_schema or {"type": "string"}  # string schema if no none provided
-    params = ElicitRequestParams(message=prompt, requestedSchema=schema)
+    params = ElicitRequestFormParams(message=prompt, requestedSchema=schema)
     result = await ctx.handle_elicitation(params)
 
     match result:
