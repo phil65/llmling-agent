@@ -130,8 +130,8 @@ async def test_start_process_with_acp_session(
     assert call_args["args"] == ["hello", "world"]
     assert call_args["cwd"] == "/tmp"
 
-    CTX.events.process_started.assert_called_once()
-    call_args = CTX.events.process_started.call_args[1]
+    CTX.events.process_started.assert_called_once()  # pyright: ignore[reportAttributeAccessIssue]
+    call_args = CTX.events.process_started.call_args[1]  # pyright: ignore[reportAttributeAccessIssue]
     assert "terminal_id" not in call_args
     assert call_args["process_id"] == "term_123"
     assert call_args["command"] == "echo"
@@ -154,7 +154,7 @@ async def test_get_process_output_with_acp_session(
     execution_tools.env._process_manager = None
 
     await execution_tools.env.process_manager.start_process("echo", ["test"])
-    process_id = next(iter(execution_tools.env.process_manager._processes.keys()))
+    process_id = next(iter(execution_tools.env.process_manager._processes.keys()))  # pyright: ignore[reportAttributeAccessIssue]
 
     mock_output_response = Mock()
     mock_output_response.output = "test output\n"
@@ -176,7 +176,7 @@ async def test_get_process_output_with_acp_session(
     assert result["status"] == "running"
 
     mock_requests.terminal_output.assert_called_once_with("term_123")
-    CTX.events.process_output.assert_called_once()
+    CTX.events.process_output.assert_called_once()  # pyright: ignore[reportAttributeAccessIssue]
 
 
 async def test_kill_process_with_acp_session(
