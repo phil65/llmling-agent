@@ -65,7 +65,9 @@ async def test_send_notification_to_channel(notifications_provider: Notification
     result = await notifications_provider.send_notification(**call)
     assert result["success"] is True
     assert "team_slack" in result["target"]
-    mock_apprise.notify.assert_called_once_with(**call)
+    mock_apprise.notify.assert_called_once_with(
+        body="Test message", title="Test Title", tag="team_slack"
+    )
 
 
 async def test_send_notification_to_all(notifications_provider: NotificationsTools):

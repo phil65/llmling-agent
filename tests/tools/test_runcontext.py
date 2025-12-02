@@ -5,7 +5,7 @@ from pydantic_ai.models.test import TestModel
 import pytest
 
 from llmling_agent import Agent, AgentContext, AgentPool
-from llmling_agent_config.toolsets import AgentManagementToolsetConfig
+from llmling_agent_config.toolsets import AgentManagementToolsetConfig, SubagentToolsetConfig
 
 
 async def run_ctx_tool(ctx: RunContext) -> str:
@@ -88,10 +88,10 @@ async def test_plain_tool_no_context():
 async def test_capability_tools(default_model: str):
     """Test that capability tools work with AgentContext."""
     async with AgentPool() as pool:
-        toolsets = [AgentManagementToolsetConfig()]
+        toolsets = [AgentManagementToolsetConfig(), SubagentToolsetConfig()]
         toolset_providers = [config.get_provider() for config in toolsets]
         agent = await pool.add_agent(name="test", model=default_model, toolsets=toolset_providers)
-        prompt = "Get available agents using the list_agents tool and return all names."
+        prompt = "Get available agents using the list_available_nodes tool and return all names."
         result = await agent.run(prompt)
         assert agent.name in str(result.content)
         agent_2 = await pool.add_agent(
