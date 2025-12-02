@@ -102,11 +102,12 @@ async def test_start_process(
 
 async def test_get_process_output(
     execution_tools: ExecutionEnvironmentTools,
+    mock_env: MockExecutionEnvironment,
     mock_ctx: AgentContext,
 ):
     """Test getting process output."""
     # Start a process first
-    process_id = await execution_tools.env.process_manager.start_process("echo", ["hello", "world"])
+    process_id = await mock_env.process_manager.start_process("echo", ["hello", "world"])
 
     tools = await execution_tools.get_tools()
     output_tool = next(tool for tool in tools if tool.name == "get_process_output")
@@ -126,11 +127,12 @@ async def test_get_process_output(
 
 async def test_kill_process(
     execution_tools: ExecutionEnvironmentTools,
+    mock_env: MockExecutionEnvironment,
     mock_ctx: AgentContext,
 ):
     """Test killing a process."""
     # Start a process first
-    process_id = await execution_tools.env.process_manager.start_process("sleep", ["10"])
+    process_id = await mock_env.process_manager.start_process("sleep", ["10"])
 
     tools = await execution_tools.get_tools()
     kill_tool = next(tool for tool in tools if tool.name == "kill_process")
@@ -152,11 +154,12 @@ async def test_kill_process(
 
 async def test_wait_for_process(
     execution_tools: ExecutionEnvironmentTools,
+    mock_env: MockExecutionEnvironment,
     mock_ctx: AgentContext,
 ):
     """Test waiting for process completion."""
     # Start a process first
-    process_id = await execution_tools.env.process_manager.start_process("echo", ["test"])
+    process_id = await mock_env.process_manager.start_process("echo", ["test"])
 
     tools = await execution_tools.get_tools()
     wait_tool = next(tool for tool in tools if tool.name == "wait_for_process")
@@ -176,11 +179,12 @@ async def test_wait_for_process(
 
 async def test_release_process(
     execution_tools: ExecutionEnvironmentTools,
+    mock_env: MockExecutionEnvironment,
     mock_ctx: AgentContext,
 ):
     """Test releasing process resources."""
     # Start a process first
-    process_id = await execution_tools.env.process_manager.start_process("echo", ["test"])
+    process_id = await mock_env.process_manager.start_process("echo", ["test"])
 
     tools = await execution_tools.get_tools()
     release_tool = next(tool for tool in tools if tool.name == "release_process")
@@ -195,7 +199,7 @@ async def test_release_process(
     assert result["status"] == "released"
 
     # Verify process is no longer tracked
-    processes = await execution_tools.env.process_manager.list_processes()
+    processes = await mock_env.process_manager.list_processes()
     assert process_id not in processes
 
     mock_ctx.events.process_released.assert_called_once()
@@ -203,12 +207,13 @@ async def test_release_process(
 
 async def test_list_processes(
     execution_tools: ExecutionEnvironmentTools,
+    mock_env: MockExecutionEnvironment,
     mock_ctx: AgentContext,
 ):
     """Test listing all processes."""
     # Start some processes
-    pid1 = await execution_tools.env.process_manager.start_process("echo", ["1"])
-    pid2 = await execution_tools.env.process_manager.start_process("echo", ["2"])
+    pid1 = await mock_env.process_manager.start_process("echo", ["1"])
+    pid2 = await mock_env.process_manager.start_process("echo", ["2"])
 
     tools = await execution_tools.get_tools()
     list_tool = next(tool for tool in tools if tool.name == "list_processes")

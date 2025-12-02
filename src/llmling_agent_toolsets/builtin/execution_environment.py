@@ -42,14 +42,15 @@ class ExecutionEnvironmentTools(ResourceProvider):
         super().__init__(name=name)
         self._env = env
 
-    @property
-    def env(self) -> ExecutionEnvironment:
-        """Get or lazily create the execution environment."""
-        if self._env is None:
-            from anyenv.code_execution import LocalExecutionEnvironment
+    def get_env(self, agent_ctx: AgentContext) -> ExecutionEnvironment:
+        """Get execution environment, falling back to agent's env if not set.
 
-            self._env = LocalExecutionEnvironment()
-        return self._env
+        Args:
+            agent_ctx: Agent context to get fallback env from
+        """
+        if self._env is not None:
+            return self._env
+        return agent_ctx.agent.env
 
     async def get_tools(self) -> list[Tool]:
         return [
@@ -82,7 +83,7 @@ class ExecutionEnvironmentTools(ResourceProvider):
         error_msg: str | None = None
         duration: float | None = None
         try:
-            async for event in self.env.stream_code(code):
+            async for event in self.get_env(agent_ctx).stream_code(code):
                 match event:
                     case ProcessStartedEvent(command=cmd):
                         await agent_ctx.events.process_started(
@@ -158,7 +159,7 @@ class ExecutionEnvironmentTools(ResourceProvider):
         error_msg: str | None = None
         duration: float | None = None
         try:
-            async for event in self.env.stream_command(command):
+            async for event in self.get_env(agent_ctx).stream_command(command):
                 match event:
                     case ProcessStartedEvent(command=cmd):
                         await agent_ctx.events.process_started(
@@ -253,7 +254,7 @@ class ExecutionEnvironmentTools(ResourceProvider):
             output_limit: Maximum bytes of output to retain
         """
         try:
-            process_id = await self.env.process_manager.start_process(
+            process_id = await self.get_env(agent_ctx).process_manager.start_process(
                 command=command,
                 args=args,
                 cwd=cwd,
@@ -303,7 +304,7 @@ class ExecutionEnvironmentTools(ResourceProvider):
             process_id: Process identifier from start_process
         """
         try:
-            output = await self.env.process_manager.get_output(process_id)
+            output = await self.get_env(agent_ctx).process_manager.get_output(process_id)
             await agent_ctx.events.process_output(
                 process_id=process_id,
                 output=output.combined or "",
@@ -342,8 +343,9 @@ class ExecutionEnvironmentTools(ResourceProvider):
             process_id: Process identifier from start_process
         """
         try:
-            exit_code = await self.env.process_manager.wait_for_exit(process_id)
-            output = await self.env.process_manager.get_output(process_id)
+            env = self.get_env(agent_ctx)
+            exit_code = await env.process_manager.wait_for_exit(process_id)
+            output = await env.process_manager.get_output(process_id)
             await agent_ctx.events.process_exit(
                 process_id=process_id,
                 exit_code=exit_code,
@@ -378,7 +380,7 @@ class ExecutionEnvironmentTools(ResourceProvider):
             process_id: Process identifier from start_process
         """
         try:
-            await self.env.process_manager.kill_process(process_id)
+            await self.get_env(agent_ctx).process_manager.kill_process(process_id)
             await agent_ctx.events.process_killed(process_id=process_id, success=True)
         except ValueError as e:
             await agent_ctx.events.process_killed(process_id, success=False, error=str(e))
@@ -405,7 +407,7 @@ class ExecutionEnvironmentTools(ResourceProvider):
             process_id: Process identifier from start_process
         """
         try:
-            await self.env.process_manager.release_process(process_id)
+            await self.get_env(agent_ctx).process_manager.release_process(process_id)
             await agent_ctx.events.process_released(process_id=process_id, success=True)
 
         except ValueError as e:
@@ -428,14 +430,15 @@ class ExecutionEnvironmentTools(ResourceProvider):
             agent_ctx: Agent execution context
         """
         try:
-            process_ids = await self.env.process_manager.list_processes()
+            env = self.get_env(agent_ctx)
+            process_ids = await env.process_manager.list_processes()
             if not process_ids:
                 return {"processes": [], "count": 0, "message": "No active processes"}
 
             processes = []
             for process_id in process_ids:
                 try:
-                    info = await self.env.process_manager.get_process_info(process_id)
+                    info = await env.process_manager.get_process_info(process_id)
                     processes.append({
                         "process_id": process_id,
                         "command": info["command"],

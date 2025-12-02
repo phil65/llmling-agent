@@ -40,7 +40,7 @@ class FSSpecTools(ResourceProvider):
 
     def __init__(
         self,
-        source: fsspec.AbstractFileSystem | ExecutionEnvironment,
+        source: fsspec.AbstractFileSystem | ExecutionEnvironment | None = None,
         name: str = "fsspec",
         cwd: str | None = None,
         edit_model: ModelType | None = None,
@@ -49,7 +49,8 @@ class FSSpecTools(ResourceProvider):
         """Initialize with an fsspec filesystem or execution environment.
 
         Args:
-            source: Filesystem or execution environment to operate on
+            source: Filesystem or execution environment to operate on.
+                    If None, falls back to agent.env at runtime.
             name: Name for this toolset provider
             cwd: Optional cwd to resolve relative paths against
             edit_model: Optional edit model for text editing
@@ -62,17 +63,36 @@ class FSSpecTools(ResourceProvider):
 
         super().__init__(name=name)
 
-        if isinstance(source, ExecutionEnvironment):
-            self.execution_env: ExecutionEnvironment | None = source
+        if source is None:
+            self._fs: AsyncFileSystem | None = None
+            self.execution_env: ExecutionEnvironment | None = None
+        elif isinstance(source, ExecutionEnvironment):
+            self.execution_env = source
             fs = source.get_fs()
+            self._fs = fs if isinstance(fs, AsyncFileSystem) else AsyncFileSystemWrapper(fs)
         else:
             self.execution_env = None
-            fs = source
-        self.fs = fs if isinstance(fs, AsyncFileSystem) else AsyncFileSystemWrapper(fs)
+            self._fs = (
+                source if isinstance(source, AsyncFileSystem) else AsyncFileSystemWrapper(source)
+            )
         self.edit_model = edit_model
         self.cwd = cwd
         self.converter = converter
         self._tools: list[Tool] | None = None
+
+    def get_fs(self, agent_ctx: AgentContext) -> Any:
+        """Get filesystem, falling back to agent's env if not set.
+
+        Args:
+            agent_ctx: Agent context to get fallback env from
+        """
+        from fsspec.asyn import AsyncFileSystem
+        from fsspec.implementations.asyn_wrapper import AsyncFileSystemWrapper
+
+        if self._fs is not None:
+            return self._fs
+        fs = agent_ctx.agent.env.get_fs()
+        return fs if isinstance(fs, AsyncFileSystem) else AsyncFileSystemWrapper(fs)
 
     def _resolve_path(self, path: str) -> str:
         """Resolve a potentially relative path to an absolute path.
@@ -141,8 +161,9 @@ class FSSpecTools(ResourceProvider):
         await agent_ctx.events.tool_call_start(title=msg, kind="read", locations=[path])
 
         try:
+            fs = self.get_fs(agent_ctx)
             # Check if path exists
-            if not await self.fs._exists(path):
+            if not await fs._exists(path):
                 error_msg = f"Path does not exist: {path}"
                 await agent_ctx.events.file_operation(
                     "list", path=path, success=False, error=error_msg
@@ -152,7 +173,7 @@ class FSSpecTools(ResourceProvider):
             # Build glob path - use maxdepth=1 for non-recursive
             glob_pattern = f"{path.rstrip('/')}/{pattern}"
             depth = max_depth if recursive else 1
-            paths = await self.fs._glob(glob_pattern, maxdepth=depth, detail=True)
+            paths = await fs._glob(glob_pattern, maxdepth=depth, detail=True)
 
             files: list[dict[str, Any]] = []
             dirs: list[dict[str, Any]] = []
@@ -164,7 +185,7 @@ class FSSpecTools(ResourceProvider):
                 if exclude and any(fnmatch(rel_path, pat) for pat in exclude):
                     continue
 
-                is_dir = await self.fs._isdir(file_path)
+                is_dir = await fs._isdir(file_path)
 
                 item_info = {
                     "name": Path(file_path).name,  # pyright: ignore[reportArgumentType]
@@ -224,7 +245,7 @@ class FSSpecTools(ResourceProvider):
             mime_type = mimetypes.guess_type(path)[0]
 
             if is_text_mime(mime_type):
-                content = await self._read(path, encoding=encoding)
+                content = await self._read(agent_ctx, path, encoding=encoding)
                 if isinstance(content, bytes):
                     content = content.decode(encoding)
                 # Apply line filtering if specified
@@ -240,7 +261,7 @@ class FSSpecTools(ResourceProvider):
                 return content
 
             # Binary file - return as BinaryContent for native model handling
-            data = await self.fs._cat_file(path)
+            data = await self.get_fs(agent_ctx)._cat_file(path)
             await agent_ctx.events.file_operation("read", path=path, success=True, size=len(data))
             mime = mime_type or "application/octet-stream"
             return BinaryContent(data=data, media_type=mime, identifier=path)
@@ -303,9 +324,9 @@ class FSSpecTools(ResourceProvider):
                 await agent_ctx.events.file_operation("write", path=path, success=False, error=msg)
                 return {"error": msg}
 
-            await self._write(path, content)
+            await self._write(agent_ctx, path, content)
             try:  # Try to get file size after writing
-                info = await self.fs._info(path)
+                info = await self.get_fs(agent_ctx)._info(path)
                 size = info.get("size", len(content))
             except (OSError, KeyError):
                 size = len(content)
@@ -336,8 +357,9 @@ class FSSpecTools(ResourceProvider):
         await agent_ctx.events.tool_call_start(title=msg, kind="delete", locations=[path])
         try:
             # Check if path exists and get its type
+            fs = self.get_fs(agent_ctx)
             try:
-                info = await self.fs._info(path)
+                info = await fs._info(path)
                 path_type = info.get("type", "unknown")
             except FileNotFoundError:
                 msg = f"Path does not exist: {path}"
@@ -351,7 +373,7 @@ class FSSpecTools(ResourceProvider):
             if path_type == "directory":
                 if not recursive:
                     try:
-                        contents = await self.fs._ls(path)
+                        contents = await fs._ls(path)
                         if contents:  # Check if directory is empty
                             error_msg = (
                                 f"Directory {path} is not empty. "
@@ -367,9 +389,9 @@ class FSSpecTools(ResourceProvider):
                     except (OSError, ValueError):
                         pass  # Continue with deletion attempt
 
-                await self.fs._rm(path, recursive=recursive)
+                await fs._rm(path, recursive=recursive)
             else:  # It's a file
-                await self.fs._rm(path)  # or _rm_file?
+                await fs._rm(path)  # or _rm_file?
 
         except (OSError, ValueError) as e:
             await agent_ctx.events.file_operation("delete", path=path, success=False, error=str(e))
@@ -421,7 +443,7 @@ class FSSpecTools(ResourceProvider):
         )
 
         try:  # Read current file content
-            original_content = await self._read(path)
+            original_content = await self._read(agent_ctx, path)
             if isinstance(original_content, bytes):
                 original_content = original_content.decode("utf-8")
 
@@ -438,7 +460,7 @@ class FSSpecTools(ResourceProvider):
                 )
                 return error_msg
 
-            await self._write(path, new_content)
+            await self._write(agent_ctx, path, new_content)
             success_msg = f"Successfully edited {Path(path).name}: {description}"
             changed_line_numbers = get_changed_line_numbers(original_content, new_content)
             if lines_changed := len(changed_line_numbers):
@@ -464,15 +486,15 @@ class FSSpecTools(ResourceProvider):
         else:
             return success_msg
 
-    async def _read(self, path: str, encoding: str = "utf-8") -> str:
+    async def _read(self, agent_ctx: AgentContext, path: str, encoding: str = "utf-8") -> str:
         # with self.fs.open(path, "r", encoding="utf-8") as f:
         #     return f.read()
-        return await self.fs._cat(path)  # type: ignore[no-any-return]
+        return await self.get_fs(agent_ctx)._cat(path)  # type: ignore[no-any-return]
 
-    async def _write(self, path: str, content: str | bytes) -> None:
-        mode = "wt" if isinstance(content, str) else "wb"
-        file = await self.fs.open_async(path, mode)
-        await file.write(content)
+    async def _write(self, agent_ctx: AgentContext, path: str, content: str | bytes) -> None:
+        if isinstance(content, str):
+            content = content.encode()
+        await self.get_fs(agent_ctx)._pipe_file(path, content)
 
     async def download_file(
         self,
@@ -510,8 +532,9 @@ class FSSpecTools(ResourceProvider):
         full_path = f"{target_dir.rstrip('/')}/{filename}"
 
         try:
+            fs = self.get_fs(agent_ctx)
             # Ensure target directory exists
-            await self.fs._makedirs(target_dir, exist_ok=True)
+            await fs._makedirs(target_dir, exist_ok=True)
 
             async with (
                 httpx.AsyncClient(verify=False) as client,
@@ -539,7 +562,7 @@ class FSSpecTools(ResourceProvider):
                         await asyncio.sleep(0)
 
                 # Write to filesystem
-                await self._write(full_path, bytes(data))
+                await self._write(agent_ctx, full_path, bytes(data))
 
             duration = time.time() - start_time
             size_mb = len(data) / 1_048_576
@@ -624,7 +647,7 @@ class FSSpecTools(ResourceProvider):
                 prompt = _build_overwrite_prompt(path, display_description)
                 sys_prompt = "You are a code editor. Output ONLY the complete new file content."
             else:  # For edit mode, use structured editing approach
-                original_content = await self._read(path)
+                original_content = await self._read(agent_ctx, path)
 
                 # Ensure content is string
                 if isinstance(original_content, bytes):
@@ -644,7 +667,7 @@ class FSSpecTools(ResourceProvider):
             else:
                 # For overwrite mode we need to read the current content for diff purposes
                 if mode == "overwrite":
-                    original_content = await self._read(path)
+                    original_content = await self._read(agent_ctx, path)
                     # Ensure content is string
                     if isinstance(original_content, bytes):
                         original_content = original_content.decode("utf-8")
@@ -686,7 +709,7 @@ class FSSpecTools(ResourceProvider):
                 return error_msg
 
             # Write the new content to file
-            new_content = await self._read(path)
+            new_content = await self._read(agent_ctx, path)
             original_lines = len(original_content.splitlines()) if original_content else 0
             new_lines = len(new_content.splitlines())
 

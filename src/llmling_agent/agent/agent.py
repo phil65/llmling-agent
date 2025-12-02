@@ -54,10 +54,10 @@ if TYPE_CHECKING:
     from datetime import datetime
     from types import TracebackType
 
+    from anyenv.code_execution import ExecutionEnvironment
     from pydantic_ai import AgentStreamEvent, UsageLimits
     from pydantic_ai.output import OutputSpec
     from toprompt import AnyPromptType
-    from upath import UPath
     from upath.types import JoinablePathLike
 
     from llmling_agent.agent import AgentContext
@@ -106,7 +106,7 @@ class AgentKwargs(TypedDict, total=False):
     input_provider: InputProvider | None
     debug: bool
     event_handlers: Sequence[IndividualEventHandler] | None
-    cwd: UPath | str | None
+    env: ExecutionEnvironment | None
 
 
 class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
@@ -155,7 +155,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         tool_mode: ToolMode | None = None,
         knowledge: Knowledge | None = None,
         agent_config: AgentConfig | None = None,
-        cwd: UPath | str | None = None,
+        env: ExecutionEnvironment | None = None,
     ) -> None:
         """Initialize agent.
 
@@ -193,10 +193,8 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             tool_mode: Tool execution mode (None or "codemode")
             knowledge: Knowledge sources for this agent
             agent_config: Agent configuration
-            cwd: Working directory for file operations (defaults to current directory)
+            env: Execution environment for code/command execution and filesystem access
         """
-        from upath import UPath
-
         from llmling_agent.agent import AgentContext
         from llmling_agent.agent.conversation import MessageHistory
         from llmling_agent.agent.interactions import Interactions
@@ -285,8 +283,9 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         self._name = name
         self._background_task: asyncio.Task[ChatMessage[Any]] | None = None
         self.talk = Interactions(self)
-        # Set working directory
-        self.cwd: UPath = UPath(cwd) if cwd else UPath(".")
+        from anyenv.code_execution import LocalExecutionEnvironment
+
+        self.env = env or LocalExecutionEnvironment()
 
         # Set up system prompts
         all_prompts: list[AnyPromptType] = []
