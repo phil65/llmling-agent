@@ -196,8 +196,12 @@ class ACPSession:
         current_agent = self.agent
         current_agent.tools.add_provider(self._acp_provider)
 
-        # Add cwd context to all agents in the pool
+        # Assign ACP execution environment and cwd context to all agents in the pool
+        from anyenv.code_execution.acp_provider import ACPExecutionEnvironment
+
+        acp_env = ACPExecutionEnvironment(fs=self.fs, requests=self.requests)
         for agent in self.agent_pool.agents.values():
+            agent.env = acp_env
             agent.sys_prompts.prompts.append(self.get_cwd_context)  # pyright: ignore[reportArgumentType]
 
         self.log.info("Created ACP session", current_agent=self.current_agent_name)

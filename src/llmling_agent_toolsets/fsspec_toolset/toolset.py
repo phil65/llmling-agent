@@ -6,6 +6,7 @@ from fnmatch import fnmatch
 import mimetypes
 import os
 from pathlib import Path
+import re
 import time
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urlparse
@@ -118,6 +119,7 @@ class FSSpecTools(ResourceProvider):
         self._tools = [
             self.create_tool(self.list_directory, category="read"),
             self.create_tool(self.read_file, category="read"),
+            self.create_tool(self.grep, category="search"),
             self.create_tool(self.write_file, category="edit"),
             self.create_tool(self.delete_path, category="delete"),
             self.create_tool(self.edit_file, category="edit"),
@@ -485,6 +487,103 @@ class FSSpecTools(ResourceProvider):
             return error_msg
         else:
             return success_msg
+
+    async def grep(
+        self,
+        agent_ctx: AgentContext,
+        pattern: str,
+        path: str,
+        *,
+        file_pattern: str = "**/*",
+        case_sensitive: bool = False,
+        max_matches: int = 100,
+        context_lines: int = 0,
+    ) -> dict[str, Any]:
+        """Search file contents for a pattern.
+
+        Args:
+            agent_ctx: Agent execution context
+            pattern: Regex pattern to search for
+            path: Base directory to search in
+            file_pattern: Glob pattern to filter files (e.g. "**/*.py")
+            case_sensitive: Whether search is case-sensitive
+            max_matches: Maximum number of matches to return
+            context_lines: Number of context lines before/after match
+
+        Returns:
+            Dictionary with matches grouped by file
+        """
+        resolved_path = self._resolve_path(path)
+        msg = f"Searching for {pattern!r} in {resolved_path}"
+        await agent_ctx.events.tool_call_start(title=msg, kind="search", locations=[resolved_path])
+
+        try:
+            flags = 0 if case_sensitive else re.IGNORECASE
+            regex = re.compile(pattern, flags)
+        except re.error as e:
+            return {"error": f"Invalid regex pattern: {e}"}
+
+        try:
+            fs = self.get_fs(agent_ctx)
+            glob_path = f"{resolved_path.rstrip('/')}/{file_pattern}"
+            file_paths = await fs._glob(glob_path)
+
+            matches: dict[str, list[dict[str, Any]]] = {}
+            total_matches = 0
+
+            for file_path in file_paths:
+                if total_matches >= max_matches:
+                    break
+
+                # Skip directories
+                if await fs._isdir(file_path):
+                    continue
+
+                try:
+                    content = await fs._cat_file(file_path)
+                    text = content.decode("utf-8", errors="replace")
+                    lines = text.splitlines()
+
+                    file_matches: list[dict[str, Any]] = []
+                    for line_num, line in enumerate(lines, 1):
+                        if total_matches >= max_matches:
+                            break
+
+                        if regex.search(line):
+                            match_info: dict[str, Any] = {
+                                "line_number": line_num,
+                                "content": line.rstrip(),
+                            }
+
+                            if context_lines > 0:
+                                start = max(0, line_num - 1 - context_lines)
+                                end = min(len(lines), line_num + context_lines)
+                                match_info["context_before"] = lines[start : line_num - 1]
+                                match_info["context_after"] = lines[line_num:end]
+
+                            file_matches.append(match_info)
+                            total_matches += 1
+
+                    if file_matches:
+                        rel_path = str(file_path)
+                        if self.cwd and rel_path.startswith(self.cwd):
+                            rel_path = rel_path[len(self.cwd) :].lstrip("/\\")
+                        matches[rel_path] = file_matches
+
+                except (UnicodeDecodeError, OSError):
+                    continue
+
+        except (OSError, ValueError) as e:
+            return {"error": f"Search failed: {e}"}
+        else:
+            return {
+                "pattern": pattern,
+                "path": resolved_path,
+                "file_pattern": file_pattern,
+                "matches": matches,
+                "total_matches": total_matches,
+                "truncated": total_matches >= max_matches,
+            }
 
     async def _read(self, agent_ctx: AgentContext, path: str, encoding: str = "utf-8") -> str:
         # with self.fs.open(path, "r", encoding="utf-8") as f:

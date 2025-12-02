@@ -109,38 +109,19 @@ def acp_command(
             agent=agent,
         )
     else:
-        # Create minimal pool without config
-        from llmling_agent import Agent
-        from llmling_agent.delegation import AgentPool
+        # Use default ACP assistant config
+        from llmling_agent.config_resources import ACP_ASSISTANT
 
-        logger.info("Starting ACP server with minimal configuration")
-
-        # Create a simple general-purpose agent
-        agent_name = agent or "llmling-agent"
-        default_agent = Agent(
-            name=agent_name,
-            description="A general-purpose AI assistant",
-            system_prompt=[
-                "You are a helpful AI assistant that can help with various tasks.",
-                "You have access to file operations and can assist with coding, writing,",
-                " analysis, and more.",
-                "Be concise but thorough in your responses.",
-            ],
-        )
-
-        # Create pool with the agent
-        pool = AgentPool()
-        pool.register(agent_name, default_agent)
-
-        acp_server = ACPServer(
-            pool,
+        logger.info("Starting ACP server with default configuration")
+        acp_server = ACPServer.from_config(
+            ACP_ASSISTANT,
             file_access=file_access,
             terminal_access=terminal_access,
             providers=providers,  # type: ignore[arg-type] # pyright: ignore[reportArgumentType]
             debug_messages=debug_messages,
             debug_file=debug_file or "acp-debug.jsonl" if debug_messages else None,
             debug_commands=debug_commands,
-            agent=agent_name,
+            agent=agent,
         )
     # Configure agent capabilities
     agent_count = len(acp_server.pool.agents)

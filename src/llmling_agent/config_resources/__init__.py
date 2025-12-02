@@ -5,8 +5,12 @@ from __future__ import annotations
 import importlib.resources
 from typing import Final
 
-AGENTS_TEMPLATE: Final[str] = str(
-    importlib.resources.files("llmling_agent.config_resources") / "agents_template.yml"
-)
+_RESOURCES = importlib.resources.files("llmling_agent.config_resources")
 
-__all__ = ["AGENTS_TEMPLATE"]
+AGENTS_TEMPLATE: Final[str] = str(_RESOURCES / "agents_template.yml")
+"""Path to the agents template configuration."""
+
+ACP_ASSISTANT: Final[str] = str(_RESOURCES / "acp_assistant.yml")
+"""Path to default ACP assistant configuration."""
+
+__all__ = ["ACP_ASSISTANT", "AGENTS_TEMPLATE"]

@@ -17,6 +17,14 @@ if TYPE_CHECKING:
 
 
 def get_acp_provider(session: ACPSession) -> AggregatingResourceProvider:
+    """Create aggregated resource provider with ACP-specific toolsets.
+
+    Args:
+        session: The ACP session to create providers for
+
+    Returns:
+        AggregatingResourceProvider with execution, filesystem, and code tools
+    """
     from llmling_agent.resource_providers.aggregating import AggregatingResourceProvider
 
     execution_env = ACPExecutionEnvironment(fs=session.fs, requests=session.requests)

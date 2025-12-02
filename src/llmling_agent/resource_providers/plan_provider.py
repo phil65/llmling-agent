@@ -61,10 +61,41 @@ class PlanProvider(ResourceProvider):
     async def get_tools(self) -> list[Tool]:
         """Get plan management tools."""
         return [
+            self.create_tool(self.get_plan, category="read"),
             self.create_tool(self.add_plan_entry, category="other"),
             self.create_tool(self.update_plan_entry, category="edit"),
             self.create_tool(self.remove_plan_entry, category="delete"),
         ]
+
+    async def get_plan(self, agent_ctx: AgentContext) -> str:
+        """Get the current plan formatted as markdown.
+
+        Args:
+            agent_ctx: Agent execution context
+
+        Returns:
+            Markdown-formatted plan with all entries and their status
+        """
+        if not self._current_plan:
+            return "## Plan\n\n*No plan entries yet.*"
+
+        lines = ["## Plan", ""]
+        status_icons = {
+            "pending": "⬚",
+            "in_progress": "◐",
+            "completed": "✓",
+        }
+        priority_labels = {
+            "high": "🔴",
+            "medium": "🟡",
+            "low": "🟢",
+        }
+        for i, entry in enumerate(self._current_plan):
+            icon = status_icons.get(entry.status, "?")
+            priority = priority_labels.get(entry.priority, "")
+            lines.append(f"{i}. {icon} {priority} {entry.content} *({entry.status})*")
+
+        return "\n".join(lines)
 
     async def add_plan_entry(
         self,
