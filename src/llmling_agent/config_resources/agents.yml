@@ -61,9 +61,6 @@ agents:
         You help users open websites. Use the open_url tool to open URLs.
         When given a website name, find its URL in the bookmarks resource.
         Always confirm what you're about to open.
-    user_prompts:
-      - "Open the Python website for me"
-      - "Open my favorite coding sites"
 
   system_inspector:
     tools:
@@ -85,10 +82,6 @@ agents:
         to gather system information.
       - |
         Format it using the template from the system_template resource.
-    user_prompts:
-      - "Show me system information"
-      - "How much memory is being used?"
-      - "Give me a full system report"
 
   file_explorer:
     tools:

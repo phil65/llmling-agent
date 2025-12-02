@@ -121,6 +121,7 @@ youtube = ["youtube_transcript_api"]
 [dependency-groups]
 dev = [
   "alembic>=1.16.5",
+  "check-jsonschema>=0.35.0",
   "devtools",
   "openapi_spec_validator",
   "pyreadline3",
