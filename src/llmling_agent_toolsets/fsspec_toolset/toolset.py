@@ -149,11 +149,10 @@ class FSSpecTools(ResourceProvider):
                 )
                 return {"error": error_msg}
 
-            # Build glob path
-            glob_pattern = (
-                f"{path.rstrip('/')}/{pattern}" if recursive else f"{path.rstrip('/')}/{pattern}"
-            )
-            paths = await self.fs._glob(glob_pattern, maxdepth=max_depth, detail=True)
+            # Build glob path - use maxdepth=1 for non-recursive
+            glob_pattern = f"{path.rstrip('/')}/{pattern}"
+            depth = max_depth if recursive else 1
+            paths = await self.fs._glob(glob_pattern, maxdepth=depth, detail=True)
 
             files: list[dict[str, Any]] = []
             dirs: list[dict[str, Any]] = []
@@ -168,7 +167,7 @@ class FSSpecTools(ResourceProvider):
                 is_dir = await self.fs._isdir(file_path)
 
                 item_info = {
-                    "name": os.path.basename(file_path),
+                    "name": Path(file_path).name,
                     "path": file_path,
                     "relative_path": rel_path,
                     "size": file_info.get("size", 0),
@@ -191,11 +190,11 @@ class FSSpecTools(ResourceProvider):
                 "total_items": len(dirs) + len(files),
             }
             await agent_ctx.events.file_operation("list", path=path, success=True)
-            return result
-
         except (OSError, ValueError) as e:
             await agent_ctx.events.file_operation("list", path=path, success=False, error=str(e))
             return {"error": f"Failed to list directory {path}: {e}"}
+        else:
+            return result
 
     async def read_file(
         self,
