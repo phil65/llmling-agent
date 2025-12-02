@@ -157,7 +157,7 @@ class FSSpecTools(ResourceProvider):
             files: list[dict[str, Any]] = []
             dirs: list[dict[str, Any]] = []
 
-            for file_path, file_info in paths.items():
+            for file_path, file_info in paths.items():  # pyright: ignore[reportAttributeAccessIssue]
                 rel_path = os.path.relpath(str(file_path), path)
 
                 # Skip excluded patterns
@@ -167,7 +167,7 @@ class FSSpecTools(ResourceProvider):
                 is_dir = await self.fs._isdir(file_path)
 
                 item_info = {
-                    "name": Path(file_path).name,
+                    "name": Path(file_path).name,  # pyright: ignore[reportArgumentType]
                     "path": file_path,
                     "relative_path": rel_path,
                     "size": file_info.get("size", 0),
