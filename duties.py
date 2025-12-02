@@ -48,6 +48,11 @@ def lint(ctx):
     ctx.run("uv run ruff check --fix --unsafe-fixes .")
     ctx.run("uv run ruff format .")
     ctx.run("uv run mypy src/ --fixed-format-cache")
+    ctx.run(
+        "uv run check-jsonschema --schemafile schema/config-schema.json "
+        "src/llmling_agent/config_resources/*.yml "
+        "src/llmling_agent_docs/examples/**/config.yml"
+    )
 
 
 @duty(capture=False)
@@ -56,6 +61,11 @@ def lint_check(ctx):
     ctx.run("uv run ruff check .")
     ctx.run("uv run ruff format --check .")
     ctx.run("uv run mypy src/llmling_agent/ --fixed-format-cache")
+    ctx.run(
+        "uv run check-jsonschema --schemafile schema/config-schema.json "
+        "src/llmling_agent/config_resources/*.yml "
+        "src/llmling_agent_docs/examples/**/config.yml"
+    )
 
 
 @duty(capture=False)

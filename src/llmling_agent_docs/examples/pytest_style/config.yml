@@ -1,0 +1,3 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/phil65/llmling-agent/refs/heads/main/schema/config-schema.json
+# This example creates agents programmatically - no YAML config needed
+agents: {}

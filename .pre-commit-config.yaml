@@ -49,6 +49,12 @@ repos:
         language: system
         types: [python]
         require_serial: true
+      - id: check-jsonschema
+        name: check-jsonschema
+        entry: uv run check-jsonschema --schemafile schema/config-schema.json
+        language: system
+        files: ^src/llmling_agent/config_resources/.*\.yml$|^src/llmling_agent_docs/examples/.*/config\.yml$
+        require_serial: true
       - id: mypy
         name: mypy
         entry: uv run mypy --fixed-format-cache

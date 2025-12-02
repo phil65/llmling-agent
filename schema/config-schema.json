@@ -8657,33 +8657,6 @@
       "additionalProperties": false,
       "description": "Configuration for a library reference prompt.",
       "properties": {
-        "content": {
-          "description": "The actual prompt text.",
-          "examples": [
-            "You are a helpful assistant",
-            "Always be concise"
-          ],
-          "title": "Prompt content",
-          "type": "string"
-        },
-        "category": {
-          "default": "role",
-          "description": "Categorization for template organization.",
-          "enum": [
-            "role",
-            "methodology",
-            "quality",
-            "task"
-          ],
-          "examples": [
-            "role",
-            "methodology",
-            "quality",
-            "task"
-          ],
-          "title": "Prompt category",
-          "type": "string"
-        },
         "type": {
           "const": "library",
           "default": "library",
@@ -8703,7 +8676,6 @@
         }
       },
       "required": [
-        "content",
         "reference"
       ],
       "title": "LibraryPromptConfig",

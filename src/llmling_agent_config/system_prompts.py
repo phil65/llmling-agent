@@ -82,7 +82,7 @@ class FilePromptConfig(BaseSystemPrompt):
     """Variables to pass to the template."""
 
 
-class LibraryPromptConfig(BaseSystemPrompt):
+class LibraryPromptConfig(Schema):
     """Configuration for a library reference prompt."""
 
     type: Literal["library"] = Field("library", init=False)
@@ -93,6 +93,8 @@ class LibraryPromptConfig(BaseSystemPrompt):
         title="Library reference",
     )
     """Library prompt reference identifier."""
+
+    model_config = ConfigDict(frozen=True)
 
 
 class FunctionPromptConfig(BaseSystemPrompt):
