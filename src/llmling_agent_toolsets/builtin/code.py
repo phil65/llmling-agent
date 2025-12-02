@@ -131,7 +131,7 @@ class CodeTools(ResourceProvider):
 
         self._tools = [self.create_tool(self.format_code, category="execute")]
         if importlib.util.find_spec("ast_grep_py"):
-            self._tools.append(self.create_tool(self.ast_grep, category="search"))
+            self._tools.append(self.create_tool(self.ast_grep, category="search", idempotent=True))
         return self._tools
 
     async def format_code(self, path: str, language: str | None = None) -> str:

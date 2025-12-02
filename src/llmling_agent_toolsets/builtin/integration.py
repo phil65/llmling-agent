@@ -86,5 +86,5 @@ class IntegrationTools(ResourceProvider):
         """Get integration tools."""
         return [
             self.create_tool(add_local_mcp_server, category="other"),
-            self.create_tool(add_remote_mcp_server, category="other"),
+            self.create_tool(add_remote_mcp_server, category="other", open_world=True),
         ]

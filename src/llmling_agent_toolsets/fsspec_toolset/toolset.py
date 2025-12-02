@@ -117,18 +117,22 @@ class FSSpecTools(ResourceProvider):
             return self._tools
 
         self._tools = [
-            self.create_tool(self.list_directory, category="read"),
-            self.create_tool(self.read_file, category="read"),
-            self.create_tool(self.grep, category="search"),
+            self.create_tool(self.list_directory, category="read", read_only=True, idempotent=True),
+            self.create_tool(self.read_file, category="read", read_only=True, idempotent=True),
+            self.create_tool(self.grep, category="search", read_only=True, idempotent=True),
             self.create_tool(self.write_file, category="edit"),
-            self.create_tool(self.delete_path, category="delete"),
+            self.create_tool(self.delete_path, category="delete", destructive=True),
             self.create_tool(self.edit_file, category="edit"),
             self.create_tool(self.agentic_edit, category="edit"),
-            self.create_tool(self.download_file, category="read"),
+            self.create_tool(self.download_file, category="read", open_world=True),
         ]
 
         if self.converter:  # Only add read_as_markdown if converter is available
-            self._tools.append(self.create_tool(self.read_as_markdown, category="read"))
+            self._tools.append(
+                self.create_tool(
+                    self.read_as_markdown, category="read", read_only=True, idempotent=True
+                )
+            )
 
         return self._tools
 

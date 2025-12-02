@@ -127,8 +127,8 @@ class VFSTools(StaticResourceProvider):
 
     def __init__(self, name: str = "vfs") -> None:
         tools = [
-            self.create_tool(vfs_list, category="search"),
-            self.create_tool(vfs_read, category="read"),
-            self.create_tool(vfs_info, category="read"),
+            self.create_tool(vfs_list, category="search", read_only=True, idempotent=True),
+            self.create_tool(vfs_read, category="read", read_only=True, idempotent=True),
+            self.create_tool(vfs_info, category="read", read_only=True, idempotent=True),
         ]
         super().__init__(name=name, tools=tools)

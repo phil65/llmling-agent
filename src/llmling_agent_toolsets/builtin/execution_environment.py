@@ -56,14 +56,20 @@ class ExecutionEnvironmentTools(ResourceProvider):
         return [
             # Code execution tools
             self.create_tool(self.execute_code, category="execute"),
-            self.create_tool(self.execute_command, category="execute"),
+            self.create_tool(self.execute_command, category="execute", open_world=True),
             # Process management tools
-            self.create_tool(self.start_process, category="execute"),
-            self.create_tool(self.get_process_output, category="execute"),
-            self.create_tool(self.wait_for_process, category="execute"),
-            self.create_tool(self.kill_process, category="execute"),
+            self.create_tool(self.start_process, category="execute", open_world=True),
+            self.create_tool(
+                self.get_process_output, category="execute", read_only=True, idempotent=True
+            ),
+            self.create_tool(
+                self.wait_for_process, category="execute", read_only=True, idempotent=True
+            ),
+            self.create_tool(self.kill_process, category="execute", destructive=True),
             self.create_tool(self.release_process, category="execute"),
-            self.create_tool(self.list_processes, category="search"),
+            self.create_tool(
+                self.list_processes, category="search", read_only=True, idempotent=True
+            ),
         ]
 
     async def execute_code(

@@ -71,6 +71,6 @@ class HistoryTools(StaticResourceProvider):
     def __init__(self, name: str = "history") -> None:
         super().__init__(name=name)
         self._tools = [
-            self.create_tool(search_history, category="search"),
-            self.create_tool(show_statistics, category="read"),
+            self.create_tool(search_history, category="search", read_only=True, idempotent=True),
+            self.create_tool(show_statistics, category="read", read_only=True, idempotent=True),
         ]

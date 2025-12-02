@@ -240,7 +240,7 @@ class SemanticMemoryTools(ResourceProvider):
             return self._tools
 
         self._tools = [
-            self.create_tool(self.query_knowledge, read_only=True),
+            self.create_tool(self.query_knowledge, read_only=True, idempotent=True),
             self.create_tool(self.ingest_transcript),
             self.create_tool(self.ingest_text),
         ]

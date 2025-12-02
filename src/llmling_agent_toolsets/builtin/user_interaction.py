@@ -49,4 +49,4 @@ class UserInteractionTools(StaticResourceProvider):
 
     def __init__(self, name: str = "user_interaction") -> None:
         super().__init__(name=name)
-        self._tools = [self.create_tool(ask_user, category="other")]
+        self._tools = [self.create_tool(ask_user, category="other", open_world=True)]

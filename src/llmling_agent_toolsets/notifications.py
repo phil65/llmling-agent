@@ -87,7 +87,11 @@ class NotificationsTools(ResourceProvider):
             parameters={"type": "object", "properties": properties, "required": ["message"]},
         )
 
-        self._tools = [self.create_tool(self.send_notification, schema_override=schema_override)]
+        self._tools = [
+            self.create_tool(
+                self.send_notification, schema_override=schema_override, open_world=True
+            )
+        ]
         return self._tools
 
     async def send_notification(

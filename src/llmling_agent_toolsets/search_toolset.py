@@ -38,7 +38,21 @@ class SearchTools(ResourceProvider):
         """Get search tools from configured providers."""
         tools: list[Tool] = []
         if self._web_provider:
-            tools.append(self.create_tool(self._web_provider.web_search))
+            tools.append(
+                self.create_tool(
+                    self._web_provider.web_search,
+                    read_only=True,
+                    idempotent=True,
+                    open_world=True,
+                )
+            )
         if self._news_provider:
-            tools.append(self.create_tool(self._news_provider.news_search))
+            tools.append(
+                self.create_tool(
+                    self._news_provider.news_search,
+                    read_only=True,
+                    idempotent=True,
+                    open_world=True,
+                )
+            )
         return tools

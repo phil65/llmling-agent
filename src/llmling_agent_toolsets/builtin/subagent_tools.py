@@ -264,7 +264,9 @@ class SubagentTools(StaticResourceProvider):
     def __init__(self, name: str = "subagent_tools") -> None:
         super().__init__(name=name)
         for tool in [
-            self.create_tool(list_available_nodes, category="search"),
+            self.create_tool(
+                list_available_nodes, category="search", read_only=True, idempotent=True
+            ),
             self.create_tool(delegate_to, category="other"),
             self.create_tool(ask_agent, category="other"),
         ]:
