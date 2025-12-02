@@ -85,6 +85,6 @@ class IntegrationTools(ResourceProvider):
     async def get_tools(self) -> list[Tool]:
         """Get integration tools."""
         return [
-            Tool.from_callable(add_local_mcp_server, source="builtin", category="other"),
-            Tool.from_callable(add_remote_mcp_server, source="builtin", category="other"),
+            self.create_tool(add_local_mcp_server, category="other"),
+            self.create_tool(add_remote_mcp_server, category="other"),
         ]

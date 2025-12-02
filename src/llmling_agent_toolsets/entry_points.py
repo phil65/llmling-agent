@@ -39,6 +39,6 @@ class EntryPointTools(ResourceProvider):
         get_tools = entry_point.load()
         for item in get_tools():
             meta = {"module": self.module}
-            tool = Tool.from_callable(item, source="entry_point", metadata=meta)
+            tool = self.create_tool(item, metadata=meta)
             self._tools.append(tool)
         return self._tools

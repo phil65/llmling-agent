@@ -55,15 +55,15 @@ class ExecutionEnvironmentTools(ResourceProvider):
     async def get_tools(self) -> list[Tool]:
         return [
             # Code execution tools
-            Tool.from_callable(self.execute_code, source="builtin", category="execute"),
-            Tool.from_callable(self.execute_command, source="builtin", category="execute"),
+            self.create_tool(self.execute_code, category="execute"),
+            self.create_tool(self.execute_command, category="execute"),
             # Process management tools
-            Tool.from_callable(self.start_process, source="builtin", category="execute"),
-            Tool.from_callable(self.get_process_output, source="builtin", category="execute"),
-            Tool.from_callable(self.wait_for_process, source="builtin", category="execute"),
-            Tool.from_callable(self.kill_process, source="builtin", category="execute"),
-            Tool.from_callable(self.release_process, source="builtin", category="execute"),
-            Tool.from_callable(self.list_processes, source="builtin", category="search"),
+            self.create_tool(self.start_process, category="execute"),
+            self.create_tool(self.get_process_output, category="execute"),
+            self.create_tool(self.wait_for_process, category="execute"),
+            self.create_tool(self.kill_process, category="execute"),
+            self.create_tool(self.release_process, category="execute"),
+            self.create_tool(self.list_processes, category="search"),
         ]
 
     async def execute_code(
