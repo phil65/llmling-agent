@@ -100,8 +100,13 @@ async def test_start_process_with_acp_session(
     """Test starting process with ACP session."""
     mock_response = Mock()
     mock_response.terminal_id = "term_123"
-    session.requests = Mock()
-    session.requests.create_terminal = AsyncMock(return_value=mock_response)
+
+    # Mock the requests object inside the execution environment directly
+    mock_requests = Mock()
+    mock_requests.create_terminal = AsyncMock(return_value=mock_response)
+    execution_tools.env._requests = mock_requests
+    # Reset process manager so it picks up new requests
+    execution_tools.env._process_manager = None
 
     tools = await execution_tools.get_tools()
     start_tool = next(tool for tool in tools if tool.name == "start_process")
@@ -119,8 +124,8 @@ async def test_start_process_with_acp_session(
     assert result["args"] == ["hello", "world"]
     assert result["status"] == "started"
 
-    session.requests.create_terminal.assert_called_once()
-    call_args = session.requests.create_terminal.call_args[1]
+    mock_requests.create_terminal.assert_called_once()
+    call_args = mock_requests.create_terminal.call_args[1]
     assert call_args["command"] == "echo"
     assert call_args["args"] == ["hello", "world"]
     assert call_args["cwd"] == "/tmp"
@@ -140,16 +145,21 @@ async def test_get_process_output_with_acp_session(
     """Test getting process output through ACP."""
     mock_terminal_response = Mock()
     mock_terminal_response.terminal_id = "term_123"
-    session.requests = Mock()
-    session.requests.create_terminal = AsyncMock(return_value=mock_terminal_response)
+
+    # Mock the requests object inside the execution environment directly
+    mock_requests = Mock()
+    mock_requests.create_terminal = AsyncMock(return_value=mock_terminal_response)
+    execution_tools.env._requests = mock_requests
+    # Reset process manager so it picks up new requests
+    execution_tools.env._process_manager = None
 
     await execution_tools.env.process_manager.start_process("echo", ["test"])
-    process_id = next(iter(execution_tools.env.process_manager._terminals.keys()))
+    process_id = next(iter(execution_tools.env.process_manager._processes.keys()))
 
     mock_output_response = Mock()
     mock_output_response.output = "test output\n"
     mock_output_response.truncated = False
-    session.requests.terminal_output = AsyncMock(return_value=mock_output_response)
+    mock_requests.terminal_output = AsyncMock(return_value=mock_output_response)
 
     tools = await execution_tools.get_tools()
     output_tool = next(tool for tool in tools if tool.name == "get_process_output")
@@ -165,7 +175,7 @@ async def test_get_process_output_with_acp_session(
     assert result["combined"] == "test output\n"
     assert result["status"] == "running"
 
-    session.requests.terminal_output.assert_called_once_with("term_123")
+    mock_requests.terminal_output.assert_called_once_with("term_123")
     CTX.events.process_output.assert_called_once()
 
 
@@ -176,12 +186,17 @@ async def test_kill_process_with_acp_session(
     """Test killing process through ACP."""
     mock_terminal_response = Mock()
     mock_terminal_response.terminal_id = "term_123"
-    session.requests = Mock()
-    session.requests.create_terminal = AsyncMock(return_value=mock_terminal_response)
-    session.requests.kill_terminal = AsyncMock()
+
+    # Mock the requests object inside the execution environment directly
+    mock_requests = Mock()
+    mock_requests.create_terminal = AsyncMock(return_value=mock_terminal_response)
+    mock_requests.kill_terminal = AsyncMock()
+    execution_tools.env._requests = mock_requests
+    # Reset process manager so it picks up new requests
+    execution_tools.env._process_manager = None
 
     await execution_tools.env.process_manager.start_process("sleep", ["10"])
-    process_id = next(iter(execution_tools.env.process_manager._terminals.keys()))
+    process_id = next(iter(execution_tools.env.process_manager._processes.keys()))
 
     tools = await execution_tools.get_tools()
     kill_tool = next(tool for tool in tools if tool.name == "kill_process")
@@ -195,7 +210,7 @@ async def test_kill_process_with_acp_session(
     assert result["process_id"] == process_id
     assert result["status"] == "killed"
 
-    session.requests.kill_terminal.assert_called_once_with("term_123")
+    mock_requests.kill_terminal.assert_called_once_with("term_123")
 
     CTX.events.process_killed.assert_called_once()
     call_args = CTX.events.process_killed.call_args[1]

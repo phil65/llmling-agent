@@ -11,7 +11,7 @@ from llmling_agent.models.agents import AgentConfig
 from llmling_agent.models.manifest import AgentsManifest
 from llmling_agent_config.toolsets import (
     ExecutionEnvironmentToolsetConfig,
-    FileAccessToolsetConfig,
+    FSSpecToolsetConfig,
 )
 
 
@@ -49,7 +49,7 @@ def process_manifest():
     agent_cfg = AgentConfig(
         name="ProcessAgent",
         model="test",
-        toolsets=[ExecutionEnvironmentToolsetConfig(), FileAccessToolsetConfig()],
+        toolsets=[ExecutionEnvironmentToolsetConfig(), FSSpecToolsetConfig()],
     )
     return AgentsManifest(agents={"process_agent": agent_cfg})
 
