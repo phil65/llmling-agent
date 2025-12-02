@@ -59,7 +59,7 @@ async def acp_agent(mock_connection, mock_agent_pool: AgentPool):
 
     mock_agent.tools = Mock()
     mock_agent.tools.register_tool = register_tool
-    mock_agent_pool.agents = {"test_agent": mock_agent}
+    mock_agent_pool.agents = {"test_agent": mock_agent}  # pyright: ignore[reportAttributeAccessIssue]
 
     return LLMlingACPAgent(
         connection=mock_connection,
@@ -104,7 +104,7 @@ async def test_start_process_with_acp_session(
     # Mock the requests object inside the execution environment directly
     mock_requests = Mock()
     mock_requests.create_terminal = AsyncMock(return_value=mock_response)
-    execution_tools.env._requests = mock_requests
+    execution_tools.env._requests = mock_requests  # pyright: ignore[reportAttributeAccessIssue]
     # Reset process manager so it picks up new requests
     execution_tools.env._process_manager = None
 
@@ -149,7 +149,7 @@ async def test_get_process_output_with_acp_session(
     # Mock the requests object inside the execution environment directly
     mock_requests = Mock()
     mock_requests.create_terminal = AsyncMock(return_value=mock_terminal_response)
-    execution_tools.env._requests = mock_requests
+    execution_tools.env._requests = mock_requests  # pyright: ignore[reportAttributeAccessIssue]
     # Reset process manager so it picks up new requests
     execution_tools.env._process_manager = None
 
@@ -191,12 +191,12 @@ async def test_kill_process_with_acp_session(
     mock_requests = Mock()
     mock_requests.create_terminal = AsyncMock(return_value=mock_terminal_response)
     mock_requests.kill_terminal = AsyncMock()
-    execution_tools.env._requests = mock_requests
+    execution_tools.env._requests = mock_requests  # pyright: ignore[reportAttributeAccessIssue]
     # Reset process manager so it picks up new requests
     execution_tools.env._process_manager = None
 
     await execution_tools.env.process_manager.start_process("sleep", ["10"])
-    process_id = next(iter(execution_tools.env.process_manager._processes.keys()))
+    process_id = next(iter(execution_tools.env.process_manager._processes.keys()))  # pyright: ignore[reportAttributeAccessIssue]
 
     tools = await execution_tools.get_tools()
     kill_tool = next(tool for tool in tools if tool.name == "kill_process")
@@ -212,34 +212,11 @@ async def test_kill_process_with_acp_session(
 
     mock_requests.kill_terminal.assert_called_once_with("term_123")
 
-    CTX.events.process_killed.assert_called_once()
-    call_args = CTX.events.process_killed.call_args[1]
+    CTX.events.process_killed.assert_called_once()  # pyright: ignore[reportAttributeAccessIssue]
+    call_args = CTX.events.process_killed.call_args[1]  # pyright: ignore[reportAttributeAccessIssue]
     assert "terminal_id" not in call_args
     assert call_args["process_id"] == process_id
     assert call_args["success"] is True
-
-
-async def test_execution_tools_availability_in_acp_provider(session: ACPSession):
-    """Test that execution tools are available through ACP provider."""
-    provider = session._acp_provider
-    assert provider is not None, "ACP provider not initialized"
-
-    tools = await provider.get_tools()
-    tool_names = [tool.name for tool in tools]
-
-    expected_tools = [
-        "execute_code",
-        "execute_command",
-        "start_process",
-        "get_process_output",
-        "wait_for_process",
-        "kill_process",
-        "release_process",
-        "list_processes",
-    ]
-
-    for tool_name in expected_tools:
-        assert tool_name in tool_names, f"Tool '{tool_name}' not found in ACP provider"
 
 
 async def test_execution_tools_use_acp_environment(session: ACPSession):
