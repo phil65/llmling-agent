@@ -61,12 +61,12 @@ class TestToolsInitialization:
     def test_custom_env_is_used(self, mock_env):
         """Test that custom environment is properly set."""
         tools = ExecutionEnvironmentTools(env=mock_env)
-        assert tools.env is mock_env
+        assert tools._env is mock_env
 
     def test_default_env_is_created(self):
         """Test that ExecutionEnvironmentTools creates default LocalExecutionEnvironment."""
         tools = ExecutionEnvironmentTools()
-        assert tools.env is not None
+        assert tools._env is None  # None means fallback to agent's env
 
 
 class TestCodeExecution:
@@ -80,7 +80,7 @@ class TestCodeExecution:
             yield OutputEvent(data="42\n", stream="stdout")
             yield ProcessCompletedEvent(exit_code=0, duration=0.1)
 
-        tools.env.stream_code = mock_stream_code
+        tools._env.stream_code = mock_stream_code
         result = await tools.execute_code(agent_ctx, "print(42)")
         assert result["success"] is True
         assert "42" in result["output"]
@@ -99,7 +99,7 @@ class TestCodeExecution:
                 exit_code=1,
             )
 
-        tools.env.stream_code = mock_stream_code
+        tools._env.stream_code = mock_stream_code
         result = await tools.execute_code(agent_ctx, "print(x)")
         assert result["success"] is False
         assert "NameError" in result["error"]
@@ -112,7 +112,7 @@ class TestCodeExecution:
             raise RuntimeError("Execution failed")
             yield  # Make it a generator
 
-        tools.env.stream_code = mock_stream_code
+        tools._env.stream_code = mock_stream_code
         result = await tools.execute_code(agent_ctx, "bad code")
         assert result["success"] is False
         assert "Execution failed" in result["error"]
@@ -125,7 +125,7 @@ class TestCodeExecution:
             yield OutputEvent(data="hello world\n", stream="stdout")
             yield ProcessCompletedEvent(exit_code=0, duration=0.2)
 
-        tools.env.stream_command = mock_stream_command
+        tools._env.stream_command = mock_stream_command
         result = await tools.execute_command(agent_ctx, "echo hello world")
         assert result["success"] is True
         assert result["stdout"] == "hello world\n"
@@ -142,7 +142,7 @@ class TestCodeExecution:
             yield OutputEvent(data=long_output, stream="stdout")
             yield ProcessCompletedEvent(exit_code=0, duration=0.1)
 
-        tools.env.stream_command = mock_stream_command
+        tools._env.stream_command = mock_stream_command
         result = await tools.execute_command(agent_ctx, "echo", output_limit=100)
         assert result["success"] is True
         assert "[truncated]" in result["stdout"]
@@ -154,7 +154,7 @@ class TestProcessLifecycle:
 
     async def test_start_process_success(self, tools, agent_ctx):
         """Test successful process start."""
-        tools.env.process_manager.start_process = AsyncMock(return_value="proc_123")
+        tools._env.process_manager.start_process = AsyncMock(return_value="proc_123")
         result = await tools.start_process(
             agent_ctx,
             command="echo",
@@ -171,7 +171,7 @@ class TestProcessLifecycle:
 
     async def test_start_process_failure(self, tools, agent_ctx):
         """Test process start failure."""
-        tools.env.process_manager.start_process = AsyncMock(
+        tools._env.process_manager.start_process = AsyncMock(
             side_effect=FileNotFoundError("Command not found")
         )
         result = await tools.start_process(agent_ctx, command="nonexistent")
@@ -183,7 +183,7 @@ class TestProcessLifecycle:
 
     async def test_get_process_output_running(self, tools, agent_ctx):
         """Test getting output from running process."""
-        tools.env.process_manager.get_output = AsyncMock(
+        tools._env.process_manager.get_output = AsyncMock(
             return_value=ProcessOutput(
                 stdout="output line 1\noutput line 2\n",
                 stderr="",
@@ -199,7 +199,7 @@ class TestProcessLifecycle:
 
     async def test_get_process_output_completed(self, tools, agent_ctx):
         """Test getting output from completed process."""
-        tools.env.process_manager.get_output = AsyncMock(
+        tools._env.process_manager.get_output = AsyncMock(
             return_value=ProcessOutput(
                 stdout="done\n",
                 stderr="",
@@ -213,8 +213,8 @@ class TestProcessLifecycle:
 
     async def test_wait_for_process_success(self, tools, agent_ctx):
         """Test waiting for process completion."""
-        tools.env.process_manager.wait_for_exit = AsyncMock(return_value=0)
-        tools.env.process_manager.get_output = AsyncMock(
+        tools._env.process_manager.wait_for_exit = AsyncMock(return_value=0)
+        tools._env.process_manager.get_output = AsyncMock(
             return_value=ProcessOutput(
                 stdout="Process completed\n",
                 stderr="",
@@ -231,8 +231,8 @@ class TestProcessLifecycle:
 
     async def test_wait_for_process_failure(self, tools, agent_ctx):
         """Test waiting for failed process."""
-        tools.env.process_manager.wait_for_exit = AsyncMock(return_value=1)
-        tools.env.process_manager.get_output = AsyncMock(
+        tools._env.process_manager.wait_for_exit = AsyncMock(return_value=1)
+        tools._env.process_manager.get_output = AsyncMock(
             return_value=ProcessOutput(
                 stdout="",
                 stderr="Command failed\n",
@@ -246,7 +246,7 @@ class TestProcessLifecycle:
 
     async def test_kill_process_success(self, tools, agent_ctx):
         """Test killing a process."""
-        tools.env.process_manager.kill_process = AsyncMock()
+        tools._env.process_manager.kill_process = AsyncMock()
         result = await tools.kill_process(agent_ctx, "proc_123")
         assert result["process_id"] == "proc_123"
         assert result["status"] == "killed"
@@ -256,7 +256,7 @@ class TestProcessLifecycle:
 
     async def test_kill_process_not_found(self, tools, agent_ctx):
         """Test killing nonexistent process."""
-        tools.env.process_manager.kill_process = AsyncMock(
+        tools._env.process_manager.kill_process = AsyncMock(
             side_effect=ValueError("Process not found")
         )
 
@@ -268,7 +268,7 @@ class TestProcessLifecycle:
 
     async def test_release_process_success(self, tools, agent_ctx):
         """Test releasing process resources."""
-        tools.env.process_manager.release_process = AsyncMock()
+        tools._env.process_manager.release_process = AsyncMock()
         result = await tools.release_process(agent_ctx, "proc_123")
         assert result["process_id"] == "proc_123"
         assert result["status"] == "released"
@@ -276,15 +276,15 @@ class TestProcessLifecycle:
 
     async def test_list_processes_empty(self, tools, agent_ctx):
         """Test listing when no processes running."""
-        tools.env.process_manager.list_processes = AsyncMock(return_value=[])
+        tools._env.process_manager.list_processes = AsyncMock(return_value=[])
         result = await tools.list_processes(agent_ctx)
         assert result["processes"] == []
         assert result["count"] == 0
 
     async def test_list_processes_with_results(self, tools, agent_ctx):
         """Test listing active processes."""
-        tools.env.process_manager.list_processes = AsyncMock(return_value=["proc_1", "proc_2"])
-        tools.env.process_manager.get_process_info = AsyncMock(
+        tools._env.process_manager.list_processes = AsyncMock(return_value=["proc_1", "proc_2"])
+        tools._env.process_manager.get_process_info = AsyncMock(
             side_effect=[
                 {
                     "command": "sleep",
@@ -315,8 +315,8 @@ class TestProcessLifecycle:
 
     async def test_list_processes_partial_failure(self, tools, agent_ctx):
         """Test listing when some process info fails."""
-        tools.env.process_manager.list_processes = AsyncMock(return_value=["proc_1", "proc_2"])
-        tools.env.process_manager.get_process_info = AsyncMock(
+        tools._env.process_manager.list_processes = AsyncMock(return_value=["proc_1", "proc_2"])
+        tools._env.process_manager.get_process_info = AsyncMock(
             side_effect=[
                 {"command": "sleep", "args": [], "is_running": True},
                 RuntimeError("Can't get info"),
@@ -333,7 +333,7 @@ class TestEdgeCases:
 
     async def test_truncated_output(self, tools, agent_ctx):
         """Test handling of truncated output."""
-        tools.env.process_manager.get_output = AsyncMock(
+        tools._env.process_manager.get_output = AsyncMock(
             return_value=ProcessOutput(
                 stdout="partial output...",
                 stderr="",
@@ -347,8 +347,8 @@ class TestEdgeCases:
 
     async def test_process_with_signal(self, tools, agent_ctx):
         """Test process terminated by signal."""
-        tools.env.process_manager.wait_for_exit = AsyncMock(return_value=-15)
-        tools.env.process_manager.get_output = AsyncMock(
+        tools._env.process_manager.wait_for_exit = AsyncMock(return_value=-15)
+        tools._env.process_manager.get_output = AsyncMock(
             return_value=ProcessOutput(
                 stdout="",
                 stderr="Killed\n",
