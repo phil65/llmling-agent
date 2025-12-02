@@ -1,17 +1,17 @@
-"""Test integration of ExecutionEnvironmentTools with ACP session."""
+"""Test integration of ExecutionEnvironmentTools with MockExecutionEnvironment."""
 
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, Mock
 
+from anyenv.code_execution import MockExecutionEnvironment
+from anyenv.code_execution.models import ExecutionResult
+from anyenv.process_manager.models import ProcessOutput
 import pytest
 
-from acp import ClientCapabilities
-from llmling_agent import AgentContext, AgentPool
+from llmling_agent import AgentContext
 from llmling_agent.agent.event_emitter import AgentEventEmitter
 from llmling_agent.models.agents import AgentConfig
-from llmling_agent_server.acp_server.acp_agent import LLMlingACPAgent
-from llmling_agent_server.acp_server.session import ACPSession
 from llmling_agent_toolsets.builtin.execution_environment import ExecutionEnvironmentTools
 
 
@@ -31,178 +31,112 @@ def create_mock_agent_context() -> AgentContext:
     return context
 
 
-CTX = create_mock_agent_context()
+@pytest.fixture
+def mock_ctx() -> AgentContext:
+    """Create a fresh mock context for each test."""
+    return create_mock_agent_context()
 
 
 @pytest.fixture
-def mock_connection():
-    """Create a mock ACP connection."""
-    return Mock()
-
-
-@pytest.fixture
-def mock_agent_pool() -> AgentPool:
-    """Create a mock agent pool."""
-    pool = Mock(spec=AgentPool)
-    pool.agents = {}
-    return pool
-
-
-@pytest.fixture
-async def acp_agent(mock_connection, mock_agent_pool: AgentPool):
-    """Create ACP agent."""
-    mock_agent = Mock()
-    mock_tools = {}
-
-    def register_tool(tool):
-        mock_tools[tool.name] = tool
-
-    mock_agent.tools = Mock()
-    mock_agent.tools.register_tool = register_tool
-    mock_agent_pool.agents = {"test_agent": mock_agent}  # pyright: ignore[reportAttributeAccessIssue]
-
-    return LLMlingACPAgent(
-        connection=mock_connection,
-        agent_pool=mock_agent_pool,
-        terminal_access=True,
+def mock_env() -> MockExecutionEnvironment:
+    """Create mock execution environment with predefined responses."""
+    return MockExecutionEnvironment(
+        command_results={
+            "echo hello world": ExecutionResult(
+                result=None,
+                duration=0.01,
+                success=True,
+                stdout="hello world\n",
+                exit_code=0,
+            ),
+        },
+        process_outputs={
+            "echo": ProcessOutput(
+                stdout="hello world\n",
+                stderr="",
+                combined="hello world\n",
+                exit_code=0,
+            ),
+            "sleep": ProcessOutput(
+                stdout="",
+                stderr="",
+                combined="",
+                exit_code=0,
+            ),
+        },
     )
 
 
 @pytest.fixture
-async def session(acp_agent: LLMlingACPAgent, mock_connection):
-    """Create test session."""
-    capabilities = ClientCapabilities(terminal=True)
-
-    return ACPSession(
-        session_id="test_session",
-        agent_pool=acp_agent.agent_pool,
-        current_agent_name="test_agent",
-        cwd="/test",
-        client=mock_connection,
-        acp_agent=acp_agent,
-        client_capabilities=capabilities,
-    )
+def execution_tools(mock_env: MockExecutionEnvironment) -> ExecutionEnvironmentTools:
+    """Create execution environment tools with mock environment."""
+    return ExecutionEnvironmentTools(env=mock_env, name="test_execution_tools")
 
 
-@pytest.fixture
-async def execution_tools(session: ACPSession):
-    """Create execution environment tools provider for testing."""
-    from anyenv.code_execution.acp_provider import ACPExecutionEnvironment
-
-    env = ACPExecutionEnvironment(fs=session.fs, requests=session.requests)
-    return ExecutionEnvironmentTools(env=env, name="test_execution_tools")
-
-
-async def test_start_process_with_acp_session(
+async def test_start_process(
     execution_tools: ExecutionEnvironmentTools,
-    session: ACPSession,
+    mock_ctx: AgentContext,
 ):
-    """Test starting process with ACP session."""
-    mock_response = Mock()
-    mock_response.terminal_id = "term_123"
-
-    # Mock the requests object inside the execution environment directly
-    mock_requests = Mock()
-    mock_requests.create_terminal = AsyncMock(return_value=mock_response)
-    execution_tools.env._requests = mock_requests  # pyright: ignore[reportAttributeAccessIssue]
-    # Reset process manager so it picks up new requests
-    execution_tools.env._process_manager = None
-
+    """Test starting a process through execution tools."""
     tools = await execution_tools.get_tools()
     start_tool = next(tool for tool in tools if tool.name == "start_process")
 
     result = await start_tool.execute(
-        agent_ctx=CTX,
+        agent_ctx=mock_ctx,
         command="echo",
         args=["hello", "world"],
         cwd="/tmp",
     )
 
     assert isinstance(result, dict)
-    assert result["process_id"] == "term_123"
+    assert result["process_id"].startswith("mock_")
     assert result["command"] == "echo"
     assert result["args"] == ["hello", "world"]
     assert result["status"] == "started"
 
-    mock_requests.create_terminal.assert_called_once()
-    call_args = mock_requests.create_terminal.call_args[1]
-    assert call_args["command"] == "echo"
-    assert call_args["args"] == ["hello", "world"]
-    assert call_args["cwd"] == "/tmp"
-
-    CTX.events.process_started.assert_called_once()  # pyright: ignore[reportAttributeAccessIssue]
-    call_args = CTX.events.process_started.call_args[1]  # pyright: ignore[reportAttributeAccessIssue]
-    assert "terminal_id" not in call_args
-    assert call_args["process_id"] == "term_123"
+    mock_ctx.events.process_started.assert_called_once()
+    call_args = mock_ctx.events.process_started.call_args[1]
     assert call_args["command"] == "echo"
     assert call_args["success"] is True
 
 
-async def test_get_process_output_with_acp_session(
+async def test_get_process_output(
     execution_tools: ExecutionEnvironmentTools,
-    session: ACPSession,
+    mock_ctx: AgentContext,
 ):
-    """Test getting process output through ACP."""
-    mock_terminal_response = Mock()
-    mock_terminal_response.terminal_id = "term_123"
-
-    # Mock the requests object inside the execution environment directly
-    mock_requests = Mock()
-    mock_requests.create_terminal = AsyncMock(return_value=mock_terminal_response)
-    execution_tools.env._requests = mock_requests  # pyright: ignore[reportAttributeAccessIssue]
-    # Reset process manager so it picks up new requests
-    execution_tools.env._process_manager = None
-
-    await execution_tools.env.process_manager.start_process("echo", ["test"])
-    process_id = next(iter(execution_tools.env.process_manager._processes.keys()))  # pyright: ignore[reportAttributeAccessIssue]
-
-    mock_output_response = Mock()
-    mock_output_response.output = "test output\n"
-    mock_output_response.truncated = False
-    mock_requests.terminal_output = AsyncMock(return_value=mock_output_response)
+    """Test getting process output."""
+    # Start a process first
+    process_id = await execution_tools.env.process_manager.start_process("echo", ["hello", "world"])
 
     tools = await execution_tools.get_tools()
     output_tool = next(tool for tool in tools if tool.name == "get_process_output")
 
     result = await output_tool.execute(
-        agent_ctx=CTX,
+        agent_ctx=mock_ctx,
         process_id=process_id,
     )
 
     assert isinstance(result, dict)
     assert result["process_id"] == process_id
-    assert result["stdout"] == "test output\n"
-    assert result["combined"] == "test output\n"
-    assert result["status"] == "running"
+    assert result["stdout"] == "hello world\n"
+    assert result["combined"] == "hello world\n"
 
-    mock_requests.terminal_output.assert_called_once_with("term_123")
-    CTX.events.process_output.assert_called_once()  # pyright: ignore[reportAttributeAccessIssue]
+    mock_ctx.events.process_output.assert_called_once()
 
 
-async def test_kill_process_with_acp_session(
+async def test_kill_process(
     execution_tools: ExecutionEnvironmentTools,
-    session: ACPSession,
+    mock_ctx: AgentContext,
 ):
-    """Test killing process through ACP."""
-    mock_terminal_response = Mock()
-    mock_terminal_response.terminal_id = "term_123"
-
-    # Mock the requests object inside the execution environment directly
-    mock_requests = Mock()
-    mock_requests.create_terminal = AsyncMock(return_value=mock_terminal_response)
-    mock_requests.kill_terminal = AsyncMock()
-    execution_tools.env._requests = mock_requests  # pyright: ignore[reportAttributeAccessIssue]
-    # Reset process manager so it picks up new requests
-    execution_tools.env._process_manager = None
-
-    await execution_tools.env.process_manager.start_process("sleep", ["10"])
-    process_id = next(iter(execution_tools.env.process_manager._processes.keys()))  # pyright: ignore[reportAttributeAccessIssue]
+    """Test killing a process."""
+    # Start a process first
+    process_id = await execution_tools.env.process_manager.start_process("sleep", ["10"])
 
     tools = await execution_tools.get_tools()
     kill_tool = next(tool for tool in tools if tool.name == "kill_process")
 
     result = await kill_tool.execute(
-        agent_ctx=CTX,
+        agent_ctx=mock_ctx,
         process_id=process_id,
     )
 
@@ -210,30 +144,119 @@ async def test_kill_process_with_acp_session(
     assert result["process_id"] == process_id
     assert result["status"] == "killed"
 
-    mock_requests.kill_terminal.assert_called_once_with("term_123")
-
-    CTX.events.process_killed.assert_called_once()  # pyright: ignore[reportAttributeAccessIssue]
-    call_args = CTX.events.process_killed.call_args[1]  # pyright: ignore[reportAttributeAccessIssue]
-    assert "terminal_id" not in call_args
+    mock_ctx.events.process_killed.assert_called_once()
+    call_args = mock_ctx.events.process_killed.call_args[1]
     assert call_args["process_id"] == process_id
     assert call_args["success"] is True
 
 
-async def test_execution_tools_use_acp_environment(session: ACPSession):
-    """Test that execution tools use ACP execution environment."""
-    from anyenv.code_execution.acp_provider import ACPExecutionEnvironment
+async def test_wait_for_process(
+    execution_tools: ExecutionEnvironmentTools,
+    mock_ctx: AgentContext,
+):
+    """Test waiting for process completion."""
+    # Start a process first
+    process_id = await execution_tools.env.process_manager.start_process("echo", ["test"])
 
-    provider = session._acp_provider
-    assert provider is not None, "ACP provider not initialized"
+    tools = await execution_tools.get_tools()
+    wait_tool = next(tool for tool in tools if tool.name == "wait_for_process")
 
-    execution_provider = None
-    for p in provider.providers:
-        if isinstance(p, ExecutionEnvironmentTools):
-            execution_provider = p
-            break
+    result = await wait_tool.execute(
+        agent_ctx=mock_ctx,
+        process_id=process_id,
+    )
 
-    assert execution_provider is not None, "ExecutionEnvironmentTools provider not found"
-    assert isinstance(execution_provider.env, ACPExecutionEnvironment)
+    assert isinstance(result, dict)
+    assert result["process_id"] == process_id
+    assert result["exit_code"] == 0
+    assert result["status"] == "completed"
+
+    mock_ctx.events.process_exit.assert_called_once()
+
+
+async def test_release_process(
+    execution_tools: ExecutionEnvironmentTools,
+    mock_ctx: AgentContext,
+):
+    """Test releasing process resources."""
+    # Start a process first
+    process_id = await execution_tools.env.process_manager.start_process("echo", ["test"])
+
+    tools = await execution_tools.get_tools()
+    release_tool = next(tool for tool in tools if tool.name == "release_process")
+
+    result = await release_tool.execute(
+        agent_ctx=mock_ctx,
+        process_id=process_id,
+    )
+
+    assert isinstance(result, dict)
+    assert result["process_id"] == process_id
+    assert result["status"] == "released"
+
+    # Verify process is no longer tracked
+    processes = await execution_tools.env.process_manager.list_processes()
+    assert process_id not in processes
+
+    mock_ctx.events.process_released.assert_called_once()
+
+
+async def test_list_processes(
+    execution_tools: ExecutionEnvironmentTools,
+    mock_ctx: AgentContext,
+):
+    """Test listing all processes."""
+    # Start some processes
+    pid1 = await execution_tools.env.process_manager.start_process("echo", ["1"])
+    pid2 = await execution_tools.env.process_manager.start_process("echo", ["2"])
+
+    tools = await execution_tools.get_tools()
+    list_tool = next(tool for tool in tools if tool.name == "list_processes")
+
+    result = await list_tool.execute(agent_ctx=mock_ctx)
+
+    assert isinstance(result, dict)
+    assert "processes" in result
+    process_ids = [p["process_id"] for p in result["processes"]]
+    assert pid1 in process_ids
+    assert pid2 in process_ids
+
+
+async def test_execute_command(
+    execution_tools: ExecutionEnvironmentTools,
+    mock_ctx: AgentContext,
+):
+    """Test executing a command directly."""
+    tools = await execution_tools.get_tools()
+    cmd_tool = next(tool for tool in tools if tool.name == "execute_command")
+
+    result = await cmd_tool.execute(
+        agent_ctx=mock_ctx,
+        command="echo hello world",
+    )
+
+    assert isinstance(result, dict)
+    assert result["success"] is True
+    assert result["stdout"] == "hello world\n"
+    assert result["exit_code"] == 0
+
+
+async def test_process_not_found(
+    execution_tools: ExecutionEnvironmentTools,
+    mock_ctx: AgentContext,
+):
+    """Test error handling for non-existent process."""
+    tools = await execution_tools.get_tools()
+    output_tool = next(tool for tool in tools if tool.name == "get_process_output")
+
+    result = await output_tool.execute(
+        agent_ctx=mock_ctx,
+        process_id="nonexistent_process",
+    )
+
+    assert isinstance(result, dict)
+    assert "error" in result
+    assert "not found" in result["error"]
 
 
 if __name__ == "__main__":
