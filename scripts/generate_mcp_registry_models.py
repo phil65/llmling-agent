@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Generate Pydantic model code for MCP registry servers.
 
 This script fetches server metadata from the official MCP registry and generates
@@ -198,6 +197,44 @@ def get_headers_for_server(server: ServerDef) -> dict[str, HeaderDef]:
     return all_headers
 
 
+def _get_package_command(pkg: PackageDef) -> tuple[str | None, list[str]]:  # noqa: PLR0911
+    """Determine command and args for a package.
+
+    Returns:
+        Tuple of (command, args) or (None, []) if not determinable.
+    """
+    identifier = pkg.identifier
+    version = pkg.version
+    registry_type = pkg.registry_type
+    runtime_hint = pkg.runtime_hint
+
+    # Handle explicit runtime hints
+    if runtime_hint:
+        if runtime_hint in ("npx", "npm"):
+            pkg_spec = f"{identifier}@{version}" if version else identifier
+            return "npx", ["-y", pkg_spec]
+        if runtime_hint in ("uvx", "uv"):
+            pkg_spec = f"{identifier}=={version}" if version else identifier
+            return "uvx", [pkg_spec]
+        if runtime_hint == "docker":
+            return "docker", ["run", "-i", "--rm", identifier]
+        # Generic runtime hint
+        return runtime_hint, [identifier]
+
+    # Infer from registry type
+    match registry_type:
+        case "npm":
+            pkg_spec = f"{identifier}@{version}" if version else identifier
+            return "npx", ["-y", pkg_spec]
+        case "pypi":
+            pkg_spec = f"{identifier}=={version}" if version else identifier
+            return "uvx", [pkg_spec]
+        case "oci" | "docker":
+            return "docker", ["run", "-i", "--rm", identifier]
+        case _:
+            return None, []
+
+
 def generate_env_field(env_var: EnvVarDef) -> str:
     """Generate a field definition for an environment variable."""
     field_name = sanitize_env_var_name(env_var.name)
@@ -249,7 +286,7 @@ def generate_header_field(header: HeaderDef) -> str:
     return f"    {field_name}: {type_hint} = Field({', '.join(field_parts)})"
 
 
-def generate_server_config_code(server: ServerDef, class_name: str) -> str:
+def generate_server_config_code(server: ServerDef, class_name: str) -> str:  # noqa: PLR0915
     """Generate the main server config class."""
     # Determine best transport
     base_class: str
@@ -273,18 +310,16 @@ def generate_server_config_code(server: ServerDef, class_name: str) -> str:
         # Fall back to package-based stdio
         base_class = "StdioMCPServerConfig"
         pkg = server.packages[0]
-        if pkg.runtime_hint and pkg.identifier:
-            extra_fields.append(f'    command: str = Field(default="{pkg.runtime_hint}")')
-            args = [pkg.identifier]
-            if pkg.version:
-                args[0] = f"{pkg.identifier}@{pkg.version}"
+        command, args = _get_package_command(pkg)
+        if command:
+            extra_fields.append(f'    command: str = Field(default="{command}")')
             extra_fields.append(f"    args: list[str] = Field(default={args!r})")
     else:
         base_class = "BaseMCPServerConfig"
 
     # Escape description for docstring
     desc = server.description.replace('"""', '\\"\\"\\"').replace("\n", " ")
-    if len(desc) > 100:
+    if len(desc) > 100:  # noqa: PLR2004
         desc = desc[:97] + "..."
 
     # Collect env vars and headers
@@ -307,17 +342,17 @@ def generate_server_config_code(server: ServerDef, class_name: str) -> str:
 
     # Add extra fields (type, url, command/args)
     for field_line in extra_fields:
-        lines.append(field_line)
+        lines.append(field_line)  # noqa: PERF402
 
     # Add env var fields
     if env_vars:
         for ev in env_vars.values():
-            lines.append(generate_env_field(ev))
+            lines.append(generate_env_field(ev))  # noqa: PERF401
 
     # Add header fields
     if headers:
         for h in headers.values():
-            lines.append(generate_header_field(h))
+            lines.append(generate_header_field(h))  # noqa: PERF401
 
     # Add model_post_init to merge fields into env/headers dicts
     if env_vars or headers:
@@ -417,7 +452,7 @@ def generate_single_file(servers: list[ServerDef]) -> str:
 
     # Add get_registry_server function
     lines.extend([
-        "def get_registry_server(name: str, strict: bool = True) -> type[BaseMCPServerConfig] | None:",
+        "def get_registry_server(name: str, strict: bool = True) -> type[BaseMCPServerConfig] | None:",  # noqa: E501
         '    """Look up a server class from the MCP registry.',
         "",
         "    Args:",
@@ -436,7 +471,8 @@ def generate_single_file(servers: list[ServerDef]) -> str:
     ])
 
     # Add __all__
-    all_exports = config_classes + [
+    all_exports = [
+        *config_classes,
         "REGISTRY_SERVERS",
         "RegistryServerConfig",
         "get_registry_server",
@@ -493,11 +529,9 @@ async def main() -> int:
 
     print(f"Parsed {len(servers)} latest server versions")
 
-    # Filter to servers with remotes or packages with env vars
-    interesting_servers = [
-        s for s in servers if s.remotes or any(pkg.env_vars for pkg in s.packages)
-    ]
-    print(f"Generating models for {len(interesting_servers)} servers with remotes or env vars")
+    # Filter to servers with remotes or packages (i.e., usable transport)
+    interesting_servers = [s for s in servers if s.remotes or s.packages]
+    print(f"Generating models for {len(interesting_servers)} servers with remotes or packages")
 
     # Generate single file
     code = generate_single_file(interesting_servers)
