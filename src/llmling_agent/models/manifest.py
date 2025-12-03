@@ -265,11 +265,11 @@ class AgentsManifest(Schema):
     def vfs_registry(self) -> VFSRegistry:
         """Get registry with all configured VFS resources."""
         registry = VFSRegistry()
-        for name, config in self.resources.items():
-            if isinstance(config, str):
-                # Convert URI shorthand to SourceResourceConfig
-                config = SourceResourceConfig(uri=config)
-            registry.register_from_config(name, config)
+        for name, cfg_or_str in self.resources.items():
+            cfg = (
+                SourceResourceConfig(uri=cfg_or_str) if isinstance(cfg_or_str, str) else cfg_or_str
+            )
+            registry.register_from_config(name, cfg)
         return registry
 
     def clone_agent_config(

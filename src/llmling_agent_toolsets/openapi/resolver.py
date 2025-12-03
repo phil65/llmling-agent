@@ -143,12 +143,12 @@ def _navigate_pointer(doc: dict[str, Any], pointer: str) -> Any:
 
     for part in parts:
         # Handle JSON pointer escaping
-        part = part.replace("~1", "/").replace("~0", "~")
+        cleaned = part.replace("~1", "/").replace("~0", "~")
         if isinstance(current, dict):
-            current = current.get(part, {})
+            current = current.get(cleaned, {})
         elif isinstance(current, list):
             try:
-                current = current[int(part)]
+                current = current[int(cleaned)]
             except (ValueError, IndexError):
                 return {}
         else:
@@ -208,9 +208,9 @@ def _navigate_internal_ref(spec: dict[str, Any], ref: str) -> Any:
     current: Any = spec
 
     for part in parts:
-        part = part.replace("~1", "/").replace("~0", "~")
+        cleaned = part.replace("~1", "/").replace("~0", "~")
         if isinstance(current, dict):
-            current = current.get(part)
+            current = current.get(cleaned)
             if current is None:
                 return {"$ref": ref}  # Keep unresolved
         else:

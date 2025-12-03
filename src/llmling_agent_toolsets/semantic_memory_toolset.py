@@ -421,11 +421,11 @@ class SemanticMemoryTools(ResourceProvider):
         current_chunks: list[str] = []
         assert self.conversation
         for line in lines:
-            line = line.strip()
-            if not line:
+            stripped = line.strip()
+            if not stripped:
                 continue
 
-            match = speaker_pattern.match(line)
+            match = speaker_pattern.match(stripped)
             if match:
                 # Save previous message if exists
                 if current_chunks:
@@ -437,10 +437,10 @@ class SemanticMemoryTools(ResourceProvider):
                 current_speaker = match.group("speaker").strip()
                 current_chunks = [match.group("text").strip()]
             elif current_chunks:
-                current_chunks.append(line)
+                current_chunks.append(stripped)
             else:
                 # No speaker detected, use None
-                current_chunks = [line]
+                current_chunks = [stripped]
 
         # Don't forget last message
         if current_chunks:

@@ -45,21 +45,21 @@ async def apply_structured_edits(original_content: str, edits_response: str) -> 
     multiple_matches = []
 
     for old_text, new_text in zip(old_texts, new_texts, strict=False):
-        old_text = old_text.strip()
-        new_text = new_text.strip()
+        old_cleaned = old_text.strip()
+        new_cleaned = new_text.strip()
 
         # Check for multiple matches (ambiguity)
-        match_count = content.count(old_text)
+        match_count = content.count(old_cleaned)
         if match_count > 1:
-            multiple_matches.append(old_text[:50])
+            multiple_matches.append(old_cleaned[:50])
         elif match_count == 1:
-            content = content.replace(old_text, new_text, 1)
+            content = content.replace(old_cleaned, new_cleaned, 1)
             applied_edits += 1
         else:
-            failed_matches.append(old_text[:50])
+            failed_matches.append(old_cleaned[:50])
 
     # Raise ModelRetry for specific failure cases
-    if applied_edits == 0 and len(old_texts) > 0:
+    if applied_edits == 0 and len(old_cleaned) > 0:
         msg = (
             "Some edits were produced but none of them could be applied. "
             "Read the relevant sections of the file again so that "

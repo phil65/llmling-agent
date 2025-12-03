@@ -120,11 +120,11 @@ def get_argument_key(
         hints.pop("return", None)
 
     # Check each parameter's type annotation
-    for key, param_type in hints.items():
+    for key, param_type_ in hints.items():
         # Handle type aliases
-        if isinstance(param_type, TypeAliasType):
-            param_type = param_type.__value__
-
+        param_type = (
+            param_type_.__value__ if isinstance(param_type_, TypeAliasType) else param_type_
+        )
         # Check for direct match
         if _type_to_string(param_type) in target_types:
             return key

@@ -380,7 +380,7 @@ def generate_server_config_code(server: ServerDef, class_name: str) -> str:  # n
                 lines.append(f'            "{h.name}": self.{field_name},')
             lines.append("        }")
             lines.append(
-                "        header_updates = {k: v for k, v in header_updates.items() if v is not None}"
+                "        header_updates = {k: v for k, v in header_updates.items() if v is not None}"  # noqa: E501
             )
             lines.append("        if header_updates:")
             lines.append("            self.headers = {**(self.headers or {}), **header_updates}")
@@ -444,7 +444,7 @@ def generate_single_file(servers: list[ServerDef]) -> str:
         lines.append("# Union of all registry server configs")
         lines.append("RegistryServerConfig = Union[")
         for cls in config_classes[:-1]:
-            lines.append(f"    {cls},")
+            lines.append(f"    {cls},")  # noqa: PERF401
         lines.append(f"    {config_classes[-1]},")
         lines.append("]")
         lines.append("")

@@ -40,8 +40,8 @@ class McpRunTools(ResourceProvider):
                     return await session.call_tool(tool_name, arguments=input_dict)  # type: ignore[no-any-return]
 
             run.__name__ = name
-            tool = self.create_tool(run, schema_override=tool.input_schema)  # pyright: ignore[reportArgumentType]
-            self._tools.append(tool)
+            wrapped_tool = self.create_tool(run, schema_override=tool.input_schema)  # pyright: ignore[reportArgumentType]
+            self._tools.append(wrapped_tool)
 
         return self._tools
 

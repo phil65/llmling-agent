@@ -294,9 +294,10 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
 
         # First resolve/configure agents
         resolved_agents: list[MessageNode[Any, Any]] = []
-        for agent in agents:
-            if isinstance(agent, str):
-                agent = self.get_agent(agent)
+        for agent_or_name in agents:
+            agent = (
+                self.get_agent(agent_or_name) if isinstance(agent_or_name, str) else agent_or_name
+            )
             resolved_agents.append(agent)
         team = TeamRun(
             resolved_agents,
@@ -493,8 +494,8 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
                             raise ValueError(msg)
                         target_node = self[name_]
                     case FileConnectionConfig(path=path_obj):
-                        name = f"file_writer_{UPath(path_obj).stem}"
-                        target_node = Agent(model=target.get_model(), name=name)
+                        agent_name = f"file_writer_{UPath(path_obj).stem}"
+                        target_node = Agent(model=target.get_model(), name=agent_name)
                     case CallableConnectionConfig(callable=fn):
                         target_node = Agent(model=target.get_model(), name=fn.__name__)
                     case _:
