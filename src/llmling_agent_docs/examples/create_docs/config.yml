@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/phil65/llmling-agent/refs/heads/main/schema/config-schema.json
 agents:
   file_scanner:
-    name: "File Scanner"
+    display_name: "File Scanner"
     model: openai:gpt-5-nano
     system_prompts:
       - You scan directories and list source files that need documentation.
@@ -11,7 +11,7 @@ agents:
         import_path: os.listdir
 
   doc_writer:
-    name: "Documentation Writer"
+    display_name: "Documentation Writer"
     model: openai:gpt-5-nano
     system_prompts:
       - You are a docs writer. Write markdown documentation for the files given to you.
@@ -19,7 +19,7 @@ agents:
       - type: file_access
 
   error_checker:
-    name: "Code Validator"
+    display_name: "Code Validator"
     model: openai:gpt-5-nano
     system_prompts:
       - You validate Python source files for syntax errors.

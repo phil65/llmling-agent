@@ -4,7 +4,7 @@
 
 agents:
   assistant:
-    name: "AI Assistant"
+    display_name: "AI Assistant"
     description: "General-purpose assistant with file system and code execution access"
     model: openai:gpt-5.1-nano
     system_prompts:

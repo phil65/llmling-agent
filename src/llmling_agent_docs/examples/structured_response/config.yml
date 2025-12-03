@@ -25,7 +25,7 @@ responses:
 
 agents:
   yaml_analyzer:
-    name: "YAML-defined Analyzer"
+    display_name: "YAML-defined Analyzer"
     model: openai:gpt-5-mini
     system_prompts:
       - |
@@ -37,7 +37,7 @@ agents:
     output_type: YamlResult # Use YAML-defined type
 
   python_analyzer:
-    name: "Python-defined Analyzer"
+    display_name: "Python-defined Analyzer"
     model: openai:gpt-5-mini
     system_prompts:
       - |

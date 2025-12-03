@@ -62,6 +62,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
         *,
         name: str | None = None,
         description: str | None = None,
+        display_name: str | None = None,
         shared_prompt: str | None = None,
         mcp_servers: list[str | MCPServerConfig] | None = None,
         picker: Agent[Any, Any] | None = None,
@@ -82,6 +83,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
             mcp_servers.extend(cfg.get_mcp_servers())
         super().__init__(
             name=self._name,
+            display_name=display_name,
             mcp_servers=mcp_servers,
             description=description,
             event_configs=event_configs,

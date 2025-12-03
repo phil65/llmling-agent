@@ -139,6 +139,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         session: SessionIdType | SessionQuery | MemoryConfig | bool | int = None,
         system_prompt: AnyPromptType | Sequence[AnyPromptType] = (),
         description: str | None = None,
+        display_name: str | None = None,
         tools: Sequence[ToolType | Tool] | None = None,
         toolsets: Sequence[ResourceProvider] | None = None,
         mcp_servers: Sequence[str | MCPServerConfig] | None = None,
@@ -160,7 +161,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         """Initialize agent.
 
         Args:
-            name: Name of the agent for logging and identification
+            name: Identifier for the agent (used for logging and lookups)
             deps_type: Type of dependencies to use
             model: The default model to use (defaults to GPT-5)
             output_type: The default output type to use (defaults to str)
@@ -176,6 +177,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
 
             system_prompt: System prompts for the agent
             description: Description of the Agent ("what it can do")
+            display_name: Human-readable display name (falls back to name)
             tools: List of tools to register with the agent
             toolsets: List of toolset resource providers for the agent
             mcp_servers: MCP servers to connect to
@@ -229,6 +231,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         super().__init__(
             name=name,
             description=description,
+            display_name=display_name,
             enable_logging=memory_cfg.enable,
             mcp_servers=mcp_servers,
             agent_pool=agent_pool,

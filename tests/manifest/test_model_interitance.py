@@ -15,13 +15,13 @@ BASIC_INHERITANCE = """\
 agents:
     base:
         model: {default_model}
-        name: Base Agent
+        display_name: Base Agent
         system_prompts:
             - "Base prompt"
 
     child:
         inherits: base
-        name: Child Agent
+        display_name: Child Agent
         system_prompts:
             - "Child prompt"
 """
@@ -31,7 +31,7 @@ MULTI_LEVEL = """\
 agents:
     base:
         model: {default_model}
-        name: Base
+        display_name: Base
 
     middle:
         inherits: base
@@ -40,7 +40,7 @@ agents:
 
     child:
         inherits: middle
-        name: Child
+        display_name: Child
         model: {default_model}
 """
 
@@ -102,7 +102,7 @@ def test_basic_inheritance(basic_config: Path, default_model: str):
     manifest = AgentsManifest.from_file(basic_config)
 
     child = manifest.agents["child"]
-    assert child.name == "Child Agent"
+    assert child.display_name == "Child Agent"
     assert child.model.identifier == default_model  # type: ignore
     assert child.system_prompts == ["Child prompt"]
 
@@ -112,7 +112,7 @@ def test_multi_level_inheritance(multi_level_config: Path, default_model: str):
     manifest = AgentsManifest.from_file(multi_level_config)
 
     child = manifest.agents["child"]
-    assert child.name == "Child"
+    assert child.display_name == "Child"
     assert child.model.identifier == default_model  # type: ignore
     assert child.system_prompts == ["Middle prompt"]  # Inherited from middle
 

@@ -19,15 +19,15 @@ from llmling_agent_config.mcp_server import (
 class NodeConfig(Schema):
     """Configuration for a Node of the messaging system."""
 
-    name: str | None = Field(
-        default=None,
-        examples=["main_agent", "web_searcher", "code_assistant"],
-        title="Node name",
-    )
-    """Name of the Agent / Team"""
+    name: str | None = Field(default=None)
+    """Identifier for the node. Set from dict key, not from YAML."""
 
-    # display_name: str | None = None
-    # """Display Name of the Agent / Team"""
+    display_name: str | None = Field(
+        default=None,
+        examples=["Main Agent", "Web Searcher", "Code Assistant"],
+        title="Display name",
+    )
+    """Human-readable display name for the node."""
 
     description: str | None = Field(
         default=None,

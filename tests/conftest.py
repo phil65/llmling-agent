@@ -73,14 +73,14 @@ responses:
 
 agents:
   support:
-    name: Support Agent
+    display_name: Support Agent
     model: {default_model}
     output_type: SupportResult
     system_prompts:
       - You are a support agent
       - "Context: {{data}}"
   researcher:
-    name: Research Agent
+    display_name: Research Agent
     model: {default_model}
     output_type: ResearchResult
     system_prompts:

@@ -497,6 +497,7 @@ class AgentsManifest(Schema):
             else config.model.get_model(),
             system_prompt=sys_prompts,
             name=name,
+            display_name=config.display_name,
             deps_type=deps_type,
             description=config.description,
             retries=config.retries,

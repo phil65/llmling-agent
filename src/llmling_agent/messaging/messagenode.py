@@ -54,6 +54,7 @@ class MessageNode[TDeps, TResult](ABC):
         self,
         name: str | None = None,
         description: str | None = None,
+        display_name: str | None = None,
         mcp_servers: Sequence[str | MCPServerConfig] | None = None,
         agent_pool: AgentPool[Any] | None = None,
         enable_logging: bool = True,
@@ -72,6 +73,7 @@ class MessageNode[TDeps, TResult](ABC):
 
         self.task_manager = TaskManager()
         self._name = name or self.__class__.__name__
+        self._display_name = display_name
         self.log = logger.bind(agent_name=self._name)
         self.agent_pool = agent_pool
         self.description = description
@@ -138,6 +140,15 @@ class MessageNode[TDeps, TResult](ABC):
     @name.setter
     def name(self, value: str) -> None:
         self._name = value
+
+    @property
+    def display_name(self) -> str:
+        """Get human-readable display name, falls back to name."""
+        return self._display_name or self._name
+
+    @display_name.setter
+    def display_name(self, value: str | None) -> None:
+        self._display_name = value
 
     @overload
     def __rshift__(

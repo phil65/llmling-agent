@@ -6,13 +6,22 @@
       "properties": {
         "name": {
           "default": null,
-          "description": "Name of the Agent / Team",
+          "description": "Identifier for the node. Set from dict key, not from YAML.",
+          "title": "Name",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "display_name": {
+          "default": null,
+          "description": "Human-readable display name for the node.",
           "examples": [
-            "main_agent",
-            "web_searcher",
-            "code_assistant"
+            "Main Agent",
+            "Web Searcher",
+            "Code Assistant"
           ],
-          "title": "Node name",
+          "title": "Display name",
           "type": [
             "string",
             "null"
@@ -14085,13 +14094,22 @@
       "properties": {
         "name": {
           "default": null,
-          "description": "Name of the Agent / Team",
+          "description": "Identifier for the node. Set from dict key, not from YAML.",
+          "title": "Name",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "display_name": {
+          "default": null,
+          "description": "Human-readable display name for the node.",
           "examples": [
-            "main_agent",
-            "web_searcher",
-            "code_assistant"
+            "Main Agent",
+            "Web Searcher",
+            "Code Assistant"
           ],
-          "title": "Node name",
+          "title": "Display name",
           "type": [
             "string",
             "null"

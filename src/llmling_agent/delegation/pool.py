@@ -451,9 +451,19 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         empty_teams: dict[str, BaseTeam[Any, Any]] = {}
         for name, config in self.manifest.teams.items():
             if config.mode == "parallel":
-                empty_teams[name] = Team([], name=name, shared_prompt=config.shared_prompt)
+                empty_teams[name] = Team(
+                    [],
+                    name=name,
+                    display_name=config.display_name,
+                    shared_prompt=config.shared_prompt,
+                )
             else:
-                empty_teams[name] = TeamRun([], name=name, shared_prompt=config.shared_prompt)
+                empty_teams[name] = TeamRun(
+                    [],
+                    name=name,
+                    display_name=config.display_name,
+                    shared_prompt=config.shared_prompt,
+                )
 
         # Phase 2: Resolve members
         for name, config in self.manifest.teams.items():

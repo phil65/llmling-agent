@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 def test_load_valid_config(valid_config: str):
     """Test loading valid configuration."""
     config = AgentsManifest.model_validate(valid_config)
-    assert config.agents["support"].name == "Support Agent"
+    assert config.agents["support"].display_name == "Support Agent"
     assert "SupportResult" in config.responses
 
 
