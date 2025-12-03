@@ -8,10 +8,10 @@ from pydantic import HttpUrl
 
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.resource_providers import ResourceProvider
-from llmling_agent.tools.base import Tool
 
 
 if TYPE_CHECKING:
+    from llmling_agent.tools.base import Tool
     from llmling_agent_config.mcp_server import MCPServerConfig
 
 

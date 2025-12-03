@@ -14,11 +14,12 @@ from anyenv.code_execution.events import (
 
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.resource_providers import ResourceProvider
-from llmling_agent.tools.base import Tool
 
 
 if TYPE_CHECKING:
     from anyenv.code_execution import ExecutionEnvironment
+
+    from llmling_agent.tools.base import Tool
 
 
 class ExecutionEnvironmentTools(ResourceProvider):

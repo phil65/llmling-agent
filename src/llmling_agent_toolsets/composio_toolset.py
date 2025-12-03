@@ -7,11 +7,12 @@ from typing import TYPE_CHECKING, Any
 
 from llmling_agent.log import get_logger
 from llmling_agent.resource_providers import ResourceProvider
-from llmling_agent.tools.base import Tool
 
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+
+    from llmling_agent.tools.base import Tool
 
 
 logger = get_logger(__name__)

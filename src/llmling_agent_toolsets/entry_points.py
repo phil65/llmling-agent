@@ -3,13 +3,16 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from epregistry import EntryPointRegistry
 
 from llmling_agent.log import get_logger
 from llmling_agent.resource_providers import ResourceProvider
-from llmling_agent.tools.base import Tool
+
+
+if TYPE_CHECKING:
+    from llmling_agent.tools.base import Tool
 
 
 logger = get_logger(__name__)
