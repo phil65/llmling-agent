@@ -4,13 +4,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from schemez.openapi.callable_factory import OpenAPICallableFactory
+from schemez.openapi.loader import load_openapi_spec, parse_operations
 from upath import UPath
 from upathtools import read_path
 
 from llmling_agent.log import get_logger
 from llmling_agent.resource_providers import ResourceProvider
-from llmling_agent_toolsets.openapi.callable_factory import OpenAPICallableFactory
-from llmling_agent_toolsets.openapi.loader import load_openapi_spec, parse_operations
 
 
 if TYPE_CHECKING:
