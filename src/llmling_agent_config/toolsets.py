@@ -253,12 +253,12 @@ class FSSpecToolsetConfig(BaseToolsetConfig):
     type: Literal["file_access"] = Field("file_access", init=False)
     """File access toolset."""
 
-    url: str = Field(
-        default="file:///",
-        examples=["file:///", "s3://my-bucket", "gcs://bucket-name"],
+    url: str | None = Field(
+        default=None,
+        examples=["file:///", "s3://my-bucket"],
         title="Filesystem URL",
     )
-    """Filesystem URL or protocol. Defaults to local filesystem."""
+    """Filesystem URL or protocol. If None set, use agent default FS."""
 
     model: str | ModelName | AnyModelConfig | None = Field(
         default=None,
@@ -292,13 +292,13 @@ class FSSpecToolsetConfig(BaseToolsetConfig):
             if isinstance(self.model, str) or self.model is None
             else self.model.get_model()
         )
-        fs, _url_path = fsspec.url_to_fs(self.url, **self.storage_options)
         # Extract protocol name for the provider name
-        protocol = self.url.split("://")[0] if "://" in self.url else self.url
+        if self.url:
+            fs, _url_path = fsspec.url_to_fs(self.url, **self.storage_options)
+        else:
+            fs = None
         converter = ConversionManager(self.conversion) if self.conversion else None
-        return FSSpecTools(
-            fs, name=f"file_access_{protocol}", converter=converter, edit_model=model
-        )
+        return FSSpecTools(fs, converter=converter, edit_model=model)
 
 
 class VFSToolsetConfig(BaseToolsetConfig):

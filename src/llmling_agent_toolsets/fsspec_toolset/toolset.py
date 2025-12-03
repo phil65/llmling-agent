@@ -42,7 +42,7 @@ class FSSpecTools(ResourceProvider):
     def __init__(
         self,
         source: fsspec.AbstractFileSystem | ExecutionEnvironment | None = None,
-        name: str = "fsspec",
+        name: str | None = None,
         cwd: str | None = None,
         edit_model: ModelType | None = None,
         converter: ConversionManager | None = None,
@@ -62,8 +62,6 @@ class FSSpecTools(ResourceProvider):
             AsyncFileSystemWrapper,
         )
 
-        super().__init__(name=name)
-
         if source is None:
             self._fs: AsyncFileSystem | None = None
             self.execution_env: ExecutionEnvironment | None = None
@@ -76,6 +74,7 @@ class FSSpecTools(ResourceProvider):
             self._fs = (
                 source if isinstance(source, AsyncFileSystem) else AsyncFileSystemWrapper(source)
             )
+        super().__init__(name=name or f"file_access_{self._fs.protocol if self._fs else 'default'}")
         self.edit_model = edit_model
         self.cwd = cwd
         self.converter = converter
