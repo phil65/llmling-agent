@@ -99,23 +99,14 @@ def _configure_console_logging(
     # Determine output format
     colors = sys.stderr.isatty() and not json_logs if use_colors is None else use_colors or False
     use_console_renderer = not json_logs and (colors or sys.stderr.isatty())
-
     # Configure standard logging as backend
+    handler = logging.StreamHandler(sys.stderr)
     if use_console_renderer:
         # For console output, don't show level in stdlib logging (structlog handles it)
-        handler = logging.StreamHandler(sys.stderr)
         handler.setFormatter(logging.Formatter("%(message)s"))
         logging.basicConfig(level=level, handlers=[handler], force=True)
-    else:
-        # For structured output, use minimal formatting
-        logging.basicConfig(
-            level=level,
-            handlers=[logging.StreamHandler(sys.stderr)],
-            force=True,
-            format="%(message)s",
-        )
-
-    # Configure structlog processors
+    else:  # For structured output, use minimal formatting
+        logging.basicConfig(level=level, handlers=[handler], force=True, format="%(message)s")
     processors: list[Any] = [
         structlog.stdlib.filter_by_level,
         structlog.stdlib.add_log_level,
