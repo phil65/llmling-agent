@@ -184,8 +184,9 @@ async def test_process_output_limit(process_manifest):
         await pm.release_process(process_id)
 
 
-async def test_error_handling_invalid_command(process_manifest):
+async def test_error_handling_invalid_command(process_manifest, caplog: pytest.LogCaptureFixture):
     """Test error handling for invalid commands."""
+    caplog.set_level("CRITICAL")
     async with AgentPool(process_manifest) as pool:
         pm = pool.process_manager
         # Try to start non-existent command

@@ -119,8 +119,9 @@ async def test_immediate_send_with_slow_command():
         assert expected in actual_messages
 
 
-async def test_immediate_send_error_handling():
+async def test_immediate_send_error_handling(caplog: pytest.LogCaptureFixture):
     """Test that errors in commands are properly sent immediately."""
+    caplog.set_level("CRITICAL")  # Suppress expected error logs
 
     def simple_callback(message: str) -> str:
         return f"Response: {message}"

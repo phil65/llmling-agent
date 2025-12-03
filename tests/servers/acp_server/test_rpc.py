@@ -222,7 +222,10 @@ async def test_concurrent_reads(test_agent: TestAgent, test_client: DefaultACPCl
             assert res.content == f"Content {i}"
 
 
-async def test_invalid_params_results_in_error_response(test_agent: TestAgent):
+async def test_invalid_params_results_in_error_response(
+    test_agent: TestAgent, caplog: pytest.LogCaptureFixture
+):
+    caplog.set_level("CRITICAL")
     async with _Server() as s:
         # Only start agent-side (server) so we can inject raw request from client socket
         assert s.client_writer is not None
@@ -252,7 +255,10 @@ async def test_invalid_params_results_in_error_response(test_agent: TestAgent):
         assert resp["error"]["code"] == invalid_params_code
 
 
-async def test_method_not_found_results_in_error_response(test_agent: TestAgent):
+async def test_method_not_found_results_in_error_response(
+    test_agent: TestAgent, caplog: pytest.LogCaptureFixture
+):
+    caplog.set_level("CRITICAL")
     async with _Server() as s:
         assert s.client_writer is not None
         assert s.client_reader is not None

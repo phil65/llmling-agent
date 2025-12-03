@@ -76,8 +76,9 @@ async def test_single_execution():
 #         assert result.name == "agent1"
 
 
-async def test_error_handling():
+async def test_error_handling(caplog: pytest.LogCaptureFixture):
     """Test handling of errors in background execution."""
+    caplog.set_level("CRITICAL")
 
     async def failing_processor(msg: str) -> str:
         await asyncio.sleep(0.1)
