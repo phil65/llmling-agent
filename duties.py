@@ -11,19 +11,19 @@ from duty import duty  # pyright: ignore[reportMissingImports]
 def build(ctx, *args: str):
     """Build a MkNodes page."""
     args_str = " " + " ".join(args) if args else ""
-    ctx.run(f"uv run mknodes build{args_str}")
+    ctx.run(f"uv run mkdocs-mknodes build{args_str}")
 
 
 @duty(capture=False)
 def serve(ctx, *args: str):
     """Serve a MkNodes page."""
     args_str = " " + " ".join(args) if args else ""
-    ctx.run(f"uv run mknodes serve{args_str}")
+    ctx.run(f"uv run mkdocs-mknodes serve{args_str}")
 
 
 @duty(capture=False)
 def test(ctx, *args: str):
-    """Serve a MkNodes page."""
+    """Run tests."""
     args_str = " " + " ".join(args) if args else ""
     args_str = " -n auto" + args_str
     ctx.run(f"uv run pytest{args_str}")

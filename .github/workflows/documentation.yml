@@ -39,7 +39,7 @@ jobs:
         run: |
           uv sync --all-extras
       - name: Build
-        run: uv run mknodes build
+        run: uv run mkdocs-mknodes build
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       - name: Upload artifact
