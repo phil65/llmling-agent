@@ -39,7 +39,7 @@ def configure_logging(
         force: Force reconfiguration even if already configured
         log_file: Optional file path to write logs to instead of stderr
     """
-    global _LOGGING_CONFIGURED
+    global _LOGGING_CONFIGURED  # noqa: PLW0603
 
     if _LOGGING_CONFIGURED and not force:
         return

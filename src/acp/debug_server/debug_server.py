@@ -352,7 +352,7 @@ _global_debug_state: DebugState | None = None
 
 def _set_debug_state(state: DebugState) -> None:
     """Set global debug state reference."""
-    global _global_debug_state
+    global _global_debug_state  # noqa: PLW0603
     _global_debug_state = state
 
 

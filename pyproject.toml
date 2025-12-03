@@ -269,7 +269,7 @@ select = [
   "PIE",  # flake8-pie
   "PLE",  # PyLint Error
   "PLC",  # PyLint convention
-  # "PLW",  # PyLint Warning
+  "PLW",  # PyLint Warning
   "PLR",  # PyLint refactor
   "PT",  # flake8-pytest-style
   "PTH",  # flake8-use-pathlib
