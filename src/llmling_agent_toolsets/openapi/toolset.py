@@ -9,7 +9,6 @@ from upathtools import read_path
 
 from llmling_agent.log import get_logger
 from llmling_agent.resource_providers import ResourceProvider
-from llmling_agent.tools.base import Tool
 from llmling_agent_toolsets.openapi.callable_factory import OpenAPICallableFactory
 from llmling_agent_toolsets.openapi.loader import load_openapi_spec, parse_operations
 
@@ -17,6 +16,8 @@ from llmling_agent_toolsets.openapi.loader import load_openapi_spec, parse_opera
 if TYPE_CHECKING:
     import httpx
     from upath.types import JoinablePathLike
+
+    from llmling_agent.tools.base import Tool
 
 logger = get_logger(__name__)
 
