@@ -56,7 +56,6 @@ from llmling_agent.agent.events import (
 )
 from llmling_agent.log import get_logger
 from llmling_agent_commands import get_commands
-from llmling_agent_server.acp_server.acp_tools import get_acp_provider
 from llmling_agent_server.acp_server.converters import (
     convert_acp_mcp_server_to_config,
     from_content_blocks,
@@ -160,6 +159,8 @@ class ACPSession:
 
     def __post_init__(self) -> None:
         """Initialize session state and set up providers."""
+        from anyenv.code_execution.acp_provider import ACPExecutionEnvironment
+
         from llmling_agent_server.acp_server.commands.acp_commands import get_acp_commands
         from llmling_agent_server.acp_server.commands.docs_commands import get_docs_commands
         from llmling_agent_server.acp_server.commands.terminal_commands import get_terminal_commands
@@ -192,16 +193,10 @@ class ACPSession:
         self.requests = ACPRequests(client=self.client, session_id=self.session_id)
         self.input_provider = ACPInputProvider(self)
 
-        self._acp_provider = get_acp_provider(self)
-        current_agent = self.agent
-        current_agent.tools.add_provider(self._acp_provider)
-
-        # Assign ACP execution environment and cwd context to all agents in the pool
-        from anyenv.code_execution.acp_provider import ACPExecutionEnvironment
-
-        acp_env = ACPExecutionEnvironment(fs=self.fs, requests=self.requests)
+        # self._acp_provider = get_acp_provider(self)
+        self.acp_env = ACPExecutionEnvironment(fs=self.fs, requests=self.requests)
         for agent in self.agent_pool.agents.values():
-            agent.env = acp_env
+            agent.env = self.acp_env
             agent.sys_prompts.prompts.append(self.get_cwd_context)  # pyright: ignore[reportArgumentType]
 
         self.log.info("Created ACP session", current_agent=self.current_agent_name)
@@ -295,12 +290,6 @@ class ACPSession:
 
         old_agent_name = self.current_agent_name
         self.current_agent_name = agent_name
-
-        if self._acp_provider:  # Move capability provider from old agent to new agent
-            old_agent = self.agent_pool.get_agent(old_agent_name)
-            new_agent = self.agent_pool.get_agent(agent_name)
-            old_agent.tools.remove_provider(self._acp_provider)
-            new_agent.tools.add_provider(self._acp_provider)
 
         self.log.info("Switched agents", from_agent=old_agent_name, to_agent=agent_name)
         # if new_model := new_agent.model_name:
