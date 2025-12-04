@@ -61,22 +61,22 @@ def convert_acp_content(
         match item.type:
             case "terminal":
                 # TerminalToolCallContent
-                result.append(TerminalContentItem(terminal_id=item.terminal_id))  # type: ignore[union-attr]
+                result.append(TerminalContentItem(terminal_id=item.terminal_id))
             case "diff":
                 # FileEditToolCallContent
                 result.append(
                     DiffContentItem(
-                        path=item.path,  # type: ignore[union-attr]
-                        old_text=item.old_text,  # type: ignore[union-attr]
-                        new_text=item.new_text,  # type: ignore[union-attr]
+                        path=item.path,
+                        old_text=item.old_text,
+                        new_text=item.new_text,
                     )
                 )
             case "content":
                 # ContentToolCallContent - extract text if present
-                if hasattr(item, "content") and isinstance(item.content, TextContentBlock):  # type: ignore[union-attr]
+                if hasattr(item, "content") and isinstance(item.content, TextContentBlock):
                     from llmling_agent.agent.events import TextContentItem
 
-                    result.append(TextContentItem(text=item.content.text))  # type: ignore[union-attr]
+                    result.append(TextContentItem(text=item.content.text))
     return result
 
 
