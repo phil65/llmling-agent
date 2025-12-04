@@ -4835,7 +4835,7 @@
                   "docker": "#/$defs/DockerExecutionEnvironmentConfig",
                   "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
                   "local": "#/$defs/LocalExecutionEnvironmentConfig",
-                  "mcp_python": "#/$defs/McpPythonExecutionEnvironmentConfig"
+                  "srt": "#/$defs/SRTExecutionEnvironmentConfig"
                 },
                 "propertyName": "type"
               },
@@ -4856,7 +4856,7 @@
                   "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
                 },
                 {
-                  "$ref": "#/$defs/McpPythonExecutionEnvironmentConfig"
+                  "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
                 }
               ]
             },
@@ -4897,15 +4897,17 @@
           "type": "string"
         },
         "url": {
-          "default": "file:///",
-          "description": "Filesystem URL or protocol. Defaults to local filesystem.",
+          "default": null,
+          "description": "Filesystem URL or protocol. If None set, use agent default FS.",
           "examples": [
             "file:///",
-            "s3://my-bucket",
-            "gcs://bucket-name"
+            "s3://my-bucket"
           ],
           "title": "Filesystem URL",
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "model": {
           "anyOf": [
@@ -9304,57 +9306,6 @@
       "title": "MarkItDownConfig",
       "type": "object"
     },
-    "McpPythonExecutionEnvironmentConfig": {
-      "additionalProperties": false,
-      "description": "MCP Python execution environment configuration.\n\nExecutes Python code with Model Context Protocol support for AI integrations.",
-      "properties": {
-        "type": {
-          "const": "mcp_python",
-          "default": "mcp_python",
-          "title": "Type",
-          "type": "string"
-        },
-        "dependencies": {
-          "anyOf": [
-            {
-              "items": {
-                "type": "string"
-              },
-              "type": "array"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "List of packages to install (pip for Python, npm for JS/TS).",
-          "examples": [
-            "numpy",
-            "pandas"
-          ],
-          "title": "Dependencies"
-        },
-        "timeout": {
-          "default": 60.0,
-          "description": "Execution timeout in seconds.",
-          "examples": [
-            120.0,
-            300.0
-          ],
-          "exclusiveMinimum": 0.0,
-          "title": "Execution Timeout",
-          "type": "number"
-        },
-        "allow_networking": {
-          "default": true,
-          "description": "Allow network access.",
-          "title": "Allow Networking",
-          "type": "boolean"
-        }
-      },
-      "title": "McpPythonExecutionEnvironmentConfig",
-      "type": "object"
-    },
     "MemoryConfig": {
       "additionalProperties": false,
       "description": "Configuration for agent memory and history handling.",
@@ -10365,7 +10316,7 @@
               "docker": "#/$defs/DockerExecutionEnvironmentConfig",
               "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
               "local": "#/$defs/LocalExecutionEnvironmentConfig",
-              "mcp_python": "#/$defs/McpPythonExecutionEnvironmentConfig"
+              "srt": "#/$defs/SRTExecutionEnvironmentConfig"
             },
             "propertyName": "type"
           },
@@ -10386,7 +10337,7 @@
               "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
             },
             {
-              "$ref": "#/$defs/McpPythonExecutionEnvironmentConfig"
+              "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
             }
           ],
           "title": "Execution environment"
@@ -10648,6 +10599,84 @@
       "title": "SQLStorageConfig",
       "type": "object"
     },
+    "SRTExecutionEnvironmentConfig": {
+      "additionalProperties": false,
+      "description": "Sandboxed execution environment using Anthropic's sandbox-runtime.\n\nExecutes code locally with OS-level sandboxing for network and filesystem restrictions.\nRequires `srt` CLI: `npm install -g @anthropic-ai/sandbox-runtime`",
+      "properties": {
+        "type": {
+          "const": "srt",
+          "default": "srt",
+          "title": "Type",
+          "type": "string"
+        },
+        "dependencies": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "List of packages to install (pip for Python, npm for JS/TS).",
+          "examples": [
+            "numpy",
+            "pandas"
+          ],
+          "title": "Dependencies"
+        },
+        "timeout": {
+          "default": 60.0,
+          "description": "Execution timeout in seconds.",
+          "examples": [
+            120.0,
+            300.0
+          ],
+          "exclusiveMinimum": 0.0,
+          "title": "Execution Timeout",
+          "type": "number"
+        },
+        "language": {
+          "default": "python",
+          "description": "Programming language to use.",
+          "enum": [
+            "python",
+            "javascript",
+            "typescript"
+          ],
+          "examples": [
+            "python",
+            "javascript",
+            "typescript"
+          ],
+          "title": "Programming Language",
+          "type": "string"
+        },
+        "executable": {
+          "default": null,
+          "description": "Executable to use (auto-detect if None).",
+          "examples": [
+            "/usr/bin/python3",
+            "python3.13"
+          ],
+          "title": "Executable",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sandbox": {
+          "$ref": "#/$defs/SandboxConfig",
+          "description": "Sandbox restrictions configuration."
+        }
+      },
+      "title": "SRTExecutionEnvironmentConfig",
+      "type": "object"
+    },
     "SSEMCPServerConfig": {
       "additionalProperties": false,
       "description": "MCP server using Server-Sent Events transport.\n\nConnects to a server over HTTP with SSE for real-time communication.",
@@ -10745,6 +10774,103 @@
         "url"
       ],
       "title": "SSEMCPServerConfig",
+      "type": "object"
+    },
+    "SandboxConfig": {
+      "description": "Configuration for sandbox-runtime restrictions.",
+      "properties": {
+        "allowed_domains": {
+          "examples": [
+            [
+              "github.com",
+              "*.github.com",
+              "pypi.org"
+            ]
+          ],
+          "items": {
+            "type": "string"
+          },
+          "title": "Allowed Domains",
+          "type": "array"
+        },
+        "denied_domains": {
+          "examples": [
+            [
+              "malicious.com"
+            ]
+          ],
+          "items": {
+            "type": "string"
+          },
+          "title": "Denied Domains",
+          "type": "array"
+        },
+        "allow_unix_sockets": {
+          "examples": [
+            [
+              "/var/run/docker.sock"
+            ]
+          ],
+          "items": {
+            "type": "string"
+          },
+          "title": "Allowed Unix Sockets",
+          "type": "array"
+        },
+        "allow_all_unix_sockets": {
+          "default": false,
+          "title": "Allow All Unix Sockets",
+          "type": "boolean"
+        },
+        "allow_local_binding": {
+          "default": false,
+          "title": "Allow Local Binding",
+          "type": "boolean"
+        },
+        "deny_read": {
+          "examples": [
+            [
+              "~/.ssh",
+              "~/.aws"
+            ]
+          ],
+          "items": {
+            "type": "string"
+          },
+          "title": "Deny Read Paths",
+          "type": "array"
+        },
+        "allow_write": {
+          "examples": [
+            [
+              "."
+            ],
+            [
+              ".",
+              "/tmp"
+            ]
+          ],
+          "items": {
+            "type": "string"
+          },
+          "title": "Allow Write Paths",
+          "type": "array"
+        },
+        "deny_write": {
+          "examples": [
+            [
+              ".env",
+              "secrets/"
+            ]
+          ],
+          "items": {
+            "type": "string"
+          },
+          "title": "Deny Write Paths",
+          "type": "array"
+        }
+      },
+      "title": "SandboxConfig",
       "type": "object"
     },
     "SchemaField": {
