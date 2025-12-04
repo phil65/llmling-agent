@@ -13,7 +13,6 @@ from searchly.config import NewsSearchProviderConfig, WebSearchProviderConfig
 from tokonomics import ModelName
 from upath import UPath
 
-from llmling_agent.utils.importing import import_class
 from llmling_agent_config.converters import ConversionConfig
 
 
@@ -221,6 +220,24 @@ class HistoryToolsetConfig(BaseToolsetConfig):
         return HistoryTools(name="history")
 
 
+class SkillsToolsetConfig(BaseToolsetConfig):
+    """Configuration for skills toolset.
+
+    Provides tools to discover and load Claude Code Skills from the pool's
+    skills registry. Skills are discovered from configured directories
+    (e.g., ~/.claude/skills/, .claude/skills/).
+    """
+
+    type: Literal["skills"] = Field("skills", init=False)
+    """Skills toolset."""
+
+    def get_provider(self) -> ResourceProvider:
+        """Create skills tools provider."""
+        from llmling_agent_toolsets.builtin import SkillsTools
+
+        return SkillsTools(name="skills")
+
+
 class IntegrationToolsetConfig(BaseToolsetConfig):
     """Configuration for integration toolset."""
 
@@ -408,6 +425,7 @@ class CustomToolsetConfig(BaseToolsetConfig):
     def get_provider(self) -> ResourceProvider:
         """Create custom provider from import path."""
         from llmling_agent.resource_providers import ResourceProvider
+        from llmling_agent.utils.importing import import_class
 
         provider_cls = import_class(self.import_path)
         if not issubclass(provider_cls, ResourceProvider):
@@ -465,6 +483,7 @@ ToolsetConfig = Annotated[
     | ToolManagementToolsetConfig
     | UserInteractionToolsetConfig
     | HistoryToolsetConfig
+    | SkillsToolsetConfig
     | IntegrationToolsetConfig
     | CodeToolsetConfig
     | FSSpecToolsetConfig

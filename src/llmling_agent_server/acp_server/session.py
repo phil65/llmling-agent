@@ -229,35 +229,21 @@ class ACPSession:
                 agent.sys_prompts.prompts.append(prompt)
 
     async def init_client_skills(self) -> None:
-        """Discover and load skills from client-side .claude/skills directory."""
-        # TODO: Re-enable once tool name conflict with pool-level skills provider is resolved
-        # The pool already adds a SkillsResourceProvider with load_skill tool,
-        # adding another one here causes "Tool name conflicts with existing tool: 'load_skill'"
-        # try:
-        #     from llmling_agent.resource_providers.skills import SkillsResourceProvider
-        #     from llmling_agent.skills.registry import SkillsRegistry
+        """Discover and load skills from client-side .claude/skills directory.
 
-        #     registry = SkillsRegistry()
-        #     path = self.fs.get_upath(".claude/skills")
-        #     await registry.register_skills_from_path(path)
-        #     if not registry.is_empty:
-        #         client_skills_provider = SkillsResourceProvider(
-        #             registry=registry,
-        #             name="client_skills",
-        #             owner=f"acp_session_{self.session_id}",
-        #         )
-
-        #         # Add to all agents in the pool
-        #         for agent in self.agent_pool.agents.values():
-        #             agent.tools.add_provider(client_skills_provider)
-
-        #         skill_count = len(registry.list_items())
-        #         self.log.info("Added client-side skills to agents", skill_count=skill_count)
-        #     else:
-        #         self.log.debug("No valid client-side skills found")
-
-        # except Exception as e:
-        #     self.log.exception("Failed to discover client-side skills", error=e)
+        Adds the client's .claude/skills directory to the pool's skills manager,
+        making those skills available to all agents via the SkillsTools toolset.
+        """
+        try:
+            path = self.fs.get_upath(".claude/skills")
+            await self.agent_pool.skills.add_skills_directory(path)
+            skills = self.agent_pool.skills.list_skills()
+            if skills:
+                self.log.info("Added client-side skills", skill_count=len(skills))
+            else:
+                self.log.debug("No client-side skills found")
+        except Exception as e:
+            self.log.exception("Failed to discover client-side skills", error=e)
 
     @property
     def agent(self) -> Agent[ACPSession, str]:

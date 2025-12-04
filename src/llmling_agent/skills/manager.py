@@ -2,25 +2,30 @@
 
 from __future__ import annotations
 
-from contextlib import AsyncExitStack
 from typing import TYPE_CHECKING, Self
 
 from upath import UPath
 
 from llmling_agent.log import get_logger
-from llmling_agent.resource_providers.skills import SkillsResourceProvider
 from llmling_agent.skills.registry import SkillsRegistry
 
 
 if TYPE_CHECKING:
     from upath.types import JoinablePathLike
 
+    from llmling_agent.skills.skill import Skill
+
 
 logger = get_logger(__name__)
 
 
 class SkillsManager:
-    """Manages skills discovery and distributes skills provider to agents."""
+    """Pool-wide skills registry management.
+
+    Owns the single skills registry for the pool. Skills can be discovered
+    from multiple directories. The actual `load_skill` tool is provided
+    separately via SkillsTools toolset.
+    """
 
     def __init__(
         self,
@@ -38,8 +43,6 @@ class SkillsManager:
         self.name = name
         self.owner = owner
         self.registry = SkillsRegistry(skills_dirs)
-        self.provider = SkillsResourceProvider(self.registry, name=name, owner=owner)
-        self.exit_stack = AsyncExitStack()
         self._initialized = False
 
     def __repr__(self) -> str:
@@ -47,10 +50,9 @@ class SkillsManager:
         return f"SkillsManager(name={self.name!r}, skills={skill_count})"
 
     async def __aenter__(self) -> Self:
-        """Initialize the skills manager."""
+        """Initialize the skills manager and discover skills."""
         try:
-            # Initialize the provider through its async context manager
-            await self.exit_stack.enter_async_context(self.provider)
+            await self.registry.discover_skills()
             self._initialized = True
             count = len(self.registry.list_items())
             logger.info("Skills manager initialized", name=self.name, skill_count=count)
@@ -62,20 +64,34 @@ class SkillsManager:
 
     async def __aexit__(self, *args: object) -> None:
         """Clean up the skills manager."""
-        await self.exit_stack.aclose()
+        # Skills are file-based, no persistent connections to clean up
 
-    def get_skills_provider(self) -> SkillsResourceProvider:
-        """Get the skills resource provider for agents."""
-        return self.provider
+    async def add_skills_directory(self, path: JoinablePathLike) -> None:
+        """Add a new skills directory and discover its skills.
 
-    async def refresh_skills(self) -> None:
-        """Refresh skills discovery."""
-        await self.provider.refresh()
+        Args:
+            path: Path to directory containing skills
+        """
+        upath = UPath(path)
+        if upath not in self.registry.skills_dirs:
+            self.registry.skills_dirs.append(upath)
+            await self.registry.register_skills_from_path(upath)
+            logger.info("Added skills directory", path=str(path))
+
+    async def refresh(self) -> None:
+        """Force rediscovery of all skills."""
+        await self.registry.discover_skills()
         skill_count = len(self.registry.list_items())
         logger.info("Skills refreshed", name=self.name, skill_count=skill_count)
 
-    def add_skills_directory(self, path: JoinablePathLike) -> None:
-        """Add a new skills directory to search."""
-        if path not in self.registry.skills_dirs:
-            self.registry.skills_dirs.append(UPath(path))
-            logger.info("Added skills directory", path=str(path))
+    def list_skills(self) -> list[Skill]:
+        """Get all available skills."""
+        return [self.registry.get(name) for name in self.registry.list_items()]
+
+    def get_skill(self, name: str) -> Skill:
+        """Get a skill by name."""
+        return self.registry.get(name)
+
+    def get_skill_instructions(self, skill_name: str) -> str:
+        """Get full instructions for a specific skill."""
+        return self.registry.get_skill_instructions(skill_name)

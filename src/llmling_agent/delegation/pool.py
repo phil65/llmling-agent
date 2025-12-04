@@ -155,13 +155,11 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
                     await self.exit_stack.enter_async_context(self.mcp)
                     await self.exit_stack.enter_async_context(self.skills)
                     aggregating_provider = self.mcp.get_aggregating_provider()
-                    skills_provider = self.skills.get_skills_provider()
 
                     agents = list(self.agents.values())
                     teams = list(self.teams.values())
                     for agent in agents:
                         agent.tools.add_provider(aggregating_provider)
-                        agent.tools.add_provider(skills_provider)
 
                     # Collect remaining components to initialize (MCP already initialized)
                     components: list[AbstractAsyncContextManager[Any]] = [
@@ -203,10 +201,8 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
             if self._running_count == 0:
                 # Remove MCP aggregating provider from all agents
                 aggregating_provider = self.mcp.get_aggregating_provider()
-                skills_provider = self.skills.get_skills_provider()
                 for agent in self.agents.values():
                     agent.tools.remove_provider(aggregating_provider.name)
-                    agent.tools.remove_provider(skills_provider.name)
                 await self.cleanup()
 
     @property
@@ -647,7 +643,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         )
         # Add MCP aggregating provider from manager
         agent.tools.add_provider(self.mcp.get_aggregating_provider())
-        agent.tools.add_provider(self.skills.get_skills_provider())
         agent = await self.exit_stack.enter_async_context(agent)
         self.register(name, agent)
         return agent

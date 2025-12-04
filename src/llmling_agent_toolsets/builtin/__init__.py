@@ -10,6 +10,7 @@ from llmling_agent_toolsets.builtin.subagent_tools import SubagentTools
 from llmling_agent_toolsets.builtin.execution_environment import ExecutionEnvironmentTools
 from llmling_agent_toolsets.builtin.history import HistoryTools
 from llmling_agent_toolsets.builtin.integration import IntegrationTools
+from llmling_agent_toolsets.builtin.skills import SkillsTools
 from llmling_agent_toolsets.builtin.tool_management import ToolManagementTools
 from llmling_agent_toolsets.builtin.user_interaction import UserInteractionTools
 
@@ -21,6 +22,7 @@ __all__ = [
     "ExecutionEnvironmentTools",
     "HistoryTools",
     "IntegrationTools",
+    "SkillsTools",
     "SubagentTools",
     "ToolManagementTools",
     "UserInteractionTools",
