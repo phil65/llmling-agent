@@ -38,11 +38,8 @@ from acp.schema import (
     AgentMessageChunk,
     AgentThoughtChunk,
     AllowedOutcome,
-    ClientCapabilities,
     CreateTerminalResponse,
     DeniedOutcome,
-    FileSystemCapability,
-    Implementation,
     InitializeRequest,
     KillTerminalCommandResponse,
     NewSessionRequest,
@@ -532,9 +529,7 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
             msg = "Process not started"
             raise RuntimeError(msg)
 
-        # Create initial state for the client handler
         self._state = ACPSessionState(session_id="")
-
         working_dir = Path(self.config.cwd) if self.config.cwd else Path.cwd()
         self._client_handler = ACPClientHandler(
             self._state,
@@ -553,33 +548,17 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
             output_stream=self._process.stdout,
         )
 
-        # Build client capabilities based on config
-        fs_caps = FileSystemCapability(
+        init_request = InitializeRequest.create(
+            title="LLMling Agent",
+            version="0.1.0",
+            name="llmling-agent",
+            protocol_version=PROTOCOL_VERSION,
+            terminal=self.config.allow_terminal,
             read_text_file=self.config.allow_file_operations,
             write_text_file=self.config.allow_file_operations,
         )
-        client_caps = ClientCapabilities(
-            fs=fs_caps,
-            terminal=self.config.allow_terminal,
-        )
-
-        # Send initialize request
-        init_request = InitializeRequest(
-            protocol_version=PROTOCOL_VERSION,
-            client_info=Implementation(
-                name="llmling-agent",
-                title="LLMling Agent",
-                version="0.1.0",
-            ),
-            client_capabilities=client_caps,
-        )
-
         self._init_response = await self._connection.initialize(init_request)
-        self.log.info(
-            "ACP connection initialized",
-            protocol_version=self._init_response.protocol_version,
-            agent_info=self._init_response.agent_info,
-        )
+        self.log.info("ACP connection initialized", agent_info=self._init_response.agent_info)
 
     async def _create_session(self) -> None:
         """Create a new ACP session."""
@@ -589,7 +568,6 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
 
         cwd = self.config.cwd or str(Path.cwd())
         session_request = NewSessionRequest(cwd=cwd, mcp_servers=[])
-
         response = await self._connection.new_session(session_request)
         self._session_id = response.session_id
         if self._state:
@@ -647,32 +625,17 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         self._state.tool_calls.clear()
         self._state.is_complete = False
         self._state.stop_reason = None
-
-        # Build prompt content
         prompt_text = " ".join(str(p) for p in prompts)
         content_blocks = [TextContentBlock(text=prompt_text)]
-
-        # Send prompt
-        prompt_request = PromptRequest(
-            session_id=self._session_id,
-            prompt=content_blocks,
-        )
-
+        prompt_request = PromptRequest(session_id=self._session_id, prompt=content_blocks)
         self.log.debug("Sending prompt to ACP agent", prompt=prompt_text[:100])
-
         # The prompt call blocks until completion, session updates come via notifications
         response: PromptResponse = await self._connection.prompt(prompt_request)
-
         self._state.is_complete = True
         self._state.stop_reason = response.stop_reason
-
-        # Build response content
-        content = "".join(self._state.text_chunks)
-
         self._message_count += 1
-
-        message: ChatMessage[str] = ChatMessage(
-            content=content,
+        message = ChatMessage[str](
+            content="".join(self._state.text_chunks),
             role="assistant",
             name=self.name,
             message_id=str(uuid.uuid4()),
@@ -680,7 +643,6 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
             model_name=self._get_model_name(),
             cost_info=None,
         )
-
         self.message_sent.emit(message)
         return message
 
@@ -706,18 +668,11 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         self._state.thought_chunks.clear()
         self._state.tool_calls.clear()
         self._state.is_complete = False
-
         prompt_text = " ".join(str(p) for p in prompts)
         content_blocks = [TextContentBlock(text=prompt_text)]
-
-        prompt_request = PromptRequest(
-            session_id=self._session_id,
-            prompt=content_blocks,
-        )
-
+        prompt_request = PromptRequest(session_id=self._session_id, prompt=content_blocks)
         # Run prompt in background and yield chunks
         prompt_task = asyncio.create_task(self._connection.prompt(prompt_request))
-
         last_chunk_count = 0
         while not prompt_task.done():
             # Wait for updates with timeout
@@ -746,7 +701,6 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         # Wait for task completion
         response = await prompt_task
         self._state.stop_reason = response.stop_reason
-
         # Yield any remaining chunks
         for i in range(last_chunk_count, len(self._state.text_chunks)):
             yield ChatMessage(
@@ -771,86 +725,75 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         return MessageStats()
 
 
-async def main() -> None:
-    """Demo: Basic call to an ACP agent.
-
-    Usage:
-        python -m llmling_agent.agent.acp_agent "Your prompt here"
-        python -m llmling_agent.agent.acp_agent --claude "Your prompt here"
-
-    Or with default prompt:
-        python -m llmling_agent.agent.acp_agent
-    """
-    import sys
-
-    # Check for --claude flag to use claude-code-acp instead
-    use_claude = "--claude" in sys.argv
-    if use_claude:
-        sys.argv.remove("--claude")
-
-    if use_claude:
-        # Use claude-code-acp (must be installed: npm install -g @anthropics/claude-code-acp)
-        config = ACPAgentConfig(
-            command="claude-code-acp",
-            args=[],
-            name="claude_code",
-            description="Claude Code via ACP",
-            cwd=str(Path.cwd()),
-            allow_file_operations=True,
-            allow_terminal=True,
-            auto_grant_permissions=True,
-        )
-    else:
-        # Use llmling-agent serve-acp with openai provider
-        config = ACPAgentConfig(
-            command="uv",
-            args=[
-                "run",
-                "llmling-agent",
-                "serve-acp",
-                "--model-provider",
-                "openai",
-            ],
-            name="llmling_acp",
-            description="LLMling Agent via ACP",
-            cwd=str(Path.cwd()),
-            allow_file_operations=True,
-            allow_terminal=True,
-            auto_grant_permissions=True,
-        )
-
-    print(f"Starting ACP agent: {config.command} {' '.join(config.args)}")
-
-    try:
-        async with ACPAgent(config) as agent:
-            print(f"Connected to: {agent._get_model_name()}")
-            print(f"Session ID: {agent._session_id}")
-            print("-" * 50)
-
-            # Get prompt from command line or use default
-            prompt = " ".join(sys.argv[1:]) if len(sys.argv) > 1 else "Say hello briefly."
-
-            print(f"Prompt: {prompt}")
-            print("-" * 50)
-
-            result = await agent.run(prompt)
-            print(f"Response: {result.content}")
-
-            # Show tool calls if any
-            if agent._state and agent._state.tool_calls:
-                print("-" * 50)
-                print("Tool calls:")
-                for tc in agent._state.tool_calls:
-                    print(f"  - {tc['title']} ({tc['status']})")
-
-    except FileNotFoundError:
-        print(f"Error: Command '{config.command}' not found.")
-        print("Make sure uv is installed and in PATH.")
-        sys.exit(1)
-    except Exception as e:
-        print(f"Error: {e}")
-        raise
-
-
 if __name__ == "__main__":
+
+    async def main() -> None:
+        """Demo: Basic call to an ACP agent.
+
+        Usage:
+            python -m llmling_agent.agent.acp_agent "Your prompt here"
+            python -m llmling_agent.agent.acp_agent --claude "Your prompt here"
+
+        Or with default prompt:
+            python -m llmling_agent.agent.acp_agent
+        """
+        import sys
+
+        # Check for --claude flag to use claude-code-acp instead
+        use_claude = "--claude" in sys.argv
+        if use_claude:
+            sys.argv.remove("--claude")
+
+        if use_claude:
+            # Use claude-code-acp (must be installed: npm install -g @anthropics/claude-code-acp)
+            config = ACPAgentConfig(
+                command="claude-code-acp",
+                args=[],
+                name="claude_code",
+                description="Claude Code via ACP",
+                cwd=str(Path.cwd()),
+                allow_file_operations=True,
+                allow_terminal=True,
+                auto_grant_permissions=True,
+            )
+        else:
+            # Use llmling-agent serve-acp with openai provider
+            config = ACPAgentConfig(
+                command="uv",
+                args=["run", "llmling-agent", "serve-acp", "--model-provider", "openai"],
+                name="llmling_acp",
+                description="LLMling Agent via ACP",
+                cwd=str(Path.cwd()),
+                allow_file_operations=True,
+                allow_terminal=True,
+                auto_grant_permissions=True,
+            )
+
+        print(f"Starting ACP agent: {config.command} {' '.join(config.args)}")
+
+        try:
+            async with ACPAgent(config) as agent:
+                print(f"Connected to: {agent._get_model_name()}")
+                print(f"Session ID: {agent._session_id}")
+                print("-" * 50)
+                prompt = " ".join(sys.argv[1:]) if len(sys.argv) > 1 else "Say hello briefly."
+                print(f"Prompt: {prompt}")
+                print("-" * 50)
+                result = await agent.run(prompt)
+                print(f"Response: {result.content}")
+                # Show tool calls if any
+                if agent._state and agent._state.tool_calls:
+                    print("-" * 50)
+                    print("Tool calls:")
+                    for tc in agent._state.tool_calls:
+                        print(f"  - {tc['title']} ({tc['status']})")
+
+        except FileNotFoundError:
+            print(f"Error: Command '{config.command}' not found.")
+            print("Make sure uv is installed and in PATH.")
+            sys.exit(1)
+        except Exception as e:
+            print(f"Error: {e}")
+            raise
+
     asyncio.run(main())
