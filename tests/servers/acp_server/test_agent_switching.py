@@ -7,7 +7,8 @@ from typing import TYPE_CHECKING, Any
 import pytest
 
 from acp import SessionMode, SessionModeState
-from llmling_agent.models.manifest import AgentConfig, AgentsManifest
+from llmling_agent.models.agents import AgentConfig
+from llmling_agent.models.manifest import AgentsManifest
 from llmling_agent_server.acp_server import ACPServer, ACPSession
 
 

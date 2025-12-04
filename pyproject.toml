@@ -182,6 +182,22 @@ check_untyped_defs = true
 exclude = ["venv/", ".venv/"]
 plugins = ["pydantic.mypy"]
 
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+disallow_untyped_calls = false
+disallow_incomplete_defs = false
+disable_error_code = [
+  "no-untyped-def",
+  "no-untyped-call",
+  "no-any-return",
+  "unused-ignore"
+]
+
+[[tool.mypy.overrides]]
+module = "fsspec.*"
+ignore_missing_imports = true
+
 [tool.pyright]
 venvPath = "."
 venv = ".venv"

@@ -88,8 +88,9 @@ async def test_plain_tool_no_context():
 async def test_capability_tools(default_model: str):
     """Test that capability tools work with AgentContext."""
     async with AgentPool() as pool:
-        toolsets = [AgentManagementToolsetConfig(), SubagentToolsetConfig()]
-        toolset_providers = [config.get_provider() for config in toolsets]
+        agent_mgmt = AgentManagementToolsetConfig()
+        subagent = SubagentToolsetConfig()
+        toolset_providers = [agent_mgmt.get_provider(), subagent.get_provider()]
         agent = await pool.add_agent(name="test", model=default_model, toolsets=toolset_providers)
         prompt = "Get available agents using the list_available_nodes tool and return all names."
         result = await agent.run(prompt)
@@ -149,7 +150,7 @@ async def test_context_sharing():
     """Test that both context types access same data."""
     shared_data = {"key": "value"}
     model = TestModel(call_tools=["data_with_run_ctx", "data_with_agent_ctx"])
-    agent = Agent[dict](name="test", model=model, deps_type=dict)
+    agent = Agent[dict[str, str]](name="test", model=model, deps_type=dict)
     agent.context.data = shared_data
     agent.tools.register_tool(data_with_run_ctx)
     agent.tools.register_tool(data_with_agent_ctx)

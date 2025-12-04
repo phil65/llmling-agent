@@ -161,6 +161,7 @@ async def test_event_manager_with_initial_callbacks():
     event = _TestEvent(source="test", message="hello")
     await manager.emit_event(event)
     assert len(events) == 1
+    assert isinstance(events[0], _TestEvent)
     assert events[0].message == "hello"
 
 

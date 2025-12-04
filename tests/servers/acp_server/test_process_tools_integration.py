@@ -94,8 +94,8 @@ async def test_start_process(
     assert result["args"] == ["hello", "world"]
     assert result["status"] == "started"
 
-    mock_ctx.events.process_started.assert_called_once()
-    call_args = mock_ctx.events.process_started.call_args[1]
+    mock_ctx.events.process_started.assert_called_once()  # type: ignore[attr-defined]
+    call_args = mock_ctx.events.process_started.call_args[1]  # type: ignore[attr-defined]
     assert call_args["command"] == "echo"
     assert call_args["success"] is True
 
@@ -122,7 +122,7 @@ async def test_get_process_output(
     assert result["stdout"] == "hello world\n"
     assert result["combined"] == "hello world\n"
 
-    mock_ctx.events.process_output.assert_called_once()
+    mock_ctx.events.process_output.assert_called_once()  # type: ignore[attr-defined]
 
 
 async def test_kill_process(
@@ -146,8 +146,8 @@ async def test_kill_process(
     assert result["process_id"] == process_id
     assert result["status"] == "killed"
 
-    mock_ctx.events.process_killed.assert_called_once()
-    call_args = mock_ctx.events.process_killed.call_args[1]
+    mock_ctx.events.process_killed.assert_called_once()  # type: ignore[attr-defined]
+    call_args = mock_ctx.events.process_killed.call_args[1]  # type: ignore[attr-defined]
     assert call_args["process_id"] == process_id
     assert call_args["success"] is True
 
@@ -174,7 +174,7 @@ async def test_wait_for_process(
     assert result["exit_code"] == 0
     assert result["status"] == "completed"
 
-    mock_ctx.events.process_exit.assert_called_once()
+    mock_ctx.events.process_exit.assert_called_once()  # type: ignore[attr-defined]
 
 
 async def test_release_process(
@@ -202,7 +202,7 @@ async def test_release_process(
     processes = await mock_env.process_manager.list_processes()
     assert process_id not in processes
 
-    mock_ctx.events.process_released.assert_called_once()
+    mock_ctx.events.process_released.assert_called_once()  # type: ignore[attr-defined]
 
 
 async def test_list_processes(

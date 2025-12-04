@@ -88,7 +88,7 @@ async def test_openapi_toolset_local(mock_openapi_spec):
     local_path = mock_openapi_spec["local_path"]
     toolset = OpenAPITools(spec=local_path, base_url=BASE_URL)
     spec = await toolset._load_spec()  # Load and validate spec
-    validate(spec)  # pyright: ignore[reportArgumentType]
+    validate(spec)  # type: ignore[arg-type]  # pyright: ignore[reportArgumentType]
     tools = await toolset.get_tools()
     assert len(tools) == 1, f"Expected 1 tool, got {len(tools)}: {tools}"
 
@@ -114,7 +114,7 @@ async def test_openapi_toolset_remote(mock_openapi_spec, caplog, monkeypatch):
     monkeypatch.setattr("httpx.AsyncClient", mock_client_factory)
     toolset = OpenAPITools(spec=url, base_url=BASE_URL)
     spec = await toolset._load_spec()
-    validate(spec)  # pyright: ignore[reportArgumentType]
+    validate(spec)  # type: ignore[arg-type]  # pyright: ignore[reportArgumentType]
     mock_sync_get.assert_called_once()  # Verify sync get was called for spec loading
     tools = await toolset.get_tools()
     assert len(tools) == 1, f"Expected 1 tool, got {len(tools)}: {tools}"

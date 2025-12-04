@@ -19,7 +19,7 @@ def add_numbers(x: int, y: int) -> int:
     return x + y
 
 
-async def fetch_data(name: str, count: int = 1) -> dict:
+async def fetch_data(name: str, count: int = 1) -> dict[str, object]:
     """Fetch some mock data.
 
     Args:

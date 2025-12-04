@@ -122,7 +122,7 @@ class TestContextBoundCallable:
         bound_func = create_bound_callable(func_with_no_context, by_type={})
 
         # Should return a wrapper function (not the original)
-        assert bound_func is not func_with_no_context
+        assert bound_func is not func_with_no_context  # type: ignore[comparison-overlap]
 
         # Should work normally
         result = await bound_func("test")
@@ -135,7 +135,7 @@ class TestContextBoundCallable:
         )
 
         # Should return a wrapper function (not the original)
-        assert bound_func is not func_with_no_context
+        assert bound_func is not func_with_no_context  # type: ignore[comparison-overlap]
 
     async def test_preserve_introspection_attributes(self, mock_agent_context):
         """Test that introspection attributes are preserved."""
@@ -145,7 +145,7 @@ class TestContextBoundCallable:
 
         # Check attributes are preserved
         assert bound_func.__name__ == "sync_func_with_agent_ctx"
-        assert "Sync function that requires AgentContext" in bound_func.__doc__
+        assert "Sync function that requires AgentContext" in (bound_func.__doc__ or "")
         assert hasattr(bound_func, "__signature__")
 
         # Check annotations are updated correctly
@@ -179,7 +179,7 @@ class TestContextBoundCallable:
         bound_func = create_bound_callable(sync_func_with_agent_ctx, by_type={})
 
         # Should return a wrapper function (not the original)
-        assert bound_func is not sync_func_with_agent_ctx
+        assert bound_func is not sync_func_with_agent_ctx  # type: ignore[comparison-overlap]
 
 
 class TestCodeModeIntegration:

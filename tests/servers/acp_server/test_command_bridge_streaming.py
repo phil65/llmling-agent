@@ -53,7 +53,7 @@ async def test_session_command_immediate_execution():
     ):
         sent_messages.append(message)
 
-    session.notifications.send_agent_text = capture_message
+    session.notifications.send_agent_text = capture_message  # type: ignore[method-assign]
     await session.execute_slash_command("/help")
     assert len(sent_messages) > 0
 
@@ -102,7 +102,7 @@ async def test_immediate_send_with_slow_command():
         current_time = asyncio.get_event_loop().time()
         messages_with_time.append((message, current_time - start_time))
 
-    session.notifications.send_agent_text = capture_with_time
+    session.notifications.send_agent_text = capture_with_time  # type: ignore[method-assign, assignment]
     await session.execute_slash_command("/slow")
     # Verify we got multiple messages
     min_expected_messages = 3
@@ -162,7 +162,7 @@ async def test_immediate_send_error_handling(caplog: pytest.LogCaptureFixture):
     ):
         sent_messages.append(message)
 
-    session.notifications.send_agent_text = capture_message
+    session.notifications.send_agent_text = capture_message  # type: ignore[method-assign]
     # Execute failing command
     await session.execute_slash_command("/fail")
 

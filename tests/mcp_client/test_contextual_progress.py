@@ -34,7 +34,7 @@ class ProgressCapture:
     def __init__(self):
         self.progress_events: list[ToolCallProgressEvent] = []
 
-    async def __call__(self, ctx: RunContext, event: RichAgentStreamEvent) -> None:
+    async def __call__(self, ctx: RunContext, event: RichAgentStreamEvent[object]) -> None:
         """Capture progress with full context."""
         if isinstance(event, ToolCallProgressEvent):
             self.progress_events.append(event)
@@ -88,7 +88,9 @@ async def _test_progress_events_common(agent_name: str, run_method: str) -> None
             assert "message" in tool_input, "Tool input should have message parameter"
 
         # Verify progress sequence
-        progress_values = [e.progress for e in progress_capture.progress_events]
+        progress_values = [
+            e.progress for e in progress_capture.progress_events if e.progress is not None
+        ]
         assert progress_values == sorted(progress_values), (
             f"Progress values should be increasing, got {progress_values}"
         )

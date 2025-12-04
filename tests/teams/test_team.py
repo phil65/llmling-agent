@@ -164,7 +164,7 @@ async def test_team_run_iter_execution_order():
         a3 = await pool.add_agent("a3", model="test")
 
         # Sequential execution
-        sequential = pool.create_team_run([a1, a2], name="sequential")
+        sequential: TeamRun[None, str] = pool.create_team_run([a1, a2], name="sequential")
         # Team with sequential + single agent
         team = pool.create_team([sequential, a3], name="parallel")
 

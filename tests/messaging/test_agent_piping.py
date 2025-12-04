@@ -58,7 +58,7 @@ async def test_agent_piping_errors(caplog):
     caplog.set_level(logging.CRITICAL)
     agent1 = Agent.from_callback(lambda x: f"model: {x}", name="agent1")
     failing = Agent.from_callback(
-        lambda x: exec('raise ValueError("Transform error")'),  # type: ignore
+        lambda x: exec('raise ValueError("Transform error")'),
         name="failing_transform",
     )
 
@@ -79,7 +79,7 @@ async def test_agent_piping_iter(caplog):
     caplog.set_level(logging.CRITICAL)
     agent1 = Agent.from_callback(lambda x: f"model: {x}", name="agent1")
     failing = Agent.from_callback(
-        lambda x: exec('raise ValueError("Transform error")'),  # type: ignore
+        lambda x: exec('raise ValueError("Transform error")'),
         name="failing_transform",
     )
 
@@ -128,7 +128,7 @@ async def test_agent_piping_async():
     async def model_callback(text: str) -> str:
         return f"model: {text}"
 
-    agent1 = Agent.from_callback(model_callback, name="agent1")
+    agent1: Agent[None, str] = Agent.from_callback(model_callback, name="agent1")
 
     async def transform(text: str) -> str:
         return f"transform: {text}"

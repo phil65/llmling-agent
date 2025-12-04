@@ -35,7 +35,7 @@ async def test_multiple_dependencies():
     async def test_func():
         return "test"
 
-    metadata = test_func._node_function  # type: ignore
+    metadata = test_func._node_function
     assert metadata.depends_on == ["func1", "func2"]
 
 

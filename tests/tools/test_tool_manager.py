@@ -85,11 +85,11 @@ async def test_enabled_state_preservation():
     class MockMCPProvider:
         def __init__(self):
             self.name = "mock_mcp"
-            self._tools_cache = [
+            self._tools_cache: list[Tool] | None = [
                 Tool.from_callable(lambda x: x, name_override="tool1"),
                 Tool.from_callable(lambda x: x, name_override="tool2"),
             ]
-            self._saved_enabled_states = {}
+            self._saved_enabled_states: dict[str, bool] = {}
 
         async def _on_tools_changed(self):
             """Callback when tools change on the MCP server."""
@@ -101,6 +101,7 @@ async def test_enabled_state_preservation():
     provider = MockMCPProvider()
 
     # Disable one tool
+    assert provider._tools_cache is not None
     provider._tools_cache[0].enabled = False
 
     # Simulate tool change event (this should save states and invalidate cache)
