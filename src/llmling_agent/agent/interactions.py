@@ -190,7 +190,7 @@ class Interactions:
                 label_map = selections
                 items: list[Any] = list(selections.values())
             case BaseTeam():
-                items = list(selections.agents)
+                items = list(selections.nodes)
                 label_map = {get_label(item): item for item in items}
             case AgentPool():
                 items = list(selections.agents.values())
@@ -293,7 +293,7 @@ Select ONE option by its exact label."""
                 label_map = selections
                 items = list(selections.values())
             case BaseTeam():
-                items = list(selections.agents)
+                items = list(selections.nodes)
                 label_map = {get_label(item): item for item in items}
             case _:
                 items = list(selections)

@@ -465,7 +465,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
                 else:
                     msg = f"Unknown team member: {member}"
                     raise ValueError(msg)
-            team.agents.extend(members)
+            team.nodes.extend(members)
             self[name] = team
 
     def _connect_nodes(self) -> None:

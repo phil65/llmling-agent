@@ -174,7 +174,7 @@ async def list_available_nodes(  # noqa: D417
                     f"name: {name}",
                     f"type: {'sequential' if isinstance(team, TeamRun) else 'parallel'} team",
                     f"description: {team.description or 'No description'}",
-                    f"members: {', '.join(a.name for a in team.agents)}",
+                    f"members: {', '.join(a.name for a in team.nodes)}",
                     "---",
                 ])
 

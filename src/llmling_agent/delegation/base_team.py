@@ -75,10 +75,10 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
         from llmling_agent.delegation.teamrun import ExtendedTeamTalk
 
         self._name = name or " & ".join([i.name for i in agents])
-        self.agents = EventedList[MessageNode[Any, Any]]()
-        self.agents.events.inserted.connect(self._on_node_added)
-        self.agents.events.removed.connect(self._on_node_removed)
-        self.agents.events.changed.connect(self._on_node_changed)
+        self.nodes = EventedList[MessageNode[Any, Any]]()
+        self.nodes.events.inserted.connect(self._on_node_added)
+        self.nodes.events.removed.connect(self._on_node_removed)
+        self.nodes.events.changed.connect(self._on_node_changed)
         mcp_servers = list(mcp_servers) if mcp_servers else []
         if self.context and (cfg := self.context.config) and cfg.mcp_servers:
             mcp_servers.extend(cfg.get_mcp_servers())
@@ -89,7 +89,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
             description=description,
             event_configs=event_configs,
         )
-        self.agents.extend(list(agents))
+        self.nodes.extend(list(agents))
         self._team_talk = ExtendedTeamTalk()
         self.shared_prompt = shared_prompt
         self._main_task: asyncio.Task[ChatMessage[Any] | None] | None = None
@@ -135,7 +135,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
                 prompt=self.pick_prompt,
             )
             return multi_result.selections
-        return list(self.agents)
+        return list(self.nodes)
 
     def _on_node_changed(
         self, index: int, old: MessageNode[Any, Any], new: MessageNode[Any, Any]
@@ -164,23 +164,23 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
 
     def __repr__(self) -> str:
         """Create readable representation."""
-        members = ", ".join(agent.name for agent in self.agents)
+        members = ", ".join(node.name for node in self.nodes)
         name = f" ({self.name})" if self.name else ""
-        return f"{self.__class__.__name__}[{len(self.agents)}]{name}: {members}"
+        return f"{self.__class__.__name__}[{len(self.nodes)}]{name}: {members}"
 
     def __len__(self) -> int:
         """Get number of team members."""
-        return len(self.agents)
+        return len(self.nodes)
 
     def __iter__(self) -> Iterator[MessageNode[TDeps, TResult]]:
         """Iterate over team members."""
-        return iter(self.agents)
+        return iter(self.nodes)
 
     def __getitem__(self, index_or_name: int | str) -> MessageNode[TDeps, TResult]:
         """Get team member by index or name."""
         if isinstance(index_or_name, str):
-            return next(agent for agent in self.agents if agent.name == index_or_name)
-        return self.agents[index_or_name]
+            return next(node for node in self.nodes if node.name == index_or_name)
+        return self.nodes[index_or_name]
 
     def __or__(
         self,
@@ -200,7 +200,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
             if self.validator:
                 # If we have a validator, create new TeamRun to preserve validation
                 return TeamRun([self, other])
-            self.agents.append(other)
+            self.nodes.append(other)
             return self
         # Otherwise create new TeamRun
         return TeamRun([self, other])
@@ -232,14 +232,14 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
         match other:
             case Team():
                 # Flatten when combining Teams
-                return Team([*self.agents, *other.agents])
+                return Team([*self.nodes, *other.nodes])
             case _:
                 # Everything else just becomes a member
-                return Team([*self.agents, other])
+                return Team([*self.nodes, other])
 
     async def get_stats(self) -> AggregatedMessageStats:
         """Get aggregated stats from all team members."""
-        stats = [await agent.get_stats() for agent in self.agents]
+        stats = [await node.get_stats() for node in self.nodes]
         return AggregatedMessageStats(stats=stats)
 
     @property
@@ -324,7 +324,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
     @property
     def events(self) -> ListEvents:
         """Get events for the team."""
-        return self.agents.events
+        return self.nodes.events
 
     async def cancel(self) -> None:
         """Cancel execution and cleanup."""
@@ -347,11 +347,11 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
             from llmling_agent.delegation.base_team import BaseTeam
 
             if isinstance(node, BaseTeam):
-                for member in node.agents:
+                for member in node.nodes:
                     add_node(member, node_id)
 
         # Start with root nodes (team members)
-        for node in self.agents:
+        for node in self.nodes:
             add_node(node)
 
         return "\n".join(lines)
@@ -360,7 +360,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
         """Recursively iterate over all child agents."""
         from llmling_agent.agent import Agent
 
-        for node in self.agents:
+        for node in self.nodes:
             match node:
                 case BaseTeam():
                     yield from node.iter_agents()

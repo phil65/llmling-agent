@@ -189,34 +189,34 @@ async def test_team_operators():
         # Simple agent combinations
         team1 = a1 & a2
         assert isinstance(team1, Team)
-        assert len(team1.agents) == 2  # noqa: PLR2004
-        assert list(team1.agents) == [a1, a2]
+        assert len(team1.nodes) == 2  # noqa: PLR2004
+        assert list(team1.nodes) == [a1, a2]
 
         # Adding agent to team
         team2 = team1 & a3
         assert isinstance(team2, Team)
-        assert len(team2.agents) == 3  # noqa: PLR2004
-        assert list(team2.agents) == [a1, a2, a3]
+        assert len(team2.nodes) == 3  # noqa: PLR2004
+        assert list(team2.nodes) == [a1, a2, a3]
 
         # Combining teams - should flatten
         other_team = a3 & a4
         combined = team1 & other_team
         assert isinstance(combined, Team)
-        assert len(combined.agents) == 4  # noqa: PLR2004
-        assert list(combined.agents) == [a1, a2, a3, a4]
+        assert len(combined.nodes) == 4  # noqa: PLR2004
+        assert list(combined.nodes) == [a1, a2, a3, a4]
 
         # Test sequential combinations (|)
         # Simple agent combinations
         seq1 = a1 | a2
         assert isinstance(seq1, TeamRun)
-        assert len(seq1.agents) == 2  # noqa: PLR2004
-        assert list(seq1.agents) == [a1, a2]
+        assert len(seq1.nodes) == 2  # noqa: PLR2004
+        assert list(seq1.nodes) == [a1, a2]
 
         # Adding to TeamRun - should extend
         seq2 = seq1 | a3
         assert seq2 is seq1  # Same TeamRun instance
-        assert len(seq1.agents) == 3  # noqa: PLR2004
-        assert list(seq1.agents) == [a1, a2, a3]
+        assert len(seq1.nodes) == 3  # noqa: PLR2004
+        assert list(seq1.nodes) == [a1, a2, a3]
 
         # Complex combinations
         team3 = a1 & a2  # parallel
@@ -225,27 +225,27 @@ async def test_team_operators():
         # TeamRun with Team member
         combined_1 = team3 | seq3
         assert isinstance(combined_1, TeamRun)
-        assert len(combined_1.agents) == 2  # noqa: PLR2004
-        assert combined_1.agents[0] is team3
-        assert isinstance(combined_1.agents[1], TeamRun)
+        assert len(combined_1.nodes) == 2  # noqa: PLR2004
+        assert combined_1.nodes[0] is team3
+        assert isinstance(combined_1.nodes[1], TeamRun)
 
         # Team with TeamRun member
         combined_2 = Team([team3, seq3])
         assert isinstance(combined_2, Team)
-        assert len(combined_2.agents) == 2  # noqa: PLR2004
-        assert combined_2.agents[0] is team3
-        assert isinstance(combined_2.agents[1], TeamRun)
+        assert len(combined_2.nodes) == 2  # noqa: PLR2004
+        assert combined_2.nodes[0] is team3
+        assert isinstance(combined_2.nodes[1], TeamRun)
 
         # Test actual execution
         result = await combined_1.run("test")
         assert isinstance(result, ChatMessage)
-        # All agents should have executed
-        assert len(combined_1.execution_stats.messages) == len(combined_1.agents)
+        # All nodes should have executed
+        assert len(combined_1.execution_stats.messages) == len(combined_1.nodes)
 
         result = await combined_2.run("test")
         assert isinstance(result, ChatMessage)
-        # All agents should have executed
-        assert len(combined_2.execution_stats.messages) == len(combined_2.agents)
+        # All nodes should have executed
+        assert len(combined_2.execution_stats.messages) == len(combined_2.nodes)
 
 
 if __name__ == "__main__":

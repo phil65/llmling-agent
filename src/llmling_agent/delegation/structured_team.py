@@ -36,19 +36,19 @@ class StructuredTeam[TResult](TeamRun[Any, TResult]):
     @property
     def worker(self) -> MessageNode[Any, Any]:
         """Get the worker node."""
-        return self.agents[0]
+        return self.nodes[0]
 
     @worker.setter
     def worker(self, value: MessageNode[Any, Any]) -> None:
         """Set the worker node."""
-        self.agents[0] = value
+        self.nodes[0] = value
 
     @property
     def processor(self) -> Agent[Any, TResult]:
         """Get the processor node."""
-        return self.agents[1]  # type: ignore
+        return self.nodes[1]  # type: ignore
 
     @processor.setter
     def processor(self, value: Agent[Any, TResult]) -> None:
         """Set the processor node."""
-        self.agents[1] = value
+        self.nodes[1] = value

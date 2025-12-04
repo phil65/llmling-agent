@@ -111,7 +111,7 @@ class Team[TDeps = None](BaseTeam[TDeps, Any]):
 
     def __prompt__(self) -> str:
         """Format team info for prompts."""
-        members = ", ".join(a.name for a in self.agents)
+        members = ", ".join(a.name for a in self.nodes)
         desc = f" - {self.description}" if self.description else ""
         return f"Parallel Team {self.name!r}{desc}\nMembers: {members}"
 
@@ -301,7 +301,7 @@ class Team[TDeps = None](BaseTeam[TDeps, Any]):
                     errors[agent.name] = e
 
             # Run job in parallel on all agents
-            await asyncio.gather(*[_run(node) for node in self.agents])
+            await asyncio.gather(*[_run(node) for node in self.nodes])
 
             return TeamResponse(responses=responses, start_time=start_time, errors=errors)
 

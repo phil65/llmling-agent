@@ -127,7 +127,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
 
     def __prompt__(self) -> str:
         """Format team info for prompts."""
-        members = " -> ".join(a.name for a in self.agents)
+        members = " -> ".join(a.name for a in self.nodes)
         desc = f" - {self.description}" if self.description else ""
         return f"Sequential Team {self.name!r}{desc}\nPipeline: {members}"
 
@@ -283,7 +283,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
 
         current_message = prompts
         collected_content = []
-        for agent in self.agents:
+        for agent in self.nodes:
             try:
                 agent_content = []
 
