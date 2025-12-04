@@ -3,8 +3,12 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
-from typing import Any, ClassVar, Literal, get_args, get_origin
+from typing import TYPE_CHECKING, Any, ClassVar, Literal, Protocol, get_args, get_origin
 from uuid import UUID
+
+
+if TYPE_CHECKING:
+    from llmling_agent.messaging import ChatMessage
 
 from pydantic import BaseModel, ConfigDict, field_validator
 from pydantic_ai import AgentStreamEvent, RunContext
@@ -26,6 +30,23 @@ SimpleJsonType = dict[
 ]
 type SessionIdType = str | UUID | None
 type ProcessorCallback[TResult] = Callable[..., TResult | Awaitable[TResult]]
+
+
+class SupportsStructuredOutput[TDeps](Protocol):
+    """Protocol for nodes that support structured output via run().
+
+    This protocol is used for components that need to call run() with
+    an output_type parameter (e.g., picker agents, Interactions).
+    """
+
+    name: str
+
+    async def run(
+        self,
+        *prompts: Any,
+        output_type: type[Any] | None = ...,
+        **kwargs: Any,
+    ) -> ChatMessage[Any]: ...
 
 
 NodeName = str
