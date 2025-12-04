@@ -230,35 +230,34 @@ class ACPSession:
 
     async def init_client_skills(self) -> None:
         """Discover and load skills from client-side .claude/skills directory."""
-        try:
-            from llmling_agent.resource_providers.skills import SkillsResourceProvider
-            from llmling_agent.skills.registry import SkillsRegistry
+        # TODO: Re-enable once tool name conflict with pool-level skills provider is resolved
+        # The pool already adds a SkillsResourceProvider with load_skill tool,
+        # adding another one here causes "Tool name conflicts with existing tool: 'load_skill'"
+        # try:
+        #     from llmling_agent.resource_providers.skills import SkillsResourceProvider
+        #     from llmling_agent.skills.registry import SkillsRegistry
 
-            registry = SkillsRegistry()
-            path = self.fs.get_upath(".claude/skills")
-            # from fsspec.implementations.dirfs import DirFileSystem  # type: ignore[import-untyped]
-            # wrapped_fs = DirFileSystem(".claude", self.fs, asynchronious=True)
-            # self.log.info("hello", files=str(await self.fs._info(".claude")))
-            # self.log.info("hello", files=str(await wrapped_fs._ls("")))
-            await registry.register_skills_from_path(path)
-            if not registry.is_empty:
-                client_skills_provider = SkillsResourceProvider(
-                    registry=registry,
-                    name="client_skills",
-                    owner=f"acp_session_{self.session_id}",
-                )
+        #     registry = SkillsRegistry()
+        #     path = self.fs.get_upath(".claude/skills")
+        #     await registry.register_skills_from_path(path)
+        #     if not registry.is_empty:
+        #         client_skills_provider = SkillsResourceProvider(
+        #             registry=registry,
+        #             name="client_skills",
+        #             owner=f"acp_session_{self.session_id}",
+        #         )
 
-                # Add to all agents in the pool
-                for agent in self.agent_pool.agents.values():
-                    agent.tools.add_provider(client_skills_provider)
+        #         # Add to all agents in the pool
+        #         for agent in self.agent_pool.agents.values():
+        #             agent.tools.add_provider(client_skills_provider)
 
-                skill_count = len(registry.list_items())
-                self.log.info("Added client-side skills to agents", skill_count=skill_count)
-            else:
-                self.log.debug("No valid client-side skills found")
+        #         skill_count = len(registry.list_items())
+        #         self.log.info("Added client-side skills to agents", skill_count=skill_count)
+        #     else:
+        #         self.log.debug("No valid client-side skills found")
 
-        except Exception as e:
-            self.log.exception("Failed to discover client-side skills", error=e)
+        # except Exception as e:
+        #     self.log.exception("Failed to discover client-side skills", error=e)
 
     @property
     def agent(self) -> Agent[ACPSession, str]:

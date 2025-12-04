@@ -82,6 +82,7 @@ if TYPE_CHECKING:
         WaitForTerminalExitRequest,
         WriteTextFileRequest,
     )
+    from llmling_agent.agent.events import RichAgentStreamEvent
     from llmling_agent.messaging.context import NodeContext
 
 
@@ -131,11 +132,17 @@ class ACPSessionState:
     tool_calls: list[dict[str, Any]] = field(default_factory=list)
     """Tool call records."""
 
+    events: list[Any] = field(default_factory=list)
+    """Queue of native events converted from ACP updates."""
+
     is_complete: bool = False
     """Whether the prompt processing is complete."""
 
     stop_reason: str | None = None
     """Reason processing stopped."""
+
+    current_model_id: str | None = None
+    """Current model ID from session state."""
 
 
 class ACPClientHandler(Client):
@@ -174,7 +181,15 @@ class ACPClientHandler(Client):
 
     async def session_update(self, params: SessionNotification[Any]) -> None:
         """Handle session update notifications from the agent."""
+        from llmling_agent.agent.acp_converters import acp_to_native_event
+
         update = params.update
+
+        # Convert to native event and queue it
+        if native_event := acp_to_native_event(update):
+            self.state.events.append(native_event)
+
+        # Also maintain text chunk accumulation for simple access
         match update:
             case AgentMessageChunk(content=TextContentBlock(text=text)):
                 self.state.text_chunks.append(text)
@@ -572,7 +587,14 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         self._session_id = response.session_id
         if self._state:
             self._state.session_id = self._session_id
-        self.log.info("ACP session created", session_id=self._session_id)
+            # Store model info from session response
+            if response.models:
+                self._state.current_model_id = response.models.current_model_id
+        self.log.info(
+            "ACP session created",
+            session_id=self._session_id,
+            model=self._state.current_model_id if self._state else None,
+        )
 
     async def _cleanup(self) -> None:
         """Clean up resources."""
@@ -646,19 +668,23 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         self.message_sent.emit(message)
         return message
 
-    async def run_iter(self, *prompts: Any, **kwargs: Any) -> AsyncIterator[ChatMessage[str]]:
-        """Yield messages as chunks arrive during execution.
+    async def run_stream(
+        self, *prompts: Any, **kwargs: Any
+    ) -> AsyncIterator[RichAgentStreamEvent[str]]:
+        """Stream native events as they arrive from ACP agent.
 
-        Runs the prompt in background and yields ChatMessage instances
-        for each text chunk received via ACP session updates.
+        Yields the same event types as native agents, enabling uniform
+        handling regardless of whether the agent is native or ACP-based.
 
         Args:
             *prompts: Prompts to send (will be joined with spaces)
             **kwargs: Additional arguments (unused)
 
         Yields:
-            ChatMessage for each text chunk from the ACP agent
+            RichAgentStreamEvent instances converted from ACP session updates
         """
+        from llmling_agent.agent.events import StreamCompleteEvent
+
         if not self._connection or not self._session_id or not self._state:
             msg = "Agent not initialized - use async context manager"
             raise RuntimeError(msg)
@@ -667,55 +693,88 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         self._state.text_chunks.clear()
         self._state.thought_chunks.clear()
         self._state.tool_calls.clear()
+        self._state.events.clear()
         self._state.is_complete = False
+        self._state.stop_reason = None
+
         prompt_text = " ".join(str(p) for p in prompts)
         content_blocks = [TextContentBlock(text=prompt_text)]
         prompt_request = PromptRequest(session_id=self._session_id, prompt=content_blocks)
-        # Run prompt in background and yield chunks
+
+        self.log.debug("Starting streaming prompt", prompt=prompt_text[:100])
+
+        # Run prompt in background
         prompt_task = asyncio.create_task(self._connection.prompt(prompt_request))
-        last_chunk_count = 0
+
+        last_idx = 0
         while not prompt_task.done():
-            # Wait for updates with timeout
+            # Wait for new events
             if self._client_handler:
                 try:
-                    await asyncio.wait_for(self._client_handler._update_event.wait(), timeout=0.1)
+                    await asyncio.wait_for(self._client_handler._update_event.wait(), timeout=0.05)
                     self._client_handler._update_event.clear()
                 except TimeoutError:
                     pass
 
-            # Yield new chunks
-            current_chunks = len(self._state.text_chunks)
-            if current_chunks > last_chunk_count:
-                for i in range(last_chunk_count, current_chunks):
-                    chunk_content = self._state.text_chunks[i]
-                    yield ChatMessage(
-                        content=chunk_content,
-                        role="assistant",
-                        name=self.name,
-                        message_id=str(uuid.uuid4()),
-                        conversation_id=self.conversation_id,
-                        model_name=self._get_model_name(),
-                    )
-                last_chunk_count = current_chunks
+            # Yield new native events
+            while last_idx < len(self._state.events):
+                yield self._state.events[last_idx]
+                last_idx += 1
 
-        # Wait for task completion
+        # Yield remaining events after completion
+        while last_idx < len(self._state.events):
+            yield self._state.events[last_idx]
+            last_idx += 1
+
+        # Ensure we catch any exceptions from the prompt task
         response = await prompt_task
         self._state.stop_reason = response.stop_reason
-        # Yield any remaining chunks
-        for i in range(last_chunk_count, len(self._state.text_chunks)):
-            yield ChatMessage(
-                content=self._state.text_chunks[i],
-                role="assistant",
-                name=self.name,
-                message_id=str(uuid.uuid4()),
-                conversation_id=self.conversation_id,
-                model_name=self._get_model_name(),
-            )
-
+        self._state.is_complete = True
         self._message_count += 1
 
+        # Emit final StreamCompleteEvent with aggregated message
+        message = ChatMessage[str](
+            content="".join(self._state.text_chunks),
+            role="assistant",
+            name=self.name,
+            message_id=str(uuid.uuid4()),
+            conversation_id=self.conversation_id,
+            model_name=self._get_model_name(),
+        )
+        yield StreamCompleteEvent(message=message)
+        self.message_sent.emit(message)
+
+    async def run_iter(self, *prompts: Any, **kwargs: Any) -> AsyncIterator[ChatMessage[str]]:
+        """Yield ChatMessage instances for text chunks during execution.
+
+        Args:
+            *prompts: Prompts to send (will be joined with spaces)
+            **kwargs: Additional arguments (unused)
+
+        Yields:
+            ChatMessage for each text chunk from the ACP agent
+        """
+        from pydantic_ai import PartDeltaEvent
+        from pydantic_ai.messages import TextPartDelta
+
+        async for event in self.run_stream(*prompts, **kwargs):
+            # Only yield ChatMessages for text content
+            if isinstance(event, PartDeltaEvent) and isinstance(event.delta, TextPartDelta):
+                yield ChatMessage(
+                    content=event.delta.content_delta,
+                    role="assistant",
+                    name=self.name,
+                    message_id=str(uuid.uuid4()),
+                    conversation_id=self.conversation_id,
+                    model_name=self._get_model_name(),
+                )
+
     def _get_model_name(self) -> str:
-        """Get model name from agent info."""
+        """Get model name from session state or agent info."""
+        # Prefer current model from session state
+        if self._state and self._state.current_model_id:
+            return self._state.current_model_id
+        # Fall back to agent info name
         if self._init_response and self._init_response.agent_info:
             return self._init_response.agent_info.name
         return self.config.command
@@ -733,16 +792,20 @@ if __name__ == "__main__":
         Usage:
             python -m llmling_agent.agent.acp_agent "Your prompt here"
             python -m llmling_agent.agent.acp_agent --claude "Your prompt here"
+            python -m llmling_agent.agent.acp_agent --stream "Your prompt here"
 
         Or with default prompt:
             python -m llmling_agent.agent.acp_agent
         """
         import sys
 
-        # Check for --claude flag to use claude-code-acp instead
+        # Check for flags
         use_claude = "--claude" in sys.argv
+        use_stream = "--stream" in sys.argv
         if use_claude:
             sys.argv.remove("--claude")
+        if use_stream:
+            sys.argv.remove("--stream")
 
         if use_claude:
             # Use claude-code-acp (must be installed: npm install -g @anthropics/claude-code-acp)
@@ -779,8 +842,15 @@ if __name__ == "__main__":
                 prompt = " ".join(sys.argv[1:]) if len(sys.argv) > 1 else "Say hello briefly."
                 print(f"Prompt: {prompt}")
                 print("-" * 50)
-                result = await agent.run(prompt)
-                print(f"Response: {result.content}")
+
+                if use_stream:
+                    print("Response (streaming): ", end="", flush=True)
+                    async for chunk in agent.run_stream(prompt):
+                        print(chunk, end="", flush=True)
+                    print()  # newline after streaming
+                else:
+                    result = await agent.run(prompt)
+                    print(f"Response: {result.content}")
                 # Show tool calls if any
                 if agent._state and agent._state.tool_calls:
                     print("-" * 50)
