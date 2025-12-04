@@ -118,7 +118,9 @@ class ClientSideConnection(Agent):
         return AuthenticateResponse.model_validate(payload)
 
     async def prompt(self, params: PromptRequest) -> PromptResponse:
-        dct = params.model_dump(by_alias=True, exclude_none=True, exclude_defaults=True)
+        # Don't exclude_defaults here - the 'type' field in content blocks has a default
+        # value but is required for discriminated unions to work
+        dct = params.model_dump(by_alias=True, exclude_none=True)
         resp = await self._conn.send_request("session/prompt", dct)
         return PromptResponse.model_validate(resp)
 
