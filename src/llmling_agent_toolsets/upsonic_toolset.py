@@ -18,7 +18,7 @@ class UpsonicTools(ResourceProvider):
     """Provider for upsonic tools."""
 
     def __init__(self, api_key: SecretStr | None = None, base_url: str | None = None) -> None:
-        from upsonic import Tiger, Tiger_Admin  # type: ignore[import-untyped]
+        from upsonic import Tiger, Tiger_Admin
 
         super().__init__(name="tiger")
         key = api_key.get_secret_value() if api_key else os.getenv("UPSONIC_API_KEY")

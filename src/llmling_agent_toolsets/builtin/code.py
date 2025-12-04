@@ -7,7 +7,7 @@ from pathlib import Path
 import re
 from typing import TYPE_CHECKING, Any
 
-from fsspec import AbstractFileSystem  # type: ignore[import-untyped]
+from fsspec import AbstractFileSystem
 
 from llmling_agent.log import get_logger
 from llmling_agent.resource_providers import ResourceProvider
@@ -93,8 +93,8 @@ class CodeTools(ResourceProvider):
             name: Name for this toolset provider
             cwd: Optional cwd to resolve relative paths against
         """
-        from fsspec.asyn import AsyncFileSystem  # type: ignore[import-untyped]
-        from fsspec.implementations.asyn_wrapper import (  # type: ignore[import-untyped]
+        from fsspec.asyn import AsyncFileSystem
+        from fsspec.implementations.asyn_wrapper import (
             AsyncFileSystemWrapper,
         )
         from morefs.asyn_local import AsyncLocalFileSystem

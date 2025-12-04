@@ -299,7 +299,7 @@ class FSSpecToolsetConfig(BaseToolsetConfig):
 
     def get_provider(self) -> ResourceProvider:
         """Create FSSpec filesystem tools provider."""
-        import fsspec  # type: ignore[import-untyped]
+        import fsspec
 
         from llmling_agent.prompts.conversion_manager import ConversionManager
         from llmling_agent_toolsets.fsspec_toolset import FSSpecTools
@@ -499,6 +499,6 @@ ToolsetConfig = Annotated[
 ]
 
 if __name__ == "__main__":
-    import upsonic  # type: ignore[import-untyped]
+    import upsonic
 
     tools = upsonic.Tiger().crewai

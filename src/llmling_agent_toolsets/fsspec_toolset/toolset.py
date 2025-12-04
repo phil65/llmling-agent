@@ -26,7 +26,7 @@ from llmling_agent_toolsets.fsspec_toolset.helpers import (
 
 
 if TYPE_CHECKING:
-    import fsspec  # type: ignore[import-untyped]
+    import fsspec
 
     from llmling_agent.common_types import ModelType
     from llmling_agent.prompts.conversion_manager import ConversionManager
@@ -57,8 +57,8 @@ class FSSpecTools(ResourceProvider):
             edit_model: Optional edit model for text editing
             converter: Optional conversion manager for markdown conversion
         """
-        from fsspec.asyn import AsyncFileSystem  # type: ignore[import-untyped]
-        from fsspec.implementations.asyn_wrapper import (  # type: ignore[import-untyped]
+        from fsspec.asyn import AsyncFileSystem
+        from fsspec.implementations.asyn_wrapper import (
             AsyncFileSystemWrapper,
         )
 

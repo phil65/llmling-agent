@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-import fsspec  # type: ignore[import-untyped]
+import fsspec
 from fsspec import AbstractFileSystem
 from upath import UPath
 from upathtools import UnionFileSystem
