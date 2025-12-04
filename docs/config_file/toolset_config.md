@@ -1,3 +1,10 @@
+---
+sync:
+  agent: doc_sync_agent
+  dependencies:
+    - src/llmling_agent_config/toolsets.py
+---
+
 # Toolset Configuration
 
 Toolsets are collections of tools that can be dynamically loaded from various sources. They provide a way to organize and manage groups of related tools.

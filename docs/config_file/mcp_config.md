@@ -1,3 +1,10 @@
+---
+sync:
+  agent: doc_sync_agent
+  dependencies:
+    - src/llmling_agent_config/mcp_server.py
+---
+
 # MCP Server Configuration
 
 MCP (Model Control Protocol) servers allow agents to use external tools through a standardized protocol. They can be configured at both agent and manifest levels.

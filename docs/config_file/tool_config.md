@@ -1,3 +1,9 @@
+---
+sync:
+  agent: doc_sync_agent
+  dependencies:
+    - src/llmling_agent_config/tools.py
+---
 # Tool Configuration
 
 Tools provide agents with specific capabilities. The tool configuration supports three main types: import-based, CrewAI tools, and LangChain tools.

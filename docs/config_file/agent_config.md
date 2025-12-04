@@ -1,3 +1,10 @@
+---
+sync:
+  agent: doc_sync_agent
+  dependencies:
+    - src/llmling_agent_config/nodes.py
+---
+
 # Agent Configuration
 
 Individual agent configurations define the behavior, capabilities, and settings for each agent in your manifest. Each agent entry in the `agents` dictionary represents a complete agent setup.

@@ -63,6 +63,7 @@ from llmling_agent.messaging import ChatMessage
 from llmling_agent.messaging.messagenode import MessageNode
 from llmling_agent.talk.stats import MessageStats
 from llmling_agent.utils.tasks import TaskManager
+from llmling_agent_config.nodes import NodeConfig
 
 
 if TYPE_CHECKING:
@@ -92,8 +93,7 @@ logger = get_logger(__name__)
 PROTOCOL_VERSION = 1
 
 
-@dataclass
-class ACPAgentConfig:
+class ACPAgentConfig(NodeConfig):
     """Configuration for an external ACP agent."""
 
     command: str
@@ -107,12 +107,6 @@ class ACPAgentConfig:
 
     cwd: str | None = None
     """Working directory for the session."""
-
-    name: str | None = None
-    """Name for this agent."""
-
-    description: str | None = None
-    """Description of the agent."""
 
     allow_file_operations: bool = True
     """Whether to allow file read/write operations."""
@@ -283,10 +277,8 @@ class ACPClientHandler(Client):
 
         try:
             terminal_id = f"term_{uuid.uuid4().hex[:8]}"
-
             # Build command
             cmd = [params.command, *(params.args or [])]
-
             # Build environment
             env = dict(os.environ)
             if params.env:

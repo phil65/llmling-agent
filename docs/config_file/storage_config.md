@@ -1,3 +1,10 @@
+---
+sync:
+  agent: doc_sync_agent
+  dependencies:
+    - src/llmling_agent_config/storage.py
+---
+
 # Storage Configuration
 
 The storage configuration defines how agent interactions, messages, and tool usage are logged. It's defined at the root level of the manifest.

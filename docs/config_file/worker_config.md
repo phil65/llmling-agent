@@ -1,3 +1,10 @@
+---
+sync:
+  agent: doc_sync_agent
+  dependencies:
+    - src/llmling_agent_config/workers.py
+---
+
 # Worker Configuration
 
 Workers are agents that are registered as tools with a parent agent, allowing for hierarchical agent structures. They can be configured using either detailed configuration or shorthand syntax.

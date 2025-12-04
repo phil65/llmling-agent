@@ -1,3 +1,10 @@
+---
+sync:
+  agent: doc_sync_agent
+  dependencies:
+    - src/llmling_agent_config/session.py
+---
+
 # Session Configuration
 
 Session configuration allows loading previous conversations and managing agent state. Sessions can be identified by name or configured using detailed query parameters.

@@ -2,38 +2,41 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from llmling_agent import Agent
+    from llmling_agent import MessageNode
     from llmling_agent_sync.models import FileChange
 
 
 class AgentReconciler:
-    """Handler that uses an Agent to reconcile file changes.
+    """Handler that uses agents from a manifest to reconcile file changes.
 
-    Constructs a prompt from the FileChange metadata and sends it to the agent.
+    Looks up the agent referenced in file metadata and uses it for reconciliation.
     """
 
     def __init__(
         self,
-        agent: Agent,
+        agent_getter: Callable[[str], MessageNode[Any, Any]],
         include_file_content: bool = True,
         max_diff_lines: int = 500,
+        default_agent: str | None = None,
     ):
         """Initialize the reconciler.
 
         Args:
-            agent: The agent to use for reconciliation
+            agent_getter: Callable that returns an agent by name (e.g., pool.get_agent)
             include_file_content: Whether to include current file content in prompt
             max_diff_lines: Maximum diff lines to include (truncate if larger)
+            default_agent: Fallback agent name if file doesn't specify one
         """
-        self.agent = agent
+        self._get_agent = agent_getter
         self.include_file_content = include_file_content
         self.max_diff_lines = max_diff_lines
+        self.default_agent = default_agent
 
     async def __call__(self, change: FileChange) -> str | None:
         """Process a file change and return updated content.
@@ -44,22 +47,24 @@ class AgentReconciler:
         Returns:
             New file content if changes needed, None otherwise
         """
+        agent_name = change.metadata.agent or self.default_agent
+        if not agent_name:
+            return None
+
+        agent = self._get_agent(agent_name)
+        if not agent:
+            return None
+
         prompt = self._build_prompt(change)
-        result = await self.agent.run(prompt)
+        result = await agent.run(prompt)
         return result.data if result.data else None
 
     def _build_prompt(self, change: FileChange) -> str:
         """Build the reconciliation prompt from change data."""
         parts: list[str] = []
 
-        # Base instruction
-        base_instruction = change.metadata.prompt or (
-            "Review this file and update it if needed based on the dependency changes."
-        )
-        parts.append(base_instruction)
-
         # File being reviewed
-        parts.append(f"\n## File to review\n`{change.path}`")
+        parts.append(f"## File to review\n`{change.path}`")
 
         # Include current file content if requested
         if self.include_file_content:
@@ -72,7 +77,8 @@ class AgentReconciler:
                 pass
 
         # Changed dependencies
-        parts.append(f"\n## Changed dependencies\n{', '.join(change.changed_deps)}")
+        if change.changed_deps:
+            parts.append(f"\n## Changed dependencies\n{', '.join(change.changed_deps)}")
 
         # Git diff (potentially truncated)
         if change.diff:
@@ -91,19 +97,14 @@ class AgentReconciler:
             for url in change.changed_urls:
                 url_content = change.url_contents.get(url)
                 if url_content:
-                    # Truncate long content
                     content_lines = url_content.splitlines()
                     if len(content_lines) > self.max_diff_lines:
                         url_content = "\n".join(content_lines[: self.max_diff_lines])
-                        url_content += f"\n\n... (truncated, {len(content_lines) - self.max_diff_lines} more lines)"  # noqa: E501
+                        remaining = len(content_lines) - self.max_diff_lines
+                        url_content += f"\n\n... (truncated, {remaining} more lines)"
                     parts.append(f"\n### Content: {url}\n```\n{url_content}\n```")
 
-        # Reference URLs
-        if change.metadata.urls:
-            urls_formatted = "\n".join(f"- {url}" for url in change.metadata.urls)
-            parts.append(f"\n## Reference URLs\n{urls_formatted}")
-
-        # Additional context
+        # Additional context from metadata
         if change.metadata.context:
             context_formatted = "\n".join(
                 f"- **{k}**: {v}" for k, v in change.metadata.context.items()
@@ -138,7 +139,7 @@ class LoggingHandler:
     async def __call__(self, change: FileChange) -> str | None:
         """Log the change and return None (no modifications)."""
         self._logger(f"File needs review: {change.path}")
+        self._logger(f"  Agent: {change.metadata.agent or '(none)'}")
         self._logger(f"  Dependencies: {change.changed_deps}")
-        if change.metadata.prompt:
-            self._logger(f"  Prompt: {change.metadata.prompt}")
+        self._logger(f"  URLs: {change.changed_urls}")
         return None

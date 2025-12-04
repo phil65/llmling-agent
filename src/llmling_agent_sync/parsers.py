@@ -32,8 +32,8 @@ class PythonSyncParser:
 
     Format:
         # /// sync
+        # agent = "doc_sync_agent"
         # dependencies = ["src/models/*.py"]
-        # prompt = "Update if API changes"
         # urls = ["https://docs.example.com"]
         # [context]
         # key = "value"
@@ -72,8 +72,8 @@ class PythonSyncParser:
             return SyncMetadata()
 
         return SyncMetadata(
+            agent=data.get("agent"),
             dependencies=data.get("dependencies", []),
-            prompt=data.get("prompt"),
             urls=data.get("urls", []),
             context=data.get("context", {}),
             last_checked=data.get("last_checked"),
@@ -94,12 +94,12 @@ class PythonSyncParser:
         """Format metadata as a sync block."""
         lines = ["# /// sync"]
 
+        if metadata.agent:
+            lines.append(f'# agent = "{metadata.agent}"')
+
         if metadata.dependencies:
             deps = ", ".join(f'"{d}"' for d in metadata.dependencies)
             lines.append(f"# dependencies = [{deps}]")
-
-        if metadata.prompt:
-            lines.append(f'# prompt = "{metadata.prompt}"')
 
         if metadata.urls:
             urls = ", ".join(f'"{u}"' for u in metadata.urls)
@@ -135,9 +135,9 @@ class MarkdownSyncParser:
     Format:
         ---
         sync:
+          agent: doc_sync_agent
           dependencies:
             - src/models/*.py
-          prompt: Update if API changes
           urls:
             - https://docs.example.com
           context:
@@ -166,8 +166,8 @@ class MarkdownSyncParser:
 
         sync_data = frontmatter["sync"]
         return SyncMetadata(
+            agent=sync_data.get("agent"),
             dependencies=sync_data.get("dependencies", []),
-            prompt=sync_data.get("prompt"),
             urls=sync_data.get("urls", []),
             context=sync_data.get("context", {}),
             last_checked=sync_data.get("last_checked"),
@@ -196,10 +196,10 @@ class MarkdownSyncParser:
         """Convert metadata to dict for YAML serialization."""
         result: dict[str, Any] = {}
 
+        if metadata.agent:
+            result["agent"] = metadata.agent
         if metadata.dependencies:
             result["dependencies"] = metadata.dependencies
-        if metadata.prompt:
-            result["prompt"] = metadata.prompt
         if metadata.urls:
             result["urls"] = metadata.urls
         if metadata.last_checked:

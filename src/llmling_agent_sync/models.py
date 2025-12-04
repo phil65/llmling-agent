@@ -14,14 +14,14 @@ if TYPE_CHECKING:
 class SyncMetadata:
     """Metadata extracted from file header/frontmatter.
 
-    Defines what a file depends on and how to handle updates.
+    Defines what a file depends on and which agent handles updates.
     """
+
+    agent: str | None = None
+    """Reference to agent name in manifest that handles reconciliation."""
 
     dependencies: list[str] = field(default_factory=list)
     """Glob patterns for files this depends on (e.g., 'src/models/*.py')."""
-
-    prompt: str | None = None
-    """Custom instruction for LLM when reconciling this file."""
 
     urls: list[str] = field(default_factory=list)
     """Reference URLs the agent can consult."""

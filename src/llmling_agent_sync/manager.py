@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Any
 
 from llmling_agent_sync.git import GitRepo
 from llmling_agent_sync.models import FileChange
+from llmling_agent_sync.packages import PackageRegistry
 from llmling_agent_sync.parsers import BUILTIN_PARSERS
 from llmling_agent_sync.resources import ResourceRegistry
 
@@ -19,9 +20,11 @@ if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
 
     from llmling_agent_sync.models import SyncMetadata
+    from llmling_agent_sync.packages import PackageChange
     from llmling_agent_sync.parsers import MetadataParser
 
     ChangeHandler = Callable[[FileChange], Awaitable[str | None]]
+    ProjectChangeHandler = Callable[[list[PackageChange]], Awaitable[None]]
 
 
 class InitMode(Enum):
@@ -46,12 +49,14 @@ class SyncManager:
         self,
         root: Path | str,
         registry_file: Path | str | None = None,
+        packages_file: Path | str | None = None,
     ):
         """Initialize the sync manager.
 
         Args:
             root: Repository root path
             registry_file: Path to resource registry (default: .llmling/resources.yml)
+            packages_file: Path to packages registry (default: .llmling/packages.yml)
         """
         self.root = Path(root).resolve()
         self.git = GitRepo(self.root)
@@ -61,8 +66,14 @@ class SyncManager:
         )
         self.resources = ResourceRegistry(registry_file=registry_path)
 
+        packages_path = (
+            Path(packages_file) if packages_file else self.root / ".llmling" / "packages.yml"
+        )
+        self.packages = PackageRegistry(registry_file=packages_path)
+
         self._parsers: dict[str, MetadataParser] = {}
         self._handlers: list[ChangeHandler] = []
+        self._project_handlers: list[ProjectChangeHandler] = []
 
         for parser in BUILTIN_PARSERS:
             self.register_parser(parser)
@@ -73,8 +84,12 @@ class SyncManager:
             self._parsers[ext] = parser
 
     def register_handler(self, handler: ChangeHandler) -> None:
-        """Register a change handler callback."""
+        """Register a file change handler callback."""
         self._handlers.append(handler)
+
+    def register_project_handler(self, handler: ProjectChangeHandler) -> None:
+        """Register a project-level change handler (for package updates)."""
+        self._project_handlers.append(handler)
 
     def _get_parser(self, path: Path) -> MetadataParser | None:
         """Get parser for a file based on extension."""
@@ -342,6 +357,65 @@ class SyncManager:
     def get_url_content(self, url: str) -> str | None:
         """Get cached content for a URL (if available after refresh)."""
         return self.resources.get_content(url)
+
+    # === Package tracking ===
+
+    async def refresh_packages(
+        self,
+        packages: list[str] | None = None,
+        fetch_notes: bool = True,
+    ) -> list[PackageChange]:
+        """Check for package version changes (minor/major only).
+
+        Args:
+            packages: Package names to check (default: all tracked)
+            fetch_notes: Whether to fetch release notes
+
+        Returns:
+            List of PackageChange for packages with significant bumps
+        """
+        if packages is None:
+            packages = self.packages.tracked_packages()
+
+        if not packages:
+            return []
+
+        return await self.packages.refresh(packages, fetch_notes=fetch_notes)
+
+    async def reconcile_packages(
+        self,
+        changes: list[PackageChange] | None = None,
+        packages: list[str] | None = None,
+    ) -> None:
+        """Run project handlers for package changes.
+
+        Args:
+            changes: Changes to process (default: detect via refresh)
+            packages: Packages to check if changes not provided
+        """
+        if changes is None:
+            changes = await self.refresh_packages(packages)
+
+        if not changes:
+            return
+
+        for handler in self._project_handlers:
+            await handler(changes)
+
+    def init_packages(self, packages: list[str]) -> list[str]:
+        """Start tracking packages at current versions.
+
+        Args:
+            packages: Package names to track
+
+        Returns:
+            List of packages that were initialized
+        """
+        return self.packages.init(packages)
+
+    def package_status(self) -> dict[str, dict[str, Any]]:
+        """Get status of all tracked packages."""
+        return self.packages.status()
 
     def status(self) -> dict[str, dict[str, Any]]:
         """Get sync status for all tracked files.

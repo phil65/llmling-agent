@@ -1,4 +1,11 @@
-# Event Configuration
+---
+sync:
+  agent: doc_sync_agent
+  dependencies:
+    - src/llmling_agent_config/events.py
+---
+
+# Events Configuration
 
 Events (or "triggers") define automated activations of agents based on various sources. They allow agents to respond to:
 - File system changes
