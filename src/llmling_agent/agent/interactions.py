@@ -403,29 +403,20 @@ List your selections, one per line, followed by your reasoning."""
         text: str,
         as_type: type[T],
         *,
-        mode: ExtractionMode = "structured",
         min_items: int = 1,
         max_items: int | None = None,
         prompt: AnyPromptType | None = None,
-        include_tools: bool = False,
     ) -> list[T]:
         """Extract multiple instances of type from text.
 
         Args:
             text: Text to extract from
             as_type: Type to extract
-            mode: Extraction approach:
-                - "structured": Use Pydantic models (more robust)
-                - "tool_calls": Use tool calls (more flexible)
             min_items: Minimum number of instances to extract
             max_items: Maximum number of instances (None=unlimited)
             prompt: Optional custom prompt
-            include_tools: Whether to include other tools (tool_calls mode only)
         """
         item_model = Schema.for_class_ctor(as_type)
-
-        instances: list[T] = []
-        schema_obj = create_constructor_schema(as_type)
         final_prompt = prompt or "\n".join([
             f"Extract {as_type.__name__} instances from text.",
             # "Requirements:",
@@ -434,57 +425,26 @@ List your selections, one per line, followed by your reasoning."""
             "\nText to analyze:",
             text,
         ])
-        if mode == "structured":
-            # Create model for individual instance
+        # Create model for individual instance
 
-            class Extraction(Schema):
-                instances: list[item_model]  # type: ignore
-                # explanation: str | None = None
+        class Extraction(Schema):
+            instances: list[item_model]  # type: ignore
+            # explanation: str | None = None
 
-            result = await self.agent.run(final_prompt, output_type=Extraction)
-
-            # Validate counts
-            num_instances = len(result.content.instances)
-            if len(result.content.instances) < min_items:
-                msg = f"Found only {num_instances} instances, need {min_items}"
-                raise ValueError(msg)
-
-            if max_items and num_instances > max_items:
-                msg = f"Found {num_instances} instances, max is {max_items}"
-                raise ValueError(msg)
-
-            # Convert model instances to actual type
-            return [
-                as_type(
-                    **instance.data  # type: ignore
-                    if hasattr(instance, "data")
-                    else instance.model_dump()  # type: ignore
-                )
-                for instance in result.content.instances
-            ]
-
-        # Legacy tool-calls approach
-
-        async def add_instance(**kwargs: Any) -> str:
-            """Add an extracted instance."""
-            if max_items and len(instances) >= max_items:
-                msg = f"Maximum number of items ({max_items}) reached"
-                raise ValueError(msg)
-            instance = as_type(**kwargs)
-            instances.append(instance)
-            return f"Added {instance}"
-
-        add_instance.__annotations__ = schema_obj.get_annotations()
-        add_instance.__signature__ = schema_obj.to_python_signature()  # type: ignore
-        async with self.agent.temporary_state(
-            tools=[add_instance],
-            replace_tools=not include_tools,
-            output_type=item_model,
-        ):
-            await self.agent.run(final_prompt)  # Create extraction prompt
-
-        if len(instances) < min_items:
-            msg = f"Found only {len(instances)} instances, need at least {min_items}"
+        result = await self.agent.run(final_prompt, output_type=Extraction)
+        num_instances = len(result.content.instances)  # Validate counts
+        if len(result.content.instances) < min_items:
+            msg = f"Found only {num_instances} instances, need {min_items}"
             raise ValueError(msg)
 
-        return instances
+        if max_items and num_instances > max_items:
+            msg = f"Found {num_instances} instances, max is {max_items}"
+            raise ValueError(msg)
+        return [
+            as_type(
+                **instance.data  # type: ignore
+                if hasattr(instance, "data")
+                else instance.model_dump()  # type: ignore
+            )
+            for instance in result.content.instances
+        ]
