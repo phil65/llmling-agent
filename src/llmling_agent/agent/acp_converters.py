@@ -29,7 +29,6 @@ from llmling_agent.agent.events import (
     PlanUpdateEvent,
     ProcessStartEvent,
     TerminalContentItem,
-    ToolCallContentItem,
     ToolCallProgressEvent,
     ToolCallStartEvent,
 )
@@ -37,11 +36,8 @@ from llmling_agent.agent.events import (
 
 if TYPE_CHECKING:
     from acp.schema import SessionUpdate
-    from acp.schema.tool_call import (
-        ToolCallContent,
-        ToolCallLocation,
-    )
-    from llmling_agent.agent.events import RichAgentStreamEvent
+    from acp.schema.tool_call import ToolCallContent, ToolCallLocation
+    from llmling_agent.agent.events import RichAgentStreamEvent, ToolCallContentItem
 
 
 def convert_acp_locations(
@@ -84,7 +80,7 @@ def convert_acp_content(
     return result
 
 
-def acp_to_native_event(update: SessionUpdate) -> RichAgentStreamEvent[Any] | None:
+def acp_to_native_event(update: SessionUpdate) -> RichAgentStreamEvent[Any] | None:  # noqa: PLR0911
     """Convert ACP session update to native streaming event.
 
     Args:
