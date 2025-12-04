@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 from collections.abc import Sequence  # noqa: TC003
-from typing import Any
+from typing import Any, Self
 
 from pydantic import Field
 
 from acp.schema.base import Request
-from acp.schema.capabilities import ClientCapabilities
-from acp.schema.common import Implementation  # noqa: TC001
+from acp.schema.capabilities import ClientCapabilities, FileSystemCapability
+from acp.schema.common import Implementation
 from acp.schema.content_blocks import ContentBlock  # noqa: TC001
 from acp.schema.mcp import McpServer  # noqa: TC001
 
@@ -141,6 +141,23 @@ class InitializeRequest(Request):
 
     protocol_version: int
     """The latest protocol version supported by the client."""
+
+    @classmethod
+    def create(
+        cls,
+        title: str,
+        name: str,
+        version: str,
+        terminal: bool = True,
+        read_text_file: bool = True,
+        write_text_file: bool = True,
+        protocol_version: int = 1,
+    ) -> Self:
+        """Create a new InitializeRequest instance."""
+        fs = FileSystemCapability(read_text_file=read_text_file, write_text_file=write_text_file)
+        caps = ClientCapabilities(terminal=terminal, fs=fs)
+        impl = Implementation(title=title, name=name, version=version)
+        return cls(client_capabilities=caps, client_info=impl, protocol_version=protocol_version)
 
 
 class AuthenticateRequest(Request):
