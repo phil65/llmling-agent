@@ -32,21 +32,14 @@ type SessionIdType = str | UUID | None
 type ProcessorCallback[TResult] = Callable[..., TResult | Awaitable[TResult]]
 
 
-class SupportsStructuredOutput[TDeps](Protocol):
+class SupportsStructuredOutput(Protocol):
     """Protocol for nodes that support structured output via run().
 
     This protocol is used for components that need to call run() with
     an output_type parameter (e.g., picker agents, Interactions).
     """
 
-    name: str
-
-    async def run(
-        self,
-        *prompts: Any,
-        output_type: type[Any] | None = ...,
-        **kwargs: Any,
-    ) -> ChatMessage[Any]: ...
+    async def run(self, *prompts: Any, output_type: Any = ...) -> ChatMessage[Any]: ...
 
 
 NodeName = str

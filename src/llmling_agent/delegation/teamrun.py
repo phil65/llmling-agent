@@ -25,9 +25,8 @@ if TYPE_CHECKING:
     from datetime import datetime
 
     from llmling_agent import MessageNode
-    from llmling_agent.agent import Agent
     from llmling_agent.agent.events import RichAgentStreamEvent
-    from llmling_agent.common_types import PromptCompatible
+    from llmling_agent.common_types import PromptCompatible, SupportsStructuredOutput
 
 
 logger = get_logger(__name__)
@@ -64,7 +63,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
         display_name: str | None = None,
         shared_prompt: str | None = None,
         validator: MessageNode[Any, TResult],
-        picker: Agent[Any, Any] | None = None,
+        picker: SupportsStructuredOutput | None = None,
         num_picks: int | None = None,
         pick_prompt: str | None = None,
     ) -> None: ...
@@ -79,7 +78,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
         display_name: str | None = None,
         shared_prompt: str | None = None,
         validator: None = None,
-        picker: Agent[Any, Any] | None = None,
+        picker: SupportsStructuredOutput | None = None,
         num_picks: int | None = None,
         pick_prompt: str | None = None,
     ) -> None: ...
@@ -94,7 +93,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
         display_name: str | None = None,
         shared_prompt: str | None = None,
         validator: MessageNode[Any, TResult] | None = None,
-        picker: Agent[Any, Any] | None = None,
+        picker: SupportsStructuredOutput | None = None,
         num_picks: int | None = None,
         pick_prompt: str | None = None,
     ) -> None: ...
@@ -108,7 +107,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
         display_name: str | None = None,
         shared_prompt: str | None = None,
         validator: MessageNode[Any, TResult] | None = None,
-        picker: Agent[Any, Any] | None = None,
+        picker: SupportsStructuredOutput | None = None,
         num_picks: int | None = None,
         pick_prompt: str | None = None,
         # result_mode: ResultMode = "last",

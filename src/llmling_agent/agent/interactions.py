@@ -12,12 +12,13 @@ from llmling_agent.messaging import ChatMessage
 
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator, Sequence
+    from collections.abc import Sequence
 
     from toprompt import AnyPromptType
 
     from llmling_agent import AgentPool, MessageNode
     from llmling_agent.agent import Agent
+    from llmling_agent.common_types import SupportsStructuredOutput
     from llmling_agent.delegation.base_team import BaseTeam
 
 
@@ -83,55 +84,53 @@ def get_label(item: Any) -> str:
             return repr(item)
 
 
-class Interactions[TDeps, TResult]:
+class Interactions:
     """Manages agent communication patterns."""
 
-    def __init__(self, agent: Agent[TDeps, TResult]) -> None:
+    def __init__(self, agent: SupportsStructuredOutput) -> None:
         self.agent = agent
 
-    async def conversation(
-        self,
-        other: MessageNode[Any, Any],
-        initial_message: AnyPromptType,
-        *,
-        max_rounds: int | None = None,
-        end_condition: Callable[[list[ChatMessage[Any]], ChatMessage[Any]], bool] | None = None,
-        store_history: bool = True,
-    ) -> AsyncIterator[ChatMessage[Any]]:
-        """Maintain conversation between two agents.
+    # async def conversation(
+    #     self,
+    #     other: MessageNode[Any, Any],
+    #     initial_message: AnyPromptType,
+    #     *,
+    #     max_rounds: int | None = None,
+    #     end_condition: Callable[[list[ChatMessage[Any]], ChatMessage[Any]], bool] | None = None,
+    # ) -> AsyncIterator[ChatMessage[Any]]:
+    #     """Maintain conversation between two agents.
 
-        Args:
-            other: Agent to converse with
-            initial_message: Message to start conversation with
-            max_rounds: Optional maximum number of exchanges
-            end_condition: Optional predicate to check for conversation end
-            store_history: Whether to store in conversation history
+    #     Args:
+    #         other: Agent to converse with
+    #         initial_message: Message to start conversation with
+    #         max_rounds: Optional maximum number of exchanges
+    #         end_condition: Optional predicate to check for conversation end
 
-        Yields:
-            Messages from both agents in conversation order
-        """
-        rounds = 0
-        messages: list[ChatMessage[Any]] = []
-        current_message = initial_message
-        current_node: MessageNode[Any, Any] = self.agent
+    #     Yields:
+    #         Messages from both agents in conversation order
+    #     """
+    #     rounds = 0
+    #     messages: list[ChatMessage[Any]] = []
+    #     current_message = initial_message
+    #     current_node: MessageNode[Any, Any] = self.agent
 
-        while True:
-            if max_rounds and rounds >= max_rounds:
-                logger.debug("Conversation ended", max_rounds=max_rounds)
-                return
+    #     while True:
+    #         if max_rounds and rounds >= max_rounds:
+    #             logger.debug("Conversation ended", max_rounds=max_rounds)
+    #             return
 
-            response = await current_node.run(current_message, store_history=store_history)
-            messages.append(response)
-            yield response
+    #         response = await current_node.run(current_message)
+    #         messages.append(response)
+    #         yield response
 
-            if end_condition and end_condition(messages, response):
-                logger.debug("Conversation ended: end condition met")
-                return
+    #         if end_condition and end_condition(messages, response):
+    #             logger.debug("Conversation ended: end condition met")
+    #             return
 
-            # Switch agents for next round
-            current_node = other if current_node == self.agent else self.agent
-            current_message = response.content
-            rounds += 1
+    #         # Switch agents for next round
+    #         current_node = other if current_node == self.agent else self.agent
+    #         current_message = response.content
+    #         rounds += 1
 
     @overload
     async def pick(
@@ -144,10 +143,10 @@ class Interactions[TDeps, TResult]:
     @overload
     async def pick(
         self,
-        selections: BaseTeam[TDeps, Any],
+        selections: BaseTeam[Any, Any],
         task: str,
         prompt: AnyPromptType | None = None,
-    ) -> Pick[MessageNode[TDeps, Any]]: ...
+    ) -> Pick[MessageNode[Any, Any]]: ...
 
     @overload
     async def pick[T: AnyPromptType](
@@ -159,7 +158,7 @@ class Interactions[TDeps, TResult]:
 
     async def pick[T](
         self,
-        selections: Sequence[T] | Mapping[str, T] | AgentPool | BaseTeam[TDeps, Any],
+        selections: Sequence[T] | Mapping[str, T] | AgentPool | BaseTeam[Any, Any],
         task: str,
         prompt: AnyPromptType | None = None,
     ) -> Pick[T]:
@@ -233,13 +232,13 @@ Select ONE option by its exact label."""
     @overload
     async def pick_multiple(
         self,
-        selections: BaseTeam[TDeps, Any],
+        selections: BaseTeam[Any, Any],
         task: str,
         *,
         min_picks: int = 1,
         max_picks: int | None = None,
         prompt: AnyPromptType | None = None,
-    ) -> MultiPick[MessageNode[TDeps, Any]]: ...
+    ) -> MultiPick[MessageNode[Any, Any]]: ...
 
     @overload
     async def pick_multiple(
@@ -265,7 +264,7 @@ Select ONE option by its exact label."""
 
     async def pick_multiple[T](
         self,
-        selections: Sequence[T] | Mapping[str, T] | AgentPool | BaseTeam[TDeps, Any],
+        selections: Sequence[T] | Mapping[str, T] | AgentPool | BaseTeam[Any, Any],
         task: str,
         *,
         min_picks: int = 1,
@@ -370,7 +369,7 @@ List your selections, one per line, followed by your reasoning."""
             # explanation: str | None = None
 
         result = await self.agent.run(final_prompt, output_type=Extraction)
-        return as_type(**result.content.instance.model_dump())  # type: ignore
+        return as_type(**result.content.instance.model_dump())
 
     async def extract_multiple[T](
         self,
@@ -415,10 +414,6 @@ List your selections, one per line, followed by your reasoning."""
             msg = f"Found {num_instances} instances, max is {max_items}"
             raise ValueError(msg)
         return [
-            as_type(
-                **instance.data  # type: ignore
-                if hasattr(instance, "data")
-                else instance.model_dump()  # type: ignore
-            )
+            as_type(**instance.data if hasattr(instance, "data") else instance.model_dump())
             for instance in result.content.instances
         ]

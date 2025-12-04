@@ -41,7 +41,12 @@ if TYPE_CHECKING:
     from upath.types import JoinablePathLike
 
     from llmling_agent.agent.agent import AgentKwargs
-    from llmling_agent.common_types import AgentName, IndividualEventHandler, SessionIdType
+    from llmling_agent.common_types import (
+        AgentName,
+        IndividualEventHandler,
+        SessionIdType,
+        SupportsStructuredOutput,
+    )
     from llmling_agent.delegation.base_team import BaseTeam
     from llmling_agent.models.manifest import AgentsManifest
     from llmling_agent.ui.base import InputProvider
@@ -221,7 +226,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         name: str | None = None,
         description: str | None = None,
         shared_prompt: str | None = None,
-        picker: Agent[Any, Any] | None = None,
+        picker: SupportsStructuredOutput | None = None,
         num_picks: int | None = None,
         pick_prompt: str | None = None,
     ) -> TeamRun[TPoolDeps, TResult]: ...
@@ -235,7 +240,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         name: str | None = None,
         description: str | None = None,
         shared_prompt: str | None = None,
-        picker: Agent[Any, Any] | None = None,
+        picker: SupportsStructuredOutput | None = None,
         num_picks: int | None = None,
         pick_prompt: str | None = None,
     ) -> TeamRun[TDeps, TResult]: ...
@@ -249,7 +254,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         name: str | None = None,
         description: str | None = None,
         shared_prompt: str | None = None,
-        picker: Agent[Any, Any] | None = None,
+        picker: SupportsStructuredOutput | None = None,
         num_picks: int | None = None,
         pick_prompt: str | None = None,
     ) -> TeamRun[Any, TResult]: ...
@@ -262,7 +267,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         name: str | None = None,
         description: str | None = None,
         shared_prompt: str | None = None,
-        picker: Agent[Any, Any] | None = None,
+        picker: SupportsStructuredOutput | None = None,
         num_picks: int | None = None,
         pick_prompt: str | None = None,
     ) -> TeamRun[Any, TResult]:
@@ -307,7 +312,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         name: str | None = None,
         description: str | None = None,
         shared_prompt: str | None = None,
-        picker: Agent[Any, Any] | None = None,
+        picker: SupportsStructuredOutput | None = None,
         num_picks: int | None = None,
         pick_prompt: str | None = None,
     ) -> Team[TDeps]: ...
@@ -320,7 +325,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         name: str | None = None,
         description: str | None = None,
         shared_prompt: str | None = None,
-        picker: Agent[Any, Any] | None = None,
+        picker: SupportsStructuredOutput | None = None,
         num_picks: int | None = None,
         pick_prompt: str | None = None,
     ) -> Team[Any]: ...
@@ -332,7 +337,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         name: str | None = None,
         description: str | None = None,
         shared_prompt: str | None = None,
-        picker: Agent[Any, Any] | None = None,
+        picker: SupportsStructuredOutput | None = None,
         num_picks: int | None = None,
         pick_prompt: str | None = None,
     ) -> Team[Any]:

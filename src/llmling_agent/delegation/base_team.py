@@ -31,6 +31,7 @@ if TYPE_CHECKING:
         ModelType,
         ProcessorCallback,
         PromptCompatible,
+        SupportsStructuredOutput,
         ToolType,
     )
     from llmling_agent.delegation.teamrun import ExtendedTeamTalk, TeamRun
@@ -65,7 +66,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
         display_name: str | None = None,
         shared_prompt: str | None = None,
         mcp_servers: list[str | MCPServerConfig] | None = None,
-        picker: Agent[Any, Any] | None = None,
+        picker: SupportsStructuredOutput | None = None,
         num_picks: int | None = None,
         pick_prompt: str | None = None,
         event_configs: Sequence[EventConfig] | None = None,
@@ -125,11 +126,14 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
 
     async def pick_agents(self, task: str) -> Sequence[MessageNode[Any, Any]]:
         """Pick agents to run."""
+        from llmling_agent.agent.interactions import Interactions
+
         if self.picker:
+            interactions = Interactions(self.picker)
             if self.num_picks == 1:
-                result = await self.picker.talk.pick(self, task, self.pick_prompt)
+                result = await interactions.pick(self, task, self.pick_prompt)
                 return [result.selection]
-            multi_result = await self.picker.talk.pick_multiple(
+            multi_result = await interactions.pick_multiple(
                 self,
                 task,
                 min_picks=self.num_picks or 1,
