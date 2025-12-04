@@ -12,6 +12,9 @@ if TYPE_CHECKING:
     from llmling_agent_sync.models import SyncMetadata
 
 
+_BLOCK_PATTERN = re.compile(r"^# /// sync\s*\n((?:^#[^\n]*\n)*?)^# ///$", re.MULTILINE)
+
+
 class MetadataParser(Protocol):
     """Protocol for file-type specific metadata extraction."""
 
@@ -42,14 +45,9 @@ class PythonSyncParser:
 
     extensions: tuple[str, ...] = (".py", ".pyi")
 
-    _BLOCK_PATTERN = re.compile(
-        r"^# /// sync\s*\n((?:^#[^\n]*\n)*?)^# ///$",
-        re.MULTILINE,
-    )
-
     def parse(self, content: str) -> SyncMetadata | None:
 
-        match = self._BLOCK_PATTERN.search(content)
+        match = _BLOCK_PATTERN.search(content)
         if not match:
             return None
 
@@ -82,7 +80,7 @@ class PythonSyncParser:
     def update(self, content: str, metadata: SyncMetadata) -> str:
         """Update or inject sync block into Python file."""
         new_block = self._format_block(metadata)
-        match = self._BLOCK_PATTERN.search(content)
+        match = _BLOCK_PATTERN.search(content)
 
         if match:
             return content[: match.start()] + new_block + content[match.end() :]
@@ -93,21 +91,16 @@ class PythonSyncParser:
     def _format_block(self, metadata: SyncMetadata) -> str:
         """Format metadata as a sync block."""
         lines = ["# /// sync"]
-
         if metadata.agent:
             lines.append(f'# agent = "{metadata.agent}"')
-
         if metadata.dependencies:
             deps = ", ".join(f'"{d}"' for d in metadata.dependencies)
             lines.append(f"# dependencies = [{deps}]")
-
         if metadata.urls:
             urls = ", ".join(f'"{u}"' for u in metadata.urls)
             lines.append(f"# urls = [{urls}]")
-
         if metadata.last_checked:
             lines.append(f'# last_checked = "{metadata.last_checked}"')
-
         if metadata.context:
             lines.append("# [context]")
             for key, value in metadata.context.items():
@@ -120,12 +113,9 @@ class PythonSyncParser:
         """Inject block after docstring or at very top."""
         # Simple heuristic: after first triple-quoted block if present
         docstring_pattern = re.compile(r'^("""[\s\S]*?"""|\'\'\'[\s\S]*?\'\'\')\s*\n')
-        match = docstring_pattern.match(content)
-
-        if match:
+        if match := docstring_pattern.match(content):
             pos = match.end()
             return content[:pos] + "\n" + block + content[pos:]
-
         return block + "\n" + content
 
 
@@ -146,7 +136,6 @@ class MarkdownSyncParser:
     """
 
     extensions: tuple[str, ...] = (".md", ".mdx")
-
     _FRONTMATTER_PATTERN = re.compile(r"^---\s*\n(.*?)\n---\s*\n", re.DOTALL)
 
     def parse(self, content: str) -> SyncMetadata | None:
@@ -176,9 +165,7 @@ class MarkdownSyncParser:
     def update(self, content: str, metadata: SyncMetadata) -> str:
         """Update or inject sync metadata in frontmatter."""
         sync_dict = self._metadata_to_dict(metadata)
-        match = self._FRONTMATTER_PATTERN.match(content)
-
-        if match:
+        if match := self._FRONTMATTER_PATTERN.match(content):
             try:
                 frontmatter = yaml.safe_load(match.group(1)) or {}
             except yaml.YAMLError:
@@ -195,7 +182,6 @@ class MarkdownSyncParser:
     def _metadata_to_dict(self, metadata: SyncMetadata) -> dict[str, Any]:
         """Convert metadata to dict for YAML serialization."""
         result: dict[str, Any] = {}
-
         if metadata.agent:
             result["agent"] = metadata.agent
         if metadata.dependencies:
@@ -211,10 +197,7 @@ class MarkdownSyncParser:
 
 
 # Registry of built-in parsers
-BUILTIN_PARSERS: list[MetadataParser] = [
-    PythonSyncParser(),
-    MarkdownSyncParser(),
-]
+BUILTIN_PARSERS: list[MetadataParser] = [PythonSyncParser(), MarkdownSyncParser()]
 
 
 def get_parser_for_file(path: str) -> MetadataParser | None:

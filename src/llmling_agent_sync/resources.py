@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 import hashlib
+import inspect
 import shutil
 from typing import TYPE_CHECKING, Any
 
@@ -34,10 +35,8 @@ class ResourceState:
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize to dict for YAML storage."""
-        result: dict[str, Any] = {
-            "content_hash": self.content_hash,
-            "last_checked": self.last_checked.isoformat(),
-        }
+        last_checked = self.last_checked.isoformat()
+        result: dict[str, Any] = {"content_hash": self.content_hash, "last_checked": last_checked}
         if self.etag:
             result["etag"] = self.etag
         if self.last_modified:
@@ -100,15 +99,12 @@ class ResourceRegistry:
         """Load registry from disk."""
         content = self.registry_file.read_text()
         data = yaml.safe_load(content) or {}
-
-        self.resources = {
-            url: ResourceState.from_dict(state) for url, state in data.get("resources", {}).items()
-        }
+        resources = data.get("resources", {})
+        self.resources = {url: ResourceState.from_dict(state) for url, state in resources.items()}
 
     def save(self) -> None:
         """Save registry to disk."""
         self.registry_file.parent.mkdir(parents=True, exist_ok=True)
-
         data = {"resources": {url: state.to_dict() for url, state in self.resources.items()}}
         self.registry_file.write_text(yaml.dump(data, default_flow_style=False))
 
@@ -185,7 +181,6 @@ class ResourceRegistry:
 
         changes: list[ResourceChange] = []
         now = datetime.now(UTC)
-
         for url in urls:
             old_state = self.resources.get(url)
 
@@ -197,20 +192,16 @@ class ResourceRegistry:
 
             new_hash = self.hash_content(content)
             new_state = ResourceState(content_hash=new_hash, last_checked=now)
-
-            # Always cache content
-            self._cache_content(url, content)
-
+            self._cache_content(url, content)  # Always cache content
             # Check if changed
             if old_state is None or old_state.content_hash != new_hash:
-                changes.append(
-                    ResourceChange(
-                        url=url,
-                        old_state=old_state,
-                        new_state=new_state,
-                        content=content,
-                    )
+                change = ResourceChange(
+                    url=url,
+                    old_state=old_state,
+                    new_state=new_state,
+                    content=content,
                 )
+                changes.append(change)
 
             self.resources[url] = new_state
 
@@ -223,8 +214,6 @@ class ResourceRegistry:
         fetcher: Callable[[str], str],
     ) -> str:
         """Fetch URL content using provided fetcher."""
-        import inspect
-
         result = fetcher(url)
         if inspect.isawaitable(result):
             result = await result

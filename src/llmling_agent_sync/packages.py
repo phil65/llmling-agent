@@ -118,15 +118,12 @@ class PackageRegistry:
         """Load registry from disk."""
         content = self.registry_file.read_text()
         data = yaml.safe_load(content) or {}
-
-        self.packages = {
-            name: PackageState.from_dict(state) for name, state in data.get("packages", {}).items()
-        }
+        packages = data.get("packages", {})
+        self.packages = {name: PackageState.from_dict(state) for name, state in packages.items()}
 
     def save(self) -> None:
         """Save registry to disk."""
         self.registry_file.parent.mkdir(parents=True, exist_ok=True)
-
         data = {"packages": {name: state.to_dict() for name, state in self.packages.items()}}
         self.registry_file.write_text(yaml.dump(data, default_flow_style=False))
 
@@ -148,94 +145,6 @@ class PackageRegistry:
             return get_version(package)
         except PackageNotFoundError:
             return None
-
-    async def _fetch_pypi_info(self, package: str) -> dict[str, Any] | None:
-        """Fetch package info from PyPI."""
-        try:
-            return await anyenv.get_json(
-                f"https://pypi.org/pypi/{package}/json", timeout=30, return_type=dict
-            )
-        except Exception:  # noqa: BLE001
-            return None
-
-    async def _fetch_release_notes(
-        self,
-        package: str,
-        version: str,
-    ) -> tuple[str | None, str | None]:
-        """Try to fetch release notes for a package version.
-
-        Args:
-            package: Package name
-            version: Version to get notes for
-
-        Returns:
-            Tuple of (release_notes, changelog_url)
-        """
-        pypi_info = await self._fetch_pypi_info(package)
-        if not pypi_info:
-            return None, None
-
-        info = pypi_info.get("info", {})
-        project_urls = info.get("project_urls", {}) or {}
-
-        # Try to find changelog URL
-        changelog_url: str | None = None
-        for key in ("Changelog", "Changes", "Release Notes", "History"):
-            if key in project_urls:
-                changelog_url = project_urls[key]
-                break
-
-        # Try GitHub releases if we have a repo URL
-        release_notes: str | None = None
-        for key in ("Repository", "Source", "Homepage"):
-            url = project_urls.get(key, "")
-            if "github.com" in url:
-                release_notes = await self._fetch_github_release(url, version)
-                if release_notes:
-                    break
-
-        return release_notes, changelog_url
-
-    async def _fetch_github_release(self, repo_url: str, version: str) -> str | None:
-        """Fetch release notes from GitHub.
-
-        Args:
-            repo_url: GitHub repository URL
-            version: Version tag to look for
-
-        Returns:
-            Release notes or None
-        """
-        import httpx
-
-        # Extract owner/repo from URL
-        # https://github.com/owner/repo or https://github.com/owner/repo.git
-        expected_parts = 2
-        parts = repo_url.rstrip("/").rstrip(".git").split("github.com/")
-        if len(parts) != expected_parts:
-            return None
-
-        repo_path = parts[1]
-
-        # Try common tag formats
-        tag_formats = [f"v{version}", version, f"V{version}"]
-
-        async with httpx.AsyncClient() as client:
-            for tag in tag_formats:
-                try:
-                    response = await client.get(
-                        f"https://api.github.com/repos/{repo_path}/releases/tags/{tag}",
-                        timeout=30,
-                        headers={"Accept": "application/vnd.github.v3+json"},
-                    )
-                    if response.is_success:
-                        data = response.json()
-                        return data.get("body")  # type: ignore[no-any-return]
-                except Exception:  # noqa: BLE001
-                    continue
-
-        return None
 
     async def refresh(
         self,
@@ -261,23 +170,19 @@ class PackageRegistry:
 
             old_state = self.packages.get(package)
             old_version = old_state.version if old_state else None
-
             # Check if significant change
             if old_version and not is_significant_bump(old_version, installed):
                 # Update last_checked but don't report as change
-                self.packages[package] = PackageState(
-                    version=installed,
-                    last_checked=now,
-                    changelog_url=old_state.changelog_url if old_state else None,
-                )
+                url = old_state.changelog_url if old_state else None
+                state = PackageState(version=installed, last_checked=now, changelog_url=url)
+                self.packages[package] = state
                 continue
-
             # Significant change (or new package)
             release_notes: str | None = None
             changelog_url: str | None = None
 
             if fetch_notes:
-                release_notes, changelog_url = await self._fetch_release_notes(package, installed)
+                release_notes, changelog_url = await _fetch_release_notes(package, installed)
 
             change = PackageChange(
                 package=package,
@@ -355,7 +260,6 @@ class PackageRegistry:
             Dict mapping package name to status info
         """
         result: dict[str, dict[str, Any]] = {}
-
         for package, state in self.packages.items():
             installed = self.get_installed_version(package)
 
@@ -376,3 +280,79 @@ class PackageRegistry:
             result[package] = status
 
         return result
+
+
+async def _fetch_pypi_info(package: str) -> dict[str, Any] | None:
+    """Fetch package info from PyPI."""
+    try:
+        url = f"https://pypi.org/pypi/{package}/json"
+        return await anyenv.get_json(url, timeout=30, return_type=dict)
+    except Exception:  # noqa: BLE001
+        return None
+
+
+async def _fetch_release_notes(package: str, version: str) -> tuple[str | None, str | None]:
+    """Try to fetch release notes for a package version.
+
+    Args:
+        package: Package name
+        version: Version to get notes for
+
+    Returns:
+        Tuple of (release_notes, changelog_url)
+    """
+    pypi_info = await _fetch_pypi_info(package)
+    if not pypi_info:
+        return None, None
+
+    info = pypi_info.get("info", {})
+    project_urls = info.get("project_urls", {}) or {}
+
+    changelog_url: str | None = None  # Try to find changelog URL
+    for key in ("Changelog", "Changes", "Release Notes", "History"):
+        if key in project_urls:
+            changelog_url = project_urls[key]
+            break
+
+    # Try GitHub releases if we have a repo URL
+    release_notes: str | None = None
+    for key in ("Repository", "Source", "Homepage"):
+        url = project_urls.get(key, "")
+        if "github.com" in url:
+            release_notes = await _fetch_github_release(url, version)
+            if release_notes:
+                break
+
+    return release_notes, changelog_url
+
+
+async def _fetch_github_release(repo_url: str, version: str) -> str | None:
+    """Fetch release notes from GitHub.
+
+    Args:
+        repo_url: GitHub repository URL
+        version: Version tag to look for
+
+    Returns:
+        Release notes or None
+    """
+    # Extract owner/repo from URL
+    # https://github.com/owner/repo or https://github.com/owner/repo.git
+    expected_parts = 2
+    parts = repo_url.rstrip("/").rstrip(".git").split("github.com/")
+    if len(parts) != expected_parts:
+        return None
+
+    repo_path = parts[1]
+    # Try common tag formats
+    tag_formats = [f"v{version}", version, f"V{version}"]
+    for tag in tag_formats:
+        try:
+            url = f"https://api.github.com/repos/{repo_path}/releases/tags/{tag}"
+            headers = {"Accept": "application/vnd.github.v3+json"}
+            data = await anyenv.get_json(url, timeout=30, headers=headers, return_type=dict)
+            return data.get("body")
+        except Exception:  # noqa: BLE001
+            continue
+
+    return None
