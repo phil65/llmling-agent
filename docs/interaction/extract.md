@@ -46,16 +46,6 @@ result = await agent.talk.extract(
 )
 ```
 
-### Tool Calls Mode
-
-```python
-# Legacy mode, might be useful for experimentation
-result = await agent.talk.extract(
-    text,
-    as_type=Person,
-    mode="tool_calls"
-)
-```
 
 ## Working with Complex Types
 
@@ -161,32 +151,6 @@ Benefits:
 - Better handling of complex types
 - More robust extraction
 
-### Tool Calls Mode (Legacy)
-
-The tool calls mode uses function calling to construct objects:
-
-1. **Constructor to Function Schema**
-```python
-# Your class
-class Person:
-    def __init__(self, name: str, age: int | None = None):
-        self.name = name
-        self.age = age
-
-# Converted to OpenAI function schema
-{
-    "name": "Person",
-    "description": "Create a Person instance",
-    "parameters": {
-        "type": "object",
-        "properties": {
-            "name": {"type": "string"},
-            "age": {"type": "integer", "nullable": true}
-        },
-        "required": ["name"]
-    }
-}
-```
 
 2. **Constructor Tool**
 
