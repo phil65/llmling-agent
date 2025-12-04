@@ -148,42 +148,37 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
 
     async def __aenter__(self) -> Self:
         """Enter async context and initialize all agents."""
-        async with self._enter_lock:
-            if self._running_count == 0:
-                try:
-                    # Initialize MCP manager first, then add aggregating provider
-                    await self.exit_stack.enter_async_context(self.mcp)
-                    await self.exit_stack.enter_async_context(self.skills)
-                    aggregating_provider = self.mcp.get_aggregating_provider()
-
-                    agents = list(self.agents.values())
-                    teams = list(self.teams.values())
-                    for agent in agents:
-                        agent.tools.add_provider(aggregating_provider)
-
-                    # Collect remaining components to initialize (MCP already initialized)
-                    components: list[AbstractAsyncContextManager[Any]] = [
-                        self.storage,
-                        *agents,
-                        *teams,
-                    ]
-
-                    # MCP server is now managed externally - removed from pool
-                    # Initialize all components
-                    if self.parallel_load:
-                        await asyncio.gather(
-                            *(self.exit_stack.enter_async_context(c) for c in components)
-                        )
-                    else:
-                        for component in components:
-                            await self.exit_stack.enter_async_context(component)
-
-                except Exception as e:
-                    await self.cleanup()
-                    msg = "Failed to initialize agent pool"
-                    logger.exception(msg, exc_info=e)
-                    raise RuntimeError(msg) from e
+        if self._running_count > 0:
             self._running_count += 1
+            return self
+        async with self._enter_lock:
+            try:
+                # Initialize MCP manager first, then add aggregating provider
+                await self.exit_stack.enter_async_context(self.mcp)
+                await self.exit_stack.enter_async_context(self.skills)
+                aggregating_provider = self.mcp.get_aggregating_provider()
+                agents = list(self.agents.values())
+                teams = list(self.teams.values())
+                for agent in agents:
+                    agent.tools.add_provider(aggregating_provider)
+                # Collect remaining components to initialize (MCP already initialized)
+                components: list[AbstractAsyncContextManager[Any]] = [self.storage, *agents, *teams]
+                # MCP server is now managed externally - removed from pool
+                # Initialize all components
+                if self.parallel_load:
+                    await asyncio.gather(
+                        *(self.exit_stack.enter_async_context(c) for c in components)
+                    )
+                else:
+                    for component in components:
+                        await self.exit_stack.enter_async_context(component)
+
+            except Exception as e:
+                await self.cleanup()
+                msg = "Failed to initialize agent pool"
+                logger.exception(msg, exc_info=e)
+                raise RuntimeError(msg) from e
+        self._running_count += 1
         return self
 
     async def __aexit__(
