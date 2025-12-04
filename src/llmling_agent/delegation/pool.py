@@ -282,16 +282,8 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
 
         if agents is None:
             agents = list(self.agents.keys())
-
-        # First resolve/configure agents
-        resolved_agents: list[MessageNode[Any, Any]] = []
-        for agent_or_name in agents:
-            agent = (
-                self.get_agent(agent_or_name) if isinstance(agent_or_name, str) else agent_or_name
-            )
-            resolved_agents.append(agent)
         team = TeamRun(
-            resolved_agents,
+            [self.get_agent(i) if isinstance(i, str) else i for i in agents],
             name=name,
             description=description,
             validator=validator,
@@ -360,11 +352,10 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         if agents is None:
             agents = list(self.agents.keys())
 
-        resolved_agents = [self.get_agent(i) if isinstance(i, str) else i for i in agents]
         team = Team(
             name=name,
             description=description,
-            agents=resolved_agents,
+            agents=[self.get_agent(i) if isinstance(i, str) else i for i in agents],
             shared_prompt=shared_prompt,
             picker=picker,
             num_picks=num_picks,
