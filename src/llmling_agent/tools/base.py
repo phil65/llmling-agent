@@ -229,13 +229,7 @@ class Tool[TOutputType = Any]:
     ) -> Tool[Any]:
         """Allows importing crewai tools."""
         # vaidate_import("crewai_tools", "crewai")
-        try:
-            from crewai.tools import (  # type: ignore[import-not-found]
-                BaseTool as CrewAiBaseTool,
-            )
-        except ImportError as e:
-            msg = "crewai package not found. Please install it with 'pip install crewai'"
-            raise ImportError(msg) from e
+        from crewai.tools import BaseTool as CrewAiBaseTool  # type: ignore[import-not-found]
 
         if not isinstance(tool, CrewAiBaseTool):
             msg = f"Expected CrewAI BaseTool, got {type(tool)}"
@@ -261,15 +255,9 @@ class Tool[TOutputType = Any]:
     ) -> Tool[Any]:
         """Create a tool from a LangChain tool."""
         # vaidate_import("langchain_core", "langchain")
-        try:
-            from langchain_core.tools import (  # type: ignore[import-not-found]
-                BaseTool as LangChainBaseTool,
-            )
-        except ImportError as e:
-            msg = "langchain-core package not found."
-            raise ImportError(msg) from e
+        from langchain_core.tools import BaseTool as LangChainTool  # type: ignore[import-not-found]
 
-        if not isinstance(tool, LangChainBaseTool):
+        if not isinstance(tool, LangChainTool):
             msg = f"Expected LangChain BaseTool, got {type(tool)}"
             raise TypeError(msg)
 
@@ -293,20 +281,15 @@ class Tool[TOutputType = Any]:
     ) -> Tool[Any]:
         """Create a tool from a AutoGen tool."""
         # vaidate_import("autogen_core", "autogen")
-        try:
-            from autogen_core import CancellationToken  # type: ignore[import-not-found]
-            from autogen_core.tools import BaseTool  # type: ignore[import-not-found]
-        except ImportError as e:
-            msg = "autogent_core package not found."
-            raise ImportError(msg) from e
+        from autogen_core import CancellationToken  # type: ignore[import-not-found]
+        from autogen_core.tools import BaseTool  # type: ignore[import-not-found]
 
         if not isinstance(tool, BaseTool):
-            msg = f"Expected AutoGent BaseTool, got {type(tool)}"
+            msg = f"Expected AutoGen BaseTool, got {type(tool)}"
             raise TypeError(msg)
         token = CancellationToken()
 
         input_model = tool.__class__.__orig_bases__[0].__args__[0]
-
         name = name_override or tool.name or tool.__class__.__name__.removesuffix("Tool")
         description = (
             description_override or tool.description or inspect.getdoc(tool.__class__) or ""

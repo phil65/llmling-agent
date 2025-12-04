@@ -105,24 +105,18 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
             name: Optional tool name override
             description: Optional tool description override
         """
-        tool_name = name or f"ask_{self.name}"
 
-        async def wrapped_tool(prompt: str) -> TResult:
+        async def wrapped(prompt: str) -> TResult:
             result = await self.run(prompt)
             return result.data
 
+        tool_name = name or f"ask_{self.name}"
         docstring = description or f"Get expert answer from node {self.name}"
         if self.description:
             docstring = f"{docstring}\n\n{self.description}"
-
-        wrapped_tool.__doc__ = docstring
-        wrapped_tool.__name__ = tool_name
-
-        return Tool.from_callable(
-            wrapped_tool,
-            name_override=tool_name,
-            description_override=docstring,
-        )
+        wrapped.__doc__ = docstring
+        wrapped.__name__ = tool_name
+        return Tool.from_callable(wrapped, description_override=docstring)
 
     async def pick_agents(self, task: str) -> Sequence[MessageNode[Any, Any]]:
         """Pick agents to run."""
