@@ -470,6 +470,8 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         await self._start_process()
         await self._initialize()
         await self._create_session()
+        # Small delay to let subprocess fully initialize before accepting prompts
+        await asyncio.sleep(0.3)
         return self
 
     async def __aexit__(
