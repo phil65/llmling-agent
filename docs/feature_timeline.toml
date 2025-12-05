@@ -1,26 +1,37 @@
 [step_1]
+label = "ACP Integration"
+content = """
+First-class support for the Agent Client Protocol (ACP):
+
+- Integrate directly into IDEs like Zed, VS Code, and others
+- Wrap external agents (Claude Code, Goose, Codex, fast-agent) as nodes
+- Unified node abstraction - ACP agents work like native agents
+- Compose ACP agents into teams with native agents
+- Use any ACP agent as a tool for other agents
+- Session management and conversation history
+- File system and terminal operations with permission handling
+"""
+
+[step_2]
 label = "Easy Agent Configuration"
 content = """
 LLMling-agent excels at static YAML-based agent configuration:
 
-- Define agents in not-seen-yet detail in pure YAML (pydantic-backed)
-- Expansive YAML schema for linters for providing maxium help setting up YAML files
-- Agent "connection" setup via YAML allowing simple workflows without having to use a step-based appraoch
+- Define agents with unprecedented detail in pure YAML (Pydantic-backed)
+- Expansive JSON schema for IDE autocompletion and validation
+- Agent "connection" setup via YAML enabling workflows without step-based code
 - Result type definitions via YAML
 - Configuration inheritance and reuse
 - Environment/tools/resource configuration
-- Extensive schema validation and linting
 - Type-safe structured responses
 """
 
-[step_2]
+[step_3]
 label = "True Async Framework"
 content = """
-An async-first Agent framwork.
-Unlike most other frameworks, where async is only done at a workflow-step level,
+An async-first Agent framework.
+Unlike most other frameworks where async only happens at workflow-step level,
 this framework is async-first in its design.
-
-Built for modern async Python from the ground up.
 
 - Proper async context management
 - Non-blocking operations
@@ -31,21 +42,22 @@ Built for modern async Python from the ground up.
 - Automatic resource management
 """
 
-[step_3]
-label = "Type-Safety on Pydantic-Level"
+[step_4]
+label = "Unified Node Architecture"
 content = """
+Everything is a MessageNode - enabling seamless composition:
 
-- Excellently typed user APIs
-- A lot of love in detail to provide maximum type safety
-- Type-safe message passing
-- Type-safe Agent-Team forming
-- Type-safe task execution
-- Structured response handling
-- Flexible routing options
-- Cost and token tracking
+- Native LLM agents
+- ACP-wrapped external agents
+- Teams (parallel and sequential)
+- Human-in-the-loop nodes
+- Callable-based nodes
+- All nodes share the same interface
+- Connect any node to any other node
+- Uniform monitoring and logging across all node types
 """
 
-[step_4]
+[step_5]
 label = "Pool-Based Architecture"
 content = """
 Central coordination point for multi-agent systems:
@@ -53,36 +65,32 @@ Central coordination point for multi-agent systems:
 - Type-safe dependency injection
 - Shared resource management
 - Session and history management
-- Dynamic agent / team creation/cloning
+- Dynamic agent/team creation and cloning
 - Agent discovery and access control
 - Central monitoring and statistics
 - Common storage configuration
 """
 
-[step_5]
-label = "Provider Architecture"
+[step_6]
+label = "Type-Safety on Pydantic-Level"
 content = """
-Flexible provider system decoupling agent logic from AI implementation.
-Humans, LLM libraries and Callables can all be used as the "Agent" brain and be switched flawlessly, allowing unique AI-Human interactions.
-
-- Modular provider architecture
-- Pydantic-AI backed
-- Human-in-the-loop provider
-- Custom provider support
-- Callable provider
-- UI/Observer integration
-- Consistent interface across providers
-- Provider-specific optimizations
-- Stream support
-- Multi-modal support for LitemLLM (experimental)
+- Excellently typed user APIs
+- Attention to detail for maximum type safety
+- Type-safe message passing
+- Type-safe agent-team forming
+- Type-safe task execution
+- Structured response handling
+- Flexible routing options
+- Cost and token tracking
 """
 
-[step_6]
+[step_7]
 label = "Teams and Execution"
 content = """
 Flexible team operations and execution patterns:
 
-- Multiple execution modes (parallel/sequential)
+- Parallel execution (agent1 & agent2)
+- Sequential pipelines (agent1 | agent2)
 - Rich monitoring capabilities
 - Connection mechanisms (>>, &, |)
 - Type-safe team creation
@@ -90,23 +98,25 @@ Flexible team operations and execution patterns:
 - Background execution with monitoring
 """
 
-[step_7]
-label = "MCP server integration"
+[step_8]
+label = "MCP Server Integration"
 content = """
-MCP server support for Agents.
+Full Model Context Protocol support:
 
-- Agents with MCP server configurations will "connect" on async initialization
-- MCP severs can provide agent tools
-- More extensive coverage of the MCP servers soon.
+- Agents connect to MCP servers on async initialization
+- MCP servers provide tools to agents
+- Support for stdio, SSE, and HTTP transports
+- Automatic tool discovery and registration
+- Resource and prompt template support
 """
 
-[step_8]
+[step_9]
 label = "Event System"
 content = """
 React to changes and automate workflows:
 
 - File system monitoring with patterns
-- Webhook endpoints (coming soon)
+- Webhook endpoints
 - Configurable event debouncing
 - Event filtering and routing
 - Custom trigger types
@@ -114,12 +124,12 @@ React to changes and automate workflows:
 - Event-driven agent execution
 """
 
-[step_9]
+[step_10]
 label = "Command System"
 content = """
 Rich command system across all interfaces:
 
-- Unified command system
+- Unified slash command system
 - Tool management commands
 - Resource inspection
 - Model configuration
@@ -129,24 +139,23 @@ Rich command system across all interfaces:
 - Cross-interface consistency
 """
 
-[step_10]
+[step_11]
 label = "Database & Logging"
 content = """
 Comprehensive interaction tracking:
 
-- Multiple storage providers
+- Multiple storage providers (SQL, file, memory)
 - Configurable logging levels
 - Message history tracking
-- Maximum flexibility in formatting conversations
+- Flexible conversation formatting
 - Tool usage monitoring
 - Cost and token tracking
 - Query capabilities
 - Session recovery
-- Flexible storage backends
-- Sophisticated conversation filtering for agents
+- Sophisticated conversation filtering
 """
 
-[step_11]
+[step_12]
 label = "Interaction Patterns"
 content = """
 Rich patterns for agent interaction and collaboration:
@@ -156,21 +165,24 @@ Rich patterns for agent interaction and collaboration:
 - Non-blocking forwarding mechanisms
 - Blocking when needed (await_response)
 - Automatic result routing (>>)
-- Team formation helper (pick)
+- Team formation helpers
 - Message broadcasting
-- Priority-based routing
-- Delayed forwarding
 - Connection monitoring
 """
 
-[step_12]
-label = "Multi-modal support"
+[step_13]
+label = "Multi-modal Support"
 content = """
-Depending on model capabilities, Image input and Audio input are supported.
-Additional content types will be integrated soon!
+Rich content type support depending on model capabilities:
+
+- Image input
+- Audio input
+- PDF and document processing
+- Automatic content conversion
+- Extensible converter system
 """
 
-[step_13]
+[step_14]
 label = "Task System"
 content = """
 Independent work definitions with type safety:
@@ -184,7 +196,7 @@ Independent work definitions with type safety:
 - YAML-based task configuration
 """
 
-[step_14]
+[step_15]
 label = "Knowledge Management"
 content = """
 Comprehensive knowledge integration:

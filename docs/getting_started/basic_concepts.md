@@ -1,23 +1,61 @@
 # Basic Concepts
 
-## Core Components
+## Node Hierarchy
+
+LLMling-agent uses a unified **node** abstraction for all message-processing entities. This enables seamless composition and communication between different types of agents.
+
+### MessageNode
+
+The base interface that all nodes implement. A node can receive messages, process them, and emit responses. This common interface allows uniform handling regardless of implementation.
 
 ### Agents
-An Agent in LLMling-agent is best thought of as an "agent framework" or "agent container" rather than an agent itself.
-It provides the infrastructure and orchestration for agent-like behavior, but delegates the actual "thinking" to providers.
-Currently LLMling-Agents are backed by 4 possible providers:
 
-- AI Provider: Uses pydantic-ai and language models
-- Human Provider: Gets responses through human input
-- Callback Provider: Uses Python functions to process prompts to output
+Native LLM-powered agents defined in your configuration:
 
-Key aspects:
+```yaml
+agents:
+  assistant:
+    model: openai:gpt-4
+    system_prompts:
+      - You are a helpful assistant.
+```
 
-- Manages infrastructure (tools, history, connections, events, resources)
-- Handles message routing and tool execution
-- Provides type safety and validation
-- Integrates with storage and events
-- Coordinates with other agents
+Agents are the most flexible nodes - they support tools, structured output, conversation history, and all framework features.
+
+### ACP Agents
+
+External coding agents integrated via the [Agent Client Protocol](https://agentclientprotocol.com/). These wrap tools like Claude Code, Goose, Codex, or fast-agent as nodes:
+
+```yaml
+acp_agents:
+  claude:
+    type: claude
+    cwd: /path/to/project
+  goose:
+    type: goose
+```
+
+ACP agents appear alongside native agents in your pool and can be connected, composed into teams, or used as tools - just like any other node.
+
+### Teams
+
+Groups of nodes that execute together:
+
+- **Parallel teams** (`agent1 & agent2`): All nodes run simultaneously
+- **Sequential pipelines** (`agent1 | agent2`): Output flows from one to the next
+
+Teams themselves are nodes, enabling nested composition.
+
+### Why This Matters
+
+The unified node model means you can:
+
+- Connect a native agent to an ACP agent
+- Build a team mixing Claude Code with your custom agents
+- Use any node as a tool for another node
+- Apply the same monitoring, logging, and storage to all nodes
+
+## Core Components
 
 The actual agent behavior (language model, human input, etc.) is pluggable via providers.
 
@@ -41,7 +79,7 @@ agents:
 Compared to other Frameworks, the YAML schema is a different beast and the capabilites to define agents statically are way more extensive.
 It is possible to:
 
-- Assign tools as well as special tools and capabilities
+- Assign tools, toolsets, mcp servers
 - Connect the agent to other agents with different "Connection types"
 - Define and assign respone types for structured output in YAML
 - Define and activate event triggers in YAML
@@ -51,35 +89,6 @@ It is possible to:
 - Assign agents to other agents as a resource (which gets evaluated on start. Also works nested to define pipeline-like patterns in easy ways)
 
 
-The hierarchy is:
-
-- **AgentsManifest**: Top-level configuration (YAML file)
-
-- Defines available agents
-- Sets up shared resources
-- Configures storage providers
-- Defines response types
-
-- **AgentConfig**: Per-agent configuration (YAML section)
-
-- Sets model/provider
-- Defines capabilities
-- Configures environment
-- Sets up knowledge sources
-
-All configuration is validated using Pydantic models, providing:
-
-- Type safety
-- Schema validation
-- IDE support
-- Clear error messages
-
-### Providers
-Providers implement the actual "agent behavior". The Agent class provides the framework, while providers handle the "thinking":
-
-- **AI Provider**: Uses pydantic-ai and language models
-- **Human Provider**: Gets responses through human input
-- **Callback Provider**: Uses Python functions
 
 ### Pools
 A Pool is a collection of agents that can:
@@ -125,41 +134,3 @@ Tasks are pre-defined operations that agents can execute. They include:
 - Required tools
 - Knowledge sources
 - Expected result types
-
-## Mental Model
-
-### Message Flow
-
-1. User/system sends message to agent (run call)
-2. Agent processes via provider
-3. Provider may use tools
-4. Response is generated
-5. Message gets returned and possibly also forwarded via connections into the connection layer.
-6. Depending on the connection set up, we can start at step 2 again
-
-
-## Key Patterns
-
-### Component Setup
-```python
-# Create pool from manifest
-async with AgentPool("agents.yml") as pool:
-    # Get agent
-    agent = pool.get_agent("analyzer")
-    # Create team
-    team = pool.create_team(["analyzer", "planner"])
-    # Connect agents
-    analyzer >> planner  # Forward results
-```
-
-### Message Processing
-```python
-# Basic usage
-result = await agent.run("Analyze this code")
-
-# Structured responses
-result = await agent.to_structured(AnalysisResult).run("Analyze this code")
-
-# Team execution
-result = await team.run_parallel("Process this")
-```

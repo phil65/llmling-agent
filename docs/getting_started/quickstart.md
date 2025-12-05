@@ -1,9 +1,62 @@
 # Quickstart Guide
 
+## ACP Integration (Recommended)
+
+The fastest way to get started is through the **Agent Client Protocol (ACP)**, which integrates llmling-agent directly into your IDE.
+
+### One-Line Setup
+
+No installation needed - run directly with uvx:
+
+```bash
+uvx --python 3.13 llmling-agent[default]@latest serve-acp agents.yml
+```
+
+### IDE Configuration (Zed)
+
+Add to your Zed `settings.json`:
+
+```json
+{
+  "agent_servers": {
+    "LLMling": {
+      "command": "uvx",
+      "args": [
+        "--python", "3.13",
+        "llmling-agent[default]@latest",
+        "serve-acp",
+        "path/to/your/agents.yml",
+        "--model-provider", "openai"
+      ],
+      "env": {
+        "OPENAI_API_KEY": "your-api-key-here"
+      }
+    }
+  }
+}
+```
+
+Your agents now appear as modes in Zed's agent panel - switch between them mid-conversation.
+
+### Wrap External Agents
+
+Integrate existing ACP-compatible agents (Claude Code, Goose, Codex, fast-agent) into your pool:
+
+```yaml
+acp_agents:
+  claude:
+    type: claude
+    cwd: /path/to/project
+  goose:
+    type: goose
+```
+
+See [ACP Integration](../advanced/acp_integration.md) for full details.
+
 ## CLI Usage
 
-
 Initialize and manage configurations:
+
 ```bash
 # Create starter configuration
 llmling-agent init agents.yml
@@ -15,8 +68,6 @@ llmling-agent add agents.yml
 llmling-agent chat assistant
 ```
 
-
-
 ## Configured Agents
 
 Create an agent configuration:
@@ -26,7 +77,7 @@ Create an agent configuration:
 agents:
   assistant:
     name: "Technical Assistant"
-    model: openai:gpt-5-mini
+    model: openai:gpt-4
     system_prompts:
       - You are a helpful technical assistant.
     toolsets:
@@ -58,10 +109,9 @@ from llmling_agent import run_with_model, run_with_model_sync
 
 # Async usage
 async def main():
-    # Simple completion
     result = await run_with_model(
         "Analyze this text",
-        model="openai:gpt-5-mini"
+        model="openai:gpt-4"
     )
     print(result)
 
@@ -74,27 +124,19 @@ async def main():
 
     result = await run_with_model(
         "Analyze the sentiment",
-        model="openai:gpt-5-mini",
+        model="openai:gpt-4",
         output_type=Analysis
     )
     print(f"Summary: {result.summary}")
-    print(f"Key points: {result.key_points}")
 
 # Sync usage (convenience wrapper)
-result = run_with_model_sync(
-    "Quick question",
-    model="openai:gpt-5-mini"
-)
+result = run_with_model_sync("Quick question", model="openai:gpt-4")
 ```
 
 ## Next Steps
 
-- Learn about [Key Concepts](../key_concepts.md)
+- Learn about [Basic Concepts](basic_concepts.md)
 - Explore [Agent Configuration](../agent_config.md)
+- Deep dive into [ACP Integration](../advanced/acp_integration.md)
 - Try the [Web Interface](../webui.md)
-- See [Running Agents](../running_agents.md) for more usage patterns
-- Check the [Command Reference](../commands.md) for CLI options
-
-!!! note
-    For details about environment configuration (tools, resources, etc.),
-    see the [LLMling documentation](https://github.com/phil65/llmling).
+- Check the [Command Reference](../commands.md)

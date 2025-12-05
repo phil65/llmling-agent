@@ -155,13 +155,3 @@ Human/LLM-friendly way and processed as text input.
     Never mix these patterns by referencing manifest response definitions in programmatic code,
     as this breaks type safety.
     Always use concrete Python types when working programmatically with structured agents.
-
-## Example scenarios
-
-### 1. Type-safe Task Execution
-```python
-# Task requires specific return type
-task = Task[None, AnalysisResult](...)
-agent = base_agent.to_structured(AnalysisResult)
-result = await task.execute(agent)
-```
