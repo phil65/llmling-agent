@@ -2945,6 +2945,114 @@
       "title": "AndCondition",
       "type": "object"
     },
+    "AppwriteFilesystemConfig": {
+      "additionalProperties": true,
+      "description": "Configuration for Appwrite storage filesystem.",
+      "properties": {
+        "fs_type": {
+          "const": "appwrite",
+          "default": "appwrite",
+          "description": "Appwrite filesystem type",
+          "title": "Fs Type",
+          "type": "string"
+        },
+        "root_path": {
+          "default": null,
+          "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "title": "Root Path",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for relative path operations (uses fs.chdir).",
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cached": {
+          "default": false,
+          "description": "Whether to wrap in CachingFileSystem.",
+          "title": "Cached",
+          "type": "boolean"
+        },
+        "endpoint": {
+          "default": null,
+          "description": "Appwrite API endpoint",
+          "examples": [
+            "https://cloud.appwrite.io/v1"
+          ],
+          "title": "Appwrite Endpoint",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "project": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Appwrite project ID",
+          "examples": [
+            "64b1f2c8e8c9a"
+          ],
+          "title": "Project ID"
+        },
+        "key": {
+          "anyOf": [
+            {
+              "format": "password",
+              "type": "string",
+              "writeOnly": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Appwrite API key",
+          "title": "API Key"
+        },
+        "bucket_id": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Default bucket ID for operations",
+          "examples": [
+            "default",
+            "images",
+            "documents"
+          ],
+          "title": "Bucket ID"
+        },
+        "self_signed": {
+          "default": false,
+          "description": "Whether to allow self-signed certificates",
+          "title": "Allow Self-Signed Certificates",
+          "type": "boolean"
+        }
+      },
+      "title": "AppwriteFilesystemConfig",
+      "type": "object"
+    },
     "ArizePhoenixObservabilityConfig": {
       "additionalProperties": false,
       "description": "Configuration for Arize Phoenix endpoint.",
@@ -3050,6 +3158,45 @@
       "title": "ArizePhoenixObservabilityConfig",
       "type": "object"
     },
+    "ArrowFilesystemConfig": {
+      "additionalProperties": true,
+      "description": "Configuration for Arrow filesystem wrapper.",
+      "properties": {
+        "fs_type": {
+          "const": "arrow",
+          "default": "arrow",
+          "description": "Arrow filesystem type",
+          "title": "Fs Type",
+          "type": "string"
+        },
+        "root_path": {
+          "default": null,
+          "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "title": "Root Path",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for relative path operations (uses fs.chdir).",
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cached": {
+          "default": false,
+          "description": "Whether to wrap in CachingFileSystem.",
+          "title": "Cached",
+          "type": "boolean"
+        }
+      },
+      "title": "ArrowFilesystemConfig",
+      "type": "object"
+    },
     "AugmentedModelConfig": {
       "additionalProperties": false,
       "description": "Configuration for model with pre/post prompt processing.",
@@ -3111,6 +3258,112 @@
         "type"
       ],
       "title": "BaseModelConfig",
+      "type": "object"
+    },
+    "BaseModelFilesystemConfig": {
+      "additionalProperties": true,
+      "description": "Configuration for Pydantic BaseModel schema filesystem.",
+      "properties": {
+        "fs_type": {
+          "const": "basemodel",
+          "default": "basemodel",
+          "description": "BaseModel filesystem type",
+          "title": "Fs Type",
+          "type": "string"
+        },
+        "root_path": {
+          "default": null,
+          "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "title": "Root Path",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for relative path operations (uses fs.chdir).",
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cached": {
+          "default": false,
+          "description": "Whether to wrap in CachingFileSystem.",
+          "title": "Cached",
+          "type": "boolean"
+        },
+        "model": {
+          "description": "BaseModel class import path",
+          "examples": [
+            "mypackage.MyModel",
+            "pydantic.BaseModel"
+          ],
+          "minLength": 1,
+          "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*(\\.[a-zA-Z_][a-zA-Z0-9_]*)*$",
+          "title": "Model Import Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "model"
+      ],
+      "title": "BaseModelFilesystemConfig",
+      "type": "object"
+    },
+    "BaseModelInstanceFilesystemConfig": {
+      "additionalProperties": true,
+      "description": "Configuration for Pydantic BaseModel instance filesystem.",
+      "properties": {
+        "fs_type": {
+          "const": "basemodel_instance",
+          "default": "basemodel_instance",
+          "description": "BaseModel instance filesystem type",
+          "title": "Fs Type",
+          "type": "string"
+        },
+        "root_path": {
+          "default": null,
+          "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "title": "Root Path",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for relative path operations (uses fs.chdir).",
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cached": {
+          "default": false,
+          "description": "Whether to wrap in CachingFileSystem.",
+          "title": "Cached",
+          "type": "boolean"
+        },
+        "instance": {
+          "description": "BaseModel instance import path",
+          "examples": [
+            "mypackage.model_instance",
+            "app.config.settings"
+          ],
+          "minLength": 1,
+          "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*(\\.[a-zA-Z_][a-zA-Z0-9_]*)*$",
+          "title": "Model Instance Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "instance"
+      ],
+      "title": "BaseModelInstanceFilesystemConfig",
       "type": "object"
     },
     "BasePrompt": {
@@ -3261,6 +3514,138 @@
         }
       },
       "title": "BeamExecutionEnvironmentConfig",
+      "type": "object"
+    },
+    "BeamFilesystemConfig": {
+      "additionalProperties": true,
+      "description": "Configuration for Beam sandbox filesystem.",
+      "properties": {
+        "fs_type": {
+          "const": "beam",
+          "default": "beam",
+          "description": "Beam filesystem type",
+          "title": "Fs Type",
+          "type": "string"
+        },
+        "root_path": {
+          "default": null,
+          "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "title": "Root Path",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for relative path operations (uses fs.chdir).",
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cached": {
+          "default": false,
+          "description": "Whether to wrap in CachingFileSystem.",
+          "title": "Cached",
+          "type": "boolean"
+        },
+        "sandbox_id": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Existing sandbox ID to connect to",
+          "examples": [
+            "sb-abc123456789"
+          ],
+          "title": "Sandbox ID"
+        },
+        "cpu": {
+          "default": 1.0,
+          "description": "CPU allocation for new sandboxes",
+          "examples": [
+            0.5,
+            1.0,
+            2.0
+          ],
+          "exclusiveMinimum": 0,
+          "title": "CPU Allocation",
+          "type": "number"
+        },
+        "memory": {
+          "default": 128,
+          "description": "Memory allocation for new sandboxes in MB",
+          "examples": [
+            128,
+            512,
+            1024
+          ],
+          "exclusiveMinimum": 0,
+          "title": "Memory (MB)",
+          "type": "integer"
+        },
+        "gpu_count": {
+          "default": 0,
+          "description": "Number of GPUs for new sandboxes",
+          "examples": [
+            0,
+            1,
+            2
+          ],
+          "minimum": 0,
+          "title": "GPU Count",
+          "type": "integer"
+        },
+        "keep_warm_seconds": {
+          "default": 600,
+          "description": "How long to keep sandbox alive in seconds",
+          "examples": [
+            300,
+            600,
+            1800
+          ],
+          "minimum": 0,
+          "title": "Keep Warm Duration",
+          "type": "integer"
+        },
+        "timeout": {
+          "default": 300,
+          "description": "Default timeout for operations in seconds",
+          "examples": [
+            60,
+            300,
+            600
+          ],
+          "exclusiveMinimum": 0,
+          "title": "Timeout",
+          "type": "number"
+        },
+        "env_variables": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Environment variables for new sandboxes",
+          "title": "Environment Variables"
+        }
+      },
+      "title": "BeamFilesystemConfig",
       "type": "object"
     },
     "BraintrustConfig": {
@@ -4112,6 +4497,61 @@
       "title": "ClaudeACPSettings",
       "type": "object"
     },
+    "CliFilesystemConfig": {
+      "additionalProperties": true,
+      "description": "Configuration for CLI filesystem.",
+      "properties": {
+        "fs_type": {
+          "const": "cli",
+          "default": "cli",
+          "description": "CLI filesystem type",
+          "title": "Fs Type",
+          "type": "string"
+        },
+        "root_path": {
+          "default": null,
+          "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "title": "Root Path",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for relative path operations (uses fs.chdir).",
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cached": {
+          "default": false,
+          "description": "Whether to wrap in CachingFileSystem.",
+          "title": "Cached",
+          "type": "boolean"
+        },
+        "shell": {
+          "default": false,
+          "description": "Whether to use shell mode for command execution",
+          "title": "Shell mode",
+          "type": "boolean"
+        },
+        "encoding": {
+          "default": "utf-8",
+          "description": "Output encoding for command results",
+          "examples": [
+            "utf-8"
+          ],
+          "pattern": "^[a-zA-Z0-9]([a-zA-Z0-9\\-_])*$",
+          "title": "Output encoding",
+          "type": "string"
+        }
+      },
+      "title": "CliFilesystemConfig",
+      "type": "object"
+    },
     "CodeModeToolsetConfig": {
       "additionalProperties": false,
       "description": "Configuration for code mode tools.",
@@ -4733,6 +5173,130 @@
       "title": "CustomToolsetConfig",
       "type": "object"
     },
+    "DaskWorkerFilesystemConfig": {
+      "additionalProperties": true,
+      "description": "Configuration for Dask worker filesystem.",
+      "properties": {
+        "fs_type": {
+          "const": "dask",
+          "default": "dask",
+          "description": "Dask worker filesystem type",
+          "title": "Fs Type",
+          "type": "string"
+        },
+        "root_path": {
+          "default": null,
+          "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "title": "Root Path",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for relative path operations (uses fs.chdir).",
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cached": {
+          "default": false,
+          "description": "Whether to wrap in CachingFileSystem.",
+          "title": "Cached",
+          "type": "boolean"
+        },
+        "target_protocol": {
+          "default": null,
+          "description": "Target protocol to use when running on workers",
+          "examples": [
+            "file",
+            "s3",
+            "gcs"
+          ],
+          "title": "Target Protocol",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "target_options": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Options for target protocol",
+          "title": "Target Protocol Options"
+        },
+        "client": {
+          "anyOf": [
+            {},
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Dask client instance or connection string",
+          "examples": [
+            "localhost:8786",
+            "tcp://scheduler:8786"
+          ],
+          "title": "Dask Client"
+        }
+      },
+      "title": "DaskWorkerFilesystemConfig",
+      "type": "object"
+    },
+    "DataFilesystemConfig": {
+      "additionalProperties": true,
+      "description": "Configuration for Data URL filesystem.",
+      "properties": {
+        "fs_type": {
+          "const": "data",
+          "default": "data",
+          "description": "Data URL filesystem type",
+          "title": "Fs Type",
+          "type": "string"
+        },
+        "root_path": {
+          "default": null,
+          "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "title": "Root Path",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for relative path operations (uses fs.chdir).",
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cached": {
+          "default": false,
+          "description": "Whether to wrap in CachingFileSystem.",
+          "title": "Cached",
+          "type": "boolean"
+        }
+      },
+      "title": "DataFilesystemConfig",
+      "type": "object"
+    },
     "DataForSEOConfig": {
       "additionalProperties": false,
       "description": "DataForSEO provider configuration.\n\nUses the DataForSEO API for web and news search.\nSupports country and language filtering with device/OS options.",
@@ -4887,6 +5451,74 @@
       "title": "DaytonaExecutionEnvironmentConfig",
       "type": "object"
     },
+    "DaytonaFilesystemConfig": {
+      "additionalProperties": true,
+      "description": "Configuration for Daytona sandbox filesystem.",
+      "properties": {
+        "fs_type": {
+          "const": "daytona",
+          "default": "daytona",
+          "description": "Daytona filesystem type",
+          "title": "Fs Type",
+          "type": "string"
+        },
+        "root_path": {
+          "default": null,
+          "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "title": "Root Path",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for relative path operations (uses fs.chdir).",
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cached": {
+          "default": false,
+          "description": "Whether to wrap in CachingFileSystem.",
+          "title": "Cached",
+          "type": "boolean"
+        },
+        "sandbox_id": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Existing sandbox ID to connect to",
+          "examples": [
+            "daytona-workspace-123"
+          ],
+          "title": "Sandbox ID"
+        },
+        "timeout": {
+          "default": 600,
+          "description": "Default timeout for operations in seconds",
+          "examples": [
+            300,
+            600,
+            1200
+          ],
+          "exclusiveMinimum": 0,
+          "title": "Timeout",
+          "type": "number"
+        }
+      },
+      "title": "DaytonaFilesystemConfig",
+      "type": "object"
+    },
     "DelegationModelConfig": {
       "additionalProperties": false,
       "description": "Configuration for delegation-based model selection.",
@@ -4954,6 +5586,45 @@
         "selection_prompt"
       ],
       "title": "DelegationModelConfig",
+      "type": "object"
+    },
+    "DistributionFilesystemConfig": {
+      "additionalProperties": true,
+      "description": "Configuration for Distribution filesystem.",
+      "properties": {
+        "fs_type": {
+          "const": "distribution",
+          "default": "distribution",
+          "description": "Distribution filesystem type",
+          "title": "Fs Type",
+          "type": "string"
+        },
+        "root_path": {
+          "default": null,
+          "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "title": "Root Path",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for relative path operations (uses fs.chdir).",
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cached": {
+          "default": false,
+          "description": "Whether to wrap in CachingFileSystem.",
+          "title": "Cached",
+          "type": "boolean"
+        }
+      },
+      "title": "DistributionFilesystemConfig",
       "type": "object"
     },
     "DockerExecutionEnvironmentConfig": {
@@ -5104,6 +5775,96 @@
         "import_path"
       ],
       "title": "DynamicPrompt",
+      "type": "object"
+    },
+    "E2BFilesystemConfig": {
+      "additionalProperties": true,
+      "description": "Configuration for E2B sandbox filesystem.",
+      "properties": {
+        "fs_type": {
+          "const": "e2b",
+          "default": "e2b",
+          "description": "E2B filesystem type",
+          "title": "Fs Type",
+          "type": "string"
+        },
+        "root_path": {
+          "default": null,
+          "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "title": "Root Path",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for relative path operations (uses fs.chdir).",
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cached": {
+          "default": false,
+          "description": "Whether to wrap in CachingFileSystem.",
+          "title": "Cached",
+          "type": "boolean"
+        },
+        "api_key": {
+          "description": "E2B API key for authentication",
+          "format": "password",
+          "title": "E2B API Key",
+          "type": "string",
+          "writeOnly": true
+        },
+        "template": {
+          "default": "code-interpreter-v1",
+          "description": "E2B template to use for sandboxes",
+          "examples": [
+            "code-interpreter-v1",
+            "base",
+            "python"
+          ],
+          "minLength": 1,
+          "title": "Template",
+          "type": "string"
+        },
+        "sandbox_id": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Existing sandbox ID to connect to",
+          "examples": [
+            "e2b-sb-abc123456789"
+          ],
+          "title": "Sandbox ID"
+        },
+        "timeout": {
+          "default": 60,
+          "description": "Default timeout for operations in seconds",
+          "examples": [
+            30,
+            60,
+            120
+          ],
+          "exclusiveMinimum": 0,
+          "title": "Timeout",
+          "type": "number"
+        }
+      },
+      "required": [
+        "api_key"
+      ],
+      "title": "E2BFilesystemConfig",
       "type": "object"
     },
     "E2bExecutionEnvironmentConfig": {
@@ -7456,6 +8217,176 @@
       "title": "FSSpecToolsetConfig",
       "type": "object"
     },
+    "FTPFilesystemConfig": {
+      "additionalProperties": true,
+      "description": "Configuration for FTP filesystem.",
+      "properties": {
+        "fs_type": {
+          "const": "ftp",
+          "default": "ftp",
+          "description": "FTP filesystem type",
+          "title": "Fs Type",
+          "type": "string"
+        },
+        "root_path": {
+          "default": null,
+          "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "title": "Root Path",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for relative path operations (uses fs.chdir).",
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cached": {
+          "default": false,
+          "description": "Whether to wrap in CachingFileSystem.",
+          "title": "Cached",
+          "type": "boolean"
+        },
+        "host": {
+          "description": "FTP server hostname or IP",
+          "examples": [
+            "ftp.example.com",
+            "192.168.1.100"
+          ],
+          "title": "FTP Host",
+          "type": "string"
+        },
+        "port": {
+          "default": 21,
+          "description": "FTP server port",
+          "examples": [
+            21,
+            1234
+          ],
+          "maximum": 65535,
+          "minimum": 1,
+          "title": "FTP port",
+          "type": "integer"
+        },
+        "username": {
+          "anyOf": [
+            {
+              "maxLength": 32,
+              "minLength": 1,
+              "pattern": "^[a-zA-Z0-9._-]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Username for authentication",
+          "examples": [
+            "user123",
+            "admin"
+          ],
+          "title": "Username"
+        },
+        "password": {
+          "anyOf": [
+            {
+              "format": "password",
+              "type": "string",
+              "writeOnly": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Password for authentication",
+          "title": "Password"
+        },
+        "acct": {
+          "default": null,
+          "description": "Account string some servers need for auth",
+          "examples": [
+            "account123"
+          ],
+          "title": "Account String",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "block_size": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Block size for file operations",
+          "examples": [
+            8192,
+            65536
+          ],
+          "title": "Block Size"
+        },
+        "tempdir": {
+          "default": null,
+          "description": "Directory for temporary files during transactions",
+          "examples": [
+            "/tmp",
+            "/var/tmp"
+          ],
+          "title": "Temp Directory",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "timeout": {
+          "default": 30,
+          "description": "Connection timeout in seconds",
+          "examples": [
+            30,
+            60,
+            120
+          ],
+          "minimum": 0,
+          "title": "Timeout",
+          "type": "integer"
+        },
+        "encoding": {
+          "default": "utf-8",
+          "description": "Encoding for filenames and directories",
+          "examples": [
+            "utf-8",
+            "latin-1"
+          ],
+          "pattern": "^[a-zA-Z0-9]([a-zA-Z0-9\\-_])*$",
+          "title": "Encoding",
+          "type": "string"
+        },
+        "tls": {
+          "default": false,
+          "description": "Whether to use FTP over TLS",
+          "title": "FTP over TLS",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "host"
+      ],
+      "title": "FTPFilesystemConfig",
+      "type": "object"
+    },
     "FabricConfig": {
       "additionalProperties": false,
       "description": "Configuration for Fabric GitHub prompt provider.",
@@ -8297,6 +9228,64 @@
       "title": "FileWatchConfig",
       "type": "object"
     },
+    "FlatUnionFilesystemConfig": {
+      "additionalProperties": true,
+      "description": "Configuration for FlatUnion filesystem.",
+      "properties": {
+        "fs_type": {
+          "const": "flatunion",
+          "default": "flatunion",
+          "description": "FlatUnion filesystem type",
+          "title": "Fs Type",
+          "type": "string"
+        },
+        "root_path": {
+          "default": null,
+          "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "title": "Root Path",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for relative path operations (uses fs.chdir).",
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cached": {
+          "default": false,
+          "description": "Whether to wrap in CachingFileSystem.",
+          "title": "Cached",
+          "type": "boolean"
+        },
+        "filesystems": {
+          "description": "List of filesystem identifiers to include in the union",
+          "examples": [
+            [
+              "fs1",
+              "fs2",
+              "fs3"
+            ]
+          ],
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Filesystem Identifiers",
+          "type": "array"
+        }
+      },
+      "required": [
+        "filesystems"
+      ],
+      "title": "FlatUnionFilesystemConfig",
+      "type": "object"
+    },
     "FunctionModelConfig": {
       "additionalProperties": false,
       "description": "Configuration for function-based model references.",
@@ -8381,6 +9370,401 @@
       "title": "FunctionPromptConfig",
       "type": "object"
     },
+    "GistFilesystemConfig": {
+      "additionalProperties": true,
+      "description": "Configuration for GitHub Gist filesystem.",
+      "properties": {
+        "fs_type": {
+          "const": "gist",
+          "default": "gist",
+          "description": "Gist filesystem type",
+          "title": "Fs Type",
+          "type": "string"
+        },
+        "root_path": {
+          "default": null,
+          "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "title": "Root Path",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for relative path operations (uses fs.chdir).",
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cached": {
+          "default": false,
+          "description": "Whether to wrap in CachingFileSystem.",
+          "title": "Cached",
+          "type": "boolean"
+        },
+        "gist_id": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "pattern": "^[a-f0-9]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Specific gist ID to access",
+          "examples": [
+            "abc123"
+          ],
+          "title": "Gist ID"
+        },
+        "username": {
+          "anyOf": [
+            {
+              "maxLength": 39,
+              "minLength": 1,
+              "pattern": "^[a-zA-Z0-9]([a-zA-Z0-9\\-])*[a-zA-Z0-9]$|^[a-zA-Z0-9]$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "GitHub username for listing all gists",
+          "examples": [
+            "phil65"
+          ],
+          "title": "GitHub Username"
+        },
+        "token": {
+          "anyOf": [
+            {
+              "format": "password",
+              "type": "string",
+              "writeOnly": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "GitHub personal access token for authentication",
+          "examples": [
+            "abc123"
+          ],
+          "title": "GitHub Token"
+        },
+        "sha": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "pattern": "^[a-f0-9]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Specific revision of a gist",
+          "examples": [
+            "abc123"
+          ],
+          "title": "Gist Revision"
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Connection timeout in seconds",
+          "title": "Connection Timeout"
+        }
+      },
+      "title": "GistFilesystemConfig",
+      "type": "object"
+    },
+    "GitFilesystemConfig": {
+      "additionalProperties": true,
+      "description": "Configuration for Git filesystem.",
+      "properties": {
+        "fs_type": {
+          "const": "git",
+          "default": "git",
+          "description": "Git filesystem type",
+          "title": "Fs Type",
+          "type": "string"
+        },
+        "root_path": {
+          "default": null,
+          "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "title": "Root Path",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for relative path operations (uses fs.chdir).",
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cached": {
+          "default": false,
+          "description": "Whether to wrap in CachingFileSystem.",
+          "title": "Cached",
+          "type": "boolean"
+        },
+        "path": {
+          "default": null,
+          "description": "Path to git repository",
+          "examples": [
+            "/path/to/repo",
+            "~/projects/myrepo"
+          ],
+          "title": "Repository Path",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "fo": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "path": {
+                  "title": "Path",
+                  "type": "string"
+                },
+                "protocol": {
+                  "default": null,
+                  "title": "Protocol",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "storage_options": {
+                  "additionalProperties": true,
+                  "title": "Storage Options",
+                  "type": "object"
+                }
+              },
+              "required": [
+                "path"
+              ],
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Alternative to path, passed as part of URL",
+          "title": "File Object Path"
+        },
+        "ref": {
+          "anyOf": [
+            {
+              "maxLength": 255,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Reference to work with (hash, branch, tag)",
+          "examples": [
+            "main",
+            "v1.0.0",
+            "abc1234567890"
+          ],
+          "title": "Git Reference"
+        }
+      },
+      "title": "GitFilesystemConfig",
+      "type": "object"
+    },
+    "GithubFilesystemConfig": {
+      "additionalProperties": true,
+      "description": "Configuration for GitHub filesystem.",
+      "properties": {
+        "fs_type": {
+          "const": "github",
+          "default": "github",
+          "description": "GitHub filesystem type",
+          "title": "Fs Type",
+          "type": "string"
+        },
+        "root_path": {
+          "default": null,
+          "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "title": "Root Path",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for relative path operations (uses fs.chdir).",
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cached": {
+          "default": false,
+          "description": "Whether to wrap in CachingFileSystem.",
+          "title": "Cached",
+          "type": "boolean"
+        },
+        "org": {
+          "description": "GitHub organization or user name",
+          "examples": [
+            "microsoft",
+            "facebook",
+            "phil65"
+          ],
+          "maxLength": 39,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9]([a-zA-Z0-9\\-])*[a-zA-Z0-9]$|^[a-zA-Z0-9]$",
+          "title": "Organization",
+          "type": "string"
+        },
+        "repo": {
+          "description": "Repository name",
+          "examples": [
+            "vscode",
+            "react",
+            "upathtools"
+          ],
+          "maxLength": 100,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9\\._\\-]+$",
+          "title": "Repository",
+          "type": "string"
+        },
+        "sha": {
+          "anyOf": [
+            {
+              "maxLength": 255,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Commit hash, branch or tag name to use",
+          "examples": [
+            "main",
+            "v2.1.0",
+            "abc1234567890"
+          ],
+          "title": "Commit/Branch/Tag"
+        },
+        "username": {
+          "anyOf": [
+            {
+              "maxLength": 39,
+              "minLength": 1,
+              "pattern": "^[a-zA-Z0-9]([a-zA-Z0-9\\-])*[a-zA-Z0-9]$|^[a-zA-Z0-9]$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "GitHub username for authentication",
+          "examples": [
+            "octocat",
+            "phil65"
+          ],
+          "title": "GitHub Username"
+        },
+        "token": {
+          "anyOf": [
+            {
+              "format": "password",
+              "type": "string",
+              "writeOnly": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "GitHub token for authentication",
+          "title": "GitHub Token"
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "integer"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Connection timeout in seconds (connect, read)",
+          "examples": [
+            30,
+            60,
+            [
+              10,
+              60
+            ]
+          ],
+          "title": "Connection Timeout"
+        }
+      },
+      "required": [
+        "org",
+        "repo"
+      ],
+      "title": "GithubFilesystemConfig",
+      "type": "object"
+    },
     "GoogleSpeechConfig": {
       "additionalProperties": false,
       "description": "Configuration for Google Cloud Speech-to-Text.",
@@ -8441,6 +9825,128 @@
       "title": "GoogleSpeechConfig",
       "type": "object"
     },
+    "HadoopFilesystemConfig": {
+      "additionalProperties": true,
+      "description": "Configuration for Hadoop filesystem.",
+      "properties": {
+        "fs_type": {
+          "const": "hdfs",
+          "default": "hdfs",
+          "description": "Hadoop filesystem type",
+          "title": "Fs Type",
+          "type": "string"
+        },
+        "root_path": {
+          "default": null,
+          "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "title": "Root Path",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for relative path operations (uses fs.chdir).",
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cached": {
+          "default": false,
+          "description": "Whether to wrap in CachingFileSystem.",
+          "title": "Cached",
+          "type": "boolean"
+        },
+        "host": {
+          "default": "default",
+          "description": "Hostname, IP or 'default' to use Hadoop config",
+          "examples": [
+            "default",
+            "namenode.example.com",
+            "192.168.1.100"
+          ],
+          "title": "HDFS Host",
+          "type": "string"
+        },
+        "port": {
+          "default": 0,
+          "description": "Port number or 0 to use default from Hadoop config",
+          "examples": [
+            0,
+            8020,
+            9000
+          ],
+          "maximum": 65535,
+          "minimum": 0,
+          "title": "HDFS Port",
+          "type": "integer"
+        },
+        "user": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "minLength": 1,
+              "pattern": "^[a-zA-Z0-9._-]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Username to connect as",
+          "examples": [
+            "hdfs",
+            "hadoop",
+            "admin"
+          ],
+          "title": "HDFS User"
+        },
+        "kerb_ticket": {
+          "default": null,
+          "description": "Kerberos ticket for authentication",
+          "examples": [
+            "/tmp/krb5cc_1000"
+          ],
+          "title": "Kerberos Ticket",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "replication": {
+          "default": 3,
+          "description": "Replication factor for write operations",
+          "examples": [
+            1,
+            3,
+            5
+          ],
+          "minimum": 1,
+          "title": "Replication Factor",
+          "type": "integer"
+        },
+        "extra_conf": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Additional configuration parameters",
+          "title": "Extra Configuration"
+        }
+      },
+      "title": "HadoopFilesystemConfig",
+      "type": "object"
+    },
     "HistoryToolsetConfig": {
       "additionalProperties": false,
       "description": "Configuration for history toolset.",
@@ -8467,6 +9973,223 @@
         }
       },
       "title": "HistoryToolsetConfig",
+      "type": "object"
+    },
+    "HttpFilesystemConfig": {
+      "additionalProperties": true,
+      "description": "Configuration for HTTP filesystem.",
+      "properties": {
+        "fs_type": {
+          "const": "http",
+          "default": "http",
+          "description": "HTTP filesystem type",
+          "title": "Fs Type",
+          "type": "string"
+        },
+        "root_path": {
+          "default": null,
+          "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "title": "Root Path",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for relative path operations (uses fs.chdir).",
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cached": {
+          "default": false,
+          "description": "Whether to wrap in CachingFileSystem.",
+          "title": "Cached",
+          "type": "boolean"
+        },
+        "simple_links": {
+          "default": true,
+          "description": "Whether to extract links using simpler regex patterns",
+          "title": "Simple Links",
+          "type": "boolean"
+        },
+        "block_size": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Block size for reading files in chunks",
+          "examples": [
+            8192,
+            65536
+          ],
+          "title": "Block Size"
+        },
+        "same_scheme": {
+          "default": true,
+          "description": "Whether to keep the same scheme (http/https) when following links",
+          "title": "Same Scheme",
+          "type": "boolean"
+        },
+        "size_policy": {
+          "default": null,
+          "description": "Policy for determining file size ('head' or 'get')",
+          "examples": [
+            "head",
+            "get"
+          ],
+          "title": "Size Policy",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cache_type": {
+          "default": "bytes",
+          "description": "Type of cache to use for file contents",
+          "examples": [
+            "bytes",
+            "readahead",
+            "blockcache"
+          ],
+          "title": "Cache Type",
+          "type": "string"
+        },
+        "encoded": {
+          "default": false,
+          "description": "Whether URLs are already encoded",
+          "title": "Encoded URLs",
+          "type": "boolean"
+        }
+      },
+      "title": "HttpFilesystemConfig",
+      "type": "object"
+    },
+    "HttpxFilesystemConfig": {
+      "additionalProperties": true,
+      "description": "Configuration for HTTPX-based HTTP filesystem.",
+      "properties": {
+        "fs_type": {
+          "const": "httpx",
+          "default": "httpx",
+          "description": "HTTPX filesystem type",
+          "title": "Fs Type",
+          "type": "string"
+        },
+        "root_path": {
+          "default": null,
+          "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "title": "Root Path",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for relative path operations (uses fs.chdir).",
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cached": {
+          "default": false,
+          "description": "Whether to wrap in CachingFileSystem.",
+          "title": "Cached",
+          "type": "boolean"
+        },
+        "simple_links": {
+          "default": true,
+          "description": "Whether to extract links using simpler regex patterns",
+          "title": "Simple Links",
+          "type": "boolean"
+        },
+        "block_size": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Block size for reading files in chunks",
+          "examples": [
+            8192,
+            65536
+          ],
+          "title": "Block Size"
+        },
+        "same_scheme": {
+          "default": true,
+          "description": "Whether to keep the same scheme (http/https) when following links",
+          "title": "Same Scheme",
+          "type": "boolean"
+        },
+        "size_policy": {
+          "default": null,
+          "description": "Policy for determining file size ('head' or 'get')",
+          "examples": [
+            "head",
+            "get"
+          ],
+          "title": "Size Policy",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cache_type": {
+          "default": "bytes",
+          "description": "Type of cache to use for file contents",
+          "examples": [
+            "bytes",
+            "readahead",
+            "blockcache"
+          ],
+          "title": "Cache Type",
+          "type": "string"
+        },
+        "encoded": {
+          "default": false,
+          "description": "Whether URLs are already encoded",
+          "title": "Encoded URLs",
+          "type": "boolean"
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "HTTP request timeout in seconds",
+          "examples": [
+            30,
+            60,
+            120
+          ],
+          "title": "Request Timeout"
+        }
+      },
+      "title": "HttpxFilesystemConfig",
       "type": "object"
     },
     "ImportModelConfig": {
@@ -8992,6 +10715,74 @@
       "title": "Job[Any, str]",
       "type": "object"
     },
+    "JupyterFilesystemConfig": {
+      "additionalProperties": true,
+      "description": "Configuration for Jupyter notebook/lab filesystem.",
+      "properties": {
+        "fs_type": {
+          "const": "jupyter",
+          "default": "jupyter",
+          "description": "Jupyter filesystem type",
+          "title": "Fs Type",
+          "type": "string"
+        },
+        "root_path": {
+          "default": null,
+          "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "title": "Root Path",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for relative path operations (uses fs.chdir).",
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cached": {
+          "default": false,
+          "description": "Whether to wrap in CachingFileSystem.",
+          "title": "Cached",
+          "type": "boolean"
+        },
+        "url": {
+          "description": "Base URL of the Jupyter server",
+          "examples": [
+            "http://localhost:8888",
+            "https://jupyter.example.com"
+          ],
+          "format": "uri",
+          "minLength": 1,
+          "title": "Jupyter URL",
+          "type": "string"
+        },
+        "tok": {
+          "anyOf": [
+            {
+              "format": "password",
+              "type": "string",
+              "writeOnly": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Jupyter authentication token",
+          "title": "Auth Token"
+        }
+      },
+      "required": [
+        "url"
+      ],
+      "title": "JupyterFilesystemConfig",
+      "type": "object"
+    },
     "KagiConfig": {
       "additionalProperties": false,
       "description": "Kagi provider configuration.\n\nUses the Kagi API for web search.\nAlso supports summarization via the Universal Summarizer.",
@@ -9372,6 +11163,132 @@
       "title": "LangsmithObservabilityConfig",
       "type": "object"
     },
+    "LibArchiveFilesystemConfig": {
+      "additionalProperties": true,
+      "description": "Configuration for LibArchive filesystem.",
+      "properties": {
+        "fs_type": {
+          "const": "libarchive",
+          "default": "libarchive",
+          "description": "LibArchive filesystem type",
+          "title": "Fs Type",
+          "type": "string"
+        },
+        "root_path": {
+          "default": null,
+          "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "title": "Root Path",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for relative path operations (uses fs.chdir).",
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cached": {
+          "default": false,
+          "description": "Whether to wrap in CachingFileSystem.",
+          "title": "Cached",
+          "type": "boolean"
+        },
+        "fo": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "path": {
+                  "title": "Path",
+                  "type": "string"
+                },
+                "protocol": {
+                  "default": null,
+                  "title": "Protocol",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "storage_options": {
+                  "additionalProperties": true,
+                  "title": "Storage Options",
+                  "type": "object"
+                }
+              },
+              "required": [
+                "path"
+              ],
+              "type": "object"
+            }
+          ],
+          "description": "Path to archive file",
+          "examples": [
+            "/path/to/archive.tar.gz"
+          ],
+          "title": "Archive Path"
+        },
+        "target_protocol": {
+          "default": null,
+          "description": "Protocol for source file",
+          "examples": [
+            "file",
+            "s3",
+            "http"
+          ],
+          "title": "Target Protocol",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "target_options": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Options for target protocol",
+          "title": "Target Protocol Options"
+        },
+        "block_size": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Block size for read operations",
+          "examples": [
+            8192,
+            65536
+          ],
+          "title": "Block Size"
+        }
+      },
+      "required": [
+        "fo"
+      ],
+      "title": "LibArchiveFilesystemConfig",
+      "type": "object"
+    },
     "LibraryPromptConfig": {
       "additionalProperties": false,
       "description": "Configuration for a library reference prompt.",
@@ -9514,6 +11431,62 @@
         }
       },
       "title": "LocalExecutionEnvironmentConfig",
+      "type": "object"
+    },
+    "LocalFilesystemConfig": {
+      "additionalProperties": true,
+      "description": "Configuration for Local filesystem.",
+      "properties": {
+        "fs_type": {
+          "const": "file",
+          "default": "file",
+          "description": "Local filesystem type",
+          "title": "Fs Type",
+          "type": "string"
+        },
+        "root_path": {
+          "default": null,
+          "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "title": "Root Path",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for relative path operations (uses fs.chdir).",
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cached": {
+          "default": false,
+          "description": "Whether to wrap in CachingFileSystem.",
+          "title": "Cached",
+          "type": "boolean"
+        },
+        "auto_mkdir": {
+          "default": false,
+          "description": "Whether to automatically make directories",
+          "title": "Auto Make Directories",
+          "type": "boolean"
+        },
+        "dir_policy": {
+          "default": "auto",
+          "description": "Policy for handling directories that may exist",
+          "enum": [
+            "auto",
+            "try_then_fail",
+            "try_then_noop"
+          ],
+          "title": "Directory Policy",
+          "type": "string"
+        }
+      },
+      "title": "LocalFilesystemConfig",
       "type": "object"
     },
     "LocalWhisperConfig": {
@@ -9938,6 +11911,190 @@
       "title": "MarkItDownConfig",
       "type": "object"
     },
+    "MarkdownFilesystemConfig": {
+      "additionalProperties": true,
+      "description": "Configuration for Markdown filesystem.",
+      "properties": {
+        "fs_type": {
+          "const": "md",
+          "default": "md",
+          "description": "Markdown filesystem type",
+          "title": "Fs Type",
+          "type": "string"
+        },
+        "root_path": {
+          "default": null,
+          "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "title": "Root Path",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for relative path operations (uses fs.chdir).",
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cached": {
+          "default": false,
+          "description": "Whether to wrap in CachingFileSystem.",
+          "title": "Cached",
+          "type": "boolean"
+        },
+        "fo": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "path": {
+                  "title": "Path",
+                  "type": "string"
+                },
+                "protocol": {
+                  "default": null,
+                  "title": "Protocol",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "storage_options": {
+                  "additionalProperties": true,
+                  "title": "Storage Options",
+                  "type": "object"
+                }
+              },
+              "required": [
+                "path"
+              ],
+              "type": "object"
+            }
+          ],
+          "description": "Path to markdown file",
+          "examples": [
+            "/path/to/file.md"
+          ],
+          "title": "Markdown File Path"
+        },
+        "target_protocol": {
+          "default": null,
+          "description": "Protocol for source file",
+          "examples": [
+            "file",
+            "s3",
+            "http"
+          ],
+          "title": "Target Protocol",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "target_options": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Options for target protocol",
+          "title": "Target Protocol Options"
+        }
+      },
+      "required": [
+        "fo"
+      ],
+      "title": "MarkdownFilesystemConfig",
+      "type": "object"
+    },
+    "McpFilesystemConfig": {
+      "additionalProperties": true,
+      "description": "Configuration for MCP (Model Context Protocol) filesystem.",
+      "properties": {
+        "fs_type": {
+          "const": "mcp",
+          "default": "mcp",
+          "description": "MCP filesystem type",
+          "title": "Fs Type",
+          "type": "string"
+        },
+        "root_path": {
+          "default": null,
+          "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "title": "Root Path",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for relative path operations (uses fs.chdir).",
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cached": {
+          "default": false,
+          "description": "Whether to wrap in CachingFileSystem.",
+          "title": "Cached",
+          "type": "boolean"
+        },
+        "url": {
+          "default": null,
+          "description": "MCP server URL",
+          "examples": [
+            "ws://localhost:8000",
+            "wss://mcp.example.com"
+          ],
+          "title": "MCP Server URL",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "server_cmd": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Command to start MCP server",
+          "examples": [
+            [
+              "python",
+              "-m",
+              "my_mcp_server"
+            ]
+          ],
+          "title": "Server Command"
+        }
+      },
+      "title": "McpFilesystemConfig",
+      "type": "object"
+    },
     "MemoryConfig": {
       "additionalProperties": false,
       "description": "Configuration for agent memory and history handling.",
@@ -10005,6 +12162,45 @@
         }
       },
       "title": "MemoryConfig",
+      "type": "object"
+    },
+    "MemoryFilesystemConfig": {
+      "additionalProperties": true,
+      "description": "Configuration for Memory filesystem.",
+      "properties": {
+        "fs_type": {
+          "const": "memory",
+          "default": "memory",
+          "description": "Memory filesystem type",
+          "title": "Fs Type",
+          "type": "string"
+        },
+        "root_path": {
+          "default": null,
+          "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "title": "Root Path",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for relative path operations (uses fs.chdir).",
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cached": {
+          "default": false,
+          "description": "Whether to wrap in CachingFileSystem.",
+          "title": "Cached",
+          "type": "boolean"
+        }
+      },
+      "title": "MemoryFilesystemConfig",
       "type": "object"
     },
     "MemoryStorageConfig": {
@@ -10152,6 +12348,350 @@
         "max_messages"
       ],
       "title": "MessageCountCondition",
+      "type": "object"
+    },
+    "MicrosandboxFilesystemConfig": {
+      "additionalProperties": true,
+      "description": "Configuration for Microsandbox filesystem.",
+      "properties": {
+        "fs_type": {
+          "const": "microsandbox",
+          "default": "microsandbox",
+          "description": "Microsandbox filesystem type",
+          "title": "Fs Type",
+          "type": "string"
+        },
+        "root_path": {
+          "default": null,
+          "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "title": "Root Path",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for relative path operations (uses fs.chdir).",
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cached": {
+          "default": false,
+          "description": "Whether to wrap in CachingFileSystem.",
+          "title": "Cached",
+          "type": "boolean"
+        },
+        "server_url": {
+          "default": null,
+          "description": "Microsandbox server URL",
+          "examples": [
+            "http://localhost:8080",
+            "https://microsandbox.example.com"
+          ],
+          "title": "Server URL",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "namespace": {
+          "default": "default",
+          "description": "Sandbox namespace",
+          "examples": [
+            "default",
+            "production",
+            "staging"
+          ],
+          "minLength": 1,
+          "title": "Namespace",
+          "type": "string"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Sandbox name",
+          "examples": [
+            "my-sandbox",
+            "data-processor"
+          ],
+          "title": "Sandbox Name"
+        },
+        "api_key": {
+          "anyOf": [
+            {
+              "format": "password",
+              "type": "string",
+              "writeOnly": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "API key for authentication",
+          "title": "API Key"
+        },
+        "image": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Docker image to use",
+          "examples": [
+            "python:3.11",
+            "ubuntu:22.04",
+            "node:18"
+          ],
+          "title": "Docker Image"
+        },
+        "memory": {
+          "default": 512,
+          "description": "Memory limit in MB",
+          "examples": [
+            256,
+            512,
+            1024
+          ],
+          "exclusiveMinimum": 0,
+          "title": "Memory Limit (MB)",
+          "type": "integer"
+        },
+        "cpus": {
+          "default": 1.0,
+          "description": "CPU limit",
+          "examples": [
+            0.5,
+            1.0,
+            2.0
+          ],
+          "exclusiveMinimum": 0,
+          "title": "CPU Limit",
+          "type": "number"
+        }
+      },
+      "title": "MicrosandboxFilesystemConfig",
+      "type": "object"
+    },
+    "ModalFilesystemConfig": {
+      "additionalProperties": true,
+      "description": "Configuration for Modal sandbox filesystem.",
+      "properties": {
+        "fs_type": {
+          "const": "modal",
+          "default": "modal",
+          "description": "Modal filesystem type",
+          "title": "Fs Type",
+          "type": "string"
+        },
+        "root_path": {
+          "default": null,
+          "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "title": "Root Path",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for relative path operations (uses fs.chdir).",
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cached": {
+          "default": false,
+          "description": "Whether to wrap in CachingFileSystem.",
+          "title": "Cached",
+          "type": "boolean"
+        },
+        "app_name": {
+          "description": "Modal application name",
+          "examples": [
+            "my-app",
+            "data-processing",
+            "ml-pipeline"
+          ],
+          "maxLength": 64,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9\\-_]+$",
+          "title": "Modal App Name",
+          "type": "string"
+        },
+        "sandbox_id": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Existing sandbox ID to connect to",
+          "examples": [
+            "sb-abc123456789"
+          ],
+          "title": "Sandbox ID"
+        },
+        "timeout": {
+          "default": 600,
+          "description": "Default timeout for operations in seconds",
+          "examples": [
+            300,
+            600,
+            1200
+          ],
+          "exclusiveMinimum": 0,
+          "title": "Timeout",
+          "type": "number"
+        },
+        "idle_timeout": {
+          "default": 300,
+          "description": "Sandbox idle timeout in seconds",
+          "examples": [
+            60,
+            300,
+            600
+          ],
+          "exclusiveMinimum": 0,
+          "title": "Idle Timeout",
+          "type": "number"
+        }
+      },
+      "required": [
+        "app_name"
+      ],
+      "title": "ModalFilesystemConfig",
+      "type": "object"
+    },
+    "ModuleFilesystemConfig": {
+      "additionalProperties": true,
+      "description": "Configuration for Module filesystem.",
+      "properties": {
+        "fs_type": {
+          "const": "mod",
+          "default": "mod",
+          "description": "Module filesystem type",
+          "title": "Fs Type",
+          "type": "string"
+        },
+        "root_path": {
+          "default": null,
+          "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "title": "Root Path",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for relative path operations (uses fs.chdir).",
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cached": {
+          "default": false,
+          "description": "Whether to wrap in CachingFileSystem.",
+          "title": "Cached",
+          "type": "boolean"
+        },
+        "fo": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "path": {
+                  "title": "Path",
+                  "type": "string"
+                },
+                "protocol": {
+                  "default": null,
+                  "title": "Protocol",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "storage_options": {
+                  "additionalProperties": true,
+                  "title": "Storage Options",
+                  "type": "object"
+                }
+              },
+              "required": [
+                "path"
+              ],
+              "type": "object"
+            }
+          ],
+          "description": "Path to Python file",
+          "examples": [
+            "/path/to/module.py"
+          ],
+          "title": "Python File Path"
+        },
+        "target_protocol": {
+          "default": null,
+          "description": "Protocol for source file",
+          "examples": [
+            "file",
+            "s3",
+            "http"
+          ],
+          "title": "Target Protocol",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "target_options": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Options for target protocol",
+          "title": "Target Protocol Options"
+        }
+      },
+      "required": [
+        "fo"
+      ],
+      "title": "ModuleFilesystemConfig",
       "type": "object"
     },
     "NodeConnectionConfig": {
@@ -10505,6 +13045,67 @@
       "title": "NotificationsToolsetConfig",
       "type": "object"
     },
+    "NotionFilesystemConfig": {
+      "additionalProperties": true,
+      "description": "Configuration for Notion filesystem.",
+      "properties": {
+        "fs_type": {
+          "const": "notion",
+          "default": "notion",
+          "description": "Notion filesystem type",
+          "title": "Fs Type",
+          "type": "string"
+        },
+        "root_path": {
+          "default": null,
+          "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "title": "Root Path",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for relative path operations (uses fs.chdir).",
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cached": {
+          "default": false,
+          "description": "Whether to wrap in CachingFileSystem.",
+          "title": "Cached",
+          "type": "boolean"
+        },
+        "token": {
+          "description": "Notion integration token",
+          "format": "password",
+          "title": "Integration Token",
+          "type": "string",
+          "writeOnly": true
+        },
+        "parent_page_id": {
+          "description": "ID of the parent page where new pages will be created",
+          "examples": [
+            "64b1f2c8e8c9a1234567890"
+          ],
+          "maxLength": 36,
+          "minLength": 32,
+          "pattern": "^[a-f0-9\\-]+$",
+          "title": "Parent Page ID",
+          "type": "string"
+        }
+      },
+      "required": [
+        "token",
+        "parent_page_id"
+      ],
+      "title": "NotionFilesystemConfig",
+      "type": "object"
+    },
     "ObservabilityConfig": {
       "additionalProperties": false,
       "description": "Global observability configuration - supports single backend only.",
@@ -10648,6 +13249,115 @@
       "title": "OpenAPIToolsetConfig",
       "type": "object"
     },
+    "OpenApiFilesystemConfig": {
+      "additionalProperties": true,
+      "description": "Configuration for OpenAPI schema filesystem.",
+      "properties": {
+        "fs_type": {
+          "const": "openapi",
+          "default": "openapi",
+          "description": "OpenAPI filesystem type",
+          "title": "Fs Type",
+          "type": "string"
+        },
+        "root_path": {
+          "default": null,
+          "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "title": "Root Path",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for relative path operations (uses fs.chdir).",
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cached": {
+          "default": false,
+          "description": "Whether to wrap in CachingFileSystem.",
+          "title": "Cached",
+          "type": "boolean"
+        },
+        "fo": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "path": {
+                  "title": "Path",
+                  "type": "string"
+                },
+                "protocol": {
+                  "default": null,
+                  "title": "Protocol",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "storage_options": {
+                  "additionalProperties": true,
+                  "title": "Storage Options",
+                  "type": "object"
+                }
+              },
+              "required": [
+                "path"
+              ],
+              "type": "object"
+            }
+          ],
+          "description": "Path to OpenAPI specification file",
+          "examples": [
+            "/path/to/openapi.yaml",
+            "/path/to/spec.json"
+          ],
+          "title": "OpenAPI Spec Path"
+        },
+        "target_protocol": {
+          "default": null,
+          "description": "Protocol for source file",
+          "examples": [
+            "file",
+            "http",
+            "s3"
+          ],
+          "title": "Target Protocol",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "target_options": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Options for target protocol",
+          "title": "Target Protocol Options"
+        }
+      },
+      "required": [
+        "fo"
+      ],
+      "title": "OpenApiFilesystemConfig",
+      "type": "object"
+    },
     "OrCondition": {
       "additionalProperties": false,
       "description": "Require any condition to be met.",
@@ -10686,6 +13396,58 @@
         "conditions"
       ],
       "title": "OrCondition",
+      "type": "object"
+    },
+    "PackageFilesystemConfig": {
+      "additionalProperties": true,
+      "description": "Configuration for Package filesystem.",
+      "properties": {
+        "fs_type": {
+          "const": "pkg",
+          "default": "pkg",
+          "description": "Package filesystem type",
+          "title": "Fs Type",
+          "type": "string"
+        },
+        "root_path": {
+          "default": null,
+          "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "title": "Root Path",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for relative path operations (uses fs.chdir).",
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cached": {
+          "default": false,
+          "description": "Whether to wrap in CachingFileSystem.",
+          "title": "Cached",
+          "type": "boolean"
+        },
+        "package": {
+          "description": "Name of the package to browse",
+          "examples": [
+            "upathtools"
+          ],
+          "minLength": 1,
+          "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*(\\.[a-zA-Z_][a-zA-Z0-9_]*)*$",
+          "title": "Package Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "package"
+      ],
+      "title": "PackageFilesystemConfig",
       "type": "object"
     },
     "PlainConverterConfig": {
@@ -10913,6 +13675,114 @@
         "name"
       ],
       "title": "PromptParameter",
+      "type": "object"
+    },
+    "PythonAstFilesystemConfig": {
+      "additionalProperties": true,
+      "description": "Configuration for Python AST filesystem.",
+      "properties": {
+        "fs_type": {
+          "const": "ast",
+          "default": "ast",
+          "description": "Python AST filesystem type",
+          "title": "Fs Type",
+          "type": "string"
+        },
+        "root_path": {
+          "default": null,
+          "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "title": "Root Path",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for relative path operations (uses fs.chdir).",
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cached": {
+          "default": false,
+          "description": "Whether to wrap in CachingFileSystem.",
+          "title": "Cached",
+          "type": "boolean"
+        },
+        "fo": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "path": {
+                  "title": "Path",
+                  "type": "string"
+                },
+                "protocol": {
+                  "default": null,
+                  "title": "Protocol",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "storage_options": {
+                  "additionalProperties": true,
+                  "title": "Storage Options",
+                  "type": "object"
+                }
+              },
+              "required": [
+                "path"
+              ],
+              "type": "object"
+            }
+          ],
+          "description": "Path to Python file",
+          "examples": [
+            "/path/to/script.py"
+          ],
+          "title": "Python File Path"
+        },
+        "target_protocol": {
+          "default": null,
+          "description": "Protocol for source file",
+          "examples": [
+            "file",
+            "s3",
+            "http"
+          ],
+          "title": "Target Protocol",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "target_options": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Options for target protocol",
+          "title": "Target Protocol Options"
+        }
+      },
+      "required": [
+        "fo"
+      ],
+      "title": "PythonAstFilesystemConfig",
       "type": "object"
     },
     "RemoteCodeModeToolsetConfig": {
@@ -11152,6 +14022,256 @@
       "title": "RemoteProxyConfig",
       "type": "object"
     },
+    "SFTPFilesystemConfig": {
+      "additionalProperties": true,
+      "description": "Configuration for SFTP filesystem.",
+      "properties": {
+        "fs_type": {
+          "const": "sftp",
+          "default": "sftp",
+          "description": "SFTP filesystem type",
+          "title": "Fs Type",
+          "type": "string"
+        },
+        "root_path": {
+          "default": null,
+          "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "title": "Root Path",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for relative path operations (uses fs.chdir).",
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cached": {
+          "default": false,
+          "description": "Whether to wrap in CachingFileSystem.",
+          "title": "Cached",
+          "type": "boolean"
+        },
+        "host": {
+          "description": "Hostname or IP to connect to",
+          "examples": [
+            "sftp.example.com",
+            "192.168.1.100"
+          ],
+          "title": "SFTP Host",
+          "type": "string"
+        },
+        "port": {
+          "default": 22,
+          "description": "Port to connect to",
+          "examples": [
+            22,
+            2222
+          ],
+          "maximum": 65535,
+          "minimum": 1,
+          "title": "SFTP Port",
+          "type": "integer"
+        },
+        "username": {
+          "anyOf": [
+            {
+              "maxLength": 32,
+              "minLength": 1,
+              "pattern": "^[a-zA-Z0-9._-]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Username for authentication",
+          "examples": [
+            "user",
+            "admin"
+          ],
+          "title": "Username"
+        },
+        "password": {
+          "anyOf": [
+            {
+              "format": "password",
+              "type": "string",
+              "writeOnly": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Password for authentication",
+          "title": "Password"
+        },
+        "temppath": {
+          "default": "/tmp",
+          "description": "Path for temporary files during transactions",
+          "examples": [
+            "/tmp",
+            "/var/tmp"
+          ],
+          "title": "Temp Path",
+          "type": "string"
+        },
+        "timeout": {
+          "default": 30,
+          "description": "Connection timeout in seconds",
+          "examples": [
+            30,
+            60,
+            120
+          ],
+          "minimum": 0,
+          "title": "Timeout",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "host"
+      ],
+      "title": "SFTPFilesystemConfig",
+      "type": "object"
+    },
+    "SMBFilesystemConfig": {
+      "additionalProperties": true,
+      "description": "Configuration for SMB/CIFS filesystem.",
+      "properties": {
+        "fs_type": {
+          "const": "smb",
+          "default": "smb",
+          "description": "SMB filesystem type",
+          "title": "Fs Type",
+          "type": "string"
+        },
+        "root_path": {
+          "default": null,
+          "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "title": "Root Path",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for relative path operations (uses fs.chdir).",
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cached": {
+          "default": false,
+          "description": "Whether to wrap in CachingFileSystem.",
+          "title": "Cached",
+          "type": "boolean"
+        },
+        "host": {
+          "description": "Hostname or IP of the SMB server",
+          "examples": [
+            "smb.example.com",
+            "192.168.1.100"
+          ],
+          "title": "SMB Host",
+          "type": "string"
+        },
+        "port": {
+          "anyOf": [
+            {
+              "maximum": 65535,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Port to connect to",
+          "examples": [
+            445,
+            139
+          ],
+          "title": "SMB Port"
+        },
+        "username": {
+          "anyOf": [
+            {
+              "maxLength": 32,
+              "minLength": 1,
+              "pattern": "^[a-zA-Z0-9._-]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Username for authentication",
+          "examples": [
+            "user",
+            "admin"
+          ],
+          "title": "Username"
+        },
+        "password": {
+          "anyOf": [
+            {
+              "format": "password",
+              "type": "string",
+              "writeOnly": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Password for authentication",
+          "title": "Password"
+        },
+        "auto_mkdir": {
+          "default": false,
+          "description": "Whether to automatically make directories",
+          "title": "Auto Make Directories",
+          "type": "boolean"
+        },
+        "register_session_retries": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Number of retries for session registration",
+          "examples": [
+            3,
+            5,
+            10
+          ],
+          "title": "Session Retries"
+        }
+      },
+      "required": [
+        "host"
+      ],
+      "title": "SMBFilesystemConfig",
+      "type": "object"
+    },
     "SQLStorageConfig": {
       "additionalProperties": false,
       "description": "SQL database storage configuration.",
@@ -11311,6 +14431,155 @@
         }
       },
       "title": "SRTExecutionEnvironmentConfig",
+      "type": "object"
+    },
+    "SRTFilesystemConfig": {
+      "additionalProperties": true,
+      "description": "Configuration for SRT (Sandbox Runtime) filesystem.\n\nUses Anthropic's sandbox-runtime for sandboxed local filesystem access\nwith configurable network and filesystem restrictions.",
+      "properties": {
+        "fs_type": {
+          "const": "srt",
+          "default": "srt",
+          "description": "SRT filesystem type",
+          "title": "Fs Type",
+          "type": "string"
+        },
+        "root_path": {
+          "default": null,
+          "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "title": "Root Path",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for relative path operations (uses fs.chdir).",
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cached": {
+          "default": false,
+          "description": "Whether to wrap in CachingFileSystem.",
+          "title": "Cached",
+          "type": "boolean"
+        },
+        "allowed_domains": {
+          "description": "Domains that can be accessed. Empty = no network access.",
+          "examples": [
+            [
+              "github.com",
+              "*.github.com",
+              "pypi.org"
+            ]
+          ],
+          "items": {
+            "type": "string"
+          },
+          "title": "Allowed Domains",
+          "type": "array"
+        },
+        "denied_domains": {
+          "description": "Domains explicitly blocked.",
+          "examples": [
+            [
+              "malicious.com"
+            ]
+          ],
+          "items": {
+            "type": "string"
+          },
+          "title": "Denied Domains",
+          "type": "array"
+        },
+        "allow_unix_sockets": {
+          "description": "Unix socket paths to allow.",
+          "examples": [
+            [
+              "/var/run/docker.sock"
+            ]
+          ],
+          "items": {
+            "type": "string"
+          },
+          "title": "Allowed Unix Sockets",
+          "type": "array"
+        },
+        "allow_all_unix_sockets": {
+          "default": false,
+          "description": "Allow all Unix sockets (less secure).",
+          "title": "Allow All Unix Sockets",
+          "type": "boolean"
+        },
+        "allow_local_binding": {
+          "default": false,
+          "description": "Allow binding to localhost ports.",
+          "title": "Allow Local Binding",
+          "type": "boolean"
+        },
+        "deny_read": {
+          "description": "Paths blocked from reading.",
+          "examples": [
+            [
+              "~/.ssh",
+              "~/.aws"
+            ]
+          ],
+          "items": {
+            "type": "string"
+          },
+          "title": "Deny Read Paths",
+          "type": "array"
+        },
+        "allow_write": {
+          "description": "Paths where writes are permitted.",
+          "examples": [
+            [
+              "."
+            ],
+            [
+              ".",
+              "/tmp"
+            ]
+          ],
+          "items": {
+            "type": "string"
+          },
+          "title": "Allow Write Paths",
+          "type": "array"
+        },
+        "deny_write": {
+          "description": "Paths denied within allowed write paths.",
+          "examples": [
+            [
+              ".env",
+              "secrets/"
+            ]
+          ],
+          "items": {
+            "type": "string"
+          },
+          "title": "Deny Write Paths",
+          "type": "array"
+        },
+        "timeout": {
+          "default": 30,
+          "description": "Default timeout for operations in seconds.",
+          "examples": [
+            30,
+            60,
+            120
+          ],
+          "exclusiveMinimum": 0,
+          "title": "Timeout",
+          "type": "number"
+        }
+      },
+      "title": "SRTFilesystemConfig",
       "type": "object"
     },
     "SSEMCPServerConfig": {
@@ -14210,6 +17479,88 @@
       "title": "SessionQuery",
       "type": "object"
     },
+    "SkillsFilesystemConfig": {
+      "additionalProperties": true,
+      "description": "Configuration for Skills filesystem.",
+      "properties": {
+        "fs_type": {
+          "const": "skills",
+          "default": "skills",
+          "description": "Skills filesystem type",
+          "title": "Fs Type",
+          "type": "string"
+        },
+        "root_path": {
+          "default": null,
+          "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "title": "Root Path",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for relative path operations (uses fs.chdir).",
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cached": {
+          "default": false,
+          "description": "Whether to wrap in CachingFileSystem.",
+          "title": "Cached",
+          "type": "boolean"
+        },
+        "skills_dir": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "path": {
+                  "title": "Path",
+                  "type": "string"
+                },
+                "protocol": {
+                  "default": null,
+                  "title": "Protocol",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "storage_options": {
+                  "additionalProperties": true,
+                  "title": "Storage Options",
+                  "type": "object"
+                }
+              },
+              "required": [
+                "path"
+              ],
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Directory containing skill definitions",
+          "examples": [
+            "/path/to/skills",
+            "~/my-skills"
+          ],
+          "title": "Skills Directory"
+        }
+      },
+      "title": "SkillsFilesystemConfig",
+      "type": "object"
+    },
     "SkillsToolsetConfig": {
       "additionalProperties": false,
       "description": "Configuration for skills toolset.\n\nProvides tools to discover and load Claude Code Skills from the pool's\nskills registry. Skills are discovered from configured directories\n(e.g., ~/.claude/skills/, .claude/skills/).",
@@ -14236,75 +17587,6 @@
         }
       },
       "title": "SkillsToolsetConfig",
-      "type": "object"
-    },
-    "SourceResourceConfig": {
-      "additionalProperties": false,
-      "description": "Configuration for a single filesystem source.",
-      "properties": {
-        "type": {
-          "const": "source",
-          "default": "source",
-          "description": "Direct filesystem source.",
-          "title": "Type",
-          "type": "string"
-        },
-        "path": {
-          "default": null,
-          "description": "Optional path prefix within the filesystem.",
-          "examples": [
-            "/data",
-            "documents",
-            "config/templates"
-          ],
-          "title": "Path prefix",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "cached": {
-          "default": false,
-          "description": "Whether to wrap in caching filesystem.",
-          "title": "Enable caching",
-          "type": "boolean"
-        },
-        "storage_options": {
-          "additionalProperties": true,
-          "description": "Protocol-specific storage options.",
-          "examples": [
-            {
-              "aws_access_key_id": "AKIAIOSFODNN7EXAMPLE",
-              "aws_secret_access_key": "secret123"
-            },
-            {
-              "timeout": 30,
-              "token": "github_pat_123"
-            },
-            {
-              "password": "pass",
-              "ssl": true,
-              "username": "user"
-            }
-          ],
-          "title": "Storage options",
-          "type": "object"
-        },
-        "uri": {
-          "description": "URI defining the resource location and protocol.",
-          "examples": [
-            "file:///path/to/docs",
-            "s3://bucket-name/data",
-            "https://api.example.com"
-          ],
-          "title": "Resource URI",
-          "type": "string"
-        }
-      },
-      "required": [
-        "uri"
-      ],
-      "title": "SourceResourceConfig",
       "type": "object"
     },
     "StaticCommandConfig": {
@@ -14961,6 +18243,144 @@
         }
       },
       "title": "SubagentToolsetConfig",
+      "type": "object"
+    },
+    "TarFilesystemConfig": {
+      "additionalProperties": true,
+      "description": "Configuration for Tar archive filesystem.",
+      "properties": {
+        "fs_type": {
+          "const": "tar",
+          "default": "tar",
+          "description": "Tar filesystem type",
+          "title": "Fs Type",
+          "type": "string"
+        },
+        "root_path": {
+          "default": null,
+          "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "title": "Root Path",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for relative path operations (uses fs.chdir).",
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cached": {
+          "default": false,
+          "description": "Whether to wrap in CachingFileSystem.",
+          "title": "Cached",
+          "type": "boolean"
+        },
+        "fo": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "path": {
+                  "title": "Path",
+                  "type": "string"
+                },
+                "protocol": {
+                  "default": null,
+                  "title": "Protocol",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "storage_options": {
+                  "additionalProperties": true,
+                  "title": "Storage Options",
+                  "type": "object"
+                }
+              },
+              "required": [
+                "path"
+              ],
+              "type": "object"
+            }
+          ],
+          "description": "Path to tar file",
+          "examples": [
+            "/path/to/archive.tar.gz"
+          ],
+          "title": "Tar File Path"
+        },
+        "index_store": {
+          "anyOf": [
+            {},
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Where to store the index",
+          "title": "Index Store"
+        },
+        "target_options": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Options for target protocol",
+          "title": "Target Protocol Options"
+        },
+        "target_protocol": {
+          "default": null,
+          "description": "Protocol for source file",
+          "examples": [
+            "file",
+            "s3",
+            "http"
+          ],
+          "title": "Target Protocol",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "compression": {
+          "anyOf": [
+            {
+              "pattern": "^(gz|bz2|xz|lzma)$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Compression type (None, 'gz', 'bz2', 'xz')",
+          "examples": [
+            "gz",
+            "bz2",
+            "xz"
+          ],
+          "title": "Compression Type"
+        }
+      },
+      "required": [
+        "fo"
+      ],
+      "title": "TarFilesystemConfig",
       "type": "object"
     },
     "TavilyConfig": {
@@ -15688,26 +19108,30 @@
       "title": "ToolManagementToolsetConfig",
       "type": "object"
     },
-    "UnionResourceConfig": {
-      "additionalProperties": false,
-      "description": "Configuration for combining multiple resources.",
+    "TypeAdapterFilesystemConfig": {
+      "additionalProperties": true,
+      "description": "Configuration for TypeAdapter filesystem.",
       "properties": {
-        "type": {
-          "const": "union",
-          "default": "union",
-          "description": "Union of multiple resources.",
-          "title": "Type",
+        "fs_type": {
+          "const": "typeadapter",
+          "default": "typeadapter",
+          "description": "TypeAdapter filesystem type",
+          "title": "Fs Type",
           "type": "string"
         },
-        "path": {
+        "root_path": {
           "default": null,
-          "description": "Optional path prefix within the filesystem.",
-          "examples": [
-            "/data",
-            "documents",
-            "config/templates"
-          ],
-          "title": "Path prefix",
+          "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "title": "Root Path",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for relative path operations (uses fs.chdir).",
+          "title": "Cwd",
           "type": [
             "string",
             "null"
@@ -15715,58 +19139,132 @@
         },
         "cached": {
           "default": false,
-          "description": "Whether to wrap in caching filesystem.",
-          "title": "Enable caching",
+          "description": "Whether to wrap in CachingFileSystem.",
+          "title": "Cached",
           "type": "boolean"
         },
-        "storage_options": {
-          "additionalProperties": true,
-          "description": "Protocol-specific storage options.",
+        "type_adapter": {
+          "description": "TypeAdapter class import path",
           "examples": [
-            {
-              "aws_access_key_id": "AKIAIOSFODNN7EXAMPLE",
-              "aws_secret_access_key": "secret123"
-            },
-            {
-              "timeout": 30,
-              "token": "github_pat_123"
-            },
-            {
-              "password": "pass",
-              "ssl": true,
-              "username": "user"
-            }
+            "mypackage.MyTypeAdapter",
+            "pydantic.TypeAdapter"
           ],
-          "title": "Storage options",
-          "type": "object"
-        },
-        "sources": {
-          "description": "List of resources to combine.",
-          "items": {
-            "discriminator": {
-              "mapping": {
-                "source": "#/$defs/SourceResourceConfig",
-                "union": "#/$defs/UnionResourceConfig"
-              },
-              "propertyName": "type"
-            },
-            "oneOf": [
-              {
-                "$ref": "#/$defs/SourceResourceConfig"
-              },
-              {
-                "$ref": "#/$defs/UnionResourceConfig"
-              }
-            ]
-          },
-          "title": "Resource sources",
-          "type": "array"
+          "minLength": 1,
+          "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*(\\.[a-zA-Z_][a-zA-Z0-9_]*)*$",
+          "title": "TypeAdapter Import Path",
+          "type": "string"
         }
       },
       "required": [
-        "sources"
+        "type_adapter"
       ],
-      "title": "UnionResourceConfig",
+      "title": "TypeAdapterFilesystemConfig",
+      "type": "object"
+    },
+    "URIFileSystemConfig": {
+      "additionalProperties": true,
+      "description": "Generic filesystem config using URI and storage_options.\n\nThis provides a simpler, more concise way to configure filesystems\nwhen you don't need the typed fields of specific configs.\n\nExample:\n    ```python\n    config = URIFileSystemConfig(\n        uri=\"s3://my-bucket/data\",\n        storage_options={\"key\": \"...\", \"secret\": \"...\"},\n    )\n    fs = config.create_fs()\n    ```",
+      "properties": {
+        "fs_type": {
+          "const": "uri",
+          "default": "uri",
+          "description": "URI-based filesystem type.",
+          "title": "Fs Type",
+          "type": "string"
+        },
+        "root_path": {
+          "default": null,
+          "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "title": "Root Path",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for relative path operations (uses fs.chdir).",
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cached": {
+          "default": false,
+          "description": "Whether to wrap in CachingFileSystem.",
+          "title": "Cached",
+          "type": "boolean"
+        },
+        "uri": {
+          "description": "URI defining the resource location and protocol.",
+          "examples": [
+            "file:///path/to/docs",
+            "s3://bucket/data",
+            "https://example.com"
+          ],
+          "title": "Uri",
+          "type": "string"
+        },
+        "storage_options": {
+          "additionalProperties": true,
+          "description": "Protocol-specific storage options passed to fsspec.",
+          "title": "Storage Options",
+          "type": "object"
+        }
+      },
+      "required": [
+        "uri"
+      ],
+      "title": "URIFileSystemConfig",
+      "type": "object"
+    },
+    "UnionFilesystemConfig": {
+      "additionalProperties": true,
+      "description": "Configuration for Union filesystem.",
+      "properties": {
+        "fs_type": {
+          "const": "union",
+          "default": "union",
+          "description": "Union filesystem type",
+          "title": "Fs Type",
+          "type": "string"
+        },
+        "root_path": {
+          "default": null,
+          "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "title": "Root Path",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for relative path operations (uses fs.chdir).",
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cached": {
+          "default": false,
+          "description": "Whether to wrap in CachingFileSystem.",
+          "title": "Cached",
+          "type": "boolean"
+        },
+        "filesystems": {
+          "additionalProperties": true,
+          "description": "Dictionary mapping protocol names to filesystem configurations",
+          "title": "Filesystem Configurations",
+          "type": "object"
+        }
+      },
+      "required": [
+        "filesystems"
+      ],
+      "title": "UnionFilesystemConfig",
       "type": "object"
     },
     "UpsonicToolSetConfig": {
@@ -16014,6 +19512,227 @@
       "title": "VFSToolsetConfig",
       "type": "object"
     },
+    "VercelFilesystemConfig": {
+      "additionalProperties": true,
+      "description": "Configuration for Vercel sandbox filesystem.",
+      "properties": {
+        "fs_type": {
+          "const": "vercel",
+          "default": "vercel",
+          "description": "Vercel filesystem type",
+          "title": "Fs Type",
+          "type": "string"
+        },
+        "root_path": {
+          "default": null,
+          "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "title": "Root Path",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for relative path operations (uses fs.chdir).",
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cached": {
+          "default": false,
+          "description": "Whether to wrap in CachingFileSystem.",
+          "title": "Cached",
+          "type": "boolean"
+        },
+        "template": {
+          "default": "code-interpreter-v1",
+          "description": "Vercel template to use for sandboxes",
+          "examples": [
+            "code-interpreter-v1",
+            "node",
+            "python"
+          ],
+          "minLength": 1,
+          "title": "Template",
+          "type": "string"
+        },
+        "sandbox_id": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Existing sandbox ID to connect to",
+          "examples": [
+            "vercel-sb-123"
+          ],
+          "title": "Sandbox ID"
+        },
+        "api_key": {
+          "anyOf": [
+            {
+              "format": "password",
+              "type": "string",
+              "writeOnly": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Vercel API key for authentication",
+          "title": "API Key"
+        },
+        "timeout": {
+          "default": 60,
+          "description": "Default timeout for operations in seconds",
+          "examples": [
+            30,
+            60,
+            120
+          ],
+          "exclusiveMinimum": 0,
+          "title": "Timeout",
+          "type": "number"
+        }
+      },
+      "title": "VercelFilesystemConfig",
+      "type": "object"
+    },
+    "WebHDFSFilesystemConfig": {
+      "additionalProperties": true,
+      "description": "Configuration for WebHDFS filesystem.",
+      "properties": {
+        "fs_type": {
+          "const": "webhdfs",
+          "default": "webhdfs",
+          "description": "WebHDFS filesystem type",
+          "title": "Fs Type",
+          "type": "string"
+        },
+        "root_path": {
+          "default": null,
+          "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "title": "Root Path",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for relative path operations (uses fs.chdir).",
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cached": {
+          "default": false,
+          "description": "Whether to wrap in CachingFileSystem.",
+          "title": "Cached",
+          "type": "boolean"
+        },
+        "host": {
+          "description": "Hostname or IP of the HDFS namenode",
+          "examples": [
+            "namenode.example.com",
+            "192.168.1.100"
+          ],
+          "title": "WebHDFS Host",
+          "type": "string"
+        },
+        "port": {
+          "default": 50070,
+          "description": "WebHDFS REST API port",
+          "examples": [
+            50070,
+            9870,
+            14000
+          ],
+          "maximum": 65535,
+          "minimum": 1,
+          "title": "WebHDFS Port",
+          "type": "integer"
+        },
+        "user": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "minLength": 1,
+              "pattern": "^[a-zA-Z0-9._-]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Username for authentication",
+          "examples": [
+            "hdfs",
+            "hadoop",
+            "admin"
+          ],
+          "title": "HDFS User"
+        },
+        "kerb": {
+          "default": false,
+          "description": "Whether to use Kerberos authentication",
+          "title": "Kerberos Authentication",
+          "type": "boolean"
+        },
+        "proxy_to": {
+          "default": null,
+          "description": "Host to proxy to (instead of real host)",
+          "examples": [
+            "proxy.example.com",
+            "192.168.1.200"
+          ],
+          "title": "Proxy Host",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "data_proxy": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Map of data nodes to proxies",
+          "title": "Data Proxy Map"
+        },
+        "ssl_verify": {
+          "default": false,
+          "description": "Verify SSL certificates",
+          "title": "Verify SSL Certificates",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "host"
+      ],
+      "title": "WebHDFSFilesystemConfig",
+      "type": "object"
+    },
     "WebhookConfig": {
       "additionalProperties": false,
       "description": "Webhook event source.",
@@ -16171,6 +19890,109 @@
         }
       },
       "title": "WhisperAPIConfig",
+      "type": "object"
+    },
+    "WikiFilesystemConfig": {
+      "additionalProperties": true,
+      "description": "Configuration for GitHub Wiki filesystem.",
+      "properties": {
+        "fs_type": {
+          "const": "wiki",
+          "default": "wiki",
+          "description": "Wiki filesystem type",
+          "title": "Fs Type",
+          "type": "string"
+        },
+        "root_path": {
+          "default": null,
+          "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "title": "Root Path",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for relative path operations (uses fs.chdir).",
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cached": {
+          "default": false,
+          "description": "Whether to wrap in CachingFileSystem.",
+          "title": "Cached",
+          "type": "boolean"
+        },
+        "owner": {
+          "description": "GitHub repository owner/organization",
+          "examples": [
+            "microsoft",
+            "facebook",
+            "phil65"
+          ],
+          "maxLength": 39,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9]([a-zA-Z0-9\\-])*[a-zA-Z0-9]$|^[a-zA-Z0-9]$",
+          "title": "Repository Owner",
+          "type": "string"
+        },
+        "repo": {
+          "description": "GitHub repository name",
+          "examples": [
+            "vscode",
+            "react",
+            "upathtools"
+          ],
+          "maxLength": 100,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9\\._\\-]+$",
+          "title": "Repository Name",
+          "type": "string"
+        },
+        "token": {
+          "anyOf": [
+            {
+              "format": "password",
+              "type": "string",
+              "writeOnly": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "GitHub personal access token for authentication",
+          "title": "GitHub Token"
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Connection timeout in seconds",
+          "examples": [
+            30,
+            60,
+            120
+          ],
+          "title": "Connection Timeout"
+        }
+      },
+      "required": [
+        "owner",
+        "repo"
+      ],
+      "title": "WikiFilesystemConfig",
       "type": "object"
     },
     "WordMatchCondition": {
@@ -16372,6 +20194,158 @@
       },
       "title": "YouTubeConverterConfig",
       "type": "object"
+    },
+    "ZipFilesystemConfig": {
+      "additionalProperties": true,
+      "description": "Configuration for Zip archive filesystem.",
+      "properties": {
+        "fs_type": {
+          "const": "zip",
+          "default": "zip",
+          "description": "Zip filesystem type",
+          "title": "Fs Type",
+          "type": "string"
+        },
+        "root_path": {
+          "default": null,
+          "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "title": "Root Path",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for relative path operations (uses fs.chdir).",
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cached": {
+          "default": false,
+          "description": "Whether to wrap in CachingFileSystem.",
+          "title": "Cached",
+          "type": "boolean"
+        },
+        "fo": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "path": {
+                  "title": "Path",
+                  "type": "string"
+                },
+                "protocol": {
+                  "default": null,
+                  "title": "Protocol",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "storage_options": {
+                  "additionalProperties": true,
+                  "title": "Storage Options",
+                  "type": "object"
+                }
+              },
+              "required": [
+                "path"
+              ],
+              "type": "object"
+            }
+          ],
+          "description": "Path to zip file",
+          "examples": [
+            "/path/to/archive.zip"
+          ],
+          "title": "Zip File Path"
+        },
+        "mode": {
+          "default": "r",
+          "description": "Open mode ('r', 'w', 'a')",
+          "examples": [
+            "r",
+            "w",
+            "a"
+          ],
+          "pattern": "^[rwa]$",
+          "title": "Open Mode",
+          "type": "string"
+        },
+        "target_protocol": {
+          "default": null,
+          "description": "Protocol for source file",
+          "examples": [
+            "file",
+            "s3",
+            "http"
+          ],
+          "title": "Target Protocol",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "target_options": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Options for target protocol",
+          "title": "Target Protocol Options"
+        },
+        "compression": {
+          "default": 0,
+          "description": "Compression method",
+          "examples": [
+            0,
+            8
+          ],
+          "maximum": 99,
+          "minimum": 0,
+          "title": "Compression Method",
+          "type": "integer"
+        },
+        "compresslevel": {
+          "anyOf": [
+            {
+              "maximum": 9,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Compression level",
+          "examples": [
+            1,
+            6,
+            9
+          ],
+          "title": "Compression Level"
+        }
+      },
+      "required": [
+        "fo"
+      ],
+      "title": "ZipFilesystemConfig",
+      "type": "object"
     }
   },
   "additionalProperties": false,
@@ -16403,17 +20377,185 @@
           {
             "discriminator": {
               "mapping": {
-                "source": "#/$defs/SourceResourceConfig",
-                "union": "#/$defs/UnionResourceConfig"
+                "appwrite": "#/$defs/AppwriteFilesystemConfig",
+                "arrow": "#/$defs/ArrowFilesystemConfig",
+                "ast": "#/$defs/PythonAstFilesystemConfig",
+                "basemodel": "#/$defs/BaseModelFilesystemConfig",
+                "basemodel_instance": "#/$defs/BaseModelInstanceFilesystemConfig",
+                "beam": "#/$defs/BeamFilesystemConfig",
+                "cli": "#/$defs/CliFilesystemConfig",
+                "dask": "#/$defs/DaskWorkerFilesystemConfig",
+                "data": "#/$defs/DataFilesystemConfig",
+                "daytona": "#/$defs/DaytonaFilesystemConfig",
+                "distribution": "#/$defs/DistributionFilesystemConfig",
+                "e2b": "#/$defs/E2BFilesystemConfig",
+                "file": "#/$defs/LocalFilesystemConfig",
+                "flatunion": "#/$defs/FlatUnionFilesystemConfig",
+                "ftp": "#/$defs/FTPFilesystemConfig",
+                "gist": "#/$defs/GistFilesystemConfig",
+                "git": "#/$defs/GitFilesystemConfig",
+                "github": "#/$defs/GithubFilesystemConfig",
+                "hdfs": "#/$defs/HadoopFilesystemConfig",
+                "http": "#/$defs/HttpFilesystemConfig",
+                "httpx": "#/$defs/HttpxFilesystemConfig",
+                "jupyter": "#/$defs/JupyterFilesystemConfig",
+                "libarchive": "#/$defs/LibArchiveFilesystemConfig",
+                "mcp": "#/$defs/McpFilesystemConfig",
+                "md": "#/$defs/MarkdownFilesystemConfig",
+                "memory": "#/$defs/MemoryFilesystemConfig",
+                "microsandbox": "#/$defs/MicrosandboxFilesystemConfig",
+                "mod": "#/$defs/ModuleFilesystemConfig",
+                "modal": "#/$defs/ModalFilesystemConfig",
+                "notion": "#/$defs/NotionFilesystemConfig",
+                "openapi": "#/$defs/OpenApiFilesystemConfig",
+                "pkg": "#/$defs/PackageFilesystemConfig",
+                "sftp": "#/$defs/SFTPFilesystemConfig",
+                "skills": "#/$defs/SkillsFilesystemConfig",
+                "smb": "#/$defs/SMBFilesystemConfig",
+                "srt": "#/$defs/SRTFilesystemConfig",
+                "tar": "#/$defs/TarFilesystemConfig",
+                "typeadapter": "#/$defs/TypeAdapterFilesystemConfig",
+                "union": "#/$defs/UnionFilesystemConfig",
+                "uri": "#/$defs/URIFileSystemConfig",
+                "vercel": "#/$defs/VercelFilesystemConfig",
+                "webhdfs": "#/$defs/WebHDFSFilesystemConfig",
+                "wiki": "#/$defs/WikiFilesystemConfig",
+                "zip": "#/$defs/ZipFilesystemConfig"
               },
-              "propertyName": "type"
+              "propertyName": "fs_type"
             },
             "oneOf": [
               {
-                "$ref": "#/$defs/SourceResourceConfig"
+                "$ref": "#/$defs/AppwriteFilesystemConfig"
               },
               {
-                "$ref": "#/$defs/UnionResourceConfig"
+                "$ref": "#/$defs/BaseModelFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/BaseModelInstanceFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/BeamFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/CliFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/DaytonaFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/DistributionFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/E2BFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/FlatUnionFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/GistFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/HttpFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/HttpxFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/MarkdownFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/McpFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/MicrosandboxFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/ModalFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/ModuleFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/NotionFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/OpenApiFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/PackageFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/PythonAstFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/SkillsFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/SRTFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/TypeAdapterFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/UnionFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/VercelFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/WikiFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/ArrowFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/DataFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/DaskWorkerFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/FTPFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/GitFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/GithubFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/HadoopFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/JupyterFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/LibArchiveFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/LocalFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/MemoryFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/SFTPFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/SMBFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/TarFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/WebHDFSFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/ZipFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/URIFileSystemConfig"
               }
             ]
           },
@@ -16422,7 +20564,7 @@
           }
         ]
       },
-      "description": "Resource configurations defining available filesystems.\n\nSupports both full config and URI shorthand:\n    resources:\n      docs: \"file://./docs\"  # shorthand\n      data:  # full config\n        type: \"source\"\n        uri: \"s3://bucket/data\"\n        cached: true",
+      "description": "Resource configurations defining available filesystems.\n\nSupports both full config and URI shorthand:\n    resources:\n      docs: \"file://./docs\"  # shorthand\n      data:  # full config\n        fs_type: \"uri\"\n        uri: \"s3://bucket/data\"\n        cached: true",
       "examples": [
         {
           "data": "s3://bucket/data",
@@ -16431,7 +20573,7 @@
         {
           "api": {
             "cached": true,
-            "type": "source",
+            "fs_type": "uri",
             "uri": "https://api.example.com"
           }
         }
