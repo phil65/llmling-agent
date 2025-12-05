@@ -9,11 +9,6 @@ acp_agents:
     type: codex
     display_name: "Codex"
     description: "Codex Code through ACP"
-  # gemini:
-  #   type: gemini
-  #   display_name: "Gemini"
-  #   description: "Gemini Code through ACP"
-  #   # Note: --experimental-acp flag appears non-functional as of v0.19.3
   opencode:
     type: opencode
     display_name: "OpenCode"
@@ -22,12 +17,17 @@ acp_agents:
     type: goose
     display_name: "Goose"
     description: "Block's Goose agent through ACP"
+  fast-agent:
+    type: fast-agent
+    display_name: "Fast Agent"
+    description: "fast-agent through ACP"
+    model: openai.gpt-4o
   # openhands:
   #   type: openhands
   #   display_name: "OpenHands"
   #   description: "OpenHands (formerly OpenDevin) through ACP"
-  # fast-agent:
-  #   type: fast-agent
-  #   display_name: "Fast Agent"
-  #   description: "fast-agent through ACP"
-  #   model: openai.gpt-4o
+  # gemini:
+  #   type: gemini
+  #   display_name: "Gemini"
+  #   description: "Gemini Code through ACP"
+  #   # Note: --experimental-acp flag appears non-functional as of v0.19.3

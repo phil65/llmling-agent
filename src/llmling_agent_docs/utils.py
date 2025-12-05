@@ -42,4 +42,4 @@ def create_example_doc(name: str, *, style: DocStyle = "full") -> mk.MkContainer
 
     # Add the code itself
     container += mk.MkCode(path.read_text(encoding="utf-8"), language="python")
-    return container  # type: ignore[no-any-return]
+    return container
