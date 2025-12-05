@@ -11,11 +11,13 @@ All configs use discriminated unions via the `type` field.
 
 from __future__ import annotations
 
+import json
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field
 
 from llmling_agent_config.nodes import NodeConfig
+from llmling_agent_config.output_types import StructuredResponseConfig
 
 
 class ClaudeACPSettings(BaseModel):
@@ -63,9 +65,40 @@ class ClaudeACPSettings(BaseModel):
         description="MCP server config files or JSON strings to load.",
     )
 
+    strict_mcp_config: bool = Field(
+        default=False,
+        description="Only use MCP servers from mcp_config, ignoring all other configs.",
+    )
+
     add_dir: list[str] | None = Field(
         default=None,
         description="Additional directories to allow tool access to.",
+    )
+
+    tools: list[str] | None = Field(
+        default=None,
+        description="Available tools from built-in set. Empty list disables all tools.",
+        examples=[["Bash", "Edit", "Read"], []],
+    )
+
+    fallback_model: str | None = Field(
+        default=None,
+        description="Fallback model when default is overloaded.",
+        examples=["sonnet", "haiku"],
+    )
+
+    dangerously_skip_permissions: bool = Field(
+        default=False,
+        description="Bypass all permission checks. Only for sandboxed environments.",
+    )
+
+    output_type: str | StructuredResponseConfig | None = Field(
+        default=None,
+        description="Structured output configuration. Generates --output-format and --json-schema.",
+        examples=[
+            "json_response",
+            {"response_schema": {"type": "import", "import_path": "mymodule:MyModel"}},
+        ],
     )
 
     def build_args(self) -> list[str]:
@@ -86,10 +119,37 @@ class ClaudeACPSettings(BaseModel):
             args.extend(["--disallowed-tools", *self.disallowed_tools])
         if self.mcp_config:
             args.extend(["--mcp-config", *self.mcp_config])
+        if self.strict_mcp_config:
+            args.append("--strict-mcp-config")
         if self.add_dir:
             args.extend(["--add-dir", *self.add_dir])
+        if self.tools is not None:
+            if self.tools:
+                args.extend(["--tools", ",".join(self.tools)])
+            else:
+                args.extend(["--tools", ""])
+        if self.fallback_model:
+            args.extend(["--fallback-model", self.fallback_model])
+        if self.dangerously_skip_permissions:
+            args.append("--dangerously-skip-permissions")
+        if self.output_type:
+            args.extend(["--output-format", "json"])
+            schema = self._resolve_json_schema()
+            if schema:
+                args.extend(["--json-schema", schema])
 
         return args
+
+    def _resolve_json_schema(self) -> str | None:
+        """Resolve output_type to a JSON schema string."""
+        if self.output_type is None:
+            return None
+        if isinstance(self.output_type, str):
+            # Named reference - caller must resolve
+            return None
+        # StructuredResponseConfig - resolve schema via get_schema()
+        model_cls = self.output_type.response_schema.get_schema()
+        return json.dumps(model_cls.model_json_schema())
 
 
 class BaseACPAgentConfig(NodeConfig):
