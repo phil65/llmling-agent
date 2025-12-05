@@ -11,7 +11,6 @@ from schemez import Schema
 
 from llmling_agent import log
 from llmling_agent.models.agents import AgentConfig
-from llmling_agent.vfs_registry import VFSRegistry
 from llmling_agent_config.commands import CommandConfig, StaticCommandConfig
 from llmling_agent_config.converters import ConversionConfig
 from llmling_agent_config.mcp_server import BaseMCPServerConfig, MCPServerConfig
@@ -33,6 +32,7 @@ if TYPE_CHECKING:
     from llmling_agent.common_types import IndividualEventHandler
     from llmling_agent.prompts.manager import PromptManager
     from llmling_agent.ui.base import InputProvider
+    from llmling_agent.vfs_registry import VFSRegistry
 
 
 logger = log.get_logger(__name__)
@@ -264,6 +264,8 @@ class AgentsManifest(Schema):
     @cached_property
     def vfs_registry(self) -> VFSRegistry:
         """Get registry with all configured VFS resources."""
+        from llmling_agent.vfs_registry import VFSRegistry
+
         registry = VFSRegistry()
         for name, cfg_or_str in self.resources.items():
             cfg = (
