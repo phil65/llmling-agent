@@ -146,7 +146,7 @@ class Connection:
                 line = await self._reader.readline()
                 if not line:
                     break
-                if line == b"null\n":
+                if line in (b"null\n", b"\n"):
                     continue
                 try:
                     message = anyenv.load_json(line, return_type=dict)
