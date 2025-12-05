@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, get_args
+from typing import TYPE_CHECKING, Any, Literal, get_args
 
 from slashed import CompletionItem, CompletionProvider
 
@@ -16,11 +16,26 @@ if TYPE_CHECKING:
     from slashed import CompletionContext
 
 
-def get_available_agents(ctx: CompletionContext[AgentContext[Any]]) -> list[str]:
-    """Get available agent names."""
+def get_available_agents(
+    ctx: CompletionContext[AgentContext[Any]],
+    agent_type: Literal["all", "regular", "acp"] = "all",
+) -> list[str]:
+    """Get available agent names.
+
+    Args:
+        ctx: Completion context
+        agent_type: Filter by agent type ("all", "regular", or "acp")
+    """
     if not ctx.command_context.context.pool:
         return []
-    return list(ctx.command_context.context.pool.agents.keys())
+    pool = ctx.command_context.context.pool
+    match agent_type:
+        case "all":
+            return list(pool.all_agents.keys())
+        case "regular":
+            return list(pool.agents.keys())
+        case "acp":
+            return list(pool.acp_agents.keys())
 
 
 def get_available_nodes(ctx: CompletionContext[NodeContext[Any]]) -> list[str]:

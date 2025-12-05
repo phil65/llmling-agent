@@ -161,7 +161,15 @@ class ListAgentsCommand(SlashedCommand):
             rows.append({
                 "Name": name,
                 "Model": str(agent.model_name or ""),
-                "Type": typ,
+                "Type": f"agent ({typ})",
+                "Description": agent.description or "",
+            })
+
+        for name, agent in ctx.context.pool.acp_agents.items():
+            rows.append({
+                "Name": name,
+                "Model": str(agent.model_name or ""),
+                "Type": "acp_agent",
                 "Description": agent.description or "",
             })
 
