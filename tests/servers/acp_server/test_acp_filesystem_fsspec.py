@@ -11,7 +11,7 @@ import tempfile
 import pytest
 
 from acp.filesystem import ACPFileSystem
-from llmling_agent_server.acp_server.headless_client import HeadlessACPClient
+from acp.headless_client import HeadlessACPClient
 
 
 async def test_acp_filesystem_fsspec_operations():

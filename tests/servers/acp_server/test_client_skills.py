@@ -11,7 +11,7 @@
 # from llmling_agent import Agent
 # from llmling_agent.delegation import AgentPool
 # from llmling_agent.resource_providers.skills import SkillsResourceProvider
-# from llmling_agent_server.acp_server.headless_client import HeadlessACPClient
+# from acp.headless_client import HeadlessACPClient
 # from llmling_agent_server.acp_server.session import ACPSession
 
 

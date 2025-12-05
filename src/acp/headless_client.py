@@ -72,11 +72,9 @@ class HeadlessACPClient(Client):
         self.working_dir = Path(working_dir) if working_dir else Path.cwd()
         self.allow_file_operations = allow_file_operations
         self.auto_grant_permissions = auto_grant_permissions
-
         # Process management for terminals
         self.process_manager = ProcessManager()
         self.terminals: dict[str, str] = {}  # terminal_id -> process_id
-
         # Tracking for testing/debugging
         self.notifications: list[SessionNotification] = []
         self.permission_requests: list[RequestPermissionRequest] = []
@@ -86,26 +84,20 @@ class HeadlessACPClient(Client):
     ) -> RequestPermissionResponse:
         """Handle permission requests. Grants if auto_grant_permissions is True."""
         self.permission_requests.append(params)
-
         tool_name = params.tool_call.title or "operation"
         logger.info("Permission requested", tool_name=tool_name)
-
         if self.auto_grant_permissions and params.options:
             # Grant permission using first available option
             option_id = params.options[0].option_id
             logger.debug("Auto-granting permission", tool_name=tool_name)
             return RequestPermissionResponse(outcome=AllowedOutcome(option_id=option_id))
-
         logger.debug("Denying permission", tool_name=tool_name)
         return RequestPermissionResponse(outcome=DeniedOutcome())
 
     async def session_update(self, params: SessionNotification) -> None:
         """Handle session update notifications."""
-        logger.debug(
-            "Session update",
-            session_id=params.session_id,
-            update_type=type(params.update).__name__,
-        )
+        typ = type(params.update).__name__
+        logger.debug("Session update", session_id=params.session_id, update_type=typ)
         self.notifications.append(params)
 
     async def read_text_file(self, params: ReadTextFileRequest) -> ReadTextFileResponse:
@@ -113,23 +105,18 @@ class HeadlessACPClient(Client):
         if not self.allow_file_operations:
             msg = "File operations not allowed"
             raise RuntimeError(msg)
-
+        path = Path(params.path)
+        if not path.exists():
+            msg = f"File not found: {params.path}"
+            raise FileNotFoundError(msg)
         try:
-            path = Path(params.path)
-
-            if not path.exists():
-                msg = f"File not found: {params.path}"
-                raise FileNotFoundError(msg)  # noqa: TRY301
-
             content = path.read_text(encoding="utf-8")
-
             # Apply line filtering if requested
             if params.line is not None or params.limit is not None:
                 lines = content.splitlines(keepends=True)
                 start_line = (params.line - 1) if params.line else 0
                 end_line = start_line + params.limit if params.limit else len(lines)
                 content = "".join(lines[start_line:end_line])
-
             logger.debug("Read file", path=params.path, num_chars=len(content))
             return ReadTextFileResponse(content=content)
 
@@ -142,12 +129,10 @@ class HeadlessACPClient(Client):
         if not self.allow_file_operations:
             msg = "File operations not allowed"
             raise RuntimeError(msg)
-
         try:
             path = Path(params.path)
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(params.content, encoding="utf-8")
-
             logger.debug("Wrote file", path=params.path, num_chars=len(params.content))
             return WriteTextFileResponse()
 
@@ -167,11 +152,8 @@ class HeadlessACPClient(Client):
             )
             terminal_id = f"term_{uuid.uuid4().hex[:8]}"
             self.terminals[terminal_id] = process_id
-            logger.info(
-                "Created terminal",
-                terminal_id=terminal_id,
-                command=f"{params.command} {' '.join(params.args or [])}",
-            )
+            msg = "Created terminal"
+            logger.info(msg, terminal_id=terminal_id, command=params.command, args=params.args)
 
             return CreateTerminalResponse(terminal_id=terminal_id)
 
@@ -182,11 +164,9 @@ class HeadlessACPClient(Client):
     async def terminal_output(self, params: TerminalOutputRequest) -> TerminalOutputResponse:
         """Get output from terminal."""
         terminal_id = params.terminal_id
-
         if terminal_id not in self.terminals:
             msg = f"Terminal {terminal_id} not found"
             raise ValueError(msg)
-
         try:
             process_id = self.terminals[terminal_id]
             output = await self.process_manager.get_output(process_id)
@@ -200,11 +180,9 @@ class HeadlessACPClient(Client):
     ) -> WaitForTerminalExitResponse:
         """Wait for terminal process to exit."""
         terminal_id = params.terminal_id
-
         if terminal_id not in self.terminals:
             msg = f"Terminal {terminal_id} not found"
             raise ValueError(msg)
-
         try:
             process_id = self.terminals[terminal_id]
             exit_code = await self.process_manager.wait_for_exit(process_id)
@@ -219,18 +197,14 @@ class HeadlessACPClient(Client):
     ) -> KillTerminalCommandResponse | None:
         """Kill terminal process."""
         terminal_id = params.terminal_id
-
         if terminal_id not in self.terminals:
             msg = f"Terminal {terminal_id} not found"
             raise ValueError(msg)
-
         try:
             process_id = self.terminals[terminal_id]
             await self.process_manager.kill_process(process_id)
-
             logger.info("Killed terminal", terminal_id=terminal_id)
             return KillTerminalCommandResponse()
-
         except Exception:
             logger.exception("Failed to kill terminal", terminal_id=terminal_id)
             raise
@@ -240,21 +214,15 @@ class HeadlessACPClient(Client):
     ) -> ReleaseTerminalResponse | None:
         """Release terminal resources."""
         terminal_id = params.terminal_id
-
         if terminal_id not in self.terminals:
             msg = f"Terminal {terminal_id} not found"
             raise ValueError(msg)
-
         try:
             process_id = self.terminals[terminal_id]
             await self.process_manager.release_process(process_id)
-
-            # Remove from our tracking
-            del self.terminals[terminal_id]
-
+            del self.terminals[terminal_id]  # Remove from our tracking
             logger.info("Released terminal", terminal_id=terminal_id)
             return ReleaseTerminalResponse()
-
         except Exception:
             logger.exception("Failed to release terminal", terminal_id=terminal_id)
             raise
@@ -262,19 +230,14 @@ class HeadlessACPClient(Client):
     async def cleanup(self) -> None:
         """Clean up all resources."""
         logger.info("Cleaning up headless client resources")
-
-        # Clean up all terminals
-        for terminal_id in list(self.terminals.keys()):
+        for terminal_id, process_id in self.terminals.items():
             try:
-                process_id = self.terminals[terminal_id]
                 await self.process_manager.release_process(process_id)
-                del self.terminals[terminal_id]
             except Exception:
                 logger.exception("Error cleaning up terminal", terminal_id=terminal_id)
 
-        # Clean up process manager
+        self.terminals.clear()
         await self.process_manager.cleanup()
-
         logger.info("Headless client cleanup completed")
 
     # Testing/debugging helpers
