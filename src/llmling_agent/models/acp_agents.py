@@ -243,9 +243,6 @@ class ClaudeACPAgentConfig(BaseACPAgentConfig):
     disallowed_tools: list[str] | None = Field(default=None)
     """Blacklist of disallowed tools."""
 
-    mcp_config: list[str] | None = Field(default=None)
-    """MCP server config files or JSON strings to load."""
-
     strict_mcp_config: bool = Field(default=False)
     """Only use MCP servers from mcp_config, ignoring all other configs."""
 
@@ -299,9 +296,6 @@ class ClaudeACPAgentConfig(BaseACPAgentConfig):
         if mcp_json:
             args.extend(["--mcp-config", mcp_json])
 
-        # Also include explicit mcp_config files/strings
-        if self.mcp_config:
-            args.extend(["--mcp-config", *self.mcp_config])
         if self.strict_mcp_config:
             args.append("--strict-mcp-config")
         if self.add_dir:
