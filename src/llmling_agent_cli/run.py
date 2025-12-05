@@ -32,18 +32,7 @@ def run_command(
     show_costs: bool = t.Option(False, "--costs", help="Show token usage and costs"),
     verbose: bool = verbose_opt,
 ) -> None:
-    """Run a node (agent/team) with prompts.
-
-    Examples:
-            # Single agent
-            llmling run myagent "Analyze this"
-
-            # Team
-            llmling run myteam "Process this"
-
-            # Sequential team
-            llmling run mysequence "Process this"
-    """
+    """Single-shot run a node (agent/team) with prompts."""
     try:
         # Resolve configuration path
         try:

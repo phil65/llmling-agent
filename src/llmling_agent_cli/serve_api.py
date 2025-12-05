@@ -31,13 +31,6 @@ def api_command(
 
     This creates an OpenAI-compatible API server that makes your agents available
     through a standard completions API interface.
-
-    Examples:
-        # Run API server on default port
-        llmling-agent api config.yml
-
-        # Run on custom port with CORS disabled
-        llmling-agent api config.yml --port 8080 --no-cors
     """
     import uvicorn
 
