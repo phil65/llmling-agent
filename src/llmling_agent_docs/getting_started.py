@@ -17,6 +17,7 @@ def _(page: mk.MkPage) -> None:
 def _(page: mk.MkPage) -> None:
     """Installation instructions."""
     page += mk.MkTemplate("docs/getting_started/installation.md")
+    page += mk.MkDependencyGroups()
 
 
 @nav.route.page("Basic Concepts", icon="octicon:book-16")
