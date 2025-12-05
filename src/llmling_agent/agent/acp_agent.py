@@ -661,7 +661,11 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
                 self.log.exception("Error terminating ACP process")
             self._process = None
 
-    async def run(self, *prompts: Any, **kwargs: Any) -> ChatMessage[str]:
+    async def run(
+        self,
+        *prompts: PromptCompatible,
+        message_id: str | None = None,
+    ) -> ChatMessage[str]:
         """Execute prompt against ACP agent.
 
         Sends the prompt to the ACP server and waits for completion.
@@ -669,8 +673,8 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         and the final text content is returned as a ChatMessage.
 
         Args:
-            *prompts: Prompts to send (will be joined with spaces)
-            **kwargs: Additional arguments (unused)
+            prompts: Prompts to send (will be joined with spaces)
+            message_id: Optional message id for the returned message
 
         Returns:
             ChatMessage containing the agent's aggregated text response
@@ -698,7 +702,7 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
             content="".join(self._state.text_chunks),
             role="assistant",
             name=self.name,
-            message_id=str(uuid.uuid4()),
+            message_id=message_id or str(uuid.uuid4()),
             conversation_id=self.conversation_id,
             model_name=self._get_model_name(),
             cost_info=None,
@@ -707,7 +711,9 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         return message
 
     async def run_stream(
-        self, *prompts: Any, **kwargs: Any
+        self,
+        *prompts: PromptCompatible,
+        message_id: str | None = None,
     ) -> AsyncIterator[RichAgentStreamEvent[str]]:
         """Stream native events as they arrive from ACP agent.
 
@@ -715,8 +721,8 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         handling regardless of whether the agent is native or ACP-based.
 
         Args:
-            *prompts: Prompts to send (will be joined with spaces)
-            **kwargs: Additional arguments (unused)
+            prompts: Prompts to send (will be joined with spaces)
+            message_id: Optional message id for the final message
 
         Yields:
             RichAgentStreamEvent instances converted from ACP session updates
@@ -771,7 +777,7 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
             content="".join(self._state.text_chunks),
             role="assistant",
             name=self.name,
-            message_id=str(uuid.uuid4()),
+            message_id=message_id or str(uuid.uuid4()),
             conversation_id=self.conversation_id,
             model_name=self._get_model_name(),
         )
