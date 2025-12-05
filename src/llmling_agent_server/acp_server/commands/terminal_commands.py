@@ -8,8 +8,8 @@ import uuid
 from slashed import CommandContext, SlashedCommand  # noqa: TC002
 
 from acp.schema import TerminalToolCallContent
-from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.log import get_logger
+from llmling_agent.messaging.context import NodeContext  # noqa: TC001
 from llmling_agent_server.acp_server.session import ACPSession  # noqa: TC001
 
 
@@ -32,7 +32,7 @@ class TerminalOutputCommand(SlashedCommand):
 
     async def execute_command(
         self,
-        ctx: CommandContext[AgentContext[ACPSession]],
+        ctx: CommandContext[NodeContext[ACPSession]],
         terminal_id: str,
     ) -> None:
         """Get current output from a terminal.
@@ -104,7 +104,7 @@ class TerminalKillCommand(SlashedCommand):
 
     async def execute_command(
         self,
-        ctx: CommandContext[AgentContext[ACPSession]],
+        ctx: CommandContext[NodeContext[ACPSession]],
         terminal_id: str,
     ) -> None:
         """Kill a running terminal.
@@ -179,7 +179,7 @@ class TerminalCreateCommand(SlashedCommand):
 
     async def execute_command(
         self,
-        ctx: CommandContext[AgentContext[ACPSession]],
+        ctx: CommandContext[NodeContext[ACPSession]],
         command: str,
         *args: str,
         cwd: str | None = None,

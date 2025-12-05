@@ -32,9 +32,6 @@ class AgentContext[TDeps = Any](NodeContext[TDeps]):
     config: AgentConfig
     """Current agent's specific configuration."""
 
-    data: TDeps | None = None
-    """Custom context data."""
-
     tool_name: str | None = None
     """Name of the currently executing tool."""
 

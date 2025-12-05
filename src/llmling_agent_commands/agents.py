@@ -145,7 +145,7 @@ class ListAgentsCommand(SlashedCommand):
     name = "list-agents"
     category = "agents"
 
-    async def execute_command(self, ctx: CommandContext[AgentContext]) -> None:
+    async def execute_command(self, ctx: CommandContext[NodeContext]) -> None:
         """List all available agents.
 
         Args:

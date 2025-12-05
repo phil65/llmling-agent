@@ -21,8 +21,8 @@ from acp.schema import (
     ToolCallStart,
     UserMessageChunk,
 )
-from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.log import get_logger
+from llmling_agent.messaging.context import NodeContext  # noqa: TC001
 from llmling_agent_server.acp_server.session import ACPSession  # noqa: TC001
 
 
@@ -44,7 +44,7 @@ class DebugSendTextCommand(SlashedCommand):
 
     async def execute_command(
         self,
-        ctx: CommandContext[AgentContext[ACPSession]],
+        ctx: CommandContext[NodeContext[ACPSession]],
         text: str,
         *,
         chunk_type: str = "agent",
@@ -91,7 +91,7 @@ class DebugSendToolCallCommand(SlashedCommand):
 
     async def execute_command(
         self,
-        ctx: CommandContext[AgentContext[ACPSession]],
+        ctx: CommandContext[NodeContext[ACPSession]],
         title: str,
         *,
         kind: ToolCallKind = "other",
@@ -171,7 +171,7 @@ class DebugReplaySequenceCommand(SlashedCommand):
 
     async def execute_command(
         self,
-        ctx: CommandContext[AgentContext[ACPSession]],
+        ctx: CommandContext[NodeContext[ACPSession]],
         file_path: str,
     ) -> None:
         """Replay a sequence of ACP notifications from a JSON file.
@@ -250,7 +250,7 @@ class DebugSessionInfoCommand(SlashedCommand):
     name = "debug-session-info"
     category = "debug"
 
-    async def execute_command(self, ctx: CommandContext[AgentContext[ACPSession]]) -> None:
+    async def execute_command(self, ctx: CommandContext[NodeContext[ACPSession]]) -> None:
         """Show current ACP session debugging information."""
         session = ctx.context.data
         assert session
@@ -286,7 +286,7 @@ class DebugCreateTemplateCommand(SlashedCommand):
 
     async def execute_command(
         self,
-        ctx: CommandContext[AgentContext[ACPSession]],
+        ctx: CommandContext[NodeContext[ACPSession]],
         *,
         file_path: str = "debug_replay_template.json",
     ) -> None:
@@ -353,7 +353,7 @@ class DebugSendRawCommand(SlashedCommand):
 
     async def execute_command(
         self,
-        ctx: CommandContext[AgentContext[ACPSession]],
+        ctx: CommandContext[NodeContext[ACPSession]],
         notification_json: str,
     ) -> None:
         """Send a raw ACP notification from JSON string.

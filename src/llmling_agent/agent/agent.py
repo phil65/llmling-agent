@@ -451,7 +451,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         """Set agent name."""
         self._name = value
 
-    @property
+    @property  # type: ignore[override]
     def context(self) -> AgentContext[TDeps]:
         """Get agent context."""
         return self._context

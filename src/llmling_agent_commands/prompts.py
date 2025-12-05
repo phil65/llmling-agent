@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from slashed import CommandContext, CommandError, SlashedCommand  # noqa: TC002
 
-from llmling_agent.agent.context import AgentContext  # noqa: TC001
+from llmling_agent.messaging.context import NodeContext  # noqa: TC001
 from llmling_agent_commands.completers import PromptCompleter
 
 
@@ -20,11 +20,7 @@ class ShowPromptCommand(SlashedCommand):
     name = "prompt"
     category = "prompts"
 
-    async def execute_command(
-        self,
-        ctx: CommandContext[AgentContext],
-        identifier: str,
-    ) -> None:
+    async def execute_command(self, ctx: CommandContext[NodeContext], identifier: str) -> None:
         """Show prompt content.
 
         Args:
@@ -53,7 +49,7 @@ class ListPromptsCommand(SlashedCommand):
     name = "list-prompts"
     category = "prompts"
 
-    async def execute_command(self, ctx: CommandContext[AgentContext]) -> None:
+    async def execute_command(self, ctx: CommandContext[NodeContext]) -> None:
         """List available prompts from all providers.
 
         Args:

@@ -7,8 +7,8 @@ import uuid
 from pydantic_ai import UserPromptPart
 from slashed import CommandContext, SlashedCommand  # noqa: TC002
 
-from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.log import get_logger
+from llmling_agent.messaging.context import NodeContext  # noqa: TC001
 from llmling_agent_server.acp_server.session import ACPSession  # noqa: TC001
 
 
@@ -27,7 +27,7 @@ class GitDiffCommand(SlashedCommand):
 
     async def execute_command(
         self,
-        ctx: CommandContext[AgentContext[ACPSession]],
+        ctx: CommandContext[NodeContext[ACPSession]],
         commit: str,
         *,
         base_commit: str | None = None,

@@ -6,6 +6,7 @@ from slashed import CommandContext, CommandError, SlashedCommand  # noqa: TC002
 
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.log import get_logger
+from llmling_agent.messaging.context import NodeContext  # noqa: TC001
 from llmling_agent_commands.markdown_utils import format_table
 
 
@@ -35,7 +36,7 @@ class ListResourcesCommand(SlashedCommand):
     name = "list-resources"
     category = "resources"
 
-    async def execute_command(self, ctx: CommandContext[AgentContext]) -> None:
+    async def execute_command(self, ctx: CommandContext[NodeContext]) -> None:
         """List available resources.
 
         Args:
@@ -91,7 +92,7 @@ class ShowResourceCommand(SlashedCommand):
 
     async def execute_command(
         self,
-        ctx: CommandContext[AgentContext],
+        ctx: CommandContext[NodeContext],
         name: str,
         **kwargs: str,
     ) -> None:

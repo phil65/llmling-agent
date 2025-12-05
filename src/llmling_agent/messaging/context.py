@@ -34,6 +34,9 @@ class NodeContext[TDeps = object]:
     input_provider: InputProvider | None = None
     """Provider for human-input-handling."""
 
+    data: TDeps | None = None
+    """Custom context data."""
+
     def get_input_provider(self) -> InputProvider:
         from llmling_agent.ui.stdlib_provider import StdlibInputProvider
 

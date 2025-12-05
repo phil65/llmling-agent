@@ -21,9 +21,9 @@ from pydantic_ai import (
 )
 from slashed import CommandContext, CommandError, SlashedCommand  # noqa: TC002
 
-from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.agent.events import StreamCompleteEvent, ToolCallProgressEvent
 from llmling_agent.log import get_logger
+from llmling_agent.messaging.context import NodeContext  # noqa: TC001
 from llmling_agent_server.acp_server.session import ACPSession  # noqa: TC001
 
 
@@ -49,7 +49,7 @@ class SpawnSubagentCommand(SlashedCommand):
 
     async def execute_command(
         self,
-        ctx: CommandContext[AgentContext[ACPSession]],
+        ctx: CommandContext[NodeContext[ACPSession]],
         agent_name: str,
         task_prompt: str,
     ) -> None:
