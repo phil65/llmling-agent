@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Annotated, Any, Literal, cast
 from pydantic import BaseModel, Field
 
 from llmling_agent_config.nodes import NodeConfig
-from llmling_agent_config.output_types import StructuredResponseConfig
+from llmling_agent_config.output_types import StructuredResponseConfig  # noqa: TC001
 
 
 if TYPE_CHECKING:
@@ -98,6 +98,73 @@ class BaseACPAgentConfig(NodeConfig):
                 config = LocalExecutionEnvironmentConfig()
 
         return config.get_provider()
+
+    def build_mcp_config_json(self) -> str | None:
+        """Convert inherited mcp_servers to standard MCP config JSON format.
+
+        This format is used by Claude Desktop, VS Code extensions, and other tools.
+
+        Returns:
+            JSON string for MCP config, or None if no servers configured.
+        """
+        from urllib.parse import urlparse
+
+        from llmling_agent_config.mcp_server import (
+            SSEMCPServerConfig,
+            StdioMCPServerConfig,
+            StreamableHTTPMCPServerConfig,
+        )
+
+        servers = self.get_mcp_servers()
+        if not servers:
+            return None
+
+        mcp_servers: dict[str, dict[str, Any]] = {}
+        for idx, server in enumerate(servers):
+            # Determine server name: explicit > derived > fallback
+            name: str
+            if server.name:
+                name = server.name
+            elif isinstance(server, StdioMCPServerConfig):
+                # Extract from command/args, e.g. "uvx mcp-server-fetch" -> "mcp-server-fetch"
+                if server.args:
+                    name = server.args[-1].split("/")[-1].split("@")[0]
+                else:
+                    name = server.command
+            elif isinstance(server, SSEMCPServerConfig | StreamableHTTPMCPServerConfig):
+                # Extract from URL hostname
+                parsed = urlparse(str(server.url))
+                name = parsed.hostname or f"server_{idx}"
+            else:
+                name = f"server_{idx}"
+
+            config: dict[str, Any]
+            match server:
+                case StdioMCPServerConfig():
+                    config = {
+                        "command": server.command,
+                        "args": server.args,
+                    }
+                    if server.env:
+                        config["env"] = server.get_env_vars()
+                case SSEMCPServerConfig():
+                    config = {
+                        "url": str(server.url),
+                        "transport": "sse",
+                    }
+                case StreamableHTTPMCPServerConfig():
+                    config = {
+                        "url": str(server.url),
+                        "transport": "http",
+                    }
+                case _:
+                    continue
+            mcp_servers[name] = config
+
+        if not mcp_servers:
+            return None
+
+        return json.dumps({"mcpServers": mcp_servers})
 
 
 class ACPAgentConfig(BaseACPAgentConfig):
@@ -259,6 +326,13 @@ class ClaudeACPAgentConfig(BaseACPAgentConfig):
             args.extend(["--allowed-tools", *self.allowed_tools])
         if self.disallowed_tools:
             args.extend(["--disallowed-tools", *self.disallowed_tools])
+
+        # Convert inherited mcp_servers to Claude's --mcp-config JSON format
+        mcp_json = self.build_mcp_config_json()
+        if mcp_json:
+            args.extend(["--mcp-config", mcp_json])
+
+        # Also include explicit mcp_config files/strings
         if self.mcp_config:
             args.extend(["--mcp-config", *self.mcp_config])
         if self.strict_mcp_config:
