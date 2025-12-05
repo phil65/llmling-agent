@@ -144,11 +144,17 @@ async def list_available_nodes(  # noqa: D417
 
     lines: list[str] = []
 
-    # List agents
+    # List all agents (regular and ACP)
     if node_type in ("all", "agent"):
-        agents = dict(ctx.pool.agents)
+        from llmling_agent import Agent
+
+        agents = dict(ctx.pool.all_agents)
         if only_idle:
-            agents = {name: agent for name, agent in agents.items() if not agent.is_busy()}
+            agents = {
+                name: agent
+                for name, agent in agents.items()
+                if not (isinstance(agent, Agent) and agent.is_busy)
+            }
         if not detailed:
             lines.extend(agents.keys())
         else:
@@ -214,8 +220,8 @@ async def delegate_to(  # noqa: D417
         result = await ctx.pool.teams[agent_or_team_name].run(prompt)
         return result.format(style="detailed", show_costs=True)
 
-    # For agents, stream with progress events
-    agent = ctx.pool.agents[agent_or_team_name]
+    # For agents (regular or ACP), stream with progress events
+    agent = ctx.pool.all_agents[agent_or_team_name]
     return await _stream_agent_with_progress(ctx, agent.run_stream(prompt))
 
 
@@ -223,17 +229,12 @@ async def ask_agent(  # noqa: D417
     ctx: AgentContext,
     agent_name: str,
     message: str,
-    *,
-    model: str | None = None,
-    store_history: bool = True,
 ) -> str:
     """Send a message to a specific agent and get their response.
 
     Args:
         agent_name: Name of the agent to interact with
         message: Message to send to the agent
-        model: Optional temporary model override
-        store_history: Whether to store this exchange in history
 
     Returns:
         The agent's response
@@ -242,16 +243,15 @@ async def ask_agent(  # noqa: D417
         msg = "No agent pool available"
         raise ToolError(msg)
 
-    if agent_name not in ctx.pool.agents:
-        msg = (
-            f"Agent not found: {agent_name}. Available agents: {', '.join(ctx.pool.agents.keys())}"
-        )
+    if agent_name not in ctx.pool.all_agents:
+        available = list(ctx.pool.all_agents.keys())
+        msg = f"Agent not found: {agent_name}. Available agents: {', '.join(available)}"
         raise ModelRetry(msg)
 
-    agent = ctx.pool.get_agent(agent_name)
+    agent = ctx.pool.all_agents[agent_name]
 
     try:
-        stream = agent.run_stream(message, model=model, store_history=store_history)
+        stream = agent.run_stream(message)
         return await _stream_agent_with_progress(ctx, stream)
     except Exception as e:
         msg = f"Failed to ask agent {agent_name}: {e}"
