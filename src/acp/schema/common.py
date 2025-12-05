@@ -18,7 +18,7 @@ class EnvVariable(AnnotatedObject):
 
 
 class Implementation(Schema):
-    """Describes the name and version of an MCP implementation.
+    """Describes the name and version of an ACP implementation.
 
     Includes an optional title for UI representation.
     """

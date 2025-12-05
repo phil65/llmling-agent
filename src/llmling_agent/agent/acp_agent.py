@@ -86,6 +86,7 @@ if TYPE_CHECKING:
         WriteTextFileRequest,
     )
     from llmling_agent.agent.events import RichAgentStreamEvent
+    from llmling_agent.common_types import PromptCompatible
     from llmling_agent.delegation import AgentPool
     from llmling_agent.messaging.context import NodeContext
     from llmling_agent.models.acp_agents import BaseACPAgentConfig
@@ -777,30 +778,21 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         yield StreamCompleteEvent(message=message)
         self.message_sent.emit(message)
 
-    async def run_iter(self, *prompts: Any, **kwargs: Any) -> AsyncIterator[ChatMessage[str]]:
-        """Yield ChatMessage instances for text chunks during execution.
+    async def run_iter(
+        self,
+        *prompt_groups: Sequence[PromptCompatible],
+    ) -> AsyncIterator[ChatMessage[str]]:
+        """Run agent sequentially on multiple prompt groups.
 
         Args:
-            *prompts: Prompts to send (will be joined with spaces)
-            **kwargs: Additional arguments (unused)
+            prompt_groups: Groups of prompts to process sequentially
 
         Yields:
-            ChatMessage for each text chunk from the ACP agent
+            Response messages in sequence
         """
-        from pydantic_ai import PartDeltaEvent
-        from pydantic_ai.messages import TextPartDelta
-
-        async for event in self.run_stream(*prompts, **kwargs):
-            # Only yield ChatMessages for text content
-            if isinstance(event, PartDeltaEvent) and isinstance(event.delta, TextPartDelta):
-                yield ChatMessage(
-                    content=event.delta.content_delta,
-                    role="assistant",
-                    name=self.name,
-                    message_id=str(uuid.uuid4()),
-                    conversation_id=self.conversation_id,
-                    model_name=self._get_model_name(),
-                )
+        for prompts in prompt_groups:
+            response = await self.run(*prompts)
+            yield response
 
     def _get_model_name(self) -> str:
         """Get model name from session state or agent info."""
