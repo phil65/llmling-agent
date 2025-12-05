@@ -330,7 +330,6 @@ def generate_server_config_code(server: ServerDef, class_name: str) -> str:  # n
         f"class {class_name}({base_class}):",
         f'    """{desc}',
         "",
-        f"    Registry name: {server.name}",
         f"    Version: {server.version}",
         '    """',
         "",
