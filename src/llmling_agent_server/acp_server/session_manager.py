@@ -125,10 +125,7 @@ class ACPSessionManager:
                 await session.close()
                 logger.info("Removed session", session_id=session_id)
             else:
-                logger.warning(
-                    "Attempted to close non-existent session",
-                    session_id=session_id,
-                )
+                logger.warning("Attempted to close non-existent session", session_id=session_id)
 
     async def __aenter__(self) -> Self:
         """Async context manager entry."""

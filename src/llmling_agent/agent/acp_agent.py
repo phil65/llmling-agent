@@ -141,22 +141,18 @@ class ACPClientHandler(Client):
 
     Uses ExecutionEnvironment for all file and process operations, enabling
     swappable backends (local, Docker, E2B, SSH, etc.).
+
+    The handler holds a reference to the parent ACPAgent, delegating env access
+    to ensure the env stays in sync when reassigned externally.
     """
 
     def __init__(
         self,
+        agent: ACPAgent[Any],
         state: ACPSessionState,
-        *,
-        env: ExecutionEnvironment | None = None,
-        allow_file_operations: bool = True,
-        allow_terminal: bool = True,
-        auto_grant_permissions: bool = True,
     ) -> None:
+        self._agent = agent
         self.state = state
-        self._env = env
-        self.allow_file_operations = allow_file_operations
-        self.allow_terminal = allow_terminal
-        self.auto_grant_permissions = auto_grant_permissions
         self._update_event = asyncio.Event()
 
         # Map ACP terminal IDs to process manager IDs
@@ -164,12 +160,20 @@ class ACPClientHandler(Client):
 
     @property
     def env(self) -> ExecutionEnvironment:
-        """Get execution environment, creating default if needed."""
-        if self._env is None:
-            from anyenv.code_execution import LocalExecutionEnvironment
+        """Get execution environment from parent agent."""
+        return self._agent.env
 
-            self._env = LocalExecutionEnvironment()
-        return self._env
+    @property
+    def allow_file_operations(self) -> bool:
+        return self._agent.config.allow_file_operations
+
+    @property
+    def allow_terminal(self) -> bool:
+        return self._agent.config.allow_terminal
+
+    @property
+    def auto_grant_permissions(self) -> bool:
+        return self._agent.config.auto_grant_permissions
 
     async def session_update(self, params: SessionNotification[Any]) -> None:
         """Handle session update notifications from the agent."""
@@ -461,7 +465,8 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         display_name: str | None = None,
         args: list[str] | None = None,
         cwd: str | None = None,
-        env: dict[str, str] | None = None,
+        env_vars: dict[str, str] | None = None,
+        env: ExecutionEnvironment | None = None,
         allow_file_operations: bool = True,
         allow_terminal: bool = True,
         auto_grant_permissions: bool = True,
@@ -481,7 +486,8 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         display_name: str | None = None,
         args: list[str] | None = None,
         cwd: str | None = None,
-        env: dict[str, str] | None = None,
+        env_vars: dict[str, str] | None = None,
+        env: ExecutionEnvironment | None = None,
         allow_file_operations: bool = True,
         allow_terminal: bool = True,
         auto_grant_permissions: bool = True,
@@ -502,7 +508,7 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
                 command=command,
                 args=args or [],
                 cwd=cwd,
-                env=env or {},
+                env=env_vars or {},
                 allow_file_operations=allow_file_operations,
                 allow_terminal=allow_terminal,
                 auto_grant_permissions=auto_grant_permissions,
@@ -518,7 +524,7 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
             event_configs=event_configs or list(config.triggers),
         )
         self.config = config
-        self._env: ExecutionEnvironment | None = None
+        self.env = env or config.get_execution_environment()
         self._process: Process | None = None
         self._connection: ClientSideConnection | None = None
         self._client_handler: ACPClientHandler | None = None
@@ -589,15 +595,8 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
             msg = "Process not started"
             raise RuntimeError(msg)
 
-        env = self._env or self.config.get_execution_environment()
         self._state = ACPSessionState(session_id="")
-        self._client_handler = ACPClientHandler(
-            self._state,
-            env=env,
-            allow_file_operations=self.config.allow_file_operations,
-            allow_terminal=self.config.allow_terminal,
-            auto_grant_permissions=self.config.auto_grant_permissions,
-        )
+        self._client_handler = ACPClientHandler(self, self._state)
 
         def client_factory(agent: ACPAgentProtocol) -> Client:
             return self._client_handler  # type: ignore[return-value]

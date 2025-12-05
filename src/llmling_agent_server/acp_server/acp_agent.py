@@ -178,7 +178,7 @@ class LLMlingACPAgent(ACPAgent):
                 client_capabilities=self.client_capabilities,
             )
 
-            modes = [agent_to_mode(agent) for agent in self.agent_pool.agents.values()]
+            modes = [agent_to_mode(agent) for agent in self.agent_pool.all_agents.values()]
             state = SessionModeState(current_mode_id=default_name, available_modes=modes)
             # Get model information from the default agent
             if session := self.session_manager.get_session(session_id):

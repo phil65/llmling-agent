@@ -40,6 +40,7 @@ from acp.schema import (
     ToolCallLocation,
 )
 from acp.utils import to_acp_content_blocks
+from llmling_agent import Agent
 from llmling_agent.agent import SlashedAgent
 from llmling_agent.agent.events import (
     FileEditProgressEvent,
@@ -71,7 +72,7 @@ if TYPE_CHECKING:
 
     from acp import Client
     from acp.schema import ContentBlock, McpServer, StopReason
-    from llmling_agent import Agent, AgentPool
+    from llmling_agent import AgentPool
     from llmling_agent.agent.events import RichAgentStreamEvent
     from llmling_agent.models.content import BaseContent
     from llmling_agent.prompts.manager import PromptManager
@@ -195,9 +196,11 @@ class ACPSession:
 
         # self._acp_provider = get_acp_provider(self)
         self.acp_env = ACPExecutionEnvironment(fs=self.fs, requests=self.requests)
-        for agent in self.agent_pool.agents.values():
+        for agent in self.agent_pool.all_agents.values():
             agent.env = self.acp_env
-            agent.sys_prompts.prompts.append(self.get_cwd_context)  # pyright: ignore[reportArgumentType]
+            if isinstance(agent, Agent):
+                # TODO: need to inject this info for ACP agents, too.
+                agent.sys_prompts.prompts.append(self.get_cwd_context)  # pyright: ignore[reportArgumentType]
 
         self.log.info("Created ACP session", current_agent=self.current_agent_name)
 
@@ -268,8 +271,8 @@ class ACPSession:
         Raises:
             ValueError: If agent not found in pool
         """
-        if agent_name not in self.agent_pool.agents:
-            available = list(self.agent_pool.agents.keys())
+        if agent_name not in self.agent_pool.all_agents:
+            available = list(self.agent_pool.all_agents.keys())
             msg = f"Agent {agent_name!r} not found. Available: {available}"
             raise ValueError(msg)
 
