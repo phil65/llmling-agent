@@ -6,6 +6,7 @@ import fsspec
 from fsspec import AbstractFileSystem
 from upath import UPath
 from upathtools import UnionFileSystem
+from upathtools.configs.base import FileSystemConfig, URIFileSystemConfig
 
 from llmling_agent.log import get_logger
 from llmling_agent.utils.baseregistry import BaseRegistry
@@ -34,27 +35,24 @@ class VFSRegistry(BaseRegistry[str, AbstractFileSystem]):
 
     def register_from_config(self, name: str, config: ResourceConfig) -> AbstractFileSystem:
         """Register a new resource from config."""
-        from llmling_agent_config.resources import SourceResourceConfig
-
         match config:
-            case SourceResourceConfig(uri=uri):
-                # Extract base path from URI if present
-                fs, _url_path = fsspec.url_to_fs(uri, **config.storage_options)
-                if config.path:
-                    fs = fsspec.filesystem("dir", fs=fs, path=config.path)
-                if config.cached:
-                    fs = fsspec.filesystem("cached", fs=fs)
-
-                self.register(name, fs)
-                return fs
+            case str() as uri:
+                # Shorthand string -> expand to URIFileSystemConfig
+                fs = URIFileSystemConfig(uri=uri).create_fs()
+            case FileSystemConfig():
+                # Any FileSystemConfig subclass (typed or URI-based)
+                fs = config.create_fs()
             case _:
                 msg = f"Unknown resource config type: {type(config)}"
                 raise ValueError(msg)
 
+        self.register(name, fs)
+        return fs
+
     def get_fs(self) -> UnionFileSystem:
         """Get unified filesystem view of all resources."""
-        filesystems = dict(self.items())
-        return UnionFileSystem(filesystems)
+        filesystems: dict[str, AbstractFileSystem] = dict(self.items())
+        return UnionFileSystem(filesystems)  # pyright: ignore[reportArgumentType]
 
     def get_upath(self, resource_name: str | None = None) -> UPath:
         """Get a UPath object for accessing a resource."""

@@ -18,7 +18,7 @@ from llmling_agent_config.mcp_server import BaseMCPServerConfig, MCPServerConfig
 from llmling_agent_config.observability import ObservabilityConfig
 from llmling_agent_config.output_types import StructuredResponseConfig
 from llmling_agent_config.pool_server import MCPPoolServerConfig
-from llmling_agent_config.resources import ResourceConfig, SourceResourceConfig
+from llmling_agent_config.resources import ResourceConfig
 from llmling_agent_config.storage import StorageConfig
 from llmling_agent_config.system_prompts import PromptLibraryConfig
 from llmling_agent_config.task import Job
@@ -56,13 +56,13 @@ class AgentsManifest(Schema):
     INHERIT: str | list[str] | None = None
     """Inheritance references."""
 
-    resources: dict[str, ResourceConfig | str] = Field(
+    resources: dict[str, ResourceConfig] = Field(
         default_factory=dict,
         examples=[
             {"docs": "file://./docs", "data": "s3://bucket/data"},
             {
                 "api": {
-                    "type": "source",
+                    "fs_type": "uri",
                     "uri": "https://api.example.com",
                     "cached": True,
                 }
@@ -75,7 +75,7 @@ class AgentsManifest(Schema):
         resources:
           docs: "file://./docs"  # shorthand
           data:  # full config
-            type: "source"
+            fs_type: "uri"
             uri: "s3://bucket/data"
             cached: true
     """
@@ -283,11 +283,8 @@ class AgentsManifest(Schema):
         from llmling_agent.vfs_registry import VFSRegistry
 
         registry = VFSRegistry()
-        for name, cfg_or_str in self.resources.items():
-            cfg = (
-                SourceResourceConfig(uri=cfg_or_str) if isinstance(cfg_or_str, str) else cfg_or_str
-            )
-            registry.register_from_config(name, cfg)
+        for name, config in self.resources.items():
+            registry.register_from_config(name, config)
         return registry
 
     def clone_agent_config(
