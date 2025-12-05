@@ -19,6 +19,7 @@ from acp.schema import (
     SetSessionModeRequest,
     SetSessionModeResponse,
 )
+from llmling_agent import Agent
 from llmling_agent.log import get_logger
 from llmling_agent.utils.tasks import TaskManager
 from llmling_agent_server.acp_server.converters import agent_to_mode
@@ -313,7 +314,8 @@ class LLMlingACPAgent(ACPAgent):
                 msg = "Session not found for model switch"
                 logger.warning(msg, session_id=params.session_id)
                 return None
-            session.agent.set_model(params.model_id)
+            if isinstance(session.agent, Agent):
+                session.agent.set_model(params.model_id)
             logger.info(
                 "Set model",
                 model_id=params.model_id,

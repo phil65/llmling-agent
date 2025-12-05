@@ -73,11 +73,11 @@ if TYPE_CHECKING:
     from acp import Client
     from acp.schema import ContentBlock, McpServer, StopReason
     from llmling_agent import AgentPool
+    from llmling_agent.agent.acp_agent import ACPAgent
     from llmling_agent.agent.events import RichAgentStreamEvent
     from llmling_agent.models.content import BaseContent
     from llmling_agent.prompts.manager import PromptManager
     from llmling_agent.prompts.prompts import MCPClientPrompt
-    from llmling_agent.resource_providers.aggregating import AggregatingResourceProvider
     from llmling_agent_server.acp_server.acp_agent import LLMlingACPAgent
     from llmling_agent_server.acp_server.session_manager import ACPSessionManager
 
@@ -172,7 +172,6 @@ class ACPSession:
         self._cancelled = False
         self._current_tool_inputs: dict[str, dict[str, Any]] = {}
         self.fs = ACPFileSystem(self.client, session_id=self.session_id)
-        self._acp_provider: AggregatingResourceProvider | None = None
         cmds = [
             *get_commands(
                 enable_set_model=False,
@@ -193,8 +192,6 @@ class ACPSession:
         self.notifications = ACPNotifications(client=self.client, session_id=self.session_id)
         self.requests = ACPRequests(client=self.client, session_id=self.session_id)
         self.input_provider = ACPInputProvider(self)
-
-        # self._acp_provider = get_acp_provider(self)
         self.acp_env = ACPExecutionEnvironment(fs=self.fs, requests=self.requests)
         for agent in self.agent_pool.all_agents.values():
             agent.env = self.acp_env
@@ -249,8 +246,10 @@ class ACPSession:
             self.log.exception("Failed to discover client-side skills", error=e)
 
     @property
-    def agent(self) -> Agent[ACPSession, str]:
+    def agent(self) -> Agent[ACPSession, str] | ACPAgent:
         """Get the currently active agent."""
+        if self.current_agent_name in self.agent_pool.acp_agents:
+            return self.agent_pool.acp_agents[self.current_agent_name]
         return self.agent_pool.get_agent(self.current_agent_name, deps_type=ACPSession)
 
     @property
@@ -695,16 +694,10 @@ class ACPSession:
         self._current_tool_inputs.clear()
 
         try:
-            # Clean up capability provider if present
-            if self._acp_provider:
-                current_agent = self.agent
-                current_agent.tools.remove_provider(self._acp_provider)
-
             # Remove cwd context callable from all agents
             for agent in self.agent_pool.agents.values():
                 if self.get_cwd_context in agent.sys_prompts.prompts:
                     agent.sys_prompts.prompts.remove(self.get_cwd_context)  # pyright: ignore[reportArgumentType]
-                self._acp_provider = None
 
             # Note: Individual agents are managed by the pool's lifecycle
             # The pool will handle agent cleanup when it's closed
@@ -722,6 +715,8 @@ class ACPSession:
 
     async def _register_mcp_prompts_as_commands(self) -> None:
         """Register MCP prompts as slash commands."""
+        if not isinstance(self.agent, Agent):
+            return
         try:
             # Get all prompts from the agent's ToolManager
             if all_prompts := await self.agent.tools.list_prompts():

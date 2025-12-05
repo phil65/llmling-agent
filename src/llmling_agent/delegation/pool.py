@@ -612,7 +612,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         """
         from llmling_agent.agent import Agent
 
-        base = agent if isinstance(agent, Agent) else self.all_agents[agent]
+        base = agent if isinstance(agent, Agent) else self.agents[agent]
         # Use custom deps if provided, otherwise use shared deps
         # base.context.data = deps if deps is not None else self.shared_deps
         base.deps_type = deps_type
