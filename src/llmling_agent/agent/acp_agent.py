@@ -704,7 +704,7 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
             name=self.name,
             message_id=message_id or str(uuid.uuid4()),
             conversation_id=self.conversation_id,
-            model_name=self._get_model_name(),
+            model_name=self.model_name,
             cost_info=None,
         )
         self.message_sent.emit(message)
@@ -779,7 +779,7 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
             name=self.name,
             message_id=message_id or str(uuid.uuid4()),
             conversation_id=self.conversation_id,
-            model_name=self._get_model_name(),
+            model_name=self.model_name,
         )
         yield StreamCompleteEvent(message=message)
         self.message_sent.emit(message)
@@ -800,12 +800,11 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
             response = await self.run(*prompts)
             yield response
 
-    def _get_model_name(self) -> str:
-        """Get model name from session state or agent info."""
-        # Prefer current model from session state
+    @property
+    def model_name(self) -> str | None:
+        """Get the model name in a consistent format."""
         if self._state and self._state.current_model_id:
             return self._state.current_model_id
-        # Fall back to agent info name
         if self._init_response and self._init_response.agent_info:
             return self._init_response.agent_info.name
         return self.config.get_command()
@@ -826,7 +825,7 @@ if __name__ == "__main__":
             description="LLMling Agent via ACP",
             cwd=str(Path.cwd()),
         ) as agent:
-            print(f"Connected to: {agent._get_model_name()}")
+            print(f"Connected to: {agent.model_name}")
             print(f"Session ID: {agent._session_id}")
             print("-" * 50)
             prompt = "Say hello briefly."
