@@ -1,0 +1,33 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/phil65/llmling-agent/refs/heads/main/schema/config-schema.json
+acp_agents:
+  # ACP-enabled agent with terminal and file access
+  claude:
+    type: claude
+    display_name: "Claude Code"
+    description: "Claude Code through ACP"
+  codex:
+    type: codex
+    display_name: "Codex"
+    description: "Codex Code through ACP"
+  # gemini:
+  #   type: gemini
+  #   display_name: "Gemini"
+  #   description: "Gemini Code through ACP"
+  #   # Note: --experimental-acp flag appears non-functional as of v0.19.3
+  opencode:
+    type: opencode
+    display_name: "OpenCode"
+    description: "OpenCode through ACP"
+  goose:
+    type: goose
+    display_name: "Goose"
+    description: "Block's Goose agent through ACP"
+  # openhands:
+  #   type: openhands
+  #   display_name: "OpenHands"
+  #   description: "OpenHands (formerly OpenDevin) through ACP"
+  # fast-agent:
+  #   type: fast-agent
+  #   display_name: "Fast Agent"
+  #   description: "fast-agent through ACP"
+  #   model: openai.gpt-4o

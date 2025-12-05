@@ -9231,18 +9231,14 @@
           "type": "string"
         },
         "model": {
-          "default": null,
           "description": "Model to use.",
           "examples": [
-            "sonnet",
-            "kimi",
-            "gpt-5-mini.low"
+            "anthropic.claude-3-7-sonnet-latest",
+            "openai.o3-mini.high",
+            "openrouter.google/gemini-2.5-pro-exp-03-25:free"
           ],
           "title": "Model",
-          "type": [
-            "string",
-            "null"
-          ]
+          "type": "string"
         },
         "shell_access": {
           "default": false,
@@ -9272,6 +9268,9 @@
           ]
         }
       },
+      "required": [
+        "model"
+      ],
       "title": "FastAgentACPAgentConfig",
       "type": "object"
     },

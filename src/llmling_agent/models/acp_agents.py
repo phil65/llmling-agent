@@ -619,9 +619,13 @@ class FastAgentACPAgentConfig(BaseACPAgentConfig):
     type: Literal["fast-agent"] = Field("fast-agent", init=False)
     """Discriminator for fast-agent ACP agent."""
 
-    model: str | None = Field(
-        default=None,
-        examples=["sonnet", "kimi", "gpt-5-mini.low"],
+    model: str = Field(
+        ...,
+        examples=[
+            "anthropic.claude-3-7-sonnet-latest",
+            "openai.o3-mini.high",
+            "openrouter.google/gemini-2.5-pro-exp-03-25:free",
+        ],
     )
     """Model to use."""
 
