@@ -58,16 +58,17 @@ from acp.schema import (
 from llmling_agent.log import get_logger
 from llmling_agent.messaging import ChatMessage
 from llmling_agent.messaging.messagenode import MessageNode
-from llmling_agent.models.acp_agents import ACPAgentConfig, ClaudeACPAgentConfig
+from llmling_agent.models.acp_agents import ACPAgentConfig
 from llmling_agent.talk.stats import MessageStats
 
 
 if TYPE_CHECKING:
     from asyncio.subprocess import Process
-    from collections.abc import AsyncIterator
+    from collections.abc import AsyncIterator, Sequence
     from types import TracebackType
 
     from anyenv.code_execution import ExecutionEnvironment
+    from evented.configs import EventConfig
 
     from acp.agent.protocol import Agent as ACPAgentProtocol
     from acp.schema import (
@@ -84,6 +85,7 @@ if TYPE_CHECKING:
         WriteTextFileRequest,
     )
     from llmling_agent.agent.events import RichAgentStreamEvent
+    from llmling_agent.delegation import AgentPool
     from llmling_agent.messaging.context import NodeContext
     from llmling_agent.models.acp_agents import BaseACPAgentConfig
 
@@ -419,28 +421,41 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
     - Client-side operations (filesystem, terminals, permissions)
 
     Supports both blocking `run()` and streaming `run_iter()` execution modes.
+
+    Example:
+        ```python
+        config = ClaudeACPAgentConfig(cwd="/project", model="sonnet")
+        agent = ACPAgent(config, agent_pool=pool)
+        ```
     """
 
     def __init__(
         self,
         config: BaseACPAgentConfig,
-        env: ExecutionEnvironment | None = None,
-        **kwargs: Any,
+        *,
+        agent_pool: AgentPool[Any] | None = None,
+        enable_logging: bool = True,
+        event_configs: Sequence[EventConfig] | None = None,
     ) -> None:
         """Initialize ACP agent wrapper.
 
         Args:
-            config: Configuration for the ACP agent
-            env: Execution environment for file/terminal operations (defaults to local)
-            **kwargs: Additional arguments passed to MessageNode
+            config: Configuration for the ACP agent (contains all agent settings)
+            agent_pool: Pool this agent belongs to
+            enable_logging: Whether to enable database logging
+            event_configs: Event configurations for triggers
         """
         super().__init__(
             name=config.name or config.get_command(),
             description=config.description,
-            **kwargs,
+            display_name=config.display_name,
+            mcp_servers=config.mcp_servers,
+            agent_pool=agent_pool,
+            enable_logging=enable_logging,
+            event_configs=event_configs or list(config.triggers),
         )
         self.config = config
-        self._env = env
+        self._env: ExecutionEnvironment | None = None
         self._process: Process | None = None
         self._connection: ClientSideConnection | None = None
         self._client_handler: ACPClientHandler | None = None

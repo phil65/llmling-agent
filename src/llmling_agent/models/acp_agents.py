@@ -6,6 +6,7 @@ import json
 from typing import TYPE_CHECKING, Annotated, Any, Literal, cast
 
 from pydantic import BaseModel, Field
+from tokonomics.model_discovery import ProviderType  # noqa: TC002
 
 from llmling_agent_config.nodes import NodeConfig
 from llmling_agent_config.output_types import StructuredResponseConfig  # noqa: TC001
@@ -99,6 +100,15 @@ class BaseACPAgentConfig(NodeConfig):
 
         return config.get_provider()
 
+    @property
+    def model_providers(self) -> list[ProviderType]:
+        """Return the model providers used by this ACP agent.
+
+        Override in subclasses to specify which providers the agent uses.
+        Used for intelligent model discovery and fallback configuration.
+        """
+        return []
+
     def build_mcp_config_json(self) -> str | None:
         """Convert inherited mcp_servers to standard MCP config JSON format.
 
@@ -140,23 +150,14 @@ class BaseACPAgentConfig(NodeConfig):
 
             config: dict[str, Any]
             match server:
-                case StdioMCPServerConfig():
-                    config = {
-                        "command": server.command,
-                        "args": server.args,
-                    }
+                case StdioMCPServerConfig(command=command, args=args):
+                    config = {"command": command, "args": args}
                     if server.env:
                         config["env"] = server.get_env_vars()
-                case SSEMCPServerConfig():
-                    config = {
-                        "url": str(server.url),
-                        "transport": "sse",
-                    }
-                case StreamableHTTPMCPServerConfig():
-                    config = {
-                        "url": str(server.url),
-                        "transport": "http",
-                    }
+                case SSEMCPServerConfig(url=url):
+                    config = {"url": str(url), "transport": "sse"}
+                case StreamableHTTPMCPServerConfig(url=url):
+                    config = {"url": str(url), "transport": "http"}
                 case _:
                     continue
             mcp_servers[name] = config
@@ -199,6 +200,17 @@ class ACPAgentConfig(BaseACPAgentConfig):
         description="Arguments to pass to the command.",
     )
     """Arguments to pass to the command."""
+
+    providers: list[ProviderType] = Field(
+        default_factory=list,
+        description="Model providers used by this agent (for custom agents).",
+    )
+    """Model providers this agent can use."""
+
+    @property
+    def model_providers(self) -> list[ProviderType]:
+        """Return configured providers for custom ACP agents."""
+        return list(self.providers)
 
     def get_command(self) -> str:
         """Get the command to spawn the ACP server."""
@@ -367,6 +379,11 @@ class ClaudeACPAgentConfig(BaseACPAgentConfig):
         model_cls = cast(type[BaseModel], self.output_type.response_schema.get_schema())
         return json.dumps(model_cls.model_json_schema())
 
+    @property
+    def model_providers(self) -> list[ProviderType]:
+        """Claude Code uses Anthropic models."""
+        return ["anthropic"]
+
 
 class GeminiACPAgentConfig(BaseACPAgentConfig):
     """Configuration for Gemini CLI via ACP.
@@ -440,6 +457,11 @@ class GeminiACPAgentConfig(BaseACPAgentConfig):
         """Get the command to spawn the ACP server."""
         return "gemini"
 
+    @property
+    def model_providers(self) -> list[ProviderType]:
+        """Gemini CLI uses Google Gemini models."""
+        return ["gemini"]
+
     def get_args(self) -> list[str]:
         """Build command arguments from settings."""
         args: list[str] = ["--experimental-acp"]
@@ -506,6 +528,11 @@ class CodexACPAgentConfig(BaseACPAgentConfig):
     def get_command(self) -> str:
         """Get the command to spawn the ACP server."""
         return "npx"
+
+    @property
+    def model_providers(self) -> list[ProviderType]:
+        """Codex uses OpenAI models."""
+        return ["openai"]
 
     def get_args(self) -> list[str]:
         """Build command arguments from settings."""
@@ -586,6 +613,11 @@ class OpenCodeACPAgentConfig(BaseACPAgentConfig):
 
         return args
 
+    @property
+    def model_providers(self) -> list[ProviderType]:
+        """OpenCode supports multiple providers."""
+        return ["openai", "anthropic", "gemini", "openrouter"]
+
 
 class GooseACPAgentConfig(BaseACPAgentConfig):
     """Configuration for Goose via ACP.
@@ -612,6 +644,11 @@ class GooseACPAgentConfig(BaseACPAgentConfig):
         """Build command arguments from settings."""
         return ["acp"]
 
+    @property
+    def model_providers(self) -> list[ProviderType]:
+        """Goose supports multiple providers."""
+        return ["openai", "anthropic", "gemini", "openrouter"]
+
 
 class OpenHandsACPAgentConfig(BaseACPAgentConfig):
     """Configuration for OpenHands via ACP.
@@ -637,6 +674,11 @@ class OpenHandsACPAgentConfig(BaseACPAgentConfig):
     def get_args(self) -> list[str]:
         """Build command arguments from settings."""
         return ["acp"]
+
+    @property
+    def model_providers(self) -> list[ProviderType]:
+        """OpenHands supports multiple providers."""
+        return ["openai", "anthropic", "gemini", "openrouter"]
 
 
 class FastAgentACPAgentConfig(BaseACPAgentConfig):
@@ -698,6 +740,11 @@ class FastAgentACPAgentConfig(BaseACPAgentConfig):
             args.extend(["--auth", self.auth])
 
         return args
+
+    @property
+    def model_providers(self) -> list[ProviderType]:
+        """fast-agent supports multiple providers."""
+        return ["openai", "anthropic", "gemini", "openrouter"]
 
 
 # Union of all ACP agent config types
