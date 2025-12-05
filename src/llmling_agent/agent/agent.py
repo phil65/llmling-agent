@@ -7,7 +7,7 @@ from collections.abc import Awaitable, Callable
 from contextlib import AsyncExitStack, asynccontextmanager
 from dataclasses import dataclass, field, replace
 import time
-from typing import TYPE_CHECKING, Any, Self, TypedDict, overload
+from typing import TYPE_CHECKING, Any, Self, TypedDict, TypeVar, overload
 from uuid import uuid4
 
 from anyenv import MultiEventHandler, method_spawner
@@ -47,6 +47,9 @@ from llmling_agent.utils.now import get_now
 from llmling_agent.utils.result_utils import to_type
 from llmling_agent.utils.streams import merge_queue_into_iterator
 from llmling_agent.utils.tasks import TaskManager
+
+
+TResult = TypeVar("TResult")
 
 
 if TYPE_CHECKING:
@@ -389,14 +392,34 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
 
         return TeamRun([self, other])
 
+    @overload
     @classmethod
-    def from_callback[TResult](
+    def from_callback(
         cls,
-        callback: ProcessorCallback[TResult],
+        callback: Callable[..., Awaitable[TResult]],
         *,
         name: str | None = None,
         **kwargs: Any,
-    ) -> Agent[None, TResult]:
+    ) -> Agent[None, TResult]: ...
+
+    @overload
+    @classmethod
+    def from_callback(
+        cls,
+        callback: Callable[..., TResult],
+        *,
+        name: str | None = None,
+        **kwargs: Any,
+    ) -> Agent[None, TResult]: ...
+
+    @classmethod
+    def from_callback(
+        cls,
+        callback: ProcessorCallback[Any],
+        *,
+        name: str | None = None,
+        **kwargs: Any,
+    ) -> Agent[None, Any]:
         """Create an agent from a processing callback.
 
         Args:

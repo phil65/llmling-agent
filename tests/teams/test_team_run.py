@@ -86,7 +86,7 @@ async def test_error_handling(caplog: pytest.LogCaptureFixture):
         raise ValueError(msg)
 
     async with AgentPool() as pool:
-        agent: Agent[None, str] = Agent.from_callback(failing_processor, name="failing_agent")
+        agent = Agent.from_callback(failing_processor, name="failing_agent")
         pool.register(agent.name, agent)
 
         run = agent

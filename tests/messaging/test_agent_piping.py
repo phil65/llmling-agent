@@ -128,7 +128,7 @@ async def test_agent_piping_async():
     async def model_callback(text: str) -> str:
         return f"model: {text}"
 
-    agent1: Agent[None, str] = Agent.from_callback(model_callback, name="agent1")
+    agent1 = Agent.from_callback(model_callback, name="agent1")
 
     async def transform(text: str) -> str:
         return f"transform: {text}"
