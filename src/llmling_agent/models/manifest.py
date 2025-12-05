@@ -10,6 +10,7 @@ from pydantic import ConfigDict, Field, model_validator
 from schemez import Schema
 
 from llmling_agent import log
+from llmling_agent.models.acp_agents import ACPAgentConfigTypes
 from llmling_agent.models.agents import AgentConfig
 from llmling_agent_config.commands import CommandConfig, StaticCommandConfig
 from llmling_agent_config.converters import ConversionConfig
@@ -29,6 +30,7 @@ if TYPE_CHECKING:
     from upath.types import JoinablePathLike
 
     from llmling_agent import Agent, AgentPool
+    from llmling_agent.agent.acp_agent import ACPAgent
     from llmling_agent.common_types import IndividualEventHandler
     from llmling_agent.prompts.manager import PromptManager
     from llmling_agent.ui.base import InputProvider
@@ -98,6 +100,20 @@ class AgentsManifest(Schema):
     """Mapping of team IDs to their configurations.
 
     Docs: https://phil65.github.io/llmling-agent/YAML%20Configuration/team_configuration/
+    """
+
+    acp_agents: dict[str, ACPAgentConfigTypes] = Field(
+        default_factory=dict,
+        json_schema_extra={
+            "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/acp_configuration/"
+        },
+    )
+    """Mapping of ACP agent IDs to their configurations.
+
+    ACP agents are external agents that communicate via the Agent Client Protocol.
+    Supports custom ACP servers and pre-configured presets (claude, etc.).
+
+    Docs: https://phil65.github.io/llmling-agent/YAML%20Configuration/acp_configuration/
     """
 
     storage: StorageConfig = Field(
@@ -371,13 +387,13 @@ class AgentsManifest(Schema):
 
     @property
     def node_names(self) -> list[str]:
-        """Get list of all agent and team names."""
-        return list(self.agents.keys()) + list(self.teams.keys())
+        """Get list of all agent, ACP agent, and team names."""
+        return list(self.agents.keys()) + list(self.acp_agents.keys()) + list(self.teams.keys())
 
     @property
     def nodes(self) -> dict[str, Any]:
-        """Get all agent and team configurations."""
-        return {**self.agents, **self.teams}
+        """Get all agent, ACP agent, and team configurations."""
+        return {**self.agents, **self.acp_agents, **self.teams}
 
     def get_mcp_servers(self) -> list[MCPServerConfig]:
         """Get processed MCP server configurations.
@@ -516,6 +532,28 @@ class AgentsManifest(Schema):
             knowledge=config.knowledge,
             toolsets=toolsets_list,
         )
+
+    def get_acp_agent[TDeps](
+        self,
+        name: str,
+        deps_type: type[TDeps] | None = None,
+    ) -> ACPAgent[TDeps]:
+        """Create an ACPAgent from configuration.
+
+        Args:
+            name: Name of the ACP agent in the manifest
+            deps_type: Optional dependency type (not used by ACP agents currently)
+
+        Returns:
+            Configured ACPAgent instance
+        """
+        from llmling_agent.agent.acp_agent import ACPAgent
+
+        config = self.acp_agents[name]
+        # Ensure name is set on config
+        if config.name is None:
+            config = config.model_copy(update={"name": name})
+        return ACPAgent(config=config)
 
     @classmethod
     def from_file(cls, path: JoinablePathLike) -> Self:

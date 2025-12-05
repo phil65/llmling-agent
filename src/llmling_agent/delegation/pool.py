@@ -142,6 +142,12 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
             )
             self.register(name, agent)
 
+        # Create ACP agents
+        for name in self.manifest.acp_agents:
+            acp_agent = self.manifest.get_acp_agent(name, deps_type=shared_deps_type)
+            acp_agent.agent_pool = self
+            self.register(name, acp_agent)
+
         for agent in self.agents.values():
             self.setup_agent_workers(agent)
         self._create_teams()

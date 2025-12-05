@@ -75,8 +75,7 @@ if TYPE_CHECKING:
         ToolType,
     )
     from llmling_agent.delegation import AgentPool, Team, TeamRun
-    from llmling_agent.models import AgentConfig
-    from llmling_agent.models.agents import ToolMode
+    from llmling_agent.models.agents import AgentConfig, ToolMode
     from llmling_agent.prompts.prompts import PromptType
     from llmling_agent.resource_providers import ResourceProvider
     from llmling_agent.ui.base import InputProvider
@@ -204,7 +203,8 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         from llmling_agent.agent.conversation import MessageHistory
         from llmling_agent.agent.interactions import Interactions
         from llmling_agent.agent.sys_prompts import SystemPrompts
-        from llmling_agent.models import AgentConfig, AgentsManifest
+        from llmling_agent.models.agents import AgentConfig
+        from llmling_agent.models.manifest import AgentsManifest
         from llmling_agent.prompts.conversion_manager import ConversionManager
         from llmling_agent_config.session import MemoryConfig
 

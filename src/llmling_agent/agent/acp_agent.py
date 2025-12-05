@@ -26,7 +26,7 @@ Example:
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field as dataclass_field
 import os
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Self
@@ -58,9 +58,9 @@ from acp.schema import (
 from llmling_agent.log import get_logger
 from llmling_agent.messaging import ChatMessage
 from llmling_agent.messaging.messagenode import MessageNode
+from llmling_agent.models.acp_agents import ACPAgentConfig, ClaudeACPAgentConfig
 from llmling_agent.talk.stats import MessageStats
 from llmling_agent.utils.tasks import TaskManager
-from llmling_agent_config.nodes import NodeConfig
 
 
 if TYPE_CHECKING:
@@ -84,36 +84,12 @@ if TYPE_CHECKING:
     )
     from llmling_agent.agent.events import RichAgentStreamEvent
     from llmling_agent.messaging.context import NodeContext
+    from llmling_agent.models.acp_agents import BaseACPAgentConfig
 
 
 logger = get_logger(__name__)
 
 PROTOCOL_VERSION = 1
-
-
-class ACPAgentConfig(NodeConfig):
-    """Configuration for an external ACP agent."""
-
-    command: str
-    """Command to spawn the ACP server."""
-
-    args: list[str] = field(default_factory=list)
-    """Arguments to pass to the command."""
-
-    env: dict[str, str] = field(default_factory=dict)
-    """Environment variables to set."""
-
-    cwd: str | None = None
-    """Working directory for the session."""
-
-    allow_file_operations: bool = True
-    """Whether to allow file read/write operations."""
-
-    allow_terminal: bool = True
-    """Whether to allow terminal operations."""
-
-    auto_grant_permissions: bool = True
-    """Whether to automatically grant all permission requests."""
 
 
 @dataclass
@@ -123,16 +99,16 @@ class ACPSessionState:
     session_id: str
     """The session ID from the ACP server."""
 
-    text_chunks: list[str] = field(default_factory=list)
+    text_chunks: list[str] = dataclass_field(default_factory=list)
     """Accumulated text chunks."""
 
-    thought_chunks: list[str] = field(default_factory=list)
+    thought_chunks: list[str] = dataclass_field(default_factory=list)
     """Accumulated thought/reasoning chunks."""
 
-    tool_calls: list[dict[str, Any]] = field(default_factory=list)
+    tool_calls: list[dict[str, Any]] = dataclass_field(default_factory=list)
     """Tool call records."""
 
-    events: list[Any] = field(default_factory=list)
+    events: list[Any] = dataclass_field(default_factory=list)
     """Queue of native events converted from ACP updates."""
 
     is_complete: bool = False
@@ -465,7 +441,7 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
     Supports both blocking `run()` and streaming `run_iter()` execution modes.
     """
 
-    def __init__(self, config: ACPAgentConfig, **kwargs: Any) -> None:
+    def __init__(self, config: BaseACPAgentConfig, **kwargs: Any) -> None:
         """Initialize ACP agent wrapper.
 
         Args:
@@ -473,7 +449,7 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
             **kwargs: Additional arguments passed to MessageNode
         """
         super().__init__(
-            name=config.name or config.command,
+            name=config.name or config.get_command(),
             description=config.description,
             **kwargs,
         )
@@ -522,7 +498,7 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
     async def _start_process(self) -> None:
         """Start the ACP server subprocess."""
         env = {**os.environ, **self.config.env}
-        cmd = [self.config.command, *self.config.args]
+        cmd = [self.config.get_command(), *self.config.get_args()]
         self.log.info("Starting ACP subprocess", command=cmd)
 
         self._process = await asyncio.create_subprocess_exec(
@@ -777,7 +753,7 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         # Fall back to agent info name
         if self._init_response and self._init_response.agent_info:
             return self._init_response.agent_info.name
-        return self.config.command
+        return self.config.get_command()
 
     async def get_stats(self) -> MessageStats:
         """Get message statistics."""
@@ -809,30 +785,22 @@ if __name__ == "__main__":
 
         if use_claude:
             # Use claude-code-acp (must be installed: npm install -g @anthropics/claude-code-acp)
-            config = ACPAgentConfig(
-                command="claude-code-acp",
-                args=[],
+            config: BaseACPAgentConfig = ClaudeACPAgentConfig(  # type: ignore[call-arg]
                 name="claude_code",
                 description="Claude Code via ACP",
                 cwd=str(Path.cwd()),
-                allow_file_operations=True,
-                allow_terminal=True,
-                auto_grant_permissions=True,
             )
         else:
             # Use llmling-agent serve-acp with openai provider
-            config = ACPAgentConfig(
+            config = ACPAgentConfig(  # type: ignore[call-arg]
                 command="uv",
                 args=["run", "llmling-agent", "serve-acp", "--model-provider", "openai"],
                 name="llmling_acp",
                 description="LLMling Agent via ACP",
                 cwd=str(Path.cwd()),
-                allow_file_operations=True,
-                allow_terminal=True,
-                auto_grant_permissions=True,
             )
 
-        print(f"Starting ACP agent: {config.command} {' '.join(config.args)}")
+        print(f"Starting ACP agent: {config.get_command()} {' '.join(config.get_args())}")
 
         try:
             async with ACPAgent(config) as agent:
@@ -859,7 +827,7 @@ if __name__ == "__main__":
                         print(f"  - {tc['title']} ({tc['status']})")
 
         except FileNotFoundError:
-            print(f"Error: Command '{config.command}' not found.")
+            print(f"Error: Command '{config.get_command()}' not found.")
             print("Make sure uv is installed and in PATH.")
             sys.exit(1)
         except Exception as e:

@@ -7,7 +7,8 @@ from __future__ import annotations
 
 from importlib.metadata import version
 
-from llmling_agent.models import AgentsManifest, AgentConfig
+from llmling_agent.models.agents import AgentConfig
+from llmling_agent.models.manifest import AgentsManifest
 
 # Builtin toolsets imports removed to avoid circular dependency
 # Import them directly from llmling_agent_toolsets.builtin when needed
