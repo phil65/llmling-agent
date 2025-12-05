@@ -7,6 +7,7 @@ the Agent Client Protocol.
 from __future__ import annotations
 
 import asyncio
+from datetime import timedelta
 import functools
 from typing import TYPE_CHECKING, Any, Self
 
@@ -174,7 +175,9 @@ class ACPServer(BaseServer):
             return
         try:
             self.log.info("Discovering available models...")
-            self._available_models = await get_all_models(providers=self.providers)
+            self._available_models = await get_all_models(
+                providers=self.providers, max_age=timedelta(days=200)
+            )
             self._models_initialized = True
             self.log.info("Discovered models", count=len(self._available_models))
         except Exception:
