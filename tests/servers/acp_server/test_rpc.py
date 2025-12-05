@@ -184,10 +184,10 @@ async def test_session_notifications_flow(
         # Agent -> Client notifications
         agent_chunk = AgentMessageChunk.text(text="Hello")
         notification = SessionNotification(session_id="sess", update=agent_chunk)
-        await client_conn.session_update(notification)
+        await client_conn.session_update(notification)  # pyright: ignore[reportArgumentType]
         chunk = UserMessageChunk.text(text="World")
         notification = SessionNotification(session_id="sess", update=chunk)
-        await client_conn.session_update(notification)
+        await client_conn.session_update(notification)  # pyright: ignore[reportArgumentType]
 
         # Wait for async dispatch
         for _ in range(50):

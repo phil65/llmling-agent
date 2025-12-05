@@ -53,7 +53,7 @@ async def test_vfs_registry():
     info = await fs._info("docs://test.txt")
     assert info["type"] == "file"
     assert info["name"] == "docs://test.txt"
-    assert info["size"] == len(test_content)
+    assert info.get("size") == len(test_content)
 
 
 async def test_resource_path():

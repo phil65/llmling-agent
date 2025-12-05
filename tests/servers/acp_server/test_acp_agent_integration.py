@@ -11,11 +11,17 @@ from __future__ import annotations
 
 import asyncio
 from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
+from anyenv.code_execution import LocalExecutionEnvironment
 import pytest
 
 from llmling_agent.agent.acp_agent import ACPAgent
 from llmling_agent.models.acp_agents import ACPAgentConfig
+
+
+if TYPE_CHECKING:
+    from llmling_agent.agent.events import RichAgentStreamEvent
 
 
 # Mark all tests in this module as slow/integration
@@ -78,7 +84,7 @@ async def test_acp_agent_streaming(acp_agent_config: ACPAgentConfig):
     """Test streaming response through ACP."""
     try:
         async with ACPAgent(acp_agent_config) as agent:
-            chunks: list[str] = []
+            chunks: list[RichAgentStreamEvent[Any]] = []
 
             async def collect_chunks():
                 async for chunk in agent.run_stream("Hi"):
@@ -187,6 +193,7 @@ async def test_acp_agent_with_custom_execution_environment(test_config_file: Pat
         # Verify the execution environment was created from config
         assert agent._client_handler is not None
         env = agent._client_handler.env
+        assert isinstance(env, LocalExecutionEnvironment)
         assert env is not None
         assert env.timeout == 120.0  # noqa: PLR2004
 
