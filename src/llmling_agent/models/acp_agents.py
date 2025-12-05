@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from typing import TYPE_CHECKING, Annotated, Any, Literal
+from typing import TYPE_CHECKING, Annotated, Any, Literal, cast
 
 from pydantic import BaseModel, Field
 
@@ -13,6 +13,9 @@ from llmling_agent_config.output_types import StructuredResponseConfig
 
 if TYPE_CHECKING:
     from anyenv.code_execution import ExecutionEnvironment
+    from anyenv.code_execution.configs import (
+        ExecutionEnvironmentConfig as ExecutionEnvironmentConfigType,
+    )
 
 
 class ClaudeACPSettings(BaseModel):
@@ -143,7 +146,7 @@ class ClaudeACPSettings(BaseModel):
             # Named reference - caller must resolve
             return None
         # StructuredResponseConfig - resolve schema via get_schema()
-        model_cls = self.output_type.response_schema.get_schema()
+        model_cls = cast(type[BaseModel], self.output_type.response_schema.get_schema())
         return json.dumps(model_cls.model_json_schema())
 
 
@@ -215,6 +218,7 @@ class BaseACPAgentConfig(NodeConfig):
         )
         from pydantic import TypeAdapter
 
+        config: ExecutionEnvironmentConfigType
         match self.execution_environment:
             case str() as env_type:
                 # Simple string like "local", "docker"
