@@ -174,11 +174,17 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
                 await self.exit_stack.enter_async_context(self.skills)
                 aggregating_provider = self.mcp.get_aggregating_provider()
                 agents = list(self.agents.values())
+                acp_agents = list(self.acp_agents.values())
                 teams = list(self.teams.values())
                 for agent in agents:
                     agent.tools.add_provider(aggregating_provider)
                 # Collect remaining components to initialize (MCP already initialized)
-                components: list[AbstractAsyncContextManager[Any]] = [self.storage, *agents, *teams]
+                components: list[AbstractAsyncContextManager[Any]] = [
+                    self.storage,
+                    *agents,
+                    *acp_agents,
+                    *teams,
+                ]
                 # MCP server is now managed externally - removed from pool
                 # Initialize all components
                 if self.parallel_load:
@@ -606,7 +612,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         """
         from llmling_agent.agent import Agent
 
-        base = agent if isinstance(agent, Agent) else self.agents[agent]
+        base = agent if isinstance(agent, Agent) else self.all_agents[agent]
         # Use custom deps if provided, otherwise use shared deps
         # base.context.data = deps if deps is not None else self.shared_deps
         base.deps_type = deps_type

@@ -156,7 +156,7 @@ class LLMlingACPAgent(ACPAgent):
             raise RuntimeError("Agent not initialized")
 
         try:
-            names = list(self.agent_pool.agents.keys())
+            names = list(self.agent_pool.all_agents.keys())
             if not names:
                 logger.error("No agents available for session creation")
                 raise RuntimeError("No agents available")  # noqa: TRY301

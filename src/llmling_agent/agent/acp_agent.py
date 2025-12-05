@@ -712,10 +712,11 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         self.message_sent.emit(message)
         return message
 
-    async def run_stream(
+    async def run_stream(  # noqa: D417
         self,
         *prompts: PromptCompatible,
         message_id: str | None = None,
+        **kwargs: Any,
     ) -> AsyncIterator[RichAgentStreamEvent[str]]:
         """Stream native events as they arrive from ACP agent.
 
