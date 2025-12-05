@@ -488,6 +488,10 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         cmd = [self.config.get_command(), *self.config.get_args()]
         self.log.info("Starting ACP subprocess", command=cmd)
 
+        # Use larger buffer limit for JSON-RPC messages (default 64KB is too small)
+        # ACP messages can be large, especially with file contents or tool outputs
+        limit = 10 * 1024 * 1024  # 10MB
+
         self._process = await asyncio.create_subprocess_exec(
             *cmd,
             stdin=asyncio.subprocess.PIPE,
@@ -495,6 +499,7 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
             stderr=asyncio.subprocess.PIPE,
             env=env,
             cwd=self.config.cwd,
+            limit=limit,
         )
 
         if not self._process.stdin or not self._process.stdout:
