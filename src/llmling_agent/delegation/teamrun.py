@@ -11,6 +11,7 @@ from uuid import uuid4
 
 from pydantic_ai import PartDeltaEvent, TextPartDelta
 
+from llmling_agent.common_types import SupportsRunStream
 from llmling_agent.delegation.base_team import BaseTeam
 from llmling_agent.delegation.team import normalize_stream_for_teams
 from llmling_agent.log import get_logger
@@ -288,14 +289,11 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
                 agent_content = []
 
                 # Use wrapper to normalize all streaming nodes to (agent, event) tuples
-                def _raise_streaming_error(agent: MessageNode[Any, Any] = agent) -> None:
+                if not isinstance(agent, SupportsRunStream):
                     msg = f"Agent {agent.name} does not support streaming"
-                    raise ValueError(msg)  # noqa: TRY301
+                    raise TypeError(msg)  # noqa: TRY301
 
-                if hasattr(agent, "run_stream"):
-                    stream = normalize_stream_for_teams(agent, *current_message, **kwargs)
-                else:
-                    _raise_streaming_error()
+                stream = normalize_stream_for_teams(agent, *current_message, **kwargs)
 
                 async for agent_event_tuple in stream:
                     actual_agent, event = agent_event_tuple

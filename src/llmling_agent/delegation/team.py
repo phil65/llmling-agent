@@ -10,6 +10,7 @@ from uuid import uuid4
 from aioitertools.asyncio import as_generated
 from toprompt import to_prompt
 
+from llmling_agent.common_types import SupportsRunStream
 from llmling_agent.delegation.base_team import BaseTeam
 from llmling_agent.log import get_logger
 from llmling_agent.messaging import AgentResponse, ChatMessage, TeamResponse
@@ -47,9 +48,9 @@ async def normalize_stream_for_teams(
         Tuples of (node, event) where node is the MessageNode instance
         and event is the streaming event from that node.
     """
-    if not hasattr(node, "run_stream"):
+    if not isinstance(node, SupportsRunStream):
         msg = f"Node {node.name} does not support streaming"
-        raise ValueError(msg)
+        raise TypeError(msg)
 
     stream = node.run_stream(*args, **kwargs)
     async for item in stream:
@@ -226,7 +227,7 @@ class Team[TDeps = None](BaseTeam[TDeps, Any]):
         agent_streams = [
             normalize_stream_for_teams(agent, *prompts, **kwargs)
             for agent in all_nodes
-            if hasattr(agent, "run_stream")
+            if isinstance(agent, SupportsRunStream)
         ]
 
         # Merge all agent streams

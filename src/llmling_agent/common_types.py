@@ -3,12 +3,25 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
-from typing import TYPE_CHECKING, Any, ClassVar, Literal, Protocol, get_args, get_origin
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    ClassVar,
+    Literal,
+    Protocol,
+    get_args,
+    get_origin,
+    runtime_checkable,
+)
 from uuid import UUID
 
 
 if TYPE_CHECKING:
+    from collections.abc import AsyncIterator
+
+    from llmling_agent.agent.events import RichAgentStreamEvent
     from llmling_agent.messaging import ChatMessage
+    from llmling_agent.messaging.messagenode import MessageNode
 
 from pydantic import BaseModel, ConfigDict, field_validator
 from pydantic_ai import AgentStreamEvent, RunContext
@@ -40,6 +53,26 @@ class SupportsStructuredOutput(Protocol):
     """
 
     async def run(self, *prompts: Any, output_type: Any = ...) -> ChatMessage[Any]: ...
+
+
+# Type alias for team streaming return type (node + event tuples)
+type TeamStreamEvent = tuple[MessageNode[Any, Any], RichAgentStreamEvent[Any]]
+
+
+@runtime_checkable
+class SupportsRunStream[TResult](Protocol):
+    """Protocol for nodes that support streaming via run_stream().
+
+    Used by Team and TeamRun to check if a node can be streamed.
+
+    Return type is a union because:
+    - Agent returns `AsyncIterator[RichAgentStreamEvent[TResult]]`
+    - Team/TeamRun return `AsyncIterator[tuple[MessageNode, RichAgentStreamEvent]]`
+    """
+
+    def run_stream(
+        self, *prompts: Any, **kwargs: Any
+    ) -> AsyncIterator[RichAgentStreamEvent[TResult] | TeamStreamEvent]: ...
 
 
 NodeName = str
