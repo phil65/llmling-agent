@@ -24,6 +24,7 @@ if TYPE_CHECKING:
     import typechat
 
     from llmling_agent.agent import Agent
+    from llmling_agent.agent.acp_agent import ACPAgent
     from llmling_agent.common_types import ModelType
     from llmling_agent.tools.base import Tool
 
@@ -35,7 +36,7 @@ class AgentTypeChatModel:
     for LLM completions instead of direct API calls.
     """
 
-    def __init__(self, agent: Agent[Any, str]) -> None:
+    def __init__(self, agent: Agent[Any, str] | ACPAgent) -> None:
         """Initialize with an Agent for completions.
 
         Args:

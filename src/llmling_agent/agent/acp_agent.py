@@ -497,7 +497,7 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
                 raise ValueError(msg)
             config = ACPAgentConfig(
                 name=name,
-                description=description,
+                description=description,  # type: ignore[call-arg]
                 display_name=display_name,
                 command=command,
                 args=args or [],
@@ -527,6 +527,8 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         self._state: ACPSessionState | None = None
         self._message_count = 0
         self._total_tokens = 0
+        self._output_type = str
+        self.deps_type = type(None)
 
     @property
     def context(self) -> NodeContext:

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import re
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from slashed.events import (
     CommandExecutedEvent,
@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     from slashed.events import CommandStoreEvent
 
     from llmling_agent.agent import Agent
+    from llmling_agent.agent.acp_agent import ACPAgent
     from llmling_agent.agent.events import SlashedAgentStreamEvent
     from llmling_agent.common_types import PromptCompatible
 
@@ -57,7 +58,7 @@ class SlashedAgent[TDeps, OutputDataT]:
 
     def __init__(
         self,
-        agent: Agent[TDeps, OutputDataT],
+        agent: Agent[TDeps, OutputDataT] | ACPAgent,
         command_store: CommandStore | None = None,
         *,
         context_data_factory: Callable[[], Any] | None = None,
@@ -213,7 +214,8 @@ class SlashedAgent[TDeps, OutputDataT]:
         if regular_prompts:
             logger.debug("Processing prompts through agent", num_prompts=len(regular_prompts))
             async for event in self.agent.run_stream(*regular_prompts, **kwargs):
-                yield event
+                # ACPAgent always returns str, cast to match OutputDataT
+                yield cast("SlashedAgentStreamEvent[OutputDataT]", event)
 
         # If we only had commands and no regular content, we're done
         # (no additional events needed)

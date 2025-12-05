@@ -165,12 +165,12 @@ class ListAgentsCommand(SlashedCommand):
                 "Description": agent.description or "",
             })
 
-        for name, agent in ctx.context.pool.acp_agents.items():
+        for name, acp_agent in ctx.context.pool.acp_agents.items():
             rows.append({
                 "Name": name,
-                "Model": str(agent.model_name or ""),
+                "Model": str(acp_agent.model_name or ""),
                 "Type": "acp_agent",
-                "Description": agent.description or "",
+                "Description": acp_agent.description or "",
             })
 
         headers = ["Name", "Model", "Type", "Description"]

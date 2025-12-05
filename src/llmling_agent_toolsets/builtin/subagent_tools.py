@@ -153,7 +153,7 @@ async def list_available_nodes(  # noqa: D417
             agents = {
                 name: agent
                 for name, agent in agents.items()
-                if not (isinstance(agent, Agent) and agent.is_busy)
+                if not (isinstance(agent, Agent) and agent.is_busy())
             }
         if not detailed:
             lines.extend(agents.keys())

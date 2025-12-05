@@ -16,10 +16,11 @@ from llmling_agent_server.openai_api_server.responses.models import (
 
 if TYPE_CHECKING:
     from llmling_agent.agent import Agent
+    from llmling_agent.agent.acp_agent import ACPAgent
     from llmling_agent_server.openai_api_server.responses.models import ResponseRequest
 
 
-async def handle_request(request: ResponseRequest, agent: Agent[Any, Any]) -> Response:
+async def handle_request(request: ResponseRequest, agent: Agent[Any, Any] | ACPAgent) -> Response:
     from fastapi import HTTPException
 
     match request.input:
