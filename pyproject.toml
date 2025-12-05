@@ -92,31 +92,34 @@ llmling_agent = "llmling_agent.utils:setup_env"
 acp = "acp.filesystem:ACPPath"
 
 [project.optional-dependencies]
-a2a = ["fasta2a", "starlette"]
-braintrust = ["braintrust", "autoevals"]
-clipboard = ["clipman"]
-coding = ["ast-grep-py>=0.40.0"]
-composio = ["composio"]
+a2a = ["fasta2a", "starlette"]  # A2A Server
+braintrust = ["braintrust", "autoevals"]  # Braintrust Prompt Hub
+clipboard = ["clipman"]  # Clipboard functionality
+coding = ["ast-grep-py>=0.40.0"]  # Packages to allow coding functionality
+composio = ["composio"]  # Composio toolsets
 default = [
   "pydantic-ai-slim[openai,google,anthropic,mistral,retries]>=1.0.0",
-]
-events = ["evented[all]"]
-git = ["fsspec[git]"]
-langfuse = ["langfuse"]
-litellm = ["litellm; python_version < '3.14'"]
-markitdown = ["markitdown"]
-mcp_run = ["mcpx-py>=0.7.0"]
-memory = ["typeagent>=0.3.3"]
-notifications = ["apprise>=1.9.5"]
-oauth = ["keyring>=25.6.0"]
-promptlayer = ["promptlayer"]
-server = ["logfire[fastapi]", "fastapi", "uvicorn[standard]"]
-textual = ["textual>=1.0.0"]
-tiktoken = ["tiktoken"]
-upsonic = ["upsonic"]
-youtube = ["youtube_transcript_api"]
-# acp = ["agent-client-protocol>=0.0.1"]
-# tools = ["crewai-tools>=0.33.0", "langchain-community>=0.3.17"]
+]  # Set of commonly used AI providers
+events = ["evented[all]"]  # Event triggers for agents
+git = ["fsspec[git]"]  # Git support
+langfuse = ["langfuse"]  # Langfuse Prompt Hub
+markitdown = ["markitdown"]  # MarkItDown Media Converter
+mcp_run = ["mcpx-py>=0.7.0"]  # MCP.run Toolset
+memory = ["typeagent>=0.3.3"]  # TypeAgent semantic knowledge DB
+notifications = ["apprise>=1.9.5"]  # Notification Toolset
+oauth = [
+  "keyring>=25.6.0"
+]  # OAuth functionality (will be fixed dep for FastMCP >2.13)
+promptlayer = ["promptlayer"]  # PromptLayer Prompt Hub
+server = [
+  "logfire[fastapi]",
+  "fastapi",
+  "uvicorn[standard]"
+]  # OpenAI Server functionality
+textual = ["textual>=1.0.0"]  # Textual CLI app to create configs
+tiktoken = ["tiktoken"]  # Exact token counting
+upsonic = ["upsonic"]  # UpSonic Toolset
+youtube = ["youtube_transcript_api"]  # YouTube Transcript Converter
 
 [dependency-groups]
 dev = [
