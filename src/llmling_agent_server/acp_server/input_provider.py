@@ -23,6 +23,54 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
+def _create_enum_elicitation_options(schema: dict[str, Any]) -> list[PermissionOption] | None:
+    """Create permission options for enum elicitation.
+
+    max 4 options (not more ids available)
+    """
+    enum_values = schema.get("enum", [])
+    enum_names = schema.get("enumNames", enum_values)  # Use enumNames if available
+    # Limit to 3 choices + cancel to keep ACP UI reasonable
+    if len(enum_values) > 3:  # noqa: PLR2004
+        logger.warning("Enum truncated for UI", enum_count=len(enum_values), showing_count=3)
+        enum_values = enum_values[:3]
+        enum_names = enum_names[:3]
+
+    if not enum_values:
+        return None
+
+    options = []
+    for i, (value, name) in enumerate(zip(enum_values, enum_names, strict=False)):
+        opt_id = f"enum_{i}_{value}"
+        option = PermissionOption(option_id=opt_id, name=str(name), kind="allow_once")
+        options.append(option)
+    # Add cancel option
+    options.append(PermissionOption(option_id="cancel", name="Cancel", kind="reject_always"))
+
+    return options
+
+
+def _is_boolean_schema(schema: dict[str, Any]) -> bool:
+    """Check if the elicitation schema is requesting a boolean value."""
+    # Direct boolean type
+    if schema.get("type") == "boolean":
+        return True
+
+    # Check if it's an object with a single boolean property (common pattern)
+    if schema.get("type") == "object":
+        properties = schema.get("properties", {})
+        if len(properties) == 1:
+            prop_schema = next(iter(properties.values()))
+            return bool(prop_schema.get("type") == "boolean")
+
+    return False
+
+
+def _is_enum_schema(schema: dict[str, Any]) -> bool:
+    """Check if the elicitation schema is requesting an enum value."""
+    return schema.get("type") == "string" and "enum" in schema
+
+
 def _create_boolean_elicitation_options() -> list[PermissionOption]:
     """Create permission options for boolean elicitation (Yes/No)."""
     return [
@@ -47,8 +95,7 @@ class ACPInputProvider(InputProvider):
             session: Active ACP session for handling requests
         """
         self.session = session
-        # Track tool approval state: tool_name -> "allow_always" | "reject_always"
-        self._tool_approvals: dict[str, str] = {}
+        self._tool_approvals: dict[str, str] = {}  #  tool_name -> "allow_always" | "reject_always"
 
     async def get_tool_confirmation(
         self,
@@ -84,7 +131,6 @@ class ACPInputProvider(InputProvider):
 
             # Create a descriptive title for the permission request
             args_str = ", ".join(f"{k}={v}" for k, v in args.items())
-            # Request permission from the client
             response = await self.session.requests.request_permission(
                 tool_call_id=f"{tool.name}_{hash(frozenset(args.items()))}",
                 title=f"Execute tool {tool.name!r} with args: {args_str}",
@@ -168,18 +214,11 @@ class ACPInputProvider(InputProvider):
 
             # Form mode elicitation
             schema = params.requestedSchema
-            logger.info(
-                "Elicitation request",
-                message=params.message,
-                schema=schema,
-                schema_type=schema.get("type") if schema else None,
-            )
-
+            logger.info("Elicitation request", message=params.message, schema=schema)
             tool_call_id = f"elicit_{hash(params.message)}"
             title = f"Elicitation: {params.message}"
 
-            # Check what type of schema we're dealing with
-            if self._is_boolean_schema(schema):
+            if _is_boolean_schema(schema):
                 options: list[PermissionOption] | None = _create_boolean_elicitation_options()
                 response = await self.session.requests.request_permission(
                     tool_call_id=tool_call_id,
@@ -187,14 +226,14 @@ class ACPInputProvider(InputProvider):
                     options=options,
                 )
                 return self._handle_boolean_elicitation_response(response, schema)
-            if self._is_enum_schema(schema):  # noqa: SIM102
-                if options := self._create_enum_elicitation_options(schema):
+            if _is_enum_schema(schema):  # noqa: SIM102
+                if options := _create_enum_elicitation_options(schema):
                     response = await self.session.requests.request_permission(
                         tool_call_id=tool_call_id,
                         title=title,
                         options=options,
                     )
-                    return self._handle_enum_elicitation_response(response, schema)
+                    return _handle_enum_elicitation_response(response, schema)
 
             options = [
                 PermissionOption(option_id="accept", name="Accept", kind="allow_once"),
@@ -219,25 +258,6 @@ class ACPInputProvider(InputProvider):
         except Exception as e:
             logger.exception("Failed to handle elicitation")
             return types.ErrorData(code=types.INTERNAL_ERROR, message=f"Elicitation failed: {e}")
-
-    def _is_boolean_schema(self, schema: dict[str, Any]) -> bool:
-        """Check if the elicitation schema is requesting a boolean value."""
-        # Direct boolean type
-        if schema.get("type") == "boolean":
-            return True
-
-        # Check if it's an object with a single boolean property (common pattern)
-        if schema.get("type") == "object":
-            properties = schema.get("properties", {})
-            if len(properties) == 1:
-                prop_schema = next(iter(properties.values()))
-                return bool(prop_schema.get("type") == "boolean")
-
-        return False
-
-    def _is_enum_schema(self, schema: dict[str, Any]) -> bool:
-        """Check if the elicitation schema is requesting an enum value."""
-        return schema.get("type") == "string" and "enum" in schema
 
     def _handle_boolean_elicitation_response(  # noqa: PLR0911
         self, response: RequestPermissionResponse, schema: dict[str, Any]
@@ -269,77 +289,6 @@ class ACPInputProvider(InputProvider):
 
         return types.ElicitResult(action="cancel")
 
-    def _create_enum_elicitation_options(
-        self, schema: dict[str, Any]
-    ) -> list[PermissionOption] | None:
-        """Create permission options for enum elicitation.
-
-        max 4 options to fit ACP UX.
-        """
-        enum_values = schema.get("enum", [])
-        enum_names = schema.get("enumNames", enum_values)  # Use enumNames if available
-
-        # Limit to 3 choices + cancel to keep ACP UI reasonable
-        if len(enum_values) > 3:  # noqa: PLR2004
-            logger.warning("Enum truncated for UI", enum_count=len(enum_values), showing_count=3)
-            enum_values = enum_values[:3]
-            enum_names = enum_names[:3]
-
-        if not enum_values:
-            return None
-
-        options = []
-        for i, (value, name) in enumerate(zip(enum_values, enum_names, strict=False)):
-            options.append(
-                PermissionOption(
-                    option_id=f"enum_{i}_{value}",
-                    name=str(name),
-                    kind="allow_once",
-                )
-            )
-
-        # Add cancel option
-        options.append(
-            PermissionOption(
-                option_id="cancel",
-                name="Cancel",
-                kind="reject_always",
-            )
-        )
-
-        return options
-
-    def _handle_enum_elicitation_response(
-        self, response: RequestPermissionResponse, schema: dict[str, Any]
-    ) -> types.ElicitResult | types.ErrorData:
-        """Handle ACP response for enum elicitation."""
-        from mcp import types
-
-        if response.outcome.outcome == "selected":
-            option_id = response.outcome.option_id
-
-            if option_id == "cancel":
-                return types.ElicitResult(action="cancel")
-
-            # Extract enum value from option_id format: "enum_{index}_{value}"
-            if option_id.startswith("enum_"):
-                try:
-                    parts = option_id.split("_", 2)  # Split into ["enum", index, value]
-                    if len(parts) >= 3:  # noqa: PLR2004
-                        enum_index = int(parts[1])
-                        enum_values = schema.get("enum", [])
-                        if 0 <= enum_index < len(enum_values):
-                            selected_value = enum_values[enum_index]
-                            return types.ElicitResult(action="accept", content=selected_value)
-                except (ValueError, IndexError):
-                    pass
-
-            # Fallback if parsing fails
-            logger.warning("Failed to parse enum option_id", option_id=option_id)
-            return types.ElicitResult(action="cancel")
-
-        return types.ElicitResult(action="cancel")
-
     def clear_tool_approvals(self) -> None:
         """Clear all stored tool approval decisions.
 
@@ -358,3 +307,35 @@ class ACPInputProvider(InputProvider):
             ("allow_always" or "reject_always")
         """
         return self._tool_approvals.copy()
+
+
+def _handle_enum_elicitation_response(
+    response: RequestPermissionResponse, schema: dict[str, Any]
+) -> types.ElicitResult | types.ErrorData:
+    """Handle ACP response for enum elicitation."""
+    from mcp import types
+
+    if response.outcome.outcome == "selected":
+        option_id = response.outcome.option_id
+
+        if option_id == "cancel":
+            return types.ElicitResult(action="cancel")
+
+        # Extract enum value from option_id format: "enum_{index}_{value}"
+        if option_id.startswith("enum_"):
+            try:
+                parts = option_id.split("_", 2)  # Split into ["enum", index, value]
+                if len(parts) >= 3:  # noqa: PLR2004
+                    enum_index = int(parts[1])
+                    enum_values = schema.get("enum", [])
+                    if 0 <= enum_index < len(enum_values):
+                        selected_value = enum_values[enum_index]
+                        return types.ElicitResult(action="accept", content=selected_value)
+            except (ValueError, IndexError):
+                pass
+
+        # Fallback if parsing fails
+        logger.warning("Failed to parse enum option_id", option_id=option_id)
+        return types.ElicitResult(action="cancel")
+
+    return types.ElicitResult(action="cancel")
