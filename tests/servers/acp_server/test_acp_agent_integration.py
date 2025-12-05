@@ -70,7 +70,7 @@ async def test_acp_agent_basic_prompt(acp_agent_config: ACPAgentConfig, test_con
     try:
         print(f"\nConfig file: {test_config_file}")
         print(f"Config file exists: {test_config_file.exists()}")
-        async with ACPAgent(acp_agent_config) as agent:
+        async with ACPAgent(config=acp_agent_config) as agent:
             result = await asyncio.wait_for(agent.run("Hi"), timeout=15.0)
 
             assert result is not None
@@ -83,7 +83,7 @@ async def test_acp_agent_basic_prompt(acp_agent_config: ACPAgentConfig, test_con
 async def test_acp_agent_streaming(acp_agent_config: ACPAgentConfig):
     """Test streaming response through ACP."""
     try:
-        async with ACPAgent(acp_agent_config) as agent:
+        async with ACPAgent(config=acp_agent_config) as agent:
             chunks: list[RichAgentStreamEvent[Any]] = []
 
             async def collect_chunks():
@@ -100,7 +100,7 @@ async def test_acp_agent_streaming(acp_agent_config: ACPAgentConfig):
 async def test_acp_agent_multiple_prompts(acp_agent_config: ACPAgentConfig):
     """Test multiple sequential prompts in same session."""
     try:
-        async with ACPAgent(acp_agent_config) as agent:
+        async with ACPAgent(config=acp_agent_config) as agent:
             result1 = await asyncio.wait_for(agent.run("One"), timeout=15.0)
             assert result1.content is not None
 
@@ -113,7 +113,7 @@ async def test_acp_agent_multiple_prompts(acp_agent_config: ACPAgentConfig):
 async def test_acp_agent_session_info(acp_agent_config: ACPAgentConfig):
     """Test that session info is properly initialized."""
     try:
-        async with ACPAgent(acp_agent_config) as agent:
+        async with ACPAgent(config=acp_agent_config) as agent:
             assert agent._session_id is not None
             assert agent._init_response is not None
             assert agent._state is not None
@@ -143,7 +143,7 @@ async def test_acp_agent_file_operations(tmp_path: Path, test_config_file: Path)
         allow_file_operations=True,
     )
 
-    async with ACPAgent(config) as agent:
+    async with ACPAgent(config=config) as agent:
         # The TestModel will just respond, but the file access capability should be enabled
         assert agent._client_handler is not None
         assert agent._client_handler.allow_file_operations is True
@@ -167,7 +167,7 @@ async def test_acp_agent_terminal_operations(tmp_path: Path, test_config_file: P
         allow_terminal=True,
     )
 
-    async with ACPAgent(config) as agent:
+    async with ACPAgent(config=config) as agent:
         assert agent._client_handler is not None
         assert agent._client_handler.allow_terminal is True
 
@@ -189,7 +189,7 @@ async def test_acp_agent_with_custom_execution_environment(test_config_file: Pat
         execution_environment={"type": "local", "timeout": 120.0},
     )
 
-    async with ACPAgent(config) as agent:
+    async with ACPAgent(config=config) as agent:
         # Verify the execution environment was created from config
         assert agent._client_handler is not None
         env = agent._client_handler.env
@@ -200,7 +200,7 @@ async def test_acp_agent_with_custom_execution_environment(test_config_file: Pat
 
 async def test_acp_agent_cleanup_on_error(acp_agent_config: ACPAgentConfig):
     """Test that resources are cleaned up even when errors occur."""
-    agent = ACPAgent(acp_agent_config)
+    agent = ACPAgent(config=acp_agent_config)
 
     # Enter context
     await agent.__aenter__()
@@ -220,7 +220,7 @@ async def test_acp_agent_cleanup_on_error(acp_agent_config: ACPAgentConfig):
 async def test_acp_agent_stats(acp_agent_config: ACPAgentConfig):
     """Test that agent stats are collected."""
     try:
-        async with ACPAgent(acp_agent_config) as agent:
+        async with ACPAgent(config=acp_agent_config) as agent:
             await asyncio.wait_for(agent.run("Test"), timeout=15.0)
             stats = await agent.get_stats()
 

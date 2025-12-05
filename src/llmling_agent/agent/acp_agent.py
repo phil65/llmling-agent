@@ -29,7 +29,7 @@ import asyncio
 from dataclasses import dataclass, field as dataclass_field
 import os
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Self
+from typing import TYPE_CHECKING, Any, Self, overload
 import uuid
 
 from acp.client.connection import ClientSideConnection
@@ -69,6 +69,7 @@ if TYPE_CHECKING:
 
     from anyenv.code_execution import ExecutionEnvironment
     from evented.configs import EventConfig
+    from tokonomics.model_discovery import ProviderType
 
     from acp.agent.protocol import Agent as ACPAgentProtocol
     from acp.schema import (
@@ -422,29 +423,89 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
 
     Supports both blocking `run()` and streaming `run_iter()` execution modes.
 
-    Example:
+    Example with config:
         ```python
         config = ClaudeACPAgentConfig(cwd="/project", model="sonnet")
         agent = ACPAgent(config, agent_pool=pool)
         ```
+
+    Example with kwargs:
+        ```python
+        agent = ACPAgent(
+            command="claude-code-acp",
+            cwd="/project",
+            providers=["anthropic"],
+        )
+        ```
     """
+
+    @overload
+    def __init__(
+        self,
+        *,
+        config: BaseACPAgentConfig,
+        agent_pool: AgentPool[Any] | None = None,
+        enable_logging: bool = True,
+        event_configs: Sequence[EventConfig] | None = None,
+    ) -> None: ...
+
+    @overload
+    def __init__(
+        self,
+        *,
+        command: str,
+        name: str | None = None,
+        description: str | None = None,
+        display_name: str | None = None,
+        args: list[str] | None = None,
+        cwd: str | None = None,
+        env: dict[str, str] | None = None,
+        allow_file_operations: bool = True,
+        allow_terminal: bool = True,
+        auto_grant_permissions: bool = True,
+        providers: list[ProviderType] | None = None,
+        agent_pool: AgentPool[Any] | None = None,
+        enable_logging: bool = True,
+        event_configs: Sequence[EventConfig] | None = None,
+    ) -> None: ...
 
     def __init__(
         self,
-        config: BaseACPAgentConfig,
         *,
+        config: BaseACPAgentConfig | None = None,
+        command: str | None = None,
+        name: str | None = None,
+        description: str | None = None,
+        display_name: str | None = None,
+        args: list[str] | None = None,
+        cwd: str | None = None,
+        env: dict[str, str] | None = None,
+        allow_file_operations: bool = True,
+        allow_terminal: bool = True,
+        auto_grant_permissions: bool = True,
+        providers: list[ProviderType] | None = None,
         agent_pool: AgentPool[Any] | None = None,
         enable_logging: bool = True,
         event_configs: Sequence[EventConfig] | None = None,
     ) -> None:
-        """Initialize ACP agent wrapper.
-
-        Args:
-            config: Configuration for the ACP agent (contains all agent settings)
-            agent_pool: Pool this agent belongs to
-            enable_logging: Whether to enable database logging
-            event_configs: Event configurations for triggers
-        """
+        # Build config from kwargs if not provided
+        if config is None:
+            if command is None:
+                msg = "Either config or command must be provided"
+                raise ValueError(msg)
+            config = ACPAgentConfig(
+                name=name,
+                description=description,
+                display_name=display_name,
+                command=command,
+                args=args or [],
+                cwd=cwd,
+                env=env or {},
+                allow_file_operations=allow_file_operations,
+                allow_terminal=allow_terminal,
+                auto_grant_permissions=auto_grant_permissions,
+                providers=list(providers) if providers else [],
+            )
         super().__init__(
             name=config.name or config.get_command(),
             description=config.description,
@@ -504,11 +565,6 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         env = {**os.environ, **self.config.env}
         cmd = [self.config.get_command(), *self.config.get_args()]
         self.log.info("Starting ACP subprocess", command=cmd)
-
-        # Use larger buffer limit for JSON-RPC messages (default 64KB is too small)
-        # ACP messages can be large, especially with file contents or tool outputs
-        limit = 10 * 1024 * 1024  # 10MB
-
         self._process = await asyncio.create_subprocess_exec(
             *cmd,
             stdin=asyncio.subprocess.PIPE,
@@ -516,7 +572,7 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
             stderr=asyncio.subprocess.PIPE,
             env=env,
             cwd=self.config.cwd,
-            limit=limit,
+            limit=10 * 1024 * 1024,  # 10MB,
         )
 
         if not self._process.stdin or not self._process.stdout:
@@ -529,9 +585,7 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
             msg = "Process not started"
             raise RuntimeError(msg)
 
-        # Use provided env or create from config
         env = self._env or self.config.get_execution_environment()
-
         self._state = ACPSessionState(session_id="")
         self._client_handler = ACPClientHandler(
             self._state,
@@ -549,7 +603,6 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
             input_stream=self._process.stdin,
             output_stream=self._process.stdout,
         )
-
         init_request = InitializeRequest.create(
             title="LLMling Agent",
             version="0.1.0",
@@ -577,11 +630,8 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
             # Store model info from session response
             if response.models:
                 self._state.current_model_id = response.models.current_model_id
-        self.log.info(
-            "ACP session created",
-            session_id=self._session_id,
-            model=self._state.current_model_id if self._state else None,
-        )
+        model = self._state.current_model_id if self._state else None
+        self.log.info("ACP session created", session_id=self._session_id, model=model)
 
     async def _cleanup(self) -> None:
         """Clean up resources."""
@@ -683,16 +733,12 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         self._state.events.clear()
         self._state.is_complete = False
         self._state.stop_reason = None
-
         prompt_text = " ".join(str(p) for p in prompts)
         content_blocks = [TextContentBlock(text=prompt_text)]
         prompt_request = PromptRequest(session_id=self._session_id, prompt=content_blocks)
-
         self.log.debug("Starting streaming prompt", prompt=prompt_text[:100])
-
         # Run prompt in background
         prompt_task = asyncio.create_task(self._connection.prompt(prompt_request))
-
         last_idx = 0
         while not prompt_task.done():
             # Wait for new events
@@ -774,75 +820,30 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
 if __name__ == "__main__":
 
     async def main() -> None:
-        """Demo: Basic call to an ACP agent.
+        """Demo: Basic call to an ACP agent."""
+        async with ACPAgent(
+            command="uv",
+            args=["run", "llmling-agent", "serve-acp", "--model-provider", "openai"],
+            name="llmling_acp",
+            description="LLMling Agent via ACP",
+            cwd=str(Path.cwd()),
+        ) as agent:
+            print(f"Connected to: {agent._get_model_name()}")
+            print(f"Session ID: {agent._session_id}")
+            print("-" * 50)
+            prompt = "Say hello briefly."
+            print(f"Prompt: {prompt}")
+            print("-" * 50)
 
-        Usage:
-            python -m llmling_agent.agent.acp_agent "Your prompt here"
-            python -m llmling_agent.agent.acp_agent --claude "Your prompt here"
-            python -m llmling_agent.agent.acp_agent --stream "Your prompt here"
-
-        Or with default prompt:
-            python -m llmling_agent.agent.acp_agent
-        """
-        import sys
-
-        # Check for flags
-        use_claude = "--claude" in sys.argv
-        use_stream = "--stream" in sys.argv
-        if use_claude:
-            sys.argv.remove("--claude")
-        if use_stream:
-            sys.argv.remove("--stream")
-
-        if use_claude:
-            # Use claude-code-acp (must be installed: npm install -g @anthropics/claude-code-acp)
-            config: BaseACPAgentConfig = ClaudeACPAgentConfig(  # type: ignore[call-arg]
-                name="claude_code",
-                description="Claude Code via ACP",
-                cwd=str(Path.cwd()),
-            )
-        else:
-            # Use llmling-agent serve-acp with openai provider
-            config = ACPAgentConfig(  # type: ignore[call-arg]
-                command="uv",
-                args=["run", "llmling-agent", "serve-acp", "--model-provider", "openai"],
-                name="llmling_acp",
-                description="LLMling Agent via ACP",
-                cwd=str(Path.cwd()),
-            )
-
-        print(f"Starting ACP agent: {config.get_command()} {' '.join(config.get_args())}")
-
-        try:
-            async with ACPAgent(config) as agent:
-                print(f"Connected to: {agent._get_model_name()}")
-                print(f"Session ID: {agent._session_id}")
+            print("Response (streaming): ", end="", flush=True)
+            async for chunk in agent.run_stream(prompt):
+                print(chunk, end="", flush=True)
+            print()  # newline after streaming
+            # Show tool calls if any
+            if agent._state and agent._state.tool_calls:
                 print("-" * 50)
-                prompt = " ".join(sys.argv[1:]) if len(sys.argv) > 1 else "Say hello briefly."
-                print(f"Prompt: {prompt}")
-                print("-" * 50)
-
-                if use_stream:
-                    print("Response (streaming): ", end="", flush=True)
-                    async for chunk in agent.run_stream(prompt):
-                        print(chunk, end="", flush=True)
-                    print()  # newline after streaming
-                else:
-                    result = await agent.run(prompt)
-                    print(f"Response: {result.content}")
-                # Show tool calls if any
-                if agent._state and agent._state.tool_calls:
-                    print("-" * 50)
-                    print("Tool calls:")
-                    for tc in agent._state.tool_calls:
-                        print(f"  - {tc['title']} ({tc['status']})")
-
-        except FileNotFoundError:
-            print(f"Error: Command '{config.get_command()}' not found.")
-            print("Make sure uv is installed and in PATH.")
-            sys.exit(1)
-        except Exception as e:
-            print(f"Error: {e}")
-            raise
+                print("Tool calls:")
+                for tc in agent._state.tool_calls:
+                    print(f"  - {tc['title']} ({tc['status']})")
 
     asyncio.run(main())
