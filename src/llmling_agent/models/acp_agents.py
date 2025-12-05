@@ -3,12 +3,16 @@
 from __future__ import annotations
 
 import json
-from typing import Annotated, Literal
+from typing import TYPE_CHECKING, Annotated, Any, Literal
 
 from pydantic import BaseModel, Field
 
 from llmling_agent_config.nodes import NodeConfig
 from llmling_agent_config.output_types import StructuredResponseConfig
+
+
+if TYPE_CHECKING:
+    from anyenv.code_execution import ExecutionEnvironment
 
 
 class ClaudeACPSettings(BaseModel):
@@ -162,6 +166,21 @@ class BaseACPAgentConfig(NodeConfig):
     )
     """Environment variables to set."""
 
+    execution_environment: Annotated[
+        Literal["local", "docker", "e2b", "beam", "daytona", "srt"] | dict[str, Any],
+        Field(
+            default="local",
+            description="Execution environment for file/terminal operations.",
+            examples=[
+                "local",
+                "docker",
+                {"type": "e2b", "template": "python-sandbox"},
+                {"type": "docker", "image": "python:3.13-slim"},
+            ],
+        ),
+    ] = "local"
+    """Execution environment config for ACP client operations (filesystem, terminals)."""
+
     allow_file_operations: bool = Field(
         default=True,
         description="Whether to allow file read/write operations.",
@@ -187,6 +206,26 @@ class BaseACPAgentConfig(NodeConfig):
     def get_args(self) -> list[str]:
         """Get command arguments."""
         raise NotImplementedError
+
+    def get_execution_environment(self) -> ExecutionEnvironment:
+        """Create execution environment from config."""
+        from anyenv.code_execution.configs import (
+            ExecutionEnvironmentConfig,
+            LocalExecutionEnvironmentConfig,
+        )
+        from pydantic import TypeAdapter
+
+        match self.execution_environment:
+            case str() as env_type:
+                # Simple string like "local", "docker"
+                config = TypeAdapter(ExecutionEnvironmentConfig).validate_python({"type": env_type})
+            case dict() as env_dict:
+                # Full config dict
+                config = TypeAdapter(ExecutionEnvironmentConfig).validate_python(env_dict)
+            case _:
+                config = LocalExecutionEnvironmentConfig()
+
+        return config.get_provider()
 
 
 class ACPAgentConfig(BaseACPAgentConfig):

@@ -209,6 +209,40 @@
           "title": "Env",
           "type": "object"
         },
+        "execution_environment": {
+          "anyOf": [
+            {
+              "enum": [
+                "local",
+                "docker",
+                "e2b",
+                "beam",
+                "daytona",
+                "srt"
+              ],
+              "type": "string"
+            },
+            {
+              "additionalProperties": true,
+              "type": "object"
+            }
+          ],
+          "default": "local",
+          "description": "Execution environment for file/terminal operations.",
+          "examples": [
+            "local",
+            "docker",
+            {
+              "template": "python-sandbox",
+              "type": "e2b"
+            },
+            {
+              "image": "python:3.13-slim",
+              "type": "docker"
+            }
+          ],
+          "title": "Execution Environment"
+        },
         "allow_file_operations": {
           "default": true,
           "description": "Whether to allow file read/write operations.",
@@ -4341,6 +4375,40 @@
           "title": "Env",
           "type": "object"
         },
+        "execution_environment": {
+          "anyOf": [
+            {
+              "enum": [
+                "local",
+                "docker",
+                "e2b",
+                "beam",
+                "daytona",
+                "srt"
+              ],
+              "type": "string"
+            },
+            {
+              "additionalProperties": true,
+              "type": "object"
+            }
+          ],
+          "default": "local",
+          "description": "Execution environment for file/terminal operations.",
+          "examples": [
+            "local",
+            "docker",
+            {
+              "template": "python-sandbox",
+              "type": "e2b"
+            },
+            {
+              "image": "python:3.13-slim",
+              "type": "docker"
+            }
+          ],
+          "title": "Execution Environment"
+        },
         "allow_file_operations": {
           "default": true,
           "description": "Whether to allow file read/write operations.",
@@ -4991,6 +5059,40 @@
           "description": "Environment variables to set.",
           "title": "Env",
           "type": "object"
+        },
+        "execution_environment": {
+          "anyOf": [
+            {
+              "enum": [
+                "local",
+                "docker",
+                "e2b",
+                "beam",
+                "daytona",
+                "srt"
+              ],
+              "type": "string"
+            },
+            {
+              "additionalProperties": true,
+              "type": "object"
+            }
+          ],
+          "default": "local",
+          "description": "Execution environment for file/terminal operations.",
+          "examples": [
+            "local",
+            "docker",
+            {
+              "template": "python-sandbox",
+              "type": "e2b"
+            },
+            {
+              "image": "python:3.13-slim",
+              "type": "docker"
+            }
+          ],
+          "title": "Execution Environment"
         },
         "allow_file_operations": {
           "default": true,
@@ -9019,6 +9121,40 @@
           "title": "Env",
           "type": "object"
         },
+        "execution_environment": {
+          "anyOf": [
+            {
+              "enum": [
+                "local",
+                "docker",
+                "e2b",
+                "beam",
+                "daytona",
+                "srt"
+              ],
+              "type": "string"
+            },
+            {
+              "additionalProperties": true,
+              "type": "object"
+            }
+          ],
+          "default": "local",
+          "description": "Execution environment for file/terminal operations.",
+          "examples": [
+            "local",
+            "docker",
+            {
+              "template": "python-sandbox",
+              "type": "e2b"
+            },
+            {
+              "image": "python:3.13-slim",
+              "type": "docker"
+            }
+          ],
+          "title": "Execution Environment"
+        },
         "allow_file_operations": {
           "default": true,
           "description": "Whether to allow file read/write operations.",
@@ -10243,6 +10379,40 @@
           "title": "Env",
           "type": "object"
         },
+        "execution_environment": {
+          "anyOf": [
+            {
+              "enum": [
+                "local",
+                "docker",
+                "e2b",
+                "beam",
+                "daytona",
+                "srt"
+              ],
+              "type": "string"
+            },
+            {
+              "additionalProperties": true,
+              "type": "object"
+            }
+          ],
+          "default": "local",
+          "description": "Execution environment for file/terminal operations.",
+          "examples": [
+            "local",
+            "docker",
+            {
+              "template": "python-sandbox",
+              "type": "e2b"
+            },
+            {
+              "image": "python:3.13-slim",
+              "type": "docker"
+            }
+          ],
+          "title": "Execution Environment"
+        },
         "allow_file_operations": {
           "default": true,
           "description": "Whether to allow file read/write operations.",
@@ -11071,6 +11241,40 @@
           "description": "Environment variables to set.",
           "title": "Env",
           "type": "object"
+        },
+        "execution_environment": {
+          "anyOf": [
+            {
+              "enum": [
+                "local",
+                "docker",
+                "e2b",
+                "beam",
+                "daytona",
+                "srt"
+              ],
+              "type": "string"
+            },
+            {
+              "additionalProperties": true,
+              "type": "object"
+            }
+          ],
+          "default": "local",
+          "description": "Execution environment for file/terminal operations.",
+          "examples": [
+            "local",
+            "docker",
+            {
+              "template": "python-sandbox",
+              "type": "e2b"
+            },
+            {
+              "image": "python:3.13-slim",
+              "type": "docker"
+            }
+          ],
+          "title": "Execution Environment"
         },
         "allow_file_operations": {
           "default": true,
@@ -14843,6 +15047,40 @@
           "title": "Env",
           "type": "object"
         },
+        "execution_environment": {
+          "anyOf": [
+            {
+              "enum": [
+                "local",
+                "docker",
+                "e2b",
+                "beam",
+                "daytona",
+                "srt"
+              ],
+              "type": "string"
+            },
+            {
+              "additionalProperties": true,
+              "type": "object"
+            }
+          ],
+          "default": "local",
+          "description": "Execution environment for file/terminal operations.",
+          "examples": [
+            "local",
+            "docker",
+            {
+              "template": "python-sandbox",
+              "type": "e2b"
+            },
+            {
+              "image": "python:3.13-slim",
+              "type": "docker"
+            }
+          ],
+          "title": "Execution Environment"
+        },
         "allow_file_operations": {
           "default": true,
           "description": "Whether to allow file read/write operations.",
@@ -15138,6 +15376,40 @@
           "description": "Environment variables to set.",
           "title": "Env",
           "type": "object"
+        },
+        "execution_environment": {
+          "anyOf": [
+            {
+              "enum": [
+                "local",
+                "docker",
+                "e2b",
+                "beam",
+                "daytona",
+                "srt"
+              ],
+              "type": "string"
+            },
+            {
+              "additionalProperties": true,
+              "type": "object"
+            }
+          ],
+          "default": "local",
+          "description": "Execution environment for file/terminal operations.",
+          "examples": [
+            "local",
+            "docker",
+            {
+              "template": "python-sandbox",
+              "type": "e2b"
+            },
+            {
+              "image": "python:3.13-slim",
+              "type": "docker"
+            }
+          ],
+          "title": "Execution Environment"
         },
         "allow_file_operations": {
           "default": true,
