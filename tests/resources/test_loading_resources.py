@@ -12,23 +12,20 @@ fsspec.register_implementation("union", UnionFileSystem, clobber=True)
 
 MANIFEST_CONFIG = """
 resources:
+    # Full config with storage options
     docs:
         fs_type: uri
         uri: "memory://"
         storage_options:
             auto_mkdir: true
-    data:
-        fs_type: uri
-        uri: "memory://"
-        storage_options:
-            auto_mkdir: true
+    # String shorthand
+    data: "memory://"
 """
 
 GITHUB_CONFIG = """
 resources:
-    mknodes_docs:
-        fs_type: uri
-        uri: "github://phil65:mknodes@main"
+    # String shorthand for github
+    mknodes_docs: "github://phil65:mknodes@main"
 """
 
 
@@ -41,7 +38,6 @@ async def test_vfs_registry():
     # Test root listing shows protocols
     root_listing = await fs._ls("/", detail=False)
     assert len(root_listing) == 2  # noqa: PLR2004
-    assert all(name.endswith("://") for name in root_listing)
     assert {"docs://", "data://"} == set(root_listing)
 
     # Test write and read operations
