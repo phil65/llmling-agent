@@ -57,7 +57,19 @@ class AgentWorkerConfig(BaseWorkerConfig):
     """
 
 
+class ACPAgentWorkerConfig(BaseWorkerConfig):
+    """Configuration for ACP agent workers.
+
+    ACP agent workers allow using external ACP-compatible agents as tools.
+    Unlike regular agents, ACP agents manage their own history server-side,
+    so history options are not available.
+    """
+
+    type: Literal["acp_agent"] = Field("acp_agent", init=False)
+    """ACP agent worker configuration."""
+
+
 WorkerConfig = Annotated[
-    TeamWorkerConfig | AgentWorkerConfig,
+    TeamWorkerConfig | AgentWorkerConfig | ACPAgentWorkerConfig,
     Field(discriminator="type"),
 ]

@@ -27,7 +27,11 @@ from llmling_agent_config.forward_targets import (
     FileConnectionConfig,
     NodeConnectionConfig,
 )
-from llmling_agent_config.workers import AgentWorkerConfig, TeamWorkerConfig
+from llmling_agent_config.workers import (
+    ACPAgentWorkerConfig,
+    AgentWorkerConfig,
+    TeamWorkerConfig,
+)
 
 
 if TYPE_CHECKING:
@@ -521,7 +525,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
             try:
                 worker = self.nodes[worker_config.name]
                 match worker_config:
-                    case TeamWorkerConfig():
+                    case TeamWorkerConfig() | ACPAgentWorkerConfig():
                         agent.register_worker(worker)
                     case AgentWorkerConfig():
                         agent.register_worker(

@@ -195,10 +195,13 @@ class StaticResourceProvider(ResourceProvider):
             parent: Optional parent agent for history/context sharing
         """
         from llmling_agent import Agent, BaseTeam
+        from llmling_agent.agent.acp_agent import ACPAgent
 
         match worker:
             case BaseTeam():
                 tool = worker.to_tool(name=name)
+            case ACPAgent():
+                tool = worker.to_tool(name=name, description=worker.description)
             case Agent():
                 tool = worker.to_tool(
                     parent=parent,

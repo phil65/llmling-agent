@@ -24,7 +24,12 @@ from llmling_agent_config.storage import StorageConfig
 from llmling_agent_config.system_prompts import PromptLibraryConfig
 from llmling_agent_config.task import Job
 from llmling_agent_config.teams import TeamConfig
-from llmling_agent_config.workers import AgentWorkerConfig, BaseWorkerConfig, TeamWorkerConfig
+from llmling_agent_config.workers import (
+    ACPAgentWorkerConfig,
+    AgentWorkerConfig,
+    BaseWorkerConfig,
+    TeamWorkerConfig,
+)
 
 
 if TYPE_CHECKING:
@@ -223,10 +228,11 @@ class AgentsManifest(Schema):
 
     @model_validator(mode="before")
     @classmethod
-    def normalize_workers(cls, data: dict[str, Any]) -> dict[str, Any]:
+    def normalize_workers(cls, data: dict[str, Any]) -> dict[str, Any]:  # noqa: PLR0915
         """Convert string workers to appropriate WorkerConfig for all agents."""
         teams = data.get("teams", {})
         agents = data.get("agents", {})
+        acp_agents = data.get("acp_agents", {})
 
         # Process workers for all agents that have them
         for agent_name, agent_config in agents.items():
@@ -241,8 +247,10 @@ class AgentsManifest(Schema):
                 for worker in workers:
                     match worker:
                         case str() as name if name in teams:
-                            # Determine type based on presence in teams/agents
+                            # Determine type based on presence in teams/agents/acp_agents
                             normalized.append(TeamWorkerConfig(name=name))
+                        case str() as name if name in acp_agents:
+                            normalized.append(ACPAgentWorkerConfig(name=name))
                         case str() as name if name in agents:
                             normalized.append(AgentWorkerConfig(name=name))
                         case str():  # Default to agent if type can't be determined
@@ -256,6 +264,8 @@ class AgentsManifest(Schema):
                                         normalized.append(TeamWorkerConfig(**config))
                                     case "agent":
                                         normalized.append(AgentWorkerConfig(**config))
+                                    case "acp_agent":
+                                        normalized.append(ACPAgentWorkerConfig(**config))
                                     case _:
                                         msg = f"Invalid worker type: {worker_type}"
                                         raise ValueError(msg)
@@ -268,6 +278,8 @@ class AgentsManifest(Schema):
 
                                 if worker_name in teams:
                                     normalized.append(TeamWorkerConfig(**config))
+                                elif worker_name in acp_agents:
+                                    normalized.append(ACPAgentWorkerConfig(**config))
                                 else:
                                     normalized.append(AgentWorkerConfig(**config))
 
