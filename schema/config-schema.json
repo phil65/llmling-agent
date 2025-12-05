@@ -3244,7 +3244,11 @@
         },
         "main_model": {
           "description": "The primary model identifier.",
-          "title": "Main Model",
+          "examples": [
+            "openai:gpt-5-nano",
+            "anthropic:claude-sonnet-4-5"
+          ],
+          "title": "Primary model",
           "type": "string"
         },
         "pre_prompt": {
@@ -3257,7 +3261,8 @@
             }
           ],
           "default": null,
-          "description": "Optional configuration for prompt preprocessing."
+          "description": "Optional configuration for prompt preprocessing.",
+          "title": "Pre-processing prompt"
         },
         "post_prompt": {
           "anyOf": [
@@ -3269,7 +3274,8 @@
             }
           ],
           "default": null,
-          "description": "Optional configuration for prompt postprocessing."
+          "description": "Optional configuration for prompt postprocessing.",
+          "title": "Post-processing prompt"
         }
       },
       "required": [
@@ -4168,7 +4174,7 @@
     },
     "ClaudeACPAgentConfig": {
       "additionalProperties": false,
-      "description": "Configuration for Claude Code via ACP.\n\nProvides typed settings for the claude-code-acp server with\nLSP autocomplete support.\n\nExample:\n    ```yaml\n    agents:\n      coder:\n        type: claude\n        cwd: /path/to/project\n        claude:\n          model: sonnet\n          permission_mode: acceptEdits\n          allowed_tools:\n            - Read\n            - Write\n            - Bash(git:*)\n    ```",
+      "description": "Configuration for Claude Code via ACP.\n\nProvides typed settings for the claude-code-acp server.\n\nExample:\n    ```yaml\n    agents:\n      coder:\n        type: claude\n        cwd: /path/to/project\n        model: sonnet\n        permission_mode: acceptEdits\n        allowed_tools:\n          - Read\n          - Write\n          - Bash(git:*)\n    ```",
       "properties": {
         "name": {
           "default": null,
@@ -4434,17 +4440,6 @@
           "title": "Type",
           "type": "string"
         },
-        "claude": {
-          "$ref": "#/$defs/ClaudeACPSettings",
-          "description": "Claude-specific settings."
-        }
-      },
-      "title": "ClaudeACPAgentConfig",
-      "type": "object"
-    },
-    "ClaudeACPSettings": {
-      "description": "Settings for claude-code-acp agent.\n\nThese settings map to claude CLI arguments.\nSee `claude --help` for full documentation.",
-      "properties": {
         "system_prompt": {
           "default": null,
           "description": "Custom system prompt (replaces default Claude Code prompt).",
@@ -4636,7 +4631,7 @@
           "title": "Output Type"
         }
       },
-      "title": "ClaudeACPSettings",
+      "title": "ClaudeACPAgentConfig",
       "type": "object"
     },
     "CliFilesystemConfig": {
@@ -4853,7 +4848,7 @@
     },
     "CodexACPAgentConfig": {
       "additionalProperties": false,
-      "description": "Configuration for Zed Codex via ACP.\n\nProvides typed settings for the codex-acp server.\n\nExample:\n    ```yaml\n    acp_agents:\n      coder:\n        type: codex\n        cwd: /path/to/project\n        codex:\n          model: o3\n          sandbox_permissions:\n            - disk-full-read-access\n    ```",
+      "description": "Configuration for Zed Codex via ACP.\n\nProvides typed settings for the codex-acp server.\n\nExample:\n    ```yaml\n    acp_agents:\n      coder:\n        type: codex\n        cwd: /path/to/project\n        model: o3\n        sandbox_permissions:\n          - disk-full-read-access\n    ```",
       "properties": {
         "name": {
           "default": null,
@@ -5119,17 +5114,6 @@
           "title": "Type",
           "type": "string"
         },
-        "codex": {
-          "$ref": "#/$defs/CodexACPSettings",
-          "description": "Codex-specific settings."
-        }
-      },
-      "title": "CodexACPAgentConfig",
-      "type": "object"
-    },
-    "CodexACPSettings": {
-      "description": "Settings for Zed Codex ACP agent.\n\nThese settings map to codex-acp CLI arguments.\nSee `npx @zed-industries/codex-acp --help` for full documentation.",
-      "properties": {
         "model": {
           "default": null,
           "description": "Model override.",
@@ -5182,7 +5166,7 @@
           "title": "Shell Environment Policy Inherit"
         }
       },
-      "title": "CodexACPSettings",
+      "title": "CodexACPAgentConfig",
       "type": "object"
     },
     "ComposioToolSetConfig": {
@@ -6016,10 +6000,19 @@
             }
           ],
           "description": "Model responsible for selecting which model to use.",
-          "title": "Selector Model"
+          "examples": [
+            "openai:gpt-5-nano"
+          ],
+          "title": "Selector model"
         },
         "models": {
           "description": "List of available models to choose from.",
+          "examples": [
+            [
+              "openai:gpt-5-nano",
+              "anthropic:claude-sonnet-4-5"
+            ]
+          ],
           "items": {
             "anyOf": [
               {
@@ -6031,12 +6024,16 @@
             ]
           },
           "minItems": 1,
-          "title": "Models",
+          "title": "Available models",
           "type": "array"
         },
         "selection_prompt": {
           "description": "Prompt used to guide the selector model's decision.",
-          "title": "Selection Prompt",
+          "examples": [
+            "Choose the best model for this task",
+            "Select appropriate model"
+          ],
+          "title": "Selection prompt",
           "type": "string"
         },
         "model_descriptions": {
@@ -6053,7 +6050,13 @@
           ],
           "default": null,
           "description": "Optional descriptions of each model for selection purposes.",
-          "title": "Model Descriptions"
+          "examples": [
+            {
+              "anthropic:claude-sonnet-4-5": "A large, powerful model",
+              "openai:gpt-5-nano": "A small, fast model"
+            }
+          ],
+          "title": "Model descriptions"
         }
       },
       "required": [
@@ -8891,6 +8894,12 @@
         },
         "models": {
           "description": "Ordered list of models to try in sequence.",
+          "examples": [
+            [
+              "openai:gpt-5-nano",
+              "anthropic:claude-sonnet-4-5"
+            ]
+          ],
           "items": {
             "anyOf": [
               {
@@ -8902,7 +8911,7 @@
             ]
           },
           "minItems": 1,
-          "title": "Models",
+          "title": "Fallback models",
           "type": "array"
         }
       },
@@ -8914,7 +8923,7 @@
     },
     "FastAgentACPAgentConfig": {
       "additionalProperties": false,
-      "description": "Configuration for fast-agent via ACP.\n\nRobust LLM agent with comprehensive MCP support.\n\nExample:\n    ```yaml\n    acp_agents:\n      coder:\n        type: fast-agent\n        cwd: /path/to/project\n        fast_agent:\n          model: sonnet\n          shell_access: true\n    ```",
+      "description": "Configuration for fast-agent via ACP.\n\nRobust LLM agent with comprehensive MCP support.\n\nExample:\n    ```yaml\n    acp_agents:\n      coder:\n        type: fast-agent\n        cwd: /path/to/project\n        model: sonnet\n        shell_access: true\n    ```",
       "properties": {
         "name": {
           "default": null,
@@ -9180,17 +9189,6 @@
           "title": "Type",
           "type": "string"
         },
-        "fast_agent": {
-          "$ref": "#/$defs/FastAgentACPSettings",
-          "description": "fast-agent-specific settings."
-        }
-      },
-      "title": "FastAgentACPAgentConfig",
-      "type": "object"
-    },
-    "FastAgentACPSettings": {
-      "description": "Settings for fast-agent ACP.\n\nThese settings map to fast-agent-acp CLI arguments.",
-      "properties": {
         "model": {
           "default": null,
           "description": "Model to use.",
@@ -9233,7 +9231,7 @@
           ]
         }
       },
-      "title": "FastAgentACPSettings",
+      "title": "FastAgentACPAgentConfig",
       "type": "object"
     },
     "FileCommandConfig": {
@@ -10099,7 +10097,7 @@
         },
         "function": {
           "description": "Function identifier for the model.",
-          "title": "Function",
+          "title": "Function import path",
           "type": "string"
         }
       },
@@ -10172,7 +10170,7 @@
     },
     "GeminiACPAgentConfig": {
       "additionalProperties": false,
-      "description": "Configuration for Gemini CLI via ACP.\n\nProvides typed settings for the gemini CLI with ACP support.\n\nExample:\n    ```yaml\n    acp_agents:\n      coder:\n        type: gemini\n        cwd: /path/to/project\n        gemini:\n          model: gemini-2.5-pro\n          approval_mode: auto_edit\n          allowed_tools:\n            - read_file\n            - write_file\n    ```",
+      "description": "Configuration for Gemini CLI via ACP.\n\nProvides typed settings for the gemini CLI with ACP support.\n\nExample:\n    ```yaml\n    acp_agents:\n      coder:\n        type: gemini\n        cwd: /path/to/project\n        model: gemini-2.5-pro\n        approval_mode: auto_edit\n        allowed_tools:\n          - read_file\n          - write_file\n    ```",
       "properties": {
         "name": {
           "default": null,
@@ -10438,17 +10436,6 @@
           "title": "Type",
           "type": "string"
         },
-        "gemini": {
-          "$ref": "#/$defs/GeminiACPSettings",
-          "description": "Gemini-specific settings."
-        }
-      },
-      "title": "GeminiACPAgentConfig",
-      "type": "object"
-    },
-    "GeminiACPSettings": {
-      "description": "Settings for Gemini CLI agent.\n\nThese settings map to gemini CLI arguments.\nSee `gemini --help` for full documentation.",
-      "properties": {
         "model": {
           "default": null,
           "description": "Model override.",
@@ -10575,7 +10562,7 @@
           "title": "Output Format"
         }
       },
-      "title": "GeminiACPSettings",
+      "title": "GeminiACPAgentConfig",
       "type": "object"
     },
     "GistFilesystemConfig": {
@@ -11685,7 +11672,10 @@
         },
         "model": {
           "description": "Import path to the model class or function.",
-          "title": "Model",
+          "examples": [
+            "my_models.CustomModel"
+          ],
+          "title": "Model import path",
           "type": "string"
         },
         "kw_args": {
@@ -11693,7 +11683,7 @@
             "type": "string"
           },
           "description": "Keyword arguments to pass to the imported model.",
-          "title": "Kw Args",
+          "title": "Model arguments",
           "type": "object"
         }
       },
@@ -11921,25 +11911,33 @@
         "prompt_template": {
           "default": "\ud83d\udc64 Please respond to: {prompt}",
           "description": "Template for displaying the prompt to the user.",
-          "title": "Prompt Template",
+          "examples": [
+            "\ud83d\udc64 Please respond to: {prompt}",
+            "User input required: {prompt}"
+          ],
+          "title": "Prompt display template",
           "type": "string"
         },
         "show_system": {
           "default": true,
           "description": "Whether to show system messages.",
-          "title": "Show System",
+          "title": "Show system messages",
           "type": "boolean"
         },
         "input_prompt": {
           "default": "Your response: ",
           "description": "Text displayed when requesting input.",
-          "title": "Input Prompt",
+          "examples": [
+            "Your response: ",
+            "Enter reply: "
+          ],
+          "title": "Input request text",
           "type": "string"
         },
         "handler": {
           "default": "llmling_models:DefaultInputHandler",
           "description": "Handler for processing user input.",
-          "title": "Handler",
+          "title": "Input handler",
           "type": "string"
         }
       },
@@ -14840,7 +14838,7 @@
     },
     "OpenCodeACPAgentConfig": {
       "additionalProperties": false,
-      "description": "Configuration for OpenCode via ACP.\n\nProvides typed settings for the opencode acp server.\n\nExample:\n    ```yaml\n    acp_agents:\n      coder:\n        type: opencode\n        cwd: /path/to/project\n        opencode:\n          log_level: INFO\n    ```",
+      "description": "Configuration for OpenCode via ACP.\n\nProvides typed settings for the opencode acp server.\n\nExample:\n    ```yaml\n    acp_agents:\n      coder:\n        type: opencode\n        cwd: /path/to/project\n        log_level: INFO\n    ```",
       "properties": {
         "name": {
           "default": null,
@@ -15106,17 +15104,6 @@
           "title": "Type",
           "type": "string"
         },
-        "opencode": {
-          "$ref": "#/$defs/OpenCodeACPSettings",
-          "description": "OpenCode-specific settings."
-        }
-      },
-      "title": "OpenCodeACPAgentConfig",
-      "type": "object"
-    },
-    "OpenCodeACPSettings": {
-      "description": "Settings for OpenCode ACP agent.\n\nThese settings map to opencode acp CLI arguments.\nSee `opencode acp --help` for full documentation.",
-      "properties": {
         "log_level": {
           "anyOf": [
             {
@@ -15165,7 +15152,7 @@
           ]
         }
       },
-      "title": "OpenCodeACPSettings",
+      "title": "OpenCodeACPAgentConfig",
       "type": "object"
     },
     "OpenHandsACPAgentConfig": {
@@ -15565,12 +15552,22 @@
       "properties": {
         "text": {
           "description": "The prompt text to be applied.",
-          "title": "Text",
+          "examples": [
+            "You are a helpful assistant",
+            "Process this carefully"
+          ],
+          "title": "Prompt text",
           "type": "string"
         },
         "model": {
           "description": "The model to use for processing the prompt.",
-          "title": "Model",
+          "examples": [
+            [
+              "openai:gpt-5-nano",
+              "anthropic:claude-sonnet-4-5"
+            ]
+          ],
+          "title": "Model identifier",
           "type": "string"
         }
       },
@@ -16046,7 +16043,11 @@
         "url": {
           "default": "ws://localhost:8000/v1/chat/stream",
           "description": "WebSocket URL for connecting to the remote input service.",
-          "title": "Url",
+          "examples": [
+            "ws://localhost:8000/v1/chat/stream",
+            "wss://api.example.com/chat"
+          ],
+          "title": "WebSocket URL",
           "type": "string"
         },
         "api_key": {
@@ -16062,7 +16063,10 @@
           ],
           "default": null,
           "description": "Optional API key for authentication.",
-          "title": "Api Key"
+          "examples": [
+            "abc123"
+          ],
+          "title": "API key"
         }
       },
       "title": "RemoteInputConfig",
@@ -16082,7 +16086,11 @@
         "url": {
           "default": "ws://localhost:8000/v1/completion/stream",
           "description": "WebSocket URL for connecting to the remote model service.",
-          "title": "Url",
+          "examples": [
+            "ws://localhost:8000/v1/completion/stream",
+            "wss://api.example.com/completion"
+          ],
+          "title": "WebSocket URL",
           "type": "string"
         },
         "api_key": {
@@ -16098,7 +16106,10 @@
           ],
           "default": null,
           "description": "Optional API key for authentication.",
-          "title": "Api Key"
+          "examples": [
+            "abc123"
+          ],
+          "title": "API key"
         }
       },
       "title": "RemoteProxyConfig",
@@ -20188,7 +20199,11 @@
         },
         "identifier": {
           "description": "String identifier for the model.",
-          "title": "Identifier",
+          "examples": [
+            "openai:gpt-5-nano",
+            "anthropic:claude-sonnet-4-5"
+          ],
+          "title": "Model identifier",
           "type": "string"
         }
       },
@@ -20777,7 +20792,11 @@
         "custom_output_text": {
           "default": null,
           "description": "Optional custom text to return from the test model.",
-          "title": "Custom Output Text",
+          "examples": [
+            "Test response",
+            "Mock output for testing"
+          ],
+          "title": "Custom output text",
           "type": [
             "string",
             "null"
@@ -20798,7 +20817,14 @@
           ],
           "default": "all",
           "description": "Tools that can be called by the test model.",
-          "title": "Call Tools"
+          "examples": [
+            "all",
+            [
+              "tool1",
+              "tool2"
+            ]
+          ],
+          "title": "Available tools"
         }
       },
       "title": "TestModelConfig",
@@ -21521,6 +21547,12 @@
         },
         "models": {
           "description": "List of models the user can choose from.",
+          "examples": [
+            [
+              "openai:gpt-5-nano",
+              "anthropic:claude-sonnet-4-5"
+            ]
+          ],
           "items": {
             "anyOf": [
               {
@@ -21532,31 +21564,39 @@
             ]
           },
           "minItems": 1,
-          "title": "Models",
+          "title": "Selectable models",
           "type": "array"
         },
         "prompt_template": {
           "default": "\ud83e\udd16 Choose a model for: {prompt}",
           "description": "Template for displaying the choice prompt to the user.",
-          "title": "Prompt Template",
+          "examples": [
+            "\ud83e\udd16 Choose a model for: {prompt}",
+            "Select model for: {prompt}"
+          ],
+          "title": "Selection prompt template",
           "type": "string"
         },
         "show_system": {
           "default": true,
           "description": "Whether to show system messages during selection.",
-          "title": "Show System",
+          "title": "Show system messages",
           "type": "boolean"
         },
         "input_prompt": {
           "default": "Enter model number (0-{max}): ",
           "description": "Text displayed when requesting model selection.",
-          "title": "Input Prompt",
+          "examples": [
+            "Enter model number (0-{max}): ",
+            "Choose (0-{max}): "
+          ],
+          "title": "Selection input prompt",
           "type": "string"
         },
         "handler": {
           "default": "llmling_models:DefaultInputHandler",
           "description": "Handler for processing user selection input.",
-          "title": "Handler",
+          "title": "Selection handler",
           "type": "string"
         }
       },

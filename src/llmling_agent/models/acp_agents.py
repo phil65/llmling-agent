@@ -18,138 +18,6 @@ if TYPE_CHECKING:
     )
 
 
-class ClaudeACPSettings(BaseModel):
-    """Settings for claude-code-acp agent.
-
-    These settings map to claude CLI arguments.
-    See `claude --help` for full documentation.
-    """
-
-    system_prompt: str | None = Field(
-        default=None,
-        description="Custom system prompt (replaces default Claude Code prompt).",
-    )
-
-    append_system_prompt: str | None = Field(
-        default=None,
-        description="Text to append to the default system prompt.",
-    )
-
-    model: str | None = Field(
-        default=None,
-        description="Model override. Use alias ('sonnet', 'opus') or full name.",
-        examples=["sonnet", "opus", "claude-sonnet-4-20250514"],
-    )
-
-    permission_mode: (
-        Literal["default", "acceptEdits", "bypassPermissions", "dontAsk", "plan"] | None
-    ) = Field(
-        default=None,
-        description="Permission handling mode for tool execution.",
-    )
-
-    allowed_tools: list[str] | None = Field(
-        default=None,
-        description="Whitelist of allowed tools (e.g., ['Read', 'Write', 'Bash(git:*)']).",
-    )
-
-    disallowed_tools: list[str] | None = Field(
-        default=None,
-        description="Blacklist of disallowed tools.",
-    )
-
-    mcp_config: list[str] | None = Field(
-        default=None,
-        description="MCP server config files or JSON strings to load.",
-    )
-
-    strict_mcp_config: bool = Field(
-        default=False,
-        description="Only use MCP servers from mcp_config, ignoring all other configs.",
-    )
-
-    add_dir: list[str] | None = Field(
-        default=None,
-        description="Additional directories to allow tool access to.",
-    )
-
-    tools: list[str] | None = Field(
-        default=None,
-        description="Available tools from built-in set. Empty list disables all tools.",
-        examples=[["Bash", "Edit", "Read"], []],
-    )
-
-    fallback_model: str | None = Field(
-        default=None,
-        description="Fallback model when default is overloaded.",
-        examples=["sonnet", "haiku"],
-    )
-
-    dangerously_skip_permissions: bool = Field(
-        default=False,
-        description="Bypass all permission checks. Only for sandboxed environments.",
-    )
-
-    output_type: str | StructuredResponseConfig | None = Field(
-        default=None,
-        description="Structured output configuration. Generates --output-format and --json-schema.",
-        examples=[
-            "json_response",
-            {"response_schema": {"type": "import", "import_path": "mymodule:MyModel"}},
-        ],
-    )
-
-    def build_args(self) -> list[str]:
-        """Build CLI arguments from settings."""
-        args: list[str] = []
-
-        if self.system_prompt:
-            args.extend(["--system-prompt", self.system_prompt])
-        if self.append_system_prompt:
-            args.extend(["--append-system-prompt", self.append_system_prompt])
-        if self.model:
-            args.extend(["--model", self.model])
-        if self.permission_mode:
-            args.extend(["--permission-mode", self.permission_mode])
-        if self.allowed_tools:
-            args.extend(["--allowed-tools", *self.allowed_tools])
-        if self.disallowed_tools:
-            args.extend(["--disallowed-tools", *self.disallowed_tools])
-        if self.mcp_config:
-            args.extend(["--mcp-config", *self.mcp_config])
-        if self.strict_mcp_config:
-            args.append("--strict-mcp-config")
-        if self.add_dir:
-            args.extend(["--add-dir", *self.add_dir])
-        if self.tools is not None:
-            if self.tools:
-                args.extend(["--tools", ",".join(self.tools)])
-            else:
-                args.extend(["--tools", ""])
-        if self.fallback_model:
-            args.extend(["--fallback-model", self.fallback_model])
-        if self.dangerously_skip_permissions:
-            args.append("--dangerously-skip-permissions")
-        if self.output_type:
-            args.extend(["--output-format", "json"])
-            schema = self._resolve_json_schema()
-            if schema:
-                args.extend(["--json-schema", schema])
-
-        return args
-
-    def _resolve_json_schema(self) -> str | None:
-        """Resolve output_type to a JSON schema string."""
-        if self.output_type is None:
-            return None
-        if isinstance(self.output_type, str):
-            # Named reference - caller must resolve
-            return None
-        # StructuredResponseConfig - resolve schema via get_schema()
-        model_cls = cast(type[BaseModel], self.output_type.response_schema.get_schema())
-        return json.dumps(model_cls.model_json_schema())
-
-
 class BaseACPAgentConfig(NodeConfig):
     """Base configuration for all ACP agents.
 
@@ -277,8 +145,7 @@ class ACPAgentConfig(BaseACPAgentConfig):
 class ClaudeACPAgentConfig(BaseACPAgentConfig):
     """Configuration for Claude Code via ACP.
 
-    Provides typed settings for the claude-code-acp server with
-    LSP autocomplete support.
+    Provides typed settings for the claude-code-acp server.
 
     Example:
         ```yaml
@@ -286,24 +153,91 @@ class ClaudeACPAgentConfig(BaseACPAgentConfig):
           coder:
             type: claude
             cwd: /path/to/project
-            claude:
-              model: sonnet
-              permission_mode: acceptEdits
-              allowed_tools:
-                - Read
-                - Write
-                - Bash(git:*)
+            model: sonnet
+            permission_mode: acceptEdits
+            allowed_tools:
+              - Read
+              - Write
+              - Bash(git:*)
         ```
     """
 
     type: Literal["claude"] = Field("claude", init=False)
     """Discriminator for Claude ACP agent."""
 
-    claude: ClaudeACPSettings = Field(
-        default_factory=ClaudeACPSettings,
-        description="Claude-specific settings.",
+    system_prompt: str | None = Field(
+        default=None,
+        description="Custom system prompt (replaces default Claude Code prompt).",
     )
-    """Claude-specific settings (maps to CLI arguments)."""
+
+    append_system_prompt: str | None = Field(
+        default=None,
+        description="Text to append to the default system prompt.",
+    )
+
+    model: str | None = Field(
+        default=None,
+        description="Model override. Use alias ('sonnet', 'opus') or full name.",
+        examples=["sonnet", "opus", "claude-sonnet-4-20250514"],
+    )
+
+    permission_mode: (
+        Literal["default", "acceptEdits", "bypassPermissions", "dontAsk", "plan"] | None
+    ) = Field(
+        default=None,
+        description="Permission handling mode for tool execution.",
+    )
+
+    allowed_tools: list[str] | None = Field(
+        default=None,
+        description="Whitelist of allowed tools (e.g., ['Read', 'Write', 'Bash(git:*)']).",
+    )
+
+    disallowed_tools: list[str] | None = Field(
+        default=None,
+        description="Blacklist of disallowed tools.",
+    )
+
+    mcp_config: list[str] | None = Field(
+        default=None,
+        description="MCP server config files or JSON strings to load.",
+    )
+
+    strict_mcp_config: bool = Field(
+        default=False,
+        description="Only use MCP servers from mcp_config, ignoring all other configs.",
+    )
+
+    add_dir: list[str] | None = Field(
+        default=None,
+        description="Additional directories to allow tool access to.",
+    )
+
+    tools: list[str] | None = Field(
+        default=None,
+        description="Available tools from built-in set. Empty list disables all tools.",
+        examples=[["Bash", "Edit", "Read"], []],
+    )
+
+    fallback_model: str | None = Field(
+        default=None,
+        description="Fallback model when default is overloaded.",
+        examples=["sonnet", "haiku"],
+    )
+
+    dangerously_skip_permissions: bool = Field(
+        default=False,
+        description="Bypass all permission checks. Only for sandboxed environments.",
+    )
+
+    output_type: str | StructuredResponseConfig | None = Field(
+        default=None,
+        description="Structured output configuration. Generates --output-format and --json-schema.",
+        examples=[
+            "json_response",
+            {"response_schema": {"type": "import", "import_path": "mymodule:MyModel"}},
+        ],
+    )
 
     def get_command(self) -> str:
         """Get the command to spawn the ACP server."""
@@ -311,15 +245,76 @@ class ClaudeACPAgentConfig(BaseACPAgentConfig):
 
     def get_args(self) -> list[str]:
         """Build command arguments from settings."""
-        return self.claude.build_args()
+        args: list[str] = []
+
+        if self.system_prompt:
+            args.extend(["--system-prompt", self.system_prompt])
+        if self.append_system_prompt:
+            args.extend(["--append-system-prompt", self.append_system_prompt])
+        if self.model:
+            args.extend(["--model", self.model])
+        if self.permission_mode:
+            args.extend(["--permission-mode", self.permission_mode])
+        if self.allowed_tools:
+            args.extend(["--allowed-tools", *self.allowed_tools])
+        if self.disallowed_tools:
+            args.extend(["--disallowed-tools", *self.disallowed_tools])
+        if self.mcp_config:
+            args.extend(["--mcp-config", *self.mcp_config])
+        if self.strict_mcp_config:
+            args.append("--strict-mcp-config")
+        if self.add_dir:
+            args.extend(["--add-dir", *self.add_dir])
+        if self.tools is not None:
+            if self.tools:
+                args.extend(["--tools", ",".join(self.tools)])
+            else:
+                args.extend(["--tools", ""])
+        if self.fallback_model:
+            args.extend(["--fallback-model", self.fallback_model])
+        if self.dangerously_skip_permissions:
+            args.append("--dangerously-skip-permissions")
+        if self.output_type:
+            args.extend(["--output-format", "json"])
+            schema = self._resolve_json_schema()
+            if schema:
+                args.extend(["--json-schema", schema])
+
+        return args
+
+    def _resolve_json_schema(self) -> str | None:
+        """Resolve output_type to a JSON schema string."""
+        if self.output_type is None:
+            return None
+        if isinstance(self.output_type, str):
+            # Named reference - caller must resolve
+            return None
+        # StructuredResponseConfig - resolve schema via get_schema()
+        model_cls = cast(type[BaseModel], self.output_type.response_schema.get_schema())
+        return json.dumps(model_cls.model_json_schema())
 
 
-class GeminiACPSettings(BaseModel):
-    """Settings for Gemini CLI agent.
+class GeminiACPAgentConfig(BaseACPAgentConfig):
+    """Configuration for Gemini CLI via ACP.
 
-    These settings map to gemini CLI arguments.
-    See `gemini --help` for full documentation.
+    Provides typed settings for the gemini CLI with ACP support.
+
+    Example:
+        ```yaml
+        acp_agents:
+          coder:
+            type: gemini
+            cwd: /path/to/project
+            model: gemini-2.5-pro
+            approval_mode: auto_edit
+            allowed_tools:
+              - read_file
+              - write_file
+        ```
     """
+
+    type: Literal["gemini"] = Field("gemini", init=False)
+    """Discriminator for Gemini ACP agent."""
 
     model: str | None = Field(
         default=None,
@@ -367,9 +362,13 @@ class GeminiACPSettings(BaseModel):
         description="Output format.",
     )
 
-    def build_args(self) -> list[str]:
-        """Build CLI arguments from settings."""
-        args: list[str] = []
+    def get_command(self) -> str:
+        """Get the command to spawn the ACP server."""
+        return "gemini"
+
+    def get_args(self) -> list[str]:
+        """Build command arguments from settings."""
+        args: list[str] = ["--experimental-acp"]
 
         if self.model:
             args.extend(["--model", self.model])
@@ -393,50 +392,25 @@ class GeminiACPSettings(BaseModel):
         return args
 
 
-class GeminiACPAgentConfig(BaseACPAgentConfig):
-    """Configuration for Gemini CLI via ACP.
+class CodexACPAgentConfig(BaseACPAgentConfig):
+    """Configuration for Zed Codex via ACP.
 
-    Provides typed settings for the gemini CLI with ACP support.
+    Provides typed settings for the codex-acp server.
 
     Example:
         ```yaml
         acp_agents:
           coder:
-            type: gemini
+            type: codex
             cwd: /path/to/project
-            gemini:
-              model: gemini-2.5-pro
-              approval_mode: auto_edit
-              allowed_tools:
-                - read_file
-                - write_file
+            model: o3
+            sandbox_permissions:
+              - disk-full-read-access
         ```
     """
 
-    type: Literal["gemini"] = Field("gemini", init=False)
-    """Discriminator for Gemini ACP agent."""
-
-    gemini: GeminiACPSettings = Field(
-        default_factory=GeminiACPSettings,
-        description="Gemini-specific settings.",
-    )
-    """Gemini-specific settings (maps to CLI arguments)."""
-
-    def get_command(self) -> str:
-        """Get the command to spawn the ACP server."""
-        return "gemini"
-
-    def get_args(self) -> list[str]:
-        """Build command arguments from settings."""
-        return ["--experimental-acp", *self.gemini.build_args()]
-
-
-class CodexACPSettings(BaseModel):
-    """Settings for Zed Codex ACP agent.
-
-    These settings map to codex-acp CLI arguments.
-    See `npx @zed-industries/codex-acp --help` for full documentation.
-    """
+    type: Literal["codex"] = Field("codex", init=False)
+    """Discriminator for Codex ACP agent."""
 
     model: str | None = Field(
         default=None,
@@ -455,9 +429,13 @@ class CodexACPSettings(BaseModel):
         description="Shell environment inheritance policy.",
     )
 
-    def build_args(self) -> list[str]:
-        """Build CLI arguments from settings."""
-        args: list[str] = []
+    def get_command(self) -> str:
+        """Get the command to spawn the ACP server."""
+        return "npx"
+
+    def get_args(self) -> list[str]:
+        """Build command arguments from settings."""
+        args: list[str] = ["@zed-industries/codex-acp"]
 
         if self.model:
             args.extend(["-c", f'model="{self.model}"'])
@@ -474,48 +452,23 @@ class CodexACPSettings(BaseModel):
         return args
 
 
-class CodexACPAgentConfig(BaseACPAgentConfig):
-    """Configuration for Zed Codex via ACP.
+class OpenCodeACPAgentConfig(BaseACPAgentConfig):
+    """Configuration for OpenCode via ACP.
 
-    Provides typed settings for the codex-acp server.
+    Provides typed settings for the opencode acp server.
 
     Example:
         ```yaml
         acp_agents:
           coder:
-            type: codex
+            type: opencode
             cwd: /path/to/project
-            codex:
-              model: o3
-              sandbox_permissions:
-                - disk-full-read-access
+            log_level: INFO
         ```
     """
 
-    type: Literal["codex"] = Field("codex", init=False)
-    """Discriminator for Codex ACP agent."""
-
-    codex: CodexACPSettings = Field(
-        default_factory=CodexACPSettings,
-        description="Codex-specific settings.",
-    )
-    """Codex-specific settings (maps to CLI arguments)."""
-
-    def get_command(self) -> str:
-        """Get the command to spawn the ACP server."""
-        return "npx"
-
-    def get_args(self) -> list[str]:
-        """Build command arguments from settings."""
-        return ["@zed-industries/codex-acp", *self.codex.build_args()]
-
-
-class OpenCodeACPSettings(BaseModel):
-    """Settings for OpenCode ACP agent.
-
-    These settings map to opencode acp CLI arguments.
-    See `opencode acp --help` for full documentation.
-    """
+    type: Literal["opencode"] = Field("opencode", init=False)
+    """Discriminator for OpenCode ACP agent."""
 
     log_level: Literal["DEBUG", "INFO", "WARN", "ERROR"] | None = Field(
         default=None,
@@ -538,10 +491,16 @@ class OpenCodeACPSettings(BaseModel):
         examples=["127.0.0.1", "0.0.0.0"],
     )
 
-    def build_args(self) -> list[str]:
-        """Build CLI arguments from settings."""
-        args: list[str] = []
+    def get_command(self) -> str:
+        """Get the command to spawn the ACP server."""
+        return "opencode"
 
+    def get_args(self) -> list[str]:
+        """Build command arguments from settings."""
+        args: list[str] = ["acp"]
+
+        if self.cwd:
+            args.extend(["--cwd", self.cwd])
         if self.log_level:
             args.extend(["--log-level", self.log_level])
         if self.print_logs:
@@ -551,44 +510,6 @@ class OpenCodeACPSettings(BaseModel):
         if self.hostname:
             args.extend(["--hostname", self.hostname])
 
-        return args
-
-
-class OpenCodeACPAgentConfig(BaseACPAgentConfig):
-    """Configuration for OpenCode via ACP.
-
-    Provides typed settings for the opencode acp server.
-
-    Example:
-        ```yaml
-        acp_agents:
-          coder:
-            type: opencode
-            cwd: /path/to/project
-            opencode:
-              log_level: INFO
-        ```
-    """
-
-    type: Literal["opencode"] = Field("opencode", init=False)
-    """Discriminator for OpenCode ACP agent."""
-
-    opencode: OpenCodeACPSettings = Field(
-        default_factory=OpenCodeACPSettings,
-        description="OpenCode-specific settings.",
-    )
-    """OpenCode-specific settings (maps to CLI arguments)."""
-
-    def get_command(self) -> str:
-        """Get the command to spawn the ACP server."""
-        return "opencode"
-
-    def get_args(self) -> list[str]:
-        """Build command arguments from settings."""
-        args = ["acp"]
-        if self.cwd:
-            args.extend(["--cwd", self.cwd])
-        args.extend(self.opencode.build_args())
         return args
 
 
@@ -644,11 +565,24 @@ class OpenHandsACPAgentConfig(BaseACPAgentConfig):
         return ["acp"]
 
 
-class FastAgentACPSettings(BaseModel):
-    """Settings for fast-agent ACP.
+class FastAgentACPAgentConfig(BaseACPAgentConfig):
+    """Configuration for fast-agent via ACP.
 
-    These settings map to fast-agent-acp CLI arguments.
+    Robust LLM agent with comprehensive MCP support.
+
+    Example:
+        ```yaml
+        acp_agents:
+          coder:
+            type: fast-agent
+            cwd: /path/to/project
+            model: sonnet
+            shell_access: true
+        ```
     """
+
+    type: Literal["fast-agent"] = Field("fast-agent", init=False)
+    """Discriminator for fast-agent ACP agent."""
 
     model: str | None = Field(
         default=None,
@@ -672,8 +606,12 @@ class FastAgentACPSettings(BaseModel):
         description="Authentication token for MCP server.",
     )
 
-    def build_args(self) -> list[str]:
-        """Build CLI arguments from settings."""
+    def get_command(self) -> str:
+        """Get the command to spawn the ACP server."""
+        return "fast-agent-acp"
+
+    def get_args(self) -> list[str]:
+        """Build command arguments from settings."""
         args: list[str] = []
 
         if self.model:
@@ -686,41 +624,6 @@ class FastAgentACPSettings(BaseModel):
             args.extend(["--auth", self.auth])
 
         return args
-
-
-class FastAgentACPAgentConfig(BaseACPAgentConfig):
-    """Configuration for fast-agent via ACP.
-
-    Robust LLM agent with comprehensive MCP support.
-
-    Example:
-        ```yaml
-        acp_agents:
-          coder:
-            type: fast-agent
-            cwd: /path/to/project
-            fast_agent:
-              model: sonnet
-              shell_access: true
-        ```
-    """
-
-    type: Literal["fast-agent"] = Field("fast-agent", init=False)
-    """Discriminator for fast-agent ACP agent."""
-
-    fast_agent: FastAgentACPSettings = Field(
-        default_factory=FastAgentACPSettings,
-        description="fast-agent-specific settings.",
-    )
-    """fast-agent-specific settings (maps to CLI arguments)."""
-
-    def get_command(self) -> str:
-        """Get the command to spawn the ACP server."""
-        return "fast-agent-acp"
-
-    def get_args(self) -> list[str]:
-        """Build command arguments from settings."""
-        return self.fast_agent.build_args()
 
 
 # Union of all ACP agent config types

@@ -7,7 +7,12 @@ from llmling_agent.models.acp_agents import (
     ACPAgentConfigTypes,
     BaseACPAgentConfig,
     ClaudeACPAgentConfig,
-    ClaudeACPSettings,
+    CodexACPAgentConfig,
+    FastAgentACPAgentConfig,
+    GeminiACPAgentConfig,
+    GooseACPAgentConfig,
+    OpenCodeACPAgentConfig,
+    OpenHandsACPAgentConfig,
 )
 from llmling_agent.models.agents import AgentConfig
 from llmling_agent.models.manifest import AgentsManifest
@@ -20,5 +25,10 @@ __all__ = [
     "AgentsManifest",
     "BaseACPAgentConfig",
     "ClaudeACPAgentConfig",
-    "ClaudeACPSettings",
+    "CodexACPAgentConfig",
+    "FastAgentACPAgentConfig",
+    "GeminiACPAgentConfig",
+    "GooseACPAgentConfig",
+    "OpenCodeACPAgentConfig",
+    "OpenHandsACPAgentConfig",
 ]
