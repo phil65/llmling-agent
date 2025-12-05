@@ -69,7 +69,7 @@ def run_command(
                     for node in pool.nodes.values():
                         node.message_sent.connect(on_message)
                 for prompt in prompts:
-                    response = await node.run(prompt)
+                    response = await pool.nodes[node_name].run(prompt)
 
                     if not show_messages:
                         print(
