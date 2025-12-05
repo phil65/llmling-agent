@@ -19,6 +19,15 @@ from llmling_agent_config.mcp_server import (
 class NodeConfig(Schema):
     """Configuration for a Node of the messaging system."""
 
+    model_config = ConfigDict(
+        frozen=True,
+        arbitrary_types_allowed=True,
+        json_schema_extra={
+            "x-icon": "octicon:workflow-16",
+            "x-doc-title": "Node Configuration",
+        },
+    )
+
     name: str | None = Field(default=None)
     """Identifier for the node. Set from dict key, not from YAML."""
 
@@ -108,8 +117,6 @@ class NodeConfig(Schema):
 
     # knowledge: Knowledge | None = None
     # """Knowledge sources shared by all team members."""
-
-    model_config = ConfigDict(frozen=True, arbitrary_types_allowed=True)
 
     def get_mcp_servers(self) -> list[MCPServerConfig]:
         """Get processed MCP server configurations.

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import Field
+from pydantic import ConfigDict, Field
 
 from llmling_agent_config.nodes import NodeConfig
 
@@ -20,6 +20,13 @@ class TeamConfig(NodeConfig):
 
     Docs: https://phil65.github.io/llmling-agent/YAML%20Configuration/team_configuration/
     """
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "x-icon": "fluent:people-team-24-regular",
+            "x-doc-title": "Team Configuration",
+        }
+    )
 
     mode: ExecutionMode = Field(examples=["parallel", "sequential"], title="Execution mode")
     """Execution mode for team members."""

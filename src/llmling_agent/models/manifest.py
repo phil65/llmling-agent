@@ -222,7 +222,9 @@ class AgentsManifest(Schema):
 
     model_config = ConfigDict(
         json_schema_extra={
-            "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/manifest_configuration/"
+            "x-icon": "octicon:file-code-16",
+            "x-doc-title": "Manifest Overview",
+            "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/manifest_configuration/",
         },
     )
 

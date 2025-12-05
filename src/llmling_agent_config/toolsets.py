@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Annotated, Literal
 
 from anyenv.code_execution.configs import ExecutionEnvironmentConfig
 from llmling_models.configs.model_configs import AnyModelConfig
-from pydantic import EmailStr, Field, HttpUrl, SecretStr
+from pydantic import ConfigDict, EmailStr, Field, HttpUrl, SecretStr
 from schemez import Schema
 from searchly.config import NewsSearchProviderConfig, WebSearchProviderConfig
 from tokonomics import ModelName
@@ -23,12 +23,26 @@ if TYPE_CHECKING:
 class BaseToolsetConfig(Schema):
     """Base configuration for toolsets."""
 
+    model_config = ConfigDict(
+        json_schema_extra={
+            "x-icon": "octicon:package-16",
+            "x-doc-title": "Toolset Configuration",
+        }
+    )
+
     namespace: str | None = Field(default=None, examples=["web", "files"], title="Tool namespace")
     """Optional namespace prefix for tool names"""
 
 
 class OpenAPIToolsetConfig(BaseToolsetConfig):
     """Configuration for OpenAPI toolsets."""
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "x-icon": "octicon:globe-16",
+            "x-doc-title": "OpenAPI Toolset",
+        }
+    )
 
     type: Literal["openapi"] = Field("openapi", init=False)
     """OpenAPI toolset."""
@@ -57,6 +71,13 @@ class OpenAPIToolsetConfig(BaseToolsetConfig):
 class EntryPointToolsetConfig(BaseToolsetConfig):
     """Configuration for entry point toolsets."""
 
+    model_config = ConfigDict(
+        json_schema_extra={
+            "x-icon": "octicon:plug-16",
+            "x-doc-title": "Entry Point Toolset",
+        }
+    )
+
     type: Literal["entry_points"] = Field("entry_points", init=False)
     """Entry point toolset."""
 
@@ -75,6 +96,13 @@ class EntryPointToolsetConfig(BaseToolsetConfig):
 
 class ComposioToolSetConfig(BaseToolsetConfig):
     """Configuration for Composio toolsets."""
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "x-icon": "octicon:apps-16",
+            "x-doc-title": "Composio Toolset",
+        }
+    )
 
     type: Literal["composio"] = Field("composio", init=False)
     """Composio Toolsets."""
@@ -107,6 +135,13 @@ class ComposioToolSetConfig(BaseToolsetConfig):
 class UpsonicToolSetConfig(BaseToolsetConfig):
     """Configuration for Upsonic toolsets."""
 
+    model_config = ConfigDict(
+        json_schema_extra={
+            "x-icon": "octicon:cloud-16",
+            "x-doc-title": "Upsonic Toolset",
+        }
+    )
+
     type: Literal["upsonic"] = Field("upsonic", init=False)
     """Upsonic Toolsets."""
 
@@ -138,6 +173,13 @@ class UpsonicToolSetConfig(BaseToolsetConfig):
 class AgentManagementToolsetConfig(BaseToolsetConfig):
     """Configuration for agent pool building tools."""
 
+    model_config = ConfigDict(
+        json_schema_extra={
+            "x-icon": "octicon:people-16",
+            "x-doc-title": "Agent Management Toolset",
+        }
+    )
+
     type: Literal["agent_management"] = Field("agent_management", init=False)
     """Agent pool building toolset (create_worker_agent, add_agent, add_team, connect_nodes)."""
 
@@ -151,6 +193,13 @@ class AgentManagementToolsetConfig(BaseToolsetConfig):
 class SubagentToolsetConfig(BaseToolsetConfig):
     """Configuration for subagent interaction tools."""
 
+    model_config = ConfigDict(
+        json_schema_extra={
+            "x-icon": "octicon:share-16",
+            "x-doc-title": "Subagent Toolset",
+        }
+    )
+
     type: Literal["subagent"] = Field("subagent", init=False)
     """Subagent interaction toolset (delegate_to, ask_agent, list_available_agents/teams)."""
 
@@ -163,6 +212,13 @@ class SubagentToolsetConfig(BaseToolsetConfig):
 
 class ExecutionEnvironmentToolsetConfig(BaseToolsetConfig):
     """Configuration for execution environment toolset (code + process management)."""
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "x-icon": "octicon:terminal-16",
+            "x-doc-title": "Execution Environment Toolset",
+        }
+    )
 
     type: Literal["execution"] = Field("execution", init=False)
     """Execution environment toolset."""
@@ -184,6 +240,13 @@ class ExecutionEnvironmentToolsetConfig(BaseToolsetConfig):
 class ToolManagementToolsetConfig(BaseToolsetConfig):
     """Configuration for tool management toolset."""
 
+    model_config = ConfigDict(
+        json_schema_extra={
+            "x-icon": "octicon:tools-16",
+            "x-doc-title": "Tool Management Toolset",
+        }
+    )
+
     type: Literal["tool_management"] = Field("tool_management", init=False)
     """Tool management toolset."""
 
@@ -197,6 +260,13 @@ class ToolManagementToolsetConfig(BaseToolsetConfig):
 class UserInteractionToolsetConfig(BaseToolsetConfig):
     """Configuration for user interaction toolset."""
 
+    model_config = ConfigDict(
+        json_schema_extra={
+            "x-icon": "octicon:comment-discussion-16",
+            "x-doc-title": "User Interaction Toolset",
+        }
+    )
+
     type: Literal["user_interaction"] = Field("user_interaction", init=False)
     """User interaction toolset."""
 
@@ -209,6 +279,13 @@ class UserInteractionToolsetConfig(BaseToolsetConfig):
 
 class HistoryToolsetConfig(BaseToolsetConfig):
     """Configuration for history toolset."""
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "x-icon": "octicon:history-16",
+            "x-doc-title": "History Toolset",
+        }
+    )
 
     type: Literal["history"] = Field("history", init=False)
     """History toolset."""
@@ -228,6 +305,13 @@ class SkillsToolsetConfig(BaseToolsetConfig):
     (e.g., ~/.claude/skills/, .claude/skills/).
     """
 
+    model_config = ConfigDict(
+        json_schema_extra={
+            "x-icon": "octicon:mortar-board-16",
+            "x-doc-title": "Skills Toolset",
+        }
+    )
+
     type: Literal["skills"] = Field("skills", init=False)
     """Skills toolset."""
 
@@ -240,6 +324,13 @@ class SkillsToolsetConfig(BaseToolsetConfig):
 
 class IntegrationToolsetConfig(BaseToolsetConfig):
     """Configuration for integration toolset."""
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "x-icon": "octicon:link-16",
+            "x-doc-title": "Integration Toolset",
+        }
+    )
 
     type: Literal["integrations"] = Field("integrations", init=False)
     """Integration toolset."""
@@ -254,6 +345,13 @@ class IntegrationToolsetConfig(BaseToolsetConfig):
 class CodeToolsetConfig(BaseToolsetConfig):
     """Configuration for code toolset."""
 
+    model_config = ConfigDict(
+        json_schema_extra={
+            "x-icon": "octicon:code-16",
+            "x-doc-title": "Code Toolset",
+        }
+    )
+
     type: Literal["code"] = Field("code", init=False)
     """Code toolset."""
 
@@ -266,6 +364,13 @@ class CodeToolsetConfig(BaseToolsetConfig):
 
 class FSSpecToolsetConfig(BaseToolsetConfig):
     """Configuration for file access toolset (supports local and remote filesystems)."""
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "x-icon": "octicon:file-directory-16",
+            "x-doc-title": "File Access Toolset",
+        }
+    )
 
     type: Literal["file_access"] = Field("file_access", init=False)
     """File access toolset."""
@@ -321,6 +426,13 @@ class FSSpecToolsetConfig(BaseToolsetConfig):
 class VFSToolsetConfig(BaseToolsetConfig):
     """Configuration for VFS registry filesystem toolset."""
 
+    model_config = ConfigDict(
+        json_schema_extra={
+            "x-icon": "octicon:file-symlink-directory-16",
+            "x-doc-title": "VFS Toolset",
+        }
+    )
+
     type: Literal["vfs"] = Field("vfs", init=False)
     """VFS registry filesystem toolset."""
 
@@ -333,6 +445,13 @@ class VFSToolsetConfig(BaseToolsetConfig):
 
 class SearchToolsetConfig(BaseToolsetConfig):
     """Configuration for web/news search toolset."""
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "x-icon": "octicon:search-16",
+            "x-doc-title": "Search Toolset",
+        }
+    )
 
     type: Literal["search"] = Field("search", init=False)
     """Search toolset."""
@@ -354,6 +473,13 @@ class SearchToolsetConfig(BaseToolsetConfig):
 
 class NotificationsToolsetConfig(BaseToolsetConfig):
     """Configuration for Apprise-based notifications toolset."""
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "x-icon": "octicon:bell-16",
+            "x-doc-title": "Notifications Toolset",
+        }
+    )
 
     type: Literal["notifications"] = Field("notifications", init=False)
     """Notifications toolset."""
@@ -380,6 +506,13 @@ class NotificationsToolsetConfig(BaseToolsetConfig):
 
 class SemanticMemoryToolsetConfig(BaseToolsetConfig):
     """Configuration for semantic memory / knowledge processing toolset."""
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "x-icon": "octicon:database-16",
+            "x-doc-title": "Semantic Memory Toolset",
+        }
+    )
 
     type: Literal["semantic_memory"] = Field("semantic_memory", init=False)
     """Semantic memory toolset using TypeAgent's KnowPro."""
@@ -413,6 +546,13 @@ class SemanticMemoryToolsetConfig(BaseToolsetConfig):
 class CustomToolsetConfig(BaseToolsetConfig):
     """Configuration for custom toolsets."""
 
+    model_config = ConfigDict(
+        json_schema_extra={
+            "x-icon": "octicon:gear-16",
+            "x-doc-title": "Custom Toolset",
+        }
+    )
+
     type: Literal["custom"] = Field("custom", init=False)
     """Custom toolset."""
 
@@ -436,6 +576,13 @@ class CustomToolsetConfig(BaseToolsetConfig):
 class CodeModeToolsetConfig(BaseToolsetConfig):
     """Configuration for code mode tools."""
 
+    model_config = ConfigDict(
+        json_schema_extra={
+            "x-icon": "octicon:code-square-16",
+            "x-doc-title": "Code Mode Toolset",
+        }
+    )
+
     type: Literal["code_mode"] = Field("code_mode", init=False)
     """Code mode toolset."""
 
@@ -452,6 +599,13 @@ class CodeModeToolsetConfig(BaseToolsetConfig):
 
 class RemoteCodeModeToolsetConfig(BaseToolsetConfig):
     """Configuration for code mode tools."""
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "x-icon": "octicon:cloud-offline-16",
+            "x-doc-title": "Remote Code Mode Toolset",
+        }
+    )
 
     type: Literal["remote_code_mode"] = Field("remote_code_mode", init=False)
     """Code mode toolset."""

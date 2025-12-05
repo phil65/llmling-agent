@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from typing import TYPE_CHECKING, Annotated, Any, Literal, cast
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from tokonomics.model_discovery import ProviderType  # noqa: TC002
 
 from llmling_agent_config.nodes import NodeConfig
@@ -24,6 +24,13 @@ class BaseACPAgentConfig(NodeConfig):
 
     Provides common fields and the interface for building commands.
     """
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "x-icon": "octicon:terminal-16",
+            "x-doc-title": "ACP Agent Configuration",
+        }
+    )
 
     cwd: str | None = Field(
         default=None,

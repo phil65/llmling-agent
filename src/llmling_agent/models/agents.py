@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any, Literal
 from uuid import UUID
 
 from llmling_models.configs import AnyModelConfig  # noqa: TC002
-from pydantic import Field, model_validator
+from pydantic import ConfigDict, Field, model_validator
 from pydantic_ai import UsageLimits  # noqa: TC002
 from schemez import InlineSchemaDef
 from tokonomics.model_names import ModelName  # noqa: TC002
@@ -48,6 +48,13 @@ class AgentConfig(NodeConfig):
 
     Docs: https://phil65.github.io/llmling-agent/YAML%20Configuration/agent_configuration/
     """
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "x-icon": "octicon:hubot-16",
+            "x-doc-title": "Agent Configuration",
+        }
+    )
 
     inherits: str | None = Field(default=None, title="Inheritance source")
     """Name of agent config to inherit from"""
