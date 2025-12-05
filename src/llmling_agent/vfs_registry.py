@@ -13,7 +13,7 @@ from llmling_agent.utils.baseregistry import BaseRegistry
 
 
 if TYPE_CHECKING:
-    from llmling_agent_config.resources import ResourceConfig
+    from llmling_agent.models.manifest import ResourceConfig
 
 logger = get_logger(__name__)
 

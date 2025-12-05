@@ -3,11 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Annotated, Self
-
-from pydantic import Field
-from upathtools.configs import FilesystemConfigType
-from upathtools.configs.base import URIFileSystemConfig
+from typing import TYPE_CHECKING, Self
 
 
 if TYPE_CHECKING:
@@ -35,17 +31,3 @@ class ResourceInfo:
     async def from_mcp_resource(cls, resource: MCPResource) -> Self:
         """Create ResourceInfo from MCP resource."""
         return cls(name=resource.name, uri=str(resource.uri), description=resource.description)
-
-
-# Re-export for convenience
-__all__ = ["FilesystemConfigType", "ResourceConfig", "ResourceInfo", "URIFileSystemConfig"]
-
-
-# Model union with discriminator for typed configs
-_FileSystemConfigUnion = Annotated[
-    FilesystemConfigType | URIFileSystemConfig,
-    Field(discriminator="fs_type"),
-]
-
-# Final type allowing models or URI shorthand string
-ResourceConfig = _FileSystemConfigUnion | str

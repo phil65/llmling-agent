@@ -13,12 +13,12 @@ fsspec.register_implementation("union", UnionFileSystem, clobber=True)
 MANIFEST_CONFIG = """
 resources:
     docs:
-        type: source
+        fs_type: uri
         uri: "memory://"
         storage_options:
             auto_mkdir: true
     data:
-        type: source
+        fs_type: uri
         uri: "memory://"
         storage_options:
             auto_mkdir: true
@@ -27,7 +27,7 @@ resources:
 GITHUB_CONFIG = """
 resources:
     mknodes_docs:
-        type: source
+        fs_type: uri
         uri: "github://phil65:mknodes@main"
 """
 

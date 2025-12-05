@@ -4,10 +4,12 @@ from __future__ import annotations
 
 from functools import cached_property
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Self
+from typing import TYPE_CHECKING, Annotated, Any, Self
 
 from pydantic import ConfigDict, Field, model_validator
 from schemez import Schema
+from upathtools.configs import FilesystemConfigType
+from upathtools.configs.base import URIFileSystemConfig
 
 from llmling_agent import log
 from llmling_agent.models.acp_agents import ACPAgentConfigTypes
@@ -18,7 +20,6 @@ from llmling_agent_config.mcp_server import BaseMCPServerConfig, MCPServerConfig
 from llmling_agent_config.observability import ObservabilityConfig
 from llmling_agent_config.output_types import StructuredResponseConfig
 from llmling_agent_config.pool_server import MCPPoolServerConfig
-from llmling_agent_config.resources import ResourceConfig
 from llmling_agent_config.storage import StorageConfig
 from llmling_agent_config.system_prompts import PromptLibraryConfig
 from llmling_agent_config.task import Job
@@ -38,6 +39,16 @@ if TYPE_CHECKING:
 
 
 logger = log.get_logger(__name__)
+
+
+# Model union with discriminator for typed configs
+_FileSystemConfigUnion = Annotated[
+    FilesystemConfigType | URIFileSystemConfig,
+    Field(discriminator="fs_type"),
+]
+
+# Final type allowing models or URI shorthand string
+ResourceConfig = _FileSystemConfigUnion | str
 
 
 class AgentsManifest(Schema):
