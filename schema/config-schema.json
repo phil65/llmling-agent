@@ -4477,6 +4477,12 @@
           "description": "MCP server config files or JSON strings to load.",
           "title": "Mcp Config"
         },
+        "strict_mcp_config": {
+          "default": false,
+          "description": "Only use MCP servers from mcp_config, ignoring all other configs.",
+          "title": "Strict Mcp Config",
+          "type": "boolean"
+        },
         "add_dir": {
           "anyOf": [
             {
@@ -4492,6 +4498,74 @@
           "default": null,
           "description": "Additional directories to allow tool access to.",
           "title": "Add Dir"
+        },
+        "tools": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Available tools from built-in set. Empty list disables all tools.",
+          "examples": [
+            [
+              "Bash",
+              "Edit",
+              "Read"
+            ],
+            []
+          ],
+          "title": "Tools"
+        },
+        "fallback_model": {
+          "default": null,
+          "description": "Fallback model when default is overloaded.",
+          "examples": [
+            "sonnet",
+            "haiku"
+          ],
+          "title": "Fallback Model",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "dangerously_skip_permissions": {
+          "default": false,
+          "description": "Bypass all permission checks. Only for sandboxed environments.",
+          "title": "Dangerously Skip Permissions",
+          "type": "boolean"
+        },
+        "output_type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "$ref": "#/$defs/StructuredResponseConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Structured output configuration. Generates --output-format and --json-schema.",
+          "examples": [
+            "json_response",
+            {
+              "response_schema": {
+                "import_path": "mymodule:MyModel",
+                "type": "import"
+              }
+            }
+          ],
+          "title": "Output Type"
         }
       },
       "title": "ClaudeACPSettings",
@@ -4707,6 +4781,306 @@
         }
       },
       "title": "CodeToolsetConfig",
+      "type": "object"
+    },
+    "CodexACPAgentConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for Zed Codex via ACP.\n\nProvides typed settings for the codex-acp server.\n\nExample:\n    ```yaml\n    acp_agents:\n      coder:\n        type: codex\n        cwd: /path/to/project\n        codex:\n          model: o3\n          sandbox_permissions:\n            - disk-full-read-access\n    ```",
+      "properties": {
+        "name": {
+          "default": null,
+          "description": "Identifier for the node. Set from dict key, not from YAML.",
+          "title": "Name",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "display_name": {
+          "default": null,
+          "description": "Human-readable display name for the node.",
+          "examples": [
+            "Main Agent",
+            "Web Searcher",
+            "Code Assistant"
+          ],
+          "title": "Display name",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "default": null,
+          "description": "Optional description of the agent / team.",
+          "examples": [
+            "Main conversation agent",
+            "Handles web search requests"
+          ],
+          "title": "Node description",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "triggers": {
+          "description": "Event sources that activate this agent / team",
+          "examples": [
+            [
+              {
+                "name": "daily_check",
+                "prompt": "Daily status update",
+                "schedule": "0 9 * * *",
+                "type": "time"
+              }
+            ],
+            [
+              {
+                "extensions": [
+                  ".py"
+                ],
+                "name": "code_watcher",
+                "paths": [
+                  "./src"
+                ],
+                "type": "file"
+              }
+            ]
+          ],
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "email": "#/$defs/EmailConfig",
+                "file": "#/$defs/FileWatchConfig",
+                "time": "#/$defs/TimeEventConfig",
+                "webhook": "#/$defs/WebhookConfig"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/FileWatchConfig"
+              },
+              {
+                "$ref": "#/$defs/WebhookConfig"
+              },
+              {
+                "$ref": "#/$defs/EmailConfig"
+              },
+              {
+                "$ref": "#/$defs/TimeEventConfig"
+              }
+            ]
+          },
+          "title": "Event triggers",
+          "type": "array"
+        },
+        "connections": {
+          "description": "Targets to forward results to.",
+          "examples": [
+            [
+              {
+                "connection_type": "run",
+                "name": "output_agent",
+                "type": "node",
+                "wait_for_completion": true
+              }
+            ],
+            [
+              {
+                "path": "logs/messages.txt",
+                "template": "{{ message.content }}",
+                "type": "file"
+              }
+            ]
+          ],
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "callable": "#/$defs/CallableConnectionConfig",
+                "file": "#/$defs/FileConnectionConfig",
+                "node": "#/$defs/NodeConnectionConfig"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/NodeConnectionConfig"
+              },
+              {
+                "$ref": "#/$defs/FileConnectionConfig"
+              },
+              {
+                "$ref": "#/$defs/CallableConnectionConfig"
+              }
+            ]
+          },
+          "title": "Message forwarding targets",
+          "type": "array"
+        },
+        "mcp_servers": {
+          "description": "List of MCP server configurations:\n- str entries are converted to StdioMCPServerConfig\n- MCPServerConfig for full server configuration",
+          "examples": [
+            [
+              "uvx some-server"
+            ],
+            [
+              {
+                "type": "streamable-http",
+                "url": "http://mcp.example.com"
+              }
+            ]
+          ],
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "discriminator": {
+                  "mapping": {
+                    "sse": "#/$defs/SSEMCPServerConfig",
+                    "stdio": "#/$defs/StdioMCPServerConfig",
+                    "streamable-http": "#/$defs/StreamableHTTPMCPServerConfig"
+                  },
+                  "propertyName": "type"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/StdioMCPServerConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/SSEMCPServerConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/StreamableHTTPMCPServerConfig"
+                  }
+                ]
+              }
+            ]
+          },
+          "title": "MCP servers",
+          "type": "array"
+        },
+        "input_provider": {
+          "default": null,
+          "description": "Provider for human-input-handling.",
+          "title": "Input provider",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for the session.",
+          "examples": [
+            "/path/to/project",
+            "."
+          ],
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "env": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Environment variables to set.",
+          "title": "Env",
+          "type": "object"
+        },
+        "allow_file_operations": {
+          "default": true,
+          "description": "Whether to allow file read/write operations.",
+          "title": "Allow File Operations",
+          "type": "boolean"
+        },
+        "allow_terminal": {
+          "default": true,
+          "description": "Whether to allow terminal operations.",
+          "title": "Allow Terminal",
+          "type": "boolean"
+        },
+        "auto_grant_permissions": {
+          "default": true,
+          "description": "Whether to automatically grant all permission requests.",
+          "title": "Auto Grant Permissions",
+          "type": "boolean"
+        },
+        "type": {
+          "const": "codex",
+          "default": "codex",
+          "description": "Discriminator for Codex ACP agent.",
+          "title": "Type",
+          "type": "string"
+        },
+        "codex": {
+          "$ref": "#/$defs/CodexACPSettings",
+          "description": "Codex-specific settings."
+        }
+      },
+      "title": "CodexACPAgentConfig",
+      "type": "object"
+    },
+    "CodexACPSettings": {
+      "description": "Settings for Zed Codex ACP agent.\n\nThese settings map to codex-acp CLI arguments.\nSee `npx @zed-industries/codex-acp --help` for full documentation.",
+      "properties": {
+        "model": {
+          "default": null,
+          "description": "Model override.",
+          "examples": [
+            "o3",
+            "o4-mini"
+          ],
+          "title": "Model",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sandbox_permissions": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Sandbox permissions.",
+          "examples": [
+            [
+              "disk-full-read-access"
+            ]
+          ],
+          "title": "Sandbox Permissions"
+        },
+        "shell_environment_policy_inherit": {
+          "anyOf": [
+            {
+              "enum": [
+                "all",
+                "none"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Shell environment inheritance policy.",
+          "title": "Shell Environment Policy Inherit"
+        }
+      },
+      "title": "CodexACPSettings",
       "type": "object"
     },
     "ComposioToolSetConfig": {
@@ -8436,6 +8810,296 @@
       "title": "FallbackModelConfig",
       "type": "object"
     },
+    "FastAgentACPAgentConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for fast-agent via ACP.\n\nRobust LLM agent with comprehensive MCP support.\n\nExample:\n    ```yaml\n    acp_agents:\n      coder:\n        type: fast-agent\n        cwd: /path/to/project\n        fast_agent:\n          model: sonnet\n          shell_access: true\n    ```",
+      "properties": {
+        "name": {
+          "default": null,
+          "description": "Identifier for the node. Set from dict key, not from YAML.",
+          "title": "Name",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "display_name": {
+          "default": null,
+          "description": "Human-readable display name for the node.",
+          "examples": [
+            "Main Agent",
+            "Web Searcher",
+            "Code Assistant"
+          ],
+          "title": "Display name",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "default": null,
+          "description": "Optional description of the agent / team.",
+          "examples": [
+            "Main conversation agent",
+            "Handles web search requests"
+          ],
+          "title": "Node description",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "triggers": {
+          "description": "Event sources that activate this agent / team",
+          "examples": [
+            [
+              {
+                "name": "daily_check",
+                "prompt": "Daily status update",
+                "schedule": "0 9 * * *",
+                "type": "time"
+              }
+            ],
+            [
+              {
+                "extensions": [
+                  ".py"
+                ],
+                "name": "code_watcher",
+                "paths": [
+                  "./src"
+                ],
+                "type": "file"
+              }
+            ]
+          ],
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "email": "#/$defs/EmailConfig",
+                "file": "#/$defs/FileWatchConfig",
+                "time": "#/$defs/TimeEventConfig",
+                "webhook": "#/$defs/WebhookConfig"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/FileWatchConfig"
+              },
+              {
+                "$ref": "#/$defs/WebhookConfig"
+              },
+              {
+                "$ref": "#/$defs/EmailConfig"
+              },
+              {
+                "$ref": "#/$defs/TimeEventConfig"
+              }
+            ]
+          },
+          "title": "Event triggers",
+          "type": "array"
+        },
+        "connections": {
+          "description": "Targets to forward results to.",
+          "examples": [
+            [
+              {
+                "connection_type": "run",
+                "name": "output_agent",
+                "type": "node",
+                "wait_for_completion": true
+              }
+            ],
+            [
+              {
+                "path": "logs/messages.txt",
+                "template": "{{ message.content }}",
+                "type": "file"
+              }
+            ]
+          ],
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "callable": "#/$defs/CallableConnectionConfig",
+                "file": "#/$defs/FileConnectionConfig",
+                "node": "#/$defs/NodeConnectionConfig"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/NodeConnectionConfig"
+              },
+              {
+                "$ref": "#/$defs/FileConnectionConfig"
+              },
+              {
+                "$ref": "#/$defs/CallableConnectionConfig"
+              }
+            ]
+          },
+          "title": "Message forwarding targets",
+          "type": "array"
+        },
+        "mcp_servers": {
+          "description": "List of MCP server configurations:\n- str entries are converted to StdioMCPServerConfig\n- MCPServerConfig for full server configuration",
+          "examples": [
+            [
+              "uvx some-server"
+            ],
+            [
+              {
+                "type": "streamable-http",
+                "url": "http://mcp.example.com"
+              }
+            ]
+          ],
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "discriminator": {
+                  "mapping": {
+                    "sse": "#/$defs/SSEMCPServerConfig",
+                    "stdio": "#/$defs/StdioMCPServerConfig",
+                    "streamable-http": "#/$defs/StreamableHTTPMCPServerConfig"
+                  },
+                  "propertyName": "type"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/StdioMCPServerConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/SSEMCPServerConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/StreamableHTTPMCPServerConfig"
+                  }
+                ]
+              }
+            ]
+          },
+          "title": "MCP servers",
+          "type": "array"
+        },
+        "input_provider": {
+          "default": null,
+          "description": "Provider for human-input-handling.",
+          "title": "Input provider",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for the session.",
+          "examples": [
+            "/path/to/project",
+            "."
+          ],
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "env": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Environment variables to set.",
+          "title": "Env",
+          "type": "object"
+        },
+        "allow_file_operations": {
+          "default": true,
+          "description": "Whether to allow file read/write operations.",
+          "title": "Allow File Operations",
+          "type": "boolean"
+        },
+        "allow_terminal": {
+          "default": true,
+          "description": "Whether to allow terminal operations.",
+          "title": "Allow Terminal",
+          "type": "boolean"
+        },
+        "auto_grant_permissions": {
+          "default": true,
+          "description": "Whether to automatically grant all permission requests.",
+          "title": "Auto Grant Permissions",
+          "type": "boolean"
+        },
+        "type": {
+          "const": "fast-agent",
+          "default": "fast-agent",
+          "description": "Discriminator for fast-agent ACP agent.",
+          "title": "Type",
+          "type": "string"
+        },
+        "fast_agent": {
+          "$ref": "#/$defs/FastAgentACPSettings",
+          "description": "fast-agent-specific settings."
+        }
+      },
+      "title": "FastAgentACPAgentConfig",
+      "type": "object"
+    },
+    "FastAgentACPSettings": {
+      "description": "Settings for fast-agent ACP.\n\nThese settings map to fast-agent-acp CLI arguments.",
+      "properties": {
+        "model": {
+          "default": null,
+          "description": "Model to use.",
+          "examples": [
+            "sonnet",
+            "kimi",
+            "gpt-5-mini.low"
+          ],
+          "title": "Model",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "shell_access": {
+          "default": false,
+          "description": "Enable shell and file access (-x flag).",
+          "title": "Shell Access",
+          "type": "boolean"
+        },
+        "url": {
+          "default": null,
+          "description": "MCP server URL to connect to.",
+          "examples": [
+            "https://huggingface.co/mcp"
+          ],
+          "title": "Url",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "auth": {
+          "default": null,
+          "description": "Authentication token for MCP server.",
+          "title": "Auth",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "title": "FastAgentACPSettings",
+      "type": "object"
+    },
     "FileCommandConfig": {
       "additionalProperties": false,
       "description": "File-based command that loads content from external file.",
@@ -9370,6 +10034,380 @@
       "title": "FunctionPromptConfig",
       "type": "object"
     },
+    "GeminiACPAgentConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for Gemini CLI via ACP.\n\nProvides typed settings for the gemini CLI with ACP support.\n\nExample:\n    ```yaml\n    acp_agents:\n      coder:\n        type: gemini\n        cwd: /path/to/project\n        gemini:\n          model: gemini-2.5-pro\n          approval_mode: auto_edit\n          allowed_tools:\n            - read_file\n            - write_file\n    ```",
+      "properties": {
+        "name": {
+          "default": null,
+          "description": "Identifier for the node. Set from dict key, not from YAML.",
+          "title": "Name",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "display_name": {
+          "default": null,
+          "description": "Human-readable display name for the node.",
+          "examples": [
+            "Main Agent",
+            "Web Searcher",
+            "Code Assistant"
+          ],
+          "title": "Display name",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "default": null,
+          "description": "Optional description of the agent / team.",
+          "examples": [
+            "Main conversation agent",
+            "Handles web search requests"
+          ],
+          "title": "Node description",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "triggers": {
+          "description": "Event sources that activate this agent / team",
+          "examples": [
+            [
+              {
+                "name": "daily_check",
+                "prompt": "Daily status update",
+                "schedule": "0 9 * * *",
+                "type": "time"
+              }
+            ],
+            [
+              {
+                "extensions": [
+                  ".py"
+                ],
+                "name": "code_watcher",
+                "paths": [
+                  "./src"
+                ],
+                "type": "file"
+              }
+            ]
+          ],
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "email": "#/$defs/EmailConfig",
+                "file": "#/$defs/FileWatchConfig",
+                "time": "#/$defs/TimeEventConfig",
+                "webhook": "#/$defs/WebhookConfig"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/FileWatchConfig"
+              },
+              {
+                "$ref": "#/$defs/WebhookConfig"
+              },
+              {
+                "$ref": "#/$defs/EmailConfig"
+              },
+              {
+                "$ref": "#/$defs/TimeEventConfig"
+              }
+            ]
+          },
+          "title": "Event triggers",
+          "type": "array"
+        },
+        "connections": {
+          "description": "Targets to forward results to.",
+          "examples": [
+            [
+              {
+                "connection_type": "run",
+                "name": "output_agent",
+                "type": "node",
+                "wait_for_completion": true
+              }
+            ],
+            [
+              {
+                "path": "logs/messages.txt",
+                "template": "{{ message.content }}",
+                "type": "file"
+              }
+            ]
+          ],
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "callable": "#/$defs/CallableConnectionConfig",
+                "file": "#/$defs/FileConnectionConfig",
+                "node": "#/$defs/NodeConnectionConfig"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/NodeConnectionConfig"
+              },
+              {
+                "$ref": "#/$defs/FileConnectionConfig"
+              },
+              {
+                "$ref": "#/$defs/CallableConnectionConfig"
+              }
+            ]
+          },
+          "title": "Message forwarding targets",
+          "type": "array"
+        },
+        "mcp_servers": {
+          "description": "List of MCP server configurations:\n- str entries are converted to StdioMCPServerConfig\n- MCPServerConfig for full server configuration",
+          "examples": [
+            [
+              "uvx some-server"
+            ],
+            [
+              {
+                "type": "streamable-http",
+                "url": "http://mcp.example.com"
+              }
+            ]
+          ],
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "discriminator": {
+                  "mapping": {
+                    "sse": "#/$defs/SSEMCPServerConfig",
+                    "stdio": "#/$defs/StdioMCPServerConfig",
+                    "streamable-http": "#/$defs/StreamableHTTPMCPServerConfig"
+                  },
+                  "propertyName": "type"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/StdioMCPServerConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/SSEMCPServerConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/StreamableHTTPMCPServerConfig"
+                  }
+                ]
+              }
+            ]
+          },
+          "title": "MCP servers",
+          "type": "array"
+        },
+        "input_provider": {
+          "default": null,
+          "description": "Provider for human-input-handling.",
+          "title": "Input provider",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for the session.",
+          "examples": [
+            "/path/to/project",
+            "."
+          ],
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "env": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Environment variables to set.",
+          "title": "Env",
+          "type": "object"
+        },
+        "allow_file_operations": {
+          "default": true,
+          "description": "Whether to allow file read/write operations.",
+          "title": "Allow File Operations",
+          "type": "boolean"
+        },
+        "allow_terminal": {
+          "default": true,
+          "description": "Whether to allow terminal operations.",
+          "title": "Allow Terminal",
+          "type": "boolean"
+        },
+        "auto_grant_permissions": {
+          "default": true,
+          "description": "Whether to automatically grant all permission requests.",
+          "title": "Auto Grant Permissions",
+          "type": "boolean"
+        },
+        "type": {
+          "const": "gemini",
+          "default": "gemini",
+          "description": "Discriminator for Gemini ACP agent.",
+          "title": "Type",
+          "type": "string"
+        },
+        "gemini": {
+          "$ref": "#/$defs/GeminiACPSettings",
+          "description": "Gemini-specific settings."
+        }
+      },
+      "title": "GeminiACPAgentConfig",
+      "type": "object"
+    },
+    "GeminiACPSettings": {
+      "description": "Settings for Gemini CLI agent.\n\nThese settings map to gemini CLI arguments.\nSee `gemini --help` for full documentation.",
+      "properties": {
+        "model": {
+          "default": null,
+          "description": "Model override.",
+          "examples": [
+            "gemini-2.5-pro",
+            "gemini-2.5-flash"
+          ],
+          "title": "Model",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "approval_mode": {
+          "anyOf": [
+            {
+              "enum": [
+                "default",
+                "auto_edit",
+                "yolo"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Approval mode for tool execution.",
+          "title": "Approval Mode"
+        },
+        "sandbox": {
+          "default": false,
+          "description": "Run in sandbox mode.",
+          "title": "Sandbox",
+          "type": "boolean"
+        },
+        "yolo": {
+          "default": false,
+          "description": "Automatically accept all actions.",
+          "title": "Yolo",
+          "type": "boolean"
+        },
+        "allowed_tools": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Tools allowed to run without confirmation.",
+          "title": "Allowed Tools"
+        },
+        "allowed_mcp_server_names": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Allowed MCP server names.",
+          "title": "Allowed Mcp Server Names"
+        },
+        "extensions": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "List of extensions to use. If not provided, all are used.",
+          "title": "Extensions"
+        },
+        "include_directories": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Additional directories to include in the workspace.",
+          "title": "Include Directories"
+        },
+        "output_format": {
+          "anyOf": [
+            {
+              "enum": [
+                "text",
+                "json",
+                "stream-json"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Output format.",
+          "title": "Output Format"
+        }
+      },
+      "title": "GeminiACPSettings",
+      "type": "object"
+    },
     "GistFilesystemConfig": {
       "additionalProperties": true,
       "description": "Configuration for GitHub Gist filesystem.",
@@ -9823,6 +10861,244 @@
         }
       },
       "title": "GoogleSpeechConfig",
+      "type": "object"
+    },
+    "GooseACPAgentConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for Goose via ACP.\n\nBlock's open-source coding agent.\n\nExample:\n    ```yaml\n    acp_agents:\n      coder:\n        type: goose\n        cwd: /path/to/project\n    ```",
+      "properties": {
+        "name": {
+          "default": null,
+          "description": "Identifier for the node. Set from dict key, not from YAML.",
+          "title": "Name",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "display_name": {
+          "default": null,
+          "description": "Human-readable display name for the node.",
+          "examples": [
+            "Main Agent",
+            "Web Searcher",
+            "Code Assistant"
+          ],
+          "title": "Display name",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "default": null,
+          "description": "Optional description of the agent / team.",
+          "examples": [
+            "Main conversation agent",
+            "Handles web search requests"
+          ],
+          "title": "Node description",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "triggers": {
+          "description": "Event sources that activate this agent / team",
+          "examples": [
+            [
+              {
+                "name": "daily_check",
+                "prompt": "Daily status update",
+                "schedule": "0 9 * * *",
+                "type": "time"
+              }
+            ],
+            [
+              {
+                "extensions": [
+                  ".py"
+                ],
+                "name": "code_watcher",
+                "paths": [
+                  "./src"
+                ],
+                "type": "file"
+              }
+            ]
+          ],
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "email": "#/$defs/EmailConfig",
+                "file": "#/$defs/FileWatchConfig",
+                "time": "#/$defs/TimeEventConfig",
+                "webhook": "#/$defs/WebhookConfig"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/FileWatchConfig"
+              },
+              {
+                "$ref": "#/$defs/WebhookConfig"
+              },
+              {
+                "$ref": "#/$defs/EmailConfig"
+              },
+              {
+                "$ref": "#/$defs/TimeEventConfig"
+              }
+            ]
+          },
+          "title": "Event triggers",
+          "type": "array"
+        },
+        "connections": {
+          "description": "Targets to forward results to.",
+          "examples": [
+            [
+              {
+                "connection_type": "run",
+                "name": "output_agent",
+                "type": "node",
+                "wait_for_completion": true
+              }
+            ],
+            [
+              {
+                "path": "logs/messages.txt",
+                "template": "{{ message.content }}",
+                "type": "file"
+              }
+            ]
+          ],
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "callable": "#/$defs/CallableConnectionConfig",
+                "file": "#/$defs/FileConnectionConfig",
+                "node": "#/$defs/NodeConnectionConfig"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/NodeConnectionConfig"
+              },
+              {
+                "$ref": "#/$defs/FileConnectionConfig"
+              },
+              {
+                "$ref": "#/$defs/CallableConnectionConfig"
+              }
+            ]
+          },
+          "title": "Message forwarding targets",
+          "type": "array"
+        },
+        "mcp_servers": {
+          "description": "List of MCP server configurations:\n- str entries are converted to StdioMCPServerConfig\n- MCPServerConfig for full server configuration",
+          "examples": [
+            [
+              "uvx some-server"
+            ],
+            [
+              {
+                "type": "streamable-http",
+                "url": "http://mcp.example.com"
+              }
+            ]
+          ],
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "discriminator": {
+                  "mapping": {
+                    "sse": "#/$defs/SSEMCPServerConfig",
+                    "stdio": "#/$defs/StdioMCPServerConfig",
+                    "streamable-http": "#/$defs/StreamableHTTPMCPServerConfig"
+                  },
+                  "propertyName": "type"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/StdioMCPServerConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/SSEMCPServerConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/StreamableHTTPMCPServerConfig"
+                  }
+                ]
+              }
+            ]
+          },
+          "title": "MCP servers",
+          "type": "array"
+        },
+        "input_provider": {
+          "default": null,
+          "description": "Provider for human-input-handling.",
+          "title": "Input provider",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for the session.",
+          "examples": [
+            "/path/to/project",
+            "."
+          ],
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "env": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Environment variables to set.",
+          "title": "Env",
+          "type": "object"
+        },
+        "allow_file_operations": {
+          "default": true,
+          "description": "Whether to allow file read/write operations.",
+          "title": "Allow File Operations",
+          "type": "boolean"
+        },
+        "allow_terminal": {
+          "default": true,
+          "description": "Whether to allow terminal operations.",
+          "title": "Allow Terminal",
+          "type": "boolean"
+        },
+        "auto_grant_permissions": {
+          "default": true,
+          "description": "Whether to automatically grant all permission requests.",
+          "title": "Auto Grant Permissions",
+          "type": "boolean"
+        },
+        "type": {
+          "const": "goose",
+          "default": "goose",
+          "description": "Discriminator for Goose ACP agent.",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "title": "GooseACPAgentConfig",
       "type": "object"
     },
     "HadoopFilesystemConfig": {
@@ -13356,6 +14632,540 @@
         "fo"
       ],
       "title": "OpenApiFilesystemConfig",
+      "type": "object"
+    },
+    "OpenCodeACPAgentConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for OpenCode via ACP.\n\nProvides typed settings for the opencode acp server.\n\nExample:\n    ```yaml\n    acp_agents:\n      coder:\n        type: opencode\n        cwd: /path/to/project\n        opencode:\n          log_level: INFO\n    ```",
+      "properties": {
+        "name": {
+          "default": null,
+          "description": "Identifier for the node. Set from dict key, not from YAML.",
+          "title": "Name",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "display_name": {
+          "default": null,
+          "description": "Human-readable display name for the node.",
+          "examples": [
+            "Main Agent",
+            "Web Searcher",
+            "Code Assistant"
+          ],
+          "title": "Display name",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "default": null,
+          "description": "Optional description of the agent / team.",
+          "examples": [
+            "Main conversation agent",
+            "Handles web search requests"
+          ],
+          "title": "Node description",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "triggers": {
+          "description": "Event sources that activate this agent / team",
+          "examples": [
+            [
+              {
+                "name": "daily_check",
+                "prompt": "Daily status update",
+                "schedule": "0 9 * * *",
+                "type": "time"
+              }
+            ],
+            [
+              {
+                "extensions": [
+                  ".py"
+                ],
+                "name": "code_watcher",
+                "paths": [
+                  "./src"
+                ],
+                "type": "file"
+              }
+            ]
+          ],
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "email": "#/$defs/EmailConfig",
+                "file": "#/$defs/FileWatchConfig",
+                "time": "#/$defs/TimeEventConfig",
+                "webhook": "#/$defs/WebhookConfig"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/FileWatchConfig"
+              },
+              {
+                "$ref": "#/$defs/WebhookConfig"
+              },
+              {
+                "$ref": "#/$defs/EmailConfig"
+              },
+              {
+                "$ref": "#/$defs/TimeEventConfig"
+              }
+            ]
+          },
+          "title": "Event triggers",
+          "type": "array"
+        },
+        "connections": {
+          "description": "Targets to forward results to.",
+          "examples": [
+            [
+              {
+                "connection_type": "run",
+                "name": "output_agent",
+                "type": "node",
+                "wait_for_completion": true
+              }
+            ],
+            [
+              {
+                "path": "logs/messages.txt",
+                "template": "{{ message.content }}",
+                "type": "file"
+              }
+            ]
+          ],
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "callable": "#/$defs/CallableConnectionConfig",
+                "file": "#/$defs/FileConnectionConfig",
+                "node": "#/$defs/NodeConnectionConfig"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/NodeConnectionConfig"
+              },
+              {
+                "$ref": "#/$defs/FileConnectionConfig"
+              },
+              {
+                "$ref": "#/$defs/CallableConnectionConfig"
+              }
+            ]
+          },
+          "title": "Message forwarding targets",
+          "type": "array"
+        },
+        "mcp_servers": {
+          "description": "List of MCP server configurations:\n- str entries are converted to StdioMCPServerConfig\n- MCPServerConfig for full server configuration",
+          "examples": [
+            [
+              "uvx some-server"
+            ],
+            [
+              {
+                "type": "streamable-http",
+                "url": "http://mcp.example.com"
+              }
+            ]
+          ],
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "discriminator": {
+                  "mapping": {
+                    "sse": "#/$defs/SSEMCPServerConfig",
+                    "stdio": "#/$defs/StdioMCPServerConfig",
+                    "streamable-http": "#/$defs/StreamableHTTPMCPServerConfig"
+                  },
+                  "propertyName": "type"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/StdioMCPServerConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/SSEMCPServerConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/StreamableHTTPMCPServerConfig"
+                  }
+                ]
+              }
+            ]
+          },
+          "title": "MCP servers",
+          "type": "array"
+        },
+        "input_provider": {
+          "default": null,
+          "description": "Provider for human-input-handling.",
+          "title": "Input provider",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for the session.",
+          "examples": [
+            "/path/to/project",
+            "."
+          ],
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "env": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Environment variables to set.",
+          "title": "Env",
+          "type": "object"
+        },
+        "allow_file_operations": {
+          "default": true,
+          "description": "Whether to allow file read/write operations.",
+          "title": "Allow File Operations",
+          "type": "boolean"
+        },
+        "allow_terminal": {
+          "default": true,
+          "description": "Whether to allow terminal operations.",
+          "title": "Allow Terminal",
+          "type": "boolean"
+        },
+        "auto_grant_permissions": {
+          "default": true,
+          "description": "Whether to automatically grant all permission requests.",
+          "title": "Auto Grant Permissions",
+          "type": "boolean"
+        },
+        "type": {
+          "const": "opencode",
+          "default": "opencode",
+          "description": "Discriminator for OpenCode ACP agent.",
+          "title": "Type",
+          "type": "string"
+        },
+        "opencode": {
+          "$ref": "#/$defs/OpenCodeACPSettings",
+          "description": "OpenCode-specific settings."
+        }
+      },
+      "title": "OpenCodeACPAgentConfig",
+      "type": "object"
+    },
+    "OpenCodeACPSettings": {
+      "description": "Settings for OpenCode ACP agent.\n\nThese settings map to opencode acp CLI arguments.\nSee `opencode acp --help` for full documentation.",
+      "properties": {
+        "log_level": {
+          "anyOf": [
+            {
+              "enum": [
+                "DEBUG",
+                "INFO",
+                "WARN",
+                "ERROR"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Log level.",
+          "title": "Log Level"
+        },
+        "print_logs": {
+          "default": false,
+          "description": "Print logs to stderr.",
+          "title": "Print Logs",
+          "type": "boolean"
+        },
+        "port": {
+          "default": null,
+          "description": "Port to listen on.",
+          "title": "Port",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "hostname": {
+          "default": null,
+          "description": "Hostname to listen on.",
+          "examples": [
+            "127.0.0.1",
+            "0.0.0.0"
+          ],
+          "title": "Hostname",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "title": "OpenCodeACPSettings",
+      "type": "object"
+    },
+    "OpenHandsACPAgentConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for OpenHands via ACP.\n\nOpen-source autonomous AI agent (formerly OpenDevin).\n\nExample:\n    ```yaml\n    acp_agents:\n      coder:\n        type: openhands\n        cwd: /path/to/project\n    ```",
+      "properties": {
+        "name": {
+          "default": null,
+          "description": "Identifier for the node. Set from dict key, not from YAML.",
+          "title": "Name",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "display_name": {
+          "default": null,
+          "description": "Human-readable display name for the node.",
+          "examples": [
+            "Main Agent",
+            "Web Searcher",
+            "Code Assistant"
+          ],
+          "title": "Display name",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "default": null,
+          "description": "Optional description of the agent / team.",
+          "examples": [
+            "Main conversation agent",
+            "Handles web search requests"
+          ],
+          "title": "Node description",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "triggers": {
+          "description": "Event sources that activate this agent / team",
+          "examples": [
+            [
+              {
+                "name": "daily_check",
+                "prompt": "Daily status update",
+                "schedule": "0 9 * * *",
+                "type": "time"
+              }
+            ],
+            [
+              {
+                "extensions": [
+                  ".py"
+                ],
+                "name": "code_watcher",
+                "paths": [
+                  "./src"
+                ],
+                "type": "file"
+              }
+            ]
+          ],
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "email": "#/$defs/EmailConfig",
+                "file": "#/$defs/FileWatchConfig",
+                "time": "#/$defs/TimeEventConfig",
+                "webhook": "#/$defs/WebhookConfig"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/FileWatchConfig"
+              },
+              {
+                "$ref": "#/$defs/WebhookConfig"
+              },
+              {
+                "$ref": "#/$defs/EmailConfig"
+              },
+              {
+                "$ref": "#/$defs/TimeEventConfig"
+              }
+            ]
+          },
+          "title": "Event triggers",
+          "type": "array"
+        },
+        "connections": {
+          "description": "Targets to forward results to.",
+          "examples": [
+            [
+              {
+                "connection_type": "run",
+                "name": "output_agent",
+                "type": "node",
+                "wait_for_completion": true
+              }
+            ],
+            [
+              {
+                "path": "logs/messages.txt",
+                "template": "{{ message.content }}",
+                "type": "file"
+              }
+            ]
+          ],
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "callable": "#/$defs/CallableConnectionConfig",
+                "file": "#/$defs/FileConnectionConfig",
+                "node": "#/$defs/NodeConnectionConfig"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/NodeConnectionConfig"
+              },
+              {
+                "$ref": "#/$defs/FileConnectionConfig"
+              },
+              {
+                "$ref": "#/$defs/CallableConnectionConfig"
+              }
+            ]
+          },
+          "title": "Message forwarding targets",
+          "type": "array"
+        },
+        "mcp_servers": {
+          "description": "List of MCP server configurations:\n- str entries are converted to StdioMCPServerConfig\n- MCPServerConfig for full server configuration",
+          "examples": [
+            [
+              "uvx some-server"
+            ],
+            [
+              {
+                "type": "streamable-http",
+                "url": "http://mcp.example.com"
+              }
+            ]
+          ],
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "discriminator": {
+                  "mapping": {
+                    "sse": "#/$defs/SSEMCPServerConfig",
+                    "stdio": "#/$defs/StdioMCPServerConfig",
+                    "streamable-http": "#/$defs/StreamableHTTPMCPServerConfig"
+                  },
+                  "propertyName": "type"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/StdioMCPServerConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/SSEMCPServerConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/StreamableHTTPMCPServerConfig"
+                  }
+                ]
+              }
+            ]
+          },
+          "title": "MCP servers",
+          "type": "array"
+        },
+        "input_provider": {
+          "default": null,
+          "description": "Provider for human-input-handling.",
+          "title": "Input provider",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for the session.",
+          "examples": [
+            "/path/to/project",
+            "."
+          ],
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "env": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Environment variables to set.",
+          "title": "Env",
+          "type": "object"
+        },
+        "allow_file_operations": {
+          "default": true,
+          "description": "Whether to allow file read/write operations.",
+          "title": "Allow File Operations",
+          "type": "boolean"
+        },
+        "allow_terminal": {
+          "default": true,
+          "description": "Whether to allow terminal operations.",
+          "title": "Allow Terminal",
+          "type": "boolean"
+        },
+        "auto_grant_permissions": {
+          "default": true,
+          "description": "Whether to automatically grant all permission requests.",
+          "title": "Auto Grant Permissions",
+          "type": "boolean"
+        },
+        "type": {
+          "const": "openhands",
+          "default": "openhands",
+          "description": "Discriminator for OpenHands ACP agent.",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "title": "OpenHandsACPAgentConfig",
       "type": "object"
     },
     "OrCondition": {
@@ -20604,7 +22414,13 @@
         "discriminator": {
           "mapping": {
             "acp": "#/$defs/ACPAgentConfig",
-            "claude": "#/$defs/ClaudeACPAgentConfig"
+            "claude": "#/$defs/ClaudeACPAgentConfig",
+            "codex": "#/$defs/CodexACPAgentConfig",
+            "fast-agent": "#/$defs/FastAgentACPAgentConfig",
+            "gemini": "#/$defs/GeminiACPAgentConfig",
+            "goose": "#/$defs/GooseACPAgentConfig",
+            "opencode": "#/$defs/OpenCodeACPAgentConfig",
+            "openhands": "#/$defs/OpenHandsACPAgentConfig"
           },
           "propertyName": "type"
         },
@@ -20614,6 +22430,24 @@
           },
           {
             "$ref": "#/$defs/ClaudeACPAgentConfig"
+          },
+          {
+            "$ref": "#/$defs/GeminiACPAgentConfig"
+          },
+          {
+            "$ref": "#/$defs/CodexACPAgentConfig"
+          },
+          {
+            "$ref": "#/$defs/OpenCodeACPAgentConfig"
+          },
+          {
+            "$ref": "#/$defs/GooseACPAgentConfig"
+          },
+          {
+            "$ref": "#/$defs/OpenHandsACPAgentConfig"
+          },
+          {
+            "$ref": "#/$defs/FastAgentACPAgentConfig"
           }
         ]
       },

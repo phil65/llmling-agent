@@ -1,13 +1,4 @@
-"""Configuration models for ACP (Agent Client Protocol) agents.
-
-This module provides configuration classes for ACP agents:
-- BaseACPAgentConfig: Common base with interface methods
-- ACPAgentConfig: Custom ACP agent with explicit command/args
-- ClaudeACPAgentConfig: Pre-configured Claude Code agent
-- (Future: AiderACPAgentConfig, LLMlingACPAgentConfig, etc.)
-
-All configs use discriminated unions via the `type` field.
-"""
+"""Configuration models for ACP (Agent Client Protocol) agents."""
 
 from __future__ import annotations
 
@@ -280,8 +271,424 @@ class ClaudeACPAgentConfig(BaseACPAgentConfig):
         return self.claude.build_args()
 
 
+class GeminiACPSettings(BaseModel):
+    """Settings for Gemini CLI agent.
+
+    These settings map to gemini CLI arguments.
+    See `gemini --help` for full documentation.
+    """
+
+    model: str | None = Field(
+        default=None,
+        description="Model override.",
+        examples=["gemini-2.5-pro", "gemini-2.5-flash"],
+    )
+
+    approval_mode: Literal["default", "auto_edit", "yolo"] | None = Field(
+        default=None,
+        description="Approval mode for tool execution.",
+    )
+
+    sandbox: bool = Field(
+        default=False,
+        description="Run in sandbox mode.",
+    )
+
+    yolo: bool = Field(
+        default=False,
+        description="Automatically accept all actions.",
+    )
+
+    allowed_tools: list[str] | None = Field(
+        default=None,
+        description="Tools allowed to run without confirmation.",
+    )
+
+    allowed_mcp_server_names: list[str] | None = Field(
+        default=None,
+        description="Allowed MCP server names.",
+    )
+
+    extensions: list[str] | None = Field(
+        default=None,
+        description="List of extensions to use. If not provided, all are used.",
+    )
+
+    include_directories: list[str] | None = Field(
+        default=None,
+        description="Additional directories to include in the workspace.",
+    )
+
+    output_format: Literal["text", "json", "stream-json"] | None = Field(
+        default=None,
+        description="Output format.",
+    )
+
+    def build_args(self) -> list[str]:
+        """Build CLI arguments from settings."""
+        args: list[str] = []
+
+        if self.model:
+            args.extend(["--model", self.model])
+        if self.approval_mode:
+            args.extend(["--approval-mode", self.approval_mode])
+        if self.sandbox:
+            args.append("--sandbox")
+        if self.yolo:
+            args.append("--yolo")
+        if self.allowed_tools:
+            args.extend(["--allowed-tools", *self.allowed_tools])
+        if self.allowed_mcp_server_names:
+            args.extend(["--allowed-mcp-server-names", *self.allowed_mcp_server_names])
+        if self.extensions:
+            args.extend(["--extensions", *self.extensions])
+        if self.include_directories:
+            args.extend(["--include-directories", *self.include_directories])
+        if self.output_format:
+            args.extend(["--output-format", self.output_format])
+
+        return args
+
+
+class GeminiACPAgentConfig(BaseACPAgentConfig):
+    """Configuration for Gemini CLI via ACP.
+
+    Provides typed settings for the gemini CLI with ACP support.
+
+    Example:
+        ```yaml
+        acp_agents:
+          coder:
+            type: gemini
+            cwd: /path/to/project
+            gemini:
+              model: gemini-2.5-pro
+              approval_mode: auto_edit
+              allowed_tools:
+                - read_file
+                - write_file
+        ```
+    """
+
+    type: Literal["gemini"] = Field("gemini", init=False)
+    """Discriminator for Gemini ACP agent."""
+
+    gemini: GeminiACPSettings = Field(
+        default_factory=GeminiACPSettings,
+        description="Gemini-specific settings.",
+    )
+    """Gemini-specific settings (maps to CLI arguments)."""
+
+    def get_command(self) -> str:
+        """Get the command to spawn the ACP server."""
+        return "gemini"
+
+    def get_args(self) -> list[str]:
+        """Build command arguments from settings."""
+        return ["--experimental-acp", *self.gemini.build_args()]
+
+
+class CodexACPSettings(BaseModel):
+    """Settings for Zed Codex ACP agent.
+
+    These settings map to codex-acp CLI arguments.
+    See `npx @zed-industries/codex-acp --help` for full documentation.
+    """
+
+    model: str | None = Field(
+        default=None,
+        description="Model override.",
+        examples=["o3", "o4-mini"],
+    )
+
+    sandbox_permissions: list[str] | None = Field(
+        default=None,
+        description="Sandbox permissions.",
+        examples=[["disk-full-read-access"]],
+    )
+
+    shell_environment_policy_inherit: Literal["all", "none"] | None = Field(
+        default=None,
+        description="Shell environment inheritance policy.",
+    )
+
+    def build_args(self) -> list[str]:
+        """Build CLI arguments from settings."""
+        args: list[str] = []
+
+        if self.model:
+            args.extend(["-c", f'model="{self.model}"'])
+        if self.sandbox_permissions:
+            # Format as TOML array
+            perms = ", ".join(f'"{p}"' for p in self.sandbox_permissions)
+            args.extend(["-c", f"sandbox_permissions=[{perms}]"])
+        if self.shell_environment_policy_inherit:
+            args.extend([
+                "-c",
+                f"shell_environment_policy.inherit={self.shell_environment_policy_inherit}",
+            ])
+
+        return args
+
+
+class CodexACPAgentConfig(BaseACPAgentConfig):
+    """Configuration for Zed Codex via ACP.
+
+    Provides typed settings for the codex-acp server.
+
+    Example:
+        ```yaml
+        acp_agents:
+          coder:
+            type: codex
+            cwd: /path/to/project
+            codex:
+              model: o3
+              sandbox_permissions:
+                - disk-full-read-access
+        ```
+    """
+
+    type: Literal["codex"] = Field("codex", init=False)
+    """Discriminator for Codex ACP agent."""
+
+    codex: CodexACPSettings = Field(
+        default_factory=CodexACPSettings,
+        description="Codex-specific settings.",
+    )
+    """Codex-specific settings (maps to CLI arguments)."""
+
+    def get_command(self) -> str:
+        """Get the command to spawn the ACP server."""
+        return "npx"
+
+    def get_args(self) -> list[str]:
+        """Build command arguments from settings."""
+        return ["@zed-industries/codex-acp", *self.codex.build_args()]
+
+
+class OpenCodeACPSettings(BaseModel):
+    """Settings for OpenCode ACP agent.
+
+    These settings map to opencode acp CLI arguments.
+    See `opencode acp --help` for full documentation.
+    """
+
+    log_level: Literal["DEBUG", "INFO", "WARN", "ERROR"] | None = Field(
+        default=None,
+        description="Log level.",
+    )
+
+    print_logs: bool = Field(
+        default=False,
+        description="Print logs to stderr.",
+    )
+
+    port: int | None = Field(
+        default=None,
+        description="Port to listen on.",
+    )
+
+    hostname: str | None = Field(
+        default=None,
+        description="Hostname to listen on.",
+        examples=["127.0.0.1", "0.0.0.0"],
+    )
+
+    def build_args(self) -> list[str]:
+        """Build CLI arguments from settings."""
+        args: list[str] = []
+
+        if self.log_level:
+            args.extend(["--log-level", self.log_level])
+        if self.print_logs:
+            args.append("--print-logs")
+        if self.port is not None:
+            args.extend(["--port", str(self.port)])
+        if self.hostname:
+            args.extend(["--hostname", self.hostname])
+
+        return args
+
+
+class OpenCodeACPAgentConfig(BaseACPAgentConfig):
+    """Configuration for OpenCode via ACP.
+
+    Provides typed settings for the opencode acp server.
+
+    Example:
+        ```yaml
+        acp_agents:
+          coder:
+            type: opencode
+            cwd: /path/to/project
+            opencode:
+              log_level: INFO
+        ```
+    """
+
+    type: Literal["opencode"] = Field("opencode", init=False)
+    """Discriminator for OpenCode ACP agent."""
+
+    opencode: OpenCodeACPSettings = Field(
+        default_factory=OpenCodeACPSettings,
+        description="OpenCode-specific settings.",
+    )
+    """OpenCode-specific settings (maps to CLI arguments)."""
+
+    def get_command(self) -> str:
+        """Get the command to spawn the ACP server."""
+        return "opencode"
+
+    def get_args(self) -> list[str]:
+        """Build command arguments from settings."""
+        args = ["acp"]
+        if self.cwd:
+            args.extend(["--cwd", self.cwd])
+        args.extend(self.opencode.build_args())
+        return args
+
+
+class GooseACPAgentConfig(BaseACPAgentConfig):
+    """Configuration for Goose via ACP.
+
+    Block's open-source coding agent.
+
+    Example:
+        ```yaml
+        acp_agents:
+          coder:
+            type: goose
+            cwd: /path/to/project
+        ```
+    """
+
+    type: Literal["goose"] = Field("goose", init=False)
+    """Discriminator for Goose ACP agent."""
+
+    def get_command(self) -> str:
+        """Get the command to spawn the ACP server."""
+        return "goose"
+
+    def get_args(self) -> list[str]:
+        """Build command arguments from settings."""
+        return ["acp"]
+
+
+class OpenHandsACPAgentConfig(BaseACPAgentConfig):
+    """Configuration for OpenHands via ACP.
+
+    Open-source autonomous AI agent (formerly OpenDevin).
+
+    Example:
+        ```yaml
+        acp_agents:
+          coder:
+            type: openhands
+            cwd: /path/to/project
+        ```
+    """
+
+    type: Literal["openhands"] = Field("openhands", init=False)
+    """Discriminator for OpenHands ACP agent."""
+
+    def get_command(self) -> str:
+        """Get the command to spawn the ACP server."""
+        return "openhands"
+
+    def get_args(self) -> list[str]:
+        """Build command arguments from settings."""
+        return ["acp"]
+
+
+class FastAgentACPSettings(BaseModel):
+    """Settings for fast-agent ACP.
+
+    These settings map to fast-agent-acp CLI arguments.
+    """
+
+    model: str | None = Field(
+        default=None,
+        description="Model to use.",
+        examples=["sonnet", "kimi", "gpt-5-mini.low"],
+    )
+
+    shell_access: bool = Field(
+        default=False,
+        description="Enable shell and file access (-x flag).",
+    )
+
+    url: str | None = Field(
+        default=None,
+        description="MCP server URL to connect to.",
+        examples=["https://huggingface.co/mcp"],
+    )
+
+    auth: str | None = Field(
+        default=None,
+        description="Authentication token for MCP server.",
+    )
+
+    def build_args(self) -> list[str]:
+        """Build CLI arguments from settings."""
+        args: list[str] = []
+
+        if self.model:
+            args.extend(["--model", self.model])
+        if self.shell_access:
+            args.append("-x")
+        if self.url:
+            args.extend(["--url", self.url])
+        if self.auth:
+            args.extend(["--auth", self.auth])
+
+        return args
+
+
+class FastAgentACPAgentConfig(BaseACPAgentConfig):
+    """Configuration for fast-agent via ACP.
+
+    Robust LLM agent with comprehensive MCP support.
+
+    Example:
+        ```yaml
+        acp_agents:
+          coder:
+            type: fast-agent
+            cwd: /path/to/project
+            fast_agent:
+              model: sonnet
+              shell_access: true
+        ```
+    """
+
+    type: Literal["fast-agent"] = Field("fast-agent", init=False)
+    """Discriminator for fast-agent ACP agent."""
+
+    fast_agent: FastAgentACPSettings = Field(
+        default_factory=FastAgentACPSettings,
+        description="fast-agent-specific settings.",
+    )
+    """fast-agent-specific settings (maps to CLI arguments)."""
+
+    def get_command(self) -> str:
+        """Get the command to spawn the ACP server."""
+        return "fast-agent-acp"
+
+    def get_args(self) -> list[str]:
+        """Build command arguments from settings."""
+        return self.fast_agent.build_args()
+
+
 # Union of all ACP agent config types
 ACPAgentConfigTypes = Annotated[
-    ACPAgentConfig | ClaudeACPAgentConfig,
+    ACPAgentConfig
+    | ClaudeACPAgentConfig
+    | GeminiACPAgentConfig
+    | CodexACPAgentConfig
+    | OpenCodeACPAgentConfig
+    | GooseACPAgentConfig
+    | OpenHandsACPAgentConfig
+    | FastAgentACPAgentConfig,
     Field(discriminator="type"),
 ]
