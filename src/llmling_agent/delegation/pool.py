@@ -44,6 +44,7 @@ if TYPE_CHECKING:
     from tokonomics import ModelName
     from upath.types import JoinablePathLike
 
+    from llmling_agent.agent.acp_agent import ACPAgent
     from llmling_agent.agent.agent import AgentKwargs
     from llmling_agent.common_types import (
         AgentName,
