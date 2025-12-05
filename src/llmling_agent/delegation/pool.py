@@ -402,8 +402,22 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
 
     @property
     def agents(self) -> dict[str, Agent[Any, Any]]:
-        """Get agents dict (backward compatibility)."""
+        """Get regular agents dict."""
         return {i.name: i for i in self._items.values() if isinstance(i, Agent)}
+
+    @property
+    def acp_agents(self) -> dict[str, ACPAgent]:
+        """Get ACP agents dict."""
+        from llmling_agent.agent.acp_agent import ACPAgent
+
+        return {i.name: i for i in self._items.values() if isinstance(i, ACPAgent)}
+
+    @property
+    def all_agents(self) -> dict[str, Agent[Any, Any] | ACPAgent]:
+        """Get all agents (regular and ACP)."""
+        from llmling_agent.agent.acp_agent import ACPAgent
+
+        return {i.name: i for i in self._items.values() if isinstance(i, Agent | ACPAgent)}
 
     @property
     def teams(self) -> dict[str, BaseTeam[Any, Any]]:
