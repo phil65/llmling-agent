@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import base64
-import io
 from typing import TYPE_CHECKING, Annotated, Literal, Self
 
 from pydantic import ConfigDict, Field
@@ -13,7 +12,6 @@ from upathtools import read_path
 
 
 if TYPE_CHECKING:
-    import PIL.Image
     from pydantic_ai import UserContent
     from upath.types import JoinablePathLike
 
@@ -125,13 +123,6 @@ class ImageBase64Content(BaseImageContent):
         """
         content = base64.b64encode(data).decode()
         return cls(data=content, detail=detail, description=description)
-
-    @classmethod
-    def from_pil_image(cls, image: PIL.Image.Image) -> ImageBase64Content:
-        """Create content from PIL Image."""
-        with io.BytesIO() as buffer:
-            image.save(buffer, format="PNG")
-            return cls(data=base64.b64encode(buffer.getvalue()).decode())
 
 
 class BasePDFContent(BaseContent):

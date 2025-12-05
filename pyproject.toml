@@ -102,7 +102,6 @@ default = [
 ]
 events = ["evented[all]"]
 git = ["fsspec[git]"]
-image = ["pillow"]
 langfuse = ["langfuse"]
 litellm = ["litellm; python_version < '3.14'"]
 markitdown = ["markitdown"]
