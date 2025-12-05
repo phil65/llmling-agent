@@ -109,7 +109,7 @@ class OpenAIAPIServer(BaseServer):
     async def list_models(self) -> dict[str, Any]:
         """List available agents as models."""
         models = []
-        for name, agent in self.pool.agents.items():
+        for name, agent in self.pool.all_agents.items():
             info = OpenAIModelInfo(id=name, created=0, description=agent.description)
             models.append(info)
         return {"object": "list", "data": models}
@@ -120,7 +120,7 @@ class OpenAIAPIServer(BaseServer):
         from fastapi.responses import StreamingResponse
 
         try:
-            agent = self.pool.agents[request.model]
+            agent = self.pool.all_agents[request.model]
         except KeyError:
             raise HTTPException(404, f"Model {request.model} not found") from None
 
