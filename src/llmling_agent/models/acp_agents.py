@@ -27,22 +27,17 @@ class BaseACPAgentConfig(NodeConfig):
 
     cwd: str | None = Field(
         default=None,
-        description="Working directory for the session.",
         examples=["/path/to/project", "."],
     )
     """Working directory for the session."""
 
-    env: dict[str, str] = Field(
-        default_factory=dict,
-        description="Environment variables to set.",
-    )
+    env: dict[str, str] = Field(default_factory=dict)
     """Environment variables to set."""
 
     execution_environment: Annotated[
         Literal["local", "docker", "e2b", "beam", "daytona", "srt"] | dict[str, Any],
         Field(
             default="local",
-            description="Execution environment for file/terminal operations.",
             examples=[
                 "local",
                 "docker",
@@ -53,22 +48,13 @@ class BaseACPAgentConfig(NodeConfig):
     ] = "local"
     """Execution environment config for ACP client operations (filesystem, terminals)."""
 
-    allow_file_operations: bool = Field(
-        default=True,
-        description="Whether to allow file read/write operations.",
-    )
+    allow_file_operations: bool = Field(default=True)
     """Whether to allow file read/write operations."""
 
-    allow_terminal: bool = Field(
-        default=True,
-        description="Whether to allow terminal operations.",
-    )
+    allow_terminal: bool = Field(default=True)
     """Whether to allow terminal operations."""
 
-    auto_grant_permissions: bool = Field(
-        default=True,
-        description="Whether to automatically grant all permission requests.",
-    )
+    auto_grant_permissions: bool = Field(default=True)
     """Whether to automatically grant all permission requests."""
 
     def get_command(self) -> str:
@@ -188,23 +174,13 @@ class ACPAgentConfig(BaseACPAgentConfig):
     type: Literal["acp"] = Field("acp", init=False)
     """Discriminator for custom ACP agent."""
 
-    command: str = Field(
-        ...,
-        description="Command to spawn the ACP server.",
-        examples=["claude-code-acp", "aider", "my-custom-acp"],
-    )
+    command: str = Field(..., examples=["claude-code-acp", "aider", "my-custom-acp"])
     """Command to spawn the ACP server."""
 
-    args: list[str] = Field(
-        default_factory=list,
-        description="Arguments to pass to the command.",
-    )
+    args: list[str] = Field(default_factory=list)
     """Arguments to pass to the command."""
 
-    providers: list[ProviderType] = Field(
-        default_factory=list,
-        description="Model providers used by this agent (for custom agents).",
-    )
+    providers: list[ProviderType] = Field(default_factory=list)
     """Model providers this agent can use."""
 
     @property
@@ -244,79 +220,58 @@ class ClaudeACPAgentConfig(BaseACPAgentConfig):
     type: Literal["claude"] = Field("claude", init=False)
     """Discriminator for Claude ACP agent."""
 
-    system_prompt: str | None = Field(
-        default=None,
-        description="Custom system prompt (replaces default Claude Code prompt).",
-    )
+    system_prompt: str | None = Field(default=None)
+    """Custom system prompt (replaces default Claude Code prompt)."""
 
-    append_system_prompt: str | None = Field(
-        default=None,
-        description="Text to append to the default system prompt.",
-    )
+    append_system_prompt: str | None = Field(default=None)
+    """Text to append to the default system prompt."""
 
     model: str | None = Field(
         default=None,
-        description="Model override. Use alias ('sonnet', 'opus') or full name.",
         examples=["sonnet", "opus", "claude-sonnet-4-20250514"],
     )
+    """Model override. Use alias ('sonnet', 'opus') or full name."""
 
     permission_mode: (
         Literal["default", "acceptEdits", "bypassPermissions", "dontAsk", "plan"] | None
-    ) = Field(
-        default=None,
-        description="Permission handling mode for tool execution.",
-    )
+    ) = Field(default=None)
+    """Permission handling mode for tool execution."""
 
-    allowed_tools: list[str] | None = Field(
-        default=None,
-        description="Whitelist of allowed tools (e.g., ['Read', 'Write', 'Bash(git:*)']).",
-    )
+    allowed_tools: list[str] | None = Field(default=None)
+    """Whitelist of allowed tools (e.g., ['Read', 'Write', 'Bash(git:*)'])."""
 
-    disallowed_tools: list[str] | None = Field(
-        default=None,
-        description="Blacklist of disallowed tools.",
-    )
+    disallowed_tools: list[str] | None = Field(default=None)
+    """Blacklist of disallowed tools."""
 
-    mcp_config: list[str] | None = Field(
-        default=None,
-        description="MCP server config files or JSON strings to load.",
-    )
+    mcp_config: list[str] | None = Field(default=None)
+    """MCP server config files or JSON strings to load."""
 
-    strict_mcp_config: bool = Field(
-        default=False,
-        description="Only use MCP servers from mcp_config, ignoring all other configs.",
-    )
+    strict_mcp_config: bool = Field(default=False)
+    """Only use MCP servers from mcp_config, ignoring all other configs."""
 
-    add_dir: list[str] | None = Field(
-        default=None,
-        description="Additional directories to allow tool access to.",
-    )
+    add_dir: list[str] | None = Field(default=None)
+    """Additional directories to allow tool access to."""
 
     tools: list[str] | None = Field(
         default=None,
-        description="Available tools from built-in set. Empty list disables all tools.",
         examples=[["Bash", "Edit", "Read"], []],
     )
+    """Available tools from built-in set. Empty list disables all tools."""
 
-    fallback_model: str | None = Field(
-        default=None,
-        description="Fallback model when default is overloaded.",
-        examples=["sonnet", "haiku"],
-    )
+    fallback_model: str | None = Field(default=None, examples=["sonnet", "haiku"])
+    """Fallback model when default is overloaded."""
 
-    dangerously_skip_permissions: bool = Field(
-        default=False,
-        description="Bypass all permission checks. Only for sandboxed environments.",
-    )
+    dangerously_skip_permissions: bool = Field(default=False)
+    """Bypass all permission checks. Only for sandboxed environments."""
 
     output_type: str | StructuredResponseConfig | None = Field(
         default=None,
-        description="Structured output configuration. Generates --output-format and --json-schema.",
         examples=[
             "json_response",
             {"response_schema": {"type": "import", "import_path": "mymodule:MyModel"}},
         ],
     )
+    """Structured output configuration. Generates --output-format and --json-schema."""
 
     def get_command(self) -> str:
         """Get the command to spawn the ACP server."""
@@ -409,49 +364,33 @@ class GeminiACPAgentConfig(BaseACPAgentConfig):
 
     model: str | None = Field(
         default=None,
-        description="Model override.",
         examples=["gemini-2.5-pro", "gemini-2.5-flash"],
     )
+    """Model override."""
 
-    approval_mode: Literal["default", "auto_edit", "yolo"] | None = Field(
-        default=None,
-        description="Approval mode for tool execution.",
-    )
+    approval_mode: Literal["default", "auto_edit", "yolo"] | None = Field(default=None)
+    """Approval mode for tool execution."""
 
-    sandbox: bool = Field(
-        default=False,
-        description="Run in sandbox mode.",
-    )
+    sandbox: bool = Field(default=False)
+    """Run in sandbox mode."""
 
-    yolo: bool = Field(
-        default=False,
-        description="Automatically accept all actions.",
-    )
+    yolo: bool = Field(default=False)
+    """Automatically accept all actions."""
 
-    allowed_tools: list[str] | None = Field(
-        default=None,
-        description="Tools allowed to run without confirmation.",
-    )
+    allowed_tools: list[str] | None = Field(default=None)
+    """Tools allowed to run without confirmation."""
 
-    allowed_mcp_server_names: list[str] | None = Field(
-        default=None,
-        description="Allowed MCP server names.",
-    )
+    allowed_mcp_server_names: list[str] | None = Field(default=None)
+    """Allowed MCP server names."""
 
-    extensions: list[str] | None = Field(
-        default=None,
-        description="List of extensions to use. If not provided, all are used.",
-    )
+    extensions: list[str] | None = Field(default=None)
+    """List of extensions to use. If not provided, all are used."""
 
-    include_directories: list[str] | None = Field(
-        default=None,
-        description="Additional directories to include in the workspace.",
-    )
+    include_directories: list[str] | None = Field(default=None)
+    """Additional directories to include in the workspace."""
 
-    output_format: Literal["text", "json", "stream-json"] | None = Field(
-        default=None,
-        description="Output format.",
-    )
+    output_format: Literal["text", "json", "stream-json"] | None = Field(default=None)
+    """Output format."""
 
     def get_command(self) -> str:
         """Get the command to spawn the ACP server."""
@@ -508,22 +447,17 @@ class CodexACPAgentConfig(BaseACPAgentConfig):
     type: Literal["codex"] = Field("codex", init=False)
     """Discriminator for Codex ACP agent."""
 
-    model: str | None = Field(
-        default=None,
-        description="Model override.",
-        examples=["o3", "o4-mini"],
-    )
+    model: str | None = Field(default=None, examples=["o3", "o4-mini"])
+    """Model override."""
 
     sandbox_permissions: list[str] | None = Field(
         default=None,
-        description="Sandbox permissions.",
         examples=[["disk-full-read-access"]],
     )
+    """Sandbox permissions."""
 
-    shell_environment_policy_inherit: Literal["all", "none"] | None = Field(
-        default=None,
-        description="Shell environment inheritance policy.",
-    )
+    shell_environment_policy_inherit: Literal["all", "none"] | None = Field(default=None)
+    """Shell environment inheritance policy."""
 
     def get_command(self) -> str:
         """Get the command to spawn the ACP server."""
@@ -571,26 +505,17 @@ class OpenCodeACPAgentConfig(BaseACPAgentConfig):
     type: Literal["opencode"] = Field("opencode", init=False)
     """Discriminator for OpenCode ACP agent."""
 
-    log_level: Literal["DEBUG", "INFO", "WARN", "ERROR"] | None = Field(
-        default=None,
-        description="Log level.",
-    )
+    log_level: Literal["DEBUG", "INFO", "WARN", "ERROR"] | None = Field(default=None)
+    """Log level."""
 
-    print_logs: bool = Field(
-        default=False,
-        description="Print logs to stderr.",
-    )
+    print_logs: bool = Field(default=False)
+    """Print logs to stderr."""
 
-    port: int | None = Field(
-        default=None,
-        description="Port to listen on.",
-    )
+    port: int | None = Field(default=None)
+    """Port to listen on."""
 
-    hostname: str | None = Field(
-        default=None,
-        description="Hostname to listen on.",
-        examples=["127.0.0.1", "0.0.0.0"],
-    )
+    hostname: str | None = Field(default=None, examples=["127.0.0.1", "0.0.0.0"])
+    """Hostname to listen on."""
 
     def get_command(self) -> str:
         """Get the command to spawn the ACP server."""
@@ -702,25 +627,18 @@ class FastAgentACPAgentConfig(BaseACPAgentConfig):
 
     model: str | None = Field(
         default=None,
-        description="Model to use.",
         examples=["sonnet", "kimi", "gpt-5-mini.low"],
     )
+    """Model to use."""
 
-    shell_access: bool = Field(
-        default=False,
-        description="Enable shell and file access (-x flag).",
-    )
+    shell_access: bool = Field(default=False)
+    """Enable shell and file access (-x flag)."""
 
-    url: str | None = Field(
-        default=None,
-        description="MCP server URL to connect to.",
-        examples=["https://huggingface.co/mcp"],
-    )
+    url: str | None = Field(default=None, examples=["https://huggingface.co/mcp"])
+    """MCP server URL to connect to."""
 
-    auth: str | None = Field(
-        default=None,
-        description="Authentication token for MCP server.",
-    )
+    auth: str | None = Field(default=None)
+    """Authentication token for MCP server."""
 
     def get_command(self) -> str:
         """Get the command to spawn the ACP server."""
