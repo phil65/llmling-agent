@@ -228,7 +228,7 @@
             }
           ],
           "default": "local",
-          "description": "Execution environment for file/terminal operations.",
+          "description": "Execution environment config for ACP client operations (filesystem, terminals).",
           "examples": [
             "local",
             "docker",
@@ -284,6 +284,39 @@
             "type": "string"
           },
           "title": "Args",
+          "type": "array"
+        },
+        "providers": {
+          "description": "Model providers this agent can use.",
+          "items": {
+            "enum": [
+              "anthropic",
+              "groq",
+              "mistral",
+              "openai",
+              "openrouter",
+              "github",
+              "copilot",
+              "cerebras",
+              "gemini",
+              "cohere",
+              "deepseek",
+              "requesty",
+              "xai",
+              "comet",
+              "novita",
+              "vercel-gateway",
+              "chutes",
+              "cortecs",
+              "azure",
+              "fireworks-ai",
+              "ollama",
+              "moonshotai",
+              "zai"
+            ],
+            "type": "string"
+          },
+          "title": "Providers",
           "type": "array"
         }
       },
@@ -4400,7 +4433,7 @@
             }
           ],
           "default": "local",
-          "description": "Execution environment for file/terminal operations.",
+          "description": "Execution environment config for ACP client operations (filesystem, terminals).",
           "examples": [
             "local",
             "docker",
@@ -5074,7 +5107,7 @@
             }
           ],
           "default": "local",
-          "description": "Execution environment for file/terminal operations.",
+          "description": "Execution environment config for ACP client operations (filesystem, terminals).",
           "examples": [
             "local",
             "docker",
@@ -9149,7 +9182,7 @@
             }
           ],
           "default": "local",
-          "description": "Execution environment for file/terminal operations.",
+          "description": "Execution environment config for ACP client operations (filesystem, terminals).",
           "examples": [
             "local",
             "docker",
@@ -10396,7 +10429,7 @@
             }
           ],
           "default": "local",
-          "description": "Execution environment for file/terminal operations.",
+          "description": "Execution environment config for ACP client operations (filesystem, terminals).",
           "examples": [
             "local",
             "docker",
@@ -11248,7 +11281,7 @@
             }
           ],
           "default": "local",
-          "description": "Execution environment for file/terminal operations.",
+          "description": "Execution environment config for ACP client operations (filesystem, terminals).",
           "examples": [
             "local",
             "docker",
@@ -15064,7 +15097,7 @@
             }
           ],
           "default": "local",
-          "description": "Execution environment for file/terminal operations.",
+          "description": "Execution environment config for ACP client operations (filesystem, terminals).",
           "examples": [
             "local",
             "docker",
@@ -15383,7 +15416,7 @@
             }
           ],
           "default": "local",
-          "description": "Execution environment for file/terminal operations.",
+          "description": "Execution environment config for ACP client operations (filesystem, terminals).",
           "examples": [
             "local",
             "docker",
