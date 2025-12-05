@@ -1,5 +1,264 @@
 {
   "$defs": {
+    "ACPAgentConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for a custom ACP agent with explicit command.\n\nUse this for ACP servers that don't have a preset, or when you need\nfull control over the command and arguments.\n\nExample:\n    ```yaml\n    agents:\n      custom_agent:\n        type: acp\n        command: my-acp-server\n        args: [\"--mode\", \"coding\"]\n        cwd: /path/to/project\n    ```",
+      "properties": {
+        "name": {
+          "default": null,
+          "description": "Identifier for the node. Set from dict key, not from YAML.",
+          "title": "Name",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "display_name": {
+          "default": null,
+          "description": "Human-readable display name for the node.",
+          "examples": [
+            "Main Agent",
+            "Web Searcher",
+            "Code Assistant"
+          ],
+          "title": "Display name",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "default": null,
+          "description": "Optional description of the agent / team.",
+          "examples": [
+            "Main conversation agent",
+            "Handles web search requests"
+          ],
+          "title": "Node description",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "triggers": {
+          "description": "Event sources that activate this agent / team",
+          "examples": [
+            [
+              {
+                "name": "daily_check",
+                "prompt": "Daily status update",
+                "schedule": "0 9 * * *",
+                "type": "time"
+              }
+            ],
+            [
+              {
+                "extensions": [
+                  ".py"
+                ],
+                "name": "code_watcher",
+                "paths": [
+                  "./src"
+                ],
+                "type": "file"
+              }
+            ]
+          ],
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "email": "#/$defs/EmailConfig",
+                "file": "#/$defs/FileWatchConfig",
+                "time": "#/$defs/TimeEventConfig",
+                "webhook": "#/$defs/WebhookConfig"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/FileWatchConfig"
+              },
+              {
+                "$ref": "#/$defs/WebhookConfig"
+              },
+              {
+                "$ref": "#/$defs/EmailConfig"
+              },
+              {
+                "$ref": "#/$defs/TimeEventConfig"
+              }
+            ]
+          },
+          "title": "Event triggers",
+          "type": "array"
+        },
+        "connections": {
+          "description": "Targets to forward results to.",
+          "examples": [
+            [
+              {
+                "connection_type": "run",
+                "name": "output_agent",
+                "type": "node",
+                "wait_for_completion": true
+              }
+            ],
+            [
+              {
+                "path": "logs/messages.txt",
+                "template": "{{ message.content }}",
+                "type": "file"
+              }
+            ]
+          ],
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "callable": "#/$defs/CallableConnectionConfig",
+                "file": "#/$defs/FileConnectionConfig",
+                "node": "#/$defs/NodeConnectionConfig"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/NodeConnectionConfig"
+              },
+              {
+                "$ref": "#/$defs/FileConnectionConfig"
+              },
+              {
+                "$ref": "#/$defs/CallableConnectionConfig"
+              }
+            ]
+          },
+          "title": "Message forwarding targets",
+          "type": "array"
+        },
+        "mcp_servers": {
+          "description": "List of MCP server configurations:\n- str entries are converted to StdioMCPServerConfig\n- MCPServerConfig for full server configuration",
+          "examples": [
+            [
+              "uvx some-server"
+            ],
+            [
+              {
+                "type": "streamable-http",
+                "url": "http://mcp.example.com"
+              }
+            ]
+          ],
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "discriminator": {
+                  "mapping": {
+                    "sse": "#/$defs/SSEMCPServerConfig",
+                    "stdio": "#/$defs/StdioMCPServerConfig",
+                    "streamable-http": "#/$defs/StreamableHTTPMCPServerConfig"
+                  },
+                  "propertyName": "type"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/StdioMCPServerConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/SSEMCPServerConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/StreamableHTTPMCPServerConfig"
+                  }
+                ]
+              }
+            ]
+          },
+          "title": "MCP servers",
+          "type": "array"
+        },
+        "input_provider": {
+          "default": null,
+          "description": "Provider for human-input-handling.",
+          "title": "Input provider",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for the session.",
+          "examples": [
+            "/path/to/project",
+            "."
+          ],
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "env": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Environment variables to set.",
+          "title": "Env",
+          "type": "object"
+        },
+        "allow_file_operations": {
+          "default": true,
+          "description": "Whether to allow file read/write operations.",
+          "title": "Allow File Operations",
+          "type": "boolean"
+        },
+        "allow_terminal": {
+          "default": true,
+          "description": "Whether to allow terminal operations.",
+          "title": "Allow Terminal",
+          "type": "boolean"
+        },
+        "auto_grant_permissions": {
+          "default": true,
+          "description": "Whether to automatically grant all permission requests.",
+          "title": "Auto Grant Permissions",
+          "type": "boolean"
+        },
+        "type": {
+          "const": "acp",
+          "default": "acp",
+          "description": "Discriminator for custom ACP agent.",
+          "title": "Type",
+          "type": "string"
+        },
+        "command": {
+          "description": "Command to spawn the ACP server.",
+          "examples": [
+            "claude-code-acp",
+            "aider",
+            "my-custom-acp"
+          ],
+          "title": "Command",
+          "type": "string"
+        },
+        "args": {
+          "description": "Arguments to pass to the command.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Args",
+          "type": "array"
+        }
+      },
+      "required": [
+        "command"
+      ],
+      "title": "ACPAgentConfig",
+      "type": "object"
+    },
     "AgentConfig": {
       "additionalProperties": false,
       "description": "Configuration for a single agent in the system.\n\nDefines an agent's complete configuration including its model, environment,\nand behavior settings.\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/agent_configuration/",
@@ -2163,6 +2422,7 @@
                 "remote_code_mode": "#/$defs/RemoteCodeModeToolsetConfig",
                 "search": "#/$defs/SearchToolsetConfig",
                 "semantic_memory": "#/$defs/SemanticMemoryToolsetConfig",
+                "skills": "#/$defs/SkillsToolsetConfig",
                 "subagent": "#/$defs/SubagentToolsetConfig",
                 "tool_management": "#/$defs/ToolManagementToolsetConfig",
                 "upsonic": "#/$defs/UpsonicToolSetConfig",
@@ -2198,6 +2458,9 @@
               },
               {
                 "$ref": "#/$defs/HistoryToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/SkillsToolsetConfig"
               },
               {
                 "$ref": "#/$defs/IntegrationToolsetConfig"
@@ -3484,6 +3747,371 @@
       "title": "CallableConnectionConfig",
       "type": "object"
     },
+    "ClaudeACPAgentConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for Claude Code via ACP.\n\nProvides typed settings for the claude-code-acp server with\nLSP autocomplete support.\n\nExample:\n    ```yaml\n    agents:\n      coder:\n        type: claude\n        cwd: /path/to/project\n        claude:\n          model: sonnet\n          permission_mode: acceptEdits\n          allowed_tools:\n            - Read\n            - Write\n            - Bash(git:*)\n    ```",
+      "properties": {
+        "name": {
+          "default": null,
+          "description": "Identifier for the node. Set from dict key, not from YAML.",
+          "title": "Name",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "display_name": {
+          "default": null,
+          "description": "Human-readable display name for the node.",
+          "examples": [
+            "Main Agent",
+            "Web Searcher",
+            "Code Assistant"
+          ],
+          "title": "Display name",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "default": null,
+          "description": "Optional description of the agent / team.",
+          "examples": [
+            "Main conversation agent",
+            "Handles web search requests"
+          ],
+          "title": "Node description",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "triggers": {
+          "description": "Event sources that activate this agent / team",
+          "examples": [
+            [
+              {
+                "name": "daily_check",
+                "prompt": "Daily status update",
+                "schedule": "0 9 * * *",
+                "type": "time"
+              }
+            ],
+            [
+              {
+                "extensions": [
+                  ".py"
+                ],
+                "name": "code_watcher",
+                "paths": [
+                  "./src"
+                ],
+                "type": "file"
+              }
+            ]
+          ],
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "email": "#/$defs/EmailConfig",
+                "file": "#/$defs/FileWatchConfig",
+                "time": "#/$defs/TimeEventConfig",
+                "webhook": "#/$defs/WebhookConfig"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/FileWatchConfig"
+              },
+              {
+                "$ref": "#/$defs/WebhookConfig"
+              },
+              {
+                "$ref": "#/$defs/EmailConfig"
+              },
+              {
+                "$ref": "#/$defs/TimeEventConfig"
+              }
+            ]
+          },
+          "title": "Event triggers",
+          "type": "array"
+        },
+        "connections": {
+          "description": "Targets to forward results to.",
+          "examples": [
+            [
+              {
+                "connection_type": "run",
+                "name": "output_agent",
+                "type": "node",
+                "wait_for_completion": true
+              }
+            ],
+            [
+              {
+                "path": "logs/messages.txt",
+                "template": "{{ message.content }}",
+                "type": "file"
+              }
+            ]
+          ],
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "callable": "#/$defs/CallableConnectionConfig",
+                "file": "#/$defs/FileConnectionConfig",
+                "node": "#/$defs/NodeConnectionConfig"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/NodeConnectionConfig"
+              },
+              {
+                "$ref": "#/$defs/FileConnectionConfig"
+              },
+              {
+                "$ref": "#/$defs/CallableConnectionConfig"
+              }
+            ]
+          },
+          "title": "Message forwarding targets",
+          "type": "array"
+        },
+        "mcp_servers": {
+          "description": "List of MCP server configurations:\n- str entries are converted to StdioMCPServerConfig\n- MCPServerConfig for full server configuration",
+          "examples": [
+            [
+              "uvx some-server"
+            ],
+            [
+              {
+                "type": "streamable-http",
+                "url": "http://mcp.example.com"
+              }
+            ]
+          ],
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "discriminator": {
+                  "mapping": {
+                    "sse": "#/$defs/SSEMCPServerConfig",
+                    "stdio": "#/$defs/StdioMCPServerConfig",
+                    "streamable-http": "#/$defs/StreamableHTTPMCPServerConfig"
+                  },
+                  "propertyName": "type"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/StdioMCPServerConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/SSEMCPServerConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/StreamableHTTPMCPServerConfig"
+                  }
+                ]
+              }
+            ]
+          },
+          "title": "MCP servers",
+          "type": "array"
+        },
+        "input_provider": {
+          "default": null,
+          "description": "Provider for human-input-handling.",
+          "title": "Input provider",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for the session.",
+          "examples": [
+            "/path/to/project",
+            "."
+          ],
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "env": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Environment variables to set.",
+          "title": "Env",
+          "type": "object"
+        },
+        "allow_file_operations": {
+          "default": true,
+          "description": "Whether to allow file read/write operations.",
+          "title": "Allow File Operations",
+          "type": "boolean"
+        },
+        "allow_terminal": {
+          "default": true,
+          "description": "Whether to allow terminal operations.",
+          "title": "Allow Terminal",
+          "type": "boolean"
+        },
+        "auto_grant_permissions": {
+          "default": true,
+          "description": "Whether to automatically grant all permission requests.",
+          "title": "Auto Grant Permissions",
+          "type": "boolean"
+        },
+        "type": {
+          "const": "claude",
+          "default": "claude",
+          "description": "Discriminator for Claude ACP agent.",
+          "title": "Type",
+          "type": "string"
+        },
+        "claude": {
+          "$ref": "#/$defs/ClaudeACPSettings",
+          "description": "Claude-specific settings."
+        }
+      },
+      "title": "ClaudeACPAgentConfig",
+      "type": "object"
+    },
+    "ClaudeACPSettings": {
+      "description": "Settings for claude-code-acp agent.\n\nThese settings map to claude CLI arguments.\nSee `claude --help` for full documentation.",
+      "properties": {
+        "system_prompt": {
+          "default": null,
+          "description": "Custom system prompt (replaces default Claude Code prompt).",
+          "title": "System Prompt",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "append_system_prompt": {
+          "default": null,
+          "description": "Text to append to the default system prompt.",
+          "title": "Append System Prompt",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "model": {
+          "default": null,
+          "description": "Model override. Use alias ('sonnet', 'opus') or full name.",
+          "examples": [
+            "sonnet",
+            "opus",
+            "claude-sonnet-4-20250514"
+          ],
+          "title": "Model",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "permission_mode": {
+          "anyOf": [
+            {
+              "enum": [
+                "default",
+                "acceptEdits",
+                "bypassPermissions",
+                "dontAsk",
+                "plan"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Permission handling mode for tool execution.",
+          "title": "Permission Mode"
+        },
+        "allowed_tools": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Whitelist of allowed tools (e.g., ['Read', 'Write', 'Bash(git:*)']).",
+          "title": "Allowed Tools"
+        },
+        "disallowed_tools": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Blacklist of disallowed tools.",
+          "title": "Disallowed Tools"
+        },
+        "mcp_config": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "MCP server config files or JSON strings to load.",
+          "title": "Mcp Config"
+        },
+        "add_dir": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Additional directories to allow tool access to.",
+          "title": "Add Dir"
+        }
+      },
+      "title": "ClaudeACPSettings",
+      "type": "object"
+    },
     "CodeModeToolsetConfig": {
       "additionalProperties": false,
       "description": "Configuration for code mode tools.",
@@ -3528,6 +4156,7 @@
                 "remote_code_mode": "#/$defs/RemoteCodeModeToolsetConfig",
                 "search": "#/$defs/SearchToolsetConfig",
                 "semantic_memory": "#/$defs/SemanticMemoryToolsetConfig",
+                "skills": "#/$defs/SkillsToolsetConfig",
                 "subagent": "#/$defs/SubagentToolsetConfig",
                 "tool_management": "#/$defs/ToolManagementToolsetConfig",
                 "upsonic": "#/$defs/UpsonicToolSetConfig",
@@ -3563,6 +4192,9 @@
               },
               {
                 "$ref": "#/$defs/HistoryToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/SkillsToolsetConfig"
               },
               {
                 "$ref": "#/$defs/IntegrationToolsetConfig"
@@ -10362,6 +10994,7 @@
                 "remote_code_mode": "#/$defs/RemoteCodeModeToolsetConfig",
                 "search": "#/$defs/SearchToolsetConfig",
                 "semantic_memory": "#/$defs/SemanticMemoryToolsetConfig",
+                "skills": "#/$defs/SkillsToolsetConfig",
                 "subagent": "#/$defs/SubagentToolsetConfig",
                 "tool_management": "#/$defs/ToolManagementToolsetConfig",
                 "upsonic": "#/$defs/UpsonicToolSetConfig",
@@ -10397,6 +11030,9 @@
               },
               {
                 "$ref": "#/$defs/HistoryToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/SkillsToolsetConfig"
               },
               {
                 "$ref": "#/$defs/IntegrationToolsetConfig"
@@ -13574,6 +14210,34 @@
       "title": "SessionQuery",
       "type": "object"
     },
+    "SkillsToolsetConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for skills toolset.\n\nProvides tools to discover and load Claude Code Skills from the pool's\nskills registry. Skills are discovered from configured directories\n(e.g., ~/.claude/skills/, .claude/skills/).",
+      "properties": {
+        "namespace": {
+          "default": null,
+          "description": "Optional namespace prefix for tool names",
+          "examples": [
+            "web",
+            "files"
+          ],
+          "title": "Tool namespace",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "type": {
+          "const": "skills",
+          "default": "skills",
+          "description": "Skills toolset.",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "title": "SkillsToolsetConfig",
+      "type": "object"
+    },
     "SourceResourceConfig": {
       "additionalProperties": false,
       "description": "Configuration for a single filesystem source.",
@@ -15791,6 +16455,29 @@
       "description": "Mapping of team IDs to their configurations.\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/team_configuration/",
       "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/team_configuration/",
       "title": "Teams",
+      "type": "object"
+    },
+    "acp_agents": {
+      "additionalProperties": {
+        "discriminator": {
+          "mapping": {
+            "acp": "#/$defs/ACPAgentConfig",
+            "claude": "#/$defs/ClaudeACPAgentConfig"
+          },
+          "propertyName": "type"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/$defs/ACPAgentConfig"
+          },
+          {
+            "$ref": "#/$defs/ClaudeACPAgentConfig"
+          }
+        ]
+      },
+      "description": "Mapping of ACP agent IDs to their configurations.\n\nACP agents are external agents that communicate via the Agent Client Protocol.\nSupports custom ACP servers and pre-configured presets (claude, etc.).\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/acp_configuration/",
+      "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/acp_configuration/",
+      "title": "Acp Agents",
       "type": "object"
     },
     "storage": {
