@@ -31,20 +31,22 @@ def extract_page_metadata(python_file: Path) -> dict[str, dict[str, Any]]:
                     # Check if it's a nav.route.page call
                     # Pattern: nav.route.page(...)
                     is_page_decorator = False
-                    if isinstance(decorator.func, ast.Attribute) and decorator.func.attr == "page":
-                        if (
+                    if (
+                        isinstance(decorator.func, ast.Attribute)
+                        and decorator.func.attr == "page"
+                        and (
                             isinstance(decorator.func.value, ast.Attribute)
                             and decorator.func.value.attr == "route"
-                        ):
-                            is_page_decorator = True
+                        )
+                    ):
+                        is_page_decorator = True
 
                     if is_page_decorator:
                         page_metadata: dict[str, Any] = {}
 
                         # Extract positional args (page title)
-                        if decorator.args:
-                            if isinstance(decorator.args[0], ast.Constant):
-                                page_metadata["title"] = decorator.args[0].value
+                        if decorator.args and isinstance(decorator.args[0], ast.Constant):
+                            page_metadata["title"] = decorator.args[0].value
 
                         # Extract keyword args (icon, hide, etc.)
                         for keyword in decorator.keywords:
@@ -76,7 +78,7 @@ def extract_page_metadata(python_file: Path) -> dict[str, dict[str, Any]]:
                                     ):
                                         md_path = right.args[0].value
                                         if page_metadata:
-                                            metadata[md_path] = page_metadata
+                                            metadata[md_path] = page_metadata  # pyright: ignore[reportArgumentType]
                                             break  # Found the template, move to next function
 
     return metadata
@@ -93,7 +95,7 @@ def read_file_with_frontmatter(file_path: Path) -> tuple[dict[str, Any], str]:
     # Check for existing frontmatter
     if content.startswith("---\n"):
         parts = content.split("---\n", 2)
-        if len(parts) >= 3:
+        if len(parts) >= 3:  # noqa: PLR2004
             # Has frontmatter
             frontmatter_text = parts[1]
             body = parts[2]
