@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from typing import TYPE_CHECKING, Annotated, Any, Literal, cast
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 from tokonomics.model_discovery import ProviderType  # noqa: TC002
 
 from llmling_agent_config.nodes import NodeConfig
@@ -55,10 +55,7 @@ class BaseACPAgentConfig(NodeConfig):
         }
     )
 
-    cwd: str | None = Field(
-        default=None,
-        examples=["/path/to/project", "."],
-    )
+    cwd: str | None = Field(default=None, examples=["/path/to/project", "."])
     """Working directory for the session."""
 
     env: dict[str, str] = Field(default_factory=dict)
@@ -101,7 +98,6 @@ class BaseACPAgentConfig(NodeConfig):
             ExecutionEnvironmentConfig,
             LocalExecutionEnvironmentConfig,
         )
-        from pydantic import TypeAdapter
 
         config: ExecutionEnvironmentConfigType
         match self.execution_environment:

@@ -30,26 +30,16 @@ class AGUIAgentConfig(NodeConfig):
     """
 
     model_config = ConfigDict(
-        json_schema_extra={
-            "x-icon": "mdi:api",
-            "x-doc-title": "AG-UI Agent Configuration",
-        }
+        json_schema_extra={"x-icon": "mdi:api", "x-doc-title": "AG-UI Agent Configuration"}
     )
 
     endpoint: str = Field(
         ...,
-        examples=[
-            "http://localhost:8000/agent/run",
-            "https://api.example.com/v1/agent/run",
-        ],
+        examples=["http://localhost:8000/agent/run", "https://api.example.com/v1/agent/run"],
     )
     """HTTP endpoint for the AG-UI agent server."""
 
-    timeout: float = Field(
-        default=60.0,
-        ge=0.1,
-        examples=[30.0, 60.0, 120.0],
-    )
+    timeout: float = Field(default=60.0, ge=0.1, examples=[30.0, 60.0, 120.0])
     """Request timeout in seconds."""
 
     headers: dict[str, str] = Field(default_factory=dict)
@@ -72,11 +62,7 @@ class AGUIAgentConfig(NodeConfig):
     and terminate it on exit. Useful for testing or self-contained deployments.
     """
 
-    startup_delay: float = Field(
-        default=2.0,
-        ge=0.0,
-        examples=[1.0, 2.0, 5.0],
-    )
+    startup_delay: float = Field(default=2.0, ge=0.0, examples=[1.0, 2.0, 5.0])
     """Seconds to wait after starting server before connecting.
 
     Only relevant when startup_command is provided.

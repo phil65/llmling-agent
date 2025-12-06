@@ -2,10 +2,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-import fsspec
 from fsspec import AbstractFileSystem
 from upath import UPath
-from upathtools import UnionFileSystem
+from upathtools import UnionFileSystem, read_folder, read_path
 from upathtools.configs.base import FileSystemConfig, URIFileSystemConfig
 
 from llmling_agent.log import get_logger
@@ -24,7 +23,7 @@ class VFSRegistry(BaseRegistry[str, AbstractFileSystem]):
     def register(self, name: str, item: Any, replace: bool = False) -> None:
         """Register a new resource."""
         logger.debug("registering resource.", name=name, type=item.__class__.__name__)
-        fsspec.register_implementation(name, item.__class__, clobber=True)
+        # fsspec.register_implementation(name, item.__class__, clobber=True)
         super().register(name, item, replace=replace)
 
     def _validate_item(self, item: Any) -> AbstractFileSystem:
@@ -37,10 +36,8 @@ class VFSRegistry(BaseRegistry[str, AbstractFileSystem]):
         """Register a new resource from config."""
         match config:
             case str() as uri:
-                # Shorthand string -> expand to URIFileSystemConfig
                 fs = URIFileSystemConfig(uri=uri).create_fs()
             case FileSystemConfig():
-                # Any FileSystemConfig subclass (typed or URI-based)
                 fs = config.create_fs()
             case _:
                 msg = f"Unknown resource config type: {type(config)}"
@@ -58,7 +55,6 @@ class VFSRegistry(BaseRegistry[str, AbstractFileSystem]):
         """Get a UPath object for accessing a resource."""
         path = UPath(resource_name or "")
         path._fs_cached = self.get_fs()  # pyright: ignore[reportAttributeAccessIssue]
-        # path._fs_cached = self.get_fs()
         return path
 
     async def get_content(
@@ -86,15 +82,11 @@ class VFSRegistry(BaseRegistry[str, AbstractFileSystem]):
             For files: file content
             For directories: concatenated content of all files
         """
-        from upathtools import read_folder, read_path
-
         if "/" not in path:
             path = f"{path}://"
         _resource, _ = path.split("://", 1)
         fs = self.get_fs()
-        is_dir = await fs._isdir(path)
-
-        if is_dir:
+        if await fs._isdir(path):
             content_dict = await read_folder(
                 path,
                 mode="rt",

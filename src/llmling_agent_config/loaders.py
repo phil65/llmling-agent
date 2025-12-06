@@ -9,7 +9,7 @@ import warnings
 
 from pydantic import ConfigDict, Field, SecretStr, model_validator
 from schemez import Schema
-import upath
+from upathtools import to_upath
 
 from llmling_agent.common_types import JsonObject
 from llmling_agent.utils.importing import import_callable
@@ -89,7 +89,7 @@ class PathResourceLoaderConfig(BaseResourceLoaderConfig):
     def validate_resource(self) -> list[str]:
         """Check if path exists for local files."""
         warnings = []
-        path = upath.UPath(self.path)
+        path = to_upath(self.path)
         prefixes = ("http://", "https://")
         if not path.exists() and not path.as_uri().startswith(prefixes):
             warnings.append(f"Resource path not found: {path}")
@@ -98,7 +98,7 @@ class PathResourceLoaderConfig(BaseResourceLoaderConfig):
     @property
     def supports_watching(self) -> bool:
         """Whether this resource instance supports watching."""
-        if not upath.UPath(self.path).exists():
+        if not to_upath(self.path).exists():
             msg = f"Cannot watch non-existent path: {self.path}"
             warnings.warn(msg, UserWarning, stacklevel=2)
             return False

@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Annotated, Literal, Self
 from pydantic import ConfigDict, Field
 from pydantic_ai import AudioUrl, BinaryContent, BinaryImage, DocumentUrl, ImageUrl
 from schemez import Schema
-from upathtools import read_path
+from upathtools import read_path, to_upath
 
 
 if TYPE_CHECKING:
@@ -63,10 +63,7 @@ class BaseImageContent(BaseContent):
             detail: Optional detail level for processing
             description: Optional description of the image
         """
-        from upathtools import to_upath
-
         path_obj = to_upath(path)
-
         # For http(s) URLs, pass through as URL content
         if path_obj.protocol in {"http", "https"}:
             return ImageURLContent(url=str(path_obj), detail=detail, description=description)
@@ -247,8 +244,6 @@ class AudioBase64Content(AudioContent):
     def from_path(cls, path: JoinablePathLike) -> Self:
         """Create from file path with auto format detection."""
         import mimetypes
-
-        from upathtools import to_upath
 
         path_obj = to_upath(path)
         mime_type, _ = mimetypes.guess_type(str(path_obj))

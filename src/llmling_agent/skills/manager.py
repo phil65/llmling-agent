@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Self
 
-from upath import UPath
+from upathtools import to_upath
 
 from llmling_agent.log import get_logger
 from llmling_agent.skills.registry import SkillsRegistry
@@ -72,7 +72,7 @@ class SkillsManager:
         Args:
             path: Path to directory containing skills
         """
-        upath = UPath(path)
+        upath = to_upath(path)
         if upath not in self.registry.skills_dirs:
             self.registry.skills_dirs.append(upath)
             await self.registry.register_skills_from_path(upath)
