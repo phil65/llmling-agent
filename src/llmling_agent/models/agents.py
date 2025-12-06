@@ -57,7 +57,7 @@ PERMISSION_MODE_MAP: dict[str, ToolConfirmationMode] = {
 }
 
 
-def parse_agent_file(
+def parse_agent_file(  # noqa: PLR0915
     file_path: str,
     *,
     skills_registry: Any | None = None,
@@ -131,7 +131,7 @@ def parse_agent_file(
 
     if not isinstance(metadata, dict):
         msg = f"YAML frontmatter must be a dictionary in {file_path}"
-        raise ValueError(msg)
+        raise ValueError(msg)  # noqa: TRY004
 
     # Extract system prompt (everything after frontmatter)
     system_prompt = content[frontmatter_match.end() :].strip()
@@ -192,9 +192,8 @@ def parse_agent_file(
             logger.debug("OpenCode permission %r in %s (partial mapping)", permission, file_path)
 
         # TODO: OpenCode tools dict format (tool_name: bool) - needs toolset integration
-        if tools := metadata.get("tools"):
-            if isinstance(tools, dict):
-                logger.debug("OpenCode tools dict %r in %s (not yet supported)", tools, file_path)
+        if (tools := metadata.get("tools")) and isinstance(tools, dict):
+            logger.debug("OpenCode tools dict %r in %s (not yet supported)", tools, file_path)
 
     # Claude Code-specific fields
     else:
@@ -210,23 +209,19 @@ def parse_agent_file(
                 )
 
         # TODO: Claude Code tools string format (comma-separated) - needs toolset integration
-        if tools := metadata.get("tools"):
-            if isinstance(tools, str):
-                logger.debug(
-                    "Claude Code tools string %r in %s (not yet supported)", tools, file_path
-                )
+        if (tools := metadata.get("tools")) and isinstance(tools, str):
+            logger.debug("Claude Code tools string %r in %s (not yet supported)", tools, file_path)
 
         # Skills handling (Claude Code only)
-        if skills_str := metadata.get("skills"):
-            if skills_registry is not None:
-                skill_names = [s.strip() for s in skills_str.split(",")]
-                for skill_name in skill_names:
-                    if skill_name not in skills_registry:
-                        logger.warning(
-                            "Skill %r from %s not found in registry, ignoring",
-                            skill_name,
-                            file_path,
-                        )
+        if (skills_str := metadata.get("skills")) and skills_registry is not None:
+            skill_names = [s.strip() for s in skills_str.split(",")]
+            for skill_name in skill_names:
+                if skill_name not in skills_registry:
+                    logger.warning(
+                        "Skill %r from %s not found in registry, ignoring",
+                        skill_name,
+                        file_path,
+                    )
 
     # System prompt from markdown body
     if system_prompt:
