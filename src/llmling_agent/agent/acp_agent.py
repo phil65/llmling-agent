@@ -746,8 +746,8 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         # Determine which conversation to use
         conversation = message_history if message_history is not None else self.conversation
 
-        # Prepare user message for history
-        user_msg, _processed_prompts, _original_message = await prepare_prompts(*prompts)
+        # Prepare user message for history and convert to ACP content blocks
+        user_msg, processed_prompts, _original_message = await prepare_prompts(*prompts)
 
         # Reset state for new prompt
         self._state.text_chunks.clear()
@@ -755,10 +755,13 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         self._state.tool_calls.clear()
         self._state.is_complete = False
         self._state.stop_reason = None
-        prompt_text = " ".join(str(p) for p in prompts)
-        content_blocks = [TextContentBlock(text=prompt_text)]
+
+        # Convert to ACP content blocks (supports text, images, audio)
+        from llmling_agent.agent.acp_converters import convert_to_acp_content
+
+        content_blocks = convert_to_acp_content(processed_prompts)
         prompt_request = PromptRequest(session_id=self._session_id, prompt=content_blocks)
-        self.log.debug("Sending prompt to ACP agent", prompt=prompt_text[:100])
+        self.log.debug("Sending prompt to ACP agent", num_blocks=len(content_blocks))
         # The prompt call blocks until completion, session updates come via notifications
         response: PromptResponse = await self._connection.prompt(prompt_request)
         self._state.is_complete = True
@@ -816,8 +819,8 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         # Determine which conversation to use
         conversation = message_history if message_history is not None else self.conversation
 
-        # Prepare user message for history
-        user_msg, _processed_prompts, _original_message = await prepare_prompts(*prompts)
+        # Prepare user message for history and convert to ACP content blocks
+        user_msg, processed_prompts, _original_message = await prepare_prompts(*prompts)
 
         # Reset state
         run_id = str(uuid.uuid4())
@@ -831,10 +834,12 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         # Emit run started event
         yield RunStartedEvent(thread_id=self.conversation_id, run_id=run_id, agent_name=self.name)
 
-        prompt_text = " ".join(str(p) for p in prompts)
-        content_blocks = [TextContentBlock(text=prompt_text)]
+        # Convert to ACP content blocks (supports text, images, audio)
+        from llmling_agent.agent.acp_converters import convert_to_acp_content
+
+        content_blocks = convert_to_acp_content(processed_prompts)
         prompt_request = PromptRequest(session_id=self._session_id, prompt=content_blocks)
-        self.log.debug("Starting streaming prompt", prompt=prompt_text[:100])
+        self.log.debug("Starting streaming prompt", num_blocks=len(content_blocks))
         # Run prompt in background
         prompt_task = asyncio.create_task(self._connection.prompt(prompt_request))
         last_idx = 0

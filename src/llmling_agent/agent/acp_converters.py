@@ -17,6 +17,11 @@ from acp.schema import (
     AgentMessageChunk,
     AgentPlanUpdate,
     AgentThoughtChunk,
+    AudioContentBlock,
+    BlobResourceContents,
+    EmbeddedResourceContentBlock,
+    ImageContentBlock,
+    ResourceContentBlock,
     TextContentBlock,
     ToolCallProgress,
     ToolCallStart,
@@ -35,9 +40,12 @@ from llmling_agent.agent.events import (
 
 
 if TYPE_CHECKING:
-    from acp.schema import SessionUpdate
+    from collections.abc import Sequence
+
+    from acp.schema import ContentBlock, SessionUpdate
     from acp.schema.tool_call import ToolCallContent, ToolCallLocation
     from llmling_agent.agent.events import RichAgentStreamEvent, ToolCallContentItem
+    from llmling_agent.models.content import BaseContent
 
 
 def convert_acp_locations(
@@ -78,6 +86,79 @@ def convert_acp_content(
 
                     result.append(TextContentItem(text=item.content.text))
     return result
+
+
+def convert_to_acp_content(
+    prompts: Sequence[str | BaseContent],
+) -> list[ContentBlock]:
+    """Convert prompts to ACP ContentBlock format.
+
+    Handles text, images, and audio content types.
+
+    Args:
+        prompts: Processed prompts from prepare_prompts/convert_prompts
+
+    Returns:
+        List of ACP ContentBlock items
+    """
+    from llmling_agent.models.content import (
+        AudioBase64Content,
+        AudioURLContent,
+        ImageBase64Content,
+        ImageURLContent,
+        PDFBase64Content,
+        PDFURLContent,
+    )
+
+    content_blocks: list[ContentBlock] = []
+
+    for item in prompts:
+        match item:
+            case str(text):
+                content_blocks.append(TextContentBlock(text=text))
+            case ImageBase64Content(data=data, mime_type=mime_type):
+                content_blocks.append(ImageContentBlock(data=data, mime_type=mime_type))
+            case ImageURLContent(url=url):
+                # data is required in ImageContentBlock, use ResourceContentBlock for URLs
+                content_blocks.append(
+                    ResourceContentBlock(
+                        uri=url,
+                        name="Image",
+                        mime_type="image/jpeg",
+                    )
+                )
+            case AudioBase64Content(data=data, format=format_):
+                mime_type = f"audio/{format_}" if format_ else "audio/wav"
+                content_blocks.append(AudioContentBlock(data=data, mime_type=mime_type))
+            case AudioURLContent(url=url):
+                # Use ResourceContentBlock for URL-based audio
+                content_blocks.append(
+                    ResourceContentBlock(
+                        uri=url,
+                        name="Audio",
+                        mime_type="audio/wav",
+                        description="Audio content",
+                    )
+                )
+            case PDFBase64Content(data=data):
+                # Use EmbeddedResourceContentBlock for base64 PDF content
+                blob_resource = BlobResourceContents(
+                    blob=data,
+                    mime_type="application/pdf",
+                    uri=f"data:application/pdf;base64,{data[:50]}...",
+                )
+                content_blocks.append(EmbeddedResourceContentBlock(resource=blob_resource))
+            case PDFURLContent(url=url):
+                content_blocks.append(
+                    ResourceContentBlock(
+                        uri=url,
+                        name="PDF",
+                        mime_type="application/pdf",
+                        description="PDF document",
+                    )
+                )
+
+    return content_blocks
 
 
 def acp_to_native_event(update: SessionUpdate) -> RichAgentStreamEvent[Any] | None:  # noqa: PLR0911
