@@ -27,11 +27,6 @@ from llmling_agent_config.forward_targets import (
     FileConnectionConfig,
     NodeConnectionConfig,
 )
-from llmling_agent_config.workers import (
-    ACPAgentWorkerConfig,
-    AgentWorkerConfig,
-    TeamWorkerConfig,
-)
 
 
 if TYPE_CHECKING:
@@ -160,8 +155,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
             agui_agent.agent_pool = self
             self.register(name, agui_agent)
 
-        for agent in self.agents.values():
-            self.setup_agent_workers(agent)
         self._create_teams()
         if connect_nodes:
             self._connect_nodes()
@@ -558,24 +551,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
                     target_node,
                     wait=target.wait_for_completion,
                 )
-
-    def setup_agent_workers(self, agent: Agent[Any, Any]) -> None:
-        """Set up workers for an agent from configuration."""
-        for worker_config in self.manifest.agents[agent.name].workers:
-            try:
-                worker = self.nodes[worker_config.name]
-                match worker_config:
-                    case TeamWorkerConfig() | ACPAgentWorkerConfig():
-                        agent.register_worker(worker)
-                    case AgentWorkerConfig():
-                        agent.register_worker(
-                            worker,
-                            reset_history_on_run=worker_config.reset_history_on_run,
-                            pass_message_history=worker_config.pass_message_history,
-                        )
-            except KeyError as e:
-                msg = f"Worker agent {worker_config.name!r} not found"
-                raise ValueError(msg) from e
 
     @overload
     def get_agent[TResult = str](

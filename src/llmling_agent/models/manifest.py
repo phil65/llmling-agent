@@ -616,6 +616,12 @@ class AgentsManifest(Schema):
         toolsets_list = config.get_toolsets()
         if config_tool_provider := config.get_tool_provider():
             toolsets_list.append(config_tool_provider)
+        # Convert workers config to a toolset (backwards compatibility)
+        if config.workers:
+            from llmling_agent_toolsets.builtin.workers import WorkersTools
+
+            workers_provider = WorkersTools(workers=list(config.workers), name="workers")
+            toolsets_list.append(workers_provider)
         # Step 1: Get agent-specific output type (same as before)
         agent_output_type = self.get_output_type(name) or str
         # Step 2: Resolve it fully with to_type (same as before)

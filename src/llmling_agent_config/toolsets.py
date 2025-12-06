@@ -14,6 +14,7 @@ from tokonomics import ModelName
 from upath import UPath
 
 from llmling_agent_config.converters import ConversionConfig
+from llmling_agent_config.workers import WorkerConfig
 
 
 if TYPE_CHECKING:
@@ -208,6 +209,33 @@ class SubagentToolsetConfig(BaseToolsetConfig):
         from llmling_agent_toolsets.builtin.subagent_tools import SubagentTools
 
         return SubagentTools(name="subagent_tools")
+
+
+class WorkersToolsetConfig(BaseToolsetConfig):
+    """Configuration for worker agent tools.
+
+    Workers are agents or teams registered as tools for the parent agent.
+    This provides a predefined set of worker tools based on configuration.
+    """
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "x-icon": "octicon:people-16",
+            "x-doc-title": "Workers Toolset",
+        }
+    )
+
+    type: Literal["workers"] = Field("workers", init=False)
+    """Workers toolset (predefined agent/team tools)."""
+
+    workers: list[WorkerConfig] = Field(default_factory=list, title="Worker configurations")
+    """List of workers to register as tools."""
+
+    def get_provider(self) -> ResourceProvider:
+        """Create workers tools provider."""
+        from llmling_agent_toolsets.builtin.workers import WorkersTools
+
+        return WorkersTools(workers=self.workers, name="workers")
 
 
 class ExecutionEnvironmentToolsetConfig(BaseToolsetConfig):
@@ -643,6 +671,7 @@ ToolsetConfig = Annotated[
     | FSSpecToolsetConfig
     | VFSToolsetConfig
     | SubagentToolsetConfig
+    | WorkersToolsetConfig
     | CodeModeToolsetConfig
     | RemoteCodeModeToolsetConfig
     | SearchToolsetConfig

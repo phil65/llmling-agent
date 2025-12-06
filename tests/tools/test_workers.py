@@ -106,8 +106,9 @@ async def test_basic_worker_setup(tmp_path: Path):
 
     async with AgentPool(manifest) as pool:
         main_agent = pool.get_agent("main")
-        # Verify workers were registered as tools
-        tool_names = [i.name for i in main_agent.tools.worker_provider._tools]
+        # Verify workers were registered as tools via toolset
+        tools = await main_agent.tools.get_tools()
+        tool_names = [t.name for t in tools]
         assert "ask_worker" in tool_names
         assert "ask_specialist" in tool_names
 
@@ -150,9 +151,13 @@ async def test_invalid_worker(tmp_path: Path):
     """Test error when using non-existent worker."""
     config_path = write_config(INVALID_WORKERS, tmp_path)
     manifest = AgentsManifest.from_file(config_path)
-    with pytest.raises(ValueError, match=r"Worker agent.*not found"):
-        async with AgentPool(manifest):
-            pass
+    # With toolset approach, error happens at tool call time, not pool init
+    async with AgentPool(manifest) as pool:
+        main_agent = pool.get_agent("main")
+        # Tool is created but will fail when called
+        tools = await main_agent.tools.get_tools()
+        tool_names = [t.name for t in tools]
+        assert "ask_nonexistent" in tool_names
 
 
 async def test_worker_independence(tmp_path: Path):

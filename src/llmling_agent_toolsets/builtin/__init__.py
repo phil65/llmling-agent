@@ -13,6 +13,7 @@ from llmling_agent_toolsets.builtin.integration import IntegrationTools
 from llmling_agent_toolsets.builtin.skills import SkillsTools
 from llmling_agent_toolsets.builtin.tool_management import ToolManagementTools
 from llmling_agent_toolsets.builtin.user_interaction import UserInteractionTools
+from llmling_agent_toolsets.builtin.workers import WorkersTools
 
 
 __all__ = [
@@ -26,4 +27,5 @@ __all__ = [
     "SubagentTools",
     "ToolManagementTools",
     "UserInteractionTools",
+    "WorkersTools",
 ]
