@@ -15,8 +15,9 @@ from llmling_agent.ui.base import InputProvider
 
 if TYPE_CHECKING:
     from acp import RequestPermissionResponse
-    from llmling_agent.agent.context import AgentContext, ConfirmationResult
+    from llmling_agent.agent.context import ConfirmationResult
     from llmling_agent.messaging import ChatMessage
+    from llmling_agent.messaging.context import NodeContext
     from llmling_agent.tools.base import Tool
     from llmling_agent_server.acp_server.session import ACPSession
 
@@ -99,7 +100,7 @@ class ACPInputProvider(InputProvider):
 
     async def get_tool_confirmation(
         self,
-        context: AgentContext[Any],
+        context: NodeContext[Any],
         tool: Tool,
         args: dict[str, Any],
         message_history: list[ChatMessage[Any]] | None = None,
@@ -110,7 +111,7 @@ class ACPInputProvider(InputProvider):
         the client for confirmation before executing the tool.
 
         Args:
-            context: Current agent context
+            context: Current node context
             tool: Information about the tool to be executed
             args: Tool arguments that will be passed to the tool
             message_history: Optional conversation history
