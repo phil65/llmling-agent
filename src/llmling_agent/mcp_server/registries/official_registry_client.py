@@ -12,18 +12,17 @@ import time
 from typing import Any, Literal, Self
 
 import httpx
-from pydantic import Field, field_validator
+from pydantic import Field
 from schemez import Schema
 
 
 # Constants
 HTTP_NOT_FOUND = 404
 CACHE_TTL = 3600  # 1 hour
+NAME = "io.modelcontextprotocol.registry/official"
 
 ServiceName = str
 log = logging.getLogger(__name__)
-
-
 TransportType = Literal["stdio", "sse", "websocket", "http"]
 
 
@@ -34,15 +33,12 @@ class UnsupportedTransportError(Exception):
 class RegistryRepository(Schema):
     """Repository information for a registry server."""
 
-    url: str
-    source: str
+    url: str | None = None
+    source: str | None = None
     """Repository platform (e.g., 'github')."""
 
-    @field_validator("url")
-    @classmethod
-    def validate_url(cls, v: str) -> str:
-        """Allow empty URLs from registry."""
-        return v
+    subfolder: str | None = None
+    """Repository subfolder path."""
 
 
 class RegistryTransport(Schema):
@@ -229,39 +225,24 @@ class MCPRegistryClient:
             msg = f"Failed to list servers: {e}"
             raise MCPRegistryError(msg) from e
         else:
-            response_data = RegistryListResponse(**data)
-            wrappers = response_data.servers
-
+            data = RegistryListResponse(**data)
             if status:  # Filter by status from metadata
-                wrappers = [
-                    wrapper
-                    for wrapper in wrappers
-                    if wrapper.meta.get("io.modelcontextprotocol.registry/official", {}).get(
-                        "status"
-                    )
-                    == status
-                ]
-
+                wrappers = [w for w in data.servers if w.meta.get(NAME, {}).get("status") == status]
+            else:
+                wrappers = data.servers
             servers = [wrapper.server for wrapper in wrappers]
             if search:  # Filter by search term
-                search_lower = search.lower()
-                servers = [
-                    s
-                    for s in servers
-                    if search_lower in s.name.lower() or search_lower in s.description.lower()
-                ]
-
+                lower = search.lower()
+                servers = [s for s in servers if lower in s.name.lower() + s.description.lower()]
             # Cache the result
-            self._cache_lists[cache_key] = ListServersCacheEntry(
-                servers=servers, timestamp=time.time()
-            )
+            ts = time.time()
+            self._cache_lists[cache_key] = ListServersCacheEntry(servers=servers, timestamp=ts)
             log.info("Successfully fetched %d servers", len(servers))
             return servers
 
     async def get_server(self, server_id: str) -> RegistryServer:
         """Get full server details including packages."""
         cache_key = f"server:{server_id}"
-
         # Check cache first
         if cache_key in self._cache_servers:
             cached_entry = self._cache_servers[cache_key]
@@ -269,15 +250,13 @@ class MCPRegistryClient:
                 log.debug("Using cached server details for %s", server_id)
                 return cached_entry.server
 
+        log.info("Fetching server details for %s", server_id)
         try:
-            log.info("Fetching server details for %s", server_id)
-
             # Get all wrappers to access metadata
             response = await self.client.get(f"{self.base_url}/v0/servers")
             response.raise_for_status()
             data = response.json()
             response_data = RegistryListResponse(**data)
-
             # Find server by name
             target_wrapper = None
             for wrapper in response_data.servers:
@@ -288,29 +267,15 @@ class MCPRegistryClient:
             if not target_wrapper:
                 msg = f"Server {server_id!r} not found in registry"
                 raise MCPRegistryError(msg)
-
             # Get the UUID from metadata
-            server_uuid = target_wrapper.meta.get(
-                "io.modelcontextprotocol.registry/official", {}
-            ).get("id")
-
+            server_uuid = target_wrapper.meta.get(NAME, {}).get("id")
             if not server_uuid:
                 msg = f"No UUID found for server {server_id!r}"
                 raise MCPRegistryError(msg)
-
             # Now fetch the full server details using UUID
             response = await self.client.get(f"{self.base_url}/v0/servers/{server_uuid}")
             response.raise_for_status()
-
             server_data = response.json()
-            server = RegistryServer(**server_data)
-
-            # Cache the result
-            self._cache_servers[cache_key] = GetServerCacheEntry(
-                server=server, timestamp=time.time()
-            )
-            log.info("Successfully fetched server details for %s", server_id)
-
         except httpx.HTTPStatusError as e:
             if e.response.status_code == HTTP_NOT_FOUND:
                 msg = f"Server {server_id!r} not found in registry"
@@ -321,6 +286,10 @@ class MCPRegistryClient:
             msg = f"Failed to get server details: {e}"
             raise MCPRegistryError(msg) from e
         else:
+            server = RegistryServer(**server_data)
+            ts = time.time()
+            self._cache_servers[cache_key] = GetServerCacheEntry(server=server, timestamp=ts)
+            log.info("Successfully fetched server details for %s", server_id)
             return server
 
     def clear_cache(self) -> None:
