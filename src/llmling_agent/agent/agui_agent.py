@@ -11,11 +11,13 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Self
 from uuid import uuid4
 
+from anyenv import MultiEventHandler
 import httpx
 from pydantic import TypeAdapter
 
 from llmling_agent.agent.conversation import MessageHistory
 from llmling_agent.agent.events import StreamCompleteEvent
+from llmling_agent.common_types import IndividualEventHandler
 from llmling_agent.log import get_logger
 from llmling_agent.messaging import ChatMessage
 from llmling_agent.messaging.messagenode import MessageNode
@@ -179,6 +181,7 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
         agent_pool: AgentPool[Any] | None = None,
         enable_logging: bool = True,
         event_configs: Sequence[EventConfig] | None = None,
+        event_handlers: Sequence[IndividualEventHandler] | None = None,
     ) -> None:
         """Initialize AG-UI agent client.
 
@@ -197,6 +200,7 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
             agent_pool: Agent pool for multi-agent coordination
             enable_logging: Whether to enable database logging
             event_configs: Event trigger configurations
+            event_handlers: Sequence of event handlers to register
         """
         super().__init__(
             name=name,
@@ -221,6 +225,8 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
         self._message_count = 0
         self.conversation = MessageHistory()
         self._total_tokens = 0
+        self._event_queue: asyncio.Queue[RichAgentStreamEvent[Any]] = asyncio.Queue()
+        self.event_handler = MultiEventHandler[IndividualEventHandler](event_handlers)
 
     @property
     def context(self) -> NodeContext:
@@ -433,11 +439,14 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
         self._state.run_id = str(uuid4())
 
         # Emit run started event
-        yield RunStartedEvent(
+        run_started = RunStartedEvent(
             thread_id=self._state.thread_id,
             run_id=self._state.run_id,
             agent_name=self.name,
         )
+        for handler in self.event_handler._wrapped_handlers:
+            await handler(None, run_started)
+        yield run_started
 
         # Build request with proper content conversion
         content = await _convert_to_agui_content(prompts)
@@ -470,8 +479,20 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
                     if text := extract_text_from_event(event):
                         self._state.text_chunks.append(text)
 
-                    # Convert to native event
+                    # Convert to native event and distribute to handlers
                     if native_event := agui_to_native_event(event):
+                        # Check for queued custom events first
+                        while not self._event_queue.empty():
+                            try:
+                                custom_event = self._event_queue.get_nowait()
+                                for handler in self.event_handler._wrapped_handlers:
+                                    await handler(None, custom_event)
+                                yield custom_event
+                            except asyncio.QueueEmpty:
+                                break
+                        # Distribute to handlers
+                        for handler in self.event_handler._wrapped_handlers:
+                            await handler(None, native_event)
                         yield native_event
 
         except httpx.HTTPError as e:
@@ -491,7 +512,10 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
                 model_name=None,
                 cost_info=None,
             )
-            yield StreamCompleteEvent(message=final_message)
+            complete_event = StreamCompleteEvent(message=final_message)
+            for handler in self.event_handler._wrapped_handlers:
+                await handler(None, complete_event)
+            yield complete_event
 
             # Record to conversation history
             conversation.add_chat_messages([user_msg, final_message])

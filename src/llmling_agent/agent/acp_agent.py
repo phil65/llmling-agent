@@ -32,6 +32,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Self, overload
 import uuid
 
+from anyenv import MultiEventHandler
+
 from acp.client.connection import ClientSideConnection
 from acp.client.protocol import Client
 from acp.schema import (
@@ -56,6 +58,7 @@ from acp.schema import (
     WriteTextFileResponse,
 )
 from llmling_agent.agent.conversation import MessageHistory
+from llmling_agent.common_types import IndividualEventHandler
 from llmling_agent.log import get_logger
 from llmling_agent.messaging import ChatMessage
 from llmling_agent.messaging.messagenode import MessageNode
@@ -540,6 +543,7 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         agent_pool: AgentPool[Any] | None = None,
         enable_logging: bool = True,
         event_configs: Sequence[EventConfig] | None = None,
+        event_handlers: Sequence[IndividualEventHandler] | None = None,
     ) -> None:
         # Build config from kwargs if not provided
         if config is None:
@@ -582,6 +586,8 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         self._output_type = str
         self.conversation = MessageHistory()
         self.deps_type = type(None)
+        self._event_queue: asyncio.Queue[RichAgentStreamEvent[Any]] = asyncio.Queue()
+        self.event_handler = MultiEventHandler[IndividualEventHandler](event_handlers)
 
     @property
     def context(self) -> NodeContext:
@@ -783,7 +789,7 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
 
         return message
 
-    async def run_stream(
+    async def run_stream(  # noqa: PLR0915
         self,
         *prompts: PromptCompatible,
         message_id: str | None = None,
@@ -832,7 +838,12 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         self._state.stop_reason = None
 
         # Emit run started event
-        yield RunStartedEvent(thread_id=self.conversation_id, run_id=run_id, agent_name=self.name)
+        run_started = RunStartedEvent(
+            thread_id=self.conversation_id, run_id=run_id, agent_name=self.name
+        )
+        for handler in self.event_handler._wrapped_handlers:
+            await handler(None, run_started)
+        yield run_started
 
         # Convert to ACP content blocks (supports text, images, audio)
         from llmling_agent.agent.acp_converters import convert_to_acp_content
@@ -852,14 +863,30 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
                 except TimeoutError:
                     pass
 
-            # Yield new native events
+            # Yield new native events and distribute to handlers
             while last_idx < len(self._state.events):
-                yield self._state.events[last_idx]
+                event = self._state.events[last_idx]
+                # Check for queued custom events first
+                while not self._event_queue.empty():
+                    try:
+                        custom_event = self._event_queue.get_nowait()
+                        for handler in self.event_handler._wrapped_handlers:
+                            await handler(None, custom_event)
+                        yield custom_event
+                    except asyncio.QueueEmpty:
+                        break
+                # Distribute to handlers
+                for handler in self.event_handler._wrapped_handlers:
+                    await handler(None, event)
+                yield event
                 last_idx += 1
 
         # Yield remaining events after completion
         while last_idx < len(self._state.events):
-            yield self._state.events[last_idx]
+            event = self._state.events[last_idx]
+            for handler in self.event_handler._wrapped_handlers:
+                await handler(None, event)
+            yield event
             last_idx += 1
 
         # Ensure we catch any exceptions from the prompt task
@@ -877,7 +904,10 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
             conversation_id=self.conversation_id,
             model_name=self.model_name,
         )
-        yield StreamCompleteEvent(message=message)
+        complete_event = StreamCompleteEvent(message=message)
+        for handler in self.event_handler._wrapped_handlers:
+            await handler(None, complete_event)
+        yield complete_event
         self.message_sent.emit(message)
 
         # Record to conversation history
