@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import asyncio
 from typing import TYPE_CHECKING
 
@@ -44,14 +45,14 @@ app = Starlette(
 )
 
 
-async def main() -> None:
+async def main(port: int = 8765) -> None:
     """Run the AG-UI test server."""
     import uvicorn
 
     config = uvicorn.Config(
         app,
         host="127.0.0.1",
-        port=8765,
+        port=port,
         log_level="info",
     )
     server = uvicorn.Server(config)
@@ -59,4 +60,7 @@ async def main() -> None:
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--port", type=int, default=8765)
+    args = parser.parse_args()
+    asyncio.run(main(args.port))

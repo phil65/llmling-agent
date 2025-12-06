@@ -23,6 +23,7 @@ from llmling_agent.talk.stats import MessageStats
 
 
 if TYPE_CHECKING:
+    from asyncio.subprocess import Process
     from collections.abc import AsyncIterator, Callable, Sequence
     from types import TracebackType
 
@@ -76,6 +77,7 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
 
     Example:
         ```python
+        # Connect to existing server
         async with AGUIAgent(
             endpoint="http://localhost:8000/agent/run",
             name="remote-agent"
@@ -83,6 +85,15 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
             result = await agent.run("Hello, world!")
             async for event in agent.run_stream("Tell me a story"):
                 print(event)
+
+        # Start server automatically (useful for testing)
+        async with AGUIAgent(
+            endpoint="http://localhost:8000/agent/run",
+            name="test-agent",
+            startup_command="ag ui agent config.yml",
+            startup_delay=2.0,
+        ) as agent:
+            result = await agent.run("Test prompt")
         ```
     """
 
@@ -95,6 +106,8 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
         display_name: str | None = None,
         timeout: float = 60.0,
         headers: dict[str, str] | None = None,
+        startup_command: str | None = None,
+        startup_delay: float = 2.0,
         mcp_servers: Sequence[str | MCPServerConfig] | None = None,
         agent_pool: AgentPool[Any] | None = None,
         enable_logging: bool = True,
@@ -109,6 +122,10 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
             display_name: Human-readable display name
             timeout: Request timeout in seconds
             headers: Additional HTTP headers
+            startup_command: Optional shell command to start server automatically.
+                           Useful for testing - server lifecycle is managed by the agent.
+                           Example: "ag ui agent config.yml"
+            startup_delay: Seconds to wait after starting server before connecting (default: 2.0)
             mcp_servers: MCP servers to connect
             agent_pool: Agent pool for multi-agent coordination
             enable_logging: Whether to enable database logging
@@ -126,6 +143,11 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
         self.endpoint = endpoint
         self.timeout = timeout
         self.headers = headers or {}
+
+        # Startup command configuration
+        self._startup_command = startup_command
+        self._startup_delay = startup_delay
+        self._startup_process: Process | None = None
 
         self._client: httpx.AsyncClient | None = None
         self._state: AGUISessionState | None = None
@@ -149,6 +171,7 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
     async def __aenter__(self) -> Self:
         """Enter async context - initialize client and base resources."""
         await super().__aenter__()
+
         self._client = httpx.AsyncClient(
             timeout=httpx.Timeout(self.timeout),
             headers={
@@ -158,6 +181,11 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
             },
         )
         self._state = AGUISessionState(thread_id=self.conversation_id)
+
+        # Start server if startup command is provided
+        if self._startup_command:
+            await self._start_server()
+
         self.log.debug("AG-UI client initialized", endpoint=self.endpoint)
         return self
 
@@ -172,8 +200,61 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
             await self._client.aclose()
             self._client = None
         self._state = None
+
+        # Stop server if we started it
+        if self._startup_process:
+            await self._stop_server()
+
         self.log.debug("AG-UI client closed")
         await super().__aexit__(exc_type, exc_val, exc_tb)
+
+    async def _start_server(self) -> None:
+        """Start the AG-UI server subprocess."""
+        if not self._startup_command:
+            return
+
+        self.log.info("Starting AG-UI server", command=self._startup_command)
+
+        self._startup_process = await asyncio.create_subprocess_shell(
+            self._startup_command,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            start_new_session=True,  # Create new process group
+        )
+
+        self.log.debug("Waiting for server startup", delay=self._startup_delay)
+        await asyncio.sleep(self._startup_delay)
+
+        # Check if process is still running
+        if self._startup_process.returncode is not None:
+            stderr = ""
+            if self._startup_process.stderr:
+                stderr = (await self._startup_process.stderr.read()).decode()
+            msg = f"Startup process exited with code {self._startup_process.returncode}: {stderr}"
+            raise RuntimeError(msg)
+
+        self.log.info("AG-UI server started")
+
+    async def _stop_server(self) -> None:
+        """Stop the AG-UI server subprocess."""
+        if not self._startup_process:
+            return
+
+        self.log.info("Stopping AG-UI server")
+
+        import os
+        import signal
+
+        try:
+            # Kill entire process group (server + children like uvicorn workers)
+            os.killpg(os.getpgid(self._startup_process.pid), signal.SIGKILL)
+            await self._startup_process.wait()
+        except (ProcessLookupError, OSError):
+            # Process already dead
+            pass
+        finally:
+            self._startup_process = None
+            self.log.info("AG-UI server stopped")
 
     async def run(
         self,
