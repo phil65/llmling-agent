@@ -14,7 +14,6 @@ from uuid import uuid4
 import httpx
 from pydantic import TypeAdapter
 
-from llmling_agent.agent.agui_converters import agui_to_native_event, extract_text_from_event
 from llmling_agent.agent.events import StreamCompleteEvent
 from llmling_agent.log import get_logger
 from llmling_agent.messaging import ChatMessage
@@ -390,6 +389,12 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
         """
         from ag_ui.core import RunAgentInput, UserMessage
 
+        from llmling_agent.agent.agui_converters import (
+            agui_to_native_event,
+            extract_text_from_event,
+        )
+        from llmling_agent.agent.events import RunStartedEvent
+
         if not self._client or not self._state:
             msg = "Agent not initialized - use async context manager"
             raise RuntimeError(msg)
@@ -401,6 +406,13 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
         self._state.is_complete = False
         self._state.error = None
         self._state.run_id = str(uuid4())
+
+        # Emit run started event
+        yield RunStartedEvent(
+            thread_id=self._state.thread_id,
+            run_id=self._state.run_id,
+            agent_name=self.name,
+        )
 
         # Build request with proper content conversion
         content = await _convert_to_agui_content(prompts)

@@ -786,10 +786,17 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             UnexpectedModelBehavior: If the model fails or behaves unexpectedly
         """
         message_id = message_id or str(uuid4())
+        run_id = str(uuid4())
         user_msg, prompts, _original_message = await prepare_prompts(*prompt)
         self.message_received.emit(user_msg)
         start_time = time.perf_counter()
         message_history = messages if messages is not None else self.conversation.get_history()
+
+        # Emit run started event
+        from llmling_agent.agent.events import RunStartedEvent
+
+        yield RunStartedEvent(thread_id=self.conversation_id, run_id=run_id, agent_name=self.name)
+
         try:
             agentlet = await self.get_agentlet(
                 tool_choice, model, output_type, self.deps_type, input_provider

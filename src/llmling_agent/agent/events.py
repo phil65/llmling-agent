@@ -23,6 +23,39 @@ if TYPE_CHECKING:
     from llmling_agent.tools.base import ToolKind
 
 
+# Lifecycle events (aligned with AG-UI protocol)
+
+
+@dataclass(kw_only=True)
+class RunStartedEvent:
+    """Signals the start of an agent run."""
+
+    thread_id: str
+    """ID of the conversation thread (conversation_id)."""
+    run_id: str
+    """ID of the agent run (unique per request/response cycle)."""
+    agent_name: str | None = None
+    """Name of the agent starting the run."""
+    event_kind: Literal["run_started"] = "run_started"
+    """Event type identifier."""
+
+
+@dataclass(kw_only=True)
+class RunErrorEvent:
+    """Signals an error during an agent run."""
+
+    message: str
+    """Error message."""
+    code: str | None = None
+    """Error code."""
+    run_id: str | None = None
+    """ID of the agent run that failed."""
+    agent_name: str | None = None
+    """Name of the agent that errored."""
+    event_kind: Literal["run_error"] = "run_error"
+    """Event type identifier."""
+
+
 # Unified tool call content models (dataclass versions of ACP schema models)
 
 
@@ -374,6 +407,8 @@ class ProcessReleaseEvent:
 type RichAgentStreamEvent[OutputDataT] = (
     AgentStreamEvent
     | StreamCompleteEvent[OutputDataT]
+    | RunStartedEvent
+    | RunErrorEvent
     | ToolCallStartEvent
     | ToolCallProgressEvent
     | ToolCallCompleteEvent

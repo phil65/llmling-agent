@@ -788,19 +788,24 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
             self._input_provider = input_provider
             if self._client_handler:
                 self._client_handler._input_provider = input_provider
-        from llmling_agent.agent.events import StreamCompleteEvent
+        from llmling_agent.agent.events import RunStartedEvent, StreamCompleteEvent
 
         if not self._connection or not self._session_id or not self._state:
             msg = "Agent not initialized - use async context manager"
             raise RuntimeError(msg)
 
         # Reset state
+        run_id = str(uuid.uuid4())
         self._state.text_chunks.clear()
         self._state.thought_chunks.clear()
         self._state.tool_calls.clear()
         self._state.events.clear()
         self._state.is_complete = False
         self._state.stop_reason = None
+
+        # Emit run started event
+        yield RunStartedEvent(thread_id=self.conversation_id, run_id=run_id, agent_name=self.name)
+
         prompt_text = " ".join(str(p) for p in prompts)
         content_blocks = [TextContentBlock(text=prompt_text)]
         prompt_request = PromptRequest(session_id=self._session_id, prompt=content_blocks)

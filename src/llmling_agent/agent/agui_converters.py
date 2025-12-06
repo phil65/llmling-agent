@@ -11,6 +11,13 @@ from typing import TYPE_CHECKING, Any
 from ag_ui.core import (
     ActivityDeltaEvent,
     ActivitySnapshotEvent,
+    CustomEvent as AGUICustomEvent,
+    MessagesSnapshotEvent,
+    RawEvent,
+    RunErrorEvent as AGUIRunErrorEvent,
+    RunStartedEvent as AGUIRunStartedEvent,
+    StateDeltaEvent,
+    StateSnapshotEvent,
     TextMessageChunkEvent,
     TextMessageContentEvent,
     TextMessageEndEvent,
@@ -28,15 +35,18 @@ from pydantic_ai import PartDeltaEvent
 from pydantic_ai.messages import TextPartDelta, ThinkingPartDelta
 
 from llmling_agent.agent.events import (
+    CustomEvent,
+    PlanUpdateEvent,
+    RunErrorEvent,
+    RunStartedEvent,
     ToolCallProgressEvent,
     ToolCallStartEvent as NativeToolCallStartEvent,
 )
+from llmling_agent.resource_providers.plan_provider import PlanEntry
 
 
 if TYPE_CHECKING:
-    from ag_ui.core import (
-        Event,
-    )
+    from ag_ui.core import Event
 
     from llmling_agent.agent.events import RichAgentStreamEvent
 
@@ -51,26 +61,33 @@ def agui_to_native_event(event: Event) -> RichAgentStreamEvent[Any] | None:  # n
         Corresponding native event, or None if no mapping exists
     """
     match event:
-        # Text message content -> PartDeltaEvent with TextPartDelta
+        # === Lifecycle Events ===
+
+        case AGUIRunStartedEvent(thread_id=thread_id, run_id=run_id):
+            return RunStartedEvent(thread_id=thread_id, run_id=run_id)
+
+        case AGUIRunErrorEvent(message=message, code=code):
+            return RunErrorEvent(message=message, code=code)
+
+        # === Text Message Events ===
+
         case TextMessageContentEvent(delta=delta):
             return PartDeltaEvent(index=0, delta=TextPartDelta(content_delta=delta))
 
-        # Text message chunks -> PartDeltaEvent with TextPartDelta
         case TextMessageChunkEvent(delta=delta) if delta:
             return PartDeltaEvent(index=0, delta=TextPartDelta(content_delta=delta))
 
-        # Thinking message content -> PartDeltaEvent with ThinkingPartDelta
         case ThinkingTextMessageContentEvent(delta=delta):
             return PartDeltaEvent(index=0, delta=ThinkingPartDelta(content_delta=delta))
 
-        # Message start/end events - could be used for metadata tracking
         case TextMessageStartEvent() | TextMessageEndEvent():
             return None
 
         case ThinkingTextMessageStartEvent() | ThinkingTextMessageEndEvent():
             return None
 
-        # Tool call start -> NativeToolCallStartEvent
+        # === Tool Call Events ===
+
         case ToolCallStartEvent(
             tool_call_id=tool_call_id, tool_call_name=tool_name, parent_message_id=_
         ):
@@ -84,14 +101,12 @@ def agui_to_native_event(event: Event) -> RichAgentStreamEvent[Any] | None:  # n
                 raw_input={},
             )
 
-        # Tool call chunks -> NativeToolCallStartEvent if new, else progress
         case ToolCallChunkEvent(
             tool_call_id=tool_call_id,
             tool_call_name=tool_name,
             parent_message_id=_,
             delta=_,
         ) if tool_call_id and tool_name:
-            # This is a new tool call
             return NativeToolCallStartEvent(
                 tool_call_id=tool_call_id,
                 tool_name=tool_name,
@@ -102,14 +117,12 @@ def agui_to_native_event(event: Event) -> RichAgentStreamEvent[Any] | None:  # n
                 raw_input={},
             )
 
-        # Tool call args accumulation - treat as progress
         case ToolCallArgsEvent(tool_call_id=tool_call_id, delta=_):
             return ToolCallProgressEvent(
                 tool_call_id=tool_call_id,
                 status="in_progress",
             )
 
-        # Tool call result
         case ToolCallResultEvent(
             tool_call_id=tool_call_id,
             content=content,
@@ -121,23 +134,109 @@ def agui_to_native_event(event: Event) -> RichAgentStreamEvent[Any] | None:  # n
                 message=content,
             )
 
-        # Tool call end
         case ToolCallEndEvent(tool_call_id=tool_call_id):
             return ToolCallProgressEvent(
                 tool_call_id=tool_call_id,
                 status="completed",
             )
 
-        # Activity events - could map to plan or custom events
-        case ActivitySnapshotEvent(message_id=_, activity_type=_, content=_, replace=_):
-            # Could be used for plan updates if activity_type == "PLAN"
-            return None
+        # === Activity Events -> PlanUpdateEvent ===
 
-        case ActivityDeltaEvent(message_id=_, activity_type=_, patch=_):
-            return None
+        case ActivitySnapshotEvent(
+            message_id=_, activity_type=activity_type, content=content, replace=_
+        ):
+            # Map activity content to plan entries if it looks like a plan
+            if activity_type.upper() == "PLAN" and isinstance(content, list):
+                entries = _content_to_plan_entries(content)
+                if entries:
+                    return PlanUpdateEvent(entries=entries)
+            # For other activity types, wrap as custom event
+            return CustomEvent(
+                event_data={"activity_type": activity_type, "content": content},
+                event_type=f"activity_{activity_type.lower()}",
+                source="ag-ui",
+            )
+
+        case ActivityDeltaEvent(message_id=_, activity_type=activity_type, patch=patch):
+            return CustomEvent(
+                event_data={"activity_type": activity_type, "patch": patch},
+                event_type=f"activity_delta_{activity_type.lower()}",
+                source="ag-ui",
+            )
+
+        # === State Management Events ===
+
+        case StateSnapshotEvent(snapshot=snapshot):
+            return CustomEvent(
+                event_data=snapshot,
+                event_type="state_snapshot",
+                source="ag-ui",
+            )
+
+        case StateDeltaEvent(delta=delta):
+            return CustomEvent(
+                event_data=delta,
+                event_type="state_delta",
+                source="ag-ui",
+            )
+
+        case MessagesSnapshotEvent(messages=messages):
+            return CustomEvent(
+                event_data=[m.model_dump() if hasattr(m, "model_dump") else m for m in messages],
+                event_type="messages_snapshot",
+                source="ag-ui",
+            )
+
+        # === Special Events ===
+
+        case RawEvent(event=raw_event, source=source):
+            return CustomEvent(
+                event_data=raw_event,
+                event_type="raw",
+                source=source or "ag-ui",
+            )
+
+        case AGUICustomEvent(name=name, value=value):
+            return CustomEvent(
+                event_data=value,
+                event_type=name,
+                source="ag-ui",
+            )
 
         case _:
             return None
+
+
+def _content_to_plan_entries(content: list[Any]) -> list[PlanEntry]:
+    """Convert AG-UI activity content to PlanEntry list.
+
+    Args:
+        content: List of plan items from ActivitySnapshotEvent
+
+    Returns:
+        List of PlanEntry objects
+    """
+    entries: list[PlanEntry] = []
+    for item in content:
+        if isinstance(item, dict):
+            # Try to extract plan entry fields
+            entry_content = item.get("content") or item.get("text") or item.get("description", "")
+            priority = item.get("priority", "medium")
+            status = item.get("status", "pending")
+
+            # Normalize values
+            if priority not in ("high", "medium", "low"):
+                priority = "medium"
+            if status not in ("pending", "in_progress", "completed"):
+                status = "pending"
+
+            if entry_content:
+                entries.append(
+                    PlanEntry(content=str(entry_content), priority=priority, status=status)
+                )
+        elif isinstance(item, str):
+            entries.append(PlanEntry(content=item, priority="medium", status="pending"))
+    return entries
 
 
 def extract_text_from_event(event: Event) -> str | None:

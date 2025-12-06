@@ -107,7 +107,7 @@ async def test_agui_agent_run_stream(mock_sse_response):
 
             # Should have text deltas and final message
             assert len(collected_events) > 0
-            assert agent._state.text_chunks == ["Hello", " world"]
+            assert agent._state.text_chunks == ["Hello", " world"]  # pyright: ignore[reportOptionalMemberAccess]
 
 
 @pytest.mark.asyncio
@@ -231,7 +231,7 @@ async def test_agui_agent_to_tool():
 
             assert callable(tool)
             assert tool.__name__ == "test-agent"
-            assert "Test tool description" in tool.__doc__
+            assert "Test tool description" in str(tool.__doc__)
 
             result = await tool("Test question")
             assert result == "Answer"
@@ -281,5 +281,5 @@ async def test_agui_agent_error_handling(mock_sse_response):
             with pytest.raises(httpx.HTTPStatusError):
                 async for _ in agent.run_stream("Test"):
                     pass
-
+            assert agent._state
             assert agent._state.error is not None
