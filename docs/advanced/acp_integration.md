@@ -110,6 +110,77 @@ Each agent appears as a separate "mode" in the IDE interface, allowing users to:
 - Maintain separate conversation contexts per agent
 - Access agent-specific capabilities and tools
 
+## External ACP Agents
+
+llmling-agent can integrate external ACP-enabled agents (like Claude Code, Codex, Goose, etc.) into your agent pool through YAML configuration. This allows you to delegate tasks to specialized external agents while maintaining a unified interface.
+
+### Configuration
+
+Define external ACP agents in your manifest:
+
+```yaml
+# agents.yml
+acp_agents:
+  claude:
+    type: claude
+    display_name: "Claude Code"
+    description: "Claude Code through ACP"
+  
+  codex:
+    type: codex
+    display_name: "Codex"
+    description: "Codex Code through ACP"
+  
+  goose:
+    type: goose
+    display_name: "Goose"
+    description: "Block's Goose agent through ACP"
+  
+  fast-agent:
+    type: fast-agent
+    display_name: "Fast Agent"
+    description: "fast-agent through ACP"
+    model: openai.gpt-4o
+
+agents:
+  coordinator:
+    model: openai:gpt-5-mini
+    toolsets:
+      - type: agent_management  # Enables delegation to ACP agents
+```
+
+### Supported External Agents
+
+- **claude**: Claude Code (Anthropic's coding assistant)
+- **codex**: OpenAI Codex
+- **opencode**: OpenCode agent
+- **goose**: Block's Goose agent
+- **fast-agent**: Fast Agent with configurable models
+- **openhands**: OpenHands (formerly OpenDevin)
+- **gemini**: Google's Gemini Code
+
+### Usage with Agent Pool
+
+Once configured, external ACP agents are automatically available in the agent pool:
+
+```python
+from llmling_agent.delegation import AgentPool
+
+async def main():
+    async with AgentPool("agents.yml") as pool:
+        # Access external ACP agents just like regular agents
+        claude = pool.get_agent("claude")
+        result = await claude.run("Refactor this code to use async/await")
+        
+        # Or delegate from a coordinator agent
+        coordinator = pool.get_agent("coordinator")
+        result = await coordinator.run(
+            "Use the Claude agent to review and improve the codebase"
+        )
+```
+
+The external agents are spawned as subprocess instances and communicate via the ACP protocol, with automatic lifecycle management and cleanup.
+
 ## Configuration
 
 ### Remote Configurations

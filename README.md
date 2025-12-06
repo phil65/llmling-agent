@@ -43,6 +43,7 @@ LLMling Agent is a framework for creating and managing LLM-powered agents. It in
 - 📕 Integrated prompt management system.
 - 🔧 Tasks, tools, and what else you can expect from an Agent framework.
 - 🖥️ ACP (Agent Client Protocol) integration for seamless IDE connectivity via JSON-RPC 2.0
+- 🤝 Integrate multiple external ACP agents (Claude Code, Codex, Goose, etc.) into a single pool where they can cooperate on tasks
 - 👥 Easy human-in-the-loop interactions
 - 💻 A CLI application with extensive slash command support to build agent flows interactively. Set up message connections via commands.
 - ℹ️ The most easy way available to generate static websites in combination with [MkNodes](https://github.com/phil/mknodes) and  [the corresponding MkDocs plugin](https://github.com/phil65/mkdocs_mknodes)
@@ -314,7 +315,7 @@ llmling-agent watch --config agents.yml
 
 ### Agent Pool: Multi-Agent Coordination
 
-The `AgentPool` allows multiple agents to work together on tasks. Here's a practical example of parallel file downloading:
+The `AgentPool` allows multiple agents to work together on tasks, including external ACP-enabled agents like Claude Code, Codex, or Goose. Here's a practical example of parallel file downloading:
 
 ```yaml
 # agents.yml
@@ -358,6 +359,38 @@ async def main():
             "Download https://example.com/file.zip by delegating to all workers available!"
         )
 ```
+
+#### External ACP Agents
+
+You can also integrate external ACP-enabled agents into your pool via YAML configuration:
+
+```yaml
+# agents.yml
+acp_agents:
+  claude:
+    type: claude
+    display_name: "Claude Code"
+    description: "Claude Code through ACP"
+  goose:
+    type: goose
+    display_name: "Goose"
+    description: "Block's Goose agent through ACP"
+
+agents:
+  coordinator:
+    model: openai:gpt-5-mini
+    toolsets:
+      - type: agent_management  # Enables delegation to ACP agents
+```
+
+```python
+async with AgentPool("agents.yml") as pool:
+    # Access external ACP agents just like regular agents
+    claude = pool.get_agent("claude")
+    result = await claude.run("Refactor this code")
+```
+
+See the [ACP Integration documentation](https://phil65.github.io/llmling-agent/advanced/acp_integration/#external-acp-agents) for supported agents and configuration options.
 
 ## Message System
 
