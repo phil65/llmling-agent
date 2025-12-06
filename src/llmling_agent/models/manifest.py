@@ -14,6 +14,7 @@ from upathtools.configs.base import URIFileSystemConfig
 from llmling_agent import log
 from llmling_agent.models.acp_agents import ACPAgentConfigTypes
 from llmling_agent.models.agents import AgentConfig, parse_agent_file
+from llmling_agent.models.agui_agents import AGUIAgentConfig
 from llmling_agent_config.commands import CommandConfig, StaticCommandConfig
 from llmling_agent_config.converters import ConversionConfig
 from llmling_agent_config.mcp_server import BaseMCPServerConfig, MCPServerConfig
@@ -27,6 +28,7 @@ from llmling_agent_config.teams import TeamConfig
 from llmling_agent_config.workers import (
     ACPAgentWorkerConfig,
     AgentWorkerConfig,
+    AGUIAgentWorkerConfig,
     BaseWorkerConfig,
     TeamWorkerConfig,
 )
@@ -37,6 +39,7 @@ if TYPE_CHECKING:
 
     from llmling_agent import Agent, AgentPool
     from llmling_agent.agent.acp_agent import ACPAgent
+    from llmling_agent.agent.agui_agent import AGUIAgent
     from llmling_agent.common_types import IndividualEventHandler
     from llmling_agent.prompts.manager import PromptManager
     from llmling_agent.ui.base import InputProvider
@@ -159,6 +162,19 @@ class AgentsManifest(Schema):
     Docs: https://phil65.github.io/llmling-agent/YAML%20Configuration/acp_configuration/
     """
 
+    agui_agents: dict[str, AGUIAgentConfig] = Field(
+        default_factory=dict,
+        json_schema_extra={
+            "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/agui_configuration/"
+        },
+    )
+    """Mapping of AG-UI agent IDs to their configurations.
+
+    AG-UI agents connect to remote HTTP endpoints implementing the AG-UI protocol.
+
+    Docs: https://phil65.github.io/llmling-agent/YAML%20Configuration/agui_configuration/
+    """
+
     storage: StorageConfig = Field(
         default_factory=StorageConfig,
         json_schema_extra={
@@ -262,6 +278,7 @@ class AgentsManifest(Schema):
         teams = data.get("teams", {})
         agents = data.get("agents", {})
         acp_agents = data.get("acp_agents", {})
+        agui_agents = data.get("agui_agents", {})
 
         # Process workers for all agents that have them
         for agent_name, agent_config in agents.items():
@@ -280,6 +297,8 @@ class AgentsManifest(Schema):
                             normalized.append(TeamWorkerConfig(name=name))
                         case str() as name if name in acp_agents:
                             normalized.append(ACPAgentWorkerConfig(name=name))
+                        case str() as name if name in agui_agents:
+                            normalized.append(AGUIAgentWorkerConfig(name=name))
                         case str() as name if name in agents:
                             normalized.append(AgentWorkerConfig(name=name))
                         case str():  # Default to agent if type can't be determined
@@ -295,6 +314,8 @@ class AgentsManifest(Schema):
                                         normalized.append(AgentWorkerConfig(**config))
                                     case "acp_agent":
                                         normalized.append(ACPAgentWorkerConfig(**config))
+                                    case "agui_agent":
+                                        normalized.append(AGUIAgentWorkerConfig(**config))
                                     case _:
                                         msg = f"Invalid worker type: {worker_type}"
                                         raise ValueError(msg)
@@ -309,6 +330,8 @@ class AgentsManifest(Schema):
                                     normalized.append(TeamWorkerConfig(**config))
                                 elif worker_name in acp_agents:
                                     normalized.append(ACPAgentWorkerConfig(**config))
+                                elif worker_name in agui_agents:
+                                    normalized.append(AGUIAgentWorkerConfig(**config))
                                 else:
                                     normalized.append(AgentWorkerConfig(**config))
 
@@ -457,18 +480,25 @@ class AgentsManifest(Schema):
 
     @property
     def node_names(self) -> list[str]:
-        """Get list of all agent, ACP agent, and team names."""
+        """Get list of all agent, ACP agent, AG-UI agent, and team names."""
         return (
             list(self.agents.keys())
             + list(self.file_agents.keys())
             + list(self.acp_agents.keys())
+            + list(self.agui_agents.keys())
             + list(self.teams.keys())
         )
 
     @property
     def nodes(self) -> dict[str, Any]:
-        """Get all agent, ACP agent, and team configurations."""
-        return {**self.agents, **self._loaded_file_agents, **self.acp_agents, **self.teams}
+        """Get all agent, ACP agent, AG-UI agent, and team configurations."""
+        return {
+            **self.agents,
+            **self._loaded_file_agents,
+            **self.acp_agents,
+            **self.agui_agents,
+            **self.teams,
+        }
 
     def get_mcp_servers(self) -> list[MCPServerConfig]:
         """Get processed MCP server configurations.
@@ -636,6 +666,38 @@ class AgentsManifest(Schema):
         if config.name is None:
             config = config.model_copy(update={"name": name})
         return ACPAgent(config=config)
+
+    def get_agui_agent[TDeps](
+        self,
+        name: str,
+        deps_type: type[TDeps] | None = None,
+    ) -> AGUIAgent[TDeps]:
+        """Create an AGUIAgent from configuration.
+
+        Args:
+            name: Name of the AG-UI agent in the manifest
+            deps_type: Optional dependency type (not used by AG-UI agents currently)
+
+        Returns:
+            Configured AGUIAgent instance
+        """
+        from llmling_agent.agent.agui_agent import AGUIAgent
+
+        config = self.agui_agents[name]
+        # Ensure name is set on config
+        if config.name is None:
+            config = config.model_copy(update={"name": name})
+        return AGUIAgent(
+            endpoint=config.endpoint,
+            name=config.name or "agui-agent",
+            description=config.description,
+            display_name=config.display_name,
+            timeout=config.timeout,
+            headers=config.headers,
+            startup_command=config.startup_command,
+            startup_delay=config.startup_delay,
+            mcp_servers=config.mcp_servers,
+        )
 
     @classmethod
     def from_file(cls, path: JoinablePathLike) -> Self:

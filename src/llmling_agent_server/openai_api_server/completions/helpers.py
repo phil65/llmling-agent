@@ -16,13 +16,14 @@ if TYPE_CHECKING:
 
     from llmling_agent import Agent
     from llmling_agent.agent.acp_agent import ACPAgent
+    from llmling_agent.agent.agui_agent import AGUIAgent
     from llmling_agent_server.openai_api_server.completions.models import ChatCompletionRequest
 
 logger = get_logger(__name__)
 
 
 async def stream_response(
-    agent: Agent[Any, Any] | ACPAgent[Any],
+    agent: Agent[Any, Any] | ACPAgent[Any] | AGUIAgent[Any],
     content: str,
     request: ChatCompletionRequest,
 ) -> AsyncGenerator[str]:

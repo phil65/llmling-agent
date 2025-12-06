@@ -6,7 +6,7 @@ content blocks, session updates, and other data structures using the external ac
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, assert_never, overload
+from typing import TYPE_CHECKING, Any, assert_never, overload
 
 from pydantic import HttpUrl
 
@@ -35,8 +35,7 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from acp.schema import ContentBlock, McpServer
-    from llmling_agent import Agent
-    from llmling_agent.agent.acp_agent import ACPAgent
+    from llmling_agent.messaging import MessageNode
     from llmling_agent.models.content import BaseContent
     from llmling_agent_config.mcp_server import MCPServerConfig
 
@@ -183,6 +182,6 @@ def from_content_blocks(blocks: Sequence[ContentBlock]) -> Sequence[str | BaseCo
     return content
 
 
-def agent_to_mode(agent: Agent | ACPAgent) -> SessionMode:
+def agent_to_mode(agent: MessageNode[Any, Any]) -> SessionMode:
     desc = agent.description or f"Switch to {agent.name} agent"
     return SessionMode(id=agent.name, name=agent.display_name, description=desc)

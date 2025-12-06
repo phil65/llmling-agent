@@ -266,7 +266,7 @@ async def run_agent(
 
     # Wrap agent instance in factory if needed
     if callable(agent):
-        agent_factory = agent
+        agent_factory = agent  # pyright: ignore[reportAssignmentType]
     else:
 
         def agent_factory(connection: AgentSideConnection) -> Agent:

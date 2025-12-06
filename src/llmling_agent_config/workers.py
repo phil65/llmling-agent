@@ -69,7 +69,18 @@ class ACPAgentWorkerConfig(BaseWorkerConfig):
     """ACP agent worker configuration."""
 
 
+class AGUIAgentWorkerConfig(BaseWorkerConfig):
+    """Configuration for AG-UI agent workers.
+
+    AG-UI agent workers allow using remote AG-UI protocol servers as tools.
+    Like ACP agents, they manage their own state server-side.
+    """
+
+    type: Literal["agui_agent"] = Field("agui_agent", init=False)
+    """AG-UI agent worker configuration."""
+
+
 WorkerConfig = Annotated[
-    TeamWorkerConfig | AgentWorkerConfig | ACPAgentWorkerConfig,
+    TeamWorkerConfig | AgentWorkerConfig | ACPAgentWorkerConfig | AGUIAgentWorkerConfig,
     Field(discriminator="type"),
 ]

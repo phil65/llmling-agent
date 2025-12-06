@@ -46,6 +46,7 @@ if TYPE_CHECKING:
 
     from llmling_agent.agent.acp_agent import ACPAgent
     from llmling_agent.agent.agent import AgentKwargs
+    from llmling_agent.agent.agui_agent import AGUIAgent
     from llmling_agent.common_types import (
         AgentName,
         IndividualEventHandler,
@@ -153,6 +154,12 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
             acp_agent.agent_pool = self
             self.register(name, acp_agent)
 
+        # Create AG-UI agents
+        for name in self.manifest.agui_agents:
+            agui_agent = self.manifest.get_agui_agent(name, deps_type=shared_deps_type)
+            agui_agent.agent_pool = self
+            self.register(name, agui_agent)
+
         for agent in self.agents.values():
             self.setup_agent_workers(agent)
         self._create_teams()
@@ -175,6 +182,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
                 aggregating_provider = self.mcp.get_aggregating_provider()
                 agents = list(self.agents.values())
                 acp_agents = list(self.acp_agents.values())
+                agui_agents = list(self.agui_agents.values())
                 teams = list(self.teams.values())
                 for agent in agents:
                     agent.tools.add_provider(aggregating_provider)
@@ -183,6 +191,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
                     self.storage,
                     *agents,
                     *acp_agents,
+                    *agui_agents,
                     *teams,
                 ]
                 # MCP server is now managed externally - removed from pool
@@ -420,11 +429,21 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         return {i.name: i for i in self._items.values() if isinstance(i, ACPAgent)}
 
     @property
-    def all_agents(self) -> dict[str, Agent[Any, Any] | ACPAgent]:
-        """Get all agents (regular and ACP)."""
-        from llmling_agent.agent.acp_agent import ACPAgent
+    def agui_agents(self) -> dict[str, AGUIAgent]:
+        """Get AG-UI agents dict."""
+        from llmling_agent.agent.agui_agent import AGUIAgent
 
-        return {i.name: i for i in self._items.values() if isinstance(i, Agent | ACPAgent)}
+        return {i.name: i for i in self._items.values() if isinstance(i, AGUIAgent)}
+
+    @property
+    def all_agents(self) -> dict[str, Agent[Any, Any] | ACPAgent | AGUIAgent]:
+        """Get all agents (regular, ACP, and AG-UI)."""
+        from llmling_agent.agent.acp_agent import ACPAgent
+        from llmling_agent.agent.agui_agent import AGUIAgent
+
+        return {
+            i.name: i for i in self._items.values() if isinstance(i, Agent | ACPAgent | AGUIAgent)
+        }
 
     @property
     def teams(self) -> dict[str, BaseTeam[Any, Any]]:

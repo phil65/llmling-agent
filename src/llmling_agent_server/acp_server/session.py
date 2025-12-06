@@ -42,6 +42,7 @@ from acp.schema import (
 from acp.utils import to_acp_content_blocks
 from llmling_agent import Agent
 from llmling_agent.agent import SlashedAgent
+from llmling_agent.agent.acp_agent import ACPAgent
 from llmling_agent.agent.events import (
     FileEditProgressEvent,
     FileOperationEvent,
@@ -73,7 +74,6 @@ if TYPE_CHECKING:
     from acp import Client
     from acp.schema import ContentBlock, McpServer, StopReason
     from llmling_agent import AgentPool
-    from llmling_agent.agent.acp_agent import ACPAgent
     from llmling_agent.agent.events import RichAgentStreamEvent
     from llmling_agent.models.content import BaseContent
     from llmling_agent.prompts.manager import PromptManager
@@ -194,7 +194,8 @@ class ACPSession:
         self.input_provider = ACPInputProvider(self)
         self.acp_env = ACPExecutionEnvironment(fs=self.fs, requests=self.requests)
         for agent in self.agent_pool.all_agents.values():
-            agent.env = self.acp_env
+            if isinstance(agent, Agent | ACPAgent):
+                agent.env = self.acp_env
             if isinstance(agent, Agent):
                 # TODO: need to inject this info for ACP agents, too.
                 agent.sys_prompts.prompts.append(self.get_cwd_context)  # pyright: ignore[reportArgumentType]
