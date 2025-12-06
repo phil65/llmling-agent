@@ -145,8 +145,8 @@ def test_parse_valid_claude_agent():
         assert get_model_identifier(config.model) == CLAUDE_MODEL_ALIASES["sonnet"]
         assert config.requires_tool_confirmation == PERMISSION_MODE_MAP["default"]
         assert len(config.system_prompts) == 1
-        assert "senior code reviewer" in config.system_prompts[0]
-        assert "Code readability" in config.system_prompts[0]
+        assert "senior code reviewer" in str(config.system_prompts[0])
+        assert "Code readability" in str(config.system_prompts[0])
 
 
 def test_parse_minimal_agent():
@@ -160,7 +160,7 @@ def test_parse_minimal_agent():
         assert config.description == "A minimal agent"
         assert config.model is None
         assert len(config.system_prompts) == 1
-        assert "simple system prompt" in config.system_prompts[0]
+        assert "simple system prompt" in str(config.system_prompts[0])
 
 
 def test_parse_agent_with_llmling_extensions():
@@ -354,8 +354,8 @@ def test_parse_opencode_agent():
         assert config.description == "Reviews code for quality and best practices"
         assert get_model_identifier(config.model) == "anthropic/claude-sonnet-4-20250514"
         assert len(config.system_prompts) == 1
-        assert "code review mode" in config.system_prompts[0]
-        assert "Code quality" in config.system_prompts[0]
+        assert "code review mode" in str(config.system_prompts[0])
+        assert "Code quality" in str(config.system_prompts[0])
 
 
 def test_parse_opencode_with_maxsteps():
@@ -367,7 +367,7 @@ def test_parse_opencode_with_maxsteps():
         config = parse_agent_file(f.name)
 
         assert config.description == "Fast reasoning with limited iterations"
-        assert "Quick thinker" in config.system_prompts[0]
+        assert "Quick thinker" in str(config.system_prompts[0])
 
 
 def test_format_auto_detection():
