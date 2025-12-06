@@ -45,7 +45,7 @@ async def test_agui_agent_streaming_with_managed_server():
     async with agent:
         events = []
         async for event in agent.run_stream("Hello"):
-            events.append(event)
+            events.append(event)  # noqa: PERF401
 
         assert len(events) > 0
         # Last event should be StreamCompleteEvent with final message

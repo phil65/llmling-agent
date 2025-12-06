@@ -19,6 +19,8 @@ from llmling_agent.agent.events import StreamCompleteEvent
 from llmling_agent.log import get_logger
 from llmling_agent.messaging import ChatMessage
 from llmling_agent.messaging.messagenode import MessageNode
+from llmling_agent.models.content import BaseContent
+from llmling_agent.prompts.convert import convert_prompts
 from llmling_agent.talk.stats import MessageStats
 
 
@@ -27,7 +29,7 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Callable, Sequence
     from types import TracebackType
 
-    from ag_ui.core import Event
+    from ag_ui.core import Event, InputContent
     from evented.configs import EventConfig
 
     from llmling_agent.agent.events import RichAgentStreamEvent
@@ -38,6 +40,71 @@ if TYPE_CHECKING:
 
 
 logger = get_logger(__name__)
+
+
+async def _convert_to_agui_content(
+    prompts: tuple[PromptCompatible, ...],
+) -> str | list[InputContent]:
+    """Convert prompts to AG-UI InputContent format.
+
+    Args:
+        prompts: Input prompts to convert
+
+    Returns:
+        Either a simple string or list of InputContent items for multimodal
+    """
+    from ag_ui.core import BinaryInputContent, TextInputContent
+
+    converted = await convert_prompts(prompts)
+
+    # If all strings, join them
+    if all(isinstance(p, str) for p in converted):
+        return " ".join(str(p) for p in converted)
+
+    # Build multimodal content list
+    content_list: list[InputContent] = []
+
+    for item in converted:
+        if isinstance(item, str):
+            content_list.append(TextInputContent(text=item))
+        elif isinstance(item, BaseContent):
+            # Handle base64 content
+            if item.type in ("image_base64", "pdf_base64", "audio_base64"):
+                data = getattr(item, "data", None)
+                mime_type = getattr(item, "mime_type", None) or _get_mime_type(item.type)
+                if data:
+                    content_list.append(BinaryInputContent(data=data, mime_type=mime_type))
+                else:
+                    content_list.append(TextInputContent(text=str(item)))
+            # Handle URL content
+            elif item.type in ("image_url", "pdf_url", "audio_url", "video_url"):
+                url = getattr(item, "url", None)
+                if url:
+                    content_list.append(
+                        BinaryInputContent(url=url, mime_type=_get_mime_type(item.type))
+                    )
+                else:
+                    content_list.append(TextInputContent(text=str(item)))
+            # Fallback
+            else:
+                content_list.append(TextInputContent(text=str(item)))
+
+    return content_list
+
+
+def _get_mime_type(content_type: str) -> str:
+    """Get MIME type from content type string."""
+    match content_type:
+        case "image_base64" | "image_url":
+            return "image/jpeg"
+        case "pdf_base64" | "pdf_url":
+            return "application/pdf"
+        case "audio_base64" | "audio_url":
+            return "audio/mp3"
+        case "video_url":
+            return "video/mp4"
+        case _:
+            return "application/octet-stream"
 
 
 @dataclass
@@ -335,9 +402,9 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
         self._state.error = None
         self._state.run_id = str(uuid4())
 
-        # Build request
-        prompt_text = " ".join(str(p) for p in prompts)
-        user_message = UserMessage(id=str(uuid4()), content=prompt_text)
+        # Build request with proper content conversion
+        content = await _convert_to_agui_content(prompts)
+        user_message = UserMessage(id=str(uuid4()), content=content)
 
         request_data = RunAgentInput(
             thread_id=self._state.thread_id,
@@ -349,7 +416,7 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
             forwarded_props={},
         )
 
-        self.log.debug("Sending prompt to AG-UI agent", prompt=prompt_text[:100])
+        self.log.debug("Sending prompt to AG-UI agent")
 
         # Send request and stream events
         try:
