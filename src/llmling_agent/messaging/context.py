@@ -7,7 +7,9 @@ from typing import TYPE_CHECKING, Any
 
 
 if TYPE_CHECKING:
-    from llmling_agent import AgentPool
+    from llmling_agent import Agent, AgentPool
+    from llmling_agent.agent.acp_agent import ACPAgent
+    from llmling_agent.agent.agui_agent import AGUIAgent
     from llmling_agent.messaging import MessageNode
     from llmling_agent.models.manifest import AgentsManifest
     from llmling_agent.prompts.manager import PromptManager
@@ -36,6 +38,13 @@ class NodeContext[TDeps = object]:
 
     data: TDeps | None = None
     """Custom context data."""
+
+    @property
+    def any_agent(self) -> Agent[TDeps, Any] | ACPAgent | AGUIAgent:
+        """Get the agent instance from the pool."""
+        assert self.pool, "No agent pool available"
+        assert self.node_name, "No agent name available"
+        return self.pool.all_agents[self.node_name]
 
     def get_input_provider(self) -> InputProvider:
         from llmling_agent.ui.stdlib_provider import StdlibInputProvider
