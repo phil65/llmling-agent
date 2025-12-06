@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from llmling_agent.agent.context import AgentContext
+from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.log import get_logger
 from llmling_agent.resource_providers import ResourceProvider
 from llmling_agent.tools.base import Tool
@@ -91,16 +91,9 @@ class WorkersTools(ResourceProvider):
         tool_name = f"ask_{team_name}"
         normalized_name = team_name.replace("_", " ").title()
         docstring = f"Delegate task to team: {normalized_name}"
-
         call_team.__name__ = tool_name
         call_team.__doc__ = docstring
-
-        return Tool.from_callable(
-            call_team,
-            name_override=tool_name,
-            description_override=docstring,
-            source="worker",
-        )
+        return self.create_tool(call_team, name_override=tool_name, description_override=docstring)
 
     def _create_agent_tool(
         self,

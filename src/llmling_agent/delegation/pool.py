@@ -34,7 +34,6 @@ if TYPE_CHECKING:
     from contextlib import AbstractAsyncContextManager
     from types import TracebackType
 
-    from psygnal.containers._evented_dict import DictEvents
     from pydantic_ai.output import OutputSpec
     from tokonomics import ModelName
     from upath.types import JoinablePathLike
@@ -402,7 +401,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
     async def run_event_loop(self) -> None:
         """Run pool in event-watching mode until interrupted."""
         print("Starting event watch mode...")
-        print("Active nodes: ", ", ".join(self.list_nodes()))
+        print("Active nodes: ", ", ".join(list(self.nodes.keys())))
         print("Press Ctrl+C to stop")
 
         with suppress(KeyboardInterrupt):
@@ -451,11 +450,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         from llmling_agent import MessageNode
 
         return {i.name: i for i in self._items.values() if isinstance(i, MessageNode)}
-
-    @property
-    def node_events(self) -> DictEvents:
-        """Get node events."""
-        return self._items.events
 
     def _validate_item(self, item: MessageNode[Any, Any] | Any) -> MessageNode[Any, Any]:
         """Validate and convert items before registration.
@@ -619,10 +613,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
             base.to_structured(return_type)
 
         return base
-
-    def list_nodes(self) -> list[str]:
-        """List available agent names."""
-        return list(self.list_items())
 
     def get_job(self, name: str) -> Job[Any, Any]:
         return self._tasks[name]
