@@ -356,6 +356,285 @@
       "title": "ACPAgentWorkerConfig",
       "type": "object"
     },
+    "AGUIAgentConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for AG-UI protocol agents.\n\nAG-UI agents connect to remote HTTP endpoints that implement the AG-UI protocol,\nenabling integration of any AG-UI compatible server into the llmling-agent pool.\n\nExample:\n    ```yaml\n    agui_agents:\n      remote_assistant:\n        endpoint: http://localhost:8000/agent/run\n        timeout: 30.0\n        headers:\n          X-API-Key: ${API_KEY}\n\n      managed_agent:\n        endpoint: http://localhost:8765/agent/run\n        startup_command: \"uv run ag-ui-server config.yml\"\n        startup_delay: 3.0\n    ```",
+      "properties": {
+        "name": {
+          "default": null,
+          "description": "Identifier for the node. Set from dict key, not from YAML.",
+          "title": "Name",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "display_name": {
+          "default": null,
+          "description": "Human-readable display name for the node.",
+          "examples": [
+            "Main Agent",
+            "Web Searcher",
+            "Code Assistant"
+          ],
+          "title": "Display name",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "default": null,
+          "description": "Optional description of the agent / team.",
+          "examples": [
+            "Main conversation agent",
+            "Handles web search requests"
+          ],
+          "title": "Node description",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "triggers": {
+          "description": "Event sources that activate this agent / team",
+          "examples": [
+            [
+              {
+                "name": "daily_check",
+                "prompt": "Daily status update",
+                "schedule": "0 9 * * *",
+                "type": "time"
+              }
+            ],
+            [
+              {
+                "extensions": [
+                  ".py"
+                ],
+                "name": "code_watcher",
+                "paths": [
+                  "./src"
+                ],
+                "type": "file"
+              }
+            ]
+          ],
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "email": "#/$defs/EmailConfig",
+                "file": "#/$defs/FileWatchConfig",
+                "time": "#/$defs/TimeEventConfig",
+                "webhook": "#/$defs/WebhookConfig"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/FileWatchConfig"
+              },
+              {
+                "$ref": "#/$defs/WebhookConfig"
+              },
+              {
+                "$ref": "#/$defs/EmailConfig"
+              },
+              {
+                "$ref": "#/$defs/TimeEventConfig"
+              }
+            ]
+          },
+          "title": "Event triggers",
+          "type": "array"
+        },
+        "connections": {
+          "description": "Targets to forward results to.",
+          "examples": [
+            [
+              {
+                "connection_type": "run",
+                "name": "output_agent",
+                "type": "node",
+                "wait_for_completion": true
+              }
+            ],
+            [
+              {
+                "path": "logs/messages.txt",
+                "template": "{{ message.content }}",
+                "type": "file"
+              }
+            ]
+          ],
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "callable": "#/$defs/CallableConnectionConfig",
+                "file": "#/$defs/FileConnectionConfig",
+                "node": "#/$defs/NodeConnectionConfig"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/NodeConnectionConfig"
+              },
+              {
+                "$ref": "#/$defs/FileConnectionConfig"
+              },
+              {
+                "$ref": "#/$defs/CallableConnectionConfig"
+              }
+            ]
+          },
+          "title": "Message forwarding targets",
+          "type": "array"
+        },
+        "mcp_servers": {
+          "description": "List of MCP server configurations:\n- str entries are converted to StdioMCPServerConfig\n- MCPServerConfig for full server configuration",
+          "examples": [
+            [
+              "uvx some-server"
+            ],
+            [
+              {
+                "type": "streamable-http",
+                "url": "http://mcp.example.com"
+              }
+            ]
+          ],
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "discriminator": {
+                  "mapping": {
+                    "sse": "#/$defs/SSEMCPServerConfig",
+                    "stdio": "#/$defs/StdioMCPServerConfig",
+                    "streamable-http": "#/$defs/StreamableHTTPMCPServerConfig"
+                  },
+                  "propertyName": "type"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/StdioMCPServerConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/SSEMCPServerConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/StreamableHTTPMCPServerConfig"
+                  }
+                ]
+              }
+            ]
+          },
+          "title": "MCP servers",
+          "type": "array"
+        },
+        "input_provider": {
+          "default": null,
+          "description": "Provider for human-input-handling.",
+          "title": "Input provider",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "endpoint": {
+          "description": "HTTP endpoint for the AG-UI agent server.",
+          "examples": [
+            "http://localhost:8000/agent/run",
+            "https://api.example.com/v1/agent/run"
+          ],
+          "title": "Endpoint",
+          "type": "string"
+        },
+        "timeout": {
+          "default": 60.0,
+          "description": "Request timeout in seconds.",
+          "examples": [
+            30.0,
+            60.0,
+            120.0
+          ],
+          "minimum": 0.1,
+          "title": "Timeout",
+          "type": "number"
+        },
+        "headers": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Additional HTTP headers to send with requests.\n\nUseful for authentication or custom routing.\nEnvironment variables can be used: ${VAR_NAME}",
+          "title": "Headers",
+          "type": "object"
+        },
+        "startup_command": {
+          "default": null,
+          "description": "Optional shell command to start the AG-UI server automatically.\n\nWhen provided, the agent will spawn this command on context entry\nand terminate it on exit. Useful for testing or self-contained deployments.",
+          "examples": [
+            "uv run ag-ui-server config.yml",
+            "python -m my_agui_server --port 8000"
+          ],
+          "title": "Startup Command",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "startup_delay": {
+          "default": 2.0,
+          "description": "Seconds to wait after starting server before connecting.\n\nOnly relevant when startup_command is provided.",
+          "examples": [
+            1.0,
+            2.0,
+            5.0
+          ],
+          "minimum": 0.0,
+          "title": "Startup Delay",
+          "type": "number"
+        }
+      },
+      "required": [
+        "endpoint"
+      ],
+      "title": "AGUIAgentConfig",
+      "type": "object",
+      "x-doc-title": "AG-UI Agent Configuration",
+      "x-icon": "mdi:api"
+    },
+    "AGUIAgentWorkerConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for AG-UI agent workers.\n\nAG-UI agent workers allow using remote AG-UI protocol servers as tools.\nLike ACP agents, they manage their own state server-side.",
+      "properties": {
+        "name": {
+          "description": "Name of the node to use as a worker.",
+          "examples": [
+            "web_agent",
+            "code_analyzer",
+            "data_processor"
+          ],
+          "title": "Worker node name",
+          "type": "string"
+        },
+        "type": {
+          "const": "agui_agent",
+          "default": "agui_agent",
+          "description": "AG-UI agent worker configuration.",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "AGUIAgentWorkerConfig",
+      "type": "object"
+    },
     "AgentConfig": {
       "additionalProperties": false,
       "description": "Configuration for a single agent in the system.\n\nDefines an agent's complete configuration including its model, environment,\nand behavior settings.\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/agent_configuration/",
@@ -2782,6 +3061,7 @@
               "mapping": {
                 "acp_agent": "#/$defs/ACPAgentWorkerConfig",
                 "agent": "#/$defs/AgentWorkerConfig",
+                "agui_agent": "#/$defs/AGUIAgentWorkerConfig",
                 "team": "#/$defs/TeamWorkerConfig"
               },
               "propertyName": "type"
@@ -2795,6 +3075,9 @@
               },
               {
                 "$ref": "#/$defs/ACPAgentWorkerConfig"
+              },
+              {
+                "$ref": "#/$defs/AGUIAgentWorkerConfig"
               }
             ]
           },
@@ -3004,6 +3287,96 @@
         "name"
       ],
       "title": "AgentWorkerConfig",
+      "type": "object"
+    },
+    "AggregatedConverterConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for the aggregated converter.",
+      "properties": {
+        "type": {
+          "const": "aggregated",
+          "default": "aggregated",
+          "description": "Type discriminator for aggregated converter.",
+          "title": "Type",
+          "type": "string"
+        },
+        "page_range": {
+          "default": null,
+          "description": "Page range(s) to extract, like \"1-5,7-10\" (1-based).",
+          "title": "Page Range",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "converters": {
+          "description": "List of converter configurations to use.",
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "aggregated": "#/$defs/AggregatedConverterConfig",
+                "azure": "#/$defs/AzureConfig",
+                "datalab": "#/$defs/DataLabConfig",
+                "docling": "#/$defs/DoclingConverterConfig",
+                "docling_remote": "#/$defs/DoclingRemoteConfig",
+                "llamaparse": "#/$defs/LlamaParseConfig",
+                "llm": "#/$defs/LLMConverterConfig",
+                "marker": "#/$defs/MarkerConfig",
+                "markitdown": "#/$defs/MarkItDownConfig",
+                "mistral": "#/$defs/MistralConfig",
+                "upstage": "#/$defs/UpstageConfig"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/DataLabConfig"
+              },
+              {
+                "$ref": "#/$defs/DoclingConverterConfig"
+              },
+              {
+                "$ref": "#/$defs/DoclingRemoteConfig"
+              },
+              {
+                "$ref": "#/$defs/LLMConverterConfig"
+              },
+              {
+                "$ref": "#/$defs/MarkItDownConfig"
+              },
+              {
+                "$ref": "#/$defs/MistralConfig"
+              },
+              {
+                "$ref": "#/$defs/LlamaParseConfig"
+              },
+              {
+                "$ref": "#/$defs/AzureConfig"
+              },
+              {
+                "$ref": "#/$defs/UpstageConfig"
+              },
+              {
+                "$ref": "#/$defs/AggregatedConverterConfig"
+              },
+              {
+                "$ref": "#/$defs/MarkerConfig"
+              }
+            ]
+          },
+          "title": "Converters",
+          "type": "array"
+        },
+        "mime_preferences": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Mapping of MIME types or extensions to preferred converter names.",
+          "title": "Mime Preferences",
+          "type": "object"
+        }
+      },
+      "title": "AggregatedConverterConfig",
       "type": "object"
     },
     "AmpACPAgentConfig": {
@@ -3572,6 +3945,51 @@
       "title": "ArrowFilesystemConfig",
       "type": "object"
     },
+    "AsyncLocalFilesystemConfig": {
+      "additionalProperties": true,
+      "description": "Configuration for async local filesystem.",
+      "properties": {
+        "fs_type": {
+          "const": "asynclocal",
+          "default": "asynclocal",
+          "description": "Async local filesystem type",
+          "title": "Fs Type",
+          "type": "string"
+        },
+        "root_path": {
+          "default": null,
+          "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "title": "Root Path",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for relative path operations (uses fs.chdir).",
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cached": {
+          "default": false,
+          "description": "Whether to wrap in CachingFileSystem.",
+          "title": "Cached",
+          "type": "boolean"
+        },
+        "auto_mkdir": {
+          "default": false,
+          "description": "Automatically create parent directories on write",
+          "title": "Auto Create Directories",
+          "type": "boolean"
+        }
+      },
+      "title": "AsyncLocalFilesystemConfig",
+      "type": "object"
+    },
     "AuggieACPAgentConfig": {
       "additionalProperties": false,
       "description": "Configuration for Auggie (Augment Code) via ACP.\n\nAI agent that brings Augment Code's power to the terminal.\n\nExample:\n    ```yaml\n    acp_agents:\n      auggie:\n        type: auggie\n        cwd: /path/to/project\n        model: auggie-sonnet\n        workspace_root: /path/to/workspace\n        rules: [rules.md]\n        shell: bash\n    ```",
@@ -4042,6 +4460,219 @@
         "main_model"
       ],
       "title": "AugmentedModelConfig",
+      "type": "object"
+    },
+    "AzureBlobFilesystemConfig": {
+      "additionalProperties": true,
+      "description": "Configuration for Azure Blob Storage filesystem.",
+      "properties": {
+        "fs_type": {
+          "const": "abfs",
+          "default": "abfs",
+          "description": "Azure Blob filesystem type",
+          "title": "Fs Type",
+          "type": "string"
+        },
+        "root_path": {
+          "default": null,
+          "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "title": "Root Path",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for relative path operations (uses fs.chdir).",
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cached": {
+          "default": false,
+          "description": "Whether to wrap in CachingFileSystem.",
+          "title": "Cached",
+          "type": "boolean"
+        },
+        "account_name": {
+          "description": "Azure storage account name",
+          "examples": [
+            "mystorageaccount"
+          ],
+          "pattern": "^[a-z0-9]{3,24}$",
+          "title": "Account Name",
+          "type": "string"
+        },
+        "account_key": {
+          "anyOf": [
+            {
+              "format": "password",
+              "type": "string",
+              "writeOnly": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Azure storage account key",
+          "title": "Account Key"
+        },
+        "connection_string": {
+          "anyOf": [
+            {
+              "format": "password",
+              "type": "string",
+              "writeOnly": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Azure storage connection string",
+          "title": "Connection String"
+        },
+        "sas_token": {
+          "anyOf": [
+            {
+              "format": "password",
+              "type": "string",
+              "writeOnly": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Shared Access Signature token",
+          "title": "SAS Token"
+        },
+        "container_name": {
+          "default": null,
+          "description": "Default container name",
+          "examples": [
+            "mycontainer"
+          ],
+          "title": "Container Name",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "credential": {
+          "anyOf": [
+            {},
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Azure credential object (DefaultAzureCredential, etc.)",
+          "title": "Azure Credential"
+        }
+      },
+      "required": [
+        "account_name"
+      ],
+      "title": "AzureBlobFilesystemConfig",
+      "type": "object"
+    },
+    "AzureConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for Azure Document Intelligence converter.",
+      "properties": {
+        "type": {
+          "const": "azure",
+          "default": "azure",
+          "description": "Type discriminator for Azure converter.",
+          "title": "Type",
+          "type": "string"
+        },
+        "page_range": {
+          "default": null,
+          "description": "Page range(s) to extract, like \"1-5,7-10\" (1-based).",
+          "title": "Page Range",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "languages": {
+          "description": "List of supported languages for the converter.",
+          "items": {
+            "enum": [
+              "en",
+              "de",
+              "fr",
+              "es",
+              "zh"
+            ],
+            "type": "string"
+          },
+          "title": "Languages",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "endpoint": {
+          "default": null,
+          "description": "Azure endpoint URL. Falls back to AZURE_DOC_INTELLIGENCE_ENDPOINT envvar.",
+          "title": "Endpoint",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "api_key": {
+          "anyOf": [
+            {
+              "format": "password",
+              "type": "string",
+              "writeOnly": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Azure API key. Falls back to AZURE_DOC_INTELLIGENCE_KEY env var.",
+          "title": "Api Key"
+        },
+        "model": {
+          "default": "prebuilt-layout",
+          "description": "Pre-trained model to use.",
+          "enum": [
+            "prebuilt-read",
+            "prebuilt-layout",
+            "prebuilt-idDocument",
+            "prebuilt-receipt"
+          ],
+          "title": "Model",
+          "type": "string"
+        },
+        "additional_features": {
+          "description": "Optional add-on capabilities like BARCODES, FORMULAS, OCR_HIGH_RESOLUTION etc.",
+          "items": {
+            "enum": [
+              "ocrHighResolution",
+              "languages",
+              "barcodes",
+              "formulas",
+              "keyValuePairs",
+              "styleFont",
+              "queryFields"
+            ],
+            "type": "string"
+          },
+          "title": "Additional Features",
+          "type": "array",
+          "uniqueItems": true
+        }
+      },
+      "title": "AzureConfig",
       "type": "object"
     },
     "BaseModelConfig": {
@@ -5563,6 +6194,22 @@
           ]
         },
         "model": {
+          "anyOf": [
+            {
+              "enum": [
+                "default",
+                "sonnet",
+                "opus",
+                "haiku",
+                "sonnet[1m]",
+                "opusplan"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
           "default": null,
           "description": "Model override. Use alias ('sonnet', 'opus') or full name.",
           "examples": [
@@ -5570,11 +6217,7 @@
             "opus",
             "claude-sonnet-4-20250514"
           ],
-          "title": "Model",
-          "type": [
-            "string",
-            "null"
-          ]
+          "title": "Model"
         },
         "permission_mode": {
           "anyOf": [
@@ -5600,7 +6243,33 @@
           "anyOf": [
             {
               "items": {
-                "type": "string"
+                "anyOf": [
+                  {
+                    "enum": [
+                      "AskUserQuestion",
+                      "Bash",
+                      "BashOutput",
+                      "Edit",
+                      "ExitPlanMode",
+                      "Glob",
+                      "Grep",
+                      "KillShell",
+                      "NotebookEdit",
+                      "Read",
+                      "Skill",
+                      "SlashCommand",
+                      "Task",
+                      "TodoWrite",
+                      "WebFetch",
+                      "WebSearch",
+                      "Write"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "type": "string"
+                  }
+                ]
               },
               "type": "array"
             },
@@ -5616,7 +6285,33 @@
           "anyOf": [
             {
               "items": {
-                "type": "string"
+                "anyOf": [
+                  {
+                    "enum": [
+                      "AskUserQuestion",
+                      "Bash",
+                      "BashOutput",
+                      "Edit",
+                      "ExitPlanMode",
+                      "Glob",
+                      "Grep",
+                      "KillShell",
+                      "NotebookEdit",
+                      "Read",
+                      "Skill",
+                      "SlashCommand",
+                      "Task",
+                      "TodoWrite",
+                      "WebFetch",
+                      "WebSearch",
+                      "Write"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "type": "string"
+                  }
+                ]
               },
               "type": "array"
             },
@@ -5654,7 +6349,33 @@
           "anyOf": [
             {
               "items": {
-                "type": "string"
+                "anyOf": [
+                  {
+                    "enum": [
+                      "AskUserQuestion",
+                      "Bash",
+                      "BashOutput",
+                      "Edit",
+                      "ExitPlanMode",
+                      "Glob",
+                      "Grep",
+                      "KillShell",
+                      "NotebookEdit",
+                      "Read",
+                      "Skill",
+                      "SlashCommand",
+                      "Task",
+                      "TodoWrite",
+                      "WebFetch",
+                      "WebSearch",
+                      "Write"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "type": "string"
+                  }
+                ]
               },
               "type": "array"
             },
@@ -5675,17 +6396,29 @@
           "title": "Tools"
         },
         "fallback_model": {
+          "anyOf": [
+            {
+              "enum": [
+                "default",
+                "sonnet",
+                "opus",
+                "haiku",
+                "sonnet[1m]",
+                "opusplan"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
           "default": null,
           "description": "Fallback model when default is overloaded.",
           "examples": [
             "sonnet",
             "haiku"
           ],
-          "title": "Fallback Model",
-          "type": [
-            "string",
-            "null"
-          ]
+          "title": "Fallback Model"
         },
         "dangerously_skip_permissions": {
           "default": false,
@@ -6379,33 +7112,53 @@
               "items": {
                 "discriminator": {
                   "mapping": {
-                    "google_speech": "#/$defs/GoogleSpeechConfig",
-                    "local_whisper": "#/$defs/LocalWhisperConfig",
+                    "aggregated": "#/$defs/AggregatedConverterConfig",
+                    "azure": "#/$defs/AzureConfig",
+                    "datalab": "#/$defs/DataLabConfig",
+                    "docling": "#/$defs/DoclingConverterConfig",
+                    "docling_remote": "#/$defs/DoclingRemoteConfig",
+                    "llamaparse": "#/$defs/LlamaParseConfig",
+                    "llm": "#/$defs/LLMConverterConfig",
+                    "marker": "#/$defs/MarkerConfig",
                     "markitdown": "#/$defs/MarkItDownConfig",
-                    "plain": "#/$defs/PlainConverterConfig",
-                    "whisper_api": "#/$defs/WhisperAPIConfig",
-                    "youtube": "#/$defs/YouTubeConverterConfig"
+                    "mistral": "#/$defs/MistralConfig",
+                    "upstage": "#/$defs/UpstageConfig"
                   },
                   "propertyName": "type"
                 },
                 "oneOf": [
                   {
+                    "$ref": "#/$defs/DataLabConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/DoclingConverterConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/DoclingRemoteConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/LLMConverterConfig"
+                  },
+                  {
                     "$ref": "#/$defs/MarkItDownConfig"
                   },
                   {
-                    "$ref": "#/$defs/PlainConverterConfig"
+                    "$ref": "#/$defs/MistralConfig"
                   },
                   {
-                    "$ref": "#/$defs/YouTubeConverterConfig"
+                    "$ref": "#/$defs/LlamaParseConfig"
                   },
                   {
-                    "$ref": "#/$defs/WhisperAPIConfig"
+                    "$ref": "#/$defs/AzureConfig"
                   },
                   {
-                    "$ref": "#/$defs/LocalWhisperConfig"
+                    "$ref": "#/$defs/UpstageConfig"
                   },
                   {
-                    "$ref": "#/$defs/GoogleSpeechConfig"
+                    "$ref": "#/$defs/AggregatedConverterConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/MarkerConfig"
                   }
                 ]
               },
@@ -6907,6 +7660,87 @@
       "title": "DataForSEOConfig",
       "type": "object"
     },
+    "DataLabConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for DataLab-based converter.",
+      "properties": {
+        "type": {
+          "const": "datalab",
+          "default": "datalab",
+          "description": "Type discriminator for DataLab converter.",
+          "title": "Type",
+          "type": "string"
+        },
+        "page_range": {
+          "default": null,
+          "description": "Page range(s) to extract, like \"1-5,7-10\" (1-based).",
+          "title": "Page Range",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "languages": {
+          "description": "List of supported languages for the converter.",
+          "items": {
+            "enum": [
+              "en",
+              "de",
+              "fr",
+              "es",
+              "zh"
+            ],
+            "type": "string"
+          },
+          "title": "Languages",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "api_key": {
+          "anyOf": [
+            {
+              "format": "password",
+              "type": "string",
+              "writeOnly": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "DataLab API key. If None, will try env var DATALAB_API_KEY.",
+          "title": "Api Key"
+        },
+        "force_ocr": {
+          "default": false,
+          "description": "Whether to force OCR on every page.",
+          "title": "Force Ocr",
+          "type": "boolean"
+        },
+        "use_llm": {
+          "default": false,
+          "description": "Whether to use LLM for enhanced accuracy.",
+          "title": "Use Llm",
+          "type": "boolean"
+        },
+        "max_pages": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Maximum number of pages to process.",
+          "title": "Max Pages"
+        }
+      },
+      "title": "DataLabConfig",
+      "type": "object"
+    },
     "DaytonaExecutionEnvironmentConfig": {
       "additionalProperties": false,
       "description": "Daytona execution environment configuration.\n\nExecutes code in remote Daytona sandboxes for cloud-based development environments.",
@@ -7276,6 +8110,208 @@
         }
       },
       "title": "DockerExecutionEnvironmentConfig",
+      "type": "object"
+    },
+    "DoclingConverterConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for docling-based converter.",
+      "properties": {
+        "type": {
+          "const": "docling",
+          "default": "docling",
+          "description": "Type discriminator for docling converter.",
+          "title": "Type",
+          "type": "string"
+        },
+        "page_range": {
+          "default": null,
+          "description": "Page range(s) to extract, like \"1-5,7-10\" (1-based).",
+          "title": "Page Range",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "languages": {
+          "description": "List of supported languages for the converter.",
+          "items": {
+            "enum": [
+              "en",
+              "de",
+              "fr",
+              "es",
+              "zh"
+            ],
+            "type": "string"
+          },
+          "title": "Languages",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "image_scale": {
+          "default": 2.0,
+          "description": "Scale factor for image resizing.",
+          "exclusiveMinimum": 0,
+          "title": "Image Scale",
+          "type": "number"
+        },
+        "generate_images": {
+          "default": true,
+          "description": "Whether to generate images.",
+          "title": "Generate Images",
+          "type": "boolean"
+        },
+        "ocr_engine": {
+          "default": "easy_ocr",
+          "description": "OCR engine to use.",
+          "enum": [
+            "easy_ocr",
+            "tesseract_cli_ocr",
+            "tesseract_ocr",
+            "ocr_mac",
+            "rapid_ocr"
+          ],
+          "title": "Ocr Engine",
+          "type": "string"
+        }
+      },
+      "title": "DoclingConverterConfig",
+      "type": "object"
+    },
+    "DoclingRemoteConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for remote Docling service.",
+      "properties": {
+        "type": {
+          "const": "docling_remote",
+          "default": "docling_remote",
+          "description": "Type discriminator for remote docling converter.",
+          "title": "Type",
+          "type": "string"
+        },
+        "page_range": {
+          "default": null,
+          "description": "Page range(s) to extract, like \"1-5,7-10\" (1-based).",
+          "title": "Page Range",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "languages": {
+          "description": "List of supported languages for the converter.",
+          "items": {
+            "enum": [
+              "en",
+              "de",
+              "fr",
+              "es",
+              "zh"
+            ],
+            "type": "string"
+          },
+          "title": "Languages",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "api_key": {
+          "anyOf": [
+            {
+              "format": "password",
+              "type": "string",
+              "writeOnly": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional API key for auth.",
+          "title": "Api Key"
+        },
+        "endpoint": {
+          "default": "http://localhost:5001/",
+          "description": "Base URL of the Docling service.",
+          "format": "uri",
+          "maxLength": 2083,
+          "minLength": 1,
+          "title": "Endpoint",
+          "type": "string"
+        },
+        "ocr_engine": {
+          "default": "easy_ocr",
+          "description": "OCR engine to use.",
+          "enum": [
+            "easy_ocr",
+            "tesseract_cli_ocr",
+            "tesseract_ocr",
+            "ocr_mac",
+            "rapid_ocr"
+          ],
+          "title": "Ocr Engine",
+          "type": "string"
+        },
+        "pdf_backend": {
+          "default": "dlparse_v4",
+          "description": "PDF backend to use.",
+          "title": "Pdf Backend",
+          "type": "string"
+        },
+        "table_mode": {
+          "default": "fast",
+          "description": "Table mode to use.",
+          "enum": [
+            "fast",
+            "accurate"
+          ],
+          "title": "Table Mode",
+          "type": "string"
+        },
+        "force_ocr": {
+          "default": false,
+          "description": "Whether to force OCR even on digital documents.",
+          "title": "Force Ocr",
+          "type": "boolean"
+        },
+        "image_scale": {
+          "default": 2.0,
+          "description": "Scale factor for image resolution.",
+          "exclusiveMinimum": 0,
+          "title": "Image Scale",
+          "type": "number"
+        },
+        "do_table_structure": {
+          "default": true,
+          "description": "Extract table structure.",
+          "title": "Do Table Structure",
+          "type": "boolean"
+        },
+        "do_code_enrichment": {
+          "default": false,
+          "description": "Enable code extraction.",
+          "title": "Do Code Enrichment",
+          "type": "boolean"
+        },
+        "do_formula_enrichment": {
+          "default": false,
+          "description": "Enable formula extraction.",
+          "title": "Do Formula Enrichment",
+          "type": "boolean"
+        },
+        "do_picture_classification": {
+          "default": false,
+          "description": "Enable picture classification.",
+          "title": "Do Picture Classification",
+          "type": "boolean"
+        },
+        "do_picture_description": {
+          "default": false,
+          "description": "Enable picture description.",
+          "title": "Do Picture Description",
+          "type": "boolean"
+        }
+      },
+      "title": "DoclingRemoteConfig",
       "type": "object"
     },
     "DynamicPrompt": {
@@ -11271,6 +12307,122 @@
       "title": "FunctionPromptConfig",
       "type": "object"
     },
+    "GCSFilesystemConfig": {
+      "additionalProperties": true,
+      "description": "Configuration for Google Cloud Storage filesystem.",
+      "properties": {
+        "fs_type": {
+          "const": "gcs",
+          "default": "gcs",
+          "description": "GCS filesystem type",
+          "title": "Fs Type",
+          "type": "string"
+        },
+        "root_path": {
+          "default": null,
+          "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "title": "Root Path",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for relative path operations (uses fs.chdir).",
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cached": {
+          "default": false,
+          "description": "Whether to wrap in CachingFileSystem.",
+          "title": "Cached",
+          "type": "boolean"
+        },
+        "project": {
+          "default": null,
+          "description": "Google Cloud project ID",
+          "examples": [
+            "my-gcp-project"
+          ],
+          "title": "GCP Project",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "token": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Authentication method or token dict",
+          "examples": [
+            "anon",
+            "browser",
+            "cloud",
+            "cache"
+          ],
+          "title": "Authentication Token"
+        },
+        "access": {
+          "anyOf": [
+            {
+              "enum": [
+                "read_only",
+                "read_write",
+                "full_control"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Access level for the filesystem",
+          "title": "Access Level"
+        },
+        "consistency": {
+          "anyOf": [
+            {
+              "enum": [
+                "none",
+                "size",
+                "md5"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Consistency check method after writes",
+          "title": "Consistency Check"
+        },
+        "requester_pays": {
+          "default": false,
+          "description": "Whether to use requester-pays buckets",
+          "title": "Requester Pays",
+          "type": "boolean"
+        }
+      },
+      "title": "GCSFilesystemConfig",
+      "type": "object"
+    },
     "GeminiACPAgentConfig": {
       "additionalProperties": false,
       "description": "Configuration for Gemini CLI via ACP.\n\nProvides typed settings for the gemini CLI with ACP support.\n\nExample:\n    ```yaml\n    acp_agents:\n      coder:\n        type: gemini\n        cwd: /path/to/project\n        model: gemini-2.5-pro\n        approval_mode: auto_edit\n        allowed_tools:\n          - read_file\n          - write_file\n    ```",
@@ -11907,6 +13059,103 @@
       "title": "GitFilesystemConfig",
       "type": "object"
     },
+    "GitLabFilesystemConfig": {
+      "additionalProperties": true,
+      "description": "Configuration for GitLab repository filesystem.",
+      "properties": {
+        "fs_type": {
+          "const": "gitlab",
+          "default": "gitlab",
+          "description": "GitLab filesystem type",
+          "title": "Fs Type",
+          "type": "string"
+        },
+        "root_path": {
+          "default": null,
+          "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "title": "Root Path",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for relative path operations (uses fs.chdir).",
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cached": {
+          "default": false,
+          "description": "Whether to wrap in CachingFileSystem.",
+          "title": "Cached",
+          "type": "boolean"
+        },
+        "project_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "description": "GitLab project ID or path (e.g., 'namespace/project')",
+          "examples": [
+            "mygroup/myproject",
+            12345
+          ],
+          "title": "Project ID"
+        },
+        "ref": {
+          "default": null,
+          "description": "Git ref (branch, tag, commit SHA). Uses default branch if not specified",
+          "examples": [
+            "main",
+            "v1.0.0",
+            "abc123"
+          ],
+          "title": "Git Reference",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "url": {
+          "default": "https://gitlab.com",
+          "description": "GitLab instance URL",
+          "examples": [
+            "https://gitlab.com",
+            "https://gitlab.example.com"
+          ],
+          "title": "GitLab URL",
+          "type": "string"
+        },
+        "private_token": {
+          "anyOf": [
+            {
+              "format": "password",
+              "type": "string",
+              "writeOnly": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "GitLab private/personal access token (or set GITLAB_TOKEN env var)",
+          "title": "Private Token"
+        }
+      },
+      "required": [
+        "project_id"
+      ],
+      "title": "GitLabFilesystemConfig",
+      "type": "object"
+    },
     "GithubFilesystemConfig": {
       "additionalProperties": true,
       "description": "Configuration for GitHub filesystem.",
@@ -12063,66 +13312,6 @@
         "repo"
       ],
       "title": "GithubFilesystemConfig",
-      "type": "object"
-    },
-    "GoogleSpeechConfig": {
-      "additionalProperties": false,
-      "description": "Configuration for Google Cloud Speech-to-Text.",
-      "properties": {
-        "type": {
-          "const": "google_speech",
-          "default": "google_speech",
-          "description": "Type discriminator for converter config.",
-          "title": "Type",
-          "type": "string"
-        },
-        "enabled": {
-          "default": true,
-          "description": "Whether this converter is currently active.",
-          "title": "Converter enabled",
-          "type": "boolean"
-        },
-        "language": {
-          "default": "en-US",
-          "description": "Language code for transcription.",
-          "examples": [
-            "en-US",
-            "es-ES",
-            "fr-FR",
-            "de-DE"
-          ],
-          "title": "Language code",
-          "type": "string"
-        },
-        "model": {
-          "default": "default",
-          "description": "Speech model to use.",
-          "examples": [
-            "default",
-            "command_and_search",
-            "phone_call"
-          ],
-          "title": "Speech model",
-          "type": "string"
-        },
-        "encoding": {
-          "default": "LINEAR16",
-          "description": "Audio encoding format.",
-          "enum": [
-            "LINEAR16",
-            "FLAC",
-            "MP3"
-          ],
-          "examples": [
-            "LINEAR16",
-            "FLAC",
-            "MP3"
-          ],
-          "title": "Audio encoding",
-          "type": "string"
-        }
-      },
-      "title": "GoogleSpeechConfig",
       "type": "object"
     },
     "GooseACPAgentConfig": {
@@ -12766,6 +13955,91 @@
         }
       },
       "title": "HttpxFilesystemConfig",
+      "type": "object"
+    },
+    "HuggingFaceFilesystemConfig": {
+      "additionalProperties": true,
+      "description": "Configuration for HuggingFace Hub filesystem.",
+      "properties": {
+        "fs_type": {
+          "const": "hf",
+          "default": "hf",
+          "description": "HuggingFace filesystem type",
+          "title": "Fs Type",
+          "type": "string"
+        },
+        "root_path": {
+          "default": null,
+          "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "title": "Root Path",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for relative path operations (uses fs.chdir).",
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cached": {
+          "default": false,
+          "description": "Whether to wrap in CachingFileSystem.",
+          "title": "Cached",
+          "type": "boolean"
+        },
+        "token": {
+          "anyOf": [
+            {
+              "format": "password",
+              "type": "string",
+              "writeOnly": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "HuggingFace API token (or set HF_TOKEN env var)",
+          "title": "HF Token"
+        },
+        "repo_type": {
+          "anyOf": [
+            {
+              "enum": [
+                "model",
+                "dataset",
+                "space"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Type of HuggingFace repository",
+          "title": "Repository Type"
+        },
+        "revision": {
+          "default": null,
+          "description": "Git revision (branch, tag, or commit)",
+          "examples": [
+            "main",
+            "v1.0.0"
+          ],
+          "title": "Revision",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "title": "HuggingFaceFilesystemConfig",
       "type": "object"
     },
     "ImportModelConfig": {
@@ -13792,6 +15066,70 @@
       "title": "Knowledge",
       "type": "object"
     },
+    "LLMConverterConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for LLM-based converter.",
+      "properties": {
+        "type": {
+          "const": "llm",
+          "default": "llm",
+          "description": "Type discriminator for LLM converter.",
+          "title": "Type",
+          "type": "string"
+        },
+        "page_range": {
+          "default": null,
+          "description": "Page range(s) to extract, like \"1-5,7-10\" (1-based).",
+          "title": "Page Range",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "languages": {
+          "description": "List of supported languages for the converter.",
+          "items": {
+            "enum": [
+              "en",
+              "de",
+              "fr",
+              "es",
+              "zh"
+            ],
+            "type": "string"
+          },
+          "title": "Languages",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "model": {
+          "default": "google-gla:gemini-2.0-flash",
+          "description": "Identifier for an AI model, optionally including provider.",
+          "examples": [
+            "openai:gpt-o1-mini",
+            "anthropic/claude-3-opus"
+          ],
+          "field_type": "model_identifier",
+          "pattern": "^[a-zA-Z0-9\\-]+(/[a-zA-Z0-9\\-]+)*(:[\\w\\-\\.]+)?$",
+          "title": "Model",
+          "type": "string"
+        },
+        "system_prompt": {
+          "default": "\nYou are a OCR engine that can parse PDF documents & images into markdown formatted text.\n",
+          "description": "Optional system prompt to guide conversion.",
+          "title": "System Prompt",
+          "type": "string"
+        },
+        "user_prompt": {
+          "default": "\nConvert this PDF document to markdown format\nPreserve the original formatting and structure where possible.\nInclude any important tables or lists.\nDescribe any images you see in brackets.\nIndicate page breaks with a specially formatted JSON comment,\nlike <!-- docler:page_break {\"next_page\":2} --> for page 2.\nOnly respond with the content, nothing else.\n",
+          "description": "Custom prompt for the conversion task.",
+          "title": "User Prompt",
+          "type": "string"
+        }
+      },
+      "title": "LLMConverterConfig",
+      "type": "object"
+    },
     "LangChainToolConfig": {
       "additionalProperties": false,
       "description": "Configuration for LangChain tools.",
@@ -14269,6 +15607,104 @@
       "title": "LinkUpConfig",
       "type": "object"
     },
+    "LlamaParseConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for LlamaParse-based converter.",
+      "properties": {
+        "type": {
+          "const": "llamaparse",
+          "default": "llamaparse",
+          "description": "Type discriminator for LlamaParse converter.",
+          "title": "Type",
+          "type": "string"
+        },
+        "page_range": {
+          "default": null,
+          "description": "Page range(s) to extract, like \"1-5,7-10\" (1-based).",
+          "title": "Page Range",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "languages": {
+          "description": "List of supported languages for the converter.",
+          "items": {
+            "enum": [
+              "en",
+              "de",
+              "fr",
+              "es",
+              "zh"
+            ],
+            "type": "string"
+          },
+          "title": "Languages",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "api_key": {
+          "anyOf": [
+            {
+              "format": "password",
+              "type": "string",
+              "writeOnly": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "LlamaParse API key. Falls back to LLAMAPARSE_API_KEY env var.",
+          "title": "Api Key"
+        },
+        "adaptive_long_table": {
+          "default": false,
+          "description": "Whether to use adaptive long table.",
+          "title": "Adaptive Long Table",
+          "type": "boolean"
+        },
+        "parse_mode": {
+          "default": "parse_page_with_llm",
+          "description": "Parse mode, defaults to \"parse_page_with_llm\".",
+          "enum": [
+            "parse_page_without_llm",
+            "parse_page_with_llm",
+            "parse_page_with_lvm",
+            "parse_page_with_agent",
+            "parse_document_with_llm"
+          ],
+          "title": "Parse Mode",
+          "type": "string"
+        },
+        "skip_diagonal_text": {
+          "default": false,
+          "description": "Whether to skip diagonal text.",
+          "title": "Skip Diagonal Text",
+          "type": "boolean"
+        },
+        "disable_ocr": {
+          "default": false,
+          "description": "Whether to disable OCR for images.",
+          "title": "Disable Ocr",
+          "type": "boolean"
+        },
+        "continuous_mode": {
+          "default": true,
+          "description": "Whether to use continuous mode.",
+          "title": "Continuous Mode",
+          "type": "boolean"
+        },
+        "html_tables": {
+          "default": false,
+          "description": "Whether to output HTML tables instead of markdown.",
+          "title": "Html Tables",
+          "type": "boolean"
+        }
+      },
+      "title": "LlamaParseConfig",
+      "type": "object"
+    },
     "LocalExecutionEnvironmentConfig": {
       "additionalProperties": false,
       "description": "Local execution environment configuration.\n\nExecutes code in the same process. Fastest option but offers no isolation.",
@@ -14404,95 +15840,6 @@
         }
       },
       "title": "LocalFilesystemConfig",
-      "type": "object"
-    },
-    "LocalWhisperConfig": {
-      "additionalProperties": false,
-      "description": "Configuration for local Whisper model.",
-      "properties": {
-        "type": {
-          "const": "local_whisper",
-          "default": "local_whisper",
-          "description": "Type discriminator for converter config.",
-          "title": "Type",
-          "type": "string"
-        },
-        "enabled": {
-          "default": true,
-          "description": "Whether this converter is currently active.",
-          "title": "Converter enabled",
-          "type": "boolean"
-        },
-        "model": {
-          "default": null,
-          "description": "Optional model name.",
-          "examples": [
-            "whisper-1",
-            "whisper-large"
-          ],
-          "title": "Whisper model",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "model_size": {
-          "default": "base",
-          "description": "Size of the Whisper model to use.",
-          "enum": [
-            "tiny",
-            "base",
-            "small",
-            "medium",
-            "large"
-          ],
-          "examples": [
-            "tiny",
-            "base",
-            "small",
-            "medium",
-            "large"
-          ],
-          "title": "Model size",
-          "type": "string"
-        },
-        "device": {
-          "anyOf": [
-            {
-              "enum": [
-                "cpu",
-                "cuda"
-              ],
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Device to run model on (None for auto-select).",
-          "examples": [
-            "cpu",
-            "cuda"
-          ],
-          "title": "Compute device"
-        },
-        "compute_type": {
-          "default": "float16",
-          "description": "Compute precision to use.",
-          "enum": [
-            "float32",
-            "float16"
-          ],
-          "examples": [
-            "float32",
-            "float16"
-          ],
-          "title": "Compute precision",
-          "type": "string"
-        }
-      },
-      "title": "LocalWhisperConfig",
       "type": "object"
     },
     "LogfireObservabilityConfig": {
@@ -14799,30 +16146,30 @@
           "title": "Type",
           "type": "string"
         },
-        "enabled": {
-          "default": true,
-          "description": "Whether this converter is currently active.",
-          "title": "Converter enabled",
-          "type": "boolean"
-        },
-        "max_size": {
-          "anyOf": [
-            {
-              "exclusiveMinimum": 0,
-              "type": "integer"
-            },
-            {
-              "type": "null"
-            }
-          ],
+        "page_range": {
           "default": null,
-          "description": "Optional size limit in bytes.",
-          "examples": [
-            1048576,
-            10485760,
-            52428800
-          ],
-          "title": "Maximum file size"
+          "description": "Page range(s) to extract, like \"1-5,7-10\" (1-based).",
+          "title": "Page Range",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "languages": {
+          "description": "List of supported languages for the converter.",
+          "items": {
+            "enum": [
+              "en",
+              "de",
+              "fr",
+              "es",
+              "zh"
+            ],
+            "type": "string"
+          },
+          "title": "Languages",
+          "type": "array",
+          "uniqueItems": true
         }
       },
       "title": "MarkItDownConfig",
@@ -14936,6 +16283,56 @@
       "title": "MarkdownFilesystemConfig",
       "type": "object"
     },
+    "MarkerConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for Marker-based converter.",
+      "properties": {
+        "type": {
+          "const": "marker",
+          "default": "marker",
+          "description": "Type discriminator for Marker converter.",
+          "title": "Type",
+          "type": "string"
+        },
+        "page_range": {
+          "default": null,
+          "description": "Page range(s) to extract, like \"1-5,7-10\" (1-based).",
+          "title": "Page Range",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "dpi": {
+          "default": 192,
+          "description": "DPI setting for image extraction.",
+          "exclusiveMinimum": 0,
+          "title": "Dpi",
+          "type": "integer"
+        },
+        "llm_provider": {
+          "anyOf": [
+            {
+              "enum": [
+                "gemini",
+                "ollama",
+                "vertex",
+                "claude"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Language model provider to use for OCR.",
+          "title": "Llm Provider"
+        }
+      },
+      "title": "MarkerConfig",
+      "type": "object"
+    },
     "McpFilesystemConfig": {
       "additionalProperties": true,
       "description": "Configuration for MCP (Model Context Protocol) filesystem.",
@@ -15010,6 +16407,85 @@
         }
       },
       "title": "McpFilesystemConfig",
+      "type": "object"
+    },
+    "McpToolsFilesystemConfig": {
+      "additionalProperties": true,
+      "description": "Configuration for MCP tools filesystem.",
+      "properties": {
+        "fs_type": {
+          "const": "mcptools",
+          "default": "mcptools",
+          "description": "MCP tools filesystem type",
+          "title": "Fs Type",
+          "type": "string"
+        },
+        "root_path": {
+          "default": null,
+          "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "title": "Root Path",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for relative path operations (uses fs.chdir).",
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cached": {
+          "default": false,
+          "description": "Whether to wrap in CachingFileSystem.",
+          "title": "Cached",
+          "type": "boolean"
+        },
+        "url": {
+          "default": null,
+          "description": "URL of MCP server",
+          "examples": [
+            "http://localhost:8000/mcp"
+          ],
+          "title": "MCP Server URL",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "server_cmd": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Command to start MCP server",
+          "examples": [
+            [
+              "uvx",
+              "mcp-server-fetch"
+            ]
+          ],
+          "title": "Server Command"
+        },
+        "stubs_only": {
+          "default": false,
+          "description": "If True, generate type stubs without implementation",
+          "title": "Stubs Only",
+          "type": "boolean"
+        }
+      },
+      "title": "McpToolsFilesystemConfig",
       "type": "object"
     },
     "MemoryConfig": {
@@ -15405,6 +16881,61 @@
         }
       },
       "title": "MicrosandboxFilesystemConfig",
+      "type": "object"
+    },
+    "MistralConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for Mistral-based converter.",
+      "properties": {
+        "type": {
+          "const": "mistral",
+          "default": "mistral",
+          "description": "Type discriminator for Mistral converter.",
+          "title": "Type",
+          "type": "string"
+        },
+        "page_range": {
+          "default": null,
+          "description": "Page range(s) to extract, like \"1-5,7-10\" (1-based).",
+          "title": "Page Range",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "languages": {
+          "description": "List of supported languages for the converter.",
+          "items": {
+            "enum": [
+              "en",
+              "de",
+              "fr",
+              "es",
+              "zh"
+            ],
+            "type": "string"
+          },
+          "title": "Languages",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "api_key": {
+          "anyOf": [
+            {
+              "format": "password",
+              "type": "string",
+              "writeOnly": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Mistral API key. If None, will try env var MISTRAL_API_KEY.",
+          "title": "Api Key"
+        }
+      },
+      "title": "MistralConfig",
       "type": "object"
     },
     "ModalFilesystemConfig": {
@@ -16914,6 +18445,63 @@
       "title": "OrCondition",
       "type": "object"
     },
+    "OverlayFilesystemConfig": {
+      "additionalProperties": true,
+      "description": "Configuration for overlay filesystem with copy-on-write semantics.",
+      "properties": {
+        "fs_type": {
+          "const": "overlay",
+          "default": "overlay",
+          "description": "Overlay filesystem type",
+          "title": "Fs Type",
+          "type": "string"
+        },
+        "root_path": {
+          "default": null,
+          "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "title": "Root Path",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for relative path operations (uses fs.chdir).",
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cached": {
+          "default": false,
+          "description": "Whether to wrap in CachingFileSystem.",
+          "title": "Cached",
+          "type": "boolean"
+        },
+        "filesystems": {
+          "description": "List of filesystem identifiers, first is writable upper layer",
+          "examples": [
+            [
+              "writable_fs",
+              "readonly_fs"
+            ]
+          ],
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Filesystem Identifiers",
+          "type": "array"
+        }
+      },
+      "required": [
+        "filesystems"
+      ],
+      "title": "OverlayFilesystemConfig",
+      "type": "object"
+    },
     "PackageFilesystemConfig": {
       "additionalProperties": true,
       "description": "Configuration for Package filesystem.",
@@ -16964,33 +18552,6 @@
         "package"
       ],
       "title": "PackageFilesystemConfig",
-      "type": "object"
-    },
-    "PlainConverterConfig": {
-      "additionalProperties": false,
-      "description": "Configuration for plain text fallback converter.",
-      "properties": {
-        "type": {
-          "const": "plain",
-          "default": "plain",
-          "description": "Type discriminator for plain text converter.",
-          "title": "Type",
-          "type": "string"
-        },
-        "enabled": {
-          "default": true,
-          "description": "Whether this converter is currently active.",
-          "title": "Converter enabled",
-          "type": "boolean"
-        },
-        "force": {
-          "default": false,
-          "description": "Whether to attempt converting any file type.",
-          "title": "Force conversion",
-          "type": "boolean"
-        }
-      },
-      "title": "PlainConverterConfig",
       "type": "object"
     },
     "PrePostPromptConfig": {
@@ -17562,6 +19123,151 @@
         }
       },
       "title": "RemoteProxyConfig",
+      "type": "object"
+    },
+    "S3FilesystemConfig": {
+      "additionalProperties": true,
+      "description": "Configuration for AWS S3 filesystem.",
+      "properties": {
+        "fs_type": {
+          "const": "s3",
+          "default": "s3",
+          "description": "S3 filesystem type",
+          "title": "Fs Type",
+          "type": "string"
+        },
+        "root_path": {
+          "default": null,
+          "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "title": "Root Path",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for relative path operations (uses fs.chdir).",
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cached": {
+          "default": false,
+          "description": "Whether to wrap in CachingFileSystem.",
+          "title": "Cached",
+          "type": "boolean"
+        },
+        "key": {
+          "anyOf": [
+            {
+              "format": "password",
+              "type": "string",
+              "writeOnly": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "AWS access key ID",
+          "title": "AWS Access Key ID"
+        },
+        "secret": {
+          "anyOf": [
+            {
+              "format": "password",
+              "type": "string",
+              "writeOnly": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "AWS secret access key",
+          "title": "AWS Secret Access Key"
+        },
+        "token": {
+          "anyOf": [
+            {
+              "format": "password",
+              "type": "string",
+              "writeOnly": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "AWS session token for temporary credentials",
+          "title": "AWS Session Token"
+        },
+        "endpoint_url": {
+          "default": null,
+          "description": "Custom S3 endpoint URL (for MinIO, LocalStack, etc.)",
+          "examples": [
+            "https://s3.amazonaws.com",
+            "http://localhost:9000"
+          ],
+          "title": "Endpoint URL",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "region_name": {
+          "default": null,
+          "description": "AWS region name",
+          "examples": [
+            "us-east-1",
+            "eu-west-1"
+          ],
+          "title": "AWS Region",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "anon": {
+          "default": false,
+          "description": "Use anonymous access (no credentials)",
+          "title": "Anonymous Access",
+          "type": "boolean"
+        },
+        "use_ssl": {
+          "default": true,
+          "description": "Whether to use SSL for connections",
+          "title": "Use SSL",
+          "type": "boolean"
+        },
+        "requester_pays": {
+          "default": false,
+          "description": "Access requester-pays buckets",
+          "title": "Requester Pays",
+          "type": "boolean"
+        },
+        "default_block_size": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Default block size for multipart uploads",
+          "examples": [
+            5242880
+          ],
+          "title": "Block Size"
+        }
+      },
+      "title": "S3FilesystemConfig",
       "type": "object"
     },
     "SFTPFilesystemConfig": {
@@ -21133,6 +22839,84 @@
       "x-doc-title": "Skills Toolset",
       "x-icon": "octicon:mortar-board-16"
     },
+    "SqliteFilesystemConfig": {
+      "additionalProperties": true,
+      "description": "Configuration for SQLite database filesystem.",
+      "properties": {
+        "fs_type": {
+          "const": "sqlite",
+          "default": "sqlite",
+          "description": "SQLite filesystem type",
+          "title": "Fs Type",
+          "type": "string"
+        },
+        "root_path": {
+          "default": null,
+          "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "title": "Root Path",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for relative path operations (uses fs.chdir).",
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cached": {
+          "default": false,
+          "description": "Whether to wrap in CachingFileSystem.",
+          "title": "Cached",
+          "type": "boolean"
+        },
+        "db_path": {
+          "description": "Path to SQLite database file",
+          "examples": [
+            "/path/to/database.db"
+          ],
+          "title": "Database Path",
+          "type": "string"
+        },
+        "target_protocol": {
+          "default": null,
+          "description": "Protocol for source database file",
+          "examples": [
+            "file",
+            "s3",
+            "http"
+          ],
+          "title": "Target Protocol",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "target_options": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Options for target protocol",
+          "title": "Target Protocol Options"
+        }
+      },
+      "required": [
+        "db_path"
+      ],
+      "title": "SqliteFilesystemConfig",
+      "type": "object"
+    },
     "StakpakACPAgentConfig": {
       "additionalProperties": false,
       "description": "Configuration for Stakpak Agent via ACP.\n\nTerminal-native DevOps Agent in Rust with enterprise-grade security.\n\nExample:\n    ```yaml\n    acp_agents:\n      stakpak:\n        type: stakpak\n        cwd: /path/to/project\n        model: smart\n        workdir: /path/to/work\n        verbose: true\n    ```",
@@ -23079,6 +24863,98 @@
       "x-doc-title": "Tool Management Toolset",
       "x-icon": "octicon:tools-16"
     },
+    "TreeSitterFilesystemConfig": {
+      "additionalProperties": true,
+      "description": "Configuration for tree-sitter code structure filesystem.",
+      "properties": {
+        "fs_type": {
+          "const": "treesitter",
+          "default": "treesitter",
+          "description": "Tree-sitter filesystem type",
+          "title": "Fs Type",
+          "type": "string"
+        },
+        "root_path": {
+          "default": null,
+          "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "title": "Root Path",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for relative path operations (uses fs.chdir).",
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cached": {
+          "default": false,
+          "description": "Whether to wrap in CachingFileSystem.",
+          "title": "Cached",
+          "type": "boolean"
+        },
+        "source_file": {
+          "description": "Path to source code file",
+          "examples": [
+            "/path/to/code.py"
+          ],
+          "title": "Source File Path",
+          "type": "string"
+        },
+        "language": {
+          "default": null,
+          "description": "Programming language (auto-detected from extension if not specified)",
+          "examples": [
+            "python",
+            "javascript",
+            "rust"
+          ],
+          "title": "Language",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "target_protocol": {
+          "default": null,
+          "description": "Protocol for source file",
+          "examples": [
+            "file",
+            "s3",
+            "http"
+          ],
+          "title": "Target Protocol",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "target_options": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Options for target protocol",
+          "title": "Target Protocol Options"
+        }
+      },
+      "required": [
+        "source_file"
+      ],
+      "title": "TreeSitterFilesystemConfig",
+      "type": "object"
+    },
     "TypeAdapterFilesystemConfig": {
       "additionalProperties": true,
       "description": "Configuration for TypeAdapter filesystem.",
@@ -23313,6 +25189,79 @@
       "type": "object",
       "x-doc-title": "Upsonic Toolset",
       "x-icon": "octicon:cloud-16"
+    },
+    "UpstageConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for Upstage Document AI converter.",
+      "properties": {
+        "type": {
+          "const": "upstage",
+          "default": "upstage",
+          "description": "Type discriminator for Upstage converter.",
+          "title": "Type",
+          "type": "string"
+        },
+        "page_range": {
+          "default": null,
+          "description": "Page range(s) to extract, like \"1-5,7-10\" (1-based).",
+          "title": "Page Range",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "api_key": {
+          "anyOf": [
+            {
+              "format": "password",
+              "type": "string",
+              "writeOnly": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Upstage API key. Falls back to UPSTAGE_API_KEY env var.",
+          "title": "Api Key"
+        },
+        "base_url": {
+          "default": "https://api.upstage.ai/v1/document-ai/document-parse",
+          "description": "API endpoint URL.",
+          "format": "uri",
+          "maxLength": 2083,
+          "minLength": 1,
+          "title": "Base Url",
+          "type": "string"
+        },
+        "ocr": {
+          "default": "auto",
+          "description": "OCR mode ('auto' or 'force').",
+          "enum": [
+            "auto",
+            "force"
+          ],
+          "title": "Ocr",
+          "type": "string"
+        },
+        "base64_categories": {
+          "description": "Element categories to encode in base64.",
+          "items": {
+            "enum": [
+              "figure",
+              "chart",
+              "table",
+              "paragraph"
+            ],
+            "type": "string"
+          },
+          "title": "Base64 Categories",
+          "type": "array",
+          "uniqueItems": true
+        }
+      },
+      "title": "UpstageConfig",
+      "type": "object"
     },
     "UsageLimits": {
       "properties": {
@@ -24177,6 +26126,152 @@
       "title": "WebHDFSFilesystemConfig",
       "type": "object"
     },
+    "WebdavFilesystemConfig": {
+      "additionalProperties": true,
+      "description": "Configuration for WebDAV filesystem.",
+      "properties": {
+        "fs_type": {
+          "const": "webdav",
+          "default": "webdav",
+          "description": "WebDAV filesystem type",
+          "title": "Fs Type",
+          "type": "string"
+        },
+        "root_path": {
+          "default": null,
+          "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "title": "Root Path",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for relative path operations (uses fs.chdir).",
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cached": {
+          "default": false,
+          "description": "Whether to wrap in CachingFileSystem.",
+          "title": "Cached",
+          "type": "boolean"
+        },
+        "base_url": {
+          "description": "Base URL of the WebDAV server",
+          "examples": [
+            "https://webdav.example.com/files",
+            "http://localhost:8080/dav"
+          ],
+          "title": "WebDAV URL",
+          "type": "string"
+        },
+        "auth": {
+          "anyOf": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Basic authentication (username, password) tuple",
+          "title": "Basic Auth"
+        },
+        "token": {
+          "anyOf": [
+            {
+              "format": "password",
+              "type": "string",
+              "writeOnly": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Bearer token for authentication",
+          "title": "Bearer Token"
+        },
+        "cert": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Client certificate path or (cert, key) tuple",
+          "title": "Client Certificate"
+        },
+        "verify": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "default": true,
+          "description": "Verify SSL certificates (True, False, or CA bundle path)",
+          "title": "Verify SSL"
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Connection timeout in seconds",
+          "examples": [
+            30,
+            60
+          ],
+          "title": "Timeout"
+        }
+      },
+      "required": [
+        "base_url"
+      ],
+      "title": "WebdavFilesystemConfig",
+      "type": "object"
+    },
     "WebhookConfig": {
       "additionalProperties": false,
       "description": "Webhook event source.",
@@ -24270,70 +26365,6 @@
         "path"
       ],
       "title": "WebhookConfig",
-      "type": "object"
-    },
-    "WhisperAPIConfig": {
-      "additionalProperties": false,
-      "description": "Configuration for OpenAI's Whisper API.",
-      "properties": {
-        "type": {
-          "const": "whisper_api",
-          "default": "whisper_api",
-          "description": "Type discriminator for converter config.",
-          "title": "Type",
-          "type": "string"
-        },
-        "enabled": {
-          "default": true,
-          "description": "Whether this converter is currently active.",
-          "title": "Converter enabled",
-          "type": "boolean"
-        },
-        "model": {
-          "default": null,
-          "description": "Optional model name.",
-          "examples": [
-            "whisper-1",
-            "whisper-large-v2"
-          ],
-          "title": "OpenAI model",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "api_key": {
-          "anyOf": [
-            {
-              "format": "password",
-              "type": "string",
-              "writeOnly": true
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "OpenAI API key.",
-          "title": "OpenAI API key"
-        },
-        "language": {
-          "default": null,
-          "description": "Optional language code.",
-          "examples": [
-            "en",
-            "es",
-            "fr",
-            "de"
-          ],
-          "title": "Language code",
-          "type": [
-            "string",
-            "null"
-          ]
-        }
-      },
-      "title": "WhisperAPIConfig",
       "type": "object"
     },
     "WikiFilesystemConfig": {
@@ -24548,97 +26579,6 @@
       "title": "YouConfig",
       "type": "object"
     },
-    "YouTubeConverterConfig": {
-      "additionalProperties": false,
-      "description": "Configuration for YouTube transcript converter.",
-      "properties": {
-        "type": {
-          "const": "youtube",
-          "default": "youtube",
-          "description": "Type discriminator for converter config.",
-          "title": "Type",
-          "type": "string"
-        },
-        "enabled": {
-          "default": true,
-          "description": "Whether this converter is currently active.",
-          "title": "Converter enabled",
-          "type": "boolean"
-        },
-        "languages": {
-          "description": "Preferred language codes in priority order. Defaults to ['en'].",
-          "examples": [
-            [
-              "en"
-            ],
-            [
-              "en",
-              "es",
-              "fr"
-            ],
-            [
-              "de",
-              "en"
-            ]
-          ],
-          "items": {
-            "type": "string"
-          },
-          "title": "Preferred languages",
-          "type": "array"
-        },
-        "format": {
-          "default": "text",
-          "description": "Output format. One of: text, json, vtt, srt.",
-          "enum": [
-            "text",
-            "json",
-            "vtt",
-            "srt"
-          ],
-          "examples": [
-            "text",
-            "json",
-            "vtt",
-            "srt"
-          ],
-          "title": "Output format",
-          "type": "string"
-        },
-        "preserve_formatting": {
-          "default": false,
-          "description": "Whether to keep HTML formatting elements like <i> and <b>.",
-          "title": "Preserve HTML formatting",
-          "type": "boolean"
-        },
-        "max_retries": {
-          "default": 3,
-          "description": "Maximum number of retries for failed requests.",
-          "examples": [
-            1,
-            3,
-            5
-          ],
-          "minimum": 0,
-          "title": "Maximum retries",
-          "type": "integer"
-        },
-        "timeout": {
-          "default": 30,
-          "description": "Request timeout in seconds.",
-          "examples": [
-            15,
-            30,
-            60
-          ],
-          "exclusiveMinimum": 0,
-          "title": "Request timeout",
-          "type": "integer"
-        }
-      },
-      "title": "YouTubeConverterConfig",
-      "type": "object"
-    },
     "ZipFilesystemConfig": {
       "additionalProperties": true,
       "description": "Configuration for Zip archive filesystem.",
@@ -24821,9 +26761,11 @@
           {
             "discriminator": {
               "mapping": {
+                "abfs": "#/$defs/AzureBlobFilesystemConfig",
                 "appwrite": "#/$defs/AppwriteFilesystemConfig",
                 "arrow": "#/$defs/ArrowFilesystemConfig",
                 "ast": "#/$defs/PythonAstFilesystemConfig",
+                "asynclocal": "#/$defs/AsyncLocalFilesystemConfig",
                 "basemodel": "#/$defs/BaseModelFilesystemConfig",
                 "basemodel_instance": "#/$defs/BaseModelInstanceFilesystemConfig",
                 "beam": "#/$defs/BeamFilesystemConfig",
@@ -24836,15 +26778,19 @@
                 "file": "#/$defs/LocalFilesystemConfig",
                 "flatunion": "#/$defs/FlatUnionFilesystemConfig",
                 "ftp": "#/$defs/FTPFilesystemConfig",
+                "gcs": "#/$defs/GCSFilesystemConfig",
                 "gist": "#/$defs/GistFilesystemConfig",
                 "git": "#/$defs/GitFilesystemConfig",
                 "github": "#/$defs/GithubFilesystemConfig",
+                "gitlab": "#/$defs/GitLabFilesystemConfig",
                 "hdfs": "#/$defs/HadoopFilesystemConfig",
+                "hf": "#/$defs/HuggingFaceFilesystemConfig",
                 "http": "#/$defs/HttpFilesystemConfig",
                 "httpx": "#/$defs/HttpxFilesystemConfig",
                 "jupyter": "#/$defs/JupyterFilesystemConfig",
                 "libarchive": "#/$defs/LibArchiveFilesystemConfig",
                 "mcp": "#/$defs/McpFilesystemConfig",
+                "mcptools": "#/$defs/McpToolsFilesystemConfig",
                 "md": "#/$defs/MarkdownFilesystemConfig",
                 "memory": "#/$defs/MemoryFilesystemConfig",
                 "microsandbox": "#/$defs/MicrosandboxFilesystemConfig",
@@ -24852,16 +26798,21 @@
                 "modal": "#/$defs/ModalFilesystemConfig",
                 "notion": "#/$defs/NotionFilesystemConfig",
                 "openapi": "#/$defs/OpenApiFilesystemConfig",
+                "overlay": "#/$defs/OverlayFilesystemConfig",
                 "pkg": "#/$defs/PackageFilesystemConfig",
+                "s3": "#/$defs/S3FilesystemConfig",
                 "sftp": "#/$defs/SFTPFilesystemConfig",
                 "skills": "#/$defs/SkillsFilesystemConfig",
                 "smb": "#/$defs/SMBFilesystemConfig",
+                "sqlite": "#/$defs/SqliteFilesystemConfig",
                 "srt": "#/$defs/SRTFilesystemConfig",
                 "tar": "#/$defs/TarFilesystemConfig",
+                "treesitter": "#/$defs/TreeSitterFilesystemConfig",
                 "typeadapter": "#/$defs/TypeAdapterFilesystemConfig",
                 "union": "#/$defs/UnionFilesystemConfig",
                 "uri": "#/$defs/URIFileSystemConfig",
                 "vercel": "#/$defs/VercelFilesystemConfig",
+                "webdav": "#/$defs/WebdavFilesystemConfig",
                 "webhdfs": "#/$defs/WebHDFSFilesystemConfig",
                 "wiki": "#/$defs/WikiFilesystemConfig",
                 "zip": "#/$defs/ZipFilesystemConfig"
@@ -24871,6 +26822,9 @@
             "oneOf": [
               {
                 "$ref": "#/$defs/AppwriteFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/AsyncLocalFilesystemConfig"
               },
               {
                 "$ref": "#/$defs/BaseModelFilesystemConfig"
@@ -24900,6 +26854,9 @@
                 "$ref": "#/$defs/GistFilesystemConfig"
               },
               {
+                "$ref": "#/$defs/GitLabFilesystemConfig"
+              },
+              {
                 "$ref": "#/$defs/HttpFilesystemConfig"
               },
               {
@@ -24910,6 +26867,9 @@
               },
               {
                 "$ref": "#/$defs/McpFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/McpToolsFilesystemConfig"
               },
               {
                 "$ref": "#/$defs/MicrosandboxFilesystemConfig"
@@ -24927,6 +26887,9 @@
                 "$ref": "#/$defs/OpenApiFilesystemConfig"
               },
               {
+                "$ref": "#/$defs/OverlayFilesystemConfig"
+              },
+              {
                 "$ref": "#/$defs/PackageFilesystemConfig"
               },
               {
@@ -24936,7 +26899,13 @@
                 "$ref": "#/$defs/SkillsFilesystemConfig"
               },
               {
+                "$ref": "#/$defs/SqliteFilesystemConfig"
+              },
+              {
                 "$ref": "#/$defs/SRTFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/TreeSitterFilesystemConfig"
               },
               {
                 "$ref": "#/$defs/TypeAdapterFilesystemConfig"
@@ -24954,6 +26923,9 @@
                 "$ref": "#/$defs/ArrowFilesystemConfig"
               },
               {
+                "$ref": "#/$defs/AzureBlobFilesystemConfig"
+              },
+              {
                 "$ref": "#/$defs/DataFilesystemConfig"
               },
               {
@@ -24963,6 +26935,9 @@
                 "$ref": "#/$defs/FTPFilesystemConfig"
               },
               {
+                "$ref": "#/$defs/GCSFilesystemConfig"
+              },
+              {
                 "$ref": "#/$defs/GitFilesystemConfig"
               },
               {
@@ -24970,6 +26945,9 @@
               },
               {
                 "$ref": "#/$defs/HadoopFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/HuggingFaceFilesystemConfig"
               },
               {
                 "$ref": "#/$defs/JupyterFilesystemConfig"
@@ -24984,6 +26962,9 @@
                 "$ref": "#/$defs/MemoryFilesystemConfig"
               },
               {
+                "$ref": "#/$defs/S3FilesystemConfig"
+              },
+              {
                 "$ref": "#/$defs/SFTPFilesystemConfig"
               },
               {
@@ -24991,6 +26972,9 @@
               },
               {
                 "$ref": "#/$defs/TarFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/WebdavFilesystemConfig"
               },
               {
                 "$ref": "#/$defs/WebHDFSFilesystemConfig"
@@ -25032,6 +27016,20 @@
       "description": "Mapping of agent IDs to their configurations.\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/agent_configuration/",
       "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/agent_configuration/",
       "title": "Agents",
+      "type": "object"
+    },
+    "file_agents": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "Mapping of agent IDs to Claude Code style subagent file paths.\n\nSupports local and remote paths via UPath. Files must have YAML frontmatter\nwith Claude Code subagent format (name, description, tools, model, etc.).\nThe markdown body becomes the system prompt.\n\nExample file format:\n    ```markdown\n    ---\n    name: code-reviewer\n    description: Expert code reviewer\n    model: sonnet\n    ---\n\n    You are a senior code reviewer...\n    ```",
+      "examples": [
+        {
+          "code_reviewer": ".claude/agents/reviewer.md",
+          "debugger": "https://example.com/agents/debugger.md"
+        }
+      ],
+      "title": "File Agents",
       "type": "object"
     },
     "teams": {
@@ -25112,6 +27110,15 @@
       "description": "Mapping of ACP agent IDs to their configurations.\n\nACP agents are external agents that communicate via the Agent Client Protocol.\nSupports custom ACP servers and pre-configured presets (claude, etc.).\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/acp_configuration/",
       "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/acp_configuration/",
       "title": "Acp Agents",
+      "type": "object"
+    },
+    "agui_agents": {
+      "additionalProperties": {
+        "$ref": "#/$defs/AGUIAgentConfig"
+      },
+      "description": "Mapping of AG-UI agent IDs to their configurations.\n\nAG-UI agents connect to remote HTTP endpoints implementing the AG-UI protocol.\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/agui_configuration/",
+      "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/agui_configuration/",
+      "title": "Agui Agents",
       "type": "object"
     },
     "storage": {
