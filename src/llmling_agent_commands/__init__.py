@@ -36,7 +36,11 @@ from llmling_agent_commands.workers import (
     RemoveWorkerCommand,
     ListWorkersCommand,
 )
-from llmling_agent_commands.utils import CopyClipboardCommand, EditAgentFileCommand
+from llmling_agent_commands.utils import (
+    CopyClipboardCommand,
+    EditAgentFileCommand,
+    ShareHistoryCommand,
+)
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -50,6 +54,7 @@ def get_agent_commands(**kwargs: Any) -> Sequence[BaseCommand | type[SlashedComm
         "enable_clear": ClearCommand,
         "enable_reset": ResetCommand,
         "enable_copy_clipboard": CopyClipboardCommand,
+        "enable_share_history": ShareHistoryCommand,
         "enable_set_model": SetModelCommand,
         "enable_list_tools": ListToolsCommand,
         "enable_show_tool": ShowToolCommand,
@@ -70,13 +75,7 @@ def get_agent_commands(**kwargs: Any) -> Sequence[BaseCommand | type[SlashedComm
         "enable_disconnect_all": DisconnectAllCommand,
         "enable_read": ReadCommand,
     }
-
-    commands = []
-    for flag, command in command_map.items():
-        if kwargs.get(flag, True):
-            commands.append(command)
-
-    return commands
+    return [command for flag, command in command_map.items() if kwargs.get(flag, True)]
 
 
 def get_pool_commands(**kwargs: Any) -> Sequence[BaseCommand | type[SlashedCommand]]:
@@ -87,13 +86,7 @@ def get_pool_commands(**kwargs: Any) -> Sequence[BaseCommand | type[SlashedComma
         "enable_show_agent": ShowAgentCommand,
         "enable_edit_agent_file": EditAgentFileCommand,
     }
-
-    commands = []
-    for flag, command in command_map.items():
-        if kwargs.get(flag, True):
-            commands.append(command)
-
-    return commands
+    return [command for flag, command in command_map.items() if kwargs.get(flag, True)]
 
 
 def get_commands(
@@ -101,6 +94,7 @@ def get_commands(
     enable_clear: bool = True,
     enable_reset: bool = True,
     enable_copy_clipboard: bool = True,
+    enable_share_history: bool = True,
     enable_set_model: bool = True,
     enable_list_tools: bool = True,
     enable_show_tool: bool = True,
@@ -130,6 +124,7 @@ def get_commands(
         "enable_clear": enable_clear,
         "enable_reset": enable_reset,
         "enable_copy_clipboard": enable_copy_clipboard,
+        "enable_share_history": enable_share_history,
         "enable_set_model": enable_set_model,
         "enable_list_tools": enable_list_tools,
         "enable_show_tool": enable_show_tool,

@@ -5,6 +5,7 @@ from __future__ import annotations
 import importlib.util
 import webbrowser
 
+from anyenv.text_sharing import TextSharerStr, Visibility  # noqa: TC002
 from slashed import CommandContext, CommandError, SlashedCommand  # noqa: TC002
 
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
@@ -109,3 +110,87 @@ class EditAgentFileCommand(SlashedCommand):
         except Exception as e:
             msg = f"Failed to open configuration file: {e}"
             raise CommandError(msg) from e
+
+
+class ShareHistoryCommand(SlashedCommand):
+    """Share message history using various text sharing providers.
+
+    Supports multiple providers:
+    - gist: GitHub Gist (requires GITHUB_TOKEN or GH_TOKEN)
+    - pastebin: Pastebin (requires PASTEBIN_API_KEY)
+    - paste_rs: paste.rs (no authentication required)
+    - opencode: OpenCode (no authentication required)
+
+    The shared content can be conversation history or custom text.
+    """
+
+    name = "share-text"
+    category = "utils"
+
+    async def execute_command(
+        self,
+        ctx: CommandContext[AgentContext],
+        *,
+        provider: TextSharerStr = "paste_rs",
+        num_messages: int = 1,
+        include_system: bool = False,
+        max_tokens: int | None = None,
+        format_template: str | None = None,
+        title: str | None = None,
+        syntax: str = "markdown",
+        visibility: Visibility = "unlisted",
+        custom_content: str | None = None,
+    ) -> None:
+        """Share text content via a text sharing provider.
+
+        Args:
+            ctx: Command context
+            provider: Text sharing provider to use
+            num_messages: Number of messages from history to share (ignored if custom_content)
+            include_system: Include system messages in history
+            max_tokens: Token limit for conversation history
+            format_template: Custom format template for history
+            title: Title/filename for the shared content
+            syntax: Syntax highlighting (e.g., "python", "markdown")
+            visibility: Visibility level
+            custom_content: Custom text content (overrides history)
+        """
+        from anyenv.text_sharing import get_sharer
+
+        if custom_content:
+            content = custom_content
+        else:
+            content = await ctx.context.agent.conversation.format_history(
+                num_messages=num_messages,
+                include_system=include_system,
+                max_tokens=max_tokens,
+                format_template=format_template,
+            )
+
+        if not content.strip():
+            await ctx.print("ℹ️ **No content to share**")  # noqa: RUF001
+            return
+
+        try:
+            # Get the appropriate sharer
+            sharer = get_sharer(provider)
+            # Share the content
+            result = await sharer.share(content, title=title, syntax=syntax, visibility=visibility)
+            # Format success message
+            provider_name = sharer.name
+            msg_parts = [f"🔗 **Content shared via {provider_name}:**", f"• URL: {result.url}"]
+            if result.raw_url:
+                msg_parts.append(f"• Raw: {result.raw_url}")
+            if result.delete_url:
+                msg_parts.append(f"• Delete: {result.delete_url}")
+
+            await ctx.print("\n".join(msg_parts))
+
+        except Exception as e:
+            msg = f"Failed to share content via {provider}: {e}"
+            raise CommandError(msg) from e
+
+    @classmethod
+    def condition(cls) -> bool:
+        """Check if anyenv text_sharing is available."""
+        return importlib.util.find_spec("anyenv.text_sharing") is not None
