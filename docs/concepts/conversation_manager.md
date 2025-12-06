@@ -16,17 +16,13 @@ The ConversationManager handles message history and context for agents. It provi
 ```python
 # Access conversation manager
 conversation = agent.conversation
-
 # Get message history
 messages = conversation.get_history()
-
 # Get specific messages
 recent = conversation[-5:]  # Last 5 messages
 agent_msgs = conversation["other_agent"]  # Messages from specific agent
-
 # Clear history
 conversation.clear()
-
 # Set history
 conversation.set_history(new_messages)
 ```
@@ -56,7 +52,6 @@ history_text = await conversation.format_history(
 ```python
 # Get token counts
 total = conversation.get_history_tokens()
-
 # Format with token limit
 context = await conversation.format_history(
     max_tokens=2000,
@@ -74,7 +69,6 @@ agent = pool.get_agent(
     "assistant",
     session="previous_chat"  # Session ID
 )
-
 # Or with query
 agent = pool.get_agent(
     "assistant",
@@ -120,65 +114,11 @@ When using `Agent.__init__()`:
 # With session query
 async with Agent(
     ...,
-    session=SessionQuery(
-        name="support_chat",
-        since="1h"
-    )
+    session=SessionQuery(name="support_chat", since="1h")
 ) as agent:
     ...
 
 # With simple session ID
-async with Agent(
-    ...,
-    session="previous_chat"
-) as agent:
+async with Agent(..., session="previous_chat") as agent:
     ...
-```
-
-## Loading History
-
-### Time-Based Loading
-```python
-# Load recent history
-conversation.load_history_from_database(
-    since="1h",    # Last hour
-    until="5m",    # Up to 5 minutes ago
-    limit=50       # Max 50 messages
-)
-
-# Specific timeframe
-conversation.load_history_from_database(
-    since=datetime(2023, 1, 1),
-    until=datetime(2023, 1, 2)
-)
-```
-
-### Filtered Loading
-```python
-# Filter by content
-history = conversation.filter_messages(
-    SessionQuery(
-        contains="error",
-        roles={"user", "assistant"}
-    )
-)
-
-# Filter by agents
-history = conversation.filter_messages(
-    SessionQuery(
-        agents={"support_bot", "user"},
-        limit=10
-    )
-)
-```
-
-## Events
-
-The ConversationManager emits events for history changes:
-
-```python
-# History cleared event
-@conversation.history_cleared.connect
-def on_clear(event: ConversationManager.HistoryCleared):
-    print(f"History cleared for session {event.session_id}")
 ```
