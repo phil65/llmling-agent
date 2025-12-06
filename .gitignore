@@ -48,3 +48,6 @@ agentops.log
 acp_protocol/
 
 test_configs/
+
+# Stakpak session files
+.stakpak/session*

@@ -22,6 +22,31 @@ acp_agents:
     display_name: "Fast Agent"
     description: "fast-agent through ACP"
     model: openai.gpt-4o
+  amp:
+    type: amp
+    display_name: "Amp (AmpCode)"
+    description: "Open-source ACP adapter for Amp CLI through ACP"
+  auggie:
+    type: auggie
+    display_name: "Auggie (Augment Code)"
+    description: "Augment Code's AI agent through ACP"
+  kimi:
+    type: kimi
+    display_name: "Kimi CLI"
+    description: "Moonshot AI's Kimi agent through ACP"
+  stakpak:
+    type: stakpak
+    display_name: "Stakpak Agent"
+    description: "Terminal-native DevOps Agent through ACP"
+
+  # cagent:
+  #   type: cagent
+  #   display_name: "Docker cagent"
+  #   description: "Docker's Agent Builder and Runtime through ACP"
+  # vtcode:
+  #   type: vtcode
+  #   display_name: "VT Code"
+  #   description: "Rust-based semantic coding agent through ACP"
   # openhands:
   #   type: openhands
   #   display_name: "OpenHands"

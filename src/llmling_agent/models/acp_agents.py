@@ -670,6 +670,573 @@ class FastAgentACPAgentConfig(BaseACPAgentConfig):
         return ["openai", "anthropic", "gemini", "openrouter"]
 
 
+class AmpACPAgentConfig(BaseACPAgentConfig):
+    """Configuration for Amp (AmpCode) via ACP.
+
+    ACP bridge adapter that spawns the Amp CLI internally. The amp-acp bridge
+    itself has no CLI configuration options. It spawns `amp --no-notifications`
+    and bridges the communication to ACP protocol.
+
+    Configuration is done via environment variables:
+    - AMP_EXECUTABLE: Path to amp binary (default: 'amp' from PATH)
+    - AMP_PREFER_SYSTEM_PATH: Set to '1' to use system amp instead of npx version
+    - AMP_API_KEY: API key for Amp service
+    - AMP_URL: URL for Amp service (default: https://ampcode.com/)
+    - AMP_SETTINGS_FILE: Path to settings file
+
+    For amp CLI configuration (permissions, MCP servers, etc.), use the amp
+    settings file at ~/.config/amp/settings.json
+
+    Example:
+        ```yaml
+        acp_agents:
+          amp:
+            type: amp
+            cwd: /path/to/project
+            env:
+              AMP_EXECUTABLE: /usr/local/bin/amp
+              AMP_PREFER_SYSTEM_PATH: "1"
+              AMP_API_KEY: your-api-key
+        ```
+    """
+
+    type: Literal["amp"] = Field("amp", init=False)
+    """Discriminator for Amp ACP agent."""
+
+    def get_command(self) -> str:
+        """Get the command to spawn the ACP bridge server."""
+        return "npx"
+
+    def get_args(self) -> list[str]:
+        """Build command arguments for amp-acp bridge."""
+        return ["-y", "amp-acp"]
+
+    @property
+    def model_providers(self) -> list[ProviderType]:
+        """Amp supports multiple providers."""
+        return ["openai", "anthropic", "gemini"]
+
+
+class AuggieACPAgentConfig(BaseACPAgentConfig):
+    """Configuration for Auggie (Augment Code) via ACP.
+
+    AI agent that brings Augment Code's power to the terminal.
+
+    Example:
+        ```yaml
+        acp_agents:
+          auggie:
+            type: auggie
+            cwd: /path/to/project
+            model: auggie-sonnet
+            workspace_root: /path/to/workspace
+            rules: [rules.md]
+            shell: bash
+        ```
+    """
+
+    type: Literal["auggie"] = Field("auggie", init=False)
+    """Discriminator for Auggie ACP agent."""
+
+    model: str | None = Field(default=None)
+    """Model to use."""
+
+    workspace_root: str | None = Field(default=None)
+    """Workspace root (auto-detects git root if absent)."""
+
+    rules: list[str] | None = Field(default=None)
+    """Additional rules files."""
+
+    augment_cache_dir: str | None = Field(default=None)
+    """Cache directory (default: ~/.augment)."""
+
+    retry_timeout: int | None = Field(default=None)
+    """Timeout for rate-limit retries (seconds)."""
+
+    allow_indexing: bool = Field(default=False)
+    """Skip the indexing confirmation screen in interactive mode."""
+
+    augment_token_file: str | None = Field(default=None)
+    """Path to file containing authentication token."""
+
+    github_api_token: str | None = Field(default=None)
+    """Path to file containing GitHub API token."""
+
+    permission: list[str] | None = Field(default=None)
+    """Tool permissions with 'tool-name:policy' format."""
+
+    remove_tool: list[str] | None = Field(default=None)
+    """Remove specific tools by name."""
+
+    shell: Literal["bash", "zsh", "fish", "powershell"] | None = Field(default=None)
+    """Select shell."""
+
+    startup_script: str | None = Field(default=None)
+    """Inline startup script to run before each command."""
+
+    startup_script_file: str | None = Field(default=None)
+    """Load startup script from file."""
+
+    def get_command(self) -> str:
+        """Get the command to spawn the ACP server."""
+        return "auggie"
+
+    def get_args(self) -> list[str]:
+        """Build command arguments from settings."""
+        args = ["--acp"]
+
+        if self.model:
+            args.extend(["--model", self.model])
+        if self.workspace_root:
+            args.extend(["--workspace-root", self.workspace_root])
+        if self.rules:
+            for rule_file in self.rules:
+                args.extend(["--rules", rule_file])
+        if self.augment_cache_dir:
+            args.extend(["--augment-cache-dir", self.augment_cache_dir])
+        if self.retry_timeout is not None:
+            args.extend(["--retry-timeout", str(self.retry_timeout)])
+        if self.allow_indexing:
+            args.append("--allow-indexing")
+        if self.augment_token_file:
+            args.extend(["--augment-token-file", self.augment_token_file])
+        if self.github_api_token:
+            args.extend(["--github-api-token", self.github_api_token])
+
+        # Convert inherited mcp_servers to Auggie's --mcp-config format
+        mcp_json = self.build_mcp_config_json()
+        if mcp_json:
+            args.extend(["--mcp-config", mcp_json])
+
+        if self.permission:
+            for perm in self.permission:
+                args.extend(["--permission", perm])
+        if self.remove_tool:
+            for tool in self.remove_tool:
+                args.extend(["--remove-tool", tool])
+        if self.shell:
+            args.extend(["--shell", self.shell])
+        if self.startup_script:
+            args.extend(["--startup-script", self.startup_script])
+        if self.startup_script_file:
+            args.extend(["--startup-script-file", self.startup_script_file])
+
+        return args
+
+    @property
+    def model_providers(self) -> list[ProviderType]:
+        """Auggie uses Augment Code's models."""
+        return []
+
+
+class CagentACPAgentConfig(BaseACPAgentConfig):
+    """Configuration for Docker cagent via ACP.
+
+    Agent Builder and Runtime by Docker Engineering.
+
+    Example:
+        ```yaml
+        acp_agents:
+          cagent:
+            type: cagent
+            cwd: /path/to/project
+            agent_file: ./agent.yaml
+            code_mode_tools: true
+            working_dir: /path/to/work
+        ```
+    """
+
+    type: Literal["cagent"] = Field("cagent", init=False)
+    """Discriminator for Docker cagent ACP agent."""
+
+    agent_file: str | None = Field(default=None)
+    """Agent configuration file or registry reference."""
+
+    code_mode_tools: bool = Field(default=False)
+    """Provide a single tool to call other tools via Javascript."""
+
+    env_from_file: list[str] | None = Field(default=None)
+    """Set environment variables from file."""
+
+    models_gateway: str | None = Field(default=None)
+    """Set the models gateway address."""
+
+    working_dir: str | None = Field(default=None)
+    """Set the working directory for the session."""
+
+    debug: bool = Field(default=False)
+    """Enable debug logging."""
+
+    otel: bool = Field(default=False)
+    """Enable OpenTelemetry tracing."""
+
+    log_file: str | None = Field(default=None)
+    """Path to debug log file."""
+
+    def get_command(self) -> str:
+        """Get the command to spawn the ACP server."""
+        return "cagent"
+
+    def get_args(self) -> list[str]:
+        """Build command arguments from settings."""
+        args = ["acp"]
+
+        if self.agent_file:
+            args.append(self.agent_file)
+        if self.code_mode_tools:
+            args.append("--code-mode-tools")
+        if self.env_from_file:
+            for env_file in self.env_from_file:
+                args.extend(["--env-from-file", env_file])
+        if self.models_gateway:
+            args.extend(["--models-gateway", self.models_gateway])
+        if self.working_dir:
+            args.extend(["--working-dir", self.working_dir])
+        if self.debug:
+            args.append("--debug")
+        if self.otel:
+            args.append("--otel")
+        if self.log_file:
+            args.extend(["--log-file", self.log_file])
+
+        return args
+
+    @property
+    def model_providers(self) -> list[ProviderType]:
+        """Cagent supports multiple providers via MCP."""
+        return ["openai", "anthropic", "gemini"]
+
+
+class KimiACPAgentConfig(BaseACPAgentConfig):
+    """Configuration for Kimi CLI via ACP.
+
+    Command-line agent from Moonshot AI with ACP support.
+
+    Example:
+        ```yaml
+        acp_agents:
+          kimi:
+            type: kimi
+            cwd: /path/to/project
+            model: kimi-v1
+            work_dir: /path/to/work
+            yolo: true
+        ```
+    """
+
+    type: Literal["kimi"] = Field("kimi", init=False)
+    """Discriminator for Kimi CLI ACP agent."""
+
+    verbose: bool = Field(default=False)
+    """Print verbose information."""
+
+    debug: bool = Field(default=False)
+    """Log debug information."""
+
+    agent_file: str | None = Field(default=None)
+    """Custom agent specification file."""
+
+    model: str | None = Field(default=None)
+    """LLM model to use."""
+
+    work_dir: str | None = Field(default=None)
+    """Working directory for the agent."""
+
+    yolo: bool = Field(default=False)
+    """Automatically approve all actions."""
+
+    thinking: bool | None = Field(default=None)
+    """Enable thinking mode if supported."""
+
+    def get_command(self) -> str:
+        """Get the command to spawn the ACP server."""
+        return "kimi"
+
+    def get_args(self) -> list[str]:
+        """Build command arguments from settings."""
+        args = ["--acp"]
+
+        if self.verbose:
+            args.append("--verbose")
+        if self.debug:
+            args.append("--debug")
+        if self.agent_file:
+            args.extend(["--agent-file", self.agent_file])
+        if self.model:
+            args.extend(["--model", self.model])
+        if self.work_dir:
+            args.extend(["--work-dir", self.work_dir])
+
+        # Convert inherited mcp_servers to Kimi's --mcp-config format
+        mcp_json = self.build_mcp_config_json()
+        if mcp_json:
+            args.extend(["--mcp-config", mcp_json])
+
+        if self.yolo:
+            args.append("--yolo")
+        if self.thinking is not None and self.thinking:
+            args.append("--thinking")
+
+        return args
+
+    @property
+    def model_providers(self) -> list[ProviderType]:
+        """Kimi uses Moonshot AI's models."""
+        return []
+
+
+class StakpakACPAgentConfig(BaseACPAgentConfig):
+    """Configuration for Stakpak Agent via ACP.
+
+    Terminal-native DevOps Agent in Rust with enterprise-grade security.
+
+    Example:
+        ```yaml
+        acp_agents:
+          stakpak:
+            type: stakpak
+            cwd: /path/to/project
+            model: smart
+            workdir: /path/to/work
+            verbose: true
+        ```
+    """
+
+    type: Literal["stakpak"] = Field("stakpak", init=False)
+    """Discriminator for Stakpak ACP agent."""
+
+    workdir: str | None = Field(default=None)
+    """Run the agent in a specific directory."""
+
+    verbose: bool = Field(default=False)
+    """Enable verbose output."""
+
+    debug: bool = Field(default=False)
+    """Enable debug output."""
+
+    disable_secret_redaction: bool = Field(default=False)
+    """Disable secret redaction (WARNING: prints secrets to console)."""
+
+    privacy_mode: bool = Field(default=False)
+    """Enable privacy mode to redact private data."""
+
+    study_mode: bool = Field(default=False)
+    """Enable study mode to use the agent as a study assistant."""
+
+    index_big_project: bool = Field(default=False)
+    """Allow indexing of large projects (more than 500 supported files)."""
+
+    enable_slack_tools: bool = Field(default=False)
+    """Enable Slack tools (experimental)."""
+
+    disable_mcp_mtls: bool = Field(default=False)
+    """Disable mTLS (WARNING: uses unencrypted HTTP communication)."""
+
+    enable_subagents: bool = Field(default=False)
+    """Enable subagents."""
+
+    subagent_config: str | None = Field(default=None)
+    """Subagent configuration file subagents.toml."""
+
+    allowed_tools: list[str] | None = Field(default=None)
+    """Allow only the specified tools in the agent's context."""
+
+    system_prompt_file: str | None = Field(default=None)
+    """Read system prompt from file."""
+
+    profile: str | None = Field(default=None)
+    """Configuration profile to use."""
+
+    model: Literal["smart", "eco"] | None = Field(default=None)
+    """Choose agent model on startup."""
+
+    config: str | None = Field(default=None)
+    """Custom path to config file."""
+
+    def get_command(self) -> str:
+        """Get the command to spawn the ACP server."""
+        return "stakpak"
+
+    def get_args(self) -> list[str]:
+        """Build command arguments from settings."""
+        args = ["acp"]
+
+        if self.workdir:
+            args.extend(["--workdir", self.workdir])
+        if self.verbose:
+            args.append("--verbose")
+        if self.debug:
+            args.append("--debug")
+        if self.disable_secret_redaction:
+            args.append("--disable-secret-redaction")
+        if self.privacy_mode:
+            args.append("--privacy-mode")
+        if self.study_mode:
+            args.append("--study-mode")
+        if self.index_big_project:
+            args.append("--index-big-project")
+        if self.enable_slack_tools:
+            args.append("--enable-slack-tools")
+        if self.disable_mcp_mtls:
+            args.append("--disable-mcp-mtls")
+        if self.enable_subagents:
+            args.append("--enable-subagents")
+        if self.subagent_config:
+            args.extend(["--subagent-config", self.subagent_config])
+        if self.allowed_tools:
+            for tool in self.allowed_tools:
+                args.extend(["--tool", tool])
+        if self.system_prompt_file:
+            args.extend(["--system-prompt-file", self.system_prompt_file])
+        if self.profile:
+            args.extend(["--profile", self.profile])
+        if self.model:
+            args.extend(["--model", self.model])
+        if self.config:
+            args.extend(["--config", self.config])
+
+        return args
+
+    @property
+    def model_providers(self) -> list[ProviderType]:
+        """Stakpak supports multiple providers."""
+        return ["openai", "anthropic", "gemini"]
+
+
+class VTCodeACPAgentConfig(BaseACPAgentConfig):
+    """Configuration for VT Code via ACP.
+
+    Rust-based terminal coding agent with semantic code intelligence.
+
+    Example:
+        ```yaml
+        acp_agents:
+          vtcode:
+            type: vtcode
+            cwd: /path/to/project
+            model: gemini-2.5-flash-preview-05-20
+            provider: gemini
+            workspace: /path/to/workspace
+        ```
+    """
+
+    type: Literal["vtcode"] = Field("vtcode", init=False)
+    """Discriminator for VT Code ACP agent."""
+
+    model: str | None = Field(default=None)
+    """LLM Model ID."""
+
+    provider: Literal["gemini", "openai", "anthropic", "deepseek", "openrouter", "xai"] | None = (
+        Field(default=None)
+    )
+    """LLM Provider."""
+
+    api_key_env: str | None = Field(default=None)
+    """API key environment variable."""
+
+    workspace: str | None = Field(default=None)
+    """Workspace root directory for file operations."""
+
+    enable_tree_sitter: bool = Field(default=False)
+    """Enable tree-sitter code analysis."""
+
+    performance_monitoring: bool = Field(default=False)
+    """Enable performance monitoring."""
+
+    research_preview: bool = Field(default=False)
+    """Enable research-preview features."""
+
+    security_level: Literal["strict", "moderate", "permissive"] | None = Field(default=None)
+    """Security level for tool execution."""
+
+    show_file_diffs: bool = Field(default=False)
+    """Show diffs for file changes in chat interface."""
+
+    max_concurrent_ops: int | None = Field(default=None)
+    """Maximum concurrent async operations."""
+
+    api_rate_limit: int | None = Field(default=None)
+    """Maximum API requests per minute."""
+
+    max_tool_calls: int | None = Field(default=None)
+    """Maximum tool calls per session."""
+
+    debug: bool = Field(default=False)
+    """Enable debug output for troubleshooting."""
+
+    verbose: bool = Field(default=False)
+    """Enable verbose logging."""
+
+    config: str | None = Field(default=None)
+    """Configuration file path."""
+
+    log_level: Literal["error", "warn", "info", "debug", "trace"] | None = Field(default=None)
+    """Log level."""
+
+    theme: str | None = Field(default=None)
+    """Select UI theme for ANSI styling."""
+
+    skip_confirmations: bool = Field(default=False)
+    """Skip safety confirmations."""
+
+    full_auto: bool = Field(default=False)
+    """Enable full-auto mode (no interaction)."""
+
+    def get_command(self) -> str:
+        """Get the command to spawn the ACP server."""
+        return "vtcode"
+
+    def get_args(self) -> list[str]:
+        """Build command arguments from settings."""
+        args = ["acp"]
+
+        if self.model:
+            args.extend(["--model", self.model])
+        if self.provider:
+            args.extend(["--provider", self.provider])
+        if self.api_key_env:
+            args.extend(["--api-key-env", self.api_key_env])
+        if self.workspace:
+            args.extend(["--workspace", self.workspace])
+        if self.enable_tree_sitter:
+            args.append("--enable-tree-sitter")
+        if self.performance_monitoring:
+            args.append("--performance-monitoring")
+        if self.research_preview:
+            args.append("--research-preview")
+        if self.security_level:
+            args.extend(["--security-level", self.security_level])
+        if self.show_file_diffs:
+            args.append("--show-file-diffs")
+        if self.max_concurrent_ops is not None:
+            args.extend(["--max-concurrent-ops", str(self.max_concurrent_ops)])
+        if self.api_rate_limit is not None:
+            args.extend(["--api-rate-limit", str(self.api_rate_limit)])
+        if self.max_tool_calls is not None:
+            args.extend(["--max-tool-calls", str(self.max_tool_calls)])
+        if self.debug:
+            args.append("--debug")
+        if self.verbose:
+            args.append("--verbose")
+        if self.config:
+            args.extend(["--config", self.config])
+        if self.log_level:
+            args.extend(["--log-level", self.log_level])
+        if self.theme:
+            args.extend(["--theme", self.theme])
+        if self.skip_confirmations:
+            args.append("--skip-confirmations")
+        if self.full_auto:
+            args.append("--full-auto")
+
+        return args
+
+    @property
+    def model_providers(self) -> list[ProviderType]:
+        """VT Code supports multiple providers."""
+        return ["openai", "anthropic", "gemini"]
+
+
 # Union of all ACP agent config types
 ACPAgentConfigTypes = Annotated[
     ACPAgentConfig
@@ -679,6 +1246,12 @@ ACPAgentConfigTypes = Annotated[
     | OpenCodeACPAgentConfig
     | GooseACPAgentConfig
     | OpenHandsACPAgentConfig
-    | FastAgentACPAgentConfig,
+    | FastAgentACPAgentConfig
+    | AmpACPAgentConfig
+    | AuggieACPAgentConfig
+    | CagentACPAgentConfig
+    | KimiACPAgentConfig
+    | StakpakACPAgentConfig
+    | VTCodeACPAgentConfig,
     Field(discriminator="type"),
 ]
