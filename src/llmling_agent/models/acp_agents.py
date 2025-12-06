@@ -20,7 +20,25 @@ if TYPE_CHECKING:
 
 
 ClaudeCodeModelName = Literal["default", "sonnet", "opus", "haiku", "sonnet[1m]", "opusplan"]
-ClaudeCodeToolName = Literal["Read", "Grep", "Glob", "Bash"]
+ClaudeCodeToolName = Literal[
+    "AskUserQuestion",
+    "Bash",
+    "BashOutput",
+    "Edit",
+    "ExitPlanMode",
+    "Glob",
+    "Grep",
+    "KillShell",
+    "NotebookEdit",
+    "Read",
+    "Skill",
+    "SlashCommand",
+    "Task",
+    "TodoWrite",
+    "WebFetch",
+    "WebSearch",
+    "Write",
+]
 ClaudeCodePermissionmode = Literal["default", "acceptEdits", "bypassPermissions", "dontAsk", "plan"]
 
 
