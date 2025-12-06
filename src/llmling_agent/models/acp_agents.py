@@ -19,6 +19,11 @@ if TYPE_CHECKING:
     )
 
 
+ClaudeCodeModelName = Literal["default", "sonnet", "opus", "haiku", "sonnet[1m]", "opusplan"]
+ClaudeCodeToolName = Literal["Read", "Grep", "Glob", "Bash"]
+ClaudeCodePermissionmode = Literal["default", "acceptEdits", "bypassPermissions", "dontAsk", "plan"]
+
+
 class BaseACPAgentConfig(NodeConfig):
     """Base configuration for all ACP agents.
 
@@ -233,21 +238,19 @@ class ClaudeACPAgentConfig(BaseACPAgentConfig):
     append_system_prompt: str | None = Field(default=None)
     """Text to append to the default system prompt."""
 
-    model: str | None = Field(
+    model: ClaudeCodeModelName | None = Field(
         default=None,
         examples=["sonnet", "opus", "claude-sonnet-4-20250514"],
     )
     """Model override. Use alias ('sonnet', 'opus') or full name."""
 
-    permission_mode: (
-        Literal["default", "acceptEdits", "bypassPermissions", "dontAsk", "plan"] | None
-    ) = Field(default=None)
+    permission_mode: ClaudeCodePermissionmode | None = Field(default=None)
     """Permission handling mode for tool execution."""
 
-    allowed_tools: list[str] | None = Field(default=None)
+    allowed_tools: list[ClaudeCodeToolName | str] | None = Field(default=None)
     """Whitelist of allowed tools (e.g., ['Read', 'Write', 'Bash(git:*)'])."""
 
-    disallowed_tools: list[str] | None = Field(default=None)
+    disallowed_tools: list[ClaudeCodeToolName | str] | None = Field(default=None)
     """Blacklist of disallowed tools."""
 
     strict_mcp_config: bool = Field(default=False)
@@ -256,13 +259,13 @@ class ClaudeACPAgentConfig(BaseACPAgentConfig):
     add_dir: list[str] | None = Field(default=None)
     """Additional directories to allow tool access to."""
 
-    tools: list[str] | None = Field(
+    tools: list[ClaudeCodeToolName | str] | None = Field(
         default=None,
         examples=[["Bash", "Edit", "Read"], []],
     )
     """Available tools from built-in set. Empty list disables all tools."""
 
-    fallback_model: str | None = Field(default=None, examples=["sonnet", "haiku"])
+    fallback_model: ClaudeCodeModelName | None = Field(default=None, examples=["sonnet", "haiku"])
     """Fallback model when default is overloaded."""
 
     dangerously_skip_permissions: bool = Field(default=False)
