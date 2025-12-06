@@ -93,6 +93,7 @@ acp = "acp.filesystem:ACPPath"
 
 [project.optional-dependencies]
 a2a = ["fasta2a", "starlette"]  # A2A Server
+ag-ui = ["ag-ui-protocol>=0.1.10"]  # Ag-UI Agents
 braintrust = ["braintrust", "autoevals"]  # Braintrust Prompt Hub
 clipboard = ["clipman"]  # Clipboard functionality
 coding = ["ast-grep-py>=0.40.0"]  # Packages to allow coding functionality
@@ -111,7 +112,6 @@ oauth = [
   "keyring>=25.6.0"
 ]  # OAuth functionality (will be fixed dep for FastMCP >2.13)
 promptlayer = ["promptlayer"]  # PromptLayer Prompt Hub
-ag-ui = ["ag-ui-protocol>=0.1.10"]  # Ag-UI Agents
 server = [
   "logfire[fastapi]",
   "fastapi",
