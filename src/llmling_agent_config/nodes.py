@@ -31,6 +31,13 @@ class NodeConfig(Schema):
     name: str | None = Field(default=None)
     """Identifier for the node. Set from dict key, not from YAML."""
 
+    config_file_path: str | None = Field(
+        default=None,
+        examples=["/path/to/config.yml", "configs/agent.yaml"],
+        title="Configuration file path",
+    )
+    """Config file path for resolving relative paths."""
+
     display_name: str | None = Field(
         default=None,
         examples=["Main Agent", "Web Searcher", "Code Assistant"],

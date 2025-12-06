@@ -390,13 +390,6 @@ class AgentConfig(NodeConfig):
     # context_sources: list[ContextSource] = Field(default_factory=list)
     # """Initial context sources to load"""
 
-    config_file_path: str | None = Field(
-        default=None,
-        examples=["/path/to/config.yml", "configs/agent.yaml"],
-        title="Configuration file path",
-    )
-    """Config file path for resolving environment."""
-
     knowledge: Knowledge | None = Field(
         default=None,
         title="Knowledge sources",

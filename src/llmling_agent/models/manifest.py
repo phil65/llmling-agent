@@ -723,12 +723,23 @@ class AgentsManifest(Schema):
         try:
             data = yamling.load_yaml_file(path, resolve_inherit=True)
             agent_def = cls.model_validate(data)
-            # Update all agents with the config file path and ensure names
-            agents = {
-                name: config.model_copy(update={"config_file_path": str(path)})
-                for name, config in agent_def.agents.items()
-            }
-            return agent_def.model_copy(update={"agents": agents})
+            # Update all node types with the config file path
+            path_str = str(path)
+
+            def update_with_path(nodes: dict[str, Any]) -> dict[str, Any]:
+                return {
+                    name: config.model_copy(update={"config_file_path": path_str})
+                    for name, config in nodes.items()
+                }
+
+            return agent_def.model_copy(
+                update={
+                    "agents": update_with_path(agent_def.agents),
+                    "teams": update_with_path(agent_def.teams),
+                    "acp_agents": update_with_path(agent_def.acp_agents),
+                    "agui_agents": update_with_path(agent_def.agui_agents),
+                }
+            )
         except Exception as exc:
             msg = f"Failed to load agent config from {path}"
             raise ValueError(msg) from exc
