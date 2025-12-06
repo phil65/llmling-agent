@@ -1,0 +1,412 @@
+"""AG-UI remote agent implementation.
+
+This module provides a MessageNode adapter that connects to remote AG-UI protocol servers,
+enabling remote agent execution with streaming support.
+"""
+
+from __future__ import annotations
+
+import asyncio
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Any, Self
+from uuid import uuid4
+
+import httpx
+from pydantic import TypeAdapter
+
+from llmling_agent.agent.agui_converters import agui_to_native_event, extract_text_from_event
+from llmling_agent.agent.events import StreamCompleteEvent
+from llmling_agent.log import get_logger
+from llmling_agent.messaging import ChatMessage
+from llmling_agent.messaging.messagenode import MessageNode
+from llmling_agent.talk.stats import MessageStats
+
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncIterator, Callable, Sequence
+    from types import TracebackType
+
+    from ag_ui.core import Event
+    from evented.configs import EventConfig
+
+    from llmling_agent.agent.events import RichAgentStreamEvent
+    from llmling_agent.common_types import PromptCompatible
+    from llmling_agent.delegation import AgentPool
+    from llmling_agent.messaging.context import NodeContext
+    from llmling_agent_config.mcp_server import MCPServerConfig
+
+
+logger = get_logger(__name__)
+
+
+@dataclass
+class AGUISessionState:
+    """Track state for an active AG-UI session."""
+
+    thread_id: str
+    """Thread ID for this session."""
+    run_id: str | None = None
+    """Current run ID."""
+    text_chunks: list[str] = field(default_factory=list)
+    """Accumulated text chunks."""
+    thought_chunks: list[str] = field(default_factory=list)
+    """Accumulated thought chunks."""
+    tool_calls: dict[str, dict[str, Any]] = field(default_factory=dict)
+    """Active tool calls by ID."""
+    is_complete: bool = False
+    """Whether the current run is complete."""
+    error: str | None = None
+    """Error message if run failed."""
+
+
+class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
+    """MessageNode that wraps a remote AG-UI protocol server.
+
+    Connects to AG-UI compatible endpoints via HTTP/SSE and provides the same
+    interface as native agents, enabling composition with other nodes via
+    connections, teams, etc.
+
+    The agent manages:
+    - HTTP client lifecycle (create on enter, close on exit)
+    - AG-UI protocol communication via SSE streams
+    - Event conversion to native llmling-agent events
+    - Message accumulation and final response generation
+
+    Supports both blocking `run()` and streaming `run_stream()` execution modes.
+
+    Example:
+        ```python
+        async with AGUIAgent(
+            endpoint="http://localhost:8000/agent/run",
+            name="remote-agent"
+        ) as agent:
+            result = await agent.run("Hello, world!")
+            async for event in agent.run_stream("Tell me a story"):
+                print(event)
+        ```
+    """
+
+    def __init__(
+        self,
+        endpoint: str,
+        *,
+        name: str = "agui-agent",
+        description: str | None = None,
+        display_name: str | None = None,
+        timeout: float = 60.0,
+        headers: dict[str, str] | None = None,
+        mcp_servers: Sequence[str | MCPServerConfig] | None = None,
+        agent_pool: AgentPool[Any] | None = None,
+        enable_logging: bool = True,
+        event_configs: Sequence[EventConfig] | None = None,
+    ) -> None:
+        """Initialize AG-UI agent client.
+
+        Args:
+            endpoint: HTTP endpoint for the AG-UI agent
+            name: Agent name for identification
+            description: Agent description
+            display_name: Human-readable display name
+            timeout: Request timeout in seconds
+            headers: Additional HTTP headers
+            mcp_servers: MCP servers to connect
+            agent_pool: Agent pool for multi-agent coordination
+            enable_logging: Whether to enable database logging
+            event_configs: Event trigger configurations
+        """
+        super().__init__(
+            name=name,
+            description=description,
+            display_name=display_name,
+            mcp_servers=mcp_servers,
+            agent_pool=agent_pool,
+            enable_logging=enable_logging,
+            event_configs=event_configs,
+        )
+        self.endpoint = endpoint
+        self.timeout = timeout
+        self.headers = headers or {}
+
+        self._client: httpx.AsyncClient | None = None
+        self._state: AGUISessionState | None = None
+        self._message_count = 0
+        self._total_tokens = 0
+
+    @property
+    def context(self) -> NodeContext:
+        """Get node context."""
+        from llmling_agent.messaging.context import NodeContext
+        from llmling_agent.models.manifest import AgentsManifest
+        from llmling_agent_config.nodes import NodeConfig
+
+        return NodeContext(
+            node_name=self.name,
+            pool=self.agent_pool,
+            config=NodeConfig(name=self.name, description=self.description),
+            definition=AgentsManifest(),
+        )
+
+    async def __aenter__(self) -> Self:
+        """Enter async context - initialize client and base resources."""
+        await super().__aenter__()
+        self._client = httpx.AsyncClient(
+            timeout=httpx.Timeout(self.timeout),
+            headers={
+                **self.headers,
+                "Accept": "text/event-stream",
+                "Content-Type": "application/json",
+            },
+        )
+        self._state = AGUISessionState(thread_id=self.conversation_id)
+        self.log.debug("AG-UI client initialized", endpoint=self.endpoint)
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
+        """Exit async context - cleanup client and base resources."""
+        if self._client:
+            await self._client.aclose()
+            self._client = None
+        self._state = None
+        self.log.debug("AG-UI client closed")
+        await super().__aexit__(exc_type, exc_val, exc_tb)
+
+    async def run(
+        self,
+        *prompts: PromptCompatible,
+        message_id: str | None = None,
+        **kwargs: Any,
+    ) -> ChatMessage[str]:
+        """Execute prompt against AG-UI agent.
+
+        Sends the prompt to the AG-UI server and waits for completion.
+        Events are collected and the final text content is returned as a ChatMessage.
+
+        Args:
+            prompts: Prompts to send (will be joined with spaces)
+            message_id: Optional message id for the returned message
+            **kwargs: Additional arguments (ignored for compatibility)
+
+        Returns:
+            ChatMessage containing the agent's aggregated text response
+        """
+        if not self._client or not self._state:
+            msg = "Agent not initialized - use async context manager"
+            raise RuntimeError(msg)
+
+        # Reset state for new run
+        self._state.text_chunks.clear()
+        self._state.thought_chunks.clear()
+        self._state.tool_calls.clear()
+        self._state.is_complete = False
+        self._state.error = None
+        self._state.run_id = str(uuid4())
+
+        # Collect all events
+        async for _ in self.run_stream(*prompts, message_id=message_id):
+            pass
+
+        # Create final message
+        self._message_count += 1
+        message = ChatMessage[str](
+            content="".join(self._state.text_chunks),
+            role="assistant",
+            name=self.name,
+            message_id=message_id or str(uuid4()),
+            conversation_id=self.conversation_id,
+            model_name=None,
+            cost_info=None,
+        )
+        self.message_sent.emit(message)
+        return message
+
+    async def run_stream(
+        self,
+        *prompts: PromptCompatible,
+        message_id: str | None = None,
+        **kwargs: Any,
+    ) -> AsyncIterator[RichAgentStreamEvent[str]]:
+        """Execute prompt with streaming events.
+
+        Args:
+            prompts: Prompts to send
+            message_id: Optional message ID
+            **kwargs: Additional arguments (ignored for compatibility)
+
+        Yields:
+            Native streaming events converted from AG-UI protocol
+        """
+        from ag_ui.core import RunAgentInput, UserMessage
+
+        if not self._client or not self._state:
+            msg = "Agent not initialized - use async context manager"
+            raise RuntimeError(msg)
+
+        # Reset state
+        self._state.text_chunks.clear()
+        self._state.thought_chunks.clear()
+        self._state.tool_calls.clear()
+        self._state.is_complete = False
+        self._state.error = None
+        self._state.run_id = str(uuid4())
+
+        # Build request
+        prompt_text = " ".join(str(p) for p in prompts)
+        user_message = UserMessage(id=str(uuid4()), content=prompt_text)
+
+        request_data = RunAgentInput(
+            thread_id=self._state.thread_id,
+            run_id=self._state.run_id,
+            state={},
+            messages=[user_message],
+            tools=[],
+            context=[],
+            forwarded_props={},
+        )
+
+        self.log.debug("Sending prompt to AG-UI agent", prompt=prompt_text[:100])
+
+        # Send request and stream events
+        try:
+            async with self._client.stream(
+                "POST",
+                self.endpoint,
+                json=request_data.model_dump(by_alias=True),
+            ) as response:
+                response.raise_for_status()
+
+                # Parse SSE stream
+                async for event in self._parse_sse_stream(response):
+                    # Track text chunks
+                    if text := extract_text_from_event(event):
+                        self._state.text_chunks.append(text)
+
+                    # Convert to native event
+                    if native_event := agui_to_native_event(event):
+                        yield native_event
+
+        except httpx.HTTPError as e:
+            self._state.error = str(e)
+            self.log.exception("HTTP error during AG-UI run")
+            raise
+        finally:
+            self._state.is_complete = True
+
+            # Emit final message
+            final_message = ChatMessage[str](
+                content="".join(self._state.text_chunks),
+                role="assistant",
+                name=self.name,
+                message_id=message_id or str(uuid4()),
+                conversation_id=self.conversation_id,
+                model_name=None,
+                cost_info=None,
+            )
+            yield StreamCompleteEvent(message=final_message)
+
+    async def _parse_sse_stream(self, response: httpx.Response) -> AsyncIterator[Event]:
+        """Parse Server-Sent Events stream.
+
+        Args:
+            response: HTTP response with SSE stream
+
+        Yields:
+            Parsed AG-UI events
+        """
+        from ag_ui.core import Event
+
+        event_adapter: TypeAdapter[Event] = TypeAdapter(Event)
+        buffer = ""
+
+        async for chunk in response.aiter_text():
+            buffer += chunk
+
+            # Process complete SSE events
+            while "\n\n" in buffer:
+                event_text, buffer = buffer.split("\n\n", 1)
+
+                # Parse SSE format: "data: {json}\n"
+                for line in event_text.split("\n"):
+                    if line.startswith("data: "):
+                        json_str = line[6:]  # Remove "data: " prefix
+                        try:
+                            event = event_adapter.validate_json(json_str)
+                            yield event
+                        except (ValueError, TypeError) as e:
+                            self.log.warning(
+                                "Failed to parse AG-UI event",
+                                json=json_str[:100],
+                                error=str(e),
+                            )
+
+    async def run_iter(
+        self,
+        *prompt_groups: Sequence[PromptCompatible],
+        message_id: str | None = None,
+        **kwargs: Any,
+    ) -> AsyncIterator[ChatMessage[str]]:
+        """Execute multiple prompt groups sequentially.
+
+        Args:
+            prompt_groups: Groups of prompts to execute
+            message_id: Optional message ID base
+            **kwargs: Additional arguments (ignored for compatibility)
+
+        Yields:
+            ChatMessage for each completed prompt group
+        """
+        for i, prompts in enumerate(prompt_groups):
+            mid = f"{message_id or 'msg'}_{i}" if message_id else None
+            yield await self.run(*prompts, message_id=mid)
+
+    def to_tool(self, description: str | None = None) -> Callable[[str], Any]:
+        """Convert agent to a callable tool.
+
+        Args:
+            description: Tool description
+
+        Returns:
+            Async function that can be used as a tool
+        """
+
+        async def wrapped(prompt: str) -> str:
+            """Execute AG-UI agent with given prompt."""
+            result = await self.run(prompt)
+            return result.content
+
+        wrapped.__name__ = self.name
+        wrapped.__doc__ = description or f"Call {self.name} AG-UI agent"
+        return wrapped
+
+    @property
+    def model_name(self) -> str | None:
+        """Get model name (AG-UI doesn't expose this)."""
+        return None
+
+    async def get_stats(self) -> MessageStats:
+        """Get message statistics for this node."""
+        return MessageStats()
+
+
+async def main() -> None:
+    """Example usage."""
+    async with AGUIAgent(
+        endpoint="http://localhost:8000/agent/run",
+        name="test-agent",
+    ) as agent:
+        # Non-streaming
+        result = await agent.run("What is 2+2?")
+        print(f"Result: {result.content}")
+
+        # Streaming
+        print("\nStreaming:")
+        async for event in agent.run_stream("Tell me a short joke"):
+            print(f"Event: {event}")
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
