@@ -14,6 +14,7 @@ from uuid import uuid4
 import httpx
 from pydantic import TypeAdapter
 
+from llmling_agent.agent.conversation import MessageHistory
 from llmling_agent.agent.events import StreamCompleteEvent
 from llmling_agent.log import get_logger
 from llmling_agent.messaging import ChatMessage
@@ -218,6 +219,7 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
         self._client: httpx.AsyncClient | None = None
         self._state: AGUISessionState | None = None
         self._message_count = 0
+        self.conversation = MessageHistory()
         self._total_tokens = 0
 
     @property
@@ -326,6 +328,7 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
         self,
         *prompts: PromptCompatible,
         message_id: str | None = None,
+        message_history: MessageHistory | None = None,
         **kwargs: Any,
     ) -> ChatMessage[str]:
         """Execute prompt against AG-UI agent.
@@ -336,14 +339,23 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
         Args:
             prompts: Prompts to send (will be joined with spaces)
             message_id: Optional message id for the returned message
+            message_history: Optional MessageHistory to use instead of agent's own
             **kwargs: Additional arguments (ignored for compatibility)
 
         Returns:
             ChatMessage containing the agent's aggregated text response
         """
+        from llmling_agent.messaging.processing import prepare_prompts
+
         if not self._client or not self._state:
             msg = "Agent not initialized - use async context manager"
             raise RuntimeError(msg)
+
+        # Determine which conversation to use
+        conversation = message_history if message_history is not None else self.conversation
+
+        # Prepare user message for history
+        user_msg, _processed_prompts, _original_message = await prepare_prompts(*prompts)
 
         # Reset state for new run
         self._state.text_chunks.clear()
@@ -369,12 +381,17 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
             cost_info=None,
         )
         self.message_sent.emit(message)
+
+        # Record to conversation history
+        conversation.add_chat_messages([user_msg, message])
+
         return message
 
     async def run_stream(
         self,
         *prompts: PromptCompatible,
         message_id: str | None = None,
+        message_history: MessageHistory | None = None,
         **kwargs: Any,
     ) -> AsyncIterator[RichAgentStreamEvent[str]]:
         """Execute prompt with streaming events.
@@ -382,6 +399,7 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
         Args:
             prompts: Prompts to send
             message_id: Optional message ID
+            message_history: Optional MessageHistory to use instead of agent's own
             **kwargs: Additional arguments (ignored for compatibility)
 
         Yields:
@@ -394,10 +412,17 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
             extract_text_from_event,
         )
         from llmling_agent.agent.events import RunStartedEvent
+        from llmling_agent.messaging.processing import prepare_prompts
 
         if not self._client or not self._state:
             msg = "Agent not initialized - use async context manager"
             raise RuntimeError(msg)
+
+        # Determine which conversation to use
+        conversation = message_history if message_history is not None else self.conversation
+
+        # Prepare user message for history
+        user_msg, _processed_prompts, _original_message = await prepare_prompts(*prompts)
 
         # Reset state
         self._state.text_chunks.clear()
@@ -467,6 +492,9 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
                 cost_info=None,
             )
             yield StreamCompleteEvent(message=final_message)
+
+            # Record to conversation history
+            conversation.add_chat_messages([user_msg, final_message])
 
     async def _parse_sse_stream(self, response: httpx.Response) -> AsyncIterator[Event]:
         """Parse Server-Sent Events stream.

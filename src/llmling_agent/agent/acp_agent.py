@@ -55,6 +55,7 @@ from acp.schema import (
     WaitForTerminalExitResponse,
     WriteTextFileResponse,
 )
+from llmling_agent.agent.conversation import MessageHistory
 from llmling_agent.log import get_logger
 from llmling_agent.messaging import ChatMessage
 from llmling_agent.messaging.messagenode import MessageNode
@@ -579,6 +580,7 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         self._message_count = 0
         self._total_tokens = 0
         self._output_type = str
+        self.conversation = MessageHistory()
         self.deps_type = type(None)
 
     @property
@@ -713,6 +715,7 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         *prompts: PromptCompatible,
         message_id: str | None = None,
         input_provider: InputProvider | None = None,
+        message_history: MessageHistory | None = None,
     ) -> ChatMessage[str]:
         """Execute prompt against ACP agent.
 
@@ -724,10 +727,13 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
             prompts: Prompts to send (will be joined with spaces)
             message_id: Optional message id for the returned message
             input_provider: Optional input provider for permission requests
+            message_history: Optional MessageHistory to use instead of agent's own
 
         Returns:
             ChatMessage containing the agent's aggregated text response
         """
+        from llmling_agent.messaging.processing import prepare_prompts
+
         # Update input provider if provided
         if input_provider is not None:
             self._input_provider = input_provider
@@ -736,6 +742,12 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         if not self._connection or not self._session_id or not self._state:
             msg = "Agent not initialized - use async context manager"
             raise RuntimeError(msg)
+
+        # Determine which conversation to use
+        conversation = message_history if message_history is not None else self.conversation
+
+        # Prepare user message for history
+        user_msg, _processed_prompts, _original_message = await prepare_prompts(*prompts)
 
         # Reset state for new prompt
         self._state.text_chunks.clear()
@@ -762,6 +774,10 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
             cost_info=None,
         )
         self.message_sent.emit(message)
+
+        # Record to conversation history
+        conversation.add_chat_messages([user_msg, message])
+
         return message
 
     async def run_stream(
@@ -769,6 +785,7 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         *prompts: PromptCompatible,
         message_id: str | None = None,
         input_provider: InputProvider | None = None,
+        message_history: MessageHistory | None = None,
     ) -> AsyncIterator[RichAgentStreamEvent[str]]:
         """Stream native events as they arrive from ACP agent.
 
@@ -779,6 +796,7 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
             prompts: Prompts to send (will be joined with spaces)
             message_id: Optional message id for the final message
             input_provider: Optional input provider for permission requests
+            message_history: Optional MessageHistory to use instead of agent's own
 
         Yields:
             RichAgentStreamEvent instances converted from ACP session updates
@@ -789,10 +807,17 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
             if self._client_handler:
                 self._client_handler._input_provider = input_provider
         from llmling_agent.agent.events import RunStartedEvent, StreamCompleteEvent
+        from llmling_agent.messaging.processing import prepare_prompts
 
         if not self._connection or not self._session_id or not self._state:
             msg = "Agent not initialized - use async context manager"
             raise RuntimeError(msg)
+
+        # Determine which conversation to use
+        conversation = message_history if message_history is not None else self.conversation
+
+        # Prepare user message for history
+        user_msg, _processed_prompts, _original_message = await prepare_prompts(*prompts)
 
         # Reset state
         run_id = str(uuid.uuid4())
@@ -849,6 +874,9 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         )
         yield StreamCompleteEvent(message=message)
         self.message_sent.emit(message)
+
+        # Record to conversation history
+        conversation.add_chat_messages([user_msg, message])
 
     async def run_iter(
         self,
