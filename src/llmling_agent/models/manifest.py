@@ -13,7 +13,7 @@ from upathtools.configs.base import URIFileSystemConfig
 
 from llmling_agent import log
 from llmling_agent.models.acp_agents import ACPAgentConfigTypes
-from llmling_agent.models.agents import AgentConfig
+from llmling_agent.models.agents import AgentConfig, parse_agent_file
 from llmling_agent_config.commands import CommandConfig, StaticCommandConfig
 from llmling_agent_config.converters import ConversionConfig
 from llmling_agent_config.mcp_server import BaseMCPServerConfig, MCPServerConfig
@@ -105,6 +105,33 @@ class AgentsManifest(Schema):
     """Mapping of agent IDs to their configurations.
 
     Docs: https://phil65.github.io/llmling-agent/YAML%20Configuration/agent_configuration/
+    """
+
+    file_agents: dict[str, str] = Field(
+        default_factory=dict,
+        examples=[
+            {
+                "code_reviewer": ".claude/agents/reviewer.md",
+                "debugger": "https://example.com/agents/debugger.md",
+            }
+        ],
+    )
+    """Mapping of agent IDs to Claude Code style subagent file paths.
+
+    Supports local and remote paths via UPath. Files must have YAML frontmatter
+    with Claude Code subagent format (name, description, tools, model, etc.).
+    The markdown body becomes the system prompt.
+
+    Example file format:
+        ```markdown
+        ---
+        name: code-reviewer
+        description: Expert code reviewer
+        model: sonnet
+        ---
+
+        You are a senior code reviewer...
+        ```
     """
 
     teams: dict[str, TeamConfig] = Field(
@@ -407,15 +434,41 @@ class AgentsManifest(Schema):
         data["agents"] = resolved
         return data
 
+    @cached_property
+    def _loaded_file_agents(self) -> dict[str, AgentConfig]:
+        """Load and cache file-based agent configurations.
+
+        Parses Claude Code style markdown files and converts them to AgentConfig.
+        Results are cached to avoid repeated file reads.
+        """
+        loaded: dict[str, AgentConfig] = {}
+        for name, file_path in self.file_agents.items():
+            try:
+                config = parse_agent_file(file_path)
+                # Ensure name is set from the key
+                if config.name is None:
+                    config = config.model_copy(update={"name": name})
+                loaded[name] = config
+            except Exception as e:
+                logger.exception("Failed to load file agent %r from %s", name, file_path)
+                msg = f"Failed to load file agent {name!r} from {file_path}: {e}"
+                raise ValueError(msg) from e
+        return loaded
+
     @property
     def node_names(self) -> list[str]:
         """Get list of all agent, ACP agent, and team names."""
-        return list(self.agents.keys()) + list(self.acp_agents.keys()) + list(self.teams.keys())
+        return (
+            list(self.agents.keys())
+            + list(self.file_agents.keys())
+            + list(self.acp_agents.keys())
+            + list(self.teams.keys())
+        )
 
     @property
     def nodes(self) -> dict[str, Any]:
         """Get all agent, ACP agent, and team configurations."""
-        return {**self.agents, **self.acp_agents, **self.teams}
+        return {**self.agents, **self._loaded_file_agents, **self.acp_agents, **self.teams}
 
     def get_mcp_servers(self) -> list[MCPServerConfig]:
         """Get processed MCP server configurations.
@@ -491,7 +544,14 @@ class AgentsManifest(Schema):
             StaticPromptConfig,
         )
 
-        config = self.agents[name]
+        # Get config from inline agents or file agents
+        if name in self.agents:
+            config = self.agents[name]
+        elif name in self.file_agents:
+            config = self._loaded_file_agents[name]
+        else:
+            msg = f"Agent {name!r} not found in agents or file_agents"
+            raise KeyError(msg)
         sys_prompts: list[str] = []
         for prompt in config.system_prompts:
             match prompt:

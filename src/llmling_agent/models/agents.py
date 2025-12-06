@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence  # noqa: TC003
 from pathlib import Path
+import re
 from typing import TYPE_CHECKING, Any, Literal
 from uuid import UUID
 
@@ -38,6 +39,223 @@ ToolConfirmationMode = Literal["always", "never", "per_tool"]
 ToolMode = Literal["codemode"]
 
 logger = log.get_logger(__name__)
+
+
+# Claude Code model alias mapping
+CLAUDE_MODEL_ALIASES: dict[str, str] = {
+    "sonnet": "anthropic:claude-sonnet-4-20250514",
+    "opus": "anthropic:claude-opus-4-20250514",
+    "haiku": "anthropic:claude-haiku-3-5-20241022",
+}
+
+# Claude Code permissionMode to ToolConfirmationMode mapping
+PERMISSION_MODE_MAP: dict[str, ToolConfirmationMode] = {
+    "default": "per_tool",
+    "acceptEdits": "never",
+    "bypassPermissions": "never",
+    # 'plan' and 'ignore' don't map well, default to per_tool
+}
+
+
+def parse_agent_file(
+    file_path: str,
+    *,
+    skills_registry: Any | None = None,
+) -> AgentConfig:
+    """Parse agent markdown file to AgentConfig.
+
+    Supports both Claude Code and OpenCode formats with auto-detection.
+    Also supports local and remote paths via UPath.
+
+    Format documentation:
+    - Claude Code: https://code.claude.com/docs/en/sub-agents.md
+    - OpenCode: https://raw.githubusercontent.com/sst/opencode/refs/heads/dev/packages/web/src/content/docs/agents.mdx
+
+    Args:
+        file_path: Path to .md file with YAML frontmatter (local or remote)
+        skills_registry: Optional skills registry for loading skills
+
+    Claude Code format:
+        ```markdown
+        ---
+        name: agent-name
+        description: When to use this agent
+        tools: tool1, tool2  # comma-separated
+        model: sonnet  # sonnet/opus/haiku/inherit
+        permissionMode: default
+        skills: skill1, skill2
+        ---
+
+        System prompt content.
+        ```
+
+    OpenCode format:
+        ```markdown
+        ---
+        description: Agent description
+        mode: subagent  # primary/subagent/all
+        model: anthropic/claude-sonnet-4-20250514
+        temperature: 0.1
+        maxSteps: 5
+        tools:
+          write: false
+          edit: false
+        permission:
+          edit: deny
+          bash:
+            "git diff": allow
+        ---
+
+        System prompt content.
+        ```
+
+    Additional llmling-agent fields in frontmatter are also supported.
+    """
+    from upathtools import to_upath
+    import yamling
+
+    path = to_upath(file_path)
+    content = path.read_text("utf-8")
+
+    # Extract YAML frontmatter
+    frontmatter_match = re.match(r"^---\s*\n(.*?)\n---\s*\n?", content, re.DOTALL)
+    if not frontmatter_match:
+        msg = f"No YAML frontmatter found in {file_path}"
+        raise ValueError(msg)
+
+    try:
+        metadata = yamling.load_yaml(frontmatter_match.group(1))
+    except yamling.YAMLError as e:
+        msg = f"Invalid YAML frontmatter in {file_path}: {e}"
+        raise ValueError(msg) from e
+
+    if not isinstance(metadata, dict):
+        msg = f"YAML frontmatter must be a dictionary in {file_path}"
+        raise ValueError(msg)
+
+    # Extract system prompt (everything after frontmatter)
+    system_prompt = content[frontmatter_match.end() :].strip()
+
+    # Build AgentConfig kwargs
+    config_kwargs: dict[str, Any] = {}
+
+    # Required field
+    if description := metadata.get("description"):
+        config_kwargs["description"] = description
+
+    # Detect format and parse accordingly
+    is_opencode = (
+        any(key in metadata for key in ["mode", "temperature", "maxSteps", "disable"])
+        or ("tools" in metadata and isinstance(metadata["tools"], dict))
+        or ("permission" in metadata and isinstance(metadata["permission"], dict))
+    )
+
+    # Model handling
+    if model := metadata.get("model"):
+        if model == "inherit":
+            pass  # Leave as None, will use default
+        elif model in CLAUDE_MODEL_ALIASES:
+            config_kwargs["model"] = CLAUDE_MODEL_ALIASES[model]
+        else:
+            config_kwargs["model"] = model
+
+    # OpenCode-specific fields
+    if is_opencode:
+        # Temperature
+        if temperature := metadata.get("temperature"):
+            logger.debug(
+                "OpenCode temperature %r in %s (not directly supported)", temperature, file_path
+            )
+
+        # MaxSteps
+        if max_steps := metadata.get("maxSteps"):
+            logger.debug(
+                "OpenCode maxSteps %r in %s (not directly supported)", max_steps, file_path
+            )
+
+        # Disable
+        if disable := metadata.get("disable"):
+            logger.debug("OpenCode disable %r in %s (not directly supported)", disable, file_path)
+
+        # Mode (primary/subagent/all) - we don't have direct equivalent
+        if mode := metadata.get("mode"):
+            logger.debug("OpenCode mode %r in %s (informational only)", mode, file_path)
+
+        # Permission handling (granular per-tool)
+        if permission := metadata.get("permission"):
+            # For now, just check if edit permissions are restrictive
+            edit_perm = permission.get("edit") if isinstance(permission, dict) else None
+            if edit_perm in ("deny", "ask"):
+                config_kwargs["requires_tool_confirmation"] = (
+                    "always" if edit_perm == "ask" else "never"
+                )
+            logger.debug("OpenCode permission %r in %s (partial mapping)", permission, file_path)
+
+        # TODO: OpenCode tools dict format (tool_name: bool) - needs toolset integration
+        if tools := metadata.get("tools"):
+            if isinstance(tools, dict):
+                logger.debug("OpenCode tools dict %r in %s (not yet supported)", tools, file_path)
+
+    # Claude Code-specific fields
+    else:
+        # Permission mode mapping
+        if permission_mode := metadata.get("permissionMode"):
+            if mapped := PERMISSION_MODE_MAP.get(permission_mode):
+                config_kwargs["requires_tool_confirmation"] = mapped
+            else:
+                logger.warning(
+                    "Unknown permissionMode %r in %s, using default",
+                    permission_mode,
+                    file_path,
+                )
+
+        # TODO: Claude Code tools string format (comma-separated) - needs toolset integration
+        if tools := metadata.get("tools"):
+            if isinstance(tools, str):
+                logger.debug(
+                    "Claude Code tools string %r in %s (not yet supported)", tools, file_path
+                )
+
+        # Skills handling (Claude Code only)
+        if skills_str := metadata.get("skills"):
+            if skills_registry is not None:
+                skill_names = [s.strip() for s in skills_str.split(",")]
+                for skill_name in skill_names:
+                    if skill_name not in skills_registry:
+                        logger.warning(
+                            "Skill %r from %s not found in registry, ignoring",
+                            skill_name,
+                            file_path,
+                        )
+
+    # System prompt from markdown body
+    if system_prompt:
+        config_kwargs["system_prompts"] = [system_prompt]
+
+    # Pass through any additional llmling-agent specific fields
+    passthrough_fields = {
+        "inherits",
+        "toolsets",
+        "session",
+        "output_type",
+        "retries",
+        "output_retries",
+        "end_strategy",
+        "avatar",
+        "config_file_path",
+        "knowledge",
+        "workers",
+        "debug",
+        "usage_limits",
+        "tool_mode",
+        "display_name",
+        "triggers",
+    }
+    for field in passthrough_fields:
+        if field in metadata:
+            config_kwargs[field] = metadata[field]
+
+    return AgentConfig(**config_kwargs)
 
 
 class AgentConfig(NodeConfig):
