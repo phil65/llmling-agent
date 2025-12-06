@@ -229,5 +229,53 @@ async def test_acp_agent_stats(acp_agent_config: ACPAgentConfig):
         pytest.skip("ACP server took too long to respond")
 
 
+async def test_acp_agent_with_input_provider(acp_agent_config: ACPAgentConfig):
+    """Test ACPAgent with custom input provider."""
+    from llmling_agent.ui.stdlib_provider import StdlibInputProvider
+
+    input_provider = StdlibInputProvider()
+
+    try:
+        # Test with input_provider in constructor
+        async with ACPAgent(config=acp_agent_config, input_provider=input_provider) as agent:
+            assert agent._input_provider is input_provider
+            assert agent._client_handler is not None
+            assert agent._client_handler._input_provider is input_provider
+
+            # Test updating input_provider in run method
+            new_provider = StdlibInputProvider()
+            await asyncio.wait_for(agent.run("Test", input_provider=new_provider), timeout=15.0)
+            assert agent._input_provider is new_provider
+            assert agent._client_handler._input_provider is new_provider
+
+    except TimeoutError:
+        pytest.skip("ACP server took too long to respond")
+
+
+async def test_acp_agent_input_provider_in_run_stream(acp_agent_config: ACPAgentConfig):
+    """Test input_provider parameter in run_stream method."""
+    from llmling_agent.ui.stdlib_provider import StdlibInputProvider
+
+    input_provider = StdlibInputProvider()
+
+    try:
+        async with ACPAgent(config=acp_agent_config) as agent:
+            chunks: list[RichAgentStreamEvent[Any]] = []
+
+            async def collect_chunks():
+                async for chunk in agent.run_stream("Hi", input_provider=input_provider):
+                    chunks.append(chunk)  # noqa: PERF401
+
+            await asyncio.wait_for(collect_chunks(), timeout=15.0)
+
+            # Verify input provider was set
+            assert agent._input_provider is input_provider
+            assert agent._client_handler is not None
+            assert agent._client_handler._input_provider is input_provider
+
+    except TimeoutError:
+        pytest.skip("ACP server took too long to respond")
+
+
 if __name__ == "__main__":
     pytest.main(["-v", __file__])

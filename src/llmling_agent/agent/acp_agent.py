@@ -91,6 +91,7 @@ if TYPE_CHECKING:
     from llmling_agent.messaging.context import NodeContext
     from llmling_agent.models.acp_agents import BaseACPAgentConfig
     from llmling_agent.tools.base import Tool
+    from llmling_agent.ui.base import InputProvider
 
 
 logger = get_logger(__name__)
@@ -134,7 +135,7 @@ class ACPClientHandler(Client):
     - Session update collection (text chunks, thoughts, tool calls)
     - Filesystem operations (read/write files) via ExecutionEnvironment
     - Terminal operations (create, output, kill, release) via ProcessManager
-    - Permission request handling
+    - Permission request handling via InputProvider
 
     The handler accumulates session updates in an ACPSessionState instance,
     allowing the ACPAgent to build the final response from streamed chunks.
@@ -150,9 +151,11 @@ class ACPClientHandler(Client):
         self,
         agent: ACPAgent[Any],
         state: ACPSessionState,
+        input_provider: InputProvider | None = None,
     ) -> None:
         self._agent = agent
         self.state = state
+        self._input_provider = input_provider
         self._update_event = asyncio.Event()
 
         # Map ACP terminal IDs to process manager IDs
@@ -218,7 +221,7 @@ class ACPClientHandler(Client):
     async def request_permission(
         self, params: RequestPermissionRequest
     ) -> RequestPermissionResponse:
-        """Handle permission requests."""
+        """Handle permission requests via InputProvider."""
         tool_name = params.tool_call.title or "operation"
         logger.info("Permission requested", tool_name=tool_name)
 
@@ -227,7 +230,45 @@ class ACPClientHandler(Client):
             logger.debug("Auto-granting permission", tool_name=tool_name)
             return RequestPermissionResponse(outcome=AllowedOutcome(option_id=option_id))
 
-        logger.debug("Denying permission", tool_name=tool_name)
+        if self._input_provider:
+            # Map ACP permission request to our tool confirmation system
+            from llmling_agent.tools.base import Tool
+
+            # Use the agent's existing NodeContext
+            context = self._agent.context
+
+            # Create a tool representation from ACP params
+            tool = Tool(
+                callable=lambda: None,  # Dummy function
+                name=params.tool_call.tool_call_id,
+                description=tool_name,
+            )
+
+            # Extract arguments - ACP doesn't expose them in ToolCall
+            args: dict[str, Any] = {}
+
+            try:
+                result = await self._input_provider.get_tool_confirmation(
+                    context=context,
+                    tool=tool,
+                    args=args,
+                    message_history=None,
+                )
+
+                # Map confirmation result to ACP response
+                if result == "allow":
+                    option_id = params.options[0].option_id if params.options else "allow"
+                    return RequestPermissionResponse(outcome=AllowedOutcome(option_id=option_id))
+                if result == "skip":
+                    return RequestPermissionResponse(outcome=DeniedOutcome())
+                # abort_run
+                return RequestPermissionResponse(outcome=DeniedOutcome())
+
+            except Exception:
+                logger.exception("Failed to get permission via input provider")
+                return RequestPermissionResponse(outcome=DeniedOutcome())
+
+        logger.debug("Denying permission (no input provider)", tool_name=tool_name)
         return RequestPermissionResponse(outcome=DeniedOutcome())
 
     async def read_text_file(self, params: ReadTextFileRequest) -> ReadTextFileResponse:
@@ -450,6 +491,7 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         self,
         *,
         config: BaseACPAgentConfig,
+        input_provider: InputProvider | None = None,
         agent_pool: AgentPool[Any] | None = None,
         enable_logging: bool = True,
         event_configs: Sequence[EventConfig] | None = None,
@@ -471,6 +513,7 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         allow_terminal: bool = True,
         auto_grant_permissions: bool = True,
         providers: list[ProviderType] | None = None,
+        input_provider: InputProvider | None = None,
         agent_pool: AgentPool[Any] | None = None,
         enable_logging: bool = True,
         event_configs: Sequence[EventConfig] | None = None,
@@ -492,6 +535,7 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         allow_terminal: bool = True,
         auto_grant_permissions: bool = True,
         providers: list[ProviderType] | None = None,
+        input_provider: InputProvider | None = None,
         agent_pool: AgentPool[Any] | None = None,
         enable_logging: bool = True,
         event_configs: Sequence[EventConfig] | None = None,
@@ -525,6 +569,7 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         )
         self.config = config
         self.env = env or config.get_execution_environment()
+        self._input_provider = input_provider
         self._process: Process | None = None
         self._connection: ClientSideConnection | None = None
         self._client_handler: ACPClientHandler | None = None
@@ -596,7 +641,7 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
             raise RuntimeError(msg)
 
         self._state = ACPSessionState(session_id="")
-        self._client_handler = ACPClientHandler(self, self._state)
+        self._client_handler = ACPClientHandler(self, self._state, self._input_provider)
 
         def client_factory(agent: ACPAgentProtocol) -> Client:
             return self._client_handler  # type: ignore[return-value]
@@ -667,6 +712,7 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         self,
         *prompts: PromptCompatible,
         message_id: str | None = None,
+        input_provider: InputProvider | None = None,
     ) -> ChatMessage[str]:
         """Execute prompt against ACP agent.
 
@@ -677,10 +723,16 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         Args:
             prompts: Prompts to send (will be joined with spaces)
             message_id: Optional message id for the returned message
+            input_provider: Optional input provider for permission requests
 
         Returns:
             ChatMessage containing the agent's aggregated text response
         """
+        # Update input provider if provided
+        if input_provider is not None:
+            self._input_provider = input_provider
+            if self._client_handler:
+                self._client_handler._input_provider = input_provider
         if not self._connection or not self._session_id or not self._state:
             msg = "Agent not initialized - use async context manager"
             raise RuntimeError(msg)
@@ -712,11 +764,11 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         self.message_sent.emit(message)
         return message
 
-    async def run_stream(  # noqa: D417
+    async def run_stream(
         self,
         *prompts: PromptCompatible,
         message_id: str | None = None,
-        **kwargs: Any,
+        input_provider: InputProvider | None = None,
     ) -> AsyncIterator[RichAgentStreamEvent[str]]:
         """Stream native events as they arrive from ACP agent.
 
@@ -726,10 +778,16 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         Args:
             prompts: Prompts to send (will be joined with spaces)
             message_id: Optional message id for the final message
+            input_provider: Optional input provider for permission requests
 
         Yields:
             RichAgentStreamEvent instances converted from ACP session updates
         """
+        # Update input provider if provided
+        if input_provider is not None:
+            self._input_provider = input_provider
+            if self._client_handler:
+                self._client_handler._input_provider = input_provider
         from llmling_agent.agent.events import StreamCompleteEvent
 
         if not self._connection or not self._session_id or not self._state:
