@@ -14,6 +14,7 @@ from pydantic_ai import UsageLimits  # noqa: TC002
 from schemez import InlineSchemaDef
 from tokonomics.model_names import ModelName  # noqa: TC002
 from toprompt import render_prompt
+from upathtools import to_upath
 
 from llmling_agent import log
 from llmling_agent.common_types import EndStrategy  # noqa: TC001
@@ -57,11 +58,7 @@ PERMISSION_MODE_MAP: dict[str, ToolConfirmationMode] = {
 }
 
 
-def parse_agent_file(  # noqa: PLR0915
-    file_path: str,
-    *,
-    skills_registry: Any | None = None,
-) -> AgentConfig:
+def parse_agent_file(file_path: str, *, skills_registry: Any | None = None) -> AgentConfig:  # noqa: PLR0915
     """Parse agent markdown file to AgentConfig.
 
     Supports both Claude Code and OpenCode formats with auto-detection.
@@ -111,12 +108,10 @@ def parse_agent_file(  # noqa: PLR0915
 
     Additional llmling-agent fields in frontmatter are also supported.
     """
-    from upathtools import to_upath
     import yamling
 
     path = to_upath(file_path)
     content = path.read_text("utf-8")
-
     # Extract YAML frontmatter
     frontmatter_match = re.match(r"^---\s*\n(.*?)\n---\s*\n?", content, re.DOTALL)
     if not frontmatter_match:
@@ -135,21 +130,17 @@ def parse_agent_file(  # noqa: PLR0915
 
     # Extract system prompt (everything after frontmatter)
     system_prompt = content[frontmatter_match.end() :].strip()
-
     # Build AgentConfig kwargs
     config_kwargs: dict[str, Any] = {}
-
     # Required field
     if description := metadata.get("description"):
         config_kwargs["description"] = description
-
     # Detect format and parse accordingly
     is_opencode = (
         any(key in metadata for key in ["mode", "temperature", "maxSteps", "disable"])
         or ("tools" in metadata and isinstance(metadata["tools"], dict))
         or ("permission" in metadata and isinstance(metadata["permission"], dict))
     )
-
     # Model handling
     if model := metadata.get("model"):
         if model == "inherit":
@@ -366,11 +357,7 @@ class AgentConfig(NodeConfig):
     retries: int = Field(default=1, ge=0, examples=[1, 3], title="Model retries")
     """Number of retries for failed operations (maps to pydantic-ai's retries)"""
 
-    output_retries: int | None = Field(
-        default=None,
-        examples=[1, 3],
-        title="Output retries",
-    )
+    output_retries: int | None = Field(default=None, examples=[1, 3], title="Output retries")
     """Max retries for result validation"""
 
     end_strategy: EndStrategy = Field(
@@ -425,19 +412,8 @@ class AgentConfig(NodeConfig):
     workers: list[WorkerConfig] = Field(
         default_factory=list,
         examples=[
-            [
-                {
-                    "type": "agent",
-                    "name": "web_agent",
-                    "reset_history_on_run": True,
-                }
-            ],
-            [
-                {
-                    "type": "team",
-                    "name": "analysis_team",
-                }
-            ],
+            [{"type": "agent", "name": "web_agent", "reset_history_on_run": True}],
+            [{"type": "team", "name": "analysis_team"}],
         ],
         title="Worker agents",
         json_schema_extra={
