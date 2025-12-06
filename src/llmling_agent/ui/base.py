@@ -12,8 +12,9 @@ if TYPE_CHECKING:
     from mcp import types
     from pydantic import BaseModel
 
-    from llmling_agent.agent.context import ConfirmationResult, NodeContext
+    from llmling_agent.agent.context import ConfirmationResult
     from llmling_agent.messaging import ChatMessage
+    from llmling_agent.messaging.context import NodeContext
     from llmling_agent.tools.base import Tool
 
 

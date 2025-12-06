@@ -11,8 +11,9 @@ from llmling_agent.ui.base import InputProvider
 if TYPE_CHECKING:
     from mcp import types
 
-    from llmling_agent.agent.context import ConfirmationResult, NodeContext
+    from llmling_agent.agent.context import ConfirmationResult
     from llmling_agent.messaging import ChatMessage
+    from llmling_agent.messaging.context import NodeContext
     from llmling_agent.tools.base import Tool
 
 InputMethod = Literal["get_input", "get_tool_confirmation", "get_elicitation"]
