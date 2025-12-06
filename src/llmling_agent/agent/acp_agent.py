@@ -592,7 +592,7 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
             node_name=self.name,
             pool=self.agent_pool,
             config=NodeConfig(name=self.name, description=self.description),
-            definition=AgentsManifest(),
+            definition=self.agent_pool.manifest if self.agent_pool else AgentsManifest(),
         )
 
     async def __aenter__(self) -> Self:
