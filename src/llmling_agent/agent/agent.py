@@ -545,13 +545,13 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             source="agent",
         )
 
-    async def get_agentlet[AgentDepsType, AgentOutputType](
+    async def get_agentlet[AgentOutputType](
         self,
         tool_choice: str | list[str] | None,
         model: ModelType,
         output_type: type[AgentOutputType] | None,
         input_provider: InputProvider | None = None,
-    ) -> PydanticAgent[AgentDepsType, AgentOutputType]:
+    ) -> PydanticAgent[TDeps, AgentOutputType]:
         """Create pydantic-ai agent from current state."""
         # Monkey patch pydantic-ai to recognize AgentContext
 
