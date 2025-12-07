@@ -87,8 +87,10 @@ class TerminalOutputCommand(SlashedCommand):
 
         except Exception as e:
             logger.exception("Failed to get terminal output", terminal_id=terminal_id)
-            await session.notifications.send_agent_text(
-                f"❌ **Failed to get terminal output:** {e}"
+            # Send error notification asynchronously to avoid blocking
+            session.acp_agent.tasks.create_task(
+                session._send_error_notification(f"❌ **Failed to get terminal output:** {e}"),
+                name=f"terminal_output_error_{session.session_id}",
             )
 
 
@@ -164,7 +166,11 @@ class TerminalKillCommand(SlashedCommand):
                     title=f"Error: {e}",
                 )
             except Exception:  # noqa: BLE001
-                await session.notifications.send_agent_text(f"❌ **Failed to kill terminal:** {e}")
+                # Send error notification asynchronously to avoid blocking
+                session.acp_agent.tasks.create_task(
+                    session._send_error_notification(f"❌ **Failed to kill terminal:** {e}"),
+                    name=f"terminal_kill_error_{session.session_id}",
+                )
 
 
 class TerminalCreateCommand(SlashedCommand):
@@ -253,8 +259,10 @@ class TerminalCreateCommand(SlashedCommand):
                     title=f"Error: {e}",
                 )
             except Exception:  # noqa: BLE001
-                await session.notifications.send_agent_text(
-                    f"❌ **Failed to create terminal:** {e}"
+                # Send error notification asynchronously to avoid blocking
+                session.acp_agent.tasks.create_task(
+                    session._send_error_notification(f"❌ **Failed to create terminal:** {e}"),
+                    name=f"terminal_create_error_{session.session_id}",
                 )
 
 

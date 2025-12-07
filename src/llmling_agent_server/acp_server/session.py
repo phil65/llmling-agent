@@ -378,10 +378,21 @@ class ACPSession:
                 return "max_tokens"  # Default to max_tokens for other usage limits
             except Exception as e:
                 self.log.exception("Error during streaming")
-                await self.notifications.send_agent_text(f"❌ Agent error: {e}")
-                return "cancelled"
+                # Send error notification asynchronously to avoid blocking response
+                self.acp_agent.tasks.create_task(
+                    self._send_error_notification(f"❌ Agent error: {e}"),
+                    name=f"agent_error_notification_{self.session_id}",
+                )
+                return "end_turn"
             else:
                 return "end_turn"
+
+    async def _send_error_notification(self, message: str) -> None:
+        """Send error notification, with exception handling."""
+        try:
+            await self.notifications.send_agent_text(message)
+        except Exception:
+            self.log.exception("Failed to send error notification")
 
     async def handle_event(self, event: RichAgentStreamEvent[Any]) -> None:  # noqa: PLR0915
         match event:
@@ -811,7 +822,11 @@ class ACPSession:
             await self.command_store.execute_command(command_str, cmd_ctx)
         except Exception as e:
             logger.exception("Command execution failed")
-            await self.notifications.send_agent_text(f"❌ Command error: {e}")
+            # Send error notification asynchronously to avoid blocking
+            self.acp_agent.tasks.create_task(
+                self._send_error_notification(f"❌ Command error: {e}"),
+                name=f"command_error_notification_{self.session_id}",
+            )
 
     def register_update_callback(self, callback: Callable[[], None]) -> None:
         """Register callback for command updates.

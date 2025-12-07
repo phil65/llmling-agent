@@ -243,13 +243,14 @@ class LLMlingACPAgent(ACPAgent):
         except Exception as e:
             logger.exception("Failed to process prompt", session_id=params.session_id)
             msg = f"Error processing prompt: {e}"
-            try:
-                assert session
-                await session.notifications.send_agent_text(msg)
-            except Exception:
-                logger.exception("Failed to send error update")
+            if session:
+                # Send error notification asynchronously to avoid blocking response
+                self.tasks.create_task(
+                    session._send_error_notification(msg),
+                    name=f"error_notification_{params.session_id}",
+                )
 
-            return PromptResponse(stop_reason="refusal")
+            return PromptResponse(stop_reason="end_turn")
         else:
             response = PromptResponse(stop_reason=stop_reason)
             logger.info("Returning PromptResponse", stop_reason=stop_reason)
