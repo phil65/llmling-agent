@@ -785,19 +785,32 @@ class ACPSession:
     def get_acp_commands(self) -> list[AvailableCommand]:
         """Convert all slashed commands to ACP format.
 
-        Args:
-            context: Optional agent context to filter commands
+        Filters commands based on current agent's node type compatibility.
 
         Returns:
-            List of ACP AvailableCommand objects
+            List of ACP AvailableCommand objects compatible with current node
         """
+        from llmling_agent_commands.base import NodeCommand
+
+        all_commands = self.command_store.list_commands()
+        current_node = self.agent
+
+        # Filter commands by node compatibility
+        compatible_commands = []
+        for cmd in all_commands:
+            cmd_cls = cmd if isinstance(cmd, type) else type(cmd)
+            # Check if command supports current node type
+            if issubclass(cmd_cls, NodeCommand) and not cmd_cls.supports_node(current_node):  # type: ignore[union-attr]
+                continue
+            compatible_commands.append(cmd)
+
         return [
             AvailableCommand.create(
                 name=cmd.name,
                 description=cmd.description,
                 input_hint=cmd.usage,
             )
-            for cmd in self.command_store.list_commands()
+            for cmd in compatible_commands
         ]
 
     async def execute_slash_command(self, command_text: str) -> None:
@@ -807,12 +820,22 @@ class ACPSession:
             command_text: Full command text (including slash)
             session: ACP session context
         """
+        from llmling_agent_commands.base import NodeCommand
+
         if match := SLASH_PATTERN.match(command_text.strip()):
             command_name = match.group(1)
             args = match.group(2) or ""
         else:
             logger.warning("Invalid slash command", command=command_text)
             return
+
+        # Check if command supports current node type
+        if cmd := self.command_store.get_command(command_name):
+            cmd_cls = cmd if isinstance(cmd, type) else type(cmd)
+            if issubclass(cmd_cls, NodeCommand) and not cmd_cls.supports_node(self.agent):  # type: ignore[union-attr]
+                error_msg = f"❌ Command `/{command_name}` is not available for this node type"
+                await self.notifications.send_agent_text(error_msg)
+                return
 
         self.agent.context.data = self
         cmd_ctx = self.command_store.create_context(
