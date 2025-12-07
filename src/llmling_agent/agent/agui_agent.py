@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass, field
+import sys
 from typing import TYPE_CHECKING, Any, Self
 from uuid import uuid4
 
@@ -316,13 +317,19 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
 
         self.log.info("Stopping AG-UI server")
 
-        import os
-        import signal
-
         try:
-            # Kill entire process group (server + children like uvicorn workers)
-            os.killpg(os.getpgid(self._startup_process.pid), signal.SIGKILL)
-            await self._startup_process.wait()
+            # Platform-specific process termination
+            if sys.platform == "win32":
+                # On Windows, terminate the process directly
+                self._startup_process.terminate()
+                await self._startup_process.wait()
+            else:
+                # On Unix-like systems, kill entire process group
+                import os
+                import signal
+
+                os.killpg(os.getpgid(self._startup_process.pid), signal.SIGKILL)
+                await self._startup_process.wait()
         except (ProcessLookupError, OSError):
             # Process already dead
             pass
