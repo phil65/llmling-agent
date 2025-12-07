@@ -322,7 +322,13 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
             if sys.platform == "win32":
                 # On Windows, terminate the process directly
                 self._startup_process.terminate()
-                await self._startup_process.wait()
+                try:
+                    # Wait with timeout, then force kill if needed
+                    await asyncio.wait_for(self._startup_process.wait(), timeout=5.0)
+                except TimeoutError:
+                    self.log.warning("Process didn't terminate gracefully, force killing")
+                    self._startup_process.kill()
+                    await asyncio.wait_for(self._startup_process.wait(), timeout=2.0)
             else:
                 # On Unix-like systems, kill entire process group
                 import os
@@ -330,8 +336,8 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
 
                 os.killpg(os.getpgid(self._startup_process.pid), signal.SIGKILL)
                 await self._startup_process.wait()
-        except (ProcessLookupError, OSError):
-            # Process already dead
+        except (TimeoutError, ProcessLookupError, OSError):
+            # Process already dead or force kill timed out
             pass
         finally:
             self._startup_process = None

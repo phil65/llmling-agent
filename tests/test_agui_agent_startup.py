@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import sys
-
 import pytest
 
 from llmling_agent.agent.agui_agent import AGUIAgent
@@ -12,7 +10,6 @@ from llmling_agent.agent.agui_agent import AGUIAgent
 pytestmark = pytest.mark.asyncio
 
 
-@pytest.mark.skipif(sys.platform == "win32", reason="Hangs on Windows CI")
 async def test_agui_agent_with_managed_server():
     """Test AGUIAgent with automatic server lifecycle management."""
     agent = AGUIAgent(
@@ -36,7 +33,6 @@ async def test_agui_agent_with_managed_server():
     assert agent._startup_process is None
 
 
-@pytest.mark.skipif(sys.platform == "win32", reason="Hangs on Windows CI")
 async def test_agui_agent_streaming_with_managed_server():
     """Test AGUIAgent streaming with managed server."""
     agent = AGUIAgent(
@@ -56,7 +52,6 @@ async def test_agui_agent_streaming_with_managed_server():
         assert events[-1].message.content
 
 
-@pytest.mark.skipif(sys.platform == "win32", reason="Hangs on Windows CI")
 async def test_agui_agent_without_startup_command():
     """Test AGUIAgent works without startup_command (expects external server)."""
     agent = AGUIAgent(
@@ -69,7 +64,6 @@ async def test_agui_agent_without_startup_command():
         assert agent._startup_process is None
 
 
-@pytest.mark.skipif(sys.platform == "win32", reason="Hangs on Windows CI")
 async def test_agui_agent_startup_failure():
     """Test AGUIAgent handles startup command failures gracefully."""
     agent = AGUIAgent(
