@@ -57,7 +57,6 @@ async def test_agui_agent_initialization():
 
 
 @pytest.mark.asyncio
-@pytest.mark.skipif(sys.platform == "win32", reason="Hangs on Windows CI")
 async def test_agui_agent_context_manager():
     """Test AGUIAgent context manager."""
     async with AGUIAgent(endpoint="http://localhost:8000/run", name="test-agent") as agent:
@@ -71,7 +70,6 @@ async def test_agui_agent_context_manager():
 
 
 @pytest.mark.asyncio
-@pytest.mark.skipif(sys.platform == "win32", reason="Hangs on Windows CI")
 async def test_agui_agent_run_stream(mock_sse_response):
     """Test AGUIAgent streaming execution."""
     # Create mock SSE events
@@ -100,7 +98,6 @@ async def test_agui_agent_run_stream(mock_sse_response):
 
 
 @pytest.mark.asyncio
-@pytest.mark.skipif(sys.platform == "win32", reason="Hangs on Windows CI")
 async def test_agui_agent_run(mock_sse_response):
     """Test AGUIAgent non-streaming execution."""
     events = [
@@ -167,7 +164,6 @@ def test_agui_to_native_event_tool_call():
 
 
 @pytest.mark.asyncio
-@pytest.mark.skipif(sys.platform == "win32", reason="Hangs on Windows CI")
 async def test_agui_agent_to_tool():
     """Test converting AGUIAgent to a tool."""
     events = [
@@ -204,7 +200,6 @@ async def test_agui_agent_to_tool():
 
 
 @pytest.mark.asyncio
-@pytest.mark.skipif(sys.platform == "win32", reason="Hangs on Windows CI")
 async def test_agui_agent_get_stats():
     """Test getting agent statistics."""
     async with AGUIAgent(endpoint="http://localhost:8000/run", name="test-agent") as agent:
