@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from slashed import CommandContext, CommandStore
     from slashed.events import CommandStoreEvent
 
-    from llmling_agent.agent import Agent
+    from llmling_agent.agent import Agent, AGUIAgent
     from llmling_agent.agent.acp_agent import ACPAgent
     from llmling_agent.agent.events import SlashedAgentStreamEvent
     from llmling_agent.common_types import PromptCompatible
@@ -58,7 +58,7 @@ class SlashedAgent[TDeps, OutputDataT]:
 
     def __init__(
         self,
-        agent: Agent[TDeps, OutputDataT] | ACPAgent,
+        agent: Agent[TDeps, OutputDataT] | ACPAgent | AGUIAgent,
         command_store: CommandStore | None = None,
         *,
         context_data_factory: Callable[[], Any] | None = None,

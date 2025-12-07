@@ -212,10 +212,8 @@ class LLMlingACPAgent(ACPAgent):
             if not session:
                 logger.warning("Session not found", session_id=params.session_id)
                 return LoadSessionResponse()
-
             current_model = session.agent.model_name if session.agent else None
             models = create_session_model_state(self.available_models, current_model)
-
             return LoadSessionResponse(models=models)
         except Exception:
             logger.exception("Failed to load session", session_id=params.session_id)

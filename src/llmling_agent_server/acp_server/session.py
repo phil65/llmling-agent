@@ -74,6 +74,7 @@ if TYPE_CHECKING:
     from acp import Client
     from acp.schema import ContentBlock, McpServer, StopReason
     from llmling_agent import AgentPool
+    from llmling_agent.agent import AGUIAgent
     from llmling_agent.agent.events import RichAgentStreamEvent
     from llmling_agent.models.content import BaseContent
     from llmling_agent.prompts.manager import PromptManager
@@ -247,10 +248,12 @@ class ACPSession:
             self.log.exception("Failed to discover client-side skills", error=e)
 
     @property
-    def agent(self) -> Agent[ACPSession, str] | ACPAgent:
+    def agent(self) -> Agent[ACPSession, str] | ACPAgent | AGUIAgent:
         """Get the currently active agent."""
         if self.current_agent_name in self.agent_pool.acp_agents:
             return self.agent_pool.acp_agents[self.current_agent_name]
+        if self.current_agent_name in self.agent_pool.agui_agents:
+            return self.agent_pool.agui_agents[self.current_agent_name]
         return self.agent_pool.get_agent(self.current_agent_name, deps_type=ACPSession)
 
     @property
