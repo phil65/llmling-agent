@@ -8,11 +8,11 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass, field
-import sys
 from typing import TYPE_CHECKING, Any, Self
 from uuid import uuid4
 
 from anyenv import MultiEventHandler
+from anyenv.processes import hard_kill
 import httpx
 from pydantic import TypeAdapter
 
@@ -318,21 +318,11 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
         self.log.info("Stopping AG-UI server")
 
         try:
-            # Platform-specific process termination
-            if sys.platform == "win32":
-                # On Windows, terminate the process directly
-                self._startup_process.terminate()
-                await self._startup_process.wait()
-            else:
-                # On Unix-like systems, kill entire process group
-                import os
-                import signal
-
-                os.killpg(os.getpgid(self._startup_process.pid), signal.SIGKILL)
-                await self._startup_process.wait()
-        except (ProcessLookupError, OSError):
-            # Process already dead
-            pass
+            # Use cross-platform hard kill helper
+            await hard_kill(self._startup_process)
+        except Exception:
+            # Log but don't fail if kill has issues
+            self.log.exception("Error during process termination")
         finally:
             self._startup_process = None
             self.log.info("AG-UI server stopped")
