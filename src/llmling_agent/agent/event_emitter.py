@@ -26,7 +26,7 @@ if TYPE_CHECKING:
     from llmling_agent.tools.base import ToolKind
 
 
-class AgentEventEmitter:
+class StreamEventEmitter:
     """Event emitter delegate that automatically injects context.
 
     Provides a fluent, developer-friendly API for emitting domain events

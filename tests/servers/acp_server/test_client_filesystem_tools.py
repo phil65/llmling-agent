@@ -8,7 +8,7 @@ from anyenv.code_execution import MockExecutionEnvironment
 import pytest
 
 from llmling_agent import AgentContext
-from llmling_agent.agent.event_emitter import AgentEventEmitter
+from llmling_agent.agent.event_emitter import StreamEventEmitter
 from llmling_agent.models.agents import AgentConfig
 from llmling_agent_toolsets.fsspec_toolset import FSSpecTools
 
@@ -17,7 +17,7 @@ def create_mock_agent_context() -> AgentContext:
     """Create a mock AgentContext for testing."""
     context = Mock(spec=AgentContext)
     context.node_name = "test_agent"
-    context.events = Mock(spec=AgentEventEmitter)
+    context.events = Mock(spec=StreamEventEmitter)
     context.events.file_operation = AsyncMock()
     context.events.tool_call_start = AsyncMock()
     context.config = Mock(spec=AgentConfig)

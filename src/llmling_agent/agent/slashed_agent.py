@@ -80,15 +80,12 @@ class SlashedAgent[TDeps, OutputDataT]:
 
             from llmling_agent_commands import get_commands
 
-            self.command_store = CommandStore(
-                event_handler=self._bridge_events_to_queue,
-                commands=get_commands(),
-            )
-
+            cmds = get_commands()
+            self.command_store = CommandStore(event_handler=self._emit_event, commands=cmds)
         else:
             self.command_store = command_store
 
-    async def _bridge_events_to_queue(self, event: CommandStoreEvent) -> None:
+    async def _emit_event(self, event: CommandStoreEvent) -> None:
         """Bridge store events to async queue during command execution."""
         if self._event_queue:
             await self._event_queue.put(event)

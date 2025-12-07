@@ -10,7 +10,7 @@ from anyenv.process_manager.models import ProcessOutput
 import pytest
 
 from llmling_agent import AgentContext
-from llmling_agent.agent.event_emitter import AgentEventEmitter
+from llmling_agent.agent.event_emitter import StreamEventEmitter
 from llmling_agent.models.agents import AgentConfig
 from llmling_agent_toolsets.builtin.execution_environment import ExecutionEnvironmentTools
 
@@ -19,7 +19,7 @@ def create_mock_agent_context() -> AgentContext:
     """Create a mock AgentContext for testing."""
     context = Mock(spec=AgentContext)
     context.node_name = "test_agent"
-    context.events = Mock(spec=AgentEventEmitter)
+    context.events = Mock(spec=StreamEventEmitter)
     context.events.process_started = AsyncMock()
     context.events.process_output = AsyncMock()
     context.events.process_exit = AsyncMock()
