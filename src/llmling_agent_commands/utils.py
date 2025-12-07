@@ -6,12 +6,13 @@ import importlib.util
 import webbrowser
 
 from anyenv.text_sharing import TextSharerStr, Visibility  # noqa: TC002
-from slashed import CommandContext, CommandError, SlashedCommand  # noqa: TC002
+from slashed import CommandContext, CommandError  # noqa: TC002
 
 from llmling_agent.messaging.context import NodeContext  # noqa: TC001
+from llmling_agent_commands.base import NodeCommand
 
 
-class CopyClipboardCommand(SlashedCommand):
+class CopyClipboardCommand(NodeCommand):
     """Copy messages from conversation history to system clipboard.
 
     Allows copying a configurable number of messages with options for:
@@ -75,7 +76,7 @@ class CopyClipboardCommand(SlashedCommand):
         return importlib.util.find_spec("clipman") is not None
 
 
-class EditAgentFileCommand(SlashedCommand):
+class EditAgentFileCommand(NodeCommand):
     """Open the agent's configuration file in your default editor.
 
     This file contains:
@@ -112,7 +113,7 @@ class EditAgentFileCommand(SlashedCommand):
             raise CommandError(msg) from e
 
 
-class ShareHistoryCommand(SlashedCommand):
+class ShareHistoryCommand(NodeCommand):
     """Share message history using various text sharing providers.
 
     Supports multiple providers:

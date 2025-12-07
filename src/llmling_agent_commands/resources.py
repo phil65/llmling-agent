@@ -2,18 +2,19 @@
 
 from __future__ import annotations
 
-from slashed import CommandContext, CommandError, SlashedCommand  # noqa: TC002
+from slashed import CommandContext, CommandError  # noqa: TC002
 
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.context import NodeContext  # noqa: TC001
+from llmling_agent_commands.base import AgentCommand, NodeCommand
 from llmling_agent_commands.markdown_utils import format_table
 
 
 logger = get_logger(__name__)
 
 
-class ListResourcesCommand(SlashedCommand):
+class ListResourcesCommand(NodeCommand):
     """Display all resources available to the agent.
 
     Shows:
@@ -65,7 +66,7 @@ class ListResourcesCommand(SlashedCommand):
             await ctx.print(f"❌ **Failed to list resources:** {e}")
 
 
-class ShowResourceCommand(SlashedCommand):
+class ShowResourceCommand(NodeCommand):
     """Display detailed information and content of a specific resource.
 
     Shows:
@@ -136,7 +137,7 @@ class ShowResourceCommand(SlashedCommand):
             await ctx.print(f"❌ **Error accessing resource:** {e}")
 
 
-class AddResourceCommand(SlashedCommand):
+class AddResourceCommand(AgentCommand):
     """Add content from a resource to the next message.
 
     Parameters are passed to the resource loader if supported.

@@ -6,10 +6,11 @@ import asyncio
 import uuid
 
 from pydantic_ai import UserPromptPart
-from slashed import CommandContext, SlashedCommand  # noqa: TC002
+from slashed import CommandContext  # noqa: TC002
 
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.context import NodeContext  # noqa: TC001
+from llmling_agent_commands.base import NodeCommand
 from llmling_agent_server.acp_server.session import ACPSession  # noqa: TC001
 
 from .helpers import SCHEMA_EXTRACTION_SCRIPT, generate_from_schema, generate_from_url
@@ -18,7 +19,7 @@ from .helpers import SCHEMA_EXTRACTION_SCRIPT, generate_from_schema, generate_fr
 logger = get_logger(__name__)
 
 
-class GetSchemaCommand(SlashedCommand):
+class GetSchemaCommand(NodeCommand):
     """Get Python code from Pydantic model schema.
 
     Supports both dot notation paths to BaseModel classes and URLs to OpenAPI schemas.

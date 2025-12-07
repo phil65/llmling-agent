@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from slashed import CommandContext, CommandError, SlashedCommand  # noqa: TC002
+from slashed import CommandContext, CommandError  # noqa: TC002
 from slashed.completers import CallbackCompleter
 
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.log import get_logger
+from llmling_agent_commands.base import AgentCommand
 from llmling_agent_commands.completers import get_available_agents
 from llmling_agent_commands.markdown_utils import format_table
 
@@ -14,7 +15,7 @@ from llmling_agent_commands.markdown_utils import format_table
 logger = get_logger(__name__)
 
 
-class AddWorkerCommand(SlashedCommand):
+class AddWorkerCommand(AgentCommand):
     """Add another agent as a worker tool.
 
     Add another agent as a worker tool.
@@ -86,7 +87,7 @@ class AddWorkerCommand(SlashedCommand):
         return CallbackCompleter(get_available_agents)
 
 
-class RemoveWorkerCommand(SlashedCommand):
+class RemoveWorkerCommand(AgentCommand):
     """Remove a worker tool from the current agent.
 
     Examples:
@@ -121,7 +122,7 @@ class RemoveWorkerCommand(SlashedCommand):
         return CallbackCompleter(get_available_agents)
 
 
-class ListWorkersCommand(SlashedCommand):
+class ListWorkersCommand(AgentCommand):
     """List all registered worker tools and their settings.
 
     Shows:

@@ -7,17 +7,18 @@ import uuid
 
 import httpx
 from pydantic_ai import UserPromptPart
-from slashed import CommandContext, SlashedCommand  # noqa: TC002
+from slashed import CommandContext  # noqa: TC002
 
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.context import NodeContext  # noqa: TC001
+from llmling_agent_commands.base import NodeCommand
 from llmling_agent_server.acp_server.session import ACPSession  # noqa: TC001
 
 
 logger = get_logger(__name__)
 
 
-class FetchRepoCommand(SlashedCommand):
+class FetchRepoCommand(NodeCommand):
     """Fetch contents from a GitHub repository via UIThub.
 
     Retrieves repository contents with various filtering options

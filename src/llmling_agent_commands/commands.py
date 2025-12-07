@@ -2,17 +2,18 @@
 
 from __future__ import annotations
 
-from slashed import CommandContext, SlashedCommand  # noqa: TC002
+from slashed import CommandContext  # noqa: TC002
 
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.context import NodeContext  # noqa: TC001
+from llmling_agent_commands.base import NodeCommand
 from llmling_agent_commands.markdown_utils import format_table
 
 
 logger = get_logger(__name__)
 
 
-class ListNodesCommand(SlashedCommand):
+class ListNodesCommand(NodeCommand):
     """List all nodes in the pool with their status."""
 
     name = "list-nodes"

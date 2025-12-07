@@ -2,16 +2,17 @@
 
 from __future__ import annotations
 
-from slashed import CommandContext, CommandError, SlashedCommand  # noqa: TC002
+from slashed import CommandContext, CommandError  # noqa: TC002
 from slashed.completers import CallbackCompleter
 
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.messaging.context import NodeContext  # noqa: TC001
+from llmling_agent_commands.base import AgentCommand, NodeCommand
 from llmling_agent_commands.completers import get_available_agents
 from llmling_agent_commands.markdown_utils import format_table
 
 
-class CreateAgentCommand(SlashedCommand):
+class CreateAgentCommand(AgentCommand):
     """Create a new agent in the current session.
 
     Creates a temporary agent that inherits the current agent's model.
@@ -87,7 +88,7 @@ class CreateAgentCommand(SlashedCommand):
             raise CommandError(msg) from e
 
 
-class ShowAgentCommand(SlashedCommand):
+class ShowAgentCommand(NodeCommand):
     """Display the complete configuration of the current agent as YAML.
 
     Shows:
@@ -133,7 +134,7 @@ class ShowAgentCommand(SlashedCommand):
         await ctx.print("\n".join(sections))
 
 
-class ListAgentsCommand(SlashedCommand):
+class ListAgentsCommand(NodeCommand):
     """Show all agents defined in the current configuration.
 
     Displays:
@@ -178,7 +179,7 @@ class ListAgentsCommand(SlashedCommand):
         await ctx.print(f"## 🤖 Available Agents\n\n{table}")
 
 
-class SwitchAgentCommand(SlashedCommand):
+class SwitchAgentCommand(AgentCommand):
     """Switch the current chat session to a different agent.
 
     Use /list-agents to see available agents.

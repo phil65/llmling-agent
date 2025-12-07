@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
-from slashed import CommandContext, SlashedCommand  # noqa: TC002
+from slashed import CommandContext  # noqa: TC002
 
 from llmling_agent.messaging.context import NodeContext  # noqa: TC001
+from llmling_agent_commands.base import NodeCommand
 from llmling_agent_server.acp_server.session import ACPSession  # noqa: TC001
 
 
-class ListSessionsCommand(SlashedCommand):
+class ListSessionsCommand(NodeCommand):
     """List all available ACP sessions.
 
     Shows:
@@ -319,7 +320,7 @@ class ListSessionsCommand(SlashedCommand):
 #             await ctx.print(f"❌ **Error deleting session:** {e}")
 
 
-def get_acp_commands() -> list[type[SlashedCommand]]:
+def get_acp_commands() -> list[type[NodeCommand]]:
     """Get all ACP-specific slash commands."""
     return [
         ListSessionsCommand,

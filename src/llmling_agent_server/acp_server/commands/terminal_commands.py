@@ -5,11 +5,12 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 import uuid
 
-from slashed import CommandContext, SlashedCommand  # noqa: TC002
+from slashed import CommandContext  # noqa: TC002
 
 from acp.schema import TerminalToolCallContent
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.context import NodeContext  # noqa: TC001
+from llmling_agent_commands.base import NodeCommand
 from llmling_agent_server.acp_server.session import ACPSession  # noqa: TC001
 
 
@@ -20,7 +21,7 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-class TerminalOutputCommand(SlashedCommand):
+class TerminalOutputCommand(NodeCommand):
     """Get current output from a terminal.
 
     Retrieves and displays the current output from the specified terminal,
@@ -94,7 +95,7 @@ class TerminalOutputCommand(SlashedCommand):
             )
 
 
-class TerminalKillCommand(SlashedCommand):
+class TerminalKillCommand(NodeCommand):
     """Kill a running terminal.
 
     Terminates the specified terminal without releasing its resources.
@@ -173,7 +174,7 @@ class TerminalKillCommand(SlashedCommand):
                 )
 
 
-class TerminalCreateCommand(SlashedCommand):
+class TerminalCreateCommand(NodeCommand):
     """Create a new terminal and run a command.
 
     Creates a new terminal session and starts the specified command,
@@ -266,7 +267,7 @@ class TerminalCreateCommand(SlashedCommand):
                 )
 
 
-def get_terminal_commands() -> list[type[SlashedCommand]]:
+def get_terminal_commands() -> list[type[NodeCommand]]:
     """Get all terminal management slash commands."""
     return [
         TerminalOutputCommand,

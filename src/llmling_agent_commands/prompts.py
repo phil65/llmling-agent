@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
-from slashed import CommandContext, CommandError, SlashedCommand  # noqa: TC002
+from slashed import CommandContext, CommandError  # noqa: TC002
 
 from llmling_agent.messaging.context import NodeContext  # noqa: TC001
+from llmling_agent_commands.base import NodeCommand
 from llmling_agent_commands.completers import PromptCompleter
 
 
-class ShowPromptCommand(SlashedCommand):
+class ShowPromptCommand(NodeCommand):
     """Show prompts from configured prompt hubs.
 
     Usage examples:
@@ -39,7 +40,7 @@ class ShowPromptCommand(SlashedCommand):
         return PromptCompleter()
 
 
-class ListPromptsCommand(SlashedCommand):
+class ListPromptsCommand(NodeCommand):
     """List available prompts from all providers.
 
     Show all prompts available in the current configuration.

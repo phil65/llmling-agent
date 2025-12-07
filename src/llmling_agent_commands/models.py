@@ -2,14 +2,21 @@
 
 from __future__ import annotations
 
-from slashed import CommandContext, SlashedCommand  # noqa: TC002
+from typing import TYPE_CHECKING, Any
+
+from slashed import CommandContext  # noqa: TC002
 from slashed.completers import CallbackCompleter
 
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
+from llmling_agent_commands.base import NodeCommand
 from llmling_agent_commands.completers import get_model_names
 
 
-class SetModelCommand(SlashedCommand):
+if TYPE_CHECKING:
+    from llmling_agent.messaging import MessageNode
+
+
+class SetModelCommand(NodeCommand):
     """Change the language model for the current conversation.
 
     The model change takes effect immediately for all following messages.
@@ -47,3 +54,9 @@ class SetModelCommand(SlashedCommand):
     def get_completer(self) -> CallbackCompleter:
         """Get completer for model names."""
         return CallbackCompleter(get_model_names)
+
+    @classmethod
+    def supports_node(cls, node: MessageNode[Any, Any]) -> bool:
+        from llmling_agent import Agent
+
+        return isinstance(node, Agent)

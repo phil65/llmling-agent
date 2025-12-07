@@ -19,11 +19,12 @@ from pydantic_ai import (
     ToolCallPartDelta,
     ToolReturnPart,
 )
-from slashed import CommandContext, CommandError, SlashedCommand  # noqa: TC002
+from slashed import CommandContext, CommandError  # noqa: TC002
 
 from llmling_agent.agent.events import StreamCompleteEvent, ToolCallProgressEvent
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.context import NodeContext  # noqa: TC001
+from llmling_agent_commands.base import NodeCommand
 from llmling_agent_server.acp_server.session import ACPSession  # noqa: TC001
 
 
@@ -34,7 +35,7 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-class SpawnSubagentCommand(SlashedCommand):
+class SpawnSubagentCommand(NodeCommand):
     """Spawn a subagent to execute a specific task.
 
     The subagent runs concurrently and reports progress in a dedicated tool call box.

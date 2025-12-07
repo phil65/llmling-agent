@@ -2,17 +2,23 @@
 
 from __future__ import annotations
 
-from slashed import CommandContext, CommandError, SlashedCommand  # noqa: TC002
+from typing import TYPE_CHECKING, Any
+
+from slashed import CommandContext, CommandError  # noqa: TC002
 from slashed.completers import PathCompleter
 
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.log import get_logger
+from llmling_agent_commands.base import NodeCommand
 
+
+if TYPE_CHECKING:
+    from llmling_agent.messaging import MessageNode
 
 logger = get_logger(__name__)
 
 
-class ReadCommand(SlashedCommand):
+class ReadCommand(NodeCommand):
     """Read content from files or URLs into the conversation.
 
     By default reads raw content, but can convert supported formats to markdown
@@ -58,6 +64,13 @@ class ReadCommand(SlashedCommand):
             msg = f"Unexpected error reading {path}: {e}"
             logger.exception(msg)
             raise CommandError(msg) from e
+
+    @classmethod
+    def supports_node(cls, node: MessageNode[Any, Any]) -> bool:
+        """Only available for Agent nodes."""
+        from llmling_agent import Agent
+
+        return isinstance(node, Agent)
 
     def get_completer(self) -> PathCompleter:
         """Get completer for file paths."""

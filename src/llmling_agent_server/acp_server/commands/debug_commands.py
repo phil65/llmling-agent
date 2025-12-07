@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import anyenv
-from slashed import CommandContext, SlashedCommand  # noqa: TC002
+from slashed import CommandContext  # noqa: TC002
 
 from acp.schema import (
     AgentMessageChunk,
@@ -23,6 +23,7 @@ from acp.schema import (
 )
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.context import NodeContext  # noqa: TC001
+from llmling_agent_commands.base import NodeCommand
 from llmling_agent_server.acp_server.session import ACPSession  # noqa: TC001
 
 
@@ -33,7 +34,7 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-class DebugSendTextCommand(SlashedCommand):
+class DebugSendTextCommand(NodeCommand):
     """Send a text chunk notification for debugging.
 
     Useful for testing client rendering of different message types.
@@ -80,7 +81,7 @@ class DebugSendTextCommand(SlashedCommand):
             await ctx.print(f"❌ **Failed to send text chunk:** {e}")
 
 
-class DebugSendToolCallCommand(SlashedCommand):
+class DebugSendToolCallCommand(NodeCommand):
     """Send a tool call notification for debugging.
 
     Tests the client's tool call visualization and status handling.
@@ -160,7 +161,7 @@ class DebugSendToolCallCommand(SlashedCommand):
 #             await ctx.print(f"❌ **Failed to update tool call:** {e}")
 
 
-class DebugReplaySequenceCommand(SlashedCommand):
+class DebugReplaySequenceCommand(NodeCommand):
     """Replay a sequence of ACP notifications from a JSON file.
 
     Allows testing complex interaction flows by replaying recorded sequences.
@@ -241,7 +242,7 @@ class DebugReplaySequenceCommand(SlashedCommand):
             await ctx.print(f"❌ **Failed to replay sequence:** {e}")
 
 
-class DebugSessionInfoCommand(SlashedCommand):
+class DebugSessionInfoCommand(NodeCommand):
     """Show current ACP session debugging information.
 
     Displays session state, client capabilities, and configuration details.
@@ -275,7 +276,7 @@ class DebugSessionInfoCommand(SlashedCommand):
             await ctx.print(f"❌ **Failed to get session info:** {e}")
 
 
-class DebugCreateTemplateCommand(SlashedCommand):
+class DebugCreateTemplateCommand(NodeCommand):
     """Create a template JSON file for debugging notification sequences.
 
     Generates a sample replay file with common notification types.
@@ -342,7 +343,7 @@ class DebugCreateTemplateCommand(SlashedCommand):
             await ctx.print(f"❌ **Failed to create template:** {e}")
 
 
-class DebugSendRawCommand(SlashedCommand):
+class DebugSendRawCommand(NodeCommand):
     """Send a raw ACP notification from JSON string.
 
     For advanced debugging - send arbitrary notification structures.
@@ -383,7 +384,7 @@ class DebugSendRawCommand(SlashedCommand):
             await ctx.print(f"❌ **Failed to send raw notification:** {e}")
 
 
-def get_debug_commands() -> list[type[SlashedCommand]]:
+def get_debug_commands() -> list[type[NodeCommand]]:
     """Get all ACP debug commands."""
     return [
         DebugSendTextCommand,

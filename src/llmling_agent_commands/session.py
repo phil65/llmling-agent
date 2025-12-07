@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-from slashed import CommandContext, SlashedCommand  # noqa: TC002
+from slashed import CommandContext  # noqa: TC002
 
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
+from llmling_agent_commands.base import AgentCommand
 
 
-class ClearCommand(SlashedCommand):
+class ClearCommand(AgentCommand):
     """Clear the current chat session history.
 
     This removes all previous messages but keeps tools and settings.
@@ -26,7 +27,7 @@ class ClearCommand(SlashedCommand):
         await ctx.print("🧹 **Chat history cleared**")
 
 
-class ResetCommand(SlashedCommand):
+class ResetCommand(AgentCommand):
     """Reset the entire session state.
 
     - Clears chat history

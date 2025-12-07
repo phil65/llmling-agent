@@ -5,17 +5,18 @@ from __future__ import annotations
 import uuid
 
 from pydantic_ai import UserPromptPart
-from slashed import CommandContext, SlashedCommand  # noqa: TC002
+from slashed import CommandContext  # noqa: TC002
 
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.context import NodeContext  # noqa: TC001
+from llmling_agent_commands.base import NodeCommand
 from llmling_agent_server.acp_server.session import ACPSession  # noqa: TC001
 
 
 logger = get_logger(__name__)
 
 
-class GetSourceCommand(SlashedCommand):
+class GetSourceCommand(NodeCommand):
     """Get Python source code using dot notation.
 
     Uses the llmling importing.py utility to fetch source code

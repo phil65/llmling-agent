@@ -5,12 +5,13 @@ from __future__ import annotations
 from typing import Any
 
 from rich.tree import Tree
-from slashed import CommandContext, CommandError, SlashedCommand  # noqa: TC002
+from slashed import CommandContext, CommandError  # noqa: TC002
 from slashed.completers import CallbackCompleter
 
 from llmling_agent.log import get_logger
 from llmling_agent.messaging import MessageNode
 from llmling_agent.messaging.context import NodeContext  # noqa: TC001
+from llmling_agent_commands.base import NodeCommand
 from llmling_agent_commands.completers import get_available_nodes
 
 
@@ -27,7 +28,7 @@ def format_node_name(node: MessageNode[Any, Any], current: bool = False) -> str:
     return f"○ {name}"
 
 
-class ConnectCommand(SlashedCommand):
+class ConnectCommand(NodeCommand):
     """Connect the current node to another node.
 
     Messages will be forwarded to the target node.
@@ -72,7 +73,7 @@ class ConnectCommand(SlashedCommand):
         return CallbackCompleter(get_available_nodes)
 
 
-class DisconnectCommand(SlashedCommand):
+class DisconnectCommand(NodeCommand):
     """Disconnect the current node from a target node.
 
     Stops forwarding messages to the specified node.
@@ -110,7 +111,7 @@ class DisconnectCommand(SlashedCommand):
         return CallbackCompleter(get_available_nodes)
 
 
-class DisconnectAllCommand(SlashedCommand):
+class DisconnectAllCommand(NodeCommand):
     """Disconnect from all nodes.
 
     Remove all node connections.
@@ -133,7 +134,7 @@ class DisconnectAllCommand(SlashedCommand):
         await ctx.print(f"🔌 **Disconnected** `{source}` from all nodes")
 
 
-class ListConnectionsCommand(SlashedCommand):
+class ListConnectionsCommand(NodeCommand):
     """Show current node connections and their status.
 
     Displays:

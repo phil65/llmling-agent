@@ -2,19 +2,26 @@
 
 from __future__ import annotations
 
-from slashed import CommandContext, CommandError, CompletionContext, SlashedCommand  # noqa: TC002
+from typing import TYPE_CHECKING, Any
+
+from slashed import CommandContext, CommandError, CompletionContext  # noqa: TC002
 from slashed.completers import CallbackCompleter
 
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.log import get_logger
 from llmling_agent.utils.importing import import_callable
+from llmling_agent_commands.base import NodeCommand
 from llmling_agent_commands.markdown_utils import format_table
+
+
+if TYPE_CHECKING:
+    from llmling_agent.messaging import MessageNode
 
 
 logger = get_logger(__name__)
 
 
-class ListToolsCommand(SlashedCommand):
+class ListToolsCommand(NodeCommand):
     """Show all available tools and their current status.
 
     Tools are grouped by source (runtime/agent/builtin).
@@ -23,6 +30,12 @@ class ListToolsCommand(SlashedCommand):
 
     name = "list-tools"
     category = "tools"
+
+    @classmethod
+    def supports_node(cls, node: MessageNode[Any, Any]) -> bool:
+        from llmling_agent import Agent
+
+        return isinstance(node, Agent)
 
     async def execute_command(
         self,
@@ -52,7 +65,7 @@ class ListToolsCommand(SlashedCommand):
         await ctx.print(f"## 🔧 Available Tools\n\n{table}")
 
 
-class ShowToolCommand(SlashedCommand):
+class ShowToolCommand(NodeCommand):
     """Display detailed information about a specific tool.
 
     Shows:
@@ -66,6 +79,12 @@ class ShowToolCommand(SlashedCommand):
 
     name = "show-tool"
     category = "tools"
+
+    @classmethod
+    def supports_node(cls, node: MessageNode[Any, Any]) -> bool:
+        from llmling_agent import Agent
+
+        return isinstance(node, Agent)
 
     async def execute_command(
         self,
@@ -107,7 +126,7 @@ class ShowToolCommand(SlashedCommand):
         return CallbackCompleter(get_tool_names)
 
 
-class EnableToolCommand(SlashedCommand):
+class EnableToolCommand(NodeCommand):
     """Enable a previously disabled tool.
 
     Use /list-tools to see available tools.
@@ -117,6 +136,12 @@ class EnableToolCommand(SlashedCommand):
 
     name = "enable-tool"
     category = "tools"
+
+    @classmethod
+    def supports_node(cls, node: MessageNode[Any, Any]) -> bool:
+        from llmling_agent import Agent
+
+        return isinstance(node, Agent)
 
     async def execute_command(
         self,
@@ -141,7 +166,7 @@ class EnableToolCommand(SlashedCommand):
         return CallbackCompleter(get_tool_names)
 
 
-class DisableToolCommand(SlashedCommand):
+class DisableToolCommand(NodeCommand):
     """Disable a tool to prevent its use.
 
     Use /list-tools to see available tools.
@@ -151,6 +176,12 @@ class DisableToolCommand(SlashedCommand):
 
     name = "disable-tool"
     category = "tools"
+
+    @classmethod
+    def supports_node(cls, node: MessageNode[Any, Any]) -> bool:
+        from llmling_agent import Agent
+
+        return isinstance(node, Agent)
 
     async def execute_command(
         self,
@@ -175,7 +206,7 @@ class DisableToolCommand(SlashedCommand):
         return CallbackCompleter(get_tool_names)
 
 
-class RegisterToolCommand(SlashedCommand):
+class RegisterToolCommand(NodeCommand):
     """Register a new tool from a Python import path.
 
     Examples:
@@ -186,6 +217,12 @@ class RegisterToolCommand(SlashedCommand):
 
     name = "register-tool"
     category = "tools"
+
+    @classmethod
+    def supports_node(cls, node: MessageNode[Any, Any]) -> bool:
+        from llmling_agent import Agent
+
+        return isinstance(node, Agent)
 
     async def execute_command(
         self,
