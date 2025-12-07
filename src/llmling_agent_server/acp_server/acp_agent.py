@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from dataclasses import KW_ONLY, dataclass, field
 from importlib.metadata import version as _version
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from acp import Agent as ACPAgent
 from acp.schema import (
@@ -77,6 +78,7 @@ def create_session_model_state(
     return SessionModelState(available_models=models, current_model_id=current_model_id)
 
 
+@dataclass
 class LLMlingACPAgent(ACPAgent):
     """Implementation of ACP Agent protocol interface for llmling agents.
 
@@ -84,47 +86,42 @@ class LLMlingACPAgent(ACPAgent):
     bridging llmling agents with the standard ACP JSON-RPC protocol.
     """
 
-    PROTOCOL_VERSION = 1
+    PROTOCOL_VERSION: ClassVar = 1
 
-    def __init__(
-        self,
-        connection: AgentSideConnection,
-        agent_pool: AgentPool[Any],
-        *,
-        available_models: list[TokoModelInfo] | None = None,
-        file_access: bool = True,
-        terminal_access: bool = True,
-        debug_commands: bool = False,
-        default_agent: str | None = None,
-    ) -> None:
-        """Initialize ACP agent implementation.
+    connection: AgentSideConnection
+    """ACP connection for client communication."""
 
-        Args:
-            connection: ACP connection for client communication
-            agent_pool: AgentPool containing available agents
-            available_models: List of available tokonomics TokoModelInfo objects
-            file_access: Whether agent can access filesystem
-            terminal_access: Whether agent can use terminal
-            debug_commands: Whether to enable debug slash commands for testing
-            default_agent: Optional specific agent name to use as default
-        """
-        self.connection = connection
-        self.agent_pool = agent_pool
-        self.available_models: Sequence[TokoModelInfo] = available_models or []
-        self.file_access = file_access
-        self.terminal_access = terminal_access
-        self.client: Client = connection
-        self.debug_commands = debug_commands
-        self.default_agent = default_agent
+    agent_pool: AgentPool[Any]
+    """AgentPool containing available agents."""
+
+    _: KW_ONLY
+
+    available_models: Sequence[TokoModelInfo] = field(default_factory=list)
+    """List of available tokonomics TokoModelInfo objects."""
+
+    file_access: bool = True
+    """Whether agent can access filesystem."""
+
+    terminal_access: bool = True
+    """Whether agent can use terminal."""
+
+    debug_commands: bool = False
+    """Whether to enable debug slash commands for testing."""
+
+    default_agent: str | None = None
+    """Optional specific agent name to use as default."""
+
+    def __post_init__(self) -> None:
+        """Initialize derived attributes and setup after field assignment."""
+        self.client: Client = self.connection
         self.client_capabilities: ClientCapabilities | None = None
-
         self.session_manager = ACPSessionManager()
         self.tasks = TaskManager()
-
         self._initialized = False
+
         agent_count = len(self.agent_pool.agents)
         logger.info("Created ACP agent implementation", agent_count=agent_count)
-        if debug_commands:
+        if self.debug_commands:
             logger.info("Debug slash commands enabled for ACP testing")
 
         # Note: Tool registration happens after initialize() when we know client caps
