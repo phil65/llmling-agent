@@ -39,7 +39,7 @@ class NotificationsTools(ResourceProvider):
                       Values can be a single URL string or list of URLs.
             name: Provider name
         """
-        import apprise  # type: ignore[import-untyped]
+        import apprise
 
         super().__init__(name=name)
         self.channels = channels
