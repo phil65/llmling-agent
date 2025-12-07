@@ -964,6 +964,38 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
             return self._init_response.agent_info.name
         return self.config.get_command()
 
+    async def set_model(self, model: str) -> None:
+        """Update the model and restart the ACP agent process.
+
+        Args:
+            model: New model name to use
+
+        Raises:
+            ValueError: If the config doesn't have a model field
+            RuntimeError: If agent is currently processing (has active process but no session)
+        """
+        # Check if config supports model field
+        if not hasattr(self.config, "model"):
+            msg = f"Config type {type(self.config).__name__} doesn't support model changes"
+            raise ValueError(msg)
+
+        # Prevent changes during active processing
+        if self._process and not self._session_id:
+            msg = "Cannot change model while agent is initializing"
+            raise RuntimeError(msg)
+
+        # Create new config with updated model
+        new_config = self.config.model_copy(update={"model": model})
+
+        # Clean up existing process if any
+        if self._process:
+            await self._cleanup()
+
+        # Update config and restart
+        self.config = new_config
+        await self._start_process()
+        await self._initialize()
+
     async def get_stats(self) -> MessageStats:
         """Get message statistics."""
         return MessageStats()
