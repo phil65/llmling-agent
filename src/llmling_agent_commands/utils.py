@@ -8,7 +8,7 @@ import webbrowser
 from anyenv.text_sharing import TextSharerStr, Visibility  # noqa: TC002
 from slashed import CommandContext, CommandError, SlashedCommand  # noqa: TC002
 
-from llmling_agent.agent.context import AgentContext  # noqa: TC001
+from llmling_agent.messaging.context import NodeContext  # noqa: TC001
 
 
 class CopyClipboardCommand(SlashedCommand):
@@ -28,7 +28,7 @@ class CopyClipboardCommand(SlashedCommand):
 
     async def execute_command(
         self,
-        ctx: CommandContext[AgentContext],
+        ctx: CommandContext[NodeContext],
         *,
         num_messages: int = 1,
         include_system: bool = False,
@@ -50,7 +50,7 @@ class CopyClipboardCommand(SlashedCommand):
             msg = "clipman package required for clipboard operations"
             raise CommandError(msg) from e
 
-        content = await ctx.context.agent.conversation.format_history(
+        content = await ctx.context.any_agent.conversation.format_history(
             num_messages=num_messages,
             include_system=include_system,
             max_tokens=max_tokens,
@@ -91,9 +91,9 @@ class EditAgentFileCommand(SlashedCommand):
     name = "open-agent-file"
     category = "utils"
 
-    async def execute_command(self, ctx: CommandContext[AgentContext]) -> None:
+    async def execute_command(self, ctx: CommandContext[NodeContext]) -> None:
         """Open agent's configuration file."""
-        agent = ctx.context.agent
+        agent = ctx.context.any_agent
         if not agent.context:
             msg = "No agent context available"
             raise CommandError(msg)
@@ -129,7 +129,7 @@ class ShareHistoryCommand(SlashedCommand):
 
     async def execute_command(
         self,
-        ctx: CommandContext[AgentContext],
+        ctx: CommandContext[NodeContext],
         *,
         provider: TextSharerStr = "paste_rs",
         num_messages: int = 1,
@@ -139,7 +139,6 @@ class ShareHistoryCommand(SlashedCommand):
         title: str | None = None,
         syntax: str = "markdown",
         visibility: Visibility = "unlisted",
-        custom_content: str | None = None,
     ) -> None:
         """Share text content via a text sharing provider.
 
@@ -153,19 +152,15 @@ class ShareHistoryCommand(SlashedCommand):
             title: Title/filename for the shared content
             syntax: Syntax highlighting (e.g., "python", "markdown")
             visibility: Visibility level
-            custom_content: Custom text content (overrides history)
         """
         from anyenv.text_sharing import get_sharer
 
-        if custom_content:
-            content = custom_content
-        else:
-            content = await ctx.context.agent.conversation.format_history(
-                num_messages=num_messages,
-                include_system=include_system,
-                max_tokens=max_tokens,
-                format_template=format_template,
-            )
+        content = await ctx.context.any_agent.conversation.format_history(
+            num_messages=num_messages,
+            include_system=include_system,
+            max_tokens=max_tokens,
+            format_template=format_template,
+        )
 
         if not content.strip():
             await ctx.print("ℹ️ **No content to share**")  # noqa: RUF001
