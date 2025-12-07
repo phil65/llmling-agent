@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence  # noqa: TC003
 from pathlib import Path
 import re
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any, Literal, assert_never
 from uuid import UUID
 
 from llmling_models.configs import AnyModelConfig  # noqa: TC002
@@ -18,7 +18,7 @@ from upathtools import to_upath
 
 from llmling_agent import log
 from llmling_agent.common_types import EndStrategy  # noqa: TC001
-from llmling_agent.prompts.prompts import BasePrompt, PromptMessage, StaticPrompt
+from llmling_agent.prompts.prompts import PromptMessage, StaticPrompt
 from llmling_agent.resource_providers import StaticResourceProvider
 from llmling_agent.utils.importing import import_class
 from llmling_agent_config.knowledge import Knowledge  # noqa: TC001
@@ -32,6 +32,7 @@ from llmling_agent_config.workers import WorkerConfig  # noqa: TC001
 
 
 if TYPE_CHECKING:
+    from llmling_agent.prompts.prompts import BasePrompt
     from llmling_agent.resource_providers import ResourceProvider
     from llmling_agent.tools.base import Tool
 
@@ -445,10 +446,6 @@ class AgentConfig(NodeConfig):
     - "codemode": Tools are wrapped in a Python execution environment
     """
 
-    def is_structured(self) -> bool:
-        """Check if this config defines a structured agent."""
-        return self.output_type is not None
-
     @model_validator(mode="before")
     @classmethod
     def validate_output_type(cls, data: dict[str, Any]) -> dict[str, Any]:
@@ -539,9 +536,8 @@ class AgentConfig(NodeConfig):
                 return self.session
             case None:
                 return MemoryConfig()
-            case _:
-                msg = f"Invalid session configuration: {self.session}"
-                raise ValueError(msg)
+            case _ as unreachable:
+                assert_never(unreachable)
 
     def get_system_prompts(self) -> list[BasePrompt]:
         """Get all system prompts as BasePrompts."""
@@ -555,48 +551,29 @@ class AgentConfig(NodeConfig):
         prompts: list[BasePrompt] = []
         for prompt in self.system_prompts:
             match prompt:
-                case str():
+                case (str() as content) | StaticPromptConfig(content=content):
                     # Convert string to StaticPrompt
-                    static_prompt = StaticPrompt(
-                        name="system",
-                        description="System prompt",
-                        messages=[PromptMessage(role="system", content=prompt)],
-                    )
-                    prompts.append(static_prompt)
-                case StaticPromptConfig(content=content):
-                    # Convert StaticPromptConfig to StaticPrompt
-                    static_prompt = StaticPrompt(
-                        name="system",
-                        description="System prompt",
-                        messages=[PromptMessage(role="system", content=content)],
-                    )
-                    prompts.append(static_prompt)
+                    msgs = [PromptMessage(role="system", content=content)]
+                    static = StaticPrompt(name="system", description="System prompt", messages=msgs)
+                    prompts.append(static)
                 case FilePromptConfig(path=path):
-                    # Load and convert file-based prompt
-
                     template_path = Path(path)
                     if not template_path.is_absolute() and self.config_file_path:
                         base_path = Path(self.config_file_path).parent
                         template_path = base_path / path
-
                     template_content = template_path.read_text("utf-8")
-                    # Create a template-based prompt
-                    # (for now as StaticPrompt with placeholder)
+                    # Create a template-based prompt (for now as StaticPrompt with placeholder)
                     static_prompt = StaticPrompt(
                         name="system",
                         description=f"File prompt: {path}",
                         messages=[PromptMessage(role="system", content=template_content)],
                     )
                     prompts.append(static_prompt)
-                case LibraryPromptConfig(reference=reference):
+                case LibraryPromptConfig(reference=ref):
                     # Create placeholder for library prompts (resolved by manifest)
-                    msg = PromptMessage(role="system", content=f"[LIBRARY:{reference}]")
-                    static_prompt = StaticPrompt(
-                        name="system",
-                        description=f"Library: {reference}",
-                        messages=[msg],
-                    )
-                    prompts.append(static_prompt)
+                    msg = PromptMessage(role="system", content=f"[LIBRARY:{ref}]")
+                    static = StaticPrompt(name="system", description=f"Ref: {ref}", messages=[msg])
+                    prompts.append(static)
                 case FunctionPromptConfig(arguments=arguments, function=function):
                     # Import and call the function to get prompt content
                     content = function(**arguments)
@@ -606,8 +583,8 @@ class AgentConfig(NodeConfig):
                         messages=[PromptMessage(role="system", content=content)],
                     )
                     prompts.append(static_prompt)
-                case BasePrompt():
-                    prompts.append(prompt)
+                case _ as unreachable:
+                    assert_never(unreachable)
         return prompts
 
     def render_system_prompts(self, context: dict[str, Any] | None = None) -> list[str]:
@@ -619,10 +596,7 @@ class AgentConfig(NodeConfig):
             StaticPromptConfig,
         )
 
-        if not context:
-            # Default context
-            context = {"name": self.name, "id": 1, "model": self.model}
-
+        context = context or {"name": self.name, "id": 1, "model": self.model}
         rendered_prompts: list[str] = []
         for prompt in self.system_prompts:
             match prompt:
@@ -630,7 +604,6 @@ class AgentConfig(NodeConfig):
                     rendered_prompts.append(render_prompt(content, {"agent": context}))
                 case FilePromptConfig(path=path, variables=variables):
                     # Load and render Jinja template from file
-
                     template_path = Path(path)
                     if not template_path.is_absolute() and self.config_file_path:
                         base_path = Path(self.config_file_path).parent
