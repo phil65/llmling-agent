@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel
 
-from llmling_agent import AgentsManifest
+from llmling_agent import AgentPool, AgentsManifest
 
 
 class Result(BaseModel):
@@ -22,7 +22,7 @@ agents:
 
 async def test_structured_response(default_model: str):
     manifest = AgentsManifest.from_yaml(AGENT_CONFIG.format(default_model=default_model))
-    async with manifest.pool as pool:
+    async with AgentPool(manifest) as pool:
         agent = pool.get_agent("summarizer", return_type=Result)
         result = await agent.run("I love this new feature!")
         assert result.data.is_positive

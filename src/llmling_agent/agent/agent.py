@@ -30,6 +30,7 @@ from pydantic_ai.models import Model
 
 from llmling_agent.agent.events import (
     RichAgentStreamEvent,
+    RunStartedEvent,
     StreamCompleteEvent,
     ToolCallCompleteEvent,
 )
@@ -549,7 +550,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         tool_choice: str | list[str] | None,
         model: ModelType,
         output_type: type[AgentOutputType] | None,
-        deps_type: type[AgentDepsType] | None = None,
         input_provider: InputProvider | None = None,
     ) -> PydanticAgent[AgentDepsType, AgentOutputType]:
         """Create pydantic-ai agent from current state."""
@@ -568,7 +568,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             retries=self._retries,
             end_strategy=self._end_strategy,
             output_retries=self._output_retries,
-            deps_type=deps_type or NoneType,
+            deps_type=self.deps_type or NoneType,
             output_type=final_type,
         )
 
@@ -669,7 +669,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         Raises:
             UnexpectedModelBehavior: If the model fails or behaves unexpectedly
         """
-        # Determine which conversation/history to use
         conversation = message_history if message_history is not None else self.conversation
         # Prepare prompts and create user message
         user_msg, processed_prompts, original_message = await prepare_prompts(*prompts)
@@ -678,14 +677,10 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         start_time = time.perf_counter()
         message_history_list = list(conversation.chat_messages)
         try:
-            # Create pydantic-ai agent for this run
-            agentlet = await self.get_agentlet(
-                tool_choice, model, output_type, self.deps_type, input_provider
-            )
+            agentlet = await self.get_agentlet(tool_choice, model, output_type, input_provider)
             converted_prompts = await convert_prompts(processed_prompts)
 
-            # Merge internal and external event handlers
-            async def event_distributor(
+            async def event_distributor(  # Merge internal and external event handlers
                 ctx: RunContext[Any], events: AsyncIterable[AgentStreamEvent]
             ) -> None:
                 async for event in events:
@@ -790,19 +785,10 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         self.message_received.emit(user_msg)
         start_time = time.perf_counter()
         message_history = messages if messages is not None else self.conversation.get_history()
-
-        # Emit run started event
-        from llmling_agent.agent.events import RunStartedEvent
-
         yield RunStartedEvent(thread_id=self.conversation_id, run_id=run_id, agent_name=self.name)
-
         try:
-            agentlet = await self.get_agentlet(
-                tool_choice, model, output_type, self.deps_type, input_provider
-            )
+            agentlet = await self.get_agentlet(tool_choice, model, output_type, input_provider)
             content = await convert_prompts(prompts)
-
-            # Initialize variables for final response
             response_msg: ChatMessage[Any] | None = None
             # Create tool dict for signal emission
             converted = [i if isinstance(i, str) else i.to_pydantic_ai() for i in content]
@@ -818,12 +804,10 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             async with merge_queue_into_iterator(stream_events, self._event_queue) as events:
                 # Track tool call starts to combine with results later
                 pending_tcs: dict[str, BaseToolCallPart] = {}
-                async for event in events:
-                    # Call event handlers for all events
+                async for event in events:  # Call event handlers for all events
                     for handler in self.event_handler._wrapped_handlers:
                         await handler(None, event)
 
-                    # Process events and emit signals
                     yield event  # type: ignore[misc]
                     match event:
                         case (
@@ -848,8 +832,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                                 )
                                 yield combined_event
                         case AgentRunResultEvent():
-                            # Capture final result data
-                            # Build final response message
+                            # Capture final result data, Build final response message
                             response_time = time.perf_counter() - start_time
                             response_msg = await ChatMessage.from_run_result(
                                 event.result,

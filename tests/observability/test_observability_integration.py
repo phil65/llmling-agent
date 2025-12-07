@@ -4,7 +4,7 @@ import os
 
 import pytest
 
-from llmling_agent import AgentsManifest
+from llmling_agent import AgentPool, AgentsManifest
 from llmling_agent.observability import registry
 
 
@@ -89,7 +89,7 @@ async def test_logfire_provider_integration():
 
     manifest = AgentsManifest.from_yaml(manifest_str)
 
-    async with manifest.pool as pool:
+    async with AgentPool(manifest) as pool:
         agent = pool.get_agent("test_agent")
         # Run a simple prompt
         result = await agent.run("Hello!")
@@ -110,7 +110,7 @@ async def test_langsmith_provider_integration():
 
     manifest = AgentsManifest.from_yaml(manifest_str)
 
-    async with manifest.pool as pool:
+    async with AgentPool(manifest) as pool:
         agent = pool.get_agent("test_agent")
         # Run a simple prompt
         result = await agent.run("Hello!")
@@ -125,7 +125,7 @@ async def test_custom_provider_integration():
 
     manifest = AgentsManifest.from_yaml(manifest_str)
 
-    async with manifest.pool as pool:
+    async with AgentPool(manifest) as pool:
         agent = pool.get_agent("test_agent")
         # Run a simple prompt
         result = await agent.run("Hello!")
@@ -152,7 +152,7 @@ agents:
 
     manifest = AgentsManifest.from_yaml(manifest_str)
 
-    async with manifest.pool as pool:
+    async with AgentPool(manifest) as pool:
         agent = pool.get_agent("test_agent")
         # Run a simple prompt
         result = await agent.run("Hello!")

@@ -36,7 +36,6 @@ from llmling_agent_config.workers import (
 if TYPE_CHECKING:
     from upath.types import JoinablePathLike
 
-    from llmling_agent import AgentPool
     from llmling_agent.prompts.manager import PromptManager
     from llmling_agent.vfs_registry import VFSRegistry
 
@@ -338,8 +337,7 @@ class AgentsManifest(Schema):
 
                 if isinstance(agent_config, dict):
                     agent_config["workers"] = normalized
-                else:
-                    # Need to create a new dict with updated workers
+                else:  # Need to create a new dict with updated workers
                     agent_dict = agent_config.model_dump()
                     agent_dict["workers"] = normalized
                     agents[agent_name] = agent_dict
@@ -432,18 +430,15 @@ class AgentsManifest(Schema):
                     msg = f"Parent agent {inherit} not found"
                     raise ValueError(msg)
 
-                # Get resolved parent config
-                parent = resolve_node(inherit)
-                # Merge parent with child (child overrides parent)
+                parent = resolve_node(inherit)  # Get resolved parent config
                 merged = parent.copy()
-                merged.update(config)
+                merged.update(config)  # Merge parent with child (child overrides parent)
                 config = merged
 
             seen.remove(name)
             resolved[name] = config
             return config  # type: ignore[no-any-return]
 
-        # Resolve all nodes
         for name in nodes:
             resolved[name] = resolve_node(name)
 
@@ -526,8 +521,7 @@ class AgentsManifest(Schema):
             if isinstance(config, str):
                 result[name] = StaticCommandConfig(name=name, content=config)
             else:
-                # Set name if not provided
-                if config.name is None:
+                if config.name is None:  # Set name if not provided
                     config.name = name
                 result[name] = config
         return result
@@ -569,7 +563,6 @@ class AgentsManifest(Schema):
         try:
             data = yamling.load_yaml_file(path, resolve_inherit=True)
             agent_def = cls.model_validate(data)
-            # Update all node types with the config file path
             path_str = str(path)
 
             def update_with_path(nodes: dict[str, Any]) -> dict[str, Any]:
@@ -589,17 +582,6 @@ class AgentsManifest(Schema):
         except Exception as exc:
             msg = f"Failed to load agent config from {path}"
             raise ValueError(msg) from exc
-
-    @cached_property
-    def pool(self) -> AgentPool:
-        """Create an agent pool from this manifest.
-
-        Returns:
-            Configured agent pool
-        """
-        from llmling_agent import AgentPool
-
-        return AgentPool(manifest=self)
 
     def get_output_type(self, agent_name: str) -> type[Any] | None:
         """Get the resolved result type for an agent.
