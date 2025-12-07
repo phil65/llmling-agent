@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal, overload
 
 from fsspec import AbstractFileSystem
 from upath import UPath
-from upathtools import UnionFileSystem, read_folder, read_path
+from upathtools import AsyncUPath, UnionFileSystem, read_folder, read_path
 from upathtools.configs.base import FileSystemConfig, URIFileSystemConfig
 
 from llmling_agent.log import get_logger
@@ -51,11 +51,28 @@ class VFSRegistry(BaseRegistry[str, AbstractFileSystem]):
         filesystems: dict[str, AbstractFileSystem] = dict(self.items())
         return UnionFileSystem(filesystems)  # pyright: ignore[reportArgumentType]
 
-    def get_upath(self, resource_name: str | None = None) -> UPath:
+    @overload
+    def get_upath(
+        self, resource_name: str | None = None, *, as_async: Literal[True]
+    ) -> AsyncUPath: ...
+
+    @overload
+    def get_upath(
+        self, resource_name: str | None = None, *, as_async: Literal[False] = False
+    ) -> UPath: ...
+
+    @overload
+    def get_upath(
+        self, resource_name: str | None = None, *, as_async: bool = False
+    ) -> UPath | AsyncUPath: ...
+
+    def get_upath(
+        self, resource_name: str | None = None, *, as_async: bool = False
+    ) -> UPath | AsyncUPath:
         """Get a UPath object for accessing a resource."""
         path = UPath(resource_name or "")
         path._fs_cached = self.get_fs()  # pyright: ignore[reportAttributeAccessIssue]
-        return path
+        return AsyncUPath(path) if as_async else path
 
     async def get_content(
         self,
