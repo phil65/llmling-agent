@@ -5,14 +5,13 @@ from __future__ import annotations
 from slashed import CommandContext, CommandError  # noqa: TC002
 from slashed.completers import CallbackCompleter
 
-from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.messaging.context import NodeContext  # noqa: TC001
-from llmling_agent_commands.base import AgentCommand, NodeCommand
+from llmling_agent_commands.base import NodeCommand
 from llmling_agent_commands.completers import get_available_agents
 from llmling_agent_commands.markdown_utils import format_table
 
 
-class CreateAgentCommand(AgentCommand):
+class CreateAgentCommand(NodeCommand):
     """Create a new agent in the current session.
 
     Creates a temporary agent that inherits the current agent's model.
@@ -41,7 +40,7 @@ class CreateAgentCommand(AgentCommand):
 
     async def execute_command(
         self,
-        ctx: CommandContext[AgentContext],
+        ctx: CommandContext[NodeContext],
         agent_name: str,
         system_prompt: str = "",
         *,
@@ -67,7 +66,7 @@ class CreateAgentCommand(AgentCommand):
                 raise CommandError(msg)
 
             # Get model from args or current agent
-            current_agent = ctx.context.agent
+            current_agent = ctx.context.any_agent
             tool_list = [t.strip() for t in tools.split("|")] if tools else None
             # Create and register the new agent
             await ctx.context.pool.add_agent(
@@ -179,7 +178,7 @@ class ListAgentsCommand(NodeCommand):
         await ctx.print(f"## 🤖 Available Agents\n\n{table}")
 
 
-class SwitchAgentCommand(AgentCommand):
+class SwitchAgentCommand(NodeCommand):
     """Switch the current chat session to a different agent.
 
     Use /list-agents to see available agents.
@@ -192,7 +191,7 @@ class SwitchAgentCommand(AgentCommand):
 
     async def execute_command(
         self,
-        ctx: CommandContext[AgentContext],
+        ctx: CommandContext[NodeContext],
         agent_name: str,
     ) -> None:
         """Switch to a different agent.
