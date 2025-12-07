@@ -189,11 +189,7 @@ class SwitchAgentCommand(NodeCommand):
     name = "switch-agent"
     category = "agents"
 
-    async def execute_command(
-        self,
-        ctx: CommandContext[NodeContext],
-        agent_name: str,
-    ) -> None:
+    async def execute_command(self, ctx: CommandContext[NodeContext], agent_name: str) -> None:
         """Switch to a different agent.
 
         Args:

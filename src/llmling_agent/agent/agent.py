@@ -684,7 +684,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             )
             converted_prompts = await convert_prompts(processed_prompts)
 
-            # Merge internal and external event handlers like the old provider did
+            # Merge internal and external event handlers
             async def event_distributor(
                 ctx: RunContext[Any], events: AsyncIterable[AgentStreamEvent]
             ) -> None:
