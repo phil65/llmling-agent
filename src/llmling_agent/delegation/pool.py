@@ -6,6 +6,7 @@ import asyncio
 from asyncio import Lock
 from contextlib import AsyncExitStack, asynccontextmanager, suppress
 import os
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Self, Unpack, overload
 
 from anyenv import ProcessManager
@@ -133,7 +134,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         self.pool_talk = TeamTalk[Any].from_nodes(list(self.nodes.values()))
         # Create requested agents immediately
         for name in self.manifest.agents:
-            agent = self.manifest.get_agent(
+            agent = self.create_agent(
                 name,
                 deps_type=shared_deps_type,
                 input_provider=self._input_provider,
@@ -144,13 +145,13 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
 
         # Create ACP agents
         for name in self.manifest.acp_agents:
-            acp_agent = self.manifest.get_acp_agent(name, deps_type=shared_deps_type)
+            acp_agent = self.create_acp_agent(name, deps_type=shared_deps_type)
             acp_agent.agent_pool = self
             self.register(name, acp_agent)
 
         # Create AG-UI agents
         for name in self.manifest.agui_agents:
-            agui_agent = self.manifest.get_agui_agent(name, deps_type=shared_deps_type)
+            agui_agent = self.create_agui_agent(name, deps_type=shared_deps_type)
             agui_agent.agent_pool = self
             self.register(name, agui_agent)
 
@@ -689,6 +690,155 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
                         lines.append(f"    {source}-->{target.name}")
 
         return "\n".join(lines)
+
+    def create_agent[TAgentDeps](
+        self,
+        name: str,
+        deps_type: type[TAgentDeps] | None = None,
+        input_provider: InputProvider | None = None,
+        pool: AgentPool[Any] | None = None,
+        event_handlers: list[IndividualEventHandler] | None = None,
+    ) -> Agent[TAgentDeps, Any]:
+        from llmling_agent import Agent
+        from llmling_agent.utils.result_utils import to_type
+        from llmling_agent_config.system_prompts import (
+            FilePromptConfig,
+            FunctionPromptConfig,
+            LibraryPromptConfig,
+            StaticPromptConfig,
+        )
+
+        manifest = self.manifest
+        # Get config from inline agents or file agents
+        if name in manifest.agents:
+            config = manifest.agents[name]
+        elif name in manifest.file_agents:
+            config = manifest._loaded_file_agents[name]
+        else:
+            msg = f"Agent {name!r} not found in agents or file_agents"
+            raise KeyError(msg)
+        sys_prompts: list[str] = []
+        for prompt in config.system_prompts:
+            match prompt:
+                case (str() as sys_prompt) | StaticPromptConfig(content=sys_prompt):
+                    sys_prompts.append(sys_prompt)
+                case FilePromptConfig(path=path, variables=variables):
+                    template_path = Path(path)  # Load template from file
+                    if not template_path.is_absolute() and config.config_file_path:
+                        template_path = Path(config.config_file_path).parent / path
+
+                    template_content = template_path.read_text("utf-8")
+                    if variables:  # Apply variables if any
+                        from jinja2 import Template
+
+                        template = Template(template_content)
+                        content = template.render(**variables)
+                    else:
+                        content = template_content
+                    sys_prompts.append(content)
+                case LibraryPromptConfig(reference=reference):
+                    try:  # Load from library
+                        content = self.manifest.prompt_manager.get.sync(reference)
+                        sys_prompts.append(content)
+                    except Exception as e:
+                        msg = f"Failed to load library prompt {reference!r} for agent {name}"
+                        logger.exception(msg)
+                        raise ValueError(msg) from e
+                case FunctionPromptConfig(function=function, arguments=arguments):
+                    content = function(**arguments)  # Call function to get prompt content
+                    sys_prompts.append(content)
+        # Prepare toolsets list with config's tool provider
+        toolsets_list = config.get_toolsets()
+        if config_tool_provider := config.get_tool_provider():
+            toolsets_list.append(config_tool_provider)
+        # Convert workers config to a toolset (backwards compatibility)
+        if config.workers:
+            from llmling_agent_toolsets.builtin.workers import WorkersTools
+
+            workers_provider = WorkersTools(workers=list(config.workers), name="workers")
+            toolsets_list.append(workers_provider)
+        # Step 1: Get agent-specific output type (same as before)
+        agent_output_type = manifest.get_output_type(name) or str
+        # Step 2: Resolve it fully with to_type (same as before)
+        resolved_output_type = to_type(agent_output_type, manifest.responses)
+        return Agent(
+            # context=context,
+            model=config.model
+            if isinstance(config.model, str) or config.model is None
+            else config.model.get_model(),
+            system_prompt=sys_prompts,
+            name=name,
+            display_name=config.display_name,
+            deps_type=deps_type,
+            description=config.description,
+            retries=config.retries,
+            session=config.get_session_config(),
+            output_retries=config.output_retries,
+            end_strategy=config.end_strategy,
+            debug=config.debug,
+            agent_config=config,
+            input_provider=input_provider,
+            output_type=resolved_output_type,
+            event_handlers=event_handlers,
+            agent_pool=pool,
+            tool_mode=config.tool_mode,
+            knowledge=config.knowledge,
+            toolsets=toolsets_list,
+        )
+
+    def create_acp_agent[TDeps](
+        self,
+        name: str,
+        deps_type: type[TDeps] | None = None,
+    ) -> ACPAgent[TDeps]:
+        """Create an ACPAgent from configuration.
+
+        Args:
+            name: Name of the ACP agent in the manifest
+            deps_type: Optional dependency type (not used by ACP agents currently)
+
+        Returns:
+            Configured ACPAgent instance
+        """
+        from llmling_agent.agent.acp_agent import ACPAgent
+
+        config = self.manifest.acp_agents[name]
+        # Ensure name is set on config
+        if config.name is None:
+            config = config.model_copy(update={"name": name})
+        return ACPAgent(config=config)
+
+    def create_agui_agent[TDeps](
+        self,
+        name: str,
+        deps_type: type[TDeps] | None = None,
+    ) -> AGUIAgent[TDeps]:
+        """Create an AGUIAgent from configuration.
+
+        Args:
+            name: Name of the AG-UI agent in the manifest
+            deps_type: Optional dependency type (not used by AG-UI agents currently)
+
+        Returns:
+            Configured AGUIAgent instance
+        """
+        from llmling_agent.agent.agui_agent import AGUIAgent
+
+        config = self.manifest.agui_agents[name]
+        # Ensure name is set on config
+        if config.name is None:
+            config = config.model_copy(update={"name": name})
+        return AGUIAgent(
+            endpoint=config.endpoint,
+            name=config.name or "agui-agent",
+            description=config.description,
+            display_name=config.display_name,
+            timeout=config.timeout,
+            headers=config.headers,
+            startup_command=config.startup_command,
+            startup_delay=config.startup_delay,
+            mcp_servers=config.mcp_servers,
+        )
 
 
 if __name__ == "__main__":
