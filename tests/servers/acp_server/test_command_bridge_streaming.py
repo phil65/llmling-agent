@@ -130,7 +130,18 @@ async def test_immediate_send_error_handling(caplog: pytest.LogCaptureFixture):
     agent_pool = AgentPool()
     agent_pool.register("test_agent", agent)
     mock_client = AsyncMock()
+
+    # Track created tasks to wait for them
+    created_tasks = []
+
+    def mock_create_task(coro, *, name=None):
+        task = asyncio.create_task(coro, name=name)
+        created_tasks.append(task)
+        return task
+
     mock_acp_agent = AsyncMock()
+    mock_acp_agent.tasks.create_task = mock_create_task
+
     session = ACPSession(
         session_id="test_session",
         agent_pool=agent_pool,
@@ -165,6 +176,10 @@ async def test_immediate_send_error_handling(caplog: pytest.LogCaptureFixture):
     session.notifications.send_agent_text = capture_message  # type: ignore[method-assign]
     # Execute failing command
     await session.execute_slash_command("/fail")
+
+    # Wait for any async error notification tasks to complete
+    if created_tasks:
+        await asyncio.gather(*created_tasks, return_exceptions=True)
 
     # Should get the initial output plus error message
     min_expected_messages = 2
