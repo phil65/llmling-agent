@@ -340,7 +340,8 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
         """Execute prompt against AG-UI agent.
 
         Sends the prompt to the AG-UI server and waits for completion.
-        Events are collected and the final text content is returned as a ChatMessage.
+        Events are collected via run_stream and event handlers are called.
+        The final text content is returned as a ChatMessage.
 
         Args:
             prompts: Prompts to send (will be joined with spaces)
@@ -351,47 +352,21 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
         Returns:
             ChatMessage containing the agent's aggregated text response
         """
-        from llmling_agent.messaging.processing import prepare_prompts
+        from llmling_agent.agent.events import StreamCompleteEvent
 
-        if not self._client or not self._state:
-            msg = "Agent not initialized - use async context manager"
+        # Collect all events through run_stream
+        final_message: ChatMessage[str] | None = None
+        async for event in self.run_stream(
+            *prompts, message_id=message_id, message_history=message_history
+        ):
+            if isinstance(event, StreamCompleteEvent):
+                final_message = event.message
+
+        if final_message is None:
+            msg = "No final message received from stream"
             raise RuntimeError(msg)
 
-        # Determine which conversation to use
-        conversation = message_history if message_history is not None else self.conversation
-
-        # Prepare user message for history
-        user_msg, _processed_prompts, _original_message = await prepare_prompts(*prompts)
-
-        # Reset state for new run
-        self._state.text_chunks.clear()
-        self._state.thought_chunks.clear()
-        self._state.tool_calls.clear()
-        self._state.is_complete = False
-        self._state.error = None
-        self._state.run_id = str(uuid4())
-
-        # Collect all events
-        async for _ in self.run_stream(*prompts, message_id=message_id):
-            pass
-
-        # Create final message
-        self._message_count += 1
-        message = ChatMessage[str](
-            content="".join(self._state.text_chunks),
-            role="assistant",
-            name=self.name,
-            message_id=message_id or str(uuid4()),
-            conversation_id=self.conversation_id,
-            model_name=None,
-            cost_info=None,
-        )
-        self.message_sent.emit(message)
-
-        # Record to conversation history
-        conversation.add_chat_messages([user_msg, message])
-
-        return message
+        return final_message
 
     async def run_stream(
         self,

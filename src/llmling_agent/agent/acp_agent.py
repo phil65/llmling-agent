@@ -80,7 +80,6 @@ if TYPE_CHECKING:
         CreateTerminalRequest,
         InitializeResponse,
         KillTerminalCommandRequest,
-        PromptResponse,
         ReadTextFileRequest,
         ReleaseTerminalRequest,
         RequestPermissionRequest,
@@ -729,8 +728,8 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         """Execute prompt against ACP agent.
 
         Sends the prompt to the ACP server and waits for completion.
-        Session updates (text chunks, tool calls, etc.) are collected
-        and the final text content is returned as a ChatMessage.
+        Events are collected via run_stream and event handlers are called.
+        The final text content is returned as a ChatMessage.
 
         Args:
             prompts: Prompts to send (will be joined with spaces)
@@ -741,56 +740,24 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         Returns:
             ChatMessage containing the agent's aggregated text response
         """
-        from llmling_agent.messaging.processing import prepare_prompts
+        # Collect all events through run_stream
+        final_message: ChatMessage[str] | None = None
+        async for event in self.run_stream(
+            *prompts,
+            message_id=message_id,
+            input_provider=input_provider,
+            message_history=message_history,
+        ):
+            from llmling_agent.agent.events import StreamCompleteEvent
 
-        # Update input provider if provided
-        if input_provider is not None:
-            self._input_provider = input_provider
-            if self._client_handler:
-                self._client_handler._input_provider = input_provider
-        if not self._connection or not self._session_id or not self._state:
-            msg = "Agent not initialized - use async context manager"
+            if isinstance(event, StreamCompleteEvent):
+                final_message = event.message
+
+        if final_message is None:
+            msg = "No final message received from stream"
             raise RuntimeError(msg)
 
-        # Determine which conversation to use
-        conversation = message_history if message_history is not None else self.conversation
-
-        # Prepare user message for history and convert to ACP content blocks
-        user_msg, processed_prompts, _original_message = await prepare_prompts(*prompts)
-
-        # Reset state for new prompt
-        self._state.text_chunks.clear()
-        self._state.thought_chunks.clear()
-        self._state.tool_calls.clear()
-        self._state.is_complete = False
-        self._state.stop_reason = None
-
-        # Convert to ACP content blocks (supports text, images, audio)
-        from llmling_agent.agent.acp_converters import convert_to_acp_content
-
-        content_blocks = convert_to_acp_content(processed_prompts)
-        prompt_request = PromptRequest(session_id=self._session_id, prompt=content_blocks)
-        self.log.debug("Sending prompt to ACP agent", num_blocks=len(content_blocks))
-        # The prompt call blocks until completion, session updates come via notifications
-        response: PromptResponse = await self._connection.prompt(prompt_request)
-        self._state.is_complete = True
-        self._state.stop_reason = response.stop_reason
-        self._message_count += 1
-        message = ChatMessage[str](
-            content="".join(self._state.text_chunks),
-            role="assistant",
-            name=self.name,
-            message_id=message_id or str(uuid.uuid4()),
-            conversation_id=self.conversation_id,
-            model_name=self.model_name,
-            cost_info=None,
-        )
-        self.message_sent.emit(message)
-
-        # Record to conversation history
-        conversation.add_chat_messages([user_msg, message])
-
-        return message
+        return final_message
 
     async def run_stream(  # noqa: PLR0915
         self,
