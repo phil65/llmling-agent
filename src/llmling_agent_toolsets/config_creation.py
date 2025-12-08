@@ -185,8 +185,9 @@ class ConfigCreationTools(StaticResourceProvider):
         lines = [f"Contents of {path}:\n"]
         for item in items:
             name = item["name"]
-            item_type = item["type"]
-            icon = "📁" if item_type == "directory" else "📄"
+            fs = self._get_schema_fs()
+            is_dir = fs.isdir(f"{path.rstrip('/')}/{name}" if path != "/" else f"/{name}")
+            icon = "📁" if is_dir else "📄"
 
             parts = [f"{icon} {name}"]
 

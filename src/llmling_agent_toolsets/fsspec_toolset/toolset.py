@@ -230,7 +230,7 @@ class FSSpecTools(ResourceProvider):
         line: int | None = None,
         limit: int | None = None,
     ) -> str | BinaryContent | dict[str, Any]:
-        """Read file natively - text for text files, binary for documents/images.
+        """Read the context of a text file, or use vision capabilites to read images or documents.
 
         Args:
             agent_ctx: Agent execution context
