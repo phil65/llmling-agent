@@ -37,7 +37,7 @@ from llmling_agent.agent.events import (
 from llmling_agent.common_types import IndividualEventHandler
 from llmling_agent.log import get_logger
 from llmling_agent.messaging import ChatMessage, MessageNode
-from llmling_agent.messaging.processing import finalize_message, prepare_prompts
+from llmling_agent.messaging.processing import prepare_prompts
 from llmling_agent.prompts.convert import convert_prompts
 from llmling_agent.storage import StorageManager
 from llmling_agent.talk.stats import MessageStats
@@ -54,12 +54,12 @@ TResult = TypeVar("TResult")
 
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterable, AsyncIterator, Coroutine, Sequence
+    from collections.abc import AsyncIterator, Coroutine, Sequence
     from datetime import datetime
     from types import TracebackType
 
     from anyenv.code_execution import ExecutionEnvironment
-    from pydantic_ai import AgentStreamEvent, UsageLimits
+    from pydantic_ai import UsageLimits
     from pydantic_ai.output import OutputSpec
     from toprompt import AnyPromptType
     from upath.types import JoinablePathLike
@@ -659,7 +659,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             message_id: Optional message id for the returned message.
                         Automatically generated if not provided.
             conversation_id: Optional conversation id for the returned message.
-            messages: Optional list of messages to replace the conversation history
             message_history: Optional MessageHistory object to
                              use instead of agent's own conversation
             deps: Optional dependencies for the agent
@@ -673,74 +672,31 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         Raises:
             UnexpectedModelBehavior: If the model fails or behaves unexpectedly
         """
-        conversation = message_history if message_history is not None else self.conversation
-        # Prepare prompts and create user message
-        user_msg, processed_prompts, original_message = await prepare_prompts(*prompts)
-        self.message_received.emit(user_msg)
-        message_id = message_id or str(uuid4())
-        start_time = time.perf_counter()
-        message_history_list = list(conversation.chat_messages)
-        try:
-            agentlet = await self.get_agentlet(tool_choice, model, output_type, input_provider)
-            converted_prompts = await convert_prompts(processed_prompts)
+        # Collect all events through run_stream
+        final_message: ChatMessage[Any] | None = None
+        async for event in self.run_stream(
+            *prompts,
+            output_type=output_type,
+            model=model,
+            store_history=store_history,
+            tool_choice=tool_choice,
+            usage_limits=usage_limits,
+            message_id=message_id,
+            conversation_id=conversation_id,
+            message_history=message_history,
+            deps=deps,
+            input_provider=input_provider,
+            wait_for_connections=wait_for_connections,
+            instructions=instructions,
+        ):
+            if isinstance(event, StreamCompleteEvent):
+                final_message = event.message
 
-            async def event_distributor(  # Merge internal and external event handlers
-                ctx: RunContext[Any], events: AsyncIterable[AgentStreamEvent]
-            ) -> None:
-                async for event in events:
-                    # Check for queued custom events and distribute them first
-                    while not self._event_queue.empty():
-                        try:
-                            custom_event = self._event_queue.get_nowait()
-                            for handler in self.event_handler._wrapped_handlers:
-                                await handler(ctx, custom_event)
-                        except asyncio.QueueEmpty:
-                            break
+        if final_message is None:
+            msg = "No final message received from stream"
+            raise RuntimeError(msg)
 
-                    # Then distribute the original event
-                    for handler in self.event_handler._wrapped_handlers:
-                        await handler(ctx, event)
-
-            result = await agentlet.run(
-                [i if isinstance(i, str) else i.to_pydantic_ai() for i in converted_prompts],
-                deps=deps,  # type: ignore[arg-type]
-                message_history=[m for run in message_history_list for m in run.to_pydantic_ai()],
-                usage_limits=usage_limits,
-                event_stream_handler=event_distributor,
-                instructions=instructions,
-            )
-
-            response_time = time.perf_counter() - start_time
-            message = await ChatMessage.from_run_result(
-                result,
-                agent_name=self.name,
-                message_id=message_id,
-                conversation_id=user_msg.conversation_id,
-                response_time=response_time,
-            )
-
-        except Exception as e:
-            self.log.exception("Agent run failed")
-            self.run_failed.emit("Agent run failed", e)
-            raise
-
-        # Apply forwarding logic before storing history
-        if original_message:
-            message = message.forwarded(original_message)
-
-        # Handle history storage - add to the conversation we're using
-        if store_history:
-            conversation.add_chat_messages([user_msg, message])
-
-        # Finalize and route message (forwarding already applied)
-        return await finalize_message(
-            message,
-            user_msg,
-            self,
-            self.connections,
-            None,  # forwarding already applied above
-            wait_for_connections,
-        )
+        return final_message
 
     @method_spawner
     async def run_stream(
@@ -753,7 +709,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         usage_limits: UsageLimits | None = None,
         message_id: str | None = None,
         conversation_id: str | None = None,
-        messages: list[ChatMessage[Any]] | None = None,
+        message_history: MessageHistory | None = None,
         input_provider: InputProvider | None = None,
         wait_for_connections: bool | None = None,
         deps: TDeps | None = None,
@@ -772,7 +728,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             message_id: Optional message id for the returned message.
                         Automatically generated if not provided.
             conversation_id: Optional conversation id for the returned message.
-            messages: Optional list of messages to replace the conversation history
+            message_history: Optional MessageHistory to use instead of agent's own
             input_provider: Optional input provider for the agent
             wait_for_connections: Whether to wait for connected agents to complete
             deps: Optional dependencies for the agent
@@ -783,12 +739,13 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         Raises:
             UnexpectedModelBehavior: If the model fails or behaves unexpectedly
         """
+        conversation = message_history if message_history is not None else self.conversation
         message_id = message_id or str(uuid4())
         run_id = str(uuid4())
-        user_msg, prompts, _original_message = await prepare_prompts(*prompt)
+        user_msg, prompts, original_message = await prepare_prompts(*prompt)
         self.message_received.emit(user_msg)
         start_time = time.perf_counter()
-        message_history = messages if messages is not None else self.conversation.get_history()
+        history_list = conversation.get_history()
         yield RunStartedEvent(thread_id=self.conversation_id, run_id=run_id, agent_name=self.name)
         try:
             agentlet = await self.get_agentlet(tool_choice, model, output_type, input_provider)
@@ -799,7 +756,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             stream_events = agentlet.run_stream_events(
                 converted,
                 deps=deps,  # type: ignore[arg-type]
-                message_history=[m for run in message_history for m in run.to_pydantic_ai()],
+                message_history=[m for run in history_list for m in run.to_pydantic_ai()],
                 usage_limits=usage_limits,
                 instructions=instructions,
             )
@@ -842,17 +799,23 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                                 event.result,
                                 agent_name=self.name,
                                 message_id=message_id,
-                                conversation_id=conversation_id,
+                                conversation_id=conversation_id or user_msg.conversation_id,
                                 response_time=response_time,
                             )
 
+            # Only finalize if we got a result (stream may exit early on error)
+            if response_msg is None:
+                msg = "Stream completed without producing a result"
+                raise RuntimeError(msg)  # noqa: TRY301
+            # Apply forwarding logic if needed
+            if original_message:
+                response_msg = response_msg.forwarded(original_message)
             # Send additional enriched completion event
-            assert response_msg
             yield StreamCompleteEvent(message=response_msg)  # pyright: ignore[reportReturnType]
             self.message_sent.emit(response_msg)
             await self.log_message(response_msg)
             if store_history:
-                self.conversation.add_chat_messages([user_msg, response_msg])
+                conversation.add_chat_messages([user_msg, response_msg])
             await self.connections.route_message(response_msg, wait=wait_for_connections)
 
         except Exception as e:

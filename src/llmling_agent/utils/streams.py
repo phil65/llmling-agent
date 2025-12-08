@@ -37,13 +37,16 @@ async def merge_queue_into_iterator[T, V](
     # Create a queue for all merged events
     event_queue: asyncio.Queue[V | T | None] = asyncio.Queue()
     primary_done = False
+    primary_exception: BaseException | None = None
 
     # Task to read from primary stream and put into merged queue
     async def primary_task() -> None:
-        nonlocal primary_done
+        nonlocal primary_done, primary_exception
         try:
             async for event in primary_stream:
                 await event_queue.put(event)
+        except BaseException as e:  # noqa: BLE001
+            primary_exception = e
         finally:
             primary_done = True
             # Signal end of primary stream
@@ -73,6 +76,9 @@ async def merge_queue_into_iterator[T, V](
                 if event is None:  # End of primary stream
                     break
                 yield event
+            # Re-raise any exception from primary stream after draining
+            if primary_exception is not None:
+                raise primary_exception
 
         yield merged_events()
 
