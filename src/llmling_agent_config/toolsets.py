@@ -17,6 +17,9 @@ from llmling_agent_config.converters import ConversionConfig
 from llmling_agent_config.workers import WorkerConfig
 
 
+MarkupType = Literal["yaml", "json", "toml"]
+
+
 if TYPE_CHECKING:
     from llmling_agent.resource_providers import ResourceProvider
 
@@ -655,6 +658,39 @@ class RemoteCodeModeToolsetConfig(BaseToolsetConfig):
         )
 
 
+class ConfigCreationToolsetConfig(BaseToolsetConfig):
+    """Configuration for config creation with schema validation."""
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "x-icon": "octicon:file-code-16",
+            "x-doc-title": "Config Creation Toolset",
+        }
+    )
+
+    type: Literal["config_creation"] = Field("config_creation", init=False)
+    """Config creation toolset."""
+
+    schema_path: UPath = Field(
+        examples=["schema/config-schema.json", "https://example.com/schema.json"],
+        title="JSON Schema path",
+    )
+    """Path or URL to the JSON schema for validation."""
+
+    markup: MarkupType = Field(default="yaml", title="Markup language")
+    """Markup language for the configuration (yaml, json, toml)."""
+
+    def get_provider(self) -> ResourceProvider:
+        """Create config creation toolset."""
+        from llmling_agent_toolsets.config_creation import ConfigCreationTools
+
+        return ConfigCreationTools(
+            schema_path=self.schema_path,
+            markup=self.markup,
+            name=self.namespace or "config_creation",
+        )
+
+
 ToolsetConfig = Annotated[
     OpenAPIToolsetConfig
     | EntryPointToolsetConfig
@@ -677,6 +713,7 @@ ToolsetConfig = Annotated[
     | SearchToolsetConfig
     | NotificationsToolsetConfig
     | SemanticMemoryToolsetConfig
+    | ConfigCreationToolsetConfig
     | CustomToolsetConfig,
     Field(discriminator="type"),
 ]
