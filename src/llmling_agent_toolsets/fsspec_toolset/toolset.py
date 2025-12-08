@@ -178,6 +178,27 @@ class FSSpecTools(ResourceProvider):
             files: list[dict[str, Any]] = []
             dirs: list[dict[str, Any]] = []
 
+            # Safety check - prevent returning too many items
+            total_found = len(paths)
+            if total_found > 1000:
+                suggestions = []
+                if pattern == "*":
+                    suggestions.append("Use a more specific pattern like '*.py', '*.txt', etc.")
+                if max_depth > 1:
+                    suggestions.append(f"Reduce max_depth from {max_depth} to 1 or 2.")
+                if not exclude:
+                    suggestions.append("Use exclude parameter to filter out unwanted directories.")
+
+                suggestion_text = " Try: " + " ".join(suggestions) if suggestions else ""
+
+                return {
+                    "error": f"Too many items found ({total_found:,}). Limited to 1000 for performance.{suggestion_text}",
+                    "total_found": total_found,
+                    "path": path,
+                    "pattern": pattern,
+                    "max_depth": max_depth,
+                }
+
             for file_path, file_info in paths.items():  # pyright: ignore[reportAttributeAccessIssue]
                 rel_path = os.path.relpath(str(file_path), path)
 
