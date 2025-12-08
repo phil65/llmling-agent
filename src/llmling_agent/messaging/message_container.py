@@ -15,10 +15,9 @@ from llmling_agent.utils.count_tokens import batch_count_tokens, count_tokens
 if TYPE_CHECKING:
     from datetime import datetime
 
-    from bigtree import DAGNode  # type: ignore[attr-defined]
-
     from llmling_agent.common_types import MessageRole
     from llmling_agent.messaging.messages import FormatStyle
+    from llmling_agent.utils.dag import DAGNode
 
 
 logger = get_logger(__name__)
@@ -148,7 +147,7 @@ class ChatMessageList(EventedList[ChatMessage[Any]]):
         Returns:
             Root DAGNode of the graph
         """
-        from bigtree import DAGNode  # type: ignore[attr-defined]
+        from llmling_agent.utils.dag import DAGNode
 
         # Get messages from this conversation
         conv_messages = [m for m in self if m.conversation_id == message.conversation_id]
@@ -169,10 +168,10 @@ class ChatMessageList(EventedList[ChatMessage[Any]]):
                     parent = nodes[parent_name]
                     child = nodes[child_name]
                     if parent not in child.parents:
-                        child.parents = [*child.parents, parent]
+                        child.add_parent(parent)
 
         # Find root nodes (those without parents)
-        roots = [node for node in nodes.values() if not node.parents]
+        roots = [node for node in nodes.values() if node.is_root]
         if not roots:
             return None
         return roots[0]  # Return first root for now
@@ -186,13 +185,12 @@ class ChatMessageList(EventedList[ChatMessage[Any]]):
         rankdir: Literal["TB", "BT", "LR", "RL"] = "LR",
     ) -> str:
         """Convert message flow to mermaid graph."""
-        from bigtree import dag_to_list  # type: ignore[attr-defined]
+        from llmling_agent.utils.dag import dag_to_list
 
         dag = self._build_flow_dag(message)
         if not dag:
             return ""
 
-        # Get list of connections
         connections = dag_to_list(dag)
 
         # Convert to mermaid

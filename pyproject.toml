@@ -33,7 +33,6 @@ classifiers = [
 dependencies = [
   "aioitertools>=0.12.0",
   "anyenv[httpx]>=0.3.0",
-  "bigtree>=0.23.1",
   "datamodel-code-generator>=0.35.0",
   "docler>=1.0.3",
   "docstring-parser>=0.17.0",
@@ -145,8 +144,8 @@ docs = [
 lint = [
   "mypy[faster-cache]",
   "ruff",
-  "types-jsonschema>=4.25.1.20251009",
   "types-PyYAML",
+  "types-jsonschema>=4.25.1.20251009",
   # Only add below (Copier)
 ]
 
