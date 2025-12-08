@@ -13,7 +13,6 @@ from llmling_agent.resource_providers.codemode.helpers import (
     tools_to_codegen,
     validate_code,
 )
-from llmling_agent.tools.base import Tool
 from llmling_agent_toolsets.fsspec_toolset.toolset import FSSpecTools
 
 
@@ -21,6 +20,7 @@ if TYPE_CHECKING:
     from schemez import ToolsetCodeGenerator
 
     from llmling_agent.resource_providers import ResourceProvider
+    from llmling_agent.tools.base import Tool
 
 
 class CodeModeResourceProvider(AggregatingResourceProvider):
@@ -113,10 +113,8 @@ class CodeModeResourceProvider(AggregatingResourceProvider):
 
     async def _get_code_generator(self) -> ToolsetCodeGenerator:
         """Get fresh toolset generator with current tools."""
-        return tools_to_codegen(
-            tools=await super().get_tools(),
-            include_docstrings=self.include_docstrings,
-        )
+        tools = await super().get_tools()
+        return tools_to_codegen(tools=tools, include_docstrings=self.include_docstrings)
 
 
 if __name__ == "__main__":
@@ -135,7 +133,7 @@ if __name__ == "__main__":
 
         async with AgentPool() as pool:
             agent: Agent[None, str] = Agent(
-                model="openai:gpt-4.1-nano", event_handlers=["simple"], retries=1
+                model="openai:gpt-5-nano", event_handlers=["simple"], retries=1
             )
             pool.register("test_agent", agent)
             async with agent:
