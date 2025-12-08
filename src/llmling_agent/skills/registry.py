@@ -78,7 +78,7 @@ class SkillsRegistry(BaseRegistry[str, Skill]):
             logger.warning("Skills directory not found", path=skills_dir)
             return
         # Filter for directories that might contain skills
-        skill_dirs = [entry for entry in entries if entry.get("type") == "directory"]
+        skill_dirs = [entry for entry in entries if await fs._isdir(entry["name"])]
         if not skill_dirs:
             logger.info("No skills found", skills_dir=skills_dir)
             return

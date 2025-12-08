@@ -58,7 +58,7 @@ class ConfigCreationTools(StaticResourceProvider):
         """
         super().__init__(name=name)
         self._schema_path = upath.UPath(schema_path)
-        self._markup = markup
+        self._markup: MarkupType = markup
         self._schema: dict[str, Any] | None = None
         self._schema_fs: JsonSchemaFileSystem | None = None
 
@@ -119,7 +119,7 @@ class ConfigCreationTools(StaticResourceProvider):
         """Load and cache the JSON schema."""
         if self._schema is None:
             content = self._schema_path.read_text()
-            self._schema = json.loads(content)
+            self._schema = anyenv.load_json(content, return_type=dict)
         return self._schema
 
     def _get_schema_fs(self) -> JsonSchemaFileSystem:

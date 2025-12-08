@@ -48,9 +48,9 @@ YAML configuration example:
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Callable, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass, field, replace
-from typing import TYPE_CHECKING, Annotated, Any, Literal
+from typing import TYPE_CHECKING, Annotated, Any, Literal, Self
 
 from pydantic import BaseModel, Field
 from pydantic_ai.messages import (
@@ -65,6 +65,8 @@ from pydantic_ai.messages import (
 
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from pydantic_ai import Agent
 
 # Type aliases
@@ -119,7 +121,7 @@ class CompactionPipeline(CompactionStep):
             return CompactionPipeline(steps=[*self.steps, *other.steps])
         return CompactionPipeline(steps=[*self.steps, other])
 
-    def __ior__(self, other: CompactionStep) -> CompactionPipeline:
+    def __ior__(self, other: CompactionStep) -> Self:
         """Add a step in place."""
         if isinstance(other, CompactionPipeline):
             self.steps.extend(other.steps)
@@ -502,7 +504,7 @@ class TokenBudget(CompactionStep):
         for msg in reversed(messages):
             # Estimate tokens for this message
             text = _extract_text_content(msg)
-            token_count = await tokonomics.count_tokens(text, self.model)
+            token_count = tokonomics.count_tokens(text, self.model)
 
             if total_tokens + token_count > self.max_tokens:
                 break
@@ -577,7 +579,7 @@ class Summarize(CompactionStep):
 
         # Create summary message
         summary_request = ModelRequest(
-            parts=[UserPromptPart(content=f"[Conversation Summary]\n{result.data}")]
+            parts=[UserPromptPart(content=f"[Conversation Summary]\n{result.output}")]
         )
 
         return [summary_request, *to_keep]
@@ -894,7 +896,7 @@ def _extract_text_content(msg: ModelMessage) -> str:
                         elif isinstance(content, list):
                             for item in content:
                                 if isinstance(item, str):
-                                    parts_text.append(item)
+                                    parts_text.append(item)  # noqa: PERF401
                     case ToolReturnPart(content=content):
                         if isinstance(content, str):
                             parts_text.append(content)
