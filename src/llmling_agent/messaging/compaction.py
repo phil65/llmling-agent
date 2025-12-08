@@ -50,7 +50,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from dataclasses import dataclass, field, replace
-from typing import TYPE_CHECKING, Annotated, Any, Literal, Self
+from typing import TYPE_CHECKING, Annotated, Any, Literal, Self, cast
 
 from pydantic import BaseModel, Field
 from pydantic_ai.messages import (
@@ -67,7 +67,8 @@ from pydantic_ai.messages import (
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from pydantic_ai import Agent
+    from pydantic_ai import Agent, ModelRequestPart
+    from pydantic_ai.messages import ModelResponsePart
 
 # Type aliases
 ModelMessage = ModelRequest | ModelResponse
@@ -195,7 +196,7 @@ class FilterBinaryContent(CompactionStep):
         for msg in messages:
             match msg:
                 case ModelRequest(parts=parts):
-                    filtered_parts = []
+                    filtered_parts: list[ModelRequestPart | ModelResponsePart] = []
                     for part in parts:
                         if isinstance(part, UserPromptPart):
                             if isinstance(part.content, list):
@@ -213,7 +214,7 @@ class FilterBinaryContent(CompactionStep):
                         else:
                             filtered_parts.append(part)
                     if filtered_parts:
-                        result.append(replace(msg, parts=filtered_parts))
+                        result.append(replace(msg, parts=cast(Sequence[Any], filtered_parts)))
                 case _:
                     result.append(msg)
         return result
@@ -247,7 +248,7 @@ class FilterToolCalls(CompactionStep):
         for msg in messages:
             match msg:
                 case ModelResponse(parts=parts):
-                    filtered_parts = []
+                    filtered_parts: list[ModelRequestPart | ModelResponsePart] = []
                     for part in parts:
                         if isinstance(part, ToolCallPart):
                             if should_keep(part.tool_name):
@@ -257,7 +258,7 @@ class FilterToolCalls(CompactionStep):
                         else:
                             filtered_parts.append(part)
                     if filtered_parts:
-                        result.append(replace(msg, parts=filtered_parts))
+                        result.append(replace(msg, parts=cast(Sequence[Any], filtered_parts)))
 
                 case ModelRequest(parts=parts):
                     # Also filter corresponding tool returns
@@ -269,7 +270,7 @@ class FilterToolCalls(CompactionStep):
                         )
                     ]
                     if filtered_parts:
-                        result.append(replace(msg, parts=filtered_parts))
+                        result.append(replace(msg, parts=cast(Sequence[Any], filtered_parts)))
 
                 case _:
                     result.append(msg)
@@ -300,7 +301,7 @@ def _part_has_content(part: Any) -> bool:
     """Check if a message part has meaningful content."""
     # Use has_content if available (TextPart, ThinkingPart, etc.)
     if hasattr(part, "has_content"):
-        return part.has_content()
+        return part.has_content()  # type: ignore[no-any-return]
     # For UserPromptPart, check content directly
     if isinstance(part, UserPromptPart):
         content = part.content
@@ -340,7 +341,7 @@ class TruncateToolOutputs(CompactionStep):
         for msg in messages:
             match msg:
                 case ModelRequest(parts=parts):
-                    new_parts = []
+                    new_parts: list[ModelRequestPart | ModelResponsePart] = []
                     for part in parts:
                         if isinstance(part, ToolReturnPart):
                             content = part.content
@@ -351,7 +352,7 @@ class TruncateToolOutputs(CompactionStep):
                                 new_parts.append(part)
                         else:
                             new_parts.append(part)
-                    result.append(replace(msg, parts=new_parts))
+                    result.append(replace(msg, parts=cast(Sequence[Any], new_parts)))
                 case _:
                     result.append(msg)
         return result
@@ -375,14 +376,14 @@ class TruncateTextParts(CompactionStep):
         for msg in messages:
             match msg:
                 case ModelResponse(parts=parts):
-                    new_parts = []
+                    new_parts: list[ModelRequestPart | ModelResponsePart] = []
                     for part in parts:
                         if isinstance(part, TextPart) and len(part.content) > self.max_length:
                             truncated = part.content[: self.max_length - len(self.suffix)]
                             new_parts.append(replace(part, content=truncated + self.suffix))
                         else:
                             new_parts.append(part)
-                    result.append(replace(msg, parts=new_parts))
+                    result.append(replace(msg, parts=cast(Sequence[Any], new_parts)))
                 case _:
                     result.append(msg)
         return result
@@ -913,16 +914,16 @@ def _format_conversation(messages: Sequence[ModelMessage]) -> str:
     for msg in messages:
         match msg:
             case ModelRequest(parts=parts):
-                for part in parts:
-                    match part:
+                for request_part in parts:
+                    match request_part:
                         case UserPromptPart(content=content):
                             text = content if isinstance(content, str) else str(content)
                             lines.append(f"User: {text}")
                         case ToolReturnPart(tool_name=name, content=content):
                             lines.append(f"Tool Result ({name}): {content}")
             case ModelResponse(parts=parts):
-                for part in parts:
-                    match part:
+                for response_part in parts:
+                    match response_part:
                         case TextPart(content=content):
                             lines.append(f"Assistant: {content}")
 

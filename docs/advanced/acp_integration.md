@@ -10,6 +10,20 @@ ACP provides:
 - File system operations with permission handling
 - Terminal integration for command execution
 - Support for multiple agents with mode switching
+- MCP (Model Context Protocol) server integration
+
+## ACP Agents as First-Class Citizens
+
+In llmling-agent, external ACP agents are **first-class citizens** in the agent ecosystem. They:
+
+- ✅ **Participate fully in the agent pool** - Can be discovered, delegated to, and coordinated with
+- ✅ **Support most regular agent features** - Tools, contexts, delegation, state management
+- ✅ **Run in configurable environments** - Local, Docker, E2B, remote sandboxes
+- ✅ **Access internal toolsets** - Via automatic MCP bridge for supported agents
+- ✅ **Maintain type safety** - Full Pydantic validation and typed configurations
+- ✅ **Auto-managed lifecycle** - Automatic spawn, cleanup, and error handling
+
+The key difference is that ACP agents run as **separate processes** communicating via the ACP protocol, while still appearing as integrated members of the pool to other agents.
 
 ## Installation & Setup
 
@@ -84,6 +98,102 @@ For IDEs that support ACP, the general pattern is:
 4. Add any desired CLI options
 5. Set required environment variables (API keys, etc.)
 
+## The ACP Bridge Concept
+
+### llmling-agent as Both Server AND Client
+
+Understanding llmling-agent's ACP integration requires grasping a key architectural concept: **llmling-agent acts as BOTH an ACP server AND an ACP client simultaneously**. This dual role is what makes the integration so powerful.
+
+#### As an ACP Server (IDE Integration)
+
+When you run `llmling-agent serve-acp`, it becomes an **ACP server** that IDEs can connect to:
+
+```
+┌─────────────────┐                    ┌──────────────────────┐
+│   IDE (Zed)     │  ← ACP Protocol →  │  llmling-agent       │
+│   ACP Client    │                    │  ACP Server          │
+│                 │                    │  (serve-acp command) │
+└─────────────────┘                    └──────────────────────┘
+```
+
+In this mode, llmling-agent:
+- Receives prompts from the IDE
+- Sends back agent responses
+- Handles file operations on behalf of the IDE
+- Manages terminal sessions
+- Provides multi-agent "modes" for the IDE to switch between
+
+#### As an ACP Client (External Agent Integration)
+
+At the same time, llmling-agent can act as an **ACP client** to integrate external ACP agents:
+
+```
+┌──────────────────────┐                    ┌─────────────────────┐
+│  llmling-agent       │  ← ACP Protocol →  │  Claude Code        │
+│  ACP Client          │                    │  ACP Server         │
+│  (external agent)    │                    │  (subprocess)       │
+└──────────────────────┘                    └─────────────────────┘
+```
+
+In this mode, llmling-agent:
+- Spawns external ACP agent processes (Claude Code, Gemini CLI, etc.)
+- Sends prompts to those agents
+- Receives their responses
+- Manages their lifecycle (startup, cleanup)
+- Provides them access to internal toolsets via MCP
+
+#### The Bridge: Both Roles Together
+
+The real power comes when **both roles work together**:
+
+```
+┌─────────────┐         ┌────────────────────────────┐         ┌──────────────┐
+│ IDE (Zed)   │  ACP    │     llmling-agent          │  ACP    │ Claude Code  │
+│             │────────→│                            │────────→│              │
+│ ACP Client  │         │  Server ←→ Pool ←→ Client  │         │ ACP Server   │
+│             │←────────│                            │←────────│              │
+└─────────────┘         └────────────────────────────┘         └──────────────┘
+                                      ↕
+                                 Agent Pool
+                          ┌──────────────────┐
+                          │ Internal Agents  │
+                          │ Teams            │
+                          │ Resources        │
+                          │ Tools            │
+                          └──────────────────┘
+```
+
+#### Real-World Example
+
+When you configure Zed to use llmling-agent with external ACP agents:
+
+1. **Zed** connects to llmling-agent via ACP (IDE → Server)
+2. **llmling-agent** maintains an agent pool with both:
+   - Internal agents (regular Python-based agents)
+   - External agents (spawned ACP processes like Claude Code)
+3. When you send a prompt through Zed:
+   - It goes to llmling-agent (Server role)
+   - llmling-agent routes it to the appropriate agent
+   - If the agent is internal → direct execution
+   - If the agent is external → ACP client call to that subprocess
+4. **Orchestration** becomes possible:
+   - An internal agent can delegate to Claude Code
+   - Claude Code can call back to internal agents via MCP toolsets
+   - All coordinated through the agent pool
+
+#### Why This Matters
+
+This bridge architecture enables:
+
+- ✅ **Unified interface**: IDE sees one server, regardless of how many agents
+- ✅ **Heterogeneous agents**: Mix internal Python agents with external processes
+- ✅ **Transparent delegation**: Agents can work together across process boundaries
+- ✅ **Toolset sharing**: External agents access internal capabilities via MCP bridge
+- ✅ **Environment flexibility**: External agents can run in Docker, E2B, remote servers
+- ✅ **Protocol translation**: IDE ↔ ACP ↔ Internal Pool ↔ ACP ↔ External Agents
+
+The key insight: **llmling-agent doesn't just implement ACP—it bridges multiple ACP worlds together into a unified orchestration layer**.
+
 ## Multi-Agent Modes
 
 When your configuration includes multiple agents, the IDE will show a mode selector allowing users to switch between different agents mid-conversation.
@@ -151,13 +261,43 @@ agents:
 
 ### Supported External Agents
 
+#### MCP-Capable Agents (with Toolset Bridging)
+
+These agents support MCP servers and can use internal llmling-agent toolsets:
+
 - **claude**: Claude Code (Anthropic's coding assistant)
-- **codex**: OpenAI Codex
+  - Full MCP support via `--mcp-config`
+  - Permission modes, structured outputs
+  - Tool filtering and access control
+  
+- **gemini**: Google's Gemini CLI
+  - Native MCP integration
+  - Configurable temperature, context window
+  - Multi-modal support
+
+- **auggie**: Augment Code
+  - MCP support via `--mcp-config`
+  - GitHub integration
+  - Project context awareness
+
+- **kimi**: Moonshot AI's Kimi CLI
+  - MCP support via `--mcp-config`
+  - Chinese language optimization
+  - Work directory management
+
+#### Standard ACP Agents
+
+These agents use ACP protocol but don't support MCP toolset bridging:
+
+- **codex**: OpenAI Codex (Zed integration)
 - **opencode**: OpenCode agent
 - **goose**: Block's Goose agent
 - **fast-agent**: Fast Agent with configurable models
 - **openhands**: OpenHands (formerly OpenDevin)
-- **gemini**: Google's Gemini Code
+- **amp**: AmpCode agent
+- **cagent**: Docker-based cagent
+- **stakpak**: Stakpak Agent
+- **vtcode**: VT Code agent
 
 ### Usage with Agent Pool
 
@@ -169,17 +309,301 @@ from llmling_agent.delegation import AgentPool
 async def main():
     async with AgentPool("agents.yml") as pool:
         # Access external ACP agents just like regular agents
-        claude = pool.get_agent("claude")
+        claude = pool.acp_agents["claude"]
         result = await claude.run("Refactor this code to use async/await")
         
         # Or delegate from a coordinator agent
-        coordinator = pool.get_agent("coordinator")
+        coordinator = pool.agents["coordinator"]
         result = await coordinator.run(
             "Use the Claude agent to review and improve the codebase"
         )
+        
+        # Check what agents are available
+        print(f"Regular agents: {list(pool.agents.keys())}")
+        print(f"ACP agents: {list(pool.acp_agents.keys())}")
 ```
 
 The external agents are spawned as subprocess instances and communicate via the ACP protocol, with automatic lifecycle management and cleanup.
+
+## ACP Agent Architecture
+
+### How ACP Agents Operate
+
+ACP agents in llmling-agent follow this execution model:
+
+1. **Process Spawning**
+   - Agent configuration defines command and arguments
+   - Process spawned in configured execution environment
+   - stdin/stdout used for JSON-RPC communication
+
+2. **Protocol Initialization**
+   - Client sends `initialize` request with capabilities
+   - Agent responds with its capabilities (MCP support, etc.)
+   - Session negotiation completes
+
+3. **Session Management**
+   - `new_session` request creates working session
+   - MCP servers passed during session creation
+   - Working directory and permissions established
+
+4. **Message Exchange**
+   - Prompts sent via `session/prompt` requests
+   - Streaming responses via session updates
+   - Tool calls handled through MCP or native protocols
+
+5. **Lifecycle Management**
+   - Automatic cleanup on pool exit
+   - Process termination and resource cleanup
+   - Error handling and recovery
+
+### Execution Environments
+
+ACP agents can run in different environments based on configuration:
+
+```yaml
+acp_agents:
+  claude_local:
+    type: claude
+    execution_environment: local  # Default
+    
+  claude_docker:
+    type: claude
+    execution_environment:
+      type: docker
+      image: python:3.13-slim
+      
+  claude_e2b:
+    type: claude
+    execution_environment:
+      type: e2b
+      template: python-sandbox
+      
+  claude_remote:
+    type: claude
+    execution_environment:
+      type: srt  # Secure Remote Terminal
+      host: remote-server.com
+```
+
+**Environment types:**
+
+- **local**: Run on local machine (default)
+- **docker**: Run in Docker container with specified image
+- **e2b**: Run in E2B sandbox (cloud sandboxes)
+- **beam**: Run on Beam Cloud infrastructure
+- **daytona**: Run in Daytona development environment
+- **srt**: Run on remote server via Secure Remote Terminal
+
+The execution environment handles:
+- File system access (sandboxed or real)
+- Terminal operations (bash, command execution)
+- Network access controls
+- Resource limits and isolation
+
+### Permission Model
+
+ACP agents have fine-grained permission controls:
+
+```yaml
+acp_agents:
+  restricted_claude:
+    type: claude
+    allow_file_operations: false  # Disable file read/write
+    allow_terminal: false         # Disable terminal access
+    auto_grant_permissions: false # Require user confirmation
+    permission_mode: dontAsk      # Claude-specific: deny by default
+```
+
+Permissions are enforced at multiple levels:
+- **Client side**: llmling-agent's ACPClientHandler validates requests
+- **Agent side**: External agent's own permission system
+- **Environment side**: Execution environment provides isolation
+
+## Toolset Bridging via MCP
+
+### Overview
+
+For MCP-capable ACP agents (Claude, Gemini, Auggie, Kimi), llmling-agent can automatically expose internal toolsets via an in-process MCP server bridge. This allows external agents to use powerful internal capabilities like subagent delegation, agent management, and custom tools.
+
+### How It Works
+
+1. **Configuration**: Declare toolsets in agent config
+2. **Bridge Creation**: ToolManagerBridge spawns HTTP/SSE MCP server
+3. **Registration**: Tools registered with FastMCP server
+4. **Session Integration**: MCP server URL passed to agent session
+5. **Tool Invocation**: Agent calls tools via standard MCP protocol
+6. **Context Bridging**: Calls proxied to internal tools with full context
+
+The bridge runs **in-process** on the same event loop as the agent pool, providing zero-latency access to pool state while exposing a standard network interface to the external agent.
+
+### Configuration Example
+
+```yaml
+acp_agents:
+  claude_orchestrator:
+    type: claude
+    description: "Claude with delegation capabilities"
+    permission_mode: acceptEdits
+    toolsets:
+      # Subagent delegation tools
+      - type: subagent
+      
+      # Agent lifecycle management
+      - type: agent_management
+      
+      # Custom tools
+      - type: custom
+        tools:
+          - my_custom_tool
+          
+agents:
+  specialist_a:
+    model: openai:gpt-4
+    system_prompt: "Expert in data processing"
+    
+  specialist_b:
+    model: anthropic:claude-sonnet-4
+    system_prompt: "Expert in API design"
+```
+
+With this configuration, the Claude agent can:
+- List available agents via `list_available_nodes`
+- Delegate work via `delegate_to` or `ask_agent`
+- Create new agents dynamically via `add_agent`
+- Use any custom tools you've registered
+
+### Available Toolsets
+
+All standard toolsets can be exposed to MCP-capable agents:
+
+- **subagent**: Delegation tools (`delegate_to`, `ask_agent`, `list_available_nodes`)
+- **agent_management**: Lifecycle tools (`add_agent`, `remove_agent`, `get_agent_info`)
+- **search**: Web/news search (requires provider configuration)
+- **notifications**: Send notifications via Apprise
+- **semantic_memory**: Vector-based memory and retrieval
+- **custom**: Your own tools via ResourceProvider
+
+### Usage Example
+
+Once configured, the external agent automatically has access to the tools:
+
+```python
+async with AgentPool("config.yml") as pool:
+    claude = pool.acp_agents["claude_orchestrator"]
+    
+    # Claude can now delegate to internal agents
+    result = await claude.run(
+        "Use the list_available_nodes tool to see what agents are available, "
+        "then delegate the data processing task to specialist_a"
+    )
+    
+    # The tool bridge handles the MCP protocol translation
+    # and injects proper AgentContext for internal tool execution
+```
+
+### Tool Bridge Architecture
+
+```
+┌─────────────────────────────────────────────────────┐
+│ External ACP Agent (Claude Code Process)            │
+│ ┌─────────────────────────────────────────────────┐ │
+│ │ MCP Client                                      │ │
+│ │ - Discovers tools via MCP                       │ │
+│ │ - Calls tools over HTTP/SSE                     │ │
+│ └─────────────────────────────────────────────────┘ │
+└───────────────────────┬─────────────────────────────┘
+                        │ HTTP/SSE (MCP Protocol)
+                        │
+┌───────────────────────▼─────────────────────────────┐
+│ ToolManagerBridge (In-Process MCP Server)          │
+│ ┌─────────────────────────────────────────────────┐ │
+│ │ FastMCP Server                                  │ │
+│ │ - Exposes tools as MCP endpoints                │ │
+│ │ - Handles MCP protocol negotiation              │ │
+│ └─────────────────────────────────────────────────┘ │
+│ ┌─────────────────────────────────────────────────┐ │
+│ │ Context Bridge                                  │ │
+│ │ - Creates synthetic AgentContext                │ │
+│ │ - Injects pool access for delegation            │ │
+│ │ - Provides progress reporting                   │ │
+│ └─────────────────────────────────────────────────┘ │
+└───────────────────────┬─────────────────────────────┘
+                        │ Direct Function Call
+                        │
+┌───────────────────────▼─────────────────────────────┐
+│ Internal Toolsets (Same Process)                    │
+│ ┌─────────────────────────────────────────────────┐ │
+│ │ SubagentTools                                   │ │
+│ │ - delegate_to() → Other agents in pool          │ │
+│ │ - ask_agent() → Query specific agent            │ │
+│ │ - list_available_nodes() → Pool inspection      │ │
+│ └─────────────────────────────────────────────────┘ │
+│ ┌─────────────────────────────────────────────────┐ │
+│ │ AgentManagementTools                            │ │
+│ │ - add_agent() → Dynamic agent creation          │ │
+│ │ - remove_agent() → Lifecycle management         │ │
+│ └─────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────┘
+```
+
+**Key Features:**
+
+- **Zero IPC overhead**: Bridge runs in same process as pool
+- **Type-safe**: Full type checking from tool definition to MCP
+- **Context injection**: Tools receive proper AgentContext with pool access
+- **Auto-discovery**: Tools automatically exposed, no manual registration
+- **Per-agent isolation**: Each ACP agent gets its own bridge instance
+- **Clean lifecycle**: Bridges automatically cleaned up with pool
+
+### Advanced Configuration
+
+For more control over the bridge:
+
+```yaml
+acp_agents:
+  claude_advanced:
+    type: claude
+    toolsets:
+      - type: subagent
+        # Toolset-specific config here
+        
+      - type: custom
+        tools:
+          - only_specific_tool
+          
+    # Additional MCP servers (alongside toolset bridge)
+    mcp_servers:
+      - name: filesystem
+        type: stdio
+        command: npx
+        args: ["-y", "@modelcontextprotocol/server-filesystem", "/project"]
+        
+      - name: external-api
+        type: sse
+        url: https://api.example.com/mcp
+```
+
+The agent will have access to:
+1. **Internal toolsets** via automatic bridge
+2. **External MCP servers** you explicitly configure
+3. **Agent's built-in tools** (if any)
+
+### Security Considerations
+
+Toolset bridging is secure by design:
+
+- ✅ **Explicit opt-in**: Only agents with `toolsets` field get bridges
+- ✅ **Scoped access**: Tools see only what AgentContext provides
+- ✅ **Permission gates**: Input providers can confirm dangerous operations
+- ✅ **Network isolation**: Bridge binds to localhost by default
+- ✅ **Process isolation**: External agent runs in separate process
+- ✅ **Environment sandboxing**: Execution environment provides additional isolation
+
+Best practices:
+- Use `allow_file_operations: false` for read-only agents
+- Use `auto_grant_permissions: false` for sensitive operations
+- Use sandboxed execution environments (Docker, E2B) for untrusted agents
+- Limit toolsets to only what the agent needs
 
 ## Configuration
 

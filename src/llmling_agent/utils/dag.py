@@ -7,9 +7,12 @@ only the functionality actually used.
 
 from __future__ import annotations
 
-from collections.abc import Iterable
 from dataclasses import dataclass, field
-from typing import Self
+from typing import TYPE_CHECKING, Self
+
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
 
 
 @dataclass

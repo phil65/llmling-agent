@@ -63,7 +63,7 @@ from llmling_agent.common_types import IndividualEventHandler
 from llmling_agent.log import get_logger
 from llmling_agent.messaging import ChatMessage
 from llmling_agent.messaging.messagenode import MessageNode
-from llmling_agent.models.acp_agents import ACPAgentConfig
+from llmling_agent.models.acp_agents import ACPAgentConfig, MCPCapableACPAgentConfig
 from llmling_agent.talk.stats import MessageStats
 
 
@@ -96,6 +96,7 @@ if TYPE_CHECKING:
     from llmling_agent.mcp_server.tool_bridge import ToolManagerBridge
     from llmling_agent.messaging.context import NodeContext
     from llmling_agent.models.acp_agents import BaseACPAgentConfig
+    from llmling_agent.tools import ToolManager
     from llmling_agent.tools.base import Tool
     from llmling_agent.ui.base import InputProvider
 
@@ -189,11 +190,9 @@ class ACPClientHandler(Client):
         from llmling_agent.agent.acp_converters import acp_to_native_event
 
         update = params.update
-
         # Convert to native event and queue it
         if native_event := acp_to_native_event(update):
             self.state.events.append(native_event)
-
         # Also maintain text chunk accumulation for simple access
         match update:
             case AgentMessageChunk(content=TextContentBlock(text=text)):
@@ -241,26 +240,14 @@ class ACPClientHandler(Client):
             from llmling_agent.tools.base import Tool
 
             # Use the agent's existing NodeContext
-            context = self._agent.context
-
-            # Create a tool representation from ACP params
+            ctx = self._agent.context
+            # Create a dummy tool representation from ACP params
             tool = Tool(
-                callable=lambda: None,  # Dummy function
-                name=params.tool_call.tool_call_id,
-                description=tool_name,
+                callable=lambda: None, name=params.tool_call.tool_call_id, description=tool_name
             )
-
             # Extract arguments - ACP doesn't expose them in ToolCall
-            args: dict[str, Any] = {}
-
             try:
-                result = await self._input_provider.get_tool_confirmation(
-                    context=context,
-                    tool=tool,
-                    args=args,
-                    message_history=None,
-                )
-
+                result = await self._input_provider.get_tool_confirmation(ctx, tool=tool, args={})
                 # Map confirmation result to ACP response
                 if result == "allow":
                     option_id = params.options[0].option_id if params.options else "allow"
@@ -625,7 +612,7 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         """Initialize toolsets from config and create bridge if needed."""
         from llmling_agent.mcp_server.tool_bridge import BridgeConfig, ToolManagerBridge
 
-        if not self.config.toolsets:
+        if not isinstance(self.config, MCPCapableACPAgentConfig) or not self.config.toolsets:
             return
 
         # Create providers from toolset configs and add to tool manager

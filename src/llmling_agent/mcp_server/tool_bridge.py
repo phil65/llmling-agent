@@ -20,6 +20,7 @@ from uuid import uuid4
 
 from fastmcp import FastMCP
 from fastmcp.tools import Tool as FastMCPTool
+from pydantic import HttpUrl
 
 from llmling_agent.log import get_logger
 
@@ -28,6 +29,7 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
     from fastmcp import Context
+    from fastmcp.tools.tool import ToolResult
     from uvicorn import Server
 
     from acp.schema.mcp import HttpMcpServer, SseMcpServer
@@ -164,8 +166,6 @@ class ToolManagerBridge:
 
         Returns config suitable for passing to ACP agent's NewSessionRequest.
         """
-        from pydantic import HttpUrl
-
         from acp.schema.mcp import HttpMcpServer, SseMcpServer
 
         url = HttpUrl(self.url)
@@ -221,12 +221,8 @@ class ToolManagerBridge:
         tools = await self.tool_manager.get_tools(state="enabled")
         for tool in tools:
             self._register_single_tool(tool)
-
-        logger.info(
-            "Registered tools with MCP bridge",
-            tool_count=len(tools),
-            tools=[t.name for t in tools],
-        )
+        msg = "Registered tools with MCP bridge"
+        logger.info(msg, tool_count=len(tools), tools=[t.name for t in tools])
 
     def _register_single_tool(self, tool: Tool) -> None:
         """Register a single tool with the FastMCP server."""
@@ -234,10 +230,7 @@ class ToolManagerBridge:
             return
 
         # Create a custom FastMCP Tool that wraps our tool
-        bridge_tool = _BridgeTool(
-            tool=tool,
-            bridge=self,
-        )
+        bridge_tool = _BridgeTool(tool=tool, bridge=self)
         self._mcp.add_tool(bridge_tool)
 
     async def invoke_tool_with_context(
@@ -303,33 +296,17 @@ class ToolManagerBridge:
                 s.bind((self.config.host, 0))
                 port = s.getsockname()[1]
         self._actual_port = port
-
         # Create the ASGI app
         app = self._mcp.http_app(transport=self.config.transport)  # type: ignore[arg-type]
-
         # Configure uvicorn
-        uvicorn_config = uvicorn.Config(
-            app=app,
-            host=self.config.host,
-            port=port,
-            log_level="warning",
-        )
-        self._server = uvicorn.Server(uvicorn_config)
-
+        cfg = uvicorn.Config(app=app, host=self.config.host, port=port, log_level="warning")
+        self._server = uvicorn.Server(cfg)
         # Start server in background task
-        self._server_task = asyncio.create_task(
-            self._server.serve(),
-            name=f"mcp-bridge-{self.config.server_name}",
-        )
-
-        # Wait briefly for server to start
-        await asyncio.sleep(0.1)
-
-        logger.info(
-            "ToolManagerBridge started",
-            url=self.url,
-            transport=self.config.transport,
-        )
+        name = f"mcp-bridge-{self.config.server_name}"
+        self._server_task = asyncio.create_task(self._server.serve(), name=name)
+        await asyncio.sleep(0.1)  # Wait briefly for server to start
+        msg = "ToolManagerBridge started"
+        logger.info(msg, url=self.url, transport=self.config.transport)
 
 
 class _BridgeTool(FastMCPTool):
@@ -342,23 +319,17 @@ class _BridgeTool(FastMCPTool):
         # Get input schema from our tool
         schema = tool.schema["function"]
         input_schema = schema.get("parameters", {"type": "object", "properties": {}})
-
-        super().__init__(
-            name=tool.name,
-            description=tool.description or "No description",
-            parameters=input_schema,
-        )
-        
+        desc = tool.description or "No description"
+        super().__init__(name=tool.name, description=desc, parameters=input_schema)
         # Set these AFTER super().__init__() to avoid being overwritten
         self._tool = tool
         self._bridge = bridge
 
-    async def run(self, arguments: dict[str, Any], context: Context | None = None) -> Any:
+    async def run(self, arguments: dict[str, Any], context: Context | None = None) -> ToolResult:
         """Execute the wrapped tool with context bridging."""
         from fastmcp.tools.tool import ToolResult
 
         tool_call_id = str(uuid4())
-
         # Create proxy context with pool access
         agent_ctx = self._bridge._create_proxy_context(
             tool_name=self._tool.name,
@@ -369,7 +340,6 @@ class _BridgeTool(FastMCPTool):
 
         # Invoke with context
         result = await self._bridge.invoke_tool_with_context(self._tool, agent_ctx, arguments)
-
         # Convert result to ToolResult
         if isinstance(result, str):
             return ToolResult(content=result)
@@ -448,10 +418,7 @@ class ToolBridgeRegistry:
             msg = f"Bridge {name!r} already exists"
             raise ValueError(msg)
 
-        config = BridgeConfig(
-            port=self._port_counter,
-            server_name=f"llmling-{name}",
-        )
+        config = BridgeConfig(port=self._port_counter, server_name=f"llmling-{name}")
         self._port_counter += 1
 
         bridge = ToolManagerBridge(

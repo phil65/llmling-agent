@@ -51,7 +51,7 @@ def test_multiple_parents():
     c.add_parent(a)
     c.add_parent(b)
 
-    assert len(c.parents) == 2
+    assert len(c.parents) == 2  # noqa: PLR2004
     assert a in c.parents
     assert b in c.parents
     assert c in a.children
@@ -127,7 +127,7 @@ def test_dag_iterator():
     assert ("a", "c") in edge_tuples
     assert ("b", "c") in edge_tuples
     assert ("c", "d") in edge_tuples
-    assert len(edge_tuples) == 3
+    assert len(edge_tuples) == 3  # noqa: PLR2004
 
 
 def test_dag_to_list():
@@ -188,7 +188,7 @@ def test_diamond_dag():
     assert ("a", "c") in result
     assert ("b", "d") in result
     assert ("c", "d") in result
-    assert len(result) == 4
+    assert len(result) == 4  # noqa: PLR2004
 
 
 def test_empty_dag():
