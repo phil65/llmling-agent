@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 from typing import TYPE_CHECKING, Any
 
 from pydantic_ai import (
@@ -32,7 +33,7 @@ from llmling_agent.agent.events import (
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from pydantic_ai import AgentStreamEvent, RunContext
+    from pydantic_ai import RunContext
 
     from llmling_agent.agent.events import (
         RichAgentStreamEvent,
@@ -40,7 +41,7 @@ if TYPE_CHECKING:
     from llmling_agent.common_types import BuiltinEventHandlerType, IndividualEventHandler
 
 
-async def simple_print_handler(ctx: RunContext, event: AgentStreamEvent) -> None:
+async def simple_print_handler(ctx: RunContext, event: RichAgentStreamEvent[Any]) -> None:
     """Simple event handler that prints text and basic tool information.
 
     Focus: Core text output and minimal tool notifications.
@@ -54,16 +55,17 @@ async def simple_print_handler(ctx: RunContext, event: AgentStreamEvent) -> None
             PartStartEvent(part=TextPart(content=delta))
             | PartDeltaEvent(delta=TextPartDelta(content_delta=delta))
         ):
-            print(delta, end="", flush=True)
+            print(delta, end="", flush=True, file=sys.stderr)
 
-        case FunctionToolCallEvent(part=ToolCallPart(tool_name=tool_name)):
-            print(f"\n🔧 {tool_name}", flush=True)
+        case FunctionToolCallEvent(part=ToolCallPart() as part):
+            kwargs_str = ", ".join(f"{k}={v}" for k, v in part.args_as_dict().items())
+            print(f"\n🔧 {part.tool_name}({kwargs_str}", flush=True, file=sys.stderr)
 
-        case FunctionToolResultEvent(result=ToolReturnPart()):
-            pass  # Silent completion
+        case FunctionToolResultEvent(result=ToolReturnPart() as return_part):
+            print(f"Result: {return_part.content}", file=sys.stderr)
 
         case RunErrorEvent(message=message):
-            print(f"\n❌ Error: {message}", flush=True)
+            print(f"\n❌ Error: {message}", flush=True, file=sys.stderr)
 
         case StreamCompleteEvent():
             print()  # Final newline
@@ -87,47 +89,47 @@ async def detailed_print_handler(ctx: RunContext, event: RichAgentStreamEvent[An
             PartStartEvent(part=TextPart(content=delta))
             | PartDeltaEvent(delta=TextPartDelta(content_delta=delta))
         ):
-            print(delta, end="", flush=True)
+            print(delta, end="", flush=True, file=sys.stderr)
 
         case (
             PartStartEvent(part=ThinkingPart(content=delta))
             | PartDeltaEvent(delta=ThinkingPartDelta(content_delta=delta))
         ):
             if delta:
-                print(f"\n💭 {delta}", end="", flush=True)
+                print(f"\n💭 {delta}", end="", flush=True, file=sys.stderr)
 
         case ToolCallStartEvent(tool_name=tool_name, title=title, tool_call_id=call_id):
-            print(f"\n🔧 {tool_name}: {title} (#{call_id[:8]})", flush=True)
+            print(f"\n🔧 {tool_name}: {title} (#{call_id[:8]})", flush=True, file=sys.stderr)
 
         case FunctionToolCallEvent(part=ToolCallPart(tool_name=tool_name, args=args)):
             args_str = str(args)
             if len(args_str) > 100:  # noqa: PLR2004
                 args_str = args_str[:97] + "..."
-            print(f"  📝 Input: {args_str}", flush=True)
+            print(f"  📝 Input: {args_str}", flush=True, file=sys.stderr)
 
         case FunctionToolResultEvent(result=ToolReturnPart(content=content, tool_name=tool_name)):
             result_str = str(content)
             if len(result_str) > 150:  # noqa: PLR2004
                 result_str = result_str[:147] + "..."
-            print(f"  ✅ {tool_name}: {result_str}", flush=True)
+            print(f"  ✅ {tool_name}: {result_str}", flush=True, file=sys.stderr)
 
         case ProcessStartEvent(process_id=pid, command=command, success=success):
             if success:
-                print(f"  🖥️  Started process: {command} (PID: {pid})", flush=True)
+                print(f"  🖥️  Started process: {command} (PID: {pid})", flush=True, file=sys.stderr)
             else:
-                print(f"  ❌ Failed to start: {command}", flush=True)
+                print(f"  ❌ Failed to start: {command}", flush=True, file=sys.stderr)
 
         case ProcessExitEvent(process_id=pid, exit_code=code, success=success):
             status = "✅" if success else "❌"
-            print(f"  {status} Process {pid} exited: code {code}", flush=True)
+            print(f"  {status} Process {pid} exited: code {code}", flush=True, file=sys.stderr)
 
         case FileEditProgressEvent(path=path, status=status):
             emoji = {"in_progress": "✏️", "completed": "✅", "failed": "❌"}.get(status, "📝")
-            print(f"  {emoji} {status}: {path}", flush=True)
+            print(f"  {emoji} {status}: {path}", flush=True, file=sys.stderr)
 
         case RunErrorEvent(message=message, code=code):
             error_info = f" [{code}]" if code else ""
-            print(f"\n❌ Error{error_info}: {message}", flush=True)
+            print(f"\n❌ Error{error_info}: {message}", flush=True, file=sys.stderr)
 
         case StreamCompleteEvent():
             print()  # Final newline
