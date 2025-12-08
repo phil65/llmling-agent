@@ -140,25 +140,21 @@ class FSSpecTools(ResourceProvider):
         agent_ctx: AgentContext,
         path: str,
         *,
-        pattern: str = "**/*",
-        recursive: bool = True,
-        include_dirs: bool = False,
+        pattern: str = "*",
         exclude: list[str] | None = None,
-        max_depth: int | None = None,
+        max_depth: int = 1,
     ) -> dict[str, Any]:
         """List files in a directory with filtering support.
 
         Args:
             agent_ctx: Agent execution context
             path: Base directory to list
-            pattern: Glob pattern to match files against (e.g. "**/*.py" for Python files)
-            recursive: Whether to search subdirectories
-            include_dirs: Whether to include directories in results
+            pattern: Glob pattern to match files against (e.g. "*.py" for Python files)
             exclude: List of patterns to exclude (uses fnmatch against relative paths)
-            max_depth: Maximum directory depth for recursive search
+            max_depth: Maximum directory depth to search (default: 1 = current dir only)
 
         Returns:
-            Dictionary with matching files and metadata
+            Dictionary with matching files and directories
         """
         if self.cwd:
             path = self._resolve_path(path)
@@ -175,10 +171,9 @@ class FSSpecTools(ResourceProvider):
                 )
                 return {"error": error_msg}
 
-            # Build glob path - use maxdepth=1 for non-recursive
+            # Build glob path
             glob_pattern = f"{path.rstrip('/')}/{pattern}"
-            depth = max_depth if recursive else 1
-            paths = await fs._glob(glob_pattern, maxdepth=depth, detail=True)
+            paths = await fs._glob(glob_pattern, maxdepth=max_depth, detail=True)
 
             files: list[dict[str, Any]] = []
             dirs: list[dict[str, Any]] = []
@@ -203,8 +198,7 @@ class FSSpecTools(ResourceProvider):
                     item_info["modified"] = file_info["mtime"]
 
                 if is_dir:
-                    if include_dirs:
-                        dirs.append(item_info)
+                    dirs.append(item_info)
                 else:
                     files.append(item_info)
 
