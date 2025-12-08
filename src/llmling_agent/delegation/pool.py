@@ -44,6 +44,7 @@ if TYPE_CHECKING:
     from llmling_agent.agent.agui_agent import AGUIAgent
     from llmling_agent.common_types import (
         AgentName,
+        BuiltinEventHandlerType,
         IndividualEventHandler,
         SessionIdType,
         SupportsStructuredOutput,
@@ -81,7 +82,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         connect_nodes: bool = True,
         input_provider: InputProvider | None = None,
         parallel_load: bool = True,
-        event_handlers: list[IndividualEventHandler] | None = None,
+        event_handlers: list[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
     ):
         """Initialize agent pool with immediate agent creation.
 
@@ -697,7 +698,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         deps_type: type[TAgentDeps] | None = None,
         input_provider: InputProvider | None = None,
         pool: AgentPool[Any] | None = None,
-        event_handlers: list[IndividualEventHandler] | None = None,
+        event_handlers: list[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
     ) -> Agent[TAgentDeps, Any]:
         from llmling_agent import Agent
         from llmling_agent.utils.result_utils import to_type

@@ -36,7 +36,7 @@ if TYPE_CHECKING:
     from evented.configs import EventConfig
 
     from llmling_agent.agent.events import RichAgentStreamEvent
-    from llmling_agent.common_types import PromptCompatible
+    from llmling_agent.common_types import BuiltinEventHandlerType, PromptCompatible
     from llmling_agent.delegation import AgentPool
     from llmling_agent.messaging.context import NodeContext
     from llmling_agent_config.mcp_server import MCPServerConfig
@@ -182,7 +182,7 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
         agent_pool: AgentPool[Any] | None = None,
         enable_logging: bool = True,
         event_configs: Sequence[EventConfig] | None = None,
-        event_handlers: Sequence[IndividualEventHandler] | None = None,
+        event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
     ) -> None:
         """Initialize AG-UI agent client.
 
@@ -227,7 +227,10 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
         self.conversation = MessageHistory()
         self._total_tokens = 0
         self._event_queue: asyncio.Queue[RichAgentStreamEvent[Any]] = asyncio.Queue()
-        self.event_handler = MultiEventHandler[IndividualEventHandler](event_handlers)
+        from llmling_agent.agent.builtin_handlers import resolve_event_handlers
+
+        resolved_handlers = resolve_event_handlers(event_handlers)
+        self.event_handler = MultiEventHandler[IndividualEventHandler](resolved_handlers)
 
     @property
     def context(self) -> NodeContext:

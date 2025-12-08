@@ -68,6 +68,7 @@ if TYPE_CHECKING:
     from llmling_agent.agent.conversation import MessageHistory
     from llmling_agent.common_types import (
         AgentName,
+        BuiltinEventHandlerType,
         EndStrategy,
         ModelType,
         ProcessorCallback,
@@ -108,7 +109,7 @@ class AgentKwargs(TypedDict, total=False):
     session: SessionIdType | SessionQuery | MemoryConfig | bool | int
     input_provider: InputProvider | None
     debug: bool
-    event_handlers: Sequence[IndividualEventHandler] | None
+    event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None
     env: ExecutionEnvironment | None
 
 
@@ -154,7 +155,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         input_provider: InputProvider | None = None,
         parallel_init: bool = True,
         debug: bool = False,
-        event_handlers: Sequence[IndividualEventHandler] | None = None,
+        event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
         agent_pool: AgentPool[Any] | None = None,
         tool_mode: ToolMode | None = None,
         knowledge: Knowledge | None = None,
@@ -242,7 +243,10 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         )
 
         # Initialize tool manager
-        self.event_handler = MultiEventHandler[IndividualEventHandler](event_handlers)
+        from llmling_agent.agent.builtin_handlers import resolve_event_handlers
+
+        resolved_handlers = resolve_event_handlers(event_handlers)
+        self.event_handler = MultiEventHandler[IndividualEventHandler](resolved_handlers)
         all_tools = list(tools or [])
         effective_tool_mode = tool_mode
         self.tools = ToolManager(all_tools, tool_mode=effective_tool_mode)

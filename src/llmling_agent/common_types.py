@@ -96,6 +96,7 @@ type ToolType = str | AnyCallable
 # Event handler types for composable event processing
 # Individual event handler for composability - takes single events
 IndividualEventHandler = Callable[[RunContext, AgentStreamEvent], Awaitable[None]]
+BuiltinEventHandlerType = Literal["simple", "detailed"]
 PromptCompatible = AnyPromptType | JoinablePathLike
 # P = ParamSpec("P")
 # SyncAsync = Callable[P, OptionalAwaitable[T]]
