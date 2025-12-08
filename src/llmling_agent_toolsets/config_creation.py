@@ -139,17 +139,13 @@ class ConfigCreationTools(StaticResourceProvider):
         schema = self._load_schema()
         try:
             data = _parse_content(content, self._markup)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             return f"Failed to parse {self._markup.upper()}: {e}"
 
-        errors: list[str] = []
         validator = jsonschema.Draft202012Validator(schema)
-        for error in validator.iter_errors(data):
-            errors.append(_format_validation_error(error))
-
-        if errors:
+        if errors := [_format_validation_error(e) for e in validator.iter_errors(data)]:
             error_list = "\n".join(f"- {e}" for e in errors[:10])
-            suffix = f"\n... and {len(errors) - 10} more errors" if len(errors) > 10 else ""
+            suffix = f"\n... and {len(errors) - 10} more errors" if len(errors) > 10 else ""  # noqa: PLR2004
             return f"Validation failed with {len(errors)} error(s):\n{error_list}{suffix}"
 
         return "Configuration is valid! Successfully validated against schema."
@@ -201,7 +197,7 @@ class ConfigCreationTools(StaticResourceProvider):
 
             if desc := item.get("description"):
                 # Truncate long descriptions
-                desc_short = desc[:60] + "..." if len(desc) > 60 else desc
+                desc_short = desc[:60] + "..." if len(desc) > 60 else desc  # noqa: PLR2004
                 parts.append(f"- {desc_short}")
 
             lines.append("  " + " ".join(parts))
