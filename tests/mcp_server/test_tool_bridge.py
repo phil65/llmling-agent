@@ -3,16 +3,16 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
+from unittest.mock import MagicMock
 
 import pytest
 
 from llmling_agent import AgentPool
-from llmling_agent.mcp_server.tool_bridge import (
-    BridgeConfig,
-    ToolManagerBridge,
-    create_tool_bridge,
-)
+from llmling_agent.agent.acp_agent import ACPAgent
+from llmling_agent.mcp_server.tool_bridge import BridgeConfig, ToolManagerBridge, create_tool_bridge
+from llmling_agent.models.acp_agents import ClaudeACPAgentConfig
 from llmling_agent.tools import ToolManager
+from llmling_agent_config.toolsets import AgentManagementToolsetConfig, SubagentToolsetConfig
 
 
 if TYPE_CHECKING:
@@ -62,24 +62,15 @@ async def test_bridge_config_defaults():
 async def test_bridge_lifecycle(tool_manager: ToolManager):
     """Test bridge start/stop lifecycle."""
     async with AgentPool() as pool:
-        bridge = ToolManagerBridge(
-            tool_manager=tool_manager,
-            pool=pool,
-            config=BridgeConfig(port=0),
-        )
-
+        bridge = ToolManagerBridge(tool_manager, pool=pool, config=BridgeConfig(port=0))
         # Not started yet
         assert bridge._mcp is None
         assert bridge._actual_port is None
-
-        # Start
         await bridge.start()
         assert bridge._mcp is not None
         assert bridge._actual_port is not None
         assert bridge.port > 0
         assert "http://" in bridge.url
-
-        # Stop
         await bridge.stop()
         assert bridge._mcp is None
         assert bridge._actual_port is None
@@ -88,28 +79,19 @@ async def test_bridge_lifecycle(tool_manager: ToolManager):
 async def test_bridge_context_manager(tool_manager: ToolManager):
     """Test bridge as async context manager."""
     async with AgentPool() as pool:
-        async with ToolManagerBridge(
-            tool_manager=tool_manager,
-            pool=pool,
-            config=BridgeConfig(port=0),
-        ) as bridge:
+        cfg = BridgeConfig(port=0)
+        async with ToolManagerBridge(tool_manager, pool=pool, config=cfg) as bridge:
             assert bridge.port > 0
             assert bridge._server is not None
 
-        # After exit, should be stopped
-        assert bridge._server is None
+        assert bridge._server is None  # After exit, should be stopped
 
 
 async def test_create_tool_bridge_helper(tool_manager: ToolManager):
     """Test the create_tool_bridge convenience function."""
     async with (
         AgentPool() as pool,
-        create_tool_bridge(
-            tool_manager,
-            pool,
-            port=0,
-            transport="sse",
-        ) as bridge,
+        create_tool_bridge(tool_manager, pool, port=0, transport="sse") as bridge,
     ):
         assert bridge.port > 0
         assert "/sse" in bridge.url
@@ -117,16 +99,12 @@ async def test_create_tool_bridge_helper(tool_manager: ToolManager):
 
 async def test_bridge_registers_tools(tool_manager: ToolManager):
     """Test that tools are registered with FastMCP."""
+    cfg = BridgeConfig(port=0)
     async with (
         AgentPool() as pool,
-        ToolManagerBridge(
-            tool_manager=tool_manager,
-            pool=pool,
-            config=BridgeConfig(port=0),
-        ) as bridge,
+        ToolManagerBridge(tool_manager, pool=pool, config=cfg) as bridge,
     ):
-        # The MCP server should have our tool registered
-        assert bridge._mcp is not None
+        assert bridge._mcp is not None  # The MCP server should have our tool registered
         # FastMCP stores tools internally - we verify via the tool count
         tools = await tool_manager.get_tools()
         assert len(tools) == 1
@@ -135,13 +113,10 @@ async def test_bridge_registers_tools(tool_manager: ToolManager):
 
 async def test_get_mcp_server_config_sse(tool_manager: ToolManager):
     """Test generating SSE MCP server config."""
+    cfg = BridgeConfig(port=0, transport="sse")
     async with (
         AgentPool() as pool,
-        ToolManagerBridge(
-            tool_manager=tool_manager,
-            pool=pool,
-            config=BridgeConfig(port=0, transport="sse"),
-        ) as bridge,
+        ToolManagerBridge(tool_manager, pool=pool, config=cfg) as bridge,
     ):
         config = bridge.get_mcp_server_config()
         assert config.name == "llmling-toolmanager"
@@ -151,13 +126,10 @@ async def test_get_mcp_server_config_sse(tool_manager: ToolManager):
 
 async def test_get_mcp_server_config_http(tool_manager: ToolManager):
     """Test generating HTTP MCP server config."""
+    cfg = BridgeConfig(port=0, transport="streamable-http")
     async with (
         AgentPool() as pool,
-        ToolManagerBridge(
-            tool_manager=tool_manager,
-            pool=pool,
-            config=BridgeConfig(port=0, transport="streamable-http"),
-        ) as bridge,
+        ToolManagerBridge(tool_manager, pool=pool, config=cfg) as bridge,
     ):
         config = bridge.get_mcp_server_config()
         assert config.name == "llmling-toolmanager"
@@ -169,12 +141,7 @@ async def test_pool_create_tool_bridge():
     """Test creating tool bridge via AgentPool."""
     async with AgentPool() as pool:
         # Create a minimal agent to get a tool manager
-        agent = await pool.add_agent(
-            name="test_agent",
-            model="test",
-            system_prompt="Test",
-        )
-
+        agent = await pool.add_agent(name="test_agent", model="test", system_prompt="Test")
         # Create bridge from agent's tools
         bridge = await pool.create_tool_bridge(
             agent.tools,
@@ -185,7 +152,6 @@ async def test_pool_create_tool_bridge():
         assert bridge.port > 0
         assert "test_bridge" in pool._tool_bridges
         assert bridge.owner_agent_name == "test_agent"
-
         # Cleanup should stop bridges
         await pool.remove_tool_bridge("test_bridge")
         assert "test_bridge" not in pool._tool_bridges
@@ -195,21 +161,9 @@ async def test_pool_tool_bridge_cleanup():
     """Test that pool cleanup stops all bridges."""
     pool = AgentPool()
     async with pool:
-        agent = await pool.add_agent(
-            name="test_agent",
-            model="test",
-            system_prompt="Test",
-        )
-
-        await pool.create_tool_bridge(
-            agent.tools,
-            name="bridge1",
-        )
-        await pool.create_tool_bridge(
-            agent.tools,
-            name="bridge2",
-        )
-
+        agent = await pool.add_agent(name="test_agent", model="test", system_prompt="Test")
+        await pool.create_tool_bridge(agent.tools, name="bridge1")
+        await pool.create_tool_bridge(agent.tools, name="bridge2")
         assert len(pool._tool_bridges) == 2  # noqa: PLR2004
 
     # After exiting, bridges should be cleaned up
@@ -220,11 +174,7 @@ async def test_bridge_with_context_tools(tool_manager_with_context_tool: ToolMan
     """Test that tools requiring AgentContext work through bridge."""
     async with AgentPool() as pool:
         # Add an agent so there's something in the pool
-        await pool.add_agent(
-            name="helper",
-            model="test",
-            system_prompt="Helper",
-        )
+        await pool.add_agent(name="helper", model="test", system_prompt="Helper")
 
         async with ToolManagerBridge(
             tool_manager=tool_manager_with_context_tool,
@@ -243,17 +193,9 @@ async def test_proxy_context_creation(tool_manager: ToolManager):
     """Test that proxy AgentContext is created correctly."""
     async with AgentPool() as pool:
         await pool.add_agent(name="owner", model="test", system_prompt="Test")
-
-        bridge = ToolManagerBridge(
-            tool_manager=tool_manager,
-            pool=pool,
-            config=BridgeConfig(port=0),
-            owner_agent_name="owner",
-        )
-
+        cfg = BridgeConfig(port=0)
+        bridge = ToolManagerBridge(tool_manager, pool=pool, config=cfg, owner_agent_name="owner")
         # Create a mock MCP context (we just need to test context creation)
-        from unittest.mock import MagicMock
-
         mock_mcp_ctx = MagicMock()
         ctx = bridge._create_proxy_context(
             tool_name="test_tool",
@@ -286,34 +228,20 @@ async def test_get_nonexistent_bridge_raises():
 
 async def test_acp_agent_toolsets_adds_providers():
     """Test that toolsets from config are added to ToolManager."""
-    from llmling_agent.agent.acp_agent import ACPAgent
-    from llmling_agent.models.acp_agents import ACPAgentConfig
-    from llmling_agent_config.toolsets import (
-        AgentManagementToolsetConfig,
-        SubagentToolsetConfig,
-    )
-
     async with AgentPool() as pool:
-        config = ACPAgentConfig(
-            command="echo",
-            name="test_acp",
-            toolsets=[
-                SubagentToolsetConfig(),
-                AgentManagementToolsetConfig(),
-            ],
-        )
+        toolsets = [SubagentToolsetConfig(), AgentManagementToolsetConfig()]
+        config = ClaudeACPAgentConfig(name="test_acp", toolsets=toolsets)
         agent = ACPAgent(config=config, agent_pool=pool)
-
         await agent._setup_toolsets()
-
         # Check that providers were added
         # The tools should now include tools from both toolsets
         tools = await agent.tools.get_tools()
         tool_names = {t.name for t in tools}
-
         # SubagentTools provides: list_available_nodes, delegate_to, ask_agent
         assert "list_available_nodes" in tool_names
         assert "delegate_to" in tool_names
-
-        # Cleanup
         await agent._cleanup()
+
+
+if __name__ == "__main__":
+    pytest.main(["-v", __file__])

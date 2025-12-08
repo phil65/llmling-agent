@@ -335,7 +335,8 @@ class _BridgeTool(FastMCPTool):
             tool_name=self._tool.name,
             tool_call_id=tool_call_id,
             tool_input=arguments,
-            mcp_ctx=context,
+            # TODO: fix this type violation
+            mcp_ctx=context,  # type: ignore[arg-type]
         )
 
         # Invoke with context

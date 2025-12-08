@@ -488,6 +488,7 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         agent_pool: AgentPool[Any] | None = None,
         enable_logging: bool = True,
         event_configs: Sequence[EventConfig] | None = None,
+        event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
     ) -> None: ...
 
     @overload
@@ -510,6 +511,7 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         agent_pool: AgentPool[Any] | None = None,
         enable_logging: bool = True,
         event_configs: Sequence[EventConfig] | None = None,
+        event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
     ) -> None: ...
 
     def __init__(

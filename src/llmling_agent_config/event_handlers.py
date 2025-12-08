@@ -9,6 +9,8 @@ from schemez import Schema
 
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from llmling_agent.common_types import IndividualEventHandler
 
 
@@ -96,7 +98,7 @@ EventHandlerConfig = Annotated[
 
 
 def resolve_handler_configs(
-    configs: list[EventHandlerConfig] | None,
+    configs: Sequence[EventHandlerConfig] | None,
 ) -> list[IndividualEventHandler]:
     """Resolve event handler configs to actual handler callables.
 

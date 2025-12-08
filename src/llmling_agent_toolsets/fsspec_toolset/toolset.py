@@ -180,7 +180,7 @@ class FSSpecTools(ResourceProvider):
 
             # Safety check - prevent returning too many items
             total_found = len(paths)
-            if total_found > 1000:
+            if total_found > 500:  # noqa: PLR2004
                 suggestions = []
                 if pattern == "*":
                     suggestions.append("Use a more specific pattern like '*.py', '*.txt', etc.")
@@ -192,7 +192,7 @@ class FSSpecTools(ResourceProvider):
                 suggestion_text = " Try: " + " ".join(suggestions) if suggestions else ""
 
                 return {
-                    "error": f"Too many items found ({total_found:,}). Limited to 1000 for performance.{suggestion_text}",
+                    "error": f"Too many items found ({total_found:,}). Limited to 500 for performance.{suggestion_text}",  # noqa: E501
                     "total_found": total_found,
                     "path": path,
                     "pattern": pattern,
