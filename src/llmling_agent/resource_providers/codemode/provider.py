@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from functools import partial
 import inspect
 from typing import TYPE_CHECKING, Any
 
@@ -13,6 +14,7 @@ from llmling_agent.resource_providers.codemode.helpers import (
     validate_code,
 )
 from llmling_agent.tools.base import Tool
+from llmling_agent_toolsets.fsspec_toolset.toolset import FSSpecTools
 
 
 if TYPE_CHECKING:
@@ -53,14 +55,11 @@ class CodeModeResourceProvider(AggregatingResourceProvider):
 
         if self._cached_tool is None:
             # Create a closure that captures self but isn't a bound method
-            async def execute_tool(
-                ctx: AgentContext,
-                python_code: str,
-            ) -> Any:
+            async def execute_tool(ctx: AgentContext, python_code: str) -> Any:
                 """These docstings are overriden by description_override."""
                 return await self.execute(ctx, python_code)
 
-            self._cached_tool = Tool.from_callable(execute_tool, description_override=desc)
+            self._cached_tool = self.create_tool(execute_tool, description_override=desc)
         else:
             # Update the description on existing cached tool
             self._cached_tool.description = desc
@@ -78,6 +77,14 @@ class CodeModeResourceProvider(AggregatingResourceProvider):
         """
         toolset_generator = await self._get_code_generator()
         namespace = toolset_generator.generate_execution_namespace()
+
+        # Wrap namespace callables to inject AgentContext
+        for value in namespace.values():
+            if callable(value) and hasattr(value, "callable"):
+                # It's a NamespaceCallable - wrap its underlying callable with ctx
+                original_callable = value.callable
+                if "agent_ctx" in inspect.signature(original_callable).parameters:
+                    value.callable = partial(original_callable, agent_ctx=ctx)
 
         # async def report_progress(current: int, total: int, message: str = ""):
         #     """Report progress during code execution."""
@@ -114,23 +121,32 @@ class CodeModeResourceProvider(AggregatingResourceProvider):
 
 if __name__ == "__main__":
     import asyncio
-    import webbrowser
 
-    from llmling_agent import Agent, log
-    from llmling_agent.resource_providers import StaticResourceProvider
+    from llmling_agent import Agent
+    from llmling_agent.delegation.pool import AgentPool
 
-    log.configure_logging()
-    static_provider = StaticResourceProvider(tools=[Tool.from_callable(webbrowser.open)])
+    static_provider = FSSpecTools()
     provider = CodeModeResourceProvider([static_provider])
 
     async def main() -> None:
         print("Available tools:")
         for tool in await provider.get_tools():
-            print(f"- {tool.name}: {tool.description}")
+            print(f"- {tool.name}: {tool.description[:100]}...")
 
-        async with Agent(model="openai:gpt-5-nano") as agent:
-            agent.tools.add_provider(provider)
-            result = await agent.run("Open google.com in a new tab.")
-            print(f"Result: {result}")
+        async with AgentPool() as pool:
+            agent: Agent[None, str] = Agent(
+                model="openai:gpt-4.1-nano", event_handlers=["simple"], retries=1
+            )
+            pool.register("test_agent", agent)
+            async with agent:
+                agent.tools.add_provider(provider)
+                prompt = (
+                    "Call list_directory with path='.'. "
+                    "Write: async def main(): "
+                    "result = await list_directory(path='.'); "
+                    "return result"
+                )
+                result = await agent.run(prompt)
+                print(f"Result: {result}")
 
     asyncio.run(main())
