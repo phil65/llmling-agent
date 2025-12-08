@@ -2,18 +2,23 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from evented.configs import EventConfig
 from pydantic import ConfigDict, Field, ImportString
 from schemez import Schema
 
+from llmling_agent_config.event_handlers import EventHandlerConfig
 from llmling_agent_config.forward_targets import ForwardingTarget
 from llmling_agent_config.mcp_server import (
     BaseMCPServerConfig,
     MCPServerConfig,
     StdioMCPServerConfig,
 )
+
+
+if TYPE_CHECKING:
+    from llmling_agent.common_types import IndividualEventHandler
 
 
 class NodeConfig(Schema):
@@ -118,12 +123,30 @@ class NodeConfig(Schema):
     )
     """Provider for human-input-handling."""
 
-    # Future extensions:
-    # tools: list[str] | None = None
-    # """Tools available to all team members."""
+    event_handlers: list[EventHandlerConfig] = Field(
+        default_factory=list,
+        title="Event handlers",
+        examples=[
+            [{"type": "builtin", "handler": "simple"}],
+        ],
+    )
+    """Event handlers for processing agent stream events.
 
-    # knowledge: Knowledge | None = None
-    # """Knowledge sources shared by all team members."""
+    Supports:
+    - builtin: Simple/detailed console output
+    - tts: Text-to-speech synthesis
+    - callback: Custom handler via import path
+    """
+
+    def get_event_handlers(self) -> list[IndividualEventHandler]:
+        """Get resolved event handlers from configuration.
+
+        Returns:
+            List of event handler callables.
+        """
+        from llmling_agent_config.event_handlers import resolve_handler_configs
+
+        return resolve_handler_configs(self.event_handlers)
 
     def get_mcp_servers(self) -> list[MCPServerConfig]:
         """Get processed MCP server configurations.

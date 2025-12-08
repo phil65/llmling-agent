@@ -13,9 +13,20 @@ from llmling_agent_config.mcp_server import (
     MCPServerConfig,
     SSEMCPServerConfig,
 )
+from llmling_agent_config.event_handlers import (
+    BaseEventHandlerConfig,
+    BuiltinEventHandlerConfig,
+    CallbackEventHandlerConfig,
+    EventHandlerConfig,
+    resolve_handler_configs,
+)
 
 __all__ = [
+    "BaseEventHandlerConfig",
     "BaseMCPServerConfig",
+    "BuiltinEventHandlerConfig",
+    "CallbackEventHandlerConfig",
+    "EventHandlerConfig",
     "ForwardingTarget",
     "MCPServerConfig",
     "ResourceInfo",
@@ -24,4 +35,5 @@ __all__ = [
     "StdioMCPServerConfig",
     "StreamableHTTPMCPServerConfig",
     "TeamConfig",
+    "resolve_handler_configs",
 ]

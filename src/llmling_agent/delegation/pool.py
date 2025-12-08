@@ -844,6 +844,12 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         agent_output_type = manifest.get_output_type(name) or str
         # Step 2: Resolve it fully with to_type (same as before)
         resolved_output_type = to_type(agent_output_type, manifest.responses)
+        # Merge pool-level handlers with config-level handlers
+        config_handlers = config.get_event_handlers()
+        merged_handlers: list[IndividualEventHandler | BuiltinEventHandlerType] = [
+            *config_handlers,
+            *(event_handlers or []),
+        ]
         return Agent(
             # context=context,
             model=config.model
@@ -862,7 +868,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
             agent_config=config,
             input_provider=input_provider,
             output_type=resolved_output_type,
-            event_handlers=event_handlers,
+            event_handlers=merged_handlers or None,
             agent_pool=pool,
             tool_mode=config.tool_mode,
             knowledge=config.knowledge,
@@ -889,7 +895,13 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         # Ensure name is set on config
         if config.name is None:
             config = config.model_copy(update={"name": name})
-        return ACPAgent(config=config)
+        # Merge pool-level handlers with config-level handlers
+        config_handlers = config.get_event_handlers()
+        merged_handlers: list[IndividualEventHandler | BuiltinEventHandlerType] = [
+            *config_handlers,
+            *self.event_handlers,
+        ]
+        return ACPAgent(config=config, event_handlers=merged_handlers or None)
 
     def create_agui_agent[TDeps](
         self,
@@ -911,11 +923,18 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         # Ensure name is set on config
         if config.name is None:
             config = config.model_copy(update={"name": name})
+        # Merge pool-level handlers with config-level handlers
+        config_handlers = config.get_event_handlers()
+        merged_handlers: list[IndividualEventHandler | BuiltinEventHandlerType] = [
+            *config_handlers,
+            *self.event_handlers,
+        ]
         return AGUIAgent(
             endpoint=config.endpoint,
             name=config.name or "agui-agent",
             description=config.description,
             display_name=config.display_name,
+            event_handlers=merged_handlers or None,
             timeout=config.timeout,
             headers=config.headers,
             startup_command=config.startup_command,
