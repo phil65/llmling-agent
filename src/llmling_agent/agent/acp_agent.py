@@ -57,6 +57,7 @@ from acp.schema import (
     WaitForTerminalExitResponse,
     WriteTextFileResponse,
 )
+from llmling_agent.agent.acp_converters import mcp_configs_to_acp
 from llmling_agent.agent.conversation import MessageHistory
 from llmling_agent.common_types import IndividualEventHandler
 from llmling_agent.log import get_logger
@@ -88,9 +89,11 @@ if TYPE_CHECKING:
         WaitForTerminalExitRequest,
         WriteTextFileRequest,
     )
+    from acp.schema.mcp import McpServer
     from llmling_agent.agent.events import RichAgentStreamEvent
     from llmling_agent.common_types import BuiltinEventHandlerType, PromptCompatible
     from llmling_agent.delegation import AgentPool
+    from llmling_agent.mcp_server.tool_bridge import ToolManagerBridge
     from llmling_agent.messaging.context import NodeContext
     from llmling_agent.models.acp_agents import BaseACPAgentConfig
     from llmling_agent.tools.base import Tool
@@ -590,6 +593,14 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
 
         resolved_handlers = resolve_event_handlers(event_handlers)
         self.event_handler = MultiEventHandler[IndividualEventHandler](resolved_handlers)
+        self._extra_mcp_servers: list[McpServer] = []
+
+        # Initialize ToolManager for toolsets (read-only, for bridge exposure)
+        from llmling_agent.tools.manager import ToolManager
+
+        self._tools = ToolManager()
+        self._tool_bridge: ToolManagerBridge | None = None
+        self._owns_bridge = False  # Track if we created the bridge (for cleanup)
 
     @property
     def context(self) -> NodeContext:
@@ -605,9 +616,53 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
             definition=self.agent_pool.manifest if self.agent_pool else AgentsManifest(),
         )
 
+    @property
+    def tools(self) -> ToolManager:
+        """Get the tool manager (read-only, for bridge exposure)."""
+        return self._tools
+
+    async def _setup_toolsets(self) -> None:
+        """Initialize toolsets from config and create bridge if needed."""
+        from llmling_agent.mcp_server.tool_bridge import BridgeConfig, ToolManagerBridge
+
+        if not self.config.toolsets:
+            return
+
+        # Create providers from toolset configs and add to tool manager
+        for toolset_config in self.config.toolsets:
+            provider = toolset_config.get_provider()
+            self._tools.add_provider(provider)
+
+        # Auto-create bridge to expose tools via MCP
+        config = BridgeConfig(
+            port=0,  # Auto-select port
+            transport="sse",
+            server_name=f"llmling-{self.name}-tools",
+        )
+        self._tool_bridge = ToolManagerBridge(
+            tool_manager=self._tools,
+            pool=self.agent_pool,  # type: ignore[arg-type]
+            config=config,
+            owner_agent_name=self.name,
+            input_provider=self._input_provider,
+        )
+        await self._tool_bridge.start()
+        self._owns_bridge = True
+
+        # Add bridge's MCP server to session
+        mcp_config = self._tool_bridge.get_mcp_server_config()
+        self._extra_mcp_servers.append(mcp_config)
+
+        self.log.info(
+            "Toolsets bridge started",
+            url=self._tool_bridge.url,
+            toolset_count=len(self.config.toolsets),
+        )
+
     async def __aenter__(self) -> Self:
         """Start subprocess and initialize ACP connection."""
         await super().__aenter__()
+        await self._setup_toolsets()  # Setup toolsets before session creation
         await self._start_process()
         await self._initialize()
         await self._create_session()
@@ -674,13 +729,24 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         self.log.info("ACP connection initialized", agent_info=self._init_response.agent_info)
 
     async def _create_session(self) -> None:
-        """Create a new ACP session."""
+        """Create a new ACP session with configured MCP servers."""
         if not self._connection:
             msg = "Connection not initialized"
             raise RuntimeError(msg)
 
+        # Collect MCP servers from config
+        mcp_servers: list[McpServer] = []
+
+        # Add servers from config (converted to ACP format)
+        config_servers = self.config.get_mcp_servers()
+        if config_servers:
+            mcp_servers.extend(mcp_configs_to_acp(config_servers))
+
+        # Add any extra MCP servers (e.g., from tool bridges)
+        mcp_servers.extend(self._extra_mcp_servers)
+
         cwd = self.config.cwd or str(Path.cwd())
-        session_request = NewSessionRequest(cwd=cwd, mcp_servers=[])
+        session_request = NewSessionRequest(cwd=cwd, mcp_servers=mcp_servers)
         response = await self._connection.new_session(session_request)
         self._session_id = response.session_id
         if self._state:
@@ -689,10 +755,52 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
             if response.models:
                 self._state.current_model_id = response.models.current_model_id
         model = self._state.current_model_id if self._state else None
-        self.log.info("ACP session created", session_id=self._session_id, model=model)
+        server_names = [s.name for s in mcp_servers]
+        self.log.info(
+            "ACP session created",
+            session_id=self._session_id,
+            model=model,
+            mcp_servers=server_names,
+        )
+
+    def add_mcp_server(self, server: McpServer) -> None:
+        """Add an MCP server to be passed to the next session.
+
+        Use this to dynamically add MCP servers before the session is created.
+        For adding tool bridges, use `add_tool_bridge()` instead.
+
+        Args:
+            server: ACP McpServer configuration
+        """
+        self._extra_mcp_servers.append(server)
+
+    async def add_tool_bridge(self, bridge: ToolManagerBridge) -> None:
+        """Add an external tool bridge to expose its tools via MCP.
+
+        The bridge must already be started. Its MCP server config will be
+        added to the session. Use this for bridges created externally
+        (e.g., from AgentPool). For toolsets defined in config, bridges
+        are created automatically.
+
+        Args:
+            bridge: Started ToolManagerBridge instance
+        """
+        # Don't replace our own bridge
+        if self._tool_bridge is None:
+            self._tool_bridge = bridge
+        mcp_config = bridge.get_mcp_server_config()
+        self._extra_mcp_servers.append(mcp_config)
+        self.log.info("Added external tool bridge", url=bridge.url)
 
     async def _cleanup(self) -> None:
         """Clean up resources."""
+        # Stop our own bridge if we created it
+        if self._tool_bridge and self._owns_bridge:
+            await self._tool_bridge.stop()
+        self._tool_bridge = None
+        self._owns_bridge = False
+        self._extra_mcp_servers.clear()
+
         if self._client_handler:
             try:
                 await self._client_handler.cleanup()

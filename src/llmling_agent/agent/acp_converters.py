@@ -8,7 +8,7 @@ This is the reverse of the conversion done in acp_server/session.py handle_event
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, overload
 
 from pydantic_ai import PartDeltaEvent
 from pydantic_ai.messages import TextPartDelta, ThinkingPartDelta
@@ -43,9 +43,16 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from acp.schema import ContentBlock, SessionUpdate
+    from acp.schema.mcp import HttpMcpServer, McpServer, SseMcpServer, StdioMcpServer
     from acp.schema.tool_call import ToolCallContent, ToolCallLocation
     from llmling_agent.agent.events import RichAgentStreamEvent, ToolCallContentItem
     from llmling_agent.models.content import BaseContent
+    from llmling_agent_config.mcp_server import (
+        MCPServerConfig,
+        SSEMCPServerConfig,
+        StdioMCPServerConfig,
+        StreamableHTTPMCPServerConfig,
+    )
 
 
 def convert_acp_locations(
@@ -273,3 +280,75 @@ def extract_text_from_update(update: SessionUpdate) -> str | None:
 def is_text_update(update: SessionUpdate) -> bool:
     """Check if this update contains text content."""
     return extract_text_from_update(update) is not None
+
+
+@overload
+def mcp_config_to_acp(config: StdioMCPServerConfig) -> StdioMcpServer | None: ...
+
+
+@overload
+def mcp_config_to_acp(config: SSEMCPServerConfig) -> SseMcpServer | None: ...
+
+
+@overload
+def mcp_config_to_acp(config: StreamableHTTPMCPServerConfig) -> HttpMcpServer | None: ...
+
+
+@overload
+def mcp_config_to_acp(config: MCPServerConfig) -> McpServer | None: ...
+
+
+def mcp_config_to_acp(config: MCPServerConfig) -> McpServer | None:
+    """Convert llmling MCPServerConfig to ACP McpServer format.
+
+    Args:
+        config: llmling-agent MCP server configuration
+
+    Returns:
+        ACP-compatible McpServer instance, or None if conversion not possible
+    """
+    from pydantic import HttpUrl
+
+    from acp.schema.common import EnvVariable
+    from acp.schema.mcp import HttpMcpServer, SseMcpServer, StdioMcpServer
+    from llmling_agent_config.mcp_server import (
+        SSEMCPServerConfig,
+        StdioMCPServerConfig,
+        StreamableHTTPMCPServerConfig,
+    )
+
+    match config:
+        case StdioMCPServerConfig(command=command, args=args):
+            env_vars = config.get_env_vars() if hasattr(config, "get_env_vars") else {}
+            return StdioMcpServer(
+                name=config.name or command,
+                command=command,
+                args=list(args) if args else [],
+                env=[EnvVariable(name=k, value=v) for k, v in env_vars.items()],
+            )
+        case SSEMCPServerConfig(url=url):
+            return SseMcpServer(
+                name=config.name or str(url),
+                url=HttpUrl(str(url)),
+                headers=[],
+            )
+        case StreamableHTTPMCPServerConfig(url=url):
+            return HttpMcpServer(
+                name=config.name or str(url),
+                url=HttpUrl(str(url)),
+                headers=[],
+            )
+        case _:
+            return None
+
+
+def mcp_configs_to_acp(configs: Sequence[MCPServerConfig]) -> list[McpServer]:
+    """Convert a sequence of MCPServerConfig to ACP McpServer list.
+
+    Args:
+        configs: Sequence of llmling-agent MCP server configurations
+
+    Returns:
+        List of ACP-compatible McpServer instances (skips unconvertible configs)
+    """
+    return [converted for config in configs if (converted := mcp_config_to_acp(config)) is not None]

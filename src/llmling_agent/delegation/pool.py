@@ -50,7 +50,9 @@ if TYPE_CHECKING:
         SupportsStructuredOutput,
     )
     from llmling_agent.delegation.base_team import BaseTeam
+    from llmling_agent.mcp_server.tool_bridge import ToolManagerBridge
     from llmling_agent.models.manifest import AgentsManifest
+    from llmling_agent.tools.manager import ToolManager
     from llmling_agent.ui.base import InputProvider
     from llmling_agent_config.session import SessionQuery
     from llmling_agent_config.task import Job
@@ -127,6 +129,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         servers = self.manifest.get_mcp_servers()
         self.mcp = MCPManager(name="pool_mcp", servers=servers, owner="pool")
         self.skills = SkillsManager(name="pool_skills", owner="pool")
+        self._tool_bridges: dict[str, ToolManagerBridge] = {}
         self._tasks = TaskRegistry()
         # Register tasks from manifest
         for name, task in self.manifest.jobs.items():
@@ -225,6 +228,81 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
                     agent.tools.remove_provider(aggregating_provider.name)
                 await self.cleanup()
 
+    async def create_tool_bridge(
+        self,
+        tool_manager: ToolManager,
+        *,
+        name: str = "pool_tools",
+        owner_agent_name: str | None = None,
+        host: str = "127.0.0.1",
+        port: int = 0,
+        transport: str = "sse",
+    ) -> ToolManagerBridge:
+        """Create and start a tool bridge for exposing tools to ACP agents.
+
+        This creates an in-process MCP server that exposes the given ToolManager's
+        tools. The returned bridge can be added to ACP agents to give them access
+        to internal toolsets.
+
+        Args:
+            tool_manager: ToolManager whose tools to expose
+            name: Unique name for this bridge
+            owner_agent_name: Name of agent to use for context creation
+            host: Host to bind the HTTP server to
+            port: Port to bind to (0 = auto-select)
+            transport: Transport protocol ('sse' or 'streamable-http')
+
+        Returns:
+            Started ToolManagerBridge instance
+
+        Example:
+            ```python
+            async with AgentPool() as pool:
+                # Create bridge from an agent's tools
+                bridge = await pool.create_tool_bridge(
+                    pool.agents["orchestrator"].tools,
+                    name="orchestrator_tools",
+                )
+                # Add to ACP agent
+                await pool.acp_agents["claude"].add_tool_bridge(bridge)
+            ```
+        """
+        from llmling_agent.mcp_server.tool_bridge import BridgeConfig, ToolManagerBridge
+
+        if name in self._tool_bridges:
+            msg = f"Tool bridge {name!r} already exists"
+            raise ValueError(msg)
+
+        config = BridgeConfig(
+            host=host,
+            port=port,
+            transport=transport,
+            server_name=f"llmling-{name}",
+        )
+        bridge = ToolManagerBridge(
+            tool_manager=tool_manager,
+            pool=self,
+            config=config,
+            owner_agent_name=owner_agent_name,
+            input_provider=self._input_provider,
+        )
+        await bridge.start()
+        self._tool_bridges[name] = bridge
+        return bridge
+
+    async def get_tool_bridge(self, name: str) -> ToolManagerBridge:
+        """Get a tool bridge by name."""
+        if name not in self._tool_bridges:
+            msg = f"Tool bridge {name!r} not found"
+            raise KeyError(msg)
+        return self._tool_bridges[name]
+
+    async def remove_tool_bridge(self, name: str) -> None:
+        """Stop and remove a tool bridge."""
+        if name in self._tool_bridges:
+            await self._tool_bridges[name].stop()
+            del self._tool_bridges[name]
+
     @property
     def is_running(self) -> bool:
         """Check if the agent pool is running."""
@@ -232,7 +310,11 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
 
     async def cleanup(self) -> None:
         """Clean up all agents."""
-        # Clean up background processes first
+        # Clean up tool bridges first
+        for bridge in list(self._tool_bridges.values()):
+            await bridge.stop()
+        self._tool_bridges.clear()
+        # Clean up background processes
         await self.process_manager.cleanup()
         await self.exit_stack.aclose()
         self.clear()

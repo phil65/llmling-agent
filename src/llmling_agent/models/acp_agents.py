@@ -10,6 +10,7 @@ from tokonomics.model_discovery import ProviderType  # noqa: TC002
 
 from llmling_agent_config.nodes import NodeConfig
 from llmling_agent_config.output_types import StructuredResponseConfig  # noqa: TC001
+from llmling_agent_config.toolsets import ToolsetConfig  # noqa: TC001
 
 
 if TYPE_CHECKING:
@@ -83,6 +84,22 @@ class BaseACPAgentConfig(NodeConfig):
 
     auto_grant_permissions: bool = Field(default=True)
     """Whether to automatically grant all permission requests."""
+
+    toolsets: list[ToolsetConfig] = Field(
+        default_factory=list,
+        examples=[
+            [
+                {"type": "subagent"},
+                {"type": "agent_management"},
+            ],
+        ],
+    )
+    """Toolsets to expose to this ACP agent via MCP bridge.
+
+    These toolsets will be started as an in-process MCP server and made
+    available to the external ACP agent. This allows ACP agents to use
+    internal llmling-agent toolsets like subagent delegation.
+    """
 
     def get_command(self) -> str:
         """Get the command to spawn the ACP server."""
