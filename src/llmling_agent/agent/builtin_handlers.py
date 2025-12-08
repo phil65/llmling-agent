@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from pydantic_ai import (
     FunctionToolCallEvent,
@@ -69,7 +69,7 @@ async def simple_print_handler(ctx: RunContext, event: AgentStreamEvent) -> None
             print()  # Final newline
 
 
-async def detailed_print_handler(ctx: RunContext, event: RichAgentStreamEvent) -> None:
+async def detailed_print_handler(ctx: RunContext, event: RichAgentStreamEvent[Any]) -> None:
     """Detailed event handler with rich tool execution information.
 
     Focus: Comprehensive execution visibility.
