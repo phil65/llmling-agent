@@ -85,22 +85,6 @@ class BaseACPAgentConfig(NodeConfig):
     auto_grant_permissions: bool = Field(default=True)
     """Whether to automatically grant all permission requests."""
 
-    toolsets: list[ToolsetConfig] = Field(
-        default_factory=list,
-        examples=[
-            [
-                {"type": "subagent"},
-                {"type": "agent_management"},
-            ],
-        ],
-    )
-    """Toolsets to expose to this ACP agent via MCP bridge.
-
-    These toolsets will be started as an in-process MCP server and made
-    available to the external ACP agent. This allows ACP agents to use
-    internal llmling-agent toolsets like subagent delegation.
-    """
-
     def get_command(self) -> str:
         """Get the command to spawn the ACP server."""
         raise NotImplementedError
@@ -137,6 +121,30 @@ class BaseACPAgentConfig(NodeConfig):
         Used for intelligent model discovery and fallback configuration.
         """
         return []
+
+
+class MCPCapableACPAgentConfig(BaseACPAgentConfig):
+    """Base class for ACP agents that support MCP (Model Context Protocol) servers.
+
+    Extends BaseACPAgentConfig with MCP-specific capabilities including toolsets
+    that can be exposed via an internal MCP bridge.
+    """
+
+    toolsets: list[ToolsetConfig] = Field(
+        default_factory=list,
+        examples=[
+            [
+                {"type": "subagent"},
+                {"type": "agent_management"},
+            ],
+        ],
+    )
+    """Toolsets to expose to this ACP agent via MCP bridge.
+
+    These toolsets will be started as an in-process MCP server and made
+    available to the external ACP agent. This allows ACP agents to use
+    internal llmling-agent toolsets like subagent delegation.
+    """
 
     def build_mcp_config_json(self) -> str | None:
         """Convert inherited mcp_servers to standard MCP config JSON format.
@@ -240,7 +248,7 @@ class ACPAgentConfig(BaseACPAgentConfig):
         return self.args
 
 
-class ClaudeACPAgentConfig(BaseACPAgentConfig):
+class ClaudeACPAgentConfig(MCPCapableACPAgentConfig):
     """Configuration for Claude Code via ACP.
 
     Provides typed settings for the claude-code-acp server.
@@ -375,7 +383,7 @@ class ClaudeACPAgentConfig(BaseACPAgentConfig):
         return ["anthropic"]
 
 
-class GeminiACPAgentConfig(BaseACPAgentConfig):
+class GeminiACPAgentConfig(MCPCapableACPAgentConfig):
     """Configuration for Gemini CLI via ACP.
 
     Provides typed settings for the gemini CLI with ACP support.
@@ -751,7 +759,7 @@ class AmpACPAgentConfig(BaseACPAgentConfig):
         return ["openai", "anthropic", "gemini"]
 
 
-class AuggieACPAgentConfig(BaseACPAgentConfig):
+class AuggieACPAgentConfig(MCPCapableACPAgentConfig):
     """Configuration for Auggie (Augment Code) via ACP.
 
     AI agent that brings Augment Code's power to the terminal.
@@ -941,7 +949,7 @@ class CagentACPAgentConfig(BaseACPAgentConfig):
         return ["openai", "anthropic", "gemini"]
 
 
-class KimiACPAgentConfig(BaseACPAgentConfig):
+class KimiACPAgentConfig(MCPCapableACPAgentConfig):
     """Configuration for Kimi CLI via ACP.
 
     Command-line agent from Moonshot AI with ACP support.

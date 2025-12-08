@@ -12,6 +12,7 @@ from llmling_agent.models.acp_agents import (
     FastAgentACPAgentConfig,
     GeminiACPAgentConfig,
     GooseACPAgentConfig,
+    MCPCapableACPAgentConfig,
     OpenCodeACPAgentConfig,
     OpenHandsACPAgentConfig,
 )
@@ -31,6 +32,7 @@ __all__ = [
     "FastAgentACPAgentConfig",
     "GeminiACPAgentConfig",
     "GooseACPAgentConfig",
+    "MCPCapableACPAgentConfig",
     "OpenCodeACPAgentConfig",
     "OpenHandsACPAgentConfig",
 ]
