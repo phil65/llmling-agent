@@ -264,7 +264,7 @@ class AgentConfig(NodeConfig):
     inherits: str | None = Field(default=None, title="Inheritance source")
     """Name of agent config to inherit from"""
 
-    model: str | ModelName | AnyModelConfig | None = Field(
+    model: AnyModelConfig | ModelName | str | None = Field(
         default=None,
         examples=["openai:gpt-5-nano"],
         title="Model configuration or name",

@@ -189,13 +189,10 @@ class ACPInputProvider(InputProvider):
         try:
             # Handle URL mode elicitation (OAuth, credentials, payments)
             if isinstance(params, types.ElicitRequestURLParams):
-                logger.info(
-                    "URL elicitation request",
-                    message=params.message,
-                    url=params.url,
-                    elicitation_id=params.elicitationId,
-                )
-                tool_call_id = f"elicit_url_{params.elicitationId}"
+                msg = "URL elicitation request"
+                elicit_id = params.elicitationId
+                logger.info(msg, message=params.message, url=params.url, elicitation_id=elicit_id)
+                tool_call_id = f"elicit_url_{elicit_id}"
                 title = f"URL Authorization: {params.message}"
                 url_options = [
                     PermissionOption(option_id="accept", name="Open URL", kind="allow_once"),
@@ -227,14 +224,13 @@ class ACPInputProvider(InputProvider):
                     options=options,
                 )
                 return self._handle_boolean_elicitation_response(response, schema)
-            if _is_enum_schema(schema):  # noqa: SIM102
-                if options := _create_enum_elicitation_options(schema):
-                    response = await self.session.requests.request_permission(
-                        tool_call_id=tool_call_id,
-                        title=title,
-                        options=options,
-                    )
-                    return _handle_enum_elicitation_response(response, schema)
+            if _is_enum_schema(schema) and (options := _create_enum_elicitation_options(schema)):
+                response = await self.session.requests.request_permission(
+                    tool_call_id=tool_call_id,
+                    title=title,
+                    options=options,
+                )
+                return _handle_enum_elicitation_response(response, schema)
 
             options = [
                 PermissionOption(option_id="accept", name="Accept", kind="allow_once"),
