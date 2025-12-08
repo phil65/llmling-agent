@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 import re
 from typing import TYPE_CHECKING, Any
 
+import logfire
 from pydantic_ai import (
     FinalResultEvent,
     FunctionToolCallEvent,
@@ -813,6 +814,7 @@ class ACPSession:
             for cmd in compatible_commands
         ]
 
+    @logfire.instrument(r"Execute Slash Command {command_text}")
     async def execute_slash_command(self, command_text: str) -> None:
         """Execute any slash command with unified handling.
 

@@ -5,6 +5,8 @@ from __future__ import annotations
 from functools import partial
 from typing import TYPE_CHECKING, Any, Self
 
+import logfire
+
 from acp.agent.protocol import Agent
 from acp.client.protocol import Client
 from acp.connection import Connection
@@ -187,6 +189,7 @@ class AgentSideConnection(Client):
         await self.close()
 
 
+@logfire.instrument(r"Handle Agent Request {method}")
 async def _agent_handler(  # noqa: PLR0911
     agent: Agent,
     method: AgentMethod | str,

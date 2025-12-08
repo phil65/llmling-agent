@@ -5,6 +5,8 @@ from __future__ import annotations
 from functools import partial
 from typing import TYPE_CHECKING, Any, Self
 
+import logfire
+
 
 if TYPE_CHECKING:
     from types import TracebackType
@@ -149,6 +151,7 @@ class ClientSideConnection(Agent):
         await self.close()
 
 
+@logfire.instrument(r"Handle Client Method {method}")
 async def _handle_client_method(  # noqa: PLR0911
     client: Client,
     method: ClientMethod | str,
