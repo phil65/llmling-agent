@@ -71,7 +71,6 @@ repos:
         language: system
         types: [python]
         pass_filenames: false
-        always_run: true
         require_serial: true
 
   # Phase 5: Commit message validation (final)
