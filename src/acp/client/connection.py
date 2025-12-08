@@ -86,35 +86,46 @@ class ClientSideConnection(Agent):
 
     # agent-bound methods (client -> agent)
     async def initialize(self, params: InitializeRequest) -> InitializeResponse:
-        dct = params.model_dump(by_alias=True, exclude_none=True, exclude_defaults=True)
+        dct = params.model_dump(
+            mode="json", by_alias=True, exclude_none=True, exclude_defaults=True
+        )
         resp = await self._conn.send_request("initialize", dct)
         return InitializeResponse.model_validate(resp)
 
     async def new_session(self, params: NewSessionRequest) -> NewSessionResponse:
-        dct = params.model_dump(by_alias=True, exclude_none=True, exclude_defaults=True)
+        # Don't exclude_defaults - MCP server 'type' field is required for discriminated unions
+        dct = params.model_dump(mode="json", by_alias=True, exclude_none=True)
         resp = await self._conn.send_request("session/new", dct)
         return NewSessionResponse.model_validate(resp)
 
     async def load_session(self, params: LoadSessionRequest) -> LoadSessionResponse:
-        dct = params.model_dump(by_alias=True, exclude_none=True, exclude_defaults=True)
+        dct = params.model_dump(
+            mode="json", by_alias=True, exclude_none=True, exclude_defaults=True
+        )
         resp = await self._conn.send_request("session/load", dct)
         payload = resp if isinstance(resp, dict) else {}
         return LoadSessionResponse.model_validate(payload)
 
     async def set_session_mode(self, params: SetSessionModeRequest) -> SetSessionModeResponse:
-        dct = params.model_dump(by_alias=True, exclude_none=True, exclude_defaults=True)
+        dct = params.model_dump(
+            mode="json", by_alias=True, exclude_none=True, exclude_defaults=True
+        )
         resp = await self._conn.send_request("session/set_mode", dct)
         payload = resp if isinstance(resp, dict) else {}
         return SetSessionModeResponse.model_validate(payload)
 
     async def set_session_model(self, params: SetSessionModelRequest) -> SetSessionModelResponse:
-        dct = params.model_dump(by_alias=True, exclude_none=True, exclude_defaults=True)
+        dct = params.model_dump(
+            mode="json", by_alias=True, exclude_none=True, exclude_defaults=True
+        )
         resp = await self._conn.send_request("session/set_model", dct)
         payload = resp if isinstance(resp, dict) else {}
         return SetSessionModelResponse.model_validate(payload)
 
     async def authenticate(self, params: AuthenticateRequest) -> AuthenticateResponse:
-        dct = params.model_dump(by_alias=True, exclude_none=True, exclude_defaults=True)
+        dct = params.model_dump(
+            mode="json", by_alias=True, exclude_none=True, exclude_defaults=True
+        )
         resp = await self._conn.send_request("authenticate", dct)
         payload = resp if isinstance(resp, dict) else {}
         return AuthenticateResponse.model_validate(payload)
@@ -122,12 +133,14 @@ class ClientSideConnection(Agent):
     async def prompt(self, params: PromptRequest) -> PromptResponse:
         # Don't exclude_defaults here - the 'type' field in content blocks has a default
         # value but is required for discriminated unions to work
-        dct = params.model_dump(by_alias=True, exclude_none=True)
+        dct = params.model_dump(mode="json", by_alias=True, exclude_none=True)
         resp = await self._conn.send_request("session/prompt", dct)
         return PromptResponse.model_validate(resp)
 
     async def cancel(self, params: CancelNotification) -> None:
-        dct = params.model_dump(by_alias=True, exclude_none=True, exclude_defaults=True)
+        dct = params.model_dump(
+            mode="json", by_alias=True, exclude_none=True, exclude_defaults=True
+        )
         await self._conn.send_notification("session/cancel", dct)
 
     async def ext_method(self, method: str, params: dict[str, Any]) -> dict[str, Any]:
