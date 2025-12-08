@@ -145,6 +145,7 @@ docs = [
 lint = [
   "mypy[faster-cache]",
   "ruff",
+  "types-jsonschema>=4.25.1.20251009",
   "types-PyYAML",
   # Only add below (Copier)
 ]

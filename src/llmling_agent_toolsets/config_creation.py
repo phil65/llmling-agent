@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import json
 import tomllib
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
+import anyenv
 import jsonschema
 from schemez.helpers import json_schema_to_pydantic_code
 import upath
@@ -22,13 +23,13 @@ if TYPE_CHECKING:
 MarkupType = Literal["yaml", "json", "toml"]
 
 
-def _parse_content(content: str, markup: MarkupType) -> dict:
+def _parse_content(content: str, markup: MarkupType) -> dict[str, Any]:
     """Parse content based on markup type."""
     match markup:
         case "yaml":
-            return yamling.load_yaml(content)
+            return yamling.load_yaml(content, verify_type=dict)
         case "json":
-            return json.loads(content)
+            return anyenv.load_json(content, return_type=dict)
         case "toml":
             return tomllib.loads(content)
 
@@ -58,13 +59,13 @@ class ConfigCreationTools(StaticResourceProvider):
         super().__init__(name=name)
         self._schema_path = upath.UPath(schema_path)
         self._markup = markup
-        self._schema: dict | None = None
+        self._schema: dict[str, Any] | None = None
         self._schema_fs: JsonSchemaFileSystem | None = None
 
         self.add_tool(
             self.create_tool(
                 self._create_config,
-                category="write",
+                category="edit",
                 read_only=False,
                 idempotent=True,
                 name_override="create_config",
@@ -114,7 +115,7 @@ class ConfigCreationTools(StaticResourceProvider):
             )
         )
 
-    def _load_schema(self) -> dict:
+    def _load_schema(self) -> dict[str, Any]:
         """Load and cache the JSON schema."""
         if self._schema is None:
             content = self._schema_path.read_text()
