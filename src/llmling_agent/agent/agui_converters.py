@@ -42,13 +42,31 @@ from llmling_agent.agent.events import (
     ToolCallProgressEvent,
     ToolCallStartEvent as NativeToolCallStartEvent,
 )
+from llmling_agent.models.content import BaseContent
+from llmling_agent.prompts.convert import convert_prompts
 from llmling_agent.resource_providers.plan_provider import PlanEntry
 
 
 if TYPE_CHECKING:
-    from ag_ui.core import Event
+    from ag_ui.core import Event, InputContent
 
     from llmling_agent.agent.events import RichAgentStreamEvent
+    from llmling_agent.common_types import PromptCompatible
+
+
+def _get_mime_type(content_type: str) -> str:
+    """Get MIME type from content type string."""
+    match content_type:
+        case "image_base64" | "image_url":
+            return "image/jpeg"
+        case "pdf_base64" | "pdf_url":
+            return "application/pdf"
+        case "audio_base64" | "audio_url":
+            return "audio/mp3"
+        case "video_url":
+            return "video/mp4"
+        case _:
+            return "application/octet-stream"
 
 
 def agui_to_native_event(event: Event) -> RichAgentStreamEvent[Any] | None:  # noqa: PLR0911
@@ -85,60 +103,22 @@ def agui_to_native_event(event: Event) -> RichAgentStreamEvent[Any] | None:  # n
 
         case ThinkingTextMessageStartEvent() | ThinkingTextMessageEndEvent():
             return None
-
         # === Tool Call Events ===
 
-        case ToolCallStartEvent(
-            tool_call_id=tool_call_id, tool_call_name=tool_name, parent_message_id=_
-        ):
-            return NativeToolCallStartEvent(
-                tool_call_id=tool_call_id,
-                tool_name=tool_name,
-                title=tool_name,
-                kind="other",
-                content=[],
-                locations=[],
-                raw_input={},
-            )
+        case ToolCallStartEvent(tool_call_id=str() as tc_id, tool_call_name=name):
+            return NativeToolCallStartEvent(tool_call_id=tc_id, tool_name=name, title=name)
 
-        case ToolCallChunkEvent(
-            tool_call_id=tool_call_id,
-            tool_call_name=tool_name,
-            parent_message_id=_,
-            delta=_,
-        ) if tool_call_id and tool_name:
-            return NativeToolCallStartEvent(
-                tool_call_id=tool_call_id,
-                tool_name=tool_name,
-                title=tool_name,
-                kind="other",
-                content=[],
-                locations=[],
-                raw_input={},
-            )
+        case ToolCallChunkEvent(tool_call_id=str() as tc_id, tool_call_name=str() as name):
+            return NativeToolCallStartEvent(tool_call_id=tc_id, tool_name=name, title=name)
 
         case ToolCallArgsEvent(tool_call_id=tool_call_id, delta=_):
-            return ToolCallProgressEvent(
-                tool_call_id=tool_call_id,
-                status="in_progress",
-            )
+            return ToolCallProgressEvent(tool_call_id=tool_call_id, status="in_progress")
 
-        case ToolCallResultEvent(
-            tool_call_id=tool_call_id,
-            content=content,
-            message_id=_,
-        ):
-            return ToolCallProgressEvent(
-                tool_call_id=tool_call_id,
-                status="completed",
-                message=content,
-            )
+        case ToolCallResultEvent(tool_call_id=tc_id, content=content, message_id=_):
+            return ToolCallProgressEvent(tool_call_id=tc_id, status="completed", message=content)
 
         case ToolCallEndEvent(tool_call_id=tool_call_id):
-            return ToolCallProgressEvent(
-                tool_call_id=tool_call_id,
-                status="completed",
-            )
+            return ToolCallProgressEvent(tool_call_id=tool_call_id, status="completed")
 
         # === Activity Events -> PlanUpdateEvent ===
 
@@ -167,44 +147,72 @@ def agui_to_native_event(event: Event) -> RichAgentStreamEvent[Any] | None:  # n
         # === State Management Events ===
 
         case StateSnapshotEvent(snapshot=snapshot):
-            return CustomEvent(
-                event_data=snapshot,
-                event_type="state_snapshot",
-                source="ag-ui",
-            )
+            return CustomEvent(event_data=snapshot, event_type="state_snapshot", source="ag-ui")
 
         case StateDeltaEvent(delta=delta):
-            return CustomEvent(
-                event_data=delta,
-                event_type="state_delta",
-                source="ag-ui",
-            )
+            return CustomEvent(event_data=delta, event_type="state_delta", source="ag-ui")
 
         case MessagesSnapshotEvent(messages=messages):
-            return CustomEvent(
-                event_data=[m.model_dump() if hasattr(m, "model_dump") else m for m in messages],
-                event_type="messages_snapshot",
-                source="ag-ui",
-            )
+            data = [m.model_dump() if hasattr(m, "model_dump") else m for m in messages]
+            return CustomEvent(event_data=data, event_type="messages_snapshot", source="ag-ui")
 
         # === Special Events ===
 
         case RawEvent(event=raw_event, source=source):
-            return CustomEvent(
-                event_data=raw_event,
-                event_type="raw",
-                source=source or "ag-ui",
-            )
+            return CustomEvent(event_data=raw_event, event_type="raw", source=source or "ag-ui")
 
         case AGUICustomEvent(name=name, value=value):
-            return CustomEvent(
-                event_data=value,
-                event_type=name,
-                source="ag-ui",
-            )
+            return CustomEvent(event_data=value, event_type=name, source="ag-ui")
 
         case _:
             return None
+
+
+async def convert_to_agui_content(
+    prompts: tuple[PromptCompatible, ...],
+) -> str | list[InputContent]:
+    """Convert prompts to AG-UI InputContent format.
+
+    Args:
+        prompts: Input prompts to convert
+
+    Returns:
+        Either a simple string or list of InputContent items for multimodal
+    """
+    from ag_ui.core import BinaryInputContent, TextInputContent
+
+    converted = await convert_prompts(prompts)
+    # If all strings, join them
+    if all(isinstance(p, str) for p in converted):
+        return " ".join(str(p) for p in converted)
+
+    content_list: list[InputContent] = []
+    for item in converted:
+        if isinstance(item, str):
+            content_list.append(TextInputContent(text=item))
+        elif isinstance(item, BaseContent):
+            # Handle base64 content
+            if item.type in ("image_base64", "pdf_base64", "audio_base64"):
+                data = getattr(item, "data", None)
+                mime_type = getattr(item, "mime_type", None) or _get_mime_type(item.type)
+                if data:
+                    content_list.append(BinaryInputContent(data=data, mime_type=mime_type))
+                else:
+                    content_list.append(TextInputContent(text=str(item)))
+            # Handle URL content
+            elif item.type in ("image_url", "pdf_url", "audio_url", "video_url"):
+                url = getattr(item, "url", None)
+                if url:
+                    content_list.append(
+                        BinaryInputContent(url=url, mime_type=_get_mime_type(item.type))
+                    )
+                else:
+                    content_list.append(TextInputContent(text=str(item)))
+            # Fallback
+            else:
+                content_list.append(TextInputContent(text=str(item)))
+
+    return content_list
 
 
 def _content_to_plan_entries(content: list[Any]) -> list[PlanEntry]:
@@ -231,9 +239,8 @@ def _content_to_plan_entries(content: list[Any]) -> list[PlanEntry]:
                 status = "pending"
 
             if entry_content:
-                entries.append(
-                    PlanEntry(content=str(entry_content), priority=priority, status=status)
-                )
+                entry = PlanEntry(content=str(entry_content), priority=priority, status=status)
+                entries.append(entry)
         elif isinstance(item, str):
             entries.append(PlanEntry(content=item, priority="medium", status="pending"))
     return entries

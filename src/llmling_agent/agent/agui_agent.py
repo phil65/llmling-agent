@@ -16,13 +16,19 @@ from anyenv.processes import hard_kill
 import httpx
 from pydantic import TypeAdapter
 
-from llmling_agent.agent.events import StreamCompleteEvent
+from llmling_agent.agent.agui_converters import (
+    agui_to_native_event,
+    convert_to_agui_content,
+    extract_text_from_event,
+)
+from llmling_agent.agent.builtin_handlers import resolve_event_handlers
+from llmling_agent.agent.events import RunStartedEvent, StreamCompleteEvent
 from llmling_agent.common_types import IndividualEventHandler
 from llmling_agent.log import get_logger
 from llmling_agent.messaging import ChatMessage, MessageHistory
 from llmling_agent.messaging.messagenode import MessageNode
-from llmling_agent.models.content import BaseContent
-from llmling_agent.prompts.convert import convert_prompts
+from llmling_agent.messaging.processing import prepare_prompts
+from llmling_agent.models.manifest import AgentsManifest
 from llmling_agent.talk.stats import MessageStats
 
 
@@ -31,7 +37,7 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Callable, Sequence
     from types import TracebackType
 
-    from ag_ui.core import Event, InputContent
+    from ag_ui.core import Event
     from evented.configs import EventConfig
 
     from llmling_agent.agent.events import RichAgentStreamEvent
@@ -44,69 +50,15 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-async def _convert_to_agui_content(
-    prompts: tuple[PromptCompatible, ...],
-) -> str | list[InputContent]:
-    """Convert prompts to AG-UI InputContent format.
-
-    Args:
-        prompts: Input prompts to convert
-
-    Returns:
-        Either a simple string or list of InputContent items for multimodal
-    """
-    from ag_ui.core import BinaryInputContent, TextInputContent
-
-    converted = await convert_prompts(prompts)
-
-    # If all strings, join them
-    if all(isinstance(p, str) for p in converted):
-        return " ".join(str(p) for p in converted)
-
-    # Build multimodal content list
-    content_list: list[InputContent] = []
-
-    for item in converted:
-        if isinstance(item, str):
-            content_list.append(TextInputContent(text=item))
-        elif isinstance(item, BaseContent):
-            # Handle base64 content
-            if item.type in ("image_base64", "pdf_base64", "audio_base64"):
-                data = getattr(item, "data", None)
-                mime_type = getattr(item, "mime_type", None) or _get_mime_type(item.type)
-                if data:
-                    content_list.append(BinaryInputContent(data=data, mime_type=mime_type))
-                else:
-                    content_list.append(TextInputContent(text=str(item)))
-            # Handle URL content
-            elif item.type in ("image_url", "pdf_url", "audio_url", "video_url"):
-                url = getattr(item, "url", None)
-                if url:
-                    content_list.append(
-                        BinaryInputContent(url=url, mime_type=_get_mime_type(item.type))
-                    )
-                else:
-                    content_list.append(TextInputContent(text=str(item)))
-            # Fallback
-            else:
-                content_list.append(TextInputContent(text=str(item)))
-
-    return content_list
-
-
-def _get_mime_type(content_type: str) -> str:
-    """Get MIME type from content type string."""
-    match content_type:
-        case "image_base64" | "image_url":
-            return "image/jpeg"
-        case "pdf_base64" | "pdf_url":
-            return "application/pdf"
-        case "audio_base64" | "audio_url":
-            return "audio/mp3"
-        case "video_url":
-            return "video/mp4"
-        case _:
-            return "application/octet-stream"
+def get_client(headers: dict[str, str], timeout: float):
+    return httpx.AsyncClient(
+        timeout=httpx.Timeout(timeout),
+        headers={
+            **headers,
+            "Accept": "text/event-stream",
+            "Content-Type": "application/json",
+        },
+    )
 
 
 @dataclass
@@ -127,6 +79,14 @@ class AGUISessionState:
     """Whether the current run is complete."""
     error: str | None = None
     """Error message if run failed."""
+
+    def clear(self) -> None:
+        self.text_chunks.clear()
+        self.thought_chunks.clear()
+        self.tool_calls.clear()
+        self.is_complete = False
+        self.error = None
+        self.run_id = str(uuid4())
 
 
 class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
@@ -214,20 +174,16 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
         self.endpoint = endpoint
         self.timeout = timeout
         self.headers = headers or {}
-
         # Startup command configuration
         self._startup_command = startup_command
         self._startup_delay = startup_delay
         self._startup_process: Process | None = None
-
         self._client: httpx.AsyncClient | None = None
         self._state: AGUISessionState | None = None
         self._message_count = 0
         self.conversation = MessageHistory()
         self._total_tokens = 0
         self._event_queue: asyncio.Queue[RichAgentStreamEvent[Any]] = asyncio.Queue()
-        from llmling_agent.agent.builtin_handlers import resolve_event_handlers
-
         resolved_handlers = resolve_event_handlers(event_handlers)
         self.event_handler = MultiEventHandler[IndividualEventHandler](resolved_handlers)
 
@@ -235,34 +191,19 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
     def context(self) -> NodeContext:
         """Get node context."""
         from llmling_agent.messaging.context import NodeContext
-        from llmling_agent.models.manifest import AgentsManifest
         from llmling_agent_config.nodes import NodeConfig
 
-        return NodeContext(
-            node_name=self.name,
-            pool=self.agent_pool,
-            config=NodeConfig(name=self.name, description=self.description),
-            definition=self.agent_pool.manifest if self.agent_pool else AgentsManifest(),
-        )
+        cfg = NodeConfig(name=self.name, description=self.description)
+        defn = self.agent_pool.manifest if self.agent_pool else AgentsManifest()
+        return NodeContext(node_name=self.name, pool=self.agent_pool, config=cfg, definition=defn)
 
     async def __aenter__(self) -> Self:
         """Enter async context - initialize client and base resources."""
         await super().__aenter__()
-
-        self._client = httpx.AsyncClient(
-            timeout=httpx.Timeout(self.timeout),
-            headers={
-                **self.headers,
-                "Accept": "text/event-stream",
-                "Content-Type": "application/json",
-            },
-        )
+        self._client = get_client(self.headers, self.timeout)
         self._state = AGUISessionState(thread_id=self.conversation_id)
-
-        # Start server if startup command is provided
-        if self._startup_command:
+        if self._startup_command:  # Start server if startup command is provided
             await self._start_server()
-
         self.log.debug("AG-UI client initialized", endpoint=self.endpoint)
         return self
 
@@ -277,11 +218,8 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
             await self._client.aclose()
             self._client = None
         self._state = None
-
-        # Stop server if we started it
-        if self._startup_process:
+        if self._startup_process:  # Stop server if we started it
             await self._stop_server()
-
         self.log.debug("AG-UI client closed")
         await super().__aexit__(exc_type, exc_val, exc_tb)
 
@@ -291,17 +229,14 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
             return
 
         self.log.info("Starting AG-UI server", command=self._startup_command)
-
         self._startup_process = await asyncio.create_subprocess_shell(
             self._startup_command,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
             start_new_session=True,  # Create new process group
         )
-
         self.log.debug("Waiting for server startup", delay=self._startup_delay)
         await asyncio.sleep(self._startup_delay)
-
         # Check if process is still running
         if self._startup_process.returncode is not None:
             stderr = ""
@@ -318,12 +253,9 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
             return
 
         self.log.info("Stopping AG-UI server")
-
         try:
-            # Use cross-platform hard kill helper
-            await hard_kill(self._startup_process)
-        except Exception:
-            # Log but don't fail if kill has issues
+            await hard_kill(self._startup_process)  # Use cross-platform hard kill helper
+        except Exception:  # Log but don't fail if kill has issues
             self.log.exception("Error during process termination")
         finally:
             self._startup_process = None
@@ -351,9 +283,6 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
         Returns:
             ChatMessage containing the agent's aggregated text response
         """
-        from llmling_agent.agent.events import StreamCompleteEvent
-
-        # Collect all events through run_stream
         final_message: ChatMessage[str] | None = None
         async for event in self.run_stream(
             *prompts, message_id=message_id, message_history=message_history
@@ -362,9 +291,7 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
                 final_message = event.message
 
         if final_message is None:
-            msg = "No final message received from stream"
-            raise RuntimeError(msg)
-
+            raise RuntimeError("No final message received from stream")
         return final_message
 
     async def run_stream(
@@ -387,31 +314,13 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
         """
         from ag_ui.core import RunAgentInput, UserMessage
 
-        from llmling_agent.agent.agui_converters import (
-            agui_to_native_event,
-            extract_text_from_event,
-        )
-        from llmling_agent.agent.events import RunStartedEvent
-        from llmling_agent.messaging.processing import prepare_prompts
-
         if not self._client or not self._state:
             msg = "Agent not initialized - use async context manager"
             raise RuntimeError(msg)
 
-        # Determine which conversation to use
         conversation = message_history if message_history is not None else self.conversation
-
-        # Prepare user message for history
         user_msg, _processed_prompts, _original_message = await prepare_prompts(*prompts)
-
-        # Reset state
-        self._state.text_chunks.clear()
-        self._state.thought_chunks.clear()
-        self._state.tool_calls.clear()
-        self._state.is_complete = False
-        self._state.error = None
-        self._state.run_id = str(uuid4())
-
+        self._state.clear()  # Reset state
         # Emit run started event
         run_started = RunStartedEvent(
             thread_id=self._state.thread_id,
@@ -423,9 +332,8 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
         yield run_started
 
         # Build request with proper content conversion
-        content = await _convert_to_agui_content(prompts)
+        content = await convert_to_agui_content(prompts)
         user_message = UserMessage(id=str(uuid4()), content=content)
-
         request_data = RunAgentInput(
             thread_id=self._state.thread_id,
             run_id=self._state.run_id,
@@ -437,17 +345,10 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
         )
 
         self.log.debug("Sending prompt to AG-UI agent")
-
-        # Send request and stream events
-        try:
-            async with self._client.stream(
-                "POST",
-                self.endpoint,
-                json=request_data.model_dump(by_alias=True),
-            ) as response:
+        data = request_data.model_dump(by_alias=True)
+        try:  # Send request and stream events
+            async with self._client.stream("POST", self.endpoint, json=data) as response:
                 response.raise_for_status()
-
-                # Parse SSE stream
                 async for event in self._parse_sse_stream(response):
                     # Track text chunks
                     if text := extract_text_from_event(event):
@@ -475,7 +376,6 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
             raise
         finally:
             self._state.is_complete = True
-
             # Emit final message
             final_message = ChatMessage[str](
                 content="".join(self._state.text_chunks),
@@ -483,14 +383,11 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
                 name=self.name,
                 message_id=message_id or str(uuid4()),
                 conversation_id=self.conversation_id,
-                model_name=None,
-                cost_info=None,
             )
             complete_event = StreamCompleteEvent(message=final_message)
             for handler in self.event_handler._wrapped_handlers:
                 await handler(None, complete_event)
             yield complete_event
-
             # Record to conversation history
             conversation.add_chat_messages([user_msg, final_message])
 
@@ -507,14 +404,11 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
 
         event_adapter: TypeAdapter[Event] = TypeAdapter(Event)
         buffer = ""
-
         async for chunk in response.aiter_text():
             buffer += chunk
-
             # Process complete SSE events
             while "\n\n" in buffer:
                 event_text, buffer = buffer.split("\n\n", 1)
-
                 # Parse SSE format: "data: {json}\n"
                 for line in event_text.split("\n"):
                     if line.startswith("data: "):
@@ -580,15 +474,9 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
 
 async def main() -> None:
     """Example usage."""
-    async with AGUIAgent(
-        endpoint="http://localhost:8000/agent/run",
-        name="test-agent",
-    ) as agent:
-        # Non-streaming
+    async with AGUIAgent(endpoint="http://localhost:8000/agent/run", name="test-agent") as agent:
         result = await agent.run("What is 2+2?")
         print(f"Result: {result.content}")
-
-        # Streaming
         print("\nStreaming:")
         async for event in agent.run_stream("Tell me a short joke"):
             print(f"Event: {event}")
