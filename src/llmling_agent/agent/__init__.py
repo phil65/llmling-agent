@@ -10,7 +10,6 @@ from llmling_agent.agent.builtin_handlers import (
     simple_print_handler,
 )
 from llmling_agent.agent.context import AgentContext
-from llmling_agent.agent.conversation import MessageHistory
 from llmling_agent.agent.interactions import Interactions
 from llmling_agent.agent.slashed_agent import SlashedAgent
 from llmling_agent.agent.sys_prompts import SystemPrompts
@@ -21,7 +20,6 @@ __all__ = [
     "Agent",
     "AgentContext",
     "Interactions",
-    "MessageHistory",
     "SlashedAgent",
     "SystemPrompts",
     "detailed_print_handler",

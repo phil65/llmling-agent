@@ -36,7 +36,7 @@ from llmling_agent.agent.events import (
 )
 from llmling_agent.common_types import IndividualEventHandler
 from llmling_agent.log import get_logger
-from llmling_agent.messaging import ChatMessage, MessageNode
+from llmling_agent.messaging import ChatMessage, MessageHistory, MessageNode
 from llmling_agent.messaging.processing import prepare_prompts
 from llmling_agent.prompts.convert import convert_prompts
 from llmling_agent.storage import StorageManager
@@ -65,7 +65,6 @@ if TYPE_CHECKING:
     from upath.types import JoinablePathLike
 
     from llmling_agent.agent import AgentContext
-    from llmling_agent.agent.conversation import MessageHistory
     from llmling_agent.common_types import (
         AgentName,
         BuiltinEventHandlerType,
@@ -202,7 +201,6 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             env: Execution environment for code/command execution and filesystem access
         """
         from llmling_agent.agent import AgentContext
-        from llmling_agent.agent.conversation import MessageHistory
         from llmling_agent.agent.interactions import Interactions
         from llmling_agent.agent.sys_prompts import SystemPrompts
         from llmling_agent.models.agents import AgentConfig

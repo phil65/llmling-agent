@@ -16,11 +16,10 @@ from anyenv.processes import hard_kill
 import httpx
 from pydantic import TypeAdapter
 
-from llmling_agent.agent.conversation import MessageHistory
 from llmling_agent.agent.events import StreamCompleteEvent
 from llmling_agent.common_types import IndividualEventHandler
 from llmling_agent.log import get_logger
-from llmling_agent.messaging import ChatMessage
+from llmling_agent.messaging import ChatMessage, MessageHistory
 from llmling_agent.messaging.messagenode import MessageNode
 from llmling_agent.models.content import BaseContent
 from llmling_agent.prompts.convert import convert_prompts

@@ -58,10 +58,9 @@ from acp.schema import (
     WriteTextFileResponse,
 )
 from llmling_agent.agent.acp_converters import mcp_configs_to_acp
-from llmling_agent.agent.conversation import MessageHistory
 from llmling_agent.common_types import IndividualEventHandler
 from llmling_agent.log import get_logger
-from llmling_agent.messaging import ChatMessage
+from llmling_agent.messaging import ChatMessage, MessageHistory
 from llmling_agent.messaging.messagenode import MessageNode
 from llmling_agent.models.acp_agents import ACPAgentConfig, MCPCapableACPAgentConfig
 from llmling_agent.talk.stats import MessageStats

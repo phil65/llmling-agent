@@ -24,8 +24,8 @@ from starlette.responses import FileResponse, Response
 from starlette.routing import Route
 import uvicorn
 
-from llmling_agent.agent import MessageHistory
 from llmling_agent.log import get_logger
+from llmling_agent.messaging import MessageHistory
 from llmling_agent.messaging.messages import ChatMessage
 from llmling_agent_server import BaseServer
 from llmling_agent_server.a2a_server.storage import SimpleStorage
@@ -319,14 +319,11 @@ class AgentWorker:
                 message_history = await self.storage.load_context(context_id)
             else:
                 message_history = []
-
             # Convert A2A message to ChatMessage and add to history
             new_message = self._a2a_to_chat_message(task_data["data"])
-
             # Run the agent with the new message as prompt and previous history as context
-            result = await self.agent.run(
-                new_message, message_history=MessageHistory(messages=message_history)
-            )
+            history = MessageHistory(messages=message_history)
+            result = await self.agent.run(new_message, message_history=history)
 
             message_history.append(new_message)
             message_history.append(result)

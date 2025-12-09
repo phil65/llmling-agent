@@ -4,6 +4,7 @@ from llmling_agent.messaging.messages import ChatMessage, TokenCost, AgentRespon
 from llmling_agent.messaging.message_container import ChatMessageList
 from llmling_agent.messaging.event_manager import EventManager
 from llmling_agent.messaging.messagenode import MessageNode
+from llmling_agent.messaging.message_history import MessageHistory
 from llmling_agent.messaging.compaction import (
     CompactionPipeline,
     CompactionPipelineConfig,
@@ -42,6 +43,7 @@ __all__ = [
     "KeepFirstAndLast",
     "KeepFirstMessages",
     "KeepLastMessages",
+    "MessageHistory",
     "MessageNode",
     "Summarize",
     "TeamResponse",
