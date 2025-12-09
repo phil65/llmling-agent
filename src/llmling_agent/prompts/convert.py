@@ -5,31 +5,32 @@ from __future__ import annotations
 import os
 from typing import TYPE_CHECKING
 
+from pydantic_ai import AudioUrl, BinaryContent, BinaryImage, DocumentUrl, ImageUrl, VideoUrl
 from toprompt import to_prompt
 import upath
 from upathtools import read_path, to_upath
-
-from llmling_agent.models.content import BaseContent, BaseImageContent, BasePDFContent
 
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
+    from pydantic_ai import UserContent
+
     from llmling_agent.common_types import PromptCompatible
 
 
 async def convert_prompts(
-    prompts: Sequence[PromptCompatible | BaseContent],
-) -> list[str | BaseContent]:
-    """Convert prompts to our internal format.
+    prompts: Sequence[PromptCompatible],
+) -> list[UserContent]:
+    """Convert prompts to pydantic-ai UserContent format.
 
     Handles:
-    - PIL Images -> ImageBase64Content
+    - PIL Images -> BinaryImage
     - UPath/PathLike -> Auto-detect and convert to appropriate Content
     - Regular prompts -> str via to_prompt
-    - Content objects -> pass through
+    - pydantic-ai content objects -> pass through
     """
-    result: list[str | BaseContent] = []
+    result: list[UserContent] = []
     for p in prompts:
         match p:
             case os.PathLike() | upath.UPath():
@@ -40,24 +41,55 @@ async def convert_prompts(
 
                 match mime_type:
                     case "application/pdf":
-                        content: BaseContent = await BasePDFContent.from_path(path_obj)
-                        result.append(content)
+                        # For http(s) URLs, use DocumentUrl; otherwise read binary
+                        if path_obj.protocol in {"http", "https"}:
+                            result.append(DocumentUrl(url=str(path_obj)))
+                        else:
+                            data = await read_path(path_obj, mode="rb")
+                            result.append(BinaryContent(data=data, media_type="application/pdf"))
                     case str() if mime_type.startswith("image/"):
-                        content = await BaseImageContent.from_path(path_obj)
-                        result.append(content)
+                        if path_obj.protocol in {"http", "https"}:
+                            result.append(ImageUrl(url=str(path_obj)))
+                        else:
+                            data = await read_path(path_obj, mode="rb")
+                            result.append(BinaryImage(data=data, media_type=mime_type))
+                    case str() if mime_type.startswith("audio/"):
+                        if path_obj.protocol in {"http", "https"}:
+                            result.append(AudioUrl(url=str(path_obj)))
+                        else:
+                            data = await read_path(path_obj, mode="rb")
+                            result.append(BinaryContent(data=data, media_type=mime_type))
+                    case str() if mime_type.startswith("video/"):
+                        if path_obj.protocol in {"http", "https"}:
+                            result.append(VideoUrl(url=str(path_obj)))
+                        else:
+                            # Video as binary content
+                            data = await read_path(path_obj, mode="rb")
+                            result.append(BinaryContent(data=data, media_type=mime_type))
                     case _:
-                        # Non-media or unknown type
+                        # Non-media or unknown type - read as text
                         text = await read_path(path_obj)
                         result.append(text)
 
-            case _ if not isinstance(p, BaseContent):
-                result.append(await to_prompt(p))
-            case _:
+            case (
+                str()
+                | ImageUrl()
+                | AudioUrl()
+                | DocumentUrl()
+                | VideoUrl()
+                | BinaryContent()
+                | BinaryImage()
+            ):
+                # Already a valid UserContent type
                 result.append(p)
+
+            case _:
+                # Use to_prompt for anything else (PIL images, pydantic models, etc.)
+                result.append(await to_prompt(p))
     return result
 
 
-async def format_prompts(prompts: Sequence[str | BaseContent]) -> str:
+async def format_prompts(prompts: Sequence[UserContent]) -> str:
     """Format prompts for human readability using to_prompt."""
     from toprompt import to_prompt
 

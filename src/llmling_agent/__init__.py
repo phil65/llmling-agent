@@ -18,14 +18,13 @@ from dotenv import load_dotenv
 from llmling_agent.messaging.messages import ChatMessage
 from llmling_agent.tools import Tool, ToolCallInfo
 from llmling_agent.messaging.messagenode import MessageNode
-from llmling_agent.models.content import (
-    PDFURLContent,
-    PDFBase64Content,
-    ImageBase64Content,
-    ImageURLContent,
-    AudioURLContent,
-    AudioBase64Content,
-    VideoURLContent,
+from pydantic_ai import (
+    AudioUrl,
+    BinaryContent,
+    BinaryImage,
+    DocumentUrl,
+    ImageUrl,
+    VideoUrl,
 )
 
 __version__ = version("llmling-agent")
@@ -44,19 +43,18 @@ __all__ = [
     "AgentContext",
     "AgentPool",
     "AgentsManifest",
-    "AudioBase64Content",
-    "AudioURLContent",
+    "AudioUrl",
     "BaseTeam",
+    "BinaryContent",
+    "BinaryImage",
     "ChatMessage",
-    "ImageBase64Content",
-    "ImageURLContent",
+    "DocumentUrl",
+    "ImageUrl",
     "MessageNode",
-    "PDFBase64Content",
-    "PDFURLContent",
     "Team",
     "TeamRun",
     "Tool",
     "ToolCallInfo",
-    "VideoURLContent",
+    "VideoUrl",
     "__version__",
 ]

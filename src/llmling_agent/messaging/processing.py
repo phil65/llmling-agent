@@ -9,15 +9,16 @@ from llmling_agent.prompts.convert import convert_prompts
 
 
 if TYPE_CHECKING:
+    from pydantic_ai import UserContent
+
     from llmling_agent.common_types import PromptCompatible
     from llmling_agent.messaging import MessageNode
     from llmling_agent.messaging.connection_manager import ConnectionManager
-    from llmling_agent.models.content import BaseContent
 
 
 async def prepare_prompts(
     *prompt: PromptCompatible | ChatMessage[Any],
-) -> tuple[ChatMessage[Any], list[BaseContent | str], ChatMessage[Any] | None]:
+) -> tuple[ChatMessage[Any], list[UserContent], ChatMessage[Any] | None]:
     """Prepare prompts for processing.
 
     Extracted from MessageNode.pre_run logic.
@@ -40,9 +41,7 @@ async def prepare_prompts(
         # clear cost info to avoid double-counting
         return user_msg, prompts, original_msg
     prompts = await convert_prompts(prompt)
-    # use format_prompts?
-    messages = [i if isinstance(i, str) else i.to_pydantic_ai() for i in prompts]
-    user_msg = ChatMessage.user_prompt(message=messages)
+    user_msg = ChatMessage.user_prompt(message=prompts)
     return user_msg, prompts, None
 
 

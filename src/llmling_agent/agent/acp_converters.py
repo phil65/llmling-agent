@@ -8,9 +8,18 @@ This is the reverse of the conversion done in acp_server/session.py handle_event
 
 from __future__ import annotations
 
+import base64
 from typing import TYPE_CHECKING, Any, overload
 
-from pydantic_ai import PartDeltaEvent
+from pydantic_ai import (
+    AudioUrl,
+    BinaryContent,
+    BinaryImage,
+    DocumentUrl,
+    ImageUrl,
+    PartDeltaEvent,
+    VideoUrl,
+)
 from pydantic_ai.messages import TextPartDelta, ThinkingPartDelta
 
 from acp.schema import (
@@ -42,11 +51,12 @@ from llmling_agent.agent.events import (
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
+    from pydantic_ai import UserContent
+
     from acp.schema import ContentBlock, SessionUpdate
     from acp.schema.mcp import HttpMcpServer, McpServer, SseMcpServer, StdioMcpServer
     from acp.schema.tool_call import ToolCallContent, ToolCallLocation
     from llmling_agent.agent.events import RichAgentStreamEvent, ToolCallContentItem
-    from llmling_agent.models.content import BaseContent
     from llmling_agent_config.mcp_server import (
         MCPServerConfig,
         SSEMCPServerConfig,
@@ -96,72 +106,88 @@ def convert_acp_content(
 
 
 def convert_to_acp_content(
-    prompts: Sequence[str | BaseContent],
+    prompts: Sequence[UserContent],
 ) -> list[ContentBlock]:
-    """Convert prompts to ACP ContentBlock format.
+    """Convert pydantic-ai UserContent to ACP ContentBlock format.
 
-    Handles text, images, and audio content types.
+    Handles text, images, audio, video, and document content types.
 
     Args:
-        prompts: Processed prompts from prepare_prompts/convert_prompts
+        prompts: pydantic-ai UserContent items
 
     Returns:
         List of ACP ContentBlock items
     """
-    from llmling_agent.models.content import (
-        AudioBase64Content,
-        AudioURLContent,
-        ImageBase64Content,
-        ImageURLContent,
-        PDFBase64Content,
-        PDFURLContent,
-    )
-
     content_blocks: list[ContentBlock] = []
 
     for item in prompts:
         match item:
             case str(text):
                 content_blocks.append(TextContentBlock(text=text))
-            case ImageBase64Content(data=data, mime_type=mime_type):
-                content_blocks.append(ImageContentBlock(data=data, mime_type=mime_type))
-            case ImageURLContent(url=url):
-                # data is required in ImageContentBlock, use ResourceContentBlock for URLs
+
+            case BinaryImage(data=data, media_type=media_type):
+                encoded = base64.b64encode(data).decode("utf-8")
+                content_blocks.append(ImageContentBlock(data=encoded, mime_type=media_type))
+
+            case BinaryContent(data=data, media_type=media_type):
+                encoded = base64.b64encode(data).decode("utf-8")
+                # Handle different media types
+                if media_type and media_type.startswith("image/"):
+                    content_blocks.append(ImageContentBlock(data=encoded, mime_type=media_type))
+                elif media_type and media_type.startswith("audio/"):
+                    content_blocks.append(AudioContentBlock(data=encoded, mime_type=media_type))
+                elif media_type == "application/pdf":
+                    blob_resource = BlobResourceContents(
+                        blob=encoded,
+                        mime_type="application/pdf",
+                        uri=f"data:application/pdf;base64,{encoded[:50]}...",
+                    )
+                    content_blocks.append(EmbeddedResourceContentBlock(resource=blob_resource))
+                else:
+                    # Generic binary as embedded resource
+                    blob_resource = BlobResourceContents(
+                        blob=encoded,
+                        mime_type=media_type or "application/octet-stream",
+                        uri=f"data:{media_type or 'application/octet-stream'};base64,...",
+                    )
+                    content_blocks.append(EmbeddedResourceContentBlock(resource=blob_resource))
+
+            case ImageUrl(url=url, media_type=media_type):
                 content_blocks.append(
                     ResourceContentBlock(
-                        uri=url,
+                        uri=str(url),
                         name="Image",
-                        mime_type="image/jpeg",
+                        mime_type=media_type or "image/jpeg",
                     )
                 )
-            case AudioBase64Content(data=data, format=format_):
-                mime_type = f"audio/{format_}" if format_ else "audio/wav"
-                content_blocks.append(AudioContentBlock(data=data, mime_type=mime_type))
-            case AudioURLContent(url=url):
-                # Use ResourceContentBlock for URL-based audio
+
+            case AudioUrl(url=url, media_type=media_type):
                 content_blocks.append(
                     ResourceContentBlock(
-                        uri=url,
+                        uri=str(url),
                         name="Audio",
-                        mime_type="audio/wav",
+                        mime_type=media_type or "audio/wav",
                         description="Audio content",
                     )
                 )
-            case PDFBase64Content(data=data):
-                # Use EmbeddedResourceContentBlock for base64 PDF content
-                blob_resource = BlobResourceContents(
-                    blob=data,
-                    mime_type="application/pdf",
-                    uri=f"data:application/pdf;base64,{data[:50]}...",
-                )
-                content_blocks.append(EmbeddedResourceContentBlock(resource=blob_resource))
-            case PDFURLContent(url=url):
+
+            case DocumentUrl(url=url, media_type=media_type):
                 content_blocks.append(
                     ResourceContentBlock(
-                        uri=url,
-                        name="PDF",
-                        mime_type="application/pdf",
-                        description="PDF document",
+                        uri=str(url),
+                        name="Document",
+                        mime_type=media_type or "application/pdf",
+                        description="Document",
+                    )
+                )
+
+            case VideoUrl(url=url, media_type=media_type):
+                content_blocks.append(
+                    ResourceContentBlock(
+                        uri=str(url),
+                        name="Video",
+                        mime_type=media_type or "video/mp4",
+                        description="Video content",
                     )
                 )
 

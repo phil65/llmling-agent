@@ -34,8 +34,17 @@ from ag_ui.core import (
     ToolCallResultEvent,
     ToolCallStartEvent,
 )
-from pydantic_ai import PartDeltaEvent
-from pydantic_ai.messages import TextPartDelta, ThinkingPartDelta
+from pydantic_ai import (
+    AudioUrl,
+    BinaryContent,
+    BinaryImage,
+    DocumentUrl,
+    FileUrl,
+    ImageUrl,
+    PartDeltaEvent,
+    VideoUrl,
+)
+from pydantic_ai.messages import CachePoint, TextPartDelta, ThinkingPartDelta
 
 from llmling_agent.agent.events import (
     CustomEvent,
@@ -45,8 +54,6 @@ from llmling_agent.agent.events import (
     ToolCallProgressEvent,
     ToolCallStartEvent as NativeToolCallStartEvent,
 )
-from llmling_agent.models.content import BaseContent
-from llmling_agent.prompts.convert import convert_prompts
 from llmling_agent.resource_providers.plan_provider import PlanEntry
 
 
@@ -170,55 +177,10 @@ async def convert_to_agui_content(
     Returns:
         List of InputContent items
     """
-    from ag_ui.core import BinaryInputContent, TextInputContent
-
-    from llmling_agent.models.content import (
-        AudioBase64Content,
-        AudioURLContent,
-        ImageBase64Content,
-        ImageURLContent,
-        PDFBase64Content,
-        PDFURLContent,
-        VideoURLContent,
-    )
+    from llmling_agent.prompts.convert import convert_prompts
 
     converted = await convert_prompts(prompts)
-
-    content_list: list[InputContent] = []
-    for item in converted:
-        match item:
-            case str() as text:
-                content_list.append(TextInputContent(text=text))
-
-            case ImageBase64Content(data=data, mime_type=mime_type):
-                content_list.append(BinaryInputContent(data=data, mime_type=mime_type))
-
-            case PDFBase64Content(data=data):
-                content_list.append(BinaryInputContent(data=data, mime_type="application/pdf"))
-
-            case AudioBase64Content(data=data, format=fmt):
-                mime = f"audio/{fmt or 'mp3'}"
-                content_list.append(BinaryInputContent(data=data, mime_type=mime))
-
-            case ImageURLContent(url=url):
-                content_list.append(BinaryInputContent(url=url, mime_type="image/jpeg"))
-
-            case PDFURLContent(url=url):
-                content_list.append(BinaryInputContent(url=url, mime_type="application/pdf"))
-
-            case AudioURLContent(url=url, format=fmt):
-                mime = f"audio/{fmt or 'mp3'}"
-                content_list.append(BinaryInputContent(url=url, mime_type=mime))
-
-            case VideoURLContent(url=url, format=fmt):
-                mime = f"video/{fmt or 'mp4'}"
-                content_list.append(BinaryInputContent(url=url, mime_type=mime))
-
-            case BaseContent():
-                # Fallback for any other BaseContent subtype
-                content_list.append(TextInputContent(text=str(item)))
-
-    return content_list
+    return to_agui_input_content(converted)
 
 
 def _content_to_plan_entries(content: list[Any]) -> list[PlanEntry]:
@@ -288,9 +250,6 @@ def to_agui_input_content(
     Returns:
         List of AG-UI InputContent items
     """
-    from pydantic_ai import BinaryContent, FileUrl
-    from pydantic_ai.messages import CachePoint
-
     if parts is None:
         return []
 
@@ -305,9 +264,25 @@ def to_agui_input_content(
             case str() as text:
                 result.append(TextInputContent(text=text))
 
-            case FileUrl(url=url, media_type=media_type):
-                # ImageUrl, AudioUrl, DocumentUrl, VideoUrl all inherit from FileUrl
+            case ImageUrl(url=url, media_type=media_type):
                 result.append(BinaryInputContent(url=str(url), mime_type=media_type))
+
+            case AudioUrl(url=url, media_type=media_type):
+                result.append(BinaryInputContent(url=str(url), mime_type=media_type))
+
+            case DocumentUrl(url=url, media_type=media_type):
+                result.append(BinaryInputContent(url=str(url), mime_type=media_type))
+
+            case VideoUrl(url=url, media_type=media_type):
+                result.append(BinaryInputContent(url=str(url), mime_type=media_type))
+
+            case FileUrl(url=url, media_type=media_type):
+                # Generic FileUrl fallback
+                result.append(BinaryInputContent(url=str(url), mime_type=media_type))
+
+            case BinaryImage(data=data, media_type=media_type):
+                encoded = base64.b64encode(data).decode("utf-8")
+                result.append(BinaryInputContent(data=encoded, mime_type=media_type))
 
             case BinaryContent(data=data, media_type=media_type):
                 encoded = base64.b64encode(data).decode("utf-8")

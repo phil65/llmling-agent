@@ -1,9 +1,9 @@
 from __future__ import annotations
 
+from pydantic_ai import ImageUrl
 import pytest
 
 from llmling_agent import Agent
-from llmling_agent.models.content import ImageURLContent
 
 
 @pytest.mark.flaky(reruns=2)
@@ -12,7 +12,7 @@ async def test_vision(vision_model: str):
     agent = Agent(name="test-vision", model=vision_model)
     # Using a small, public image
     msg = "https://python.org/static/community_logos/python-logo-master-v3-TM.png"
-    image = ImageURLContent(url=msg, description="Python logo")
+    image = ImageUrl(url=msg)
     msg = "What does this image show? Answer in one short sentence."
     result = await agent.run(msg, image)
 

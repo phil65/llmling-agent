@@ -16,7 +16,7 @@ class StructuredResponseConfig(Schema):
         examples=[
             {
                 "type": "import",
-                "import_path": "llmling_agent.models.content:ImageBase64Content",
+                "import_path": "pydantic_ai:BinaryImage",
             },
             {
                 "type": "inline",

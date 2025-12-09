@@ -1,14 +1,16 @@
 """Content conversion utilities for ACP (Agent Client Protocol) integration.
 
-This module handles conversion between llmling-agent message formats and ACP protocol
+This module handles conversion between pydantic-ai message formats and ACP protocol
 content blocks, session updates, and other data structures using the external acp library.
 """
 
 from __future__ import annotations
 
+import base64
 from typing import TYPE_CHECKING, Any, assert_never, overload
 
 from pydantic import HttpUrl
+from pydantic_ai import AudioUrl, BinaryContent, BinaryImage, DocumentUrl, ImageUrl, VideoUrl
 
 from acp.schema import (
     AudioContentBlock,
@@ -34,9 +36,10 @@ from llmling_agent_config.mcp_server import (
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
+    from pydantic_ai import UserContent
+
     from acp.schema import ContentBlock, McpServer
     from llmling_agent.messaging import MessageNode
-    from llmling_agent.models.content import BaseContent
     from llmling_agent_config.mcp_server import MCPServerConfig
 
 
@@ -108,51 +111,42 @@ def format_uri_as_link(uri: str) -> str:
     return uri
 
 
-def from_content_blocks(blocks: Sequence[ContentBlock]) -> Sequence[str | BaseContent]:
-    """Convert ACP content blocks to structured content objects.
+def from_content_blocks(blocks: Sequence[ContentBlock]) -> Sequence[UserContent]:
+    """Convert ACP content blocks to pydantic-ai UserContent objects.
 
     Args:
         blocks: List of ACP ContentBlock objects
 
     Returns:
-        List of content objects (str for text, Content objects for rich media)
+        List of pydantic-ai UserContent objects (str, ImageUrl, BinaryContent, etc.)
     """
-    from llmling_agent.models.content import (
-        AudioBase64Content,
-        AudioURLContent,
-        ImageBase64Content,
-        ImageURLContent,
-        PDFBase64Content,
-        PDFURLContent,
-        VideoURLContent,
-    )
-
-    content: list[str | BaseContent] = []
+    content: list[UserContent] = []
 
     for block in blocks:
         match block:
             case TextContentBlock(text=text):
                 content.append(text)
 
-            case ImageContentBlock(data=data, mime_type=mime_type, uri=uri):
-                # Prefer data over URI as per ACP specification
-                content.append(ImageBase64Content(data=data, mime_type=mime_type))
+            case ImageContentBlock(data=data, mime_type=mime_type):
+                # ACP image data is base64 encoded
+                binary_data = base64.b64decode(data)
+                content.append(BinaryImage(data=binary_data, media_type=mime_type))
 
             case AudioContentBlock(data=data, mime_type=mime_type):
-                format_type = mime_type.split("/")[-1] if mime_type else "mp3"
-                content.append(AudioBase64Content(data=data, format=format_type))
+                binary_data = base64.b64decode(data)
+                content.append(BinaryContent(data=binary_data, media_type=mime_type))
 
-            case ResourceContentBlock(uri=uri, description=description, mime_type=mime_type):
-                # Convert to appropriate content type based on MIME type
+            case ResourceContentBlock(uri=uri, mime_type=mime_type):
+                # Convert to appropriate URL type based on MIME type
                 if mime_type:
                     if mime_type.startswith("image/"):
-                        content.append(ImageURLContent(url=uri, description=description))
+                        content.append(ImageUrl(url=uri))
                     elif mime_type.startswith("audio/"):
-                        content.append(AudioURLContent(url=uri, description=description))
+                        content.append(AudioUrl(url=uri))
                     elif mime_type.startswith("video/"):
-                        content.append(VideoURLContent(url=uri, description=description))
+                        content.append(VideoUrl(url=uri))
                     elif mime_type == "application/pdf":
-                        content.append(PDFURLContent(url=uri, description=description))
+                        content.append(DocumentUrl(url=uri))
                     else:
                         # Generic resource - convert to text link
                         content.append(format_uri_as_link(uri))
@@ -167,13 +161,15 @@ def from_content_blocks(blocks: Sequence[ContentBlock]) -> Sequence[str | BaseCo
                         content.append(f'\n<context ref="{uri}">\n{text}\n</context>')
                     case BlobResourceContents(blob=blob, mime_type=mime_type):
                         # Convert embedded binary to appropriate content type
+                        binary_data = base64.b64decode(blob)
                         if mime_type and mime_type.startswith("image/"):
-                            content.append(ImageBase64Content(data=blob, mime_type=mime_type))
+                            content.append(BinaryImage(data=binary_data, media_type=mime_type))
                         elif mime_type and mime_type.startswith("audio/"):
-                            format_type = mime_type.split("/")[-1]
-                            content.append(AudioBase64Content(data=blob, format=format_type))
+                            content.append(BinaryContent(data=binary_data, media_type=mime_type))
                         elif mime_type == "application/pdf":
-                            content.append(PDFBase64Content(data=blob))
+                            content.append(
+                                BinaryContent(data=binary_data, media_type="application/pdf")
+                            )
                         else:
                             # Unknown binary type - describe it
                             formatted_uri = format_uri_as_link(resource.uri)

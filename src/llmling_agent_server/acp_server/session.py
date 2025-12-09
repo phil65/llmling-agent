@@ -71,6 +71,7 @@ from llmling_agent_server.acp_server.input_provider import ACPInputProvider
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
+    from pydantic_ai import UserContent
     from pydantic_ai.messages import SystemPromptPart, UserPromptPart
     from slashed import CommandContext
 
@@ -79,7 +80,6 @@ if TYPE_CHECKING:
     from llmling_agent import AgentPool
     from llmling_agent.agent import AGUIAgent
     from llmling_agent.agent.events import RichAgentStreamEvent
-    from llmling_agent.models.content import BaseContent
     from llmling_agent.prompts.manager import PromptManager
     from llmling_agent.prompts.prompts import MCPClientPrompt
     from llmling_agent_server.acp_server.acp_agent import LLMlingACPAgent
@@ -124,10 +124,10 @@ def _is_slash_command(text: str) -> bool:
 
 
 def split_commands(
-    contents: Sequence[str | BaseContent],
-) -> tuple[list[str], list[str | BaseContent]]:
+    contents: Sequence[UserContent],
+) -> tuple[list[str], list[UserContent]]:
     commands: list[str] = []
-    non_command_content: list[str | BaseContent] = []
+    non_command_content: list[UserContent] = []
     for item in contents:
         if isinstance(item, str) and _is_slash_command(item):
             commands.append(item.strip())

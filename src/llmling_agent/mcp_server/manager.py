@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import asyncio
+import base64
 from contextlib import AsyncExitStack
 from typing import TYPE_CHECKING, Any, Self, cast
 
-from pydantic_ai import UsageLimits
+from pydantic_ai import BinaryContent, BinaryImage, UsageLimits
 
 from llmling_agent.log import get_logger
-from llmling_agent.models.content import AudioBase64Content, ImageBase64Content
 from llmling_agent.resource_providers import AggregatingResourceProvider, ResourceProvider
 from llmling_agent.resource_providers.mcp_provider import MCPResourceProvider
 from llmling_agent_config.mcp_server import BaseMCPServerConfig
@@ -22,8 +22,8 @@ if TYPE_CHECKING:
     from mcp import types
     from mcp.shared.context import RequestContext
     from mcp.types import SamplingMessage
+    from pydantic_ai import UserContent
 
-    from llmling_agent.models.content import BaseContent
     from llmling_agent_config.mcp_server import MCPServerConfig
 
 
@@ -92,18 +92,17 @@ class MCPManager:
         from llmling_agent.agent import Agent
 
         # Convert messages to prompts for the agent
-        prompts: list[BaseContent | str] = []
+        prompts: list[UserContent] = []
         for mcp_msg in messages:
             match mcp_msg.content:
                 case types.TextContent(text=text):
                     prompts.append(text)
                 case types.ImageContent(data=data, mimeType=mime_type):
-                    our_image = ImageBase64Content(data=data, mime_type=mime_type)
-                    prompts.append(our_image)
+                    binary_data = base64.b64decode(data)
+                    prompts.append(BinaryImage(data=binary_data, media_type=mime_type))
                 case types.AudioContent(data=data, mimeType=mime_type):
-                    fmt = mime_type.removeprefix("audio/")
-                    our_audio = AudioBase64Content(data=data, format=fmt)
-                    prompts.append(our_audio)
+                    binary_data = base64.b64decode(data)
+                    prompts.append(BinaryContent(data=binary_data, media_type=mime_type))
 
         # Extract model from preferences
         model = None

@@ -33,9 +33,9 @@ Images can be passed in several ways:
 # As path to image file
 await agent.run(Path("photo.jpg"))
 
-# As base64 or URL content
-from llmling_agent_config import ImageBase64Content, ImageURLContent
-img_content = ImageBase64Content.from_bytes(binary_data)
+# As URL or binary content
+from pydantic_ai import ImageUrl, BinaryImage
+img_content = BinaryImage(data=binary_data, media_type="image/jpeg")
 await agent.run(img_content)
 ```
 

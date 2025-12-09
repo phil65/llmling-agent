@@ -756,11 +756,8 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             agentlet = await self.get_agentlet(tool_choice, model, output_type, input_provider)
             content = await convert_prompts(prompts)
             response_msg: ChatMessage[Any] | None = None
-            # Prepend pending context parts and convert to pydantic-ai format
-            converted = [
-                *pending_parts,
-                *(i if isinstance(i, str) else i.to_pydantic_ai() for i in content),
-            ]
+            # Prepend pending context parts (content is already pydantic-ai format)
+            converted = [*pending_parts, *content]
 
             # Add CachePoint if auto_cache is enabled
             if self._auto_cache != "off":

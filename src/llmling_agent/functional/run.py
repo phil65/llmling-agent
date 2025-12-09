@@ -5,9 +5,9 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Unpack, overload
 
 from anyenv import run_sync
+from pydantic_ai import ImageUrl
 
 from llmling_agent import Agent
-from llmling_agent.models.content import ImageURLContent
 
 
 if TYPE_CHECKING:
@@ -43,7 +43,7 @@ async def run_agent(
     """Run prompt through agent and return result."""
     async with Agent[Any, str](**kwargs) as agent:
         if image_url:
-            image = ImageURLContent(url=image_url)
+            image = ImageUrl(url=image_url)
             result = await agent.run(prompt, image, output_type=output_type)
         else:
             result = await agent.run(prompt, output_type=output_type)
