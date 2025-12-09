@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+from typing import Self
+
 from acp.schema.base import Response
 from acp.schema.terminal import TerminalExitStatus  # noqa: TC001
-from acp.schema.tool_call import AllowedOutcome, DeniedOutcome  # noqa: TC001
+from acp.schema.tool_call import AllowedOutcome, DeniedOutcome
 
 
 # terminal
@@ -70,6 +72,16 @@ class RequestPermissionResponse(Response):
 
     outcome: DeniedOutcome | AllowedOutcome
     """The user's decision on the permission request."""
+
+    @classmethod
+    def denied(cls) -> Self:
+        """Create a response indicating that the permission request was denied."""
+        return cls(outcome=DeniedOutcome())
+
+    @classmethod
+    def allowed(cls, option_id: str) -> Self:
+        """Create a response indicating that the permission request was allowed."""
+        return cls(outcome=AllowedOutcome(option_id=option_id))
 
 
 ClientResponse = (

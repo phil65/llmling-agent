@@ -14,10 +14,8 @@ import uuid
 from anyenv import ProcessManager
 
 from acp import (
-    AllowedOutcome,
     Client,
     CreateTerminalResponse,
-    DeniedOutcome,
     KillTerminalCommandResponse,
     ReadTextFileResponse,
     ReleaseTerminalResponse,
@@ -90,9 +88,9 @@ class HeadlessACPClient(Client):
             # Grant permission using first available option
             option_id = params.options[0].option_id
             logger.debug("Auto-granting permission", tool_name=tool_name)
-            return RequestPermissionResponse(outcome=AllowedOutcome(option_id=option_id))
+            return RequestPermissionResponse.allowed(option_id)
         logger.debug("Denying permission", tool_name=tool_name)
-        return RequestPermissionResponse(outcome=DeniedOutcome())
+        return RequestPermissionResponse.denied()
 
     async def session_update(self, params: SessionNotification) -> None:
         """Handle session update notifications."""

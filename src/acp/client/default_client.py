@@ -10,20 +10,16 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from acp.client import Client
-from acp.schema import (
-    AllowedOutcome,
-    DeniedOutcome,
-    ReadTextFileResponse,
-    RequestPermissionResponse,
-    WriteTextFileResponse,
-)
+from acp.schema import ReadTextFileResponse, RequestPermissionResponse, WriteTextFileResponse
 from llmling_agent import log
 
 
 if TYPE_CHECKING:
     from acp.schema import (
+        AllowedOutcome,
         CreateTerminalRequest,
         CreateTerminalResponse,
+        DeniedOutcome,
         KillTerminalCommandRequest,
         KillTerminalCommandResponse,
         ReadTextFileRequest,
@@ -92,12 +88,10 @@ class DefaultACPClient(Client):
         # Default: grant permission for the first option
         if params.options:
             id_ = params.options[0].option_id
-            selected_outcome = AllowedOutcome(option_id=id_)
-            return RequestPermissionResponse(outcome=selected_outcome)
+            return RequestPermissionResponse.allowed(id_)
 
         # No options - deny
-        cancelled_outcome = DeniedOutcome()
-        return RequestPermissionResponse(outcome=cancelled_outcome)
+        return RequestPermissionResponse.denied()
 
     async def session_update(self, params: SessionNotification) -> None:
         """Handle session update notifications.
