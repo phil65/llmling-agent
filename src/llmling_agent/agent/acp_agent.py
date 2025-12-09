@@ -64,6 +64,7 @@ from llmling_agent.messaging.messagenode import MessageNode
 from llmling_agent.messaging.processing import prepare_prompts
 from llmling_agent.models.acp_agents import ACPAgentConfig, MCPCapableACPAgentConfig
 from llmling_agent.talk.stats import MessageStats
+from llmling_agent.tools.base import Tool
 
 
 if TYPE_CHECKING:
@@ -96,7 +97,6 @@ if TYPE_CHECKING:
     from llmling_agent.messaging.context import NodeContext
     from llmling_agent.models.acp_agents import BaseACPAgentConfig
     from llmling_agent.tools import ToolManager
-    from llmling_agent.tools.base import Tool
     from llmling_agent.ui.base import InputProvider
 
 
@@ -234,23 +234,17 @@ class ACPClientHandler(Client):
         self, params: RequestPermissionRequest
     ) -> RequestPermissionResponse:
         """Handle permission requests via InputProvider."""
-        tool_name = params.tool_call.title or "operation"
-        logger.info("Permission requested", tool_name=tool_name)
+        name = params.tool_call.title or "operation"
+        logger.info("Permission requested", tool_name=name)
         if self.auto_grant_permissions and params.options:
             option_id = params.options[0].option_id
-            logger.debug("Auto-granting permission", tool_name=tool_name)
+            logger.debug("Auto-granting permission", tool_name=name)
             return RequestPermissionResponse.allowed(option_id)
 
         if self._input_provider:
-            # Map ACP permission request to our tool confirmation system
-            from llmling_agent.tools.base import Tool
-
-            # Use the agent's existing NodeContext
-            ctx = self._agent.context
+            ctx = self._agent.context  # Use the agent's existing NodeContext
             # Create a dummy tool representation from ACP params
-            tool = Tool(
-                callable=lambda: None, name=params.tool_call.tool_call_id, description=tool_name
-            )
+            tool = Tool(callable=lambda: None, name=params.tool_call.tool_call_id, description=name)
             # Extract arguments - ACP doesn't expose them in ToolCall
             try:
                 result = await self._input_provider.get_tool_confirmation(ctx, tool=tool, args={})
@@ -260,14 +254,13 @@ class ACPClientHandler(Client):
                     return RequestPermissionResponse.allowed(option_id)
                 if result == "skip":
                     return RequestPermissionResponse.denied()
-                # abort_run
-                return RequestPermissionResponse.denied()
+                return RequestPermissionResponse.denied()  # abort_run
 
             except Exception:
                 logger.exception("Failed to get permission via input provider")
                 return RequestPermissionResponse.denied()
 
-        logger.debug("Denying permission (no input provider)", tool_name=tool_name)
+        logger.debug("Denying permission (no input provider)", tool_name=name)
         return RequestPermissionResponse.denied()
 
     async def read_text_file(self, params: ReadTextFileRequest) -> ReadTextFileResponse:
@@ -366,7 +359,7 @@ class ACPClientHandler(Client):
 
     async def kill_terminal(
         self, params: KillTerminalCommandRequest
-    ) -> KillTerminalCommandResponse | None:
+    ) -> KillTerminalCommandResponse:
         """Kill terminal process via ProcessManager."""
         if not self.allow_terminal:
             raise RuntimeError("Terminal operations not allowed")
@@ -380,9 +373,7 @@ class ACPClientHandler(Client):
         logger.info("Killed terminal", terminal_id=terminal_id)
         return KillTerminalCommandResponse()
 
-    async def release_terminal(
-        self, params: ReleaseTerminalRequest
-    ) -> ReleaseTerminalResponse | None:
+    async def release_terminal(self, params: ReleaseTerminalRequest) -> ReleaseTerminalResponse:
         """Release terminal resources via ProcessManager."""
         if not self.allow_terminal:
             raise RuntimeError("Terminal operations not allowed")
