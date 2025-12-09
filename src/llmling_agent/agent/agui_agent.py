@@ -18,7 +18,6 @@ from pydantic import TypeAdapter
 
 from llmling_agent.agent.agui_converters import (
     agui_to_native_event,
-    convert_to_agui_content,
     extract_text_from_event,
     to_agui_input_content,
 )
@@ -336,8 +335,11 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
         pending_parts = conversation.get_pending_parts()
         pending_content = to_agui_input_content(pending_parts)
 
-        # Convert prompts to AGUI content (always returns list)
-        content = await convert_to_agui_content(prompts)
+        # Convert prompts to pydantic-ai format, then to AGUI content
+        from llmling_agent.prompts.convert import convert_prompts
+
+        converted_prompts = await convert_prompts(prompts)
+        content = to_agui_input_content(converted_prompts)
 
         # Combine pending parts with new content
         final_content = [*pending_content, *content]

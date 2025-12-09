@@ -351,7 +351,7 @@ class MCPClient:
             result = await self._client.call_tool(
                 name, arguments, progress_handler=progress_handler
             )
-            content = await self._convert_mcp_content(result.content)
+            content = await self._from_mcp_content(result.content)
             # Decision logic for return type
             match (result.data is not None, bool(content)):
                 case (True, True):  # Both structured data and rich content -> ToolReturn
@@ -373,14 +373,14 @@ class MCPClient:
             # Clear per-call handler
             self._current_elicitation_handler = None
 
-    async def _convert_mcp_content(
+    async def _from_mcp_content(
         self,
         mcp_content: Sequence[ContentBlock | TextResourceContents | BlobResourceContents],
     ) -> list[str | BinaryContent]:
         """Convert MCP content blocks to PydanticAI content types."""
-        from llmling_agent.mcp_server.conversions import convert_mcp_content
+        from llmling_agent.mcp_server.conversions import from_mcp_content
 
-        return await convert_mcp_content(mcp_content)
+        return await from_mcp_content(mcp_content)
 
 
 if __name__ == "__main__":

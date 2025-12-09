@@ -64,7 +64,6 @@ if TYPE_CHECKING:
     from pydantic_ai import UserContent
 
     from llmling_agent.agent.events import RichAgentStreamEvent
-    from llmling_agent.common_types import PromptCompatible
 
 
 def agui_to_native_event(event: Event) -> RichAgentStreamEvent[Any] | None:  # noqa: PLR0911
@@ -164,23 +163,6 @@ def agui_to_native_event(event: Event) -> RichAgentStreamEvent[Any] | None:  # n
 
         case _:
             return None
-
-
-async def convert_to_agui_content(
-    prompts: tuple[PromptCompatible, ...],
-) -> list[InputContent]:
-    """Convert prompts to AG-UI InputContent format.
-
-    Args:
-        prompts: Input prompts to convert
-
-    Returns:
-        List of InputContent items
-    """
-    from llmling_agent.prompts.convert import convert_prompts
-
-    converted = await convert_prompts(prompts)
-    return to_agui_input_content(converted)
 
 
 def _content_to_plan_entries(content: list[Any]) -> list[PlanEntry]:

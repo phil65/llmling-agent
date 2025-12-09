@@ -111,7 +111,7 @@ def format_uri_as_link(uri: str) -> str:
     return uri
 
 
-def from_content_blocks(blocks: Sequence[ContentBlock]) -> Sequence[UserContent]:
+def from_acp_content(blocks: Sequence[ContentBlock]) -> Sequence[UserContent]:
     """Convert ACP content blocks to pydantic-ai UserContent objects.
 
     Args:

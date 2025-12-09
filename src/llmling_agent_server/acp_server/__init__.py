@@ -8,7 +8,7 @@ from llmling_agent_server.acp_server.session import ACPSession
 from llmling_agent_server.acp_server.session_manager import ACPSessionManager
 from llmling_agent_server.acp_server.converters import (
     convert_acp_mcp_server_to_config,
-    from_content_blocks,
+    from_acp_content,
 )
 
 
@@ -18,5 +18,5 @@ __all__ = [
     "ACPSessionManager",
     "LLMlingACPAgent",
     "convert_acp_mcp_server_to_config",
-    "from_content_blocks",
+    "from_acp_content",
 ]

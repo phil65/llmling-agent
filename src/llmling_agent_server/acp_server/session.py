@@ -63,7 +63,7 @@ from llmling_agent_commands import get_commands
 from llmling_agent_commands.base import NodeCommand
 from llmling_agent_server.acp_server.converters import (
     convert_acp_mcp_server_to_config,
-    from_content_blocks,
+    from_acp_content,
 )
 from llmling_agent_server.acp_server.input_provider import ACPInputProvider
 
@@ -330,7 +330,7 @@ class ACPSession:
             Stop reason
         """
         self._cancelled = False
-        contents = from_content_blocks(content_blocks)
+        contents = from_acp_content(content_blocks)
         self.log.debug("Converted content", content=contents)
         if not contents:
             self.log.warning("Empty prompt received")

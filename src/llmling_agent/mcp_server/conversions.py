@@ -16,13 +16,16 @@ from mcp.types import (
     TextResourceContents,
 )
 from pydantic_ai import (
+    AudioUrl,
     BinaryContent,
     BinaryImage,
     DocumentUrl,
     FileUrl,
+    ImageUrl,
     SystemPromptPart,
     TextPart,
     UserPromptPart,
+    VideoUrl,
 )
 
 from llmling_agent.log import get_logger
@@ -77,7 +80,21 @@ def to_mcp_messages(
     return messages
 
 
-async def convert_mcp_content(
+def _url_from_mime_type(uri: str, mime_type: str | None) -> FileUrl:
+    """Convert URI to appropriate pydantic-ai URL type based on MIME type."""
+    if not mime_type:
+        return DocumentUrl(url=uri)
+
+    if mime_type.startswith("image/"):
+        return ImageUrl(url=uri)
+    if mime_type.startswith("audio/"):
+        return AudioUrl(url=uri)
+    if mime_type.startswith("video/"):
+        return VideoUrl(url=uri)
+    return DocumentUrl(url=uri)
+
+
+async def from_mcp_content(
     mcp_content: Sequence[ContentBlock | TextResourceContents | BlobResourceContents],
     client: Client[Any] | None = None,
 ) -> list[str | BinaryContent]:
@@ -107,16 +124,18 @@ async def convert_mcp_content(
                 mime = "application/octet-stream"
                 content = BinaryContent(data=decoded_data, media_type=mime)
                 contents.append(content)
-            case ResourceLink(uri=uri):
+            case ResourceLink(uri=uri, mimeType=mime_type):
                 if client:
                     try:
                         res = await client.read_resource(uri)
-                        nested = await convert_mcp_content(res)
+                        nested = await from_mcp_content(res, client)
                         contents.extend(nested)
+                        continue
                     except Exception:  # noqa: BLE001
-                        # Fallback to DocumentUrl if reading fails
+                        # Fallback to URL if reading fails
                         logger.warning("Failed to read resource", uri=uri)
-                contents.append(DocumentUrl(url=str(uri)))
+                # Convert to appropriate URL type based on MIME type
+                contents.append(_url_from_mime_type(str(uri), mime_type))
             case EmbeddedResource(resource=TextResourceContents(text=text)):
                 contents.append(text)
             case EmbeddedResource(resource=BlobResourceContents() as blob_resource):
