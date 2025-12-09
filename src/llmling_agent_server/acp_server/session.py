@@ -41,7 +41,7 @@ from acp.schema import (
     ToolCallLocation,
 )
 from acp.utils import to_acp_content_blocks
-from llmling_agent import Agent
+from llmling_agent import Agent, AgentContext  # noqa: TC001
 from llmling_agent.agent import SlashedAgent
 from llmling_agent.agent.acp_agent import ACPAgent
 from llmling_agent.agent.events import (
@@ -876,7 +876,7 @@ class ACPSession:
         """
 
         async def execute_prompt(
-            ctx: CommandContext[Any],
+            ctx: CommandContext[AgentContext],
             args: list[str],
             kwargs: dict[str, str],
         ) -> None:
@@ -894,7 +894,6 @@ class ACPSession:
                 # Get prompt components
                 components = await prompt.get_components(result or None)
                 self.add_staged_parts(components)
-
                 # Send confirmation
                 staged_count = self.get_staged_parts_count()
                 await ctx.print(f"✅ Prompt {prompt.name!r} staged ({staged_count} total parts)")
