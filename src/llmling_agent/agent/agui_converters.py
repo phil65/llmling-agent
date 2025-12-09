@@ -176,21 +176,18 @@ def agui_to_native_event(event: Event) -> RichAgentStreamEvent[Any] | None:  # n
 
 async def convert_to_agui_content(
     prompts: tuple[PromptCompatible, ...],
-) -> str | list[InputContent]:
+) -> list[InputContent]:
     """Convert prompts to AG-UI InputContent format.
 
     Args:
         prompts: Input prompts to convert
 
     Returns:
-        Either a simple string or list of InputContent items for multimodal
+        List of InputContent items
     """
     from ag_ui.core import BinaryInputContent, TextInputContent
 
     converted = await convert_prompts(prompts)
-    # If all strings, join them
-    if all(isinstance(p, str) for p in converted):
-        return " ".join(str(p) for p in converted)
 
     content_list: list[InputContent] = []
     for item in converted:

@@ -11,7 +11,6 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Self
 from uuid import uuid4
 
-from ag_ui.core import TextInputContent
 from anyenv import MultiEventHandler
 from anyenv.processes import hard_kill
 import httpx
@@ -51,7 +50,7 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-def get_client(headers: dict[str, str], timeout: float):
+def get_client(headers: dict[str, str], timeout: float) -> httpx.AsyncClient:
     return httpx.AsyncClient(
         timeout=httpx.Timeout(timeout),
         headers={
@@ -82,6 +81,7 @@ class AGUISessionState:
     """Error message if run failed."""
 
     def clear(self) -> None:
+        """Clear session state."""
         self.text_chunks.clear()
         self.thought_chunks.clear()
         self.tool_calls.clear()
@@ -296,7 +296,7 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
             raise RuntimeError("No final message received from stream")
         return final_message
 
-    async def run_stream(  # noqa: PLR0915
+    async def run_stream(
         self,
         *prompts: PromptCompatible,
         message_id: str | None = None,
@@ -323,34 +323,24 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
         conversation = message_history if message_history is not None else self.conversation
         user_msg, _processed_prompts, _original_message = await prepare_prompts(*prompts)
         self._state.clear()  # Reset state
-        # Emit run started event
         run_started = RunStartedEvent(
             thread_id=self._state.thread_id,
-            run_id=self._state.run_id,
+            run_id=self._state.run_id or str(uuid4()),
             agent_name=self.name,
         )
         for handler in self.event_handler._wrapped_handlers:
             await handler(None, run_started)
         yield run_started
 
-        # Build request with proper content conversion
         # Get pending parts from conversation and convert them
         pending_parts = conversation.get_pending_parts()
         pending_content = to_agui_input_content(pending_parts)
 
-        # Convert prompts to AGUI content
+        # Convert prompts to AGUI content (always returns list)
         content = await convert_to_agui_content(prompts)
 
         # Combine pending parts with new content
-        if pending_content:
-            if isinstance(content, str):
-                # If content is a string, prepend pending parts
-                final_content = [*pending_content, TextInputContent(text=content)]
-            else:
-                # If content is already a list, prepend pending parts
-                final_content = [*pending_content, *content]
-        else:
-            final_content = content
+        final_content = [*pending_content, *content]
 
         user_message = UserMessage(id=str(uuid4()), content=final_content)
         request_data = RunAgentInput(
