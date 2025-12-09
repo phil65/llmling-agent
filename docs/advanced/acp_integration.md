@@ -108,12 +108,9 @@ Understanding llmling-agent's ACP integration requires grasping a key architectu
 
 When you run `llmling-agent serve-acp`, it becomes an **ACP server** that IDEs can connect to:
 
-```
-┌─────────────────┐                    ┌──────────────────────┐
-│   IDE (Zed)     │  ← ACP Protocol →  │  llmling-agent       │
-│   ACP Client    │                    │  ACP Server          │
-│                 │                    │  (serve-acp command) │
-└─────────────────┘                    └──────────────────────┘
+```mermaid
+graph LR
+    A["IDE (Zed)<br/>ACP Client"] <-->|ACP Protocol| B["llmling-agent<br/>ACP Server<br/>(serve-acp command)"]
 ```
 
 In this mode, llmling-agent:
@@ -127,12 +124,9 @@ In this mode, llmling-agent:
 
 At the same time, llmling-agent can act as an **ACP client** to integrate external ACP agents:
 
-```
-┌──────────────────────┐                    ┌─────────────────────┐
-│  llmling-agent       │  ← ACP Protocol →  │  Claude Code        │
-│  ACP Client          │                    │  ACP Server         │
-│  (external agent)    │                    │  (subprocess)       │
-└──────────────────────┘                    └─────────────────────┘
+```mermaid
+graph LR
+    A["llmling-agent<br/>ACP Client<br/>(external agent)"] <-->|ACP Protocol| B["Claude Code<br/>ACP Server<br/>(subprocess)"]
 ```
 
 In this mode, llmling-agent:
@@ -146,21 +140,16 @@ In this mode, llmling-agent:
 
 The real power comes when **both roles work together**:
 
-```
-┌─────────────┐         ┌────────────────────────────┐         ┌──────────────┐
-│ IDE (Zed)   │  ACP    │     llmling-agent          │  ACP    │ Claude Code  │
-│             │────────→│                            │────────→│              │
-│ ACP Client  │         │  Server ←→ Pool ←→ Client  │         │ ACP Server   │
-│             │←────────│                            │←────────│              │
-└─────────────┘         └────────────────────────────┘         └──────────────┘
-                                      ↕
-                                 Agent Pool
-                          ┌──────────────────┐
-                          │ Internal Agents  │
-                          │ Teams            │
-                          │ Resources        │
-                          │ Tools            │
-                          └──────────────────┘
+```mermaid
+graph TB
+    IDE["IDE (Zed)<br/>ACP Client"]
+    LLM["llmling-agent<br/>Server ↔ Pool ↔ Client"]
+    Claude["Claude Code<br/>ACP Server"]
+    Pool["Agent Pool<br/>• Internal Agents<br/>• Teams<br/>• Resources<br/>• Tools"]
+    
+    IDE <-->|ACP| LLM
+    LLM <-->|ACP| Claude
+    LLM <--> Pool
 ```
 
 #### Real-World Example
@@ -503,47 +492,25 @@ async with AgentPool("config.yml") as pool:
 
 ### Tool Bridge Architecture
 
-```
-┌─────────────────────────────────────────────────────┐
-│ External ACP Agent (Claude Code Process)            │
-│ ┌─────────────────────────────────────────────────┐ │
-│ │ MCP Client                                      │ │
-│ │ - Discovers tools via MCP                       │ │
-│ │ - Calls tools over HTTP/SSE                     │ │
-│ └─────────────────────────────────────────────────┘ │
-└───────────────────────┬─────────────────────────────┘
-                        │ HTTP/SSE (MCP Protocol)
-                        │
-┌───────────────────────▼─────────────────────────────┐
-│ ToolManagerBridge (In-Process MCP Server)          │
-│ ┌─────────────────────────────────────────────────┐ │
-│ │ FastMCP Server                                  │ │
-│ │ - Exposes tools as MCP endpoints                │ │
-│ │ - Handles MCP protocol negotiation              │ │
-│ └─────────────────────────────────────────────────┘ │
-│ ┌─────────────────────────────────────────────────┐ │
-│ │ Context Bridge                                  │ │
-│ │ - Creates synthetic AgentContext                │ │
-│ │ - Injects pool access for delegation            │ │
-│ │ - Provides progress reporting                   │ │
-│ └─────────────────────────────────────────────────┘ │
-└───────────────────────┬─────────────────────────────┘
-                        │ Direct Function Call
-                        │
-┌───────────────────────▼─────────────────────────────┐
-│ Internal Toolsets (Same Process)                    │
-│ ┌─────────────────────────────────────────────────┐ │
-│ │ SubagentTools                                   │ │
-│ │ - delegate_to() → Other agents in pool          │ │
-│ │ - ask_agent() → Query specific agent            │ │
-│ │ - list_available_nodes() → Pool inspection      │ │
-│ └─────────────────────────────────────────────────┘ │
-│ ┌─────────────────────────────────────────────────┐ │
-│ │ AgentManagementTools                            │ │
-│ │ - add_agent() → Dynamic agent creation          │ │
-│ │ - remove_agent() → Lifecycle management         │ │
-│ └─────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    subgraph External["External ACP Agent (Claude Code Process)"]
+        MCP["MCP Client<br/>• Discovers tools via MCP<br/>• Calls tools over HTTP/SSE"]
+    end
+    
+    subgraph Bridge["ToolManagerBridge (In-Process MCP Server)"]
+        FastMCP["FastMCP Server<br/>• Exposes tools as MCP endpoints<br/>• Handles MCP protocol negotiation"]
+        Context["Context Bridge<br/>• Creates synthetic AgentContext<br/>• Injects pool access for delegation<br/>• Provides progress reporting"]
+    end
+    
+    subgraph Internal["Internal Toolsets (Same Process)"]
+        Subagent["SubagentTools<br/>• delegate_to() → Other agents in pool<br/>• ask_agent() → Query specific agent<br/>• list_available_nodes() → Pool inspection"]
+        Management["AgentManagementTools<br/>• add_agent() → Dynamic agent creation<br/>• remove_agent() → Lifecycle management"]
+    end
+    
+    MCP -->|HTTP/SSE<br/>MCP Protocol| FastMCP
+    Context -->|Direct Function Call| Subagent
+    Context -->|Direct Function Call| Management
 ```
 
 **Key Features:**
