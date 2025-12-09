@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 import re
 from typing import TYPE_CHECKING, Any
 
+from anyenv.code_execution.acp_provider import ACPExecutionEnvironment
 import logfire
 from pydantic_ai import (
     FinalResultEvent,
@@ -59,6 +60,8 @@ from llmling_agent.agent.events import (
 )
 from llmling_agent.log import get_logger
 from llmling_agent_commands import get_commands
+from llmling_agent_commands.base import NodeCommand
+from llmling_agent_server.acp_server.commands import get_commands as get_acp_commands
 from llmling_agent_server.acp_server.converters import (
     convert_acp_mcp_server_to_config,
     from_content_blocks,
@@ -175,12 +178,6 @@ class ACPSession:
 
     def __post_init__(self) -> None:
         """Initialize session state and set up providers."""
-        from anyenv.code_execution.acp_provider import ACPExecutionEnvironment
-
-        from llmling_agent_server.acp_server.commands.acp_commands import get_acp_commands
-        from llmling_agent_server.acp_server.commands.docs_commands import get_docs_commands
-        from llmling_agent_server.acp_server.commands.terminal_commands import get_terminal_commands
-
         self.mcp_servers = self.mcp_servers or []
         self.log = logger.bind(session_id=self.session_id)
         self._task_lock = asyncio.Lock()
@@ -196,8 +193,6 @@ class ACPSession:
                 enable_copy_clipboard=False,
             ),
             *get_acp_commands(),
-            *get_docs_commands(),
-            *get_terminal_commands(),
         ]
         self.command_store = CommandStore(enable_system_commands=True, commands=cmds)
         self.command_store._initialize_sync()
@@ -254,10 +249,7 @@ class ACPSession:
             path = self.fs.get_upath(".claude/skills")
             await self.agent_pool.skills.add_skills_directory(path)
             skills = self.agent_pool.skills.list_skills()
-            if skills:
-                self.log.info("Added client-side skills", skill_count=len(skills))
-            else:
-                self.log.debug("No client-side skills found")
+            self.log.info("Collected client-side skills", skill_count=len(skills))
         except Exception as e:
             self.log.exception("Failed to discover client-side skills", error=e)
 
@@ -290,12 +282,10 @@ class ACPSession:
         """
         if agent_name not in self.agent_pool.all_agents:
             available = list(self.agent_pool.all_agents.keys())
-            msg = f"Agent {agent_name!r} not found. Available: {available}"
-            raise ValueError(msg)
+            raise ValueError(f"Agent {agent_name!r} not found. Available: {available}")
 
         old_agent_name = self.current_agent_name
         self.current_agent_name = agent_name
-
         self.log.info("Switched agents", from_agent=old_agent_name, to_agent=agent_name)
         # if new_model := new_agent.model_name:
         #     await self.notifications.update_session_model(new_model)
@@ -534,16 +524,6 @@ class ACPSession:
                 output = message if message else f"Progress: {progress}"
                 if total:
                     output += f"/{total}"
-                # Create content from progress message
-
-                # Create ACP tool call progress notification
-                # await self.notifications.tool_call(
-                #     tool_name=tool_name,
-                #     tool_input=tool_input or {},
-                #     tool_output=output,
-                #     status="in_progress",
-                #     tool_call_id=tool_call_id,
-                # )
                 await self.notifications.tool_call_progress(
                     title=message,
                     raw_output=output,
@@ -567,22 +547,27 @@ class ACPSession:
             case FileOperationEvent(
                 operation=operation,
                 path=path,
-                success=success,
+                success=True,
                 error=error,
-                tool_call_id=tool_call_id,
+                tool_call_id=str() as tool_call_id,
             ):
-                if tool_call_id and success:
-                    await self.notifications.tool_call_progress(
-                        tool_call_id=tool_call_id,
-                        status="completed",
-                        locations=[ToolCallLocation(path=path)],
-                    )
-                elif tool_call_id:
-                    await self.notifications.tool_call_progress(
-                        tool_call_id=tool_call_id,
-                        status="failed",
-                        raw_output=f"File operation {operation!r} failed: {error}",
-                    )
+                await self.notifications.tool_call_progress(
+                    tool_call_id=tool_call_id,
+                    status="completed",
+                    locations=[ToolCallLocation(path=path)],
+                )
+            case FileOperationEvent(
+                operation=operation,
+                path=path,
+                success=False,
+                error=error,
+                tool_call_id=str() as tool_call_id,
+            ):
+                await self.notifications.tool_call_progress(
+                    tool_call_id=tool_call_id,
+                    status="failed",
+                    raw_output=f"File operation {operation!r} failed: {error}",
+                )
 
             case FileEditProgressEvent(
                 path=path,
@@ -590,109 +575,115 @@ class ACPSession:
                 new_text=new_text,
                 status=status,
                 changed_lines=changed_lines,
-                tool_call_id=tool_call_id,
+                tool_call_id=str() as tool_call_id,
             ):
-                # Handle FileEditProgressEvent
-                if tool_call_id:
-                    await self.notifications.file_edit_progress(
-                        tool_call_id=tool_call_id,
-                        path=path,
-                        old_text=old_text,
-                        new_text=new_text,
-                        status=status,
-                        changed_lines=changed_lines,
-                    )
+                await self.notifications.file_edit_progress(
+                    tool_call_id=tool_call_id,
+                    path=path,
+                    old_text=old_text,
+                    new_text=new_text,
+                    status=status,
+                    changed_lines=changed_lines,
+                )
 
             case ProcessStartEvent(
                 process_id=process_id,
                 command=command,
-                success=success,
+                success=True,
                 error=error,
-                tool_call_id=tool_call_id,
+                tool_call_id=str() as tool_call_id,
             ):
-                # Handle ProcessStartEvent
-                if tool_call_id and success:
-                    await self.notifications.tool_call_start(
-                        tool_call_id=tool_call_id,
-                        title=f"Running: {command}",
-                        kind="execute",
-                        content=[TerminalToolCallContent(terminal_id=process_id)],
-                    )
-                elif tool_call_id:
-                    await self.notifications.tool_call_progress(
-                        tool_call_id=tool_call_id,
-                        status="failed",
-                        title=f"Failed to start process: {command}",
-                        raw_output=f"Process start failed: {error}",
-                    )
+                await self.notifications.tool_call_start(
+                    tool_call_id=tool_call_id,
+                    title=f"Running: {command}",
+                    kind="execute",
+                    content=[TerminalToolCallContent(terminal_id=process_id)],
+                )
+            case ProcessStartEvent(
+                process_id=process_id,
+                command=command,
+                success=False,
+                error=error,
+                tool_call_id=str() as tool_call_id,
+            ):
+                await self.notifications.tool_call_progress(
+                    tool_call_id=tool_call_id,
+                    status="failed",
+                    title=f"Failed to start process: {command}",
+                    raw_output=f"Process start failed: {error}",
+                )
 
-            case ProcessOutputEvent(process_id=process_id, tool_call_id=tool_call_id):
-                if tool_call_id:
-                    await self.notifications.terminal_progress(
-                        tool_call_id=tool_call_id,
-                        terminal_id=process_id,
-                        status="in_progress",
-                        title=f"Process {process_id} output",
-                    )
+            case ProcessOutputEvent(process_id=process_id, tool_call_id=str() as tool_call_id):
+                await self.notifications.terminal_progress(
+                    tool_call_id=tool_call_id,
+                    terminal_id=process_id,
+                    status="in_progress",
+                    title=f"Process {process_id} output",
+                )
 
             case ProcessExitEvent(
                 process_id=process_id,
                 exit_code=exit_code,
                 success=success,
                 final_output=final_output,
-                tool_call_id=tool_call_id,
+                tool_call_id=str() as tool_call_id,
             ):
-                # Handle ProcessExitEvent
-                if tool_call_id:
-                    title = f"Process {process_id} exited with code {exit_code}"
-                    await self.notifications.terminal_progress(
-                        tool_call_id=tool_call_id,
-                        terminal_id=process_id,
-                        status="completed" if success else "failed",
-                        title=title,
-                    )
+                await self.notifications.terminal_progress(
+                    tool_call_id=tool_call_id,
+                    terminal_id=process_id,
+                    status="completed" if success else "failed",
+                    title=f"Process {process_id} exited with code {exit_code}",
+                )
 
             case ProcessKillEvent(
                 process_id=process_id,
-                success=success,
+                success=True,
                 error=error,
-                tool_call_id=tool_call_id,
+                tool_call_id=str() as tool_call_id,
             ):
-                if tool_call_id and success:
-                    await self.notifications.terminal_progress(
-                        tool_call_id=tool_call_id,
-                        terminal_id=process_id,
-                        status="completed",
-                        title=f"Killed process {process_id}",
-                    )
-                elif tool_call_id:
-                    await self.notifications.tool_call_progress(
-                        tool_call_id=tool_call_id,
-                        status="failed",
-                        title=f"Failed to kill process {process_id}",
-                        raw_output=f"Process kill failed: {error}",
-                    )
+                await self.notifications.terminal_progress(
+                    tool_call_id=tool_call_id,
+                    terminal_id=process_id,
+                    status="completed",
+                    title=f"Killed process {process_id}",
+                )
+            case ProcessKillEvent(
+                process_id=process_id,
+                success=False,
+                error=error,
+                tool_call_id=str() as tool_call_id,
+            ):
+                await self.notifications.tool_call_progress(
+                    tool_call_id=tool_call_id,
+                    status="failed",
+                    title=f"Failed to kill process {process_id}",
+                    raw_output=f"Process kill failed: {error}",
+                )
 
             case ProcessReleaseEvent(
                 process_id=process_id,
-                success=success,
+                success=True,
                 error=error,
-                tool_call_id=tool_call_id,
+                tool_call_id=str() as tool_call_id,
             ):
-                if tool_call_id and success:
-                    await self.notifications.terminal_progress(
-                        tool_call_id=tool_call_id,
-                        terminal_id=process_id,
-                        status="completed",
-                        title=f"Released process {process_id}",
-                    )
-                elif tool_call_id:
-                    await self.notifications.tool_call_progress(
-                        tool_call_id=tool_call_id,
-                        status="failed",
-                        title=f"Failed to release process {process_id}",
-                        raw_output=f"Process release failed: {error}",
-                    )
+                await self.notifications.terminal_progress(
+                    tool_call_id=tool_call_id,
+                    terminal_id=process_id,
+                    status="completed",
+                    title=f"Released process {process_id}",
+                )
+            case ProcessReleaseEvent(
+                process_id=process_id,
+                success=False,
+                error=error,
+                tool_call_id=str() as tool_call_id,
+            ):
+                await self.notifications.tool_call_progress(
+                    tool_call_id=tool_call_id,
+                    status="failed",
+                    title=f"Failed to release process {process_id}",
+                    raw_output=f"Process release failed: {error}",
+                )
 
             case _:
                 self.log.debug("Unhandled event", event_type=type(event).__name__)
@@ -725,45 +716,35 @@ class ACPSession:
         """Register MCP prompts as slash commands."""
         if not isinstance(self.agent, Agent):
             return
-        try:
-            # Get all prompts from the agent's ToolManager
+        try:  # Get all prompts from the agent's ToolManager
             if all_prompts := await self.agent.tools.list_prompts():
                 for prompt in all_prompts:
                     command = self.create_mcp_command(prompt)
                     self.command_store.register_command(command)
                 self._notify_command_update()
-                msg = "Registered MCP prompts as slash commands"
-                self.log.info(msg, prompt_count=len(all_prompts))
-                # Send updated command list to client
-                await self.send_available_commands_update()
-
+                self.log.info("Registered MCP prompts as commands", prompt_count=len(all_prompts))
+                await self.send_available_commands_update()  # Send updated command list to client
         except Exception:
             self.log.exception("Failed to register MCP prompts as commands")
 
     async def _register_prompt_hub_commands(self) -> None:
         """Register prompt hub prompts as slash commands."""
+        manager = self.agent_pool.manifest.prompt_manager
+        cmd_count = 0
         try:
-            prompt_manager = self.agent_pool.manifest.prompt_manager
-            all_prompts = await prompt_manager.list_prompts()
-            command_count = 0
+            all_prompts = await manager.list_prompts()
             for provider_name, prompt_names in all_prompts.items():
                 if not prompt_names:  # Skip empty providers
                     continue
-
                 for prompt_name in prompt_names:
-                    command = self.create_prompt_hub_command(
-                        provider_name, prompt_name, prompt_manager
-                    )
+                    command = self.create_prompt_hub_command(provider_name, prompt_name, manager)
                     self.command_store.register_command(command)
-                    command_count += 1
+                    cmd_count += 1
 
-            if command_count > 0:
+            if cmd_count > 0:
                 self._notify_command_update()
-                msg = "Registered prompt hub prompts as slash commands"
-                self.log.info(msg, command_count=command_count)
-                # Send updated command list to client
-                await self.send_available_commands_update()
-
+                self.log.info("Registered hub prompts as slash commands", cmd_count=cmd_count)
+                await self.send_available_commands_update()  # Send updated command list to client
         except Exception:
             self.log.exception("Failed to register prompt hub prompts as commands")
 
@@ -783,11 +764,8 @@ class ACPSession:
         Returns:
             List of ACP AvailableCommand objects compatible with current node
         """
-        from llmling_agent_commands.base import NodeCommand
-
         all_commands = self.command_store.list_commands()
         current_node = self.agent
-
         # Filter commands by node compatibility
         compatible_commands = []
         for cmd in all_commands:
@@ -798,12 +776,8 @@ class ACPSession:
             compatible_commands.append(cmd)
 
         return [
-            AvailableCommand.create(
-                name=cmd.name,
-                description=cmd.description,
-                input_hint=cmd.usage,
-            )
-            for cmd in compatible_commands
+            AvailableCommand.create(name=i.name, description=i.description, input_hint=i.usage)
+            for i in compatible_commands
         ]
 
     @logfire.instrument(r"Execute Slash Command {command_text}")
@@ -814,8 +788,6 @@ class ACPSession:
             command_text: Full command text (including slash)
             session: ACP session context
         """
-        from llmling_agent_commands.base import NodeCommand
-
         if match := SLASH_PATTERN.match(command_text.strip()):
             command_name = match.group(1)
             args = match.group(2) or ""

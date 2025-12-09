@@ -318,11 +318,10 @@ class MessageNode[TDeps, TResult](ABC):
 
     async def get_message_history(self, limit: int | None = None) -> list[ChatMessage[Any]]:
         """Get message history from storage."""
-        if not self.enable_db_logging or not self.storage:
-            return []
-
         from llmling_agent_config.session import SessionQuery
 
+        if not self.enable_db_logging or not self.storage:
+            return []
         query = SessionQuery(name=self.conversation_id, limit=limit)
         return await self.storage.filter_messages(query)
 

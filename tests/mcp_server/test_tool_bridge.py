@@ -91,7 +91,7 @@ async def test_create_tool_bridge_helper(tool_manager: ToolManager):
     """Test the create_tool_bridge convenience function."""
     async with (
         AgentPool() as pool,
-        create_tool_bridge(tool_manager, pool, port=0, transport="sse") as bridge,
+        create_tool_bridge(tool_manager, pool, transport="sse") as bridge,
     ):
         assert bridge.port > 0
         assert "/sse" in bridge.url
@@ -113,7 +113,7 @@ async def test_bridge_registers_tools(tool_manager: ToolManager):
 
 async def test_get_mcp_server_config_sse(tool_manager: ToolManager):
     """Test generating SSE MCP server config."""
-    cfg = BridgeConfig(port=0, transport="sse")
+    cfg = BridgeConfig(transport="sse")
     async with (
         AgentPool() as pool,
         ToolManagerBridge(tool_manager, pool=pool, config=cfg) as bridge,
@@ -126,7 +126,7 @@ async def test_get_mcp_server_config_sse(tool_manager: ToolManager):
 
 async def test_get_mcp_server_config_http(tool_manager: ToolManager):
     """Test generating HTTP MCP server config."""
-    cfg = BridgeConfig(port=0, transport="streamable-http")
+    cfg = BridgeConfig(transport="streamable-http")
     async with (
         AgentPool() as pool,
         ToolManagerBridge(tool_manager, pool=pool, config=cfg) as bridge,

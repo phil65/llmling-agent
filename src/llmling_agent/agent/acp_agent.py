@@ -32,7 +32,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Self, overload
 import uuid
 
-from anyenv import MultiEventHandler
+from anyenv import MultiEventHandler, create_process
 
 from acp.client.connection import ClientSideConnection
 from acp.client.protocol import Client
@@ -55,11 +55,13 @@ from acp.schema import (
     WaitForTerminalExitResponse,
     WriteTextFileResponse,
 )
-from llmling_agent.agent.acp_converters import mcp_configs_to_acp
+from llmling_agent.agent.acp_converters import convert_to_acp_content, mcp_configs_to_acp
+from llmling_agent.agent.events import RunStartedEvent, StreamCompleteEvent
 from llmling_agent.common_types import IndividualEventHandler
 from llmling_agent.log import get_logger
 from llmling_agent.messaging import ChatMessage, MessageHistory
 from llmling_agent.messaging.messagenode import MessageNode
+from llmling_agent.messaging.processing import prepare_prompts
 from llmling_agent.models.acp_agents import ACPAgentConfig, MCPCapableACPAgentConfig
 from llmling_agent.talk.stats import MessageStats
 
@@ -501,6 +503,9 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         event_configs: Sequence[EventConfig] | None = None,
         event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
     ) -> None:
+        from llmling_agent.agent.builtin_handlers import resolve_event_handlers
+        from llmling_agent.tools.manager import ToolManager
+
         # Build config from kwargs if not provided
         if config is None:
             if command is None:
@@ -543,15 +548,10 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         self.conversation = MessageHistory()
         self.deps_type = type(None)
         self._event_queue: asyncio.Queue[RichAgentStreamEvent[Any]] = asyncio.Queue()
-        from llmling_agent.agent.builtin_handlers import resolve_event_handlers
-
         resolved_handlers = resolve_event_handlers(event_handlers)
         self.event_handler = MultiEventHandler[IndividualEventHandler](resolved_handlers)
         self._extra_mcp_servers: list[McpServer] = []
-
         # Initialize ToolManager for toolsets (read-only, for bridge exposure)
-        from llmling_agent.tools.manager import ToolManager
-
         self._tools = ToolManager()
         self._tool_bridge: ToolManagerBridge | None = None
         self._owns_bridge = False  # Track if we created the bridge (for cleanup)
@@ -581,18 +581,12 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
 
         if not isinstance(self.config, MCPCapableACPAgentConfig) or not self.config.toolsets:
             return
-
         # Create providers from toolset configs and add to tool manager
         for toolset_config in self.config.toolsets:
             provider = toolset_config.get_provider()
             self._tools.add_provider(provider)
-
         # Auto-create bridge to expose tools via MCP
-        config = BridgeConfig(
-            port=0,  # Auto-select port
-            transport="sse",
-            server_name=f"llmling-{self.name}-tools",
-        )
+        config = BridgeConfig(transport="sse", server_name=f"llmling-{self.name}-tools")
         self._tool_bridge = ToolManagerBridge(
             tool_manager=self._tools,
             pool=self.agent_pool,  # type: ignore[arg-type]
@@ -602,16 +596,11 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         )
         await self._tool_bridge.start()
         self._owns_bridge = True
-
         # Add bridge's MCP server to session
         mcp_config = self._tool_bridge.get_mcp_server_config()
         self._extra_mcp_servers.append(mcp_config)
-
-        self.log.info(
-            "Toolsets bridge started",
-            url=self._tool_bridge.url,
-            toolset_count=len(self.config.toolsets),
-        )
+        count = len(self.config.toolsets)
+        self.log.info("Toolsets bridge started", url=self._tool_bridge.url, toolset_count=count)
 
     async def __aenter__(self) -> Self:
         """Start subprocess and initialize ACP connection."""
@@ -620,8 +609,7 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         await self._start_process()
         await self._initialize()
         await self._create_session()
-        # Small delay to let subprocess fully initialize before accepting prompts
-        await asyncio.sleep(0.3)
+        await asyncio.sleep(0.3)  # Small delay to let subprocess fully initialize
         return self
 
     async def __aexit__(
@@ -636,19 +624,16 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
 
     async def _start_process(self) -> None:
         """Start the ACP server subprocess."""
-        env = {**os.environ, **self.config.env}
         cmd = [self.config.get_command(), *self.config.get_args()]
         self.log.info("Starting ACP subprocess", command=cmd)
-        self._process = await asyncio.create_subprocess_exec(
+        self._process = await create_process(
             *cmd,
-            stdin=asyncio.subprocess.PIPE,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-            env=env,
+            stdin="pipe",
+            stdout="pipe",
+            stderr="pipe",
+            env={**os.environ, **self.config.env},
             cwd=self.config.cwd,
-            limit=10 * 1024 * 1024,  # 10MB,
         )
-
         if not self._process.stdin or not self._process.stdout:
             msg = "Failed to create subprocess pipes"
             raise RuntimeError(msg)
@@ -688,44 +673,31 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
             msg = "Connection not initialized"
             raise RuntimeError(msg)
 
-        # Collect MCP servers from config
-        mcp_servers: list[McpServer] = []
-
+        mcp_servers: list[McpServer] = []  # Collect MCP servers from config
         # Add servers from config (converted to ACP format)
         config_servers = self.config.get_mcp_servers()
         if config_servers:
             mcp_servers.extend(mcp_configs_to_acp(config_servers))
-
         # Add any extra MCP servers (e.g., from tool bridges)
         mcp_servers.extend(self._extra_mcp_servers)
-
         cwd = self.config.cwd or str(Path.cwd())
         session_request = NewSessionRequest(cwd=cwd, mcp_servers=mcp_servers)
         response = await self._connection.new_session(session_request)
         self._session_id = response.session_id
         if self._state:
             self._state.session_id = self._session_id
-            # Store model info from session response
-            if response.models:
+            if response.models:  # Store model info from session response
                 self._state.current_model_id = response.models.current_model_id
         model = self._state.current_model_id if self._state else None
-        server_names = [s.name for s in mcp_servers]
         self.log.info(
             "ACP session created",
             session_id=self._session_id,
             model=model,
-            mcp_servers=server_names,
+            mcp_servers=[s.name for s in mcp_servers],
         )
 
     def add_mcp_server(self, server: McpServer) -> None:
-        """Add an MCP server to be passed to the next session.
-
-        Use this to dynamically add MCP servers before the session is created.
-        For adding tool bridges, use `add_tool_bridge()` instead.
-
-        Args:
-            server: ACP McpServer configuration
-        """
+        """Add an MCP server to be passed to the next session."""
         self._extra_mcp_servers.append(server)
 
     async def add_tool_bridge(self, bridge: ToolManagerBridge) -> None:
@@ -739,8 +711,7 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         Args:
             bridge: Started ToolManagerBridge instance
         """
-        # Don't replace our own bridge
-        if self._tool_bridge is None:
+        if self._tool_bridge is None:  # Don't replace our own bridge
             self._tool_bridge = bridge
         mcp_config = bridge.get_mcp_server_config()
         self._extra_mcp_servers.append(mcp_config)
@@ -748,8 +719,7 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
 
     async def _cleanup(self) -> None:
         """Clean up resources."""
-        # Stop our own bridge if we created it
-        if self._tool_bridge and self._owns_bridge:
+        if self._tool_bridge and self._owns_bridge:  # Stop our own bridge if we created it
             await self._tool_bridge.stop()
         self._tool_bridge = None
         self._owns_bridge = False
@@ -789,10 +759,6 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
     ) -> ChatMessage[str]:
         """Execute prompt against ACP agent.
 
-        Sends the prompt to the ACP server and waits for completion.
-        Events are collected via run_stream and event handlers are called.
-        The final text content is returned as a ChatMessage.
-
         Args:
             prompts: Prompts to send (will be joined with spaces)
             message_id: Optional message id for the returned message
@@ -810,8 +776,6 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
             input_provider=input_provider,
             message_history=message_history,
         ):
-            from llmling_agent.agent.events import StreamCompleteEvent
-
             if isinstance(event, StreamCompleteEvent):
                 final_message = event.message
 
@@ -830,9 +794,6 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
     ) -> AsyncIterator[RichAgentStreamEvent[str]]:
         """Stream native events as they arrive from ACP agent.
 
-        Yields the same event types as native agents, enabling uniform
-        handling regardless of whether the agent is native or ACP-based.
-
         Args:
             prompts: Prompts to send (will be joined with spaces)
             message_id: Optional message id for the final message
@@ -847,34 +808,23 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
             self._input_provider = input_provider
             if self._client_handler:
                 self._client_handler._input_provider = input_provider
-        from llmling_agent.agent.events import RunStartedEvent, StreamCompleteEvent
-        from llmling_agent.messaging.processing import prepare_prompts
-
         if not self._connection or not self._session_id or not self._state:
             msg = "Agent not initialized - use async context manager"
             raise RuntimeError(msg)
 
-        # Determine which conversation to use
         conversation = message_history if message_history is not None else self.conversation
-
         # Prepare user message for history and convert to ACP content blocks
         user_msg, processed_prompts, _original_message = await prepare_prompts(*prompts)
-
-        # Reset state
         run_id = str(uuid.uuid4())
-        self._state.clear()
-
-        # Emit run started event
+        self._state.clear()  # Reset state
         run_started = RunStartedEvent(
-            thread_id=self.conversation_id, run_id=run_id, agent_name=self.name
+            thread_id=self.conversation_id,
+            run_id=run_id,
+            agent_name=self.name,
         )
         for handler in self.event_handler._wrapped_handlers:
             await handler(None, run_started)
         yield run_started
-
-        # Convert to ACP content blocks (supports text, images, audio)
-        from llmling_agent.agent.acp_converters import convert_to_acp_content
-
         content_blocks = convert_to_acp_content(processed_prompts)
         prompt_request = PromptRequest(session_id=self._session_id, prompt=content_blocks)
         self.log.debug("Starting streaming prompt", num_blocks=len(content_blocks))
@@ -882,9 +832,8 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         prompt_task = asyncio.create_task(self._connection.prompt(prompt_request))
         last_idx = 0
         while not prompt_task.done():
-            # Wait for new events
             if self._client_handler:
-                try:
+                try:  # Wait for new events
                     await asyncio.wait_for(self._client_handler._update_event.wait(), timeout=0.05)
                     self._client_handler._update_event.clear()
                 except TimeoutError:
@@ -902,8 +851,8 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
                         yield custom_event
                     except asyncio.QueueEmpty:
                         break
-                # Distribute to handlers
-                for handler in self.event_handler._wrapped_handlers:
+
+                for handler in self.event_handler._wrapped_handlers:  # Distribute to handlers
                     await handler(None, event)
                 yield event
                 last_idx += 1
@@ -915,14 +864,11 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
                 await handler(None, event)
             yield event
             last_idx += 1
-
         # Ensure we catch any exceptions from the prompt task
         response = await prompt_task
         self._state.stop_reason = response.stop_reason
         self._state.is_complete = True
         self._message_count += 1
-
-        # Emit final StreamCompleteEvent with aggregated message
         message = ChatMessage[str](
             content="".join(self._state.text_chunks),
             role="assistant",
@@ -934,11 +880,9 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         complete_event = StreamCompleteEvent(message=message)
         for handler in self.event_handler._wrapped_handlers:
             await handler(None, complete_event)
-        yield complete_event
+        yield complete_event  # Emit final StreamCompleteEvent with aggregated message
         self.message_sent.emit(message)
-
-        # Record to conversation history
-        conversation.add_chat_messages([user_msg, message])
+        conversation.add_chat_messages([user_msg, message])  # Record to conversation history
 
     async def run_iter(
         self,
@@ -956,18 +900,8 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
             response = await self.run(*prompts)
             yield response
 
-    def to_tool(
-        self,
-        *,
-        name: str | None = None,
-        description: str | None = None,
-    ) -> Tool[str]:
-        """Create a tool from this agent.
-
-        Args:
-            name: Optional tool name override
-            description: Optional tool description override
-        """
+    def to_tool(self, *, name: str | None = None, description: str | None = None) -> Tool[str]:
+        """Create a tool from this agent."""
         from llmling_agent.tools.base import Tool
 
         async def wrapped(prompt: str) -> str:
@@ -1001,25 +935,18 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
             ValueError: If the config doesn't have a model field
             RuntimeError: If agent is currently processing (has active process but no session)
         """
-        # Check if config supports model field
         if not hasattr(self.config, "model"):
             msg = f"Config type {type(self.config).__name__} doesn't support model changes"
             raise ValueError(msg)
-
         # Prevent changes during active processing
         if self._process and not self._session_id:
             msg = "Cannot change model while agent is initializing"
             raise RuntimeError(msg)
-
         # Create new config with updated model
         new_config = self.config.model_copy(update={"model": model})
-
-        # Clean up existing process if any
-        if self._process:
+        if self._process:  # Clean up existing process if any
             await self._cleanup()
-
-        # Update config and restart
-        self.config = new_config
+        self.config = new_config  # Update config and restart
         await self._start_process()
         await self._initialize()
 
@@ -1032,29 +959,11 @@ if __name__ == "__main__":
 
     async def main() -> None:
         """Demo: Basic call to an ACP agent."""
-        async with ACPAgent(
-            command="uv",
-            args=["run", "llmling-agent", "serve-acp", "--model-provider", "openai"],
-            name="llmling_acp",
-            description="LLMling Agent via ACP",
-            cwd=str(Path.cwd()),
-        ) as agent:
-            print(f"Connected to: {agent.model_name}")
-            print(f"Session ID: {agent._session_id}")
-            print("-" * 50)
-            prompt = "Say hello briefly."
-            print(f"Prompt: {prompt}")
-            print("-" * 50)
-
+        args = ["run", "llmling-agent", "serve-acp", "--model-provider", "openai"]
+        cwd = str(Path.cwd())
+        async with ACPAgent(command="uv", args=args, cwd=cwd, event_handlers=["detailed"]) as agent:
             print("Response (streaming): ", end="", flush=True)
-            async for chunk in agent.run_stream(prompt):
+            async for chunk in agent.run_stream("Say hello briefly."):
                 print(chunk, end="", flush=True)
-            print()  # newline after streaming
-            # Show tool calls if any
-            if agent._state and agent._state.tool_calls:
-                print("-" * 50)
-                print("Tool calls:")
-                for tc in agent._state.tool_calls:
-                    print(f"  - {tc['title']} ({tc['status']})")
 
     asyncio.run(main())
