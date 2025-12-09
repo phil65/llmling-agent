@@ -60,21 +60,6 @@ if TYPE_CHECKING:
     from llmling_agent.common_types import PromptCompatible
 
 
-def _get_mime_type(content_type: str) -> str:
-    """Get MIME type from content type string."""
-    match content_type:
-        case "image_base64" | "image_url":
-            return "image/jpeg"
-        case "pdf_base64" | "pdf_url":
-            return "application/pdf"
-        case "audio_base64" | "audio_url":
-            return "audio/mp3"
-        case "video_url":
-            return "video/mp4"
-        case _:
-            return "application/octet-stream"
-
-
 def agui_to_native_event(event: Event) -> RichAgentStreamEvent[Any] | None:  # noqa: PLR0911
     """Convert AG-UI event to native streaming event.
 
@@ -187,32 +172,50 @@ async def convert_to_agui_content(
     """
     from ag_ui.core import BinaryInputContent, TextInputContent
 
+    from llmling_agent.models.content import (
+        AudioBase64Content,
+        AudioURLContent,
+        ImageBase64Content,
+        ImageURLContent,
+        PDFBase64Content,
+        PDFURLContent,
+        VideoURLContent,
+    )
+
     converted = await convert_prompts(prompts)
 
     content_list: list[InputContent] = []
     for item in converted:
-        if isinstance(item, str):
-            content_list.append(TextInputContent(text=item))
-        elif isinstance(item, BaseContent):
-            # Handle base64 content
-            if item.type in ("image_base64", "pdf_base64", "audio_base64"):
-                data = getattr(item, "data", None)
-                mime_type = getattr(item, "mime_type", None) or _get_mime_type(item.type)
-                if data:
-                    content_list.append(BinaryInputContent(data=data, mime_type=mime_type))
-                else:
-                    content_list.append(TextInputContent(text=str(item)))
-            # Handle URL content
-            elif item.type in ("image_url", "pdf_url", "audio_url", "video_url"):
-                url = getattr(item, "url", None)
-                if url:
-                    content_list.append(
-                        BinaryInputContent(url=url, mime_type=_get_mime_type(item.type))
-                    )
-                else:
-                    content_list.append(TextInputContent(text=str(item)))
-            # Fallback
-            else:
+        match item:
+            case str() as text:
+                content_list.append(TextInputContent(text=text))
+
+            case ImageBase64Content(data=data, mime_type=mime_type):
+                content_list.append(BinaryInputContent(data=data, mime_type=mime_type))
+
+            case PDFBase64Content(data=data):
+                content_list.append(BinaryInputContent(data=data, mime_type="application/pdf"))
+
+            case AudioBase64Content(data=data, format=fmt):
+                mime = f"audio/{fmt or 'mp3'}"
+                content_list.append(BinaryInputContent(data=data, mime_type=mime))
+
+            case ImageURLContent(url=url):
+                content_list.append(BinaryInputContent(url=url, mime_type="image/jpeg"))
+
+            case PDFURLContent(url=url):
+                content_list.append(BinaryInputContent(url=url, mime_type="application/pdf"))
+
+            case AudioURLContent(url=url, format=fmt):
+                mime = f"audio/{fmt or 'mp3'}"
+                content_list.append(BinaryInputContent(url=url, mime_type=mime))
+
+            case VideoURLContent(url=url, format=fmt):
+                mime = f"video/{fmt or 'mp4'}"
+                content_list.append(BinaryInputContent(url=url, mime_type=mime))
+
+            case BaseContent():
+                # Fallback for any other BaseContent subtype
                 content_list.append(TextInputContent(text=str(item)))
 
     return content_list
