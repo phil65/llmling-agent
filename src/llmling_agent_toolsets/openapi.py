@@ -6,8 +6,7 @@ from typing import TYPE_CHECKING, Any
 
 from schemez.openapi.callable_factory import OpenAPICallableFactory
 from schemez.openapi.loader import load_openapi_spec, parse_operations
-from upath import UPath
-from upathtools import read_path
+from upathtools import read_path, to_upath
 
 from llmling_agent.log import get_logger
 from llmling_agent.resource_providers import ResourceProvider
@@ -68,7 +67,7 @@ class OpenAPITools(ResourceProvider):
             if spec_str.startswith(("http://", "https://")):
                 self._spec = load_openapi_spec(spec_str)
             else:
-                path = UPath(self.spec_url)
+                path = to_upath(self.spec_url)
                 if path.exists():
                     self._spec = load_openapi_spec(path)
                 else:
@@ -82,7 +81,7 @@ class OpenAPITools(ResourceProvider):
                     try:
                         self._spec = load_openapi_spec(temp_path)
                     finally:
-                        UPath(temp_path).unlink(missing_ok=True)
+                        to_upath(temp_path).unlink(missing_ok=True)
 
             if not self._spec:
                 msg = f"Empty or invalid OpenAPI spec from {self.spec_url}"

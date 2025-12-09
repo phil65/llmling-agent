@@ -179,7 +179,7 @@ class TextLogProvider(StorageProvider):
         path_context.update(context)
 
         path = await self.path_template.render_async(**path_context)
-        resolved_path = UPath(path)
+        resolved_path = to_upath(path)
         resolved_path.parent.mkdir(parents=True, exist_ok=True)
         return resolved_path
 

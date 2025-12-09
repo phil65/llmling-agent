@@ -7,7 +7,7 @@ from decimal import Decimal
 from typing import TYPE_CHECKING, TypedDict, cast
 
 from pydantic_ai import RunUsage
-from upath import UPath
+from upathtools import to_upath
 
 from llmling_agent.common_types import JsonValue, MessageRole  # noqa: TC001
 from llmling_agent.log import get_logger
@@ -90,7 +90,7 @@ class FileProvider(StorageProvider):
             config: Configuration for provider
         """
         super().__init__(config)
-        self.path = UPath(config.path)
+        self.path = to_upath(config.path)
         self.format = config.format
         self.encoding = config.encoding
         self._data: StorageData = {

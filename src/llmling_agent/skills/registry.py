@@ -11,7 +11,7 @@ from fsspec.implementations.asyn_wrapper import (
     AsyncFileSystemWrapper,
 )
 from upath import UPath
-from upathtools.helpers import upath_to_fs
+from upathtools.helpers import to_upath, upath_to_fs
 
 from llmling_agent.log import get_logger
 from llmling_agent.skills.skill import Skill
@@ -100,7 +100,7 @@ class SkillsRegistry(BaseRegistry[str, Skill]):
 
     def _parse_skill(self, skill_dir: JoinablePathLike) -> Skill:
         """Parse a SKILL.md file and extract metadata."""
-        skill_file = UPath(skill_dir) / "SKILL.md"
+        skill_file = to_upath(skill_dir) / "SKILL.md"
         content = skill_file.read_text("utf-8")
 
         # Extract YAML frontmatter
@@ -139,7 +139,7 @@ class SkillsRegistry(BaseRegistry[str, Skill]):
             msg = f"{skill_file}: Skill description exceeds {SKILL_DESCRIPTION_LIMIT} chars"
             raise ToolError(msg)
 
-        return Skill(name=name, description=description, skill_path=UPath(skill_dir))
+        return Skill(name=name, description=description, skill_path=to_upath(skill_dir))
 
     @property
     def _error_class(self) -> type[ToolError]:

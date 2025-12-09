@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any, Literal
 import anyenv
 import jsonschema
 from schemez.helpers import json_schema_to_pydantic_code
-import upath
+from upathtools import to_upath
 from upathtools.filesystems.file_filesystems.jsonschema_fs import JsonSchemaFileSystem
 import yamling
 
@@ -57,7 +57,7 @@ class ConfigCreationTools(StaticResourceProvider):
             name: Namespace for the tools
         """
         super().__init__(name=name)
-        self._schema_path = upath.UPath(schema_path)
+        self._schema_path = to_upath(schema_path)
         self._markup: MarkupType = markup
         self._schema: dict[str, Any] | None = None
         self._schema_fs: JsonSchemaFileSystem | None = None
