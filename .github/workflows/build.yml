@@ -10,6 +10,7 @@ jobs:
   test:
     runs-on: ${{ matrix.os }}
     continue-on-error: ${{ matrix.python_version != '3.13' }}
+    timeout-minutes: 30
     strategy:
       matrix:
         python_version: ["3.13", "3.13t", "3.14", "3.14t"]
@@ -59,6 +60,7 @@ jobs:
 
   release:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     needs: test
     if: startsWith(github.ref, 'refs/tags/')
     permissions:

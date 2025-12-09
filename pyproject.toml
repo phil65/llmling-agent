@@ -372,6 +372,9 @@ lines-after-imports = 2
 force-sort-within-sections = true
 combine-as-imports = true
 
+[tool.ruff.lint.mccabe]
+max-complexity = 15
+
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["E402", "I001"]
 "scripts/*" = ["INP001"]
@@ -406,4 +409,20 @@ module-name = [
   "llmling_agent_server",
   "llmling_agent_toolsets",
   "acp",
+]
+wheel-exclude = [
+  ".mypy_cache/**",
+  "__pycache__/**",
+  "*.pyc",
+  "*.pyo",
+  ".pytest_cache/**",
+  ".ruff_cache/**",
+]
+source-exclude = [
+  ".mypy_cache/**",
+  "__pycache__/**",
+  "*.pyc",
+  "*.pyo",
+  ".pytest_cache/**",
+  ".ruff_cache/**",
 ]
