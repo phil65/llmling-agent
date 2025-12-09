@@ -26,8 +26,6 @@ junit.xml
 .vscode/
 # OS files
 .DS_Store
-# uv
-uv.lock
 # DiskCache cache file
 ./model_cache
 
