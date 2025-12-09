@@ -76,7 +76,7 @@ if TYPE_CHECKING:
         ToolType,
     )
     from llmling_agent.delegation import AgentPool, Team, TeamRun
-    from llmling_agent.models.agents import AgentConfig, ToolMode
+    from llmling_agent.models.agents import AgentConfig, AutoCache, ToolMode
     from llmling_agent.prompts.prompts import PromptType
     from llmling_agent.resource_providers import ResourceProvider
     from llmling_agent.ui.base import InputProvider
@@ -110,6 +110,7 @@ class AgentKwargs(TypedDict, total=False):
     debug: bool
     event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None
     env: ExecutionEnvironment | None
+    auto_cache: AutoCache
 
 
 class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
@@ -160,6 +161,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         knowledge: Knowledge | None = None,
         agent_config: AgentConfig | None = None,
         env: ExecutionEnvironment | None = None,
+        auto_cache: AutoCache = "off",
     ) -> None:
         """Initialize agent.
 
@@ -199,6 +201,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             knowledge: Knowledge sources for this agent
             agent_config: Agent configuration
             env: Execution environment for code/command execution and filesystem access
+            auto_cache: Automatic caching configuration ("off", "5m", or "1h")
         """
         from llmling_agent.agent import AgentContext
         from llmling_agent.agent.interactions import Interactions
@@ -302,6 +305,9 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         elif system_prompt:
             all_prompts.append(system_prompt)
         self.sys_prompts = SystemPrompts(all_prompts, prompt_manager=ctx.prompt_manager)
+
+        # Store auto_cache setting
+        self._auto_cache = auto_cache or (ctx.config.auto_cache if ctx and ctx.config else "off")
 
     def __repr__(self) -> str:
         desc = f", {self.description!r}" if self.description else ""
@@ -755,6 +761,13 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
                 *pending_parts,
                 *(i if isinstance(i, str) else i.to_pydantic_ai() for i in content),
             ]
+
+            # Add CachePoint if auto_cache is enabled
+            if self._auto_cache != "off":
+                from pydantic_ai.messages import CachePoint
+
+                cache_point = CachePoint(ttl=self._auto_cache)  # type: ignore[arg-type]
+                converted.append(cache_point)
             stream_events = agentlet.run_stream_events(
                 converted,
                 deps=deps,  # type: ignore[arg-type]

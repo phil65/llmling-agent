@@ -39,6 +39,7 @@ if TYPE_CHECKING:
 
 ToolConfirmationMode = Literal["always", "never", "per_tool"]
 ToolMode = Literal["codemode"]
+AutoCache = Literal["off", "5m", "1h"]
 
 logger = log.get_logger(__name__)
 
@@ -444,6 +445,17 @@ class AgentConfig(NodeConfig):
     """Tool execution mode:
     - None: Default mode - tools are called directly
     - "codemode": Tools are wrapped in a Python execution environment
+    """
+
+    auto_cache: AutoCache = Field(
+        default="off",
+        examples=["off", "5m", "1h"],
+        title="Automatic caching",
+    )
+    """Automatic prompt caching configuration:
+    - "off": No automatic caching
+    - "5m": Add cache point with 5 minute TTL
+    - "1h": Add cache point with 1 hour TTL
     """
 
     @model_validator(mode="before")

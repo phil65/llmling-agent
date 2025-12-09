@@ -873,6 +873,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
             tool_mode=config.tool_mode,
             knowledge=config.knowledge,
             toolsets=toolsets_list,
+            auto_cache=config.auto_cache,
         )
 
     def create_acp_agent[TDeps](
