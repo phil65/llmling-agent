@@ -30,11 +30,6 @@ await agent.run(UPath("https://example.com/image.jpg"))
 Images can be passed in several ways:
 
 ```python
-# As PIL Image
-from PIL import Image
-img = Image.open("photo.jpg")
-await agent.run(img)
-
 # As path to image file
 await agent.run(Path("photo.jpg"))
 
