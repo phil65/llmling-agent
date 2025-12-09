@@ -147,7 +147,7 @@ class TTSEventHandlerConfig(BaseEventHandlerConfig):
     )
     """Minimum text length before synthesizing (in characters)."""
 
-    def get_handler(self) -> IndividualEventHandler:
+    def get_handler(self) -> IndividualEventHandler:  # noqa: PLR0915
         """Get the TTS event handler."""
         import asyncio
         import sys
@@ -161,7 +161,7 @@ class TTSEventHandlerConfig(BaseEventHandlerConfig):
         try:
             import sounddevice as sd
         except ImportError as e:
-            msg = "sounddevice package required for TTS. Install with: uv pip install llmling-agent[tts]"
+            msg = "sounddevice package required for TTS. Install extra 'tts'"
             raise ImportError(msg) from e
 
         from pydantic_ai import PartDeltaEvent, PartStartEvent
@@ -196,7 +196,7 @@ class TTSEventHandlerConfig(BaseEventHandlerConfig):
 
                 stream.stop()
                 stream.close()
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 print(f"\n❌ Audio playback error: {e}", file=sys.stderr)
 
         async def synthesize_text(text: str) -> None:
@@ -220,7 +220,7 @@ class TTSEventHandlerConfig(BaseEventHandlerConfig):
                 ) as response:
                     async for chunk in response.iter_bytes(chunk_size=self.chunk_size):
                         await audio_queue.put(chunk)
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 print(f"\n❌ TTS error: {e}", file=sys.stderr)
 
         async def handler(ctx, event) -> None:
