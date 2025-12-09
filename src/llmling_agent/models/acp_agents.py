@@ -618,6 +618,35 @@ class GooseACPAgentConfig(BaseACPAgentConfig):
         return ["openai", "anthropic", "gemini", "openrouter"]
 
 
+class MistralAgentConfig(BaseACPAgentConfig):
+    """Configuration for Mistral agent via ACP.
+
+    Example:
+        ```yaml
+        acp_agents:
+          coder:
+            type: mistral
+            cwd: /path/to/project
+        ```
+    """
+
+    type: Literal["mistral"] = Field("mistral", init=False)
+    """Discriminator for Mistral ACP agent."""
+
+    def get_command(self) -> str:
+        """Get the command to spawn the ACP server."""
+        return "vibe-acp"
+
+    def get_args(self) -> list[str]:
+        """Build command arguments from settings."""
+        return []
+
+    @property
+    def model_providers(self) -> list[ProviderType]:
+        """Goose supports multiple providers."""
+        return ["mistral"]
+
+
 class OpenHandsACPAgentConfig(BaseACPAgentConfig):
     """Configuration for OpenHands via ACP.
 
@@ -1294,6 +1323,7 @@ ACPAgentConfigTypes = Annotated[
     | CagentACPAgentConfig
     | KimiACPAgentConfig
     | StakpakACPAgentConfig
+    | MistralAgentConfig
     | VTCodeACPAgentConfig,
     Field(discriminator="type"),
 ]

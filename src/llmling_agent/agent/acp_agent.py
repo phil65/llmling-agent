@@ -346,7 +346,7 @@ class ACPClientHandler(Client):
         process_id = self._terminal_to_process[terminal_id]
         proc_output = await self.env.process_manager.get_output(process_id)
         output = proc_output.combined or proc_output.stdout or ""
-        return TerminalOutputResponse(output=output, truncated=output.truncated)
+        return TerminalOutputResponse(output=output, truncated=proc_output.truncated)
 
     async def wait_for_terminal_exit(
         self, params: WaitForTerminalExitRequest
