@@ -35,9 +35,7 @@ if TYPE_CHECKING:
 
     from pydantic_ai import RunContext
 
-    from llmling_agent.agent.events import (
-        RichAgentStreamEvent,
-    )
+    from llmling_agent.agent.events import RichAgentStreamEvent
     from llmling_agent.common_types import BuiltinEventHandlerType, IndividualEventHandler
 
 

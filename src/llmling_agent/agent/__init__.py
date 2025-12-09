@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from llmling_agent.agent.agent import Agent
 from llmling_agent.agent.agui_agent import AGUIAgent
-from llmling_agent.agent.builtin_handlers import (
+from llmling_agent.agent.events import (
     detailed_print_handler,
     resolve_event_handlers,
     simple_print_handler,

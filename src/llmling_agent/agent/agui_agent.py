@@ -21,8 +21,7 @@ from llmling_agent.agent.agui_converters import (
     extract_text_from_event,
     to_agui_input_content,
 )
-from llmling_agent.agent.builtin_handlers import resolve_event_handlers
-from llmling_agent.agent.events import RunStartedEvent, StreamCompleteEvent
+from llmling_agent.agent.events import RunStartedEvent, StreamCompleteEvent, resolve_event_handlers
 from llmling_agent.common_types import IndividualEventHandler
 from llmling_agent.log import get_logger
 from llmling_agent.messaging import ChatMessage, MessageHistory

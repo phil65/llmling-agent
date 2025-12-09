@@ -10,7 +10,7 @@ from anyenv.process_manager.models import ProcessOutput
 import pytest
 
 from llmling_agent import AgentContext
-from llmling_agent.agent.event_emitter import StreamEventEmitter
+from llmling_agent.agent.events import StreamEventEmitter
 from llmling_agent.models.agents import AgentConfig
 from llmling_agent_toolsets.builtin.execution_environment import ExecutionEnvironmentTools
 

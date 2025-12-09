@@ -8,7 +8,7 @@ from anyenv.code_execution import MockExecutionEnvironment
 import pytest
 
 from llmling_agent import AgentContext
-from llmling_agent.agent.event_emitter import StreamEventEmitter
+from llmling_agent.agent.events import StreamEventEmitter
 from llmling_agent.models.agents import AgentConfig
 from llmling_agent_toolsets.fsspec_toolset import FSSpecTools
 

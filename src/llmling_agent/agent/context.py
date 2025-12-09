@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from mcp import types
 
     from llmling_agent.agent import Agent
-    from llmling_agent.agent.event_emitter import StreamEventEmitter
+    from llmling_agent.agent.events import StreamEventEmitter
     from llmling_agent.models.agents import AgentConfig
     from llmling_agent.tools.base import Tool
 
@@ -89,6 +89,6 @@ class AgentContext[TDeps = Any](NodeContext[TDeps]):
     @property
     def events(self) -> StreamEventEmitter:
         """Get event emitter with context automatically injected."""
-        from llmling_agent.agent.event_emitter import StreamEventEmitter
+        from llmling_agent.agent.events import StreamEventEmitter
 
         return StreamEventEmitter(self)

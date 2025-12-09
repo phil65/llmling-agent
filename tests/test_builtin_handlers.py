@@ -5,22 +5,16 @@ from __future__ import annotations
 from io import StringIO
 import sys
 
-from pydantic_ai import (
-    FunctionToolCallEvent,
-    FunctionToolResultEvent,
-    PartStartEvent,
-)
+from pydantic_ai import FunctionToolCallEvent, FunctionToolResultEvent, PartStartEvent
 from pydantic_ai.messages import TextPart, ToolCallPart, ToolReturnPart
 import pytest
 
-from llmling_agent.agent.builtin_handlers import (
-    detailed_print_handler,
-    simple_print_handler,
-)
 from llmling_agent.agent.events import (
     RunErrorEvent,
     StreamCompleteEvent,
     ToolCallStartEvent,
+    detailed_print_handler,
+    simple_print_handler,
 )
 
 

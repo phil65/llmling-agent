@@ -61,15 +61,9 @@ class BuiltinEventHandlerConfig(BaseEventHandlerConfig):
 
     def get_handler(self) -> IndividualEventHandler:
         """Get the builtin event handler."""
-        from llmling_agent.agent.builtin_handlers import (
-            detailed_print_handler,
-            simple_print_handler,
-        )
+        from llmling_agent.agent.events import detailed_print_handler, simple_print_handler
 
-        handlers = {
-            "simple": simple_print_handler,
-            "detailed": detailed_print_handler,
-        }
+        handlers = {"simple": simple_print_handler, "detailed": detailed_print_handler}
         return handlers[self.handler]
 
 

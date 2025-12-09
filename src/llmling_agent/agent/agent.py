@@ -244,7 +244,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         )
 
         # Initialize tool manager
-        from llmling_agent.agent.builtin_handlers import resolve_event_handlers
+        from llmling_agent.agent.events import resolve_event_handlers
 
         resolved_handlers = resolve_event_handlers(event_handlers)
         self.event_handler = MultiEventHandler[IndividualEventHandler](resolved_handlers)

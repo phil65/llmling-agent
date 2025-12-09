@@ -494,7 +494,7 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         event_configs: Sequence[EventConfig] | None = None,
         event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
     ) -> None:
-        from llmling_agent.agent.builtin_handlers import resolve_event_handlers
+        from llmling_agent.agent.events import resolve_event_handlers
         from llmling_agent.tools.manager import ToolManager
 
         # Build config from kwargs if not provided
