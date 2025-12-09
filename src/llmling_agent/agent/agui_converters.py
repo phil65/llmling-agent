@@ -6,11 +6,13 @@ streaming events, enabling AGUIAgent to yield the same event types as native age
 
 from __future__ import annotations
 
+import base64
 from typing import TYPE_CHECKING, Any
 
 from ag_ui.core import (
     ActivityDeltaEvent,
     ActivitySnapshotEvent,
+    BinaryInputContent,
     CustomEvent as AGUICustomEvent,
     MessagesSnapshotEvent,
     RawEvent,
@@ -18,6 +20,7 @@ from ag_ui.core import (
     RunStartedEvent as AGUIRunStartedEvent,
     StateDeltaEvent,
     StateSnapshotEvent,
+    TextInputContent,
     TextMessageChunkEvent,
     TextMessageContentEvent,
     TextMessageEndEvent,
@@ -48,7 +51,10 @@ from llmling_agent.resource_providers.plan_provider import PlanEntry
 
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from ag_ui.core import Event, InputContent
+    from pydantic_ai import UserContent
 
     from llmling_agent.agent.events import RichAgentStreamEvent
     from llmling_agent.common_types import PromptCompatible
@@ -269,3 +275,50 @@ def extract_text_from_event(event: Event) -> str | None:
 def is_text_event(event: Event) -> bool:
     """Check if this event contains text content."""
     return extract_text_from_event(event) is not None
+
+
+def to_agui_input_content(
+    parts: UserContent | Sequence[UserContent] | None,
+) -> list[InputContent]:
+    """Convert pydantic-ai UserContent parts to AG-UI InputContent format.
+
+    Args:
+        parts: UserContent part(s) to convert (str, ImageUrl, BinaryContent, etc.)
+
+    Returns:
+        List of AG-UI InputContent items
+    """
+    from pydantic_ai import BinaryContent, FileUrl
+    from pydantic_ai.messages import CachePoint
+
+    if parts is None:
+        return []
+
+    # Normalize to list
+    part_list = (
+        [parts] if isinstance(parts, str | FileUrl | BinaryContent | CachePoint) else list(parts)
+    )
+
+    result: list[InputContent] = []
+    for part in part_list:
+        match part:
+            case str() as text:
+                result.append(TextInputContent(text=text))
+
+            case FileUrl(url=url, media_type=media_type):
+                # ImageUrl, AudioUrl, DocumentUrl, VideoUrl all inherit from FileUrl
+                result.append(BinaryInputContent(url=str(url), mime_type=media_type))
+
+            case BinaryContent(data=data, media_type=media_type):
+                encoded = base64.b64encode(data).decode("utf-8")
+                result.append(BinaryInputContent(data=encoded, mime_type=media_type))
+
+            case CachePoint():
+                # Cache points are markers, not actual content - skip
+                pass
+
+            case _:
+                # Fallback: convert to string
+                result.append(TextInputContent(text=str(part)))
+
+    return result

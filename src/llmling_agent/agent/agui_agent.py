@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Self
 from uuid import uuid4
 
+from ag_ui.core import TextInputContent
 from anyenv import MultiEventHandler
 from anyenv.processes import hard_kill
 import httpx
@@ -20,6 +21,7 @@ from llmling_agent.agent.agui_converters import (
     agui_to_native_event,
     convert_to_agui_content,
     extract_text_from_event,
+    to_agui_input_content,
 )
 from llmling_agent.agent.builtin_handlers import resolve_event_handlers
 from llmling_agent.agent.events import RunStartedEvent, StreamCompleteEvent
@@ -332,8 +334,25 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
         yield run_started
 
         # Build request with proper content conversion
+        # Get pending parts from conversation and convert them
+        pending_parts = conversation.get_pending_parts()
+        pending_content = to_agui_input_content(pending_parts)
+
+        # Convert prompts to AGUI content
         content = await convert_to_agui_content(prompts)
-        user_message = UserMessage(id=str(uuid4()), content=content)
+
+        # Combine pending parts with new content
+        if pending_content:
+            if isinstance(content, str):
+                # If content is a string, prepend pending parts
+                final_content = [*pending_content, TextInputContent(text=content)]
+            else:
+                # If content is already a list, prepend pending parts
+                final_content = [*pending_content, *content]
+        else:
+            final_content = content
+
+        user_message = UserMessage(id=str(uuid4()), content=final_content)
         request_data = RunAgentInput(
             thread_id=self._state.thread_id,
             run_id=self._state.run_id,
