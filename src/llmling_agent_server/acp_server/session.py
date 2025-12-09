@@ -191,7 +191,6 @@ class ACPSession:
                 enable_list_resources=False,
                 enable_add_resource=False,
                 enable_show_resource=False,
-                enable_copy_clipboard=False,
             ),
             *get_acp_commands(),
         ]
