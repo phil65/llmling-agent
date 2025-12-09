@@ -74,7 +74,9 @@ class ToolCallInfo(Schema):
         """
         from jinjarope import Environment
 
-        template_str = template if style == "custom" else template or get_tool_call_template(style)
+        template_str = template if style == "custom" else get_tool_call_template(style)
+        if not template_str:
+            raise ValueError("Custom template is required for style='custom'")
         env = Environment(trim_blocks=True, lstrip_blocks=True)
         env.filters["repr"] = repr
         template_obj = env.from_string(template_str)

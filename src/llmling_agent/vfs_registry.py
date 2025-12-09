@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Literal, overload
+from typing import TYPE_CHECKING, Any, Literal, assert_never, overload
 
 from fsspec import AbstractFileSystem
 from upath import UPath
-from upathtools import AsyncUPath, UnionFileSystem, read_folder, read_path
+from upathtools import AsyncUPath, UnionFileSystem, list_files, read_folder, read_path
 from upathtools.configs.base import FileSystemConfig, URIFileSystemConfig
 
 from llmling_agent.log import get_logger
@@ -39,9 +39,8 @@ class VFSRegistry(BaseRegistry[str, AbstractFileSystem]):
                 fs = URIFileSystemConfig(uri=uri).create_fs()
             case FileSystemConfig():
                 fs = config.create_fs()
-            case _:
-                msg = f"Unknown resource config type: {type(config)}"
-                raise ValueError(msg)
+            case _ as unreachable:
+                assert_never(unreachable)
 
         self.register(name, fs)
         return fs
@@ -150,8 +149,6 @@ class VFSRegistry(BaseRegistry[str, AbstractFileSystem]):
             # Query specific subfolder
             files = await registry.query("docs://guides", pattern="*.md")
         """
-        from upathtools import list_files
-
         if "/" not in path:
             # Simple resource name - add protocol
             path = f"{path}://"

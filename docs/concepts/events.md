@@ -147,19 +147,6 @@ Events can be handled in two ways:
 1. **Automatic Handling**: Events are automatically converted to agent runs using their `to_prompt()` method
 2. **Custom Callbacks**: Custom event handlers for more control
 
-#### Default Handler
-By default, events are automatically converted to prompts and passed to the agent:
-
-```python
-# Auto-handling is enabled by default
-event_manager = EventManager(agent)
-
-# Can be disabled
-event_manager.auto_handle = False
-
-# Re-enable
-event_manager.auto_handle = True
-```
 
 #### Custom Event Handlers
 
@@ -178,22 +165,6 @@ agent.events.add_callback(handle_events)
 
 # Remove callback
 agent.events.remove_callback(handle_events)
-```
-
-Callbacks can be both sync or async:
-
-```python
-# Sync callback
-def sync_handler(event: EventData):
-    print(f"Event received: {event}")
-
-# Async callback
-async def async_handler(event: EventData):
-    await process_event(event)
-
-# Both work
-agent.events.add_callback(sync_handler)
-agent.events.add_callback(async_handler)
 ```
 
 ## CLI Usage
