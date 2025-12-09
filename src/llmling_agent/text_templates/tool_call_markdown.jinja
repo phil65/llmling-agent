@@ -1,0 +1,25 @@
+### Tool Call: {{ tool_name }}
+
+**Arguments:**
+{% for name, value in args.items() %}
+- {{ name }}: {{ value|repr }}
+{%- endfor %}
+
+{%- if error %}
+
+**Error:** {{ error }}
+{%- endif %}
+{%- if result %}
+
+**Result:**
+```
+{{ result }}
+```
+{%- endif %}
+
+{%- if show_timing and timing %}
+*Execution time: {{ "%.2f"|format(timing) }}s*
+{%- endif %}
+{%- if agent_tool_name %}
+*Agent: {{ agent_tool_name }}*
+{%- endif %}

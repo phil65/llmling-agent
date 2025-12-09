@@ -1,0 +1,5 @@
+{{ tool_name }}(
+    {%- for name, value in args.items() -%}
+        {{ name }}={{ value|repr }}{{ "," if not loop.last }}
+    {%- endfor -%}
+) -> {{ error if error else result }}

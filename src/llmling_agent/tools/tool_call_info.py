@@ -3,69 +3,18 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 from uuid import uuid4
 
 from pydantic import Field
 from schemez import Schema
 
+from llmling_agent.text_templates import get_tool_call_template
 from llmling_agent.utils.now import get_now
 
 
-FormatStyle = Literal["simple", "detailed", "markdown"]
-
-SIMPLE_TEMPLATE = """{{ tool_name }}(
-    {%- for name, value in args.items() -%}
-        {{ name }}={{ value|repr }}{{ "," if not loop.last }}
-    {%- endfor -%}
-) -> {{ error if error else result }}"""
-
-DEFAULT_TEMPLATE = """Tool Call: {{ tool_name }}
-Arguments:
-{%- for name, value in args.items() %}
-  {{ name }}: {{ value|repr }}
-{%- endfor %}
-{%- if result %}
-
-Result: {{ result }}
-{%- endif %}
-{%- if error %}
-
-Error: {{ error }}
-{%- endif %}"""
-
-MARKDOWN_TEMPLATE = """### Tool Call: {{ tool_name }}
-
-**Arguments:**
-{% for name, value in args.items() %}
-- {{ name }}: {{ value|repr }}
-{%- endfor %}
-
-{%- if error %}
-
-**Error:** {{ error }}
-{%- endif %}
-{%- if result %}
-
-**Result:**
-```
-{{ result }}
-```
-{%- endif %}
-
-{%- if show_timing and timing %}
-*Execution time: {{ "%.2f"|format(timing) }}s*
-{%- endif %}
-{%- if agent_tool_name %}
-*Agent: {{ agent_tool_name }}*
-{%- endif %}"""
-
-
-TEMPLATES = {
-    "simple": SIMPLE_TEMPLATE,
-    "detailed": DEFAULT_TEMPLATE,
-    "markdown": MARKDOWN_TEMPLATE,
-}
+if TYPE_CHECKING:
+    from llmling_agent.text_templates import FormatStyle
 
 
 class ToolCallInfo(Schema):
@@ -103,7 +52,7 @@ class ToolCallInfo(Schema):
 
     def format(
         self,
-        style: FormatStyle = "simple",
+        style: FormatStyle | Literal["custom"] = "simple",
         *,
         template: str | None = None,
         variables: dict[str, Any] | None = None,
@@ -125,15 +74,7 @@ class ToolCallInfo(Schema):
         """
         from jinjarope import Environment
 
-        # Select template
-        if template:
-            template_str = template
-        elif style in TEMPLATES:
-            template_str = TEMPLATES[style]
-        else:
-            msg = f"Invalid style: {style}"
-            raise ValueError(msg)
-
+        template_str = template if style == "custom" else template or get_tool_call_template(style)
         env = Environment(trim_blocks=True, lstrip_blocks=True)
         env.filters["repr"] = repr
         template_obj = env.from_string(template_str)

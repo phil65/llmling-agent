@@ -1,0 +1,13 @@
+Tool Call: {{ tool_name }}
+Arguments:
+{%- for name, value in args.items() %}
+  {{ name }}: {{ value|repr }}
+{%- endfor %}
+{%- if result %}
+
+Result: {{ result }}
+{%- endif %}
+{%- if error %}
+
+Error: {{ error }}
+{%- endif %}

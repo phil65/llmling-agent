@@ -5,6 +5,8 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, Any, Literal
 
+from llmling_agent import text_templates
+
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
@@ -17,39 +19,6 @@ if TYPE_CHECKING:
 
 ToolInjectionMode = Literal["off", "all"]
 ToolUsageStyle = Literal["suggestive", "strict"]
-
-
-DEFAULT_TEMPLATE = """\
-{%- if inject_agent_info and agent.name %}You are {{ agent.name }}{% if agent.description %}. {{ agent.description }}{% endif %}.
-
-{% endif -%}
-{%- if inject_tools != "off" -%}
-{%- set tools = agent.tools.get_tools("enabled") -%}
-{%- if tools %}
-
-{%- if tool_usage_style == "strict" %}
-You MUST use these tools to complete your tasks:
-{%- else %}
-You have access to these tools:
-{%- endif %}
-{% for tool in tools %}
-- {{ tool.name }}{% if tool.description %}: {{ tool.description }}{% endif %}
-{%- endfor %}
-
-{%- if tool_usage_style == "strict" %}
-Do not attempt to perform tasks without using appropriate tools.
-{%- else %}
-Use them when appropriate to complete your tasks.
-{%- endif %}
-
-{% endif -%}
-{% endif -%}
-{%- for prompt in prompts %}
-{{ prompt|to_prompt if dynamic else prompt }}
-{%- if not loop.last %}
-
-{% endif %}
-{%- endfor %}"""  # noqa: E501
 
 
 class SystemPrompts:
@@ -197,8 +166,7 @@ class SystemPrompts:
         """Format complete system prompt."""
         if not self.dynamic and not self._cached:
             await self.refresh_cache()
-
-        template = self._env.from_string(self.template or DEFAULT_TEMPLATE)
+        template = self._env.from_string(self.template or text_templates.get_system_prompt())
         result = await template.render_async(
             agent=agent,
             prompts=self.prompts,
