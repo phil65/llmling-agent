@@ -19,16 +19,17 @@ from uuid import UUID
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
-    from llmling_agent.agent.events import RichAgentStreamEvent
     from llmling_agent.messaging import ChatMessage
     from llmling_agent.messaging.messagenode import MessageNode
 
 from pydantic import BaseModel, ConfigDict, field_validator
-from pydantic_ai import AgentStreamEvent, RunContext
+from pydantic_ai import RunContext
 from pydantic_ai.models import Model
 from tokonomics import ModelName
 from toprompt.to_prompt import AnyPromptType
 from upath.types import JoinablePathLike
+
+from llmling_agent.agent.events import RichAgentStreamEvent
 
 
 # Define what we consider JSON-serializable
@@ -95,7 +96,7 @@ type ToolType = str | AnyCallable
 
 # Event handler types for composable event processing
 # Individual event handler for composability - takes single events
-IndividualEventHandler = Callable[[RunContext, AgentStreamEvent], Awaitable[None]]
+IndividualEventHandler = Callable[[RunContext, RichAgentStreamEvent[Any]], Awaitable[None]]
 BuiltinEventHandlerType = Literal["simple", "detailed"]
 PromptCompatible = AnyPromptType | JoinablePathLike
 # P = ParamSpec("P")

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Annotated, Literal
+from typing import TYPE_CHECKING, Annotated, Any, Literal
 
 from pydantic import ConfigDict, Field
 from schemez import Schema
@@ -11,6 +11,9 @@ from schemez import Schema
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
+    from pydantic_ai import RunContext
+
+    from llmling_agent.agent.events import RichAgentStreamEvent
     from llmling_agent.common_types import IndividualEventHandler
 
 
@@ -159,7 +162,7 @@ class TTSEventHandlerConfig(BaseEventHandlerConfig):
             raise ImportError(msg) from e
 
         try:
-            import sounddevice as sd
+            import sounddevice as sd  # type: ignore[import-untyped]
         except ImportError as e:
             msg = "sounddevice package required for TTS. Install extra 'tts'"
             raise ImportError(msg) from e
@@ -173,7 +176,7 @@ class TTSEventHandlerConfig(BaseEventHandlerConfig):
 
         # Shared state for handler closure
         audio_queue: asyncio.Queue[bytes | None] = asyncio.Queue()
-        playback_task: asyncio.Task | None = None
+        playback_task: asyncio.Task[None] | None = None
         text_buffer = ""
         sentence_terminators = {".", "!", "?", "\n"}
 
@@ -223,7 +226,7 @@ class TTSEventHandlerConfig(BaseEventHandlerConfig):
             except Exception as e:  # noqa: BLE001
                 print(f"\n❌ TTS error: {e}", file=sys.stderr)
 
-        async def handler(ctx, event) -> None:
+        async def handler(ctx: RunContext, event: RichAgentStreamEvent[Any]) -> None:
             nonlocal text_buffer, playback_task
 
             match event:
