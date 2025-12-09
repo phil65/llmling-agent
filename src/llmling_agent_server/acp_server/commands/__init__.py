@@ -1,11 +1,17 @@
 """Slash commands."""
 
+from __future__ import annotations
+
 from .docs_commands import get_docs_commands
 from .terminal_commands import get_terminal_commands
 from .acp_commands import get_acp_commands
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from slashed import SlashedCommand
 
 
-def get_commands():
+def get_commands() -> list[type[SlashedCommand]]:
     """Get all ACP-specific commands."""
     return [*get_acp_commands(), *get_docs_commands(), *get_terminal_commands()]
 

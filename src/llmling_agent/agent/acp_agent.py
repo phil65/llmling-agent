@@ -344,8 +344,8 @@ class ACPClientHandler(Client):
             raise ValueError(f"Terminal {terminal_id} not found")
 
         process_id = self._terminal_to_process[terminal_id]
-        output = await self.env.process_manager.get_output(process_id)
-        output = output.combined or output.stdout or ""
+        proc_output = await self.env.process_manager.get_output(process_id)
+        output = proc_output.combined or proc_output.stdout or ""
         return TerminalOutputResponse(output=output, truncated=output.truncated)
 
     async def wait_for_terminal_exit(
