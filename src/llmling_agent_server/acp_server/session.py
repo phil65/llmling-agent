@@ -121,6 +121,19 @@ def _is_slash_command(text: str) -> bool:
     return bool(SLASH_PATTERN.match(text.strip()))
 
 
+def split_commands(
+    contents: Sequence[str | BaseContent],
+) -> tuple[list[str], list[str | BaseContent]]:
+    commands: list[str] = []
+    non_command_content: list[str | BaseContent] = []
+    for item in contents:
+        if isinstance(item, str) and _is_slash_command(item):
+            commands.append(item.strip())
+        else:
+            non_command_content.append(item)
+    return commands, non_command_content
+
+
 @dataclass
 class ACPSession:
     """Individual ACP session state and management.
@@ -332,19 +345,9 @@ class ACPSession:
         if not contents:
             self.log.warning("Empty prompt received")
             return "refusal"
-        # Check for slash commands in text content
-        commands: list[str] = []
-        non_command_content: list[str | BaseContent] = []
-        for item in contents:
-            if isinstance(item, str) and _is_slash_command(item):
-                self.log.info("Found slash command", command=item)
-                commands.append(item.strip())
-            else:
-                non_command_content.append(item)
-
+        commands, non_command_content = split_commands(contents)
         async with self._task_lock:
-            # Process commands if found
-            if commands:
+            if commands:  # Process commands if found
                 for command in commands:
                     self.log.info("Processing slash command", command=command)
                     await self.execute_slash_command(command)
@@ -357,8 +360,7 @@ class ACPSession:
             event_count = 0
             self._current_tool_inputs.clear()  # Reset tool inputs for new stream
 
-            try:
-                # Use the session's persistent input provider
+            try:  # Use the session's persistent input provider
                 async for event in self.agent.run_stream(
                     *non_command_content, input_provider=self.input_provider
                 ):
@@ -462,15 +464,13 @@ class ACPSession:
                                 tool_call_id=tool_call_id,
                             )
 
-                    # Replace the AsyncGenerator with the full content to
-                    # prevent errors
+                    # Replace the AsyncGenerator with the full content to prevent errors
                     result.content = full_content
                     final_output = full_content
                 else:
                     final_output = result.content
 
-                # Final completion notification
-                # Skip generic notifications for self-notifying tools
+                # Final completion notification. Skip generic notifications for self-notifying tools
                 if result.tool_name not in ACP_SELF_NOTIFYING_TOOLS:
                     converted_blocks = to_acp_content_blocks(final_output)
                     await self.notifications.tool_call(
@@ -480,14 +480,12 @@ class ACPSession:
                         status="completed",
                         tool_call_id=tool_call_id,
                     )
-                # Clean up stored input
-                self._current_tool_inputs.pop(tool_call_id, None)
+                self._current_tool_inputs.pop(tool_call_id, None)  # Clean up stored input
 
             case FunctionToolResultEvent(
                 result=RetryPromptPart(tool_name=tool_name) as result,
                 tool_call_id=tool_call_id,
             ):
-                # Tool call failed and needs retry
                 tool_name = tool_name or "unknown"
                 error_message = result.model_response()
                 # Skip generic notifications for self-notifying tools
@@ -510,16 +508,10 @@ class ACPSession:
                 locations=locations,
                 raw_input=raw_input,
             ):
-                self.log.debug(
-                    "Received tool call start event",
-                    tool_name=tool_name,
-                    tool_call_id=tool_call_id,
-                )
+                msg = "Received tool call start event"
+                self.log.debug(msg, tool_name=tool_name, tool_call_id=tool_call_id)
                 # Convert LocationContentItem objects to ACP format
-                acp_locations = [
-                    ToolCallLocation(path=loc.path, line=loc.line) for loc in locations
-                ]
-
+                acp_locations = [ToolCallLocation(path=i.path, line=i.line) for i in locations]
                 # Send initial tool_call notification (creation)
                 await self.notifications.tool_call_start(
                     tool_call_id=tool_call_id,
