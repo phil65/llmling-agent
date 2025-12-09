@@ -2779,6 +2779,22 @@
             "codemode"
           ],
           "title": "Tool execution mode"
+        },
+        "auto_cache": {
+          "default": "off",
+          "description": "Automatic prompt caching configuration:\n- \"off\": No automatic caching\n- \"5m\": Add cache point with 5 minute TTL\n- \"1h\": Add cache point with 1 hour TTL",
+          "enum": [
+            "off",
+            "5m",
+            "1h"
+          ],
+          "examples": [
+            "off",
+            "5m",
+            "1h"
+          ],
+          "title": "Automatic caching",
+          "type": "string"
         }
       },
       "title": "AgentConfig",
@@ -23153,6 +23169,327 @@
       "title": "MicrosandboxFilesystemConfig",
       "type": "object"
     },
+    "MistralAgentConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for Mistral agent via ACP.\n\nExample:\n    ```yaml\n    acp_agents:\n      coder:\n        type: mistral\n        cwd: /path/to/project\n    ```",
+      "properties": {
+        "name": {
+          "default": null,
+          "description": "Identifier for the node. Set from dict key, not from YAML.",
+          "title": "Name",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "config_file_path": {
+          "default": null,
+          "description": "Config file path for resolving relative paths.",
+          "examples": [
+            "/path/to/config.yml",
+            "configs/agent.yaml"
+          ],
+          "title": "Configuration file path",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "display_name": {
+          "default": null,
+          "description": "Human-readable display name for the node.",
+          "examples": [
+            "Main Agent",
+            "Web Searcher",
+            "Code Assistant"
+          ],
+          "title": "Display name",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "default": null,
+          "description": "Optional description of the agent / team.",
+          "examples": [
+            "Main conversation agent",
+            "Handles web search requests"
+          ],
+          "title": "Node description",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "triggers": {
+          "description": "Event sources that activate this agent / team",
+          "examples": [
+            [
+              {
+                "name": "daily_check",
+                "prompt": "Daily status update",
+                "schedule": "0 9 * * *",
+                "type": "time"
+              }
+            ],
+            [
+              {
+                "extensions": [
+                  ".py"
+                ],
+                "name": "code_watcher",
+                "paths": [
+                  "./src"
+                ],
+                "type": "file"
+              }
+            ]
+          ],
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "email": "#/$defs/EmailConfig",
+                "file": "#/$defs/FileWatchConfig",
+                "time": "#/$defs/TimeEventConfig",
+                "webhook": "#/$defs/WebhookConfig"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/FileWatchConfig"
+              },
+              {
+                "$ref": "#/$defs/WebhookConfig"
+              },
+              {
+                "$ref": "#/$defs/EmailConfig"
+              },
+              {
+                "$ref": "#/$defs/TimeEventConfig"
+              }
+            ]
+          },
+          "title": "Event triggers",
+          "type": "array"
+        },
+        "connections": {
+          "description": "Targets to forward results to.",
+          "examples": [
+            [
+              {
+                "connection_type": "run",
+                "name": "output_agent",
+                "type": "node",
+                "wait_for_completion": true
+              }
+            ],
+            [
+              {
+                "path": "logs/messages.txt",
+                "template": "{{ message.content }}",
+                "type": "file"
+              }
+            ]
+          ],
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "callable": "#/$defs/CallableConnectionConfig",
+                "file": "#/$defs/FileConnectionConfig",
+                "node": "#/$defs/NodeConnectionConfig"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/NodeConnectionConfig"
+              },
+              {
+                "$ref": "#/$defs/FileConnectionConfig"
+              },
+              {
+                "$ref": "#/$defs/CallableConnectionConfig"
+              }
+            ]
+          },
+          "title": "Message forwarding targets",
+          "type": "array"
+        },
+        "mcp_servers": {
+          "description": "List of MCP server configurations:\n- str entries are converted to StdioMCPServerConfig\n- MCPServerConfig for full server configuration",
+          "examples": [
+            [
+              "uvx some-server"
+            ],
+            [
+              {
+                "type": "streamable-http",
+                "url": "http://mcp.example.com"
+              }
+            ]
+          ],
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "discriminator": {
+                  "mapping": {
+                    "sse": "#/$defs/SSEMCPServerConfig",
+                    "stdio": "#/$defs/StdioMCPServerConfig",
+                    "streamable-http": "#/$defs/StreamableHTTPMCPServerConfig"
+                  },
+                  "propertyName": "type"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/StdioMCPServerConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/SSEMCPServerConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/StreamableHTTPMCPServerConfig"
+                  }
+                ]
+              }
+            ]
+          },
+          "title": "MCP servers",
+          "type": "array"
+        },
+        "input_provider": {
+          "default": null,
+          "description": "Provider for human-input-handling.",
+          "title": "Input provider",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "event_handlers": {
+          "description": "Event handlers for processing agent stream events.\n\nSupports:\n- builtin: Simple/detailed console output\n- tts: Text-to-speech synthesis\n- callback: Custom handler via import path",
+          "examples": [
+            [
+              {
+                "handler": "simple",
+                "type": "builtin"
+              }
+            ]
+          ],
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "builtin": "#/$defs/BuiltinEventHandlerConfig",
+                "callback": "#/$defs/CallbackEventHandlerConfig",
+                "tts": "#/$defs/TTSEventHandlerConfig"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/BuiltinEventHandlerConfig"
+              },
+              {
+                "$ref": "#/$defs/CallbackEventHandlerConfig"
+              },
+              {
+                "$ref": "#/$defs/TTSEventHandlerConfig"
+              }
+            ]
+          },
+          "title": "Event handlers",
+          "type": "array"
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for the session.",
+          "examples": [
+            "/path/to/project",
+            "."
+          ],
+          "title": "Cwd",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "env": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Environment variables to set.",
+          "title": "Env",
+          "type": "object"
+        },
+        "execution_environment": {
+          "anyOf": [
+            {
+              "enum": [
+                "local",
+                "docker",
+                "e2b",
+                "beam",
+                "daytona",
+                "srt"
+              ],
+              "type": "string"
+            },
+            {
+              "additionalProperties": true,
+              "type": "object"
+            }
+          ],
+          "default": "local",
+          "description": "Execution environment config for ACP client operations (filesystem, terminals).",
+          "examples": [
+            "local",
+            "docker",
+            {
+              "template": "python-sandbox",
+              "type": "e2b"
+            },
+            {
+              "image": "python:3.13-slim",
+              "type": "docker"
+            }
+          ],
+          "title": "Execution Environment"
+        },
+        "allow_file_operations": {
+          "default": true,
+          "description": "Whether to allow file read/write operations.",
+          "title": "Allow File Operations",
+          "type": "boolean"
+        },
+        "allow_terminal": {
+          "default": true,
+          "description": "Whether to allow terminal operations.",
+          "title": "Allow Terminal",
+          "type": "boolean"
+        },
+        "auto_grant_permissions": {
+          "default": true,
+          "description": "Whether to automatically grant all permission requests.",
+          "title": "Auto Grant Permissions",
+          "type": "boolean"
+        },
+        "type": {
+          "const": "mistral",
+          "default": "mistral",
+          "description": "Discriminator for Mistral ACP agent.",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "title": "MistralAgentConfig",
+      "type": "object",
+      "x-doc-title": "ACP Agent Configuration",
+      "x-icon": "octicon:terminal-16"
+    },
     "MistralConfig": {
       "additionalProperties": false,
       "description": "Configuration for Mistral-based converter.",
@@ -37728,6 +38065,7 @@
             "gemini": "#/$defs/GeminiACPAgentConfig",
             "goose": "#/$defs/GooseACPAgentConfig",
             "kimi": "#/$defs/KimiACPAgentConfig",
+            "mistral": "#/$defs/MistralAgentConfig",
             "opencode": "#/$defs/OpenCodeACPAgentConfig",
             "openhands": "#/$defs/OpenHandsACPAgentConfig",
             "stakpak": "#/$defs/StakpakACPAgentConfig",
@@ -37774,6 +38112,9 @@
           },
           {
             "$ref": "#/$defs/StakpakACPAgentConfig"
+          },
+          {
+            "$ref": "#/$defs/MistralAgentConfig"
           },
           {
             "$ref": "#/$defs/VTCodeACPAgentConfig"
