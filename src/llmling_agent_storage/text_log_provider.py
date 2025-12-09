@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, ClassVar
 
-from upath import UPath
 from upathtools import to_upath
 
 from llmling_agent.log import get_logger
@@ -16,6 +15,7 @@ if TYPE_CHECKING:
     from datetime import datetime
 
     from jinja2 import Template
+    from upath import UPath
     from upath.types import JoinablePathLike
 
     from llmling_agent.common_types import JsonValue

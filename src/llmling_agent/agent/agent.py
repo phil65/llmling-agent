@@ -766,7 +766,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             if self._auto_cache != "off":
                 from pydantic_ai.messages import CachePoint
 
-                cache_point = CachePoint(ttl=self._auto_cache)  # type: ignore[arg-type]
+                cache_point = CachePoint(ttl=self._auto_cache)
                 converted.append(cache_point)
             stream_events = agentlet.run_stream_events(
                 converted,
