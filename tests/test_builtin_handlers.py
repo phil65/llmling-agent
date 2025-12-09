@@ -41,7 +41,7 @@ def mock_run_context():
 async def test_simple_print_handler_text(mock_run_context):
     """Test simple handler prints text content."""
     output = StringIO()
-    sys.stdout = output
+    sys.stderr = output
 
     try:
         event = PartStartEvent(part=TextPart(content="Hello world"), index=0)
@@ -49,14 +49,14 @@ async def test_simple_print_handler_text(mock_run_context):
 
         assert output.getvalue() == "Hello world"
     finally:
-        sys.stdout = sys.__stdout__
+        sys.stderr = sys.__stderr__
 
 
 @pytest.mark.asyncio
 async def test_simple_print_handler_tool_call(mock_run_context):
     """Test simple handler prints tool call."""
     output = StringIO()
-    sys.stdout = output
+    sys.stderr = output
 
     try:
         part = ToolCallPart(tool_name="test_tool", args={"param": "value"}, tool_call_id="call_123")
@@ -65,14 +65,14 @@ async def test_simple_print_handler_tool_call(mock_run_context):
 
         assert "🔧 test_tool" in output.getvalue()
     finally:
-        sys.stdout = sys.__stdout__
+        sys.stderr = sys.__stderr__
 
 
 @pytest.mark.asyncio
 async def test_simple_print_handler_error(mock_run_context):
     """Test simple handler prints errors."""
     output = StringIO()
-    sys.stdout = output
+    sys.stderr = output
 
     try:
         event = RunErrorEvent(message="Something went wrong", code="ERR001")
@@ -82,14 +82,14 @@ async def test_simple_print_handler_error(mock_run_context):
         assert "❌" in result
         assert "Something went wrong" in result
     finally:
-        sys.stdout = sys.__stdout__
+        sys.stderr = sys.__stderr__
 
 
 @pytest.mark.asyncio
 async def test_detailed_print_handler_tool_call(mock_run_context):
     """Test detailed handler prints tool call with inputs."""
     output = StringIO()
-    sys.stdout = output
+    sys.stderr = output
 
     try:
         event = ToolCallStartEvent(
@@ -102,14 +102,14 @@ async def test_detailed_print_handler_tool_call(mock_run_context):
         assert "Testing something" in result
         assert "call_123"[:8] in result
     finally:
-        sys.stdout = sys.__stdout__
+        sys.stderr = sys.__stderr__
 
 
 @pytest.mark.asyncio
 async def test_detailed_print_handler_tool_result(mock_run_context):
     """Test detailed handler prints tool results."""
     output = StringIO()
-    sys.stdout = output
+    sys.stderr = output
 
     try:
         result_part = ToolReturnPart(
@@ -123,14 +123,14 @@ async def test_detailed_print_handler_tool_result(mock_run_context):
         assert "test_tool" in result
         assert "Operation successful" in result
     finally:
-        sys.stdout = sys.__stdout__
+        sys.stderr = sys.__stderr__
 
 
 @pytest.mark.asyncio
 async def test_detailed_print_handler_truncates_long_output(mock_run_context):
     """Test detailed handler truncates long outputs."""
     output = StringIO()
-    sys.stdout = output
+    sys.stderr = output
 
     try:
         long_content = "x" * 200
@@ -144,7 +144,7 @@ async def test_detailed_print_handler_truncates_long_output(mock_run_context):
         assert "..." in result
         assert len(result) < len(long_content)
     finally:
-        sys.stdout = sys.__stdout__
+        sys.stderr = sys.__stderr__
 
 
 @pytest.mark.asyncio
@@ -154,7 +154,7 @@ async def test_stream_complete_adds_newline(mock_run_context):
 
     for handler in [simple_print_handler, detailed_print_handler]:
         output = StringIO()
-        sys.stdout = output
+        sys.stderr = output
 
         try:
             message = ChatMessage(content="test", role="user")
@@ -163,4 +163,4 @@ async def test_stream_complete_adds_newline(mock_run_context):
 
             assert output.getvalue() == "\n"
         finally:
-            sys.stdout = sys.__stdout__
+            sys.stderr = sys.__stderr__

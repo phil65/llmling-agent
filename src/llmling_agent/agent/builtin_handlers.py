@@ -68,7 +68,7 @@ async def simple_print_handler(ctx: RunContext, event: RichAgentStreamEvent[Any]
             print(f"\n❌ Error: {message}", flush=True, file=sys.stderr)
 
         case StreamCompleteEvent():
-            print()  # Final newline
+            print(file=sys.stderr)  # Final newline
 
 
 async def detailed_print_handler(ctx: RunContext, event: RichAgentStreamEvent[Any]) -> None:
@@ -132,7 +132,7 @@ async def detailed_print_handler(ctx: RunContext, event: RichAgentStreamEvent[An
             print(f"\n❌ Error{error_info}: {message}", flush=True, file=sys.stderr)
 
         case StreamCompleteEvent():
-            print()  # Final newline
+            print(file=sys.stderr)  # Final newline
 
 
 def resolve_event_handlers(
