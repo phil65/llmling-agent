@@ -104,7 +104,8 @@ def version(
     ctx.run(f"uv version {bump_str}")
     new_version = ctx.run("uv version --short", capture=True).strip()
     print(f"New version: {new_version}")
-    ctx.run("git add pyproject.toml")
+    ctx.run("uv lock")
+    ctx.run("git add pyproject.toml uv.lock")
     ctx.run(f'git commit -m "chore: bump version {old_version} -> {new_version}"')
 
     # Create and push tag
