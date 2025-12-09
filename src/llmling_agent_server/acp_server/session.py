@@ -61,7 +61,6 @@ from llmling_agent.agent.events import (
 from llmling_agent.log import get_logger
 from llmling_agent_commands import get_commands
 from llmling_agent_commands.base import NodeCommand
-from llmling_agent_server.acp_server.commands import get_commands as get_acp_commands
 from llmling_agent_server.acp_server.converters import (
     convert_acp_mcp_server_to_config,
     from_content_blocks,
@@ -178,6 +177,8 @@ class ACPSession:
 
     def __post_init__(self) -> None:
         """Initialize session state and set up providers."""
+        from llmling_agent_server.acp_server.commands import get_commands as get_acp_commands
+
         self.mcp_servers = self.mcp_servers or []
         self.log = logger.bind(session_id=self.session_id)
         self._task_lock = asyncio.Lock()
