@@ -794,6 +794,8 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         Yields:
             RichAgentStreamEvent instances converted from ACP session updates
         """
+        from acp.utils import to_acp_content_blocks
+
         # Update input provider if provided
         if input_provider is not None:
             self._input_provider = input_provider
@@ -817,8 +819,10 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
             await handler(None, run_started)
         yield run_started
         content_blocks = convert_to_acp_content(processed_prompts)
-        prompt_request = PromptRequest(session_id=self._session_id, prompt=content_blocks)
-        self.log.debug("Starting streaming prompt", num_blocks=len(content_blocks))
+        pending_parts = conversation.get_pending_parts()
+        final_blocks = [*to_acp_content_blocks(pending_parts), *content_blocks]
+        prompt_request = PromptRequest(session_id=self._session_id, prompt=final_blocks)
+        self.log.debug("Starting streaming prompt", num_blocks=len(final_blocks))
         # Run prompt in background
         prompt_task = asyncio.create_task(self._connection.prompt(prompt_request))
         last_idx = 0
