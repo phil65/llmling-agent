@@ -30,7 +30,6 @@ from llmling_agent.log import get_logger
 from llmling_agent.messaging import ChatMessage, MessageHistory
 from llmling_agent.messaging.messagenode import MessageNode
 from llmling_agent.messaging.processing import prepare_prompts
-from llmling_agent.models.manifest import AgentsManifest
 from llmling_agent.talk.stats import MessageStats
 
 
@@ -193,6 +192,7 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
     def context(self) -> NodeContext:
         """Get node context."""
         from llmling_agent.messaging.context import NodeContext
+        from llmling_agent.models.manifest import AgentsManifest
         from llmling_agent_config.nodes import NodeConfig
 
         cfg = NodeConfig(name=self.name, description=self.description)
@@ -296,7 +296,7 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
             raise RuntimeError("No final message received from stream")
         return final_message
 
-    async def run_stream(
+    async def run_stream(  # noqa: PLR0915
         self,
         *prompts: PromptCompatible,
         message_id: str | None = None,
