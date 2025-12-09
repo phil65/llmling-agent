@@ -39,9 +39,7 @@ from acp.client.protocol import Client
 from acp.schema import (
     AgentMessageChunk,
     AgentThoughtChunk,
-    AllowedOutcome,
     CreateTerminalResponse,
-    DeniedOutcome,
     InitializeRequest,
     KillTerminalCommandResponse,
     NewSessionRequest,
@@ -133,6 +131,15 @@ class ACPSessionState:
     current_model_id: str | None = None
     """Current model ID from session state."""
 
+    def clear(self) -> None:
+        self.text_chunks.clear()
+        self.thought_chunks.clear()
+        self.tool_calls.clear()
+        self.events.clear()
+        self.is_complete = False
+        self.stop_reason = None
+        self.current_model_id = None
+
 
 class ACPClientHandler(Client):
     """Client handler that collects session updates and handles agent requests.
@@ -163,7 +170,6 @@ class ACPClientHandler(Client):
         self.state = state
         self._input_provider = input_provider
         self._update_event = asyncio.Event()
-
         # Map ACP terminal IDs to process manager IDs
         self._terminal_to_process: dict[str, str] = {}
 
@@ -228,11 +234,10 @@ class ACPClientHandler(Client):
         """Handle permission requests via InputProvider."""
         tool_name = params.tool_call.title or "operation"
         logger.info("Permission requested", tool_name=tool_name)
-
         if self.auto_grant_permissions and params.options:
             option_id = params.options[0].option_id
             logger.debug("Auto-granting permission", tool_name=tool_name)
-            return RequestPermissionResponse(outcome=AllowedOutcome(option_id=option_id))
+            return RequestPermissionResponse.allowed(option_id)
 
         if self._input_provider:
             # Map ACP permission request to our tool confirmation system
@@ -250,30 +255,28 @@ class ACPClientHandler(Client):
                 # Map confirmation result to ACP response
                 if result == "allow":
                     option_id = params.options[0].option_id if params.options else "allow"
-                    return RequestPermissionResponse(outcome=AllowedOutcome(option_id=option_id))
+                    return RequestPermissionResponse.allowed(option_id)
                 if result == "skip":
-                    return RequestPermissionResponse(outcome=DeniedOutcome())
+                    return RequestPermissionResponse.denied()
                 # abort_run
-                return RequestPermissionResponse(outcome=DeniedOutcome())
+                return RequestPermissionResponse.denied()
 
             except Exception:
                 logger.exception("Failed to get permission via input provider")
-                return RequestPermissionResponse(outcome=DeniedOutcome())
+                return RequestPermissionResponse.denied()
 
         logger.debug("Denying permission (no input provider)", tool_name=tool_name)
-        return RequestPermissionResponse(outcome=DeniedOutcome())
+        return RequestPermissionResponse.denied()
 
     async def read_text_file(self, params: ReadTextFileRequest) -> ReadTextFileResponse:
         """Read text from file via ExecutionEnvironment filesystem."""
         if not self.allow_file_operations:
-            msg = "File operations not allowed"
-            raise RuntimeError(msg)
+            raise RuntimeError("File operations not allowed")
 
+        fs = self.env.get_fs()
         try:
-            fs = self.env.get_fs()
             content_bytes = await fs._cat_file(params.path)
             content = content_bytes.decode("utf-8")
-
             # Apply line filtering if requested
             if params.line is not None or params.limit is not None:
                 lines = content.splitlines(keepends=True)
@@ -294,22 +297,16 @@ class ACPClientHandler(Client):
     async def write_text_file(self, params: WriteTextFileRequest) -> WriteTextFileResponse:
         """Write text to file via ExecutionEnvironment filesystem."""
         if not self.allow_file_operations:
-            msg = "File operations not allowed"
-            raise RuntimeError(msg)
-
+            raise RuntimeError("File operations not allowed")
+        fs = self.env.get_fs()
+        content_bytes = params.content.encode("utf-8")
+        parent = str(Path(params.path).parent)
         try:
-            fs = self.env.get_fs()
-            content_bytes = params.content.encode("utf-8")
-
-            # Ensure parent directory exists
-            parent = str(Path(params.path).parent)
-            if parent and parent != ".":
+            if parent and parent != ".":  # Ensure parent directory exists
                 await fs._makedirs(parent, exist_ok=True)
-
             await fs._pipe_file(params.path, content_bytes)
             logger.debug("Wrote file", path=params.path, num_chars=len(params.content))
             return WriteTextFileResponse()
-
         except Exception:
             logger.exception("Failed to write file", path=params.path)
             raise
@@ -317,75 +314,51 @@ class ACPClientHandler(Client):
     async def create_terminal(self, params: CreateTerminalRequest) -> CreateTerminalResponse:
         """Create a new terminal session via ProcessManager."""
         if not self.allow_terminal:
-            msg = "Terminal operations not allowed"
-            raise RuntimeError(msg)
-
+            raise RuntimeError("Terminal operations not allowed")
         try:
-            terminal_id = f"term_{uuid.uuid4().hex[:8]}"
-
-            # Build environment dict from ACP env vars
-            env_dict: dict[str, str] | None = None
-            if params.env:
-                env_dict = {var.name: var.value for var in params.env}
-
-            # Start process via ProcessManager
             process_id = await self.env.process_manager.start_process(
                 command=params.command,
                 args=list(params.args) if params.args else None,
                 cwd=params.cwd,
-                env=env_dict,
+                env={var.name: var.value for var in params.env or []},
             )
-
-            # Map terminal ID to process ID
-            self._terminal_to_process[terminal_id] = process_id
-
-            logger.info(
-                "Created terminal",
-                terminal_id=terminal_id,
-                process_id=process_id,
-                command=params.command,
-            )
-            return CreateTerminalResponse(terminal_id=terminal_id)
-
         except Exception:
             logger.exception("Failed to create terminal", command=params.command)
             raise
+        else:
+            terminal_id = f"term_{uuid.uuid4().hex[:8]}"
+            self._terminal_to_process[terminal_id] = process_id
+            msg = "Created terminal"
+            logger.info(msg, terminal_id=terminal_id, process_id=process_id, cmd=params.command)
+            return CreateTerminalResponse(terminal_id=terminal_id)
 
     async def terminal_output(self, params: TerminalOutputRequest) -> TerminalOutputResponse:
         """Get output from terminal via ProcessManager."""
         if not self.allow_terminal:
-            msg = "Terminal operations not allowed"
-            raise RuntimeError(msg)
+            raise RuntimeError("Terminal operations not allowed")
 
         terminal_id = params.terminal_id
         if terminal_id not in self._terminal_to_process:
-            msg = f"Terminal {terminal_id} not found"
-            raise ValueError(msg)
+            raise ValueError(f"Terminal {terminal_id} not found")
 
         process_id = self._terminal_to_process[terminal_id]
         output = await self.env.process_manager.get_output(process_id)
-
-        return TerminalOutputResponse(
-            output=output.combined or output.stdout or "",
-            truncated=output.truncated,
-        )
+        output = output.combined or output.stdout or ""
+        return TerminalOutputResponse(output=output, truncated=output.truncated)
 
     async def wait_for_terminal_exit(
         self, params: WaitForTerminalExitRequest
     ) -> WaitForTerminalExitResponse:
         """Wait for terminal process to exit via ProcessManager."""
         if not self.allow_terminal:
-            msg = "Terminal operations not allowed"
-            raise RuntimeError(msg)
+            raise RuntimeError("Terminal operations not allowed")
 
         terminal_id = params.terminal_id
         if terminal_id not in self._terminal_to_process:
-            msg = f"Terminal {terminal_id} not found"
-            raise ValueError(msg)
+            raise ValueError(f"Terminal {terminal_id} not found")
 
         process_id = self._terminal_to_process[terminal_id]
         exit_code = await self.env.process_manager.wait_for_exit(process_id)
-
         logger.debug("Terminal exited", terminal_id=terminal_id, exit_code=exit_code)
         return WaitForTerminalExitResponse(exit_code=exit_code)
 
@@ -394,17 +367,14 @@ class ACPClientHandler(Client):
     ) -> KillTerminalCommandResponse | None:
         """Kill terminal process via ProcessManager."""
         if not self.allow_terminal:
-            msg = "Terminal operations not allowed"
-            raise RuntimeError(msg)
+            raise RuntimeError("Terminal operations not allowed")
 
         terminal_id = params.terminal_id
         if terminal_id not in self._terminal_to_process:
-            msg = f"Terminal {terminal_id} not found"
-            raise ValueError(msg)
+            raise ValueError(f"Terminal {terminal_id} not found")
 
         process_id = self._terminal_to_process[terminal_id]
         await self.env.process_manager.kill_process(process_id)
-
         logger.info("Killed terminal", terminal_id=terminal_id)
         return KillTerminalCommandResponse()
 
@@ -413,17 +383,13 @@ class ACPClientHandler(Client):
     ) -> ReleaseTerminalResponse | None:
         """Release terminal resources via ProcessManager."""
         if not self.allow_terminal:
-            msg = "Terminal operations not allowed"
-            raise RuntimeError(msg)
+            raise RuntimeError("Terminal operations not allowed")
 
         terminal_id = params.terminal_id
         if terminal_id not in self._terminal_to_process:
-            msg = f"Terminal {terminal_id} not found"
-            raise ValueError(msg)
-
+            raise ValueError(f"Terminal {terminal_id} not found")
         process_id = self._terminal_to_process[terminal_id]
         await self.env.process_manager.release_process(process_id)
-
         del self._terminal_to_process[terminal_id]
         logger.info("Released terminal", terminal_id=terminal_id)
         return ReleaseTerminalResponse()
@@ -896,12 +862,7 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
 
         # Reset state
         run_id = str(uuid.uuid4())
-        self._state.text_chunks.clear()
-        self._state.thought_chunks.clear()
-        self._state.tool_calls.clear()
-        self._state.events.clear()
-        self._state.is_complete = False
-        self._state.stop_reason = None
+        self._state.clear()
 
         # Emit run started event
         run_started = RunStartedEvent(
