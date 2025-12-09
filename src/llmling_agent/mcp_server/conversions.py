@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import base64
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, assert_never
 
 from mcp.types import (
     AudioContent,
@@ -136,12 +136,17 @@ async def from_mcp_content(
                         logger.warning("Failed to read resource", uri=uri)
                 # Convert to appropriate URL type based on MIME type
                 contents.append(_url_from_mime_type(str(uri), mime_type))
-            case EmbeddedResource(resource=TextResourceContents(text=text)):
-                contents.append(text)
-            case EmbeddedResource(resource=BlobResourceContents() as blob_resource):
-                contents.append(f"[Binary data: {blob_resource.mimeType}]")
-            case _:
-                contents.append(str(block))  # Convert anything else to string
+            # mypy doesnt understand exhaustivness check for "nested typing", so we nest match-case
+            case EmbeddedResource(resource=resource):
+                match resource:
+                    case TextResourceContents(text=text):
+                        contents.append(text)
+                    case BlobResourceContents() as blob_resource:
+                        contents.append(f"[Binary data: {blob_resource.mimeType}]")
+                    case _ as unreachable:
+                        assert_never(unreachable)
+            case _ as unreachable:
+                assert_never(unreachable)
     return contents
 
 
@@ -149,18 +154,19 @@ def content_block_as_text(content: ContentBlock) -> str:
     match content:
         case TextContent(text=text):
             return text
-        case EmbeddedResource(resource=TextResourceContents() as text_contents):
-            return text_contents.text
-        case EmbeddedResource(resource=BlobResourceContents() as blob_contents):
-            return f"[Resource: {blob_contents.uri}]"
         case EmbeddedResource(resource=resource):
-            msg = f"Invalid embedded resource content: {resource}"
-            raise ValueError(msg)
+            match resource:
+                case TextResourceContents() as text_contents:
+                    return text_contents.text
+                case BlobResourceContents() as blob_contents:
+                    return f"[Resource: {blob_contents.uri}]"
+                case _ as unreachable:
+                    assert_never(unreachable)
         case ResourceLink(uri=uri, description=desc):
             return f"[Resource Link: {uri}] - {desc}" if desc else f"[Resource Link: {uri}]"
         case ImageContent(mimeType=mime_type):
             return f"[Image: {mime_type}]"
         case AudioContent(mimeType=mime_type):
             return f"[Audio: {mime_type}]"
-    msg = "Unexpected content type"
-    raise TypeError(msg, type=type(content).__name__)
+        case _ as unreachable:
+            assert_never(unreachable)
