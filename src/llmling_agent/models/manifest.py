@@ -45,7 +45,7 @@ logger = log.get_logger(__name__)
 # Model union with discriminator for typed configs
 _FileSystemConfigUnion = Annotated[
     FilesystemConfigType | URIFileSystemConfig,
-    Field(discriminator="fs_type"),
+    Field(discriminator="type"),
 ]
 
 # Final type allowing models or URI shorthand string
@@ -74,7 +74,7 @@ class AgentsManifest(Schema):
             {"docs": "file://./docs", "data": "s3://bucket/data"},
             {
                 "api": {
-                    "fs_type": "uri",
+                    "type": "uri",
                     "uri": "https://api.example.com",
                     "cached": True,
                 }
@@ -87,7 +87,7 @@ class AgentsManifest(Schema):
         resources:
           docs: "file://./docs"  # shorthand
           data:  # full config
-            fs_type: "uri"
+            type: "uri"
             uri: "s3://bucket/data"
             cached: true
     """

@@ -14,7 +14,7 @@ MANIFEST_CONFIG = """
 resources:
     # Full config with storage options
     docs:
-        fs_type: uri
+        type: uri
         uri: "memory://"
         storage_options:
             auto_mkdir: true
