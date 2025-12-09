@@ -23,6 +23,7 @@ if TYPE_CHECKING:
     from datetime import datetime
     from types import TracebackType
 
+    from pydantic_ai import UserContent
     from toprompt import AnyPromptType
     from upath.types import JoinablePathLike
 
@@ -78,7 +79,7 @@ class MessageHistory:
         if messages:
             self.chat_messages.extend(messages)
         self._last_messages: list[ChatMessage[Any]] = []
-        self._pending_messages: deque[ChatMessage[Any]] = deque()
+        self._pending_parts: deque[UserContent] = deque()
         self._config = session_config
         self._resources = list(resources)  # Store for async loading
         # Generate new ID if none provided
@@ -113,11 +114,11 @@ class MessageHistory:
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
     ) -> None:
-        """Clean up any pending messages."""
-        self._pending_messages.clear()
+        """Clean up any pending parts."""
+        self._pending_parts.clear()
 
     def __bool__(self) -> bool:
-        return bool(self._pending_messages) or bool(self.chat_messages)
+        return bool(self._pending_parts) or bool(self.chat_messages)
 
     def __repr__(self) -> str:
         return f"MessageHistory(id={self.id!r})"
@@ -268,23 +269,17 @@ class MessageHistory:
 
     def get_history(
         self,
-        include_pending: bool = True,
         do_filter: bool = True,
     ) -> list[ChatMessage[Any]]:
         """Get conversation history.
 
         Args:
-            include_pending: Whether to include pending messages
             do_filter: Whether to apply memory config limits (max_tokens, max_messages)
 
         Returns:
             Filtered list of messages in chronological order
         """
-        if include_pending and self._pending_messages:
-            self.chat_messages.extend(self._pending_messages)
-            self._pending_messages.clear()
-
-        # 2. Start with original history
+        # Start with original history
         history: Sequence[ChatMessage[Any]] = self.chat_messages
 
         # 3. Only filter if needed
@@ -308,13 +303,19 @@ class MessageHistory:
 
         return list(history)
 
-    def get_pending_messages(self) -> list[ChatMessage[Any]]:
-        """Get messages that will be included in next interaction."""
-        return list(self._pending_messages)
+    def get_pending_parts(self) -> list[UserContent]:
+        """Get and clear pending content parts for the next interaction.
+
+        Returns:
+            List of pending UserContent parts, clearing the internal queue.
+        """
+        parts = list(self._pending_parts)
+        self._pending_parts.clear()
+        return parts
 
     def clear_pending(self) -> None:
-        """Clear pending messages without adding them to history."""
-        self._pending_messages.clear()
+        """Clear pending parts without using them."""
+        self._pending_parts.clear()
 
     def set_history(self, history: list[ChatMessage[Any]]) -> None:
         """Update conversation history after run."""
@@ -382,21 +383,30 @@ class MessageHistory:
         """Get messages from the last run converted to our format."""
         return self._last_messages
 
+    def add_context_part(
+        self,
+        content: UserContent,
+    ) -> None:
+        """Add a content part to be included in the next request.
+
+        Args:
+            content: UserContent part (str, ImageUrl, BinaryContent, etc.)
+        """
+        self._pending_parts.append(content)
+
     def add_context_message(
         self,
         content: str,
         source: str | None = None,
         **metadata: Any,
     ) -> None:
-        """Add a context message.
+        """Add a text context message.
 
         Args:
             content: Text content to add
             source: Description of content source
             **metadata: Additional metadata to include with the message
         """
-        from llmling_agent.messaging import ChatMessage
-
         meta_str = ""
         if metadata:
             meta_str = "\n".join(f"{k}: {v}" for k, v in metadata.items())
@@ -404,15 +414,7 @@ class MessageHistory:
 
         header = f"Content from {source}:" if source else "Additional context:"
         formatted = f"{header}{meta_str}\n{content}\n"
-
-        chat_message = ChatMessage(
-            content=formatted,
-            role="user",
-            name="user",
-            metadata=metadata,
-            conversation_id="context",  # TODO: should probably allow DB field to be NULL
-        )
-        self._pending_messages.append(chat_message)
+        self._pending_parts.append(formatted)
 
     async def add_context_from_path(
         self,

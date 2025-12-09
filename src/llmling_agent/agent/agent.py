@@ -744,13 +744,17 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         self.message_received.emit(user_msg)
         start_time = time.perf_counter()
         history_list = conversation.get_history()
+        pending_parts = conversation.get_pending_parts()
         yield RunStartedEvent(thread_id=self.conversation_id, run_id=run_id, agent_name=self.name)
         try:
             agentlet = await self.get_agentlet(tool_choice, model, output_type, input_provider)
             content = await convert_prompts(prompts)
             response_msg: ChatMessage[Any] | None = None
-            # Create tool dict for signal emission
-            converted = [i if isinstance(i, str) else i.to_pydantic_ai() for i in content]
+            # Prepend pending context parts and convert to pydantic-ai format
+            converted = [
+                *pending_parts,
+                *(i if isinstance(i, str) else i.to_pydantic_ai() for i in content),
+            ]
             stream_events = agentlet.run_stream_events(
                 converted,
                 deps=deps,  # type: ignore[arg-type]
