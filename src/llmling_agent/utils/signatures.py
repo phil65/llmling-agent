@@ -55,6 +55,12 @@ def modify_signature(
 
 
 def update_signature(fn: Callable[..., Any], signature: inspect.Signature) -> None:
+    """Update function signature and annotations.
+
+    Note: Setting __annotations__ destroys __annotate__ in Python 3.14+ (PEP 649).
+    Callers using functools.wraps should restore __annotations__ from the original
+    function after calling this function.
+    """
     fn.__signature__ = signature  # type: ignore
     fn.__annotations__ = {
         name: param.annotation for name, param in signature.parameters.items()
