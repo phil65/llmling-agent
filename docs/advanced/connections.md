@@ -1,3 +1,9 @@
+---
+title: Connections
+description: Advanced connection patterns
+icon: material/power-plug
+---
+
 # Node Connection System
 
 ## Overview

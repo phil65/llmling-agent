@@ -1,3 +1,9 @@
+---
+title: Models & Providers
+description: Advanced model and provider features
+icon: material/cpu-64-bit
+---
+
 # Provider models
 
 

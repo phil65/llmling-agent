@@ -1,3 +1,9 @@
+---
+title: Injection
+description: Advanced dependency injection
+icon: material/source-merge
+---
+
 # Agent Injection and Execution Patterns
 
 LLMling-agent provides a clean, pytest-inspired way to work with agents. Instead of complex decorators

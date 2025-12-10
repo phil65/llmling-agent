@@ -1,3 +1,9 @@
+---
+title: Prompts
+description: Advanced prompt handling
+icon: material/comment-multiple
+---
+
 # Prompts in LLMling-Agent
 
 LLMling-Agent provides a flexible system for handling different types of prompts, allowing seamless conversion of various data types into prompt text.

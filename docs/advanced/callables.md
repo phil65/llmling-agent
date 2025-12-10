@@ -1,3 +1,9 @@
+---
+title: Callables as Agents
+description: Using Python callables as agents
+icon: material/code-braces
+---
+
 # Callables as First-Class Citizens
 
 In LLMling, regular Python functions (callables) are treated as first-class citizens and can be used interchangeably with agents in most contexts. This enables seamless integration of custom processing functions into agent workflows.

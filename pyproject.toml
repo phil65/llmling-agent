@@ -143,7 +143,7 @@ dev = [
 benchmark = ["pyinstrument"]
 docs = [
   "mkdocs-material",
-  "mkdocs-mknodes",
+  "mknodes",
   # Only add below (Copier)
 ]
 lint = [

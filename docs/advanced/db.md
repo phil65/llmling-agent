@@ -1,3 +1,9 @@
+---
+title: Database
+description: Database integration
+icon: material/database
+---
+
 # Agent Logging & Memory Management
 
 LLMling-agent provides flexible storage and memory management for agent interactions through SQLModel with SQLite.

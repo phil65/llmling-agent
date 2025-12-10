@@ -1,3 +1,9 @@
+---
+title: Async Operations
+description: Asynchronous operations and patterns
+icon: material/sync
+---
+
 # Asynchronous Operations in LLMling
 
 LLMling is built with asyncio at its core to handle concurrent operations efficiently. This guide explains the async patterns and features in the library.
