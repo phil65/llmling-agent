@@ -1,0 +1,18 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/phil65/llmling-agent/refs/heads/main/schema/config-schema.json
+agents:
+  coordinator:
+    model: openrouter:openai/gpt-5-nano
+    system_prompts:
+      - You select the most suitable expert(s) for each task.
+
+  database_expert:
+    model: openrouter:openai/gpt-5-nano
+    description: Expert in SQL optimization and database design.
+
+  frontend_dev:
+    model: openrouter:openai/gpt-5-nano
+    description: Specialist in React and modern web interfaces.
+
+  security_expert:
+    model: openrouter:openai/gpt-5-nano
+    description: Expert in penetration testing and security audits.

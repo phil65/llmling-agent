@@ -1,0 +1,9 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/phil65/llmling-agent/refs/heads/main/schema/config-schema.json
+agents:
+  overseer:
+    display_name: "Model Comparison Coordinator"
+    model: openai:gpt-5-mini
+    toolsets:
+      - type: agent_management
+    system_prompts:
+      - You are a model comparison coordinator.

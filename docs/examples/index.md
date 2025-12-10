@@ -1,0 +1,69 @@
+---
+title: Examples
+description: Example configurations and usage patterns for LLMling-Agent
+icon: material/code-braces-box
+---
+
+# Examples
+
+This section contains practical examples demonstrating various features and patterns in LLMling-Agent.
+
+## Agent Patterns
+
+### [Create Docs](create_docs.md)
+Agent collaboration for documentation generation - demonstrates how multiple agents can work together to create structured documentation.
+
+### [CrewAI-Style Flow](crewai_flow.md)
+Adaptation of CrewAI-like workflow patterns - shows how to implement familiar workflow patterns from other frameworks.
+
+### [PyTest-Style Functions](pytest_style.md)
+PyTest-style example patterns - demonstrates testing patterns and function-based agent definitions.
+
+## Multi-Agent Communication
+
+### [Round-Robin Communication](round_robin.md)
+Round-robin message passing between agents - shows how to implement circular communication patterns.
+
+### [Expert Selection](pick_experts.md)
+Using `pick()` for expert selection - demonstrates dynamic agent selection based on expertise.
+
+## Downloads & Workers
+
+### [Download Agents](download_agents.md)
+Sequential vs parallel downloads comparison - compares different approaches to handling multiple download tasks.
+
+### [Download Workers](download_workers.md)
+Using agents as tools for downloads - shows how to use one agent as a tool for another.
+
+## MCP Integration
+
+### [MCP Servers (YAML)](mcp_servers_yaml.md)
+MCP server integration with git tools - demonstrates how to integrate MCP servers via YAML configuration.
+
+### [MCP Sampling & Elicitation](mcp_sampling_elicitation.md)
+MCP server with sampling tools - shows advanced MCP features including sampling and elicitation.
+
+## Structured Responses
+
+### [Structured Responses](structured_response.md)
+Structured response type examples - demonstrates how to define and use typed response models.
+
+## Human Interaction
+
+### [Human Interaction](human_interaction.md)
+AI-Human interaction patterns - shows how to implement human-in-the-loop workflows.
+
+## Model Comparison
+
+### [Model Comparison](model_comparison.md)
+Comparing different models using parallel teams - demonstrates how to run the same task across multiple models simultaneously.
+
+## Getting Started
+
+Each example includes:
+
+- **Configuration files**: YAML configurations showing agent setup
+- **Code examples**: Python code demonstrating usage patterns
+- **Explanations**: Detailed descriptions of concepts and approaches
+
+You can find the full source code for these examples in the [GitHub repository](https://github.com/phil65/llmling-agent/tree/main/examples).

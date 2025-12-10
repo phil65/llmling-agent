@@ -1,0 +1,8 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/phil65/llmling-agent/refs/heads/main/schema/config-schema.json
+agents:
+  city_picker:
+    model: gpt-5-nano
+    system_prompts: ["You generate random city names."]
+  fact_finder:
+    model: gpt-5-nano
+    system_prompts: ["You provide interesting facts about cities."]
