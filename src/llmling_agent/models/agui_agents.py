@@ -30,7 +30,7 @@ class AGUIAgentConfig(NodeConfig):
     """
 
     model_config = ConfigDict(
-        json_schema_extra={"x-icon": "mdi:api", "x-doc-title": "AG-UI Agent Configuration"}
+        json_schema_extra={"title": "AG-UI Agent Configuration", "x-icon": "mdi:api"}
     )
 
     endpoint: str = Field(

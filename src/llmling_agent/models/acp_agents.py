@@ -222,6 +222,8 @@ class ACPAgentConfig(BaseACPAgentConfig):
         ```
     """
 
+    model_config = ConfigDict(json_schema_extra={"title": "Custom ACP Agent Configuration"})
+
     type: Literal["acp"] = Field("acp", init=False)
     """Discriminator for custom ACP agent."""
 
@@ -267,6 +269,8 @@ class ClaudeACPAgentConfig(MCPCapableACPAgentConfig):
               - Bash(git:*)
         ```
     """
+
+    model_config = ConfigDict(json_schema_extra={"title": "Claude ACP Agent Configuration"})
 
     type: Literal["claude"] = Field("claude", init=False)
     """Discriminator for Claude ACP agent."""
@@ -399,8 +403,11 @@ class GeminiACPAgentConfig(MCPCapableACPAgentConfig):
             allowed_tools:
               - read_file
               - write_file
+              - terminal
         ```
     """
+
+    model_config = ConfigDict(json_schema_extra={"title": "Gemini ACP Agent Configuration"})
 
     type: Literal["gemini"] = Field("gemini", init=False)
     """Discriminator for Gemini ACP agent."""
@@ -487,6 +494,8 @@ class CodexACPAgentConfig(BaseACPAgentConfig):
         ```
     """
 
+    model_config = ConfigDict(json_schema_extra={"title": "Codex ACP Agent Configuration"})
+
     type: Literal["codex"] = Field("codex", init=False)
     """Discriminator for Codex ACP agent."""
 
@@ -545,6 +554,8 @@ class OpenCodeACPAgentConfig(BaseACPAgentConfig):
         ```
     """
 
+    model_config = ConfigDict(json_schema_extra={"title": "OpenCode ACP Agent Configuration"})
+
     type: Literal["opencode"] = Field("opencode", init=False)
     """Discriminator for OpenCode ACP agent."""
 
@@ -601,6 +612,8 @@ class GooseACPAgentConfig(BaseACPAgentConfig):
         ```
     """
 
+    model_config = ConfigDict(json_schema_extra={"title": "Goose ACP Agent Configuration"})
+
     type: Literal["goose"] = Field("goose", init=False)
     """Discriminator for Goose ACP agent."""
 
@@ -619,7 +632,7 @@ class GooseACPAgentConfig(BaseACPAgentConfig):
 
 
 class MistralAgentConfig(BaseACPAgentConfig):
-    """Configuration for Mistral agent via ACP.
+    """Configuration for Mistral Agent via ACP.
 
     Example:
         ```yaml
@@ -629,6 +642,8 @@ class MistralAgentConfig(BaseACPAgentConfig):
             cwd: /path/to/project
         ```
     """
+
+    model_config = ConfigDict(json_schema_extra={"title": "Mistral ACP Agent Configuration"})
 
     type: Literal["mistral"] = Field("mistral", init=False)
     """Discriminator for Mistral ACP agent."""
@@ -661,6 +676,8 @@ class OpenHandsACPAgentConfig(BaseACPAgentConfig):
         ```
     """
 
+    model_config = ConfigDict(json_schema_extra={"title": "OpenHands ACP Agent Configuration"})
+
     type: Literal["openhands"] = Field("openhands", init=False)
     """Discriminator for OpenHands ACP agent."""
 
@@ -689,10 +706,12 @@ class FastAgentACPAgentConfig(BaseACPAgentConfig):
           coder:
             type: fast-agent
             cwd: /path/to/project
-            model: sonnet
-            shell_access: true
+            model: claude-3.5-sonnet-20241022
+            tools: ["mcp", "terminal", "editor"]
         ```
     """
+
+    model_config = ConfigDict(json_schema_extra={"title": "FastAgent ACP Agent Configuration"})
 
     type: Literal["fast-agent"] = Field("fast-agent", init=False)
     """Discriminator for fast-agent ACP agent."""
@@ -771,6 +790,8 @@ class AmpACPAgentConfig(BaseACPAgentConfig):
         ```
     """
 
+    model_config = ConfigDict(json_schema_extra={"title": "Amp ACP Agent Configuration"})
+
     type: Literal["amp"] = Field("amp", init=False)
     """Discriminator for Amp ACP agent."""
 
@@ -805,6 +826,8 @@ class AuggieACPAgentConfig(MCPCapableACPAgentConfig):
             shell: bash
         ```
     """
+
+    model_config = ConfigDict(json_schema_extra={"title": "Auggie ACP Agent Configuration"})
 
     type: Literal["auggie"] = Field("auggie", init=False)
     """Discriminator for Auggie ACP agent."""
@@ -917,6 +940,8 @@ class CagentACPAgentConfig(BaseACPAgentConfig):
         ```
     """
 
+    model_config = ConfigDict(json_schema_extra={"title": "Cagent ACP Agent Configuration"})
+
     type: Literal["cagent"] = Field("cagent", init=False)
     """Discriminator for Docker cagent ACP agent."""
 
@@ -995,6 +1020,8 @@ class KimiACPAgentConfig(MCPCapableACPAgentConfig):
         ```
     """
 
+    model_config = ConfigDict(json_schema_extra={"title": "Kimi ACP Agent Configuration"})
+
     type: Literal["kimi"] = Field("kimi", init=False)
     """Discriminator for Kimi CLI ACP agent."""
 
@@ -1072,6 +1099,8 @@ class StakpakACPAgentConfig(BaseACPAgentConfig):
             verbose: true
         ```
     """
+
+    model_config = ConfigDict(json_schema_extra={"title": "Stakpak ACP Agent Configuration"})
 
     type: Literal["stakpak"] = Field("stakpak", init=False)
     """Discriminator for Stakpak ACP agent."""
@@ -1190,6 +1219,8 @@ class VTCodeACPAgentConfig(BaseACPAgentConfig):
             workspace: /path/to/workspace
         ```
     """
+
+    model_config = ConfigDict(json_schema_extra={"title": "VTCode ACP Agent Configuration"})
 
     type: Literal["vtcode"] = Field("vtcode", init=False)
     """Discriminator for VT Code ACP agent."""

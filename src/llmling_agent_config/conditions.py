@@ -37,6 +37,8 @@ class ConnectionCondition(Schema):
 class Jinja2Condition(ConnectionCondition):
     """Evaluate condition using Jinja2 template."""
 
+    model_config = ConfigDict(json_schema_extra={"title": "Jinja2 Template Condition"})
+
     type: Literal["jinja2"] = Field("jinja2", init=False)
     """Jinja2 template-based condition."""
 
@@ -63,6 +65,8 @@ class Jinja2Condition(ConnectionCondition):
 
 class WordMatchCondition(ConnectionCondition):
     """Disconnect when word/phrase is found in message."""
+
+    model_config = ConfigDict(json_schema_extra={"title": "Word Match Condition"})
 
     type: Literal["word_match"] = Field("word_match", init=False)
     """Word-comparison-based condition."""
@@ -102,6 +106,8 @@ class WordMatchCondition(ConnectionCondition):
 class MessageCountCondition(ConnectionCondition):
     """Disconnect after N messages."""
 
+    model_config = ConfigDict(json_schema_extra={"title": "Message Count Condition"})
+
     type: Literal["message_count"] = Field("message_count", init=False)
     """Message-count-based condition."""
 
@@ -131,6 +137,8 @@ class MessageCountCondition(ConnectionCondition):
 class TimeCondition(ConnectionCondition):
     """Disconnect after time period."""
 
+    model_config = ConfigDict(json_schema_extra={"title": "Time-based Condition"})
+
     type: Literal["time"] = Field("time", init=False)
     """Time-based condition."""
 
@@ -147,6 +155,8 @@ class TimeCondition(ConnectionCondition):
 
 class TokenThresholdCondition(ConnectionCondition):
     """Disconnect after token threshold is reached."""
+
+    model_config = ConfigDict(json_schema_extra={"title": "Token Threshold Condition"})
 
     type: Literal["token_threshold"] = Field("token_threshold", init=False)
     """Type discriminator."""
@@ -184,6 +194,8 @@ class TokenThresholdCondition(ConnectionCondition):
 class CostCondition(ConnectionCondition):
     """Stop when cost threshold is reached."""
 
+    model_config = ConfigDict(json_schema_extra={"title": "Cost Condition"})
+
     type: Literal["cost"] = Field("cost", init=False)
     """Cost-based condition."""
 
@@ -197,6 +209,8 @@ class CostCondition(ConnectionCondition):
 
 class CostLimitCondition(ConnectionCondition):
     """Disconnect when cost limit is reached."""
+
+    model_config = ConfigDict(json_schema_extra={"title": "Cost Limit Condition"})
 
     type: Literal["cost_limit"] = Field("cost_limit", init=False)
     """Cost-limit condition."""
@@ -213,6 +227,8 @@ class CostLimitCondition(ConnectionCondition):
 
 class CallableCondition(ConnectionCondition):
     """Custom predicate function."""
+
+    model_config = ConfigDict(json_schema_extra={"title": "Callable Condition"})
 
     type: Literal["callable"] = Field("callable", init=False)
     """Condition based on an import path pointing to a predicate."""
@@ -239,6 +255,8 @@ class CallableCondition(ConnectionCondition):
 class AndCondition(ConnectionCondition):
     """Require all conditions to be met."""
 
+    model_config = ConfigDict(json_schema_extra={"title": "AND Condition"})
+
     type: Literal["and"] = Field("and", init=False)
     """Condition to AND-combine multiple conditions."""
 
@@ -253,6 +271,8 @@ class AndCondition(ConnectionCondition):
 
 class OrCondition(ConnectionCondition):
     """Require any condition to be met."""
+
+    model_config = ConfigDict(json_schema_extra={"title": "OR Condition"})
 
     type: Literal["or"] = Field("or", init=False)
     """Condition to OR-combine multiple conditions."""
