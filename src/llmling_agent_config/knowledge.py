@@ -17,6 +17,8 @@ class Knowledge(Schema):
     Docs: https://phil65.github.io/llmling-agent/YAML%20Configuration/knowledge_configuration/
     """
 
+    model_config = ConfigDict(json_schema_extra={"title": "Knowledge Configuration"})
+
     paths: list[str] = Field(
         default_factory=list,
         examples=[["docs/readme.md", "https://api.example.com/docs"], ["/data/context.txt"]],
@@ -33,8 +35,6 @@ class Knowledge(Schema):
 
     convert_to_markdown: bool = Field(default=False, title="Convert to markdown")
     """Whether to convert content to markdown when possible."""
-
-    model_config = ConfigDict(frozen=True)
 
     def get_resources(self) -> list[PromptType | str]:
         """Get all resources."""

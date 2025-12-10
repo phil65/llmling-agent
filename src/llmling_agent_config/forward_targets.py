@@ -25,6 +25,8 @@ ConnectionType = Literal["run", "context", "forward"]
 class ConnectionConfig(Schema):
     """Base model for message forwarding targets."""
 
+    model_config = ConfigDict(json_schema_extra={"title": "Connection Configuration"})
+
     type: str = Field(init=False)
     """Connection type."""
 
@@ -78,8 +80,6 @@ class ConnectionConfig(Schema):
     )
     """Optional function to transform messages before forwarding."""
 
-    model_config = ConfigDict(frozen=True)
-
 
 class NodeConnectionConfig(ConnectionConfig):
     """Forward messages to another node.
@@ -91,6 +91,8 @@ class NodeConnectionConfig(ConnectionConfig):
     - Timing controls (priority, delay)
     - Execution behavior (wait for completion)
     """
+
+    model_config = ConfigDict(json_schema_extra={"title": "Node Connection Configuration"})
 
     type: Literal["node"] = Field("node", init=False)
     """Connection to another node."""
@@ -134,6 +136,8 @@ class FileConnectionConfig(ConnectionConfig):
     - cost_info: Token usage and cost info
     - forwarded_from: Chain of message forwarding
     """
+
+    model_config = ConfigDict(json_schema_extra={"title": "File Connection Configuration"})
 
     type: Literal["file"] = Field("file", init=False)
     """Connection to a file."""
@@ -206,6 +210,8 @@ class CallableConnectionConfig(ConnectionConfig):
 
     Any additional kwargs specified in the config will be passed to the callable.
     """
+
+    model_config = ConfigDict(json_schema_extra={"title": "Callable Connection Configuration"})
 
     type: Literal["callable"] = Field("callable", init=False)
     """Connection to a callable imported from given import path."""

@@ -8,7 +8,7 @@ from pathlib import Path
 import re
 from typing import Annotated, Any, Literal
 
-from pydantic import Field, ImportString
+from pydantic import ConfigDict, Field, ImportString
 from schemez import Schema
 
 

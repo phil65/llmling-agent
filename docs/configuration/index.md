@@ -15,7 +15,7 @@ and IDE support for YAML linters by providing an extensive, detailed schema.
 Here's the complete manifest structure with all available top-level sections:
 
 /// mknodes
-{{ "llmling_agent.models.manifest.AgentsManifest" | schema_to_markdown(display_mode="yaml", header_style="pymdownx") }}
+{{ "llmling_agent.models.manifest.AgentsManifest" | schema_to_markdown(display_mode="yaml", header_style="pymdownx", as_listitem=False) }}
 ///
 
 ## Top-Level Sections

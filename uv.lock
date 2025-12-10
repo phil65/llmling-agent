@@ -4805,7 +4805,7 @@ wheels = [
 
 [[package]]
 name = "schemez"
-version = "2.2.19"
+version = "2.2.21"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "docstring-parser" },
@@ -4813,9 +4813,9 @@ dependencies = [
     { name = "pydantic" },
     { name = "universal-pathlib" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ec/48/5d38b94b082ef888fb70ead7953accf523bd9fd72fbe9308ebd4b2175ef4/schemez-2.2.19.tar.gz", hash = "sha256:f291f8ed6ed9faac6ee4d583414b3cd9f0abc11a12397de6d2da3f3b93a12402", size = 74405, upload-time = "2025-12-10T09:07:03.039Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/78/73/45e565ea7cd14b9687b7b18753dab46027a2aa299abe4f185061513b6bc9/schemez-2.2.21.tar.gz", hash = "sha256:6215932918fa8a275d76afaa4e8e1f17e4941b11262a30e96ec657ed7015318d", size = 74908, upload-time = "2025-12-10T13:59:38.201Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/1c/cd/6766e859ec8392c3f983af7467943fd579cbc49c442f8040a65be8b9dbae/schemez-2.2.19-py3-none-any.whl", hash = "sha256:0a5c389e5508e4bee250652b2a8cf61e97bf8e677b2504efe13e89c2b6acd37a", size = 92611, upload-time = "2025-12-10T09:07:00.547Z" },
+    { url = "https://files.pythonhosted.org/packages/f1/13/1a23d42833ad58a88800194ca9670d2b1a03e0871c8d24fd958223d2c8e6/schemez-2.2.21-py3-none-any.whl", hash = "sha256:f0e4a471acf700ec8c9b54a3d2e60d7ea4b348be7f8ec7c332c45806547a0b07", size = 92972, upload-time = "2025-12-10T13:59:36.964Z" },
 ]
 
 [[package]]

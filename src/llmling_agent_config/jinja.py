@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from schemez import Schema
 
 from llmling_agent_config.tools import ToolConfig
@@ -23,6 +23,8 @@ class Jinja2EnvironmentConfig(Schema):
 
     See: https://jinja.palletsprojects.com/en/3.1.x/api/#jinja2.Environment
     """
+
+    model_config = ConfigDict(json_schema_extra={"title": "Jinja2 Environment Configuration"})
 
     block_start_string: str = Field(default="{%", title="Block start string", examples=["{%", "<%"])
     """String denoting the beginning of a block (default: '{%')."""
@@ -152,6 +154,8 @@ class Jinja2EnvironmentConfig(Schema):
 
 class Jinja2Template(Schema):
     """Template with environment configuration."""
+
+    model_config = ConfigDict(json_schema_extra={"title": "Jinja2 Template Configuration"})
 
     template: str = Field(
         title="Template string",

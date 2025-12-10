@@ -18,6 +18,7 @@ class BaseDurableExecutionConfig(Schema):
         json_schema_extra={
             "x-icon": "octicon:sync-16",
             "x-doc-title": "Durable Execution Configuration",
+            "title": "Base Durable Execution Configuration",
         }
     )
 
@@ -80,6 +81,8 @@ class TemporalRetryPolicy(Schema):
     Maps to temporalio.common.RetryPolicy.
     """
 
+    model_config = ConfigDict(json_schema_extra={"title": "Temporal Retry Policy Configuration"})
+
     initial_interval: str | timedelta = Field(
         default="1s",
         title="Initial retry interval",
@@ -134,6 +137,7 @@ class TemporalDurableConfig(BaseDurableExecutionConfig):
         json_schema_extra={
             "x-icon": "simple-icons:temporal",
             "x-doc-title": "Temporal Durable Execution",
+            "title": "Temporal Durable Execution Configuration",
         }
     )
 

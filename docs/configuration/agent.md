@@ -29,7 +29,7 @@ Agent configuration includes:
 ## Configuration Reference
 
 /// mknodes
-{{ "llmling_agent.models.agents.AgentConfig" | schema_to_markdown(display_mode="yaml", header_style="pymdownx") }}
+{{ "llmling_agent.models.agents.AgentConfig" | schema_to_markdown(display_mode="yaml", header_style="pymdownx", as_listitem=False) }}
 ///
 
 ## Configuration Inheritance
