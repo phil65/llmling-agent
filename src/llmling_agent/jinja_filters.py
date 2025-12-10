@@ -59,7 +59,7 @@ def pydantic_playground_iframe(
     import mknodes as mk
 
     link = mk.MkLink.for_pydantic_playground(files, active_index=active_index)
-    return str(mk.MkIFrame(link.target, width=width, height=height, parent=env.node))
+    return str(mk.MkIFrame(str(link.target), width=width, height=height, parent=env.node))
 
 
 @jinja2.pass_environment
@@ -119,13 +119,14 @@ def pydantic_playground(
     import mknodes as mk
 
     link = mk.MkLink.for_pydantic_playground(files, active_index=active_index)
-    iframe = mk.MkIFrame(link.target, width=width, height=height)
+    iframe = mk.MkIFrame(str(link.target), width=width, height=height)
 
     if show_link:
         button_link = mk.MkLink.for_pydantic_playground(
             files, title=link_title, active_index=active_index
         )
-        button_link.button = True
+        button_link.as_button = True
         container = mk.MkContainer([iframe, button_link], parent=env.node)
-        return container
-    return mk.MkContainer([iframe], parent=env.node)
+        return str(container)
+    container = mk.MkContainer([iframe], parent=env.node)
+    return str(container)
