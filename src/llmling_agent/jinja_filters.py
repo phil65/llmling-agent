@@ -2,109 +2,102 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
-import json
-from pathlib import Path
 from typing import TYPE_CHECKING
-from urllib.parse import quote
+
+import jinja2
 
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Mapping, Sequence
     import os
 
-    from jinjarope import Environment
+    from mknodes.jinja.nodeenvironment import NodeEnvironment
 
 
+@jinja2.pass_environment
 def pydantic_playground_url(
+    env: NodeEnvironment,
     files: Mapping[str, str] | Sequence[str | os.PathLike[str]],
     active_index: int = 0,
 ) -> str:
     """Generate a Pydantic Playground URL from files.
 
     Args:
+        env: The jinja environment (passed automatically)
         files: Either a mapping of filenames to content, or a sequence of file paths
         active_index: Index of the file to show as active (default: 0)
 
     Returns:
         URL to Pydantic Playground with files pre-loaded
     """
-    match files:
-        case Mapping():
-            file_data: list[dict[str, str | int]] = [
-                {"name": name, "content": content} for name, content in files.items()
-            ]
-        case [str() | Path(), *_] | []:
-            file_data = []
-            for path in files:
-                file_path = Path(path)
-                file_data.append({
-                    "name": file_path.name,
-                    "content": file_path.read_text("utf-8"),
-                })
-        case _:
-            msg = f"Unsupported files type: {type(files)}"
-            raise TypeError(msg)
+    import mknodes as mk
 
-    # Mark active file
-    if file_data and 0 <= active_index < len(file_data):
-        file_data[active_index]["activeIndex"] = 1
-
-    json_str = json.dumps(file_data)
-    encoded = quote(json_str)
-    return f"https://pydantic.run/new?files={encoded}"
+    link = mk.MkLink.for_pydantic_playground(files, active_index=active_index)
+    return link.target
 
 
+@jinja2.pass_environment
 def pydantic_playground_iframe(
+    env: NodeEnvironment,
     files: Mapping[str, str] | Sequence[str | os.PathLike[str]],
-    width: str = "100%",
-    height: str = "800px",
+    width: int = 1200,
+    height: int = 900,
     active_index: int = 0,
 ) -> str:
-    """Generate an iframe HTML element for Pydantic Playground.
+    """Generate an MkIFrame for Pydantic Playground.
 
     Args:
+        env: The jinja environment (passed automatically)
         files: Either a mapping of filenames to content, or a sequence of file paths
         width: Width of the iframe
         height: Height of the iframe
         active_index: Index of the file to show as active
 
     Returns:
-        HTML iframe element
+        MkIFrame node
     """
-    url = pydantic_playground_url(files, active_index)
-    return (
-        f'<iframe src="{url}" width="{width}" height="{height}" '
-        f'frameborder="0" style="border: 1px solid #ccc; border-radius: 4px;"></iframe>'
-    )
+    import mknodes as mk
+
+    link = mk.MkLink.for_pydantic_playground(files, active_index=active_index)
+    return mk.MkIFrame(link.target, width=width, height=height, parent=env.node)
 
 
+@jinja2.pass_environment
 def pydantic_playground_link(
+    env: NodeEnvironment,
     files: Mapping[str, str] | Sequence[str | os.PathLike[str]],
     title: str = "Open in Pydantic Playground",
     active_index: int = 0,
     as_button: bool = True,
 ) -> str:
-    """Generate a markdown link to Pydantic Playground.
+    """Generate an MkLink to Pydantic Playground.
 
     Args:
+        env: The jinja environment (passed automatically)
         files: Either a mapping of filenames to content, or a sequence of file paths
         title: Link text
         active_index: Index of the file to show as active
         as_button: Whether to style as a button
 
     Returns:
-        Markdown link
+        MkLink node
     """
-    url = pydantic_playground_url(files, active_index)
-    button_class = "{.md-button}" if as_button else ""
-    return f"[{title}]({url}){button_class}"
+    import mknodes as mk
+
+    link = mk.MkLink.for_pydantic_playground(
+        files, title=title, active_index=active_index, parent=env.node
+    )
+    if as_button:
+        link.button = True
+    return link
 
 
+@jinja2.pass_environment
 def pydantic_playground(
+    env: NodeEnvironment,
     files: Mapping[str, str] | Sequence[str | os.PathLike[str]],
-    width: str = "100%",
-    height: str = "800px",
+    width: int = 1200,
+    height: int = 900,
     active_index: int = 0,
     show_link: bool = True,
     link_title: str = "Open in Pydantic Playground",
@@ -112,6 +105,7 @@ def pydantic_playground(
     """Generate both iframe and link for Pydantic Playground.
 
     Args:
+        env: The jinja environment (passed automatically)
         files: Either a mapping of filenames to content, or a sequence of file paths
         width: Width of the iframe
         height: Height of the iframe
@@ -120,24 +114,18 @@ def pydantic_playground(
         link_title: Text for the link
 
     Returns:
-        HTML with iframe and optional link
+        MkContainer with iframe and optional link
     """
-    parts = [pydantic_playground_iframe(files, width, height, active_index)]
+    import mknodes as mk
+
+    link = mk.MkLink.for_pydantic_playground(files, active_index=active_index)
+    iframe = mk.MkIFrame(link.target, width=width, height=height)
+
     if show_link:
-        parts.append("")
-        parts.append(pydantic_playground_link(files, link_title, active_index))
-    return "\n".join(parts)
-
-
-def setup_jinjarope_filters(env: Environment) -> None:
-    """Set up jinjarope filters for llmling-agent.
-
-    This is called via the jinjarope.environment entry point.
-
-    Args:
-        env: The jinjarope environment to add filters to
-    """
-    env.filters["pydantic_playground_url"] = pydantic_playground_url
-    env.filters["pydantic_playground_iframe"] = pydantic_playground_iframe
-    env.filters["pydantic_playground_link"] = pydantic_playground_link
-    env.filters["pydantic_playground"] = pydantic_playground
+        button_link = mk.MkLink.for_pydantic_playground(
+            files, title=link_title, active_index=active_index
+        )
+        button_link.button = True
+        container = mk.MkContainer([iframe, button_link], parent=env.node)
+        return container
+    return mk.MkContainer([iframe], parent=env.node)
