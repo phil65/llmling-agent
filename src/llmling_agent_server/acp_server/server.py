@@ -148,11 +148,7 @@ class ACPServer(BaseServer):
         reader, writer = await stdio_streams()
         file = self.debug_file if self.debug_messages else None
         conn = AgentSideConnection(create_acp_agent, writer, reader, debug_file=file)
-        self.log.info(
-            "ACP server started",
-            file_access=self.file_access,
-            terminal_access=self.terminal_access,
-        )
+        self.log.info("ACP server started", file=self.file_access, terminal=self.terminal_access)
         try:  # Keep the connection alive
             while not self._shutdown_event.is_set():
                 await asyncio.sleep(0.1)
@@ -175,9 +171,8 @@ class ACPServer(BaseServer):
             return
         try:
             self.log.info("Discovering available models...")
-            self._available_models = await get_all_models(
-                providers=self.providers, max_age=timedelta(days=200)
-            )
+            delta = timedelta(days=200)
+            self._available_models = await get_all_models(providers=self.providers, max_age=delta)
             self._models_initialized = True
             self.log.info("Discovered models", count=len(self._available_models))
         except Exception:

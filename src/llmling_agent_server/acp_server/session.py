@@ -28,6 +28,7 @@ from pydantic_ai import (
     ToolCallPartDelta,
     ToolReturnPart,
     UsageLimitExceeded,
+    UserPromptPart,
 )
 from slashed import Command, CommandStore
 
@@ -905,15 +906,9 @@ class ACPSession:
                 if kwargs:
                     params = "&".join(f"{k}={v}" for k, v in kwargs.items())
                     reference = f"{reference}?{params}"
-
                 # Get the rendered prompt
                 result = await manager.get(reference)
-
-                # Convert string result to message parts and stage them
-                from pydantic_ai.messages import UserPromptPart
-
                 self.add_staged_parts([UserPromptPart(content=result)])
-
                 # Send confirmation
                 staged_count = self.get_staged_parts_count()
                 await ctx.print(
