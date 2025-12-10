@@ -73,7 +73,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
     from pydantic_ai import UserContent
-    from pydantic_ai.messages import SystemPromptPart, UserPromptPart
+    from pydantic_ai.messages import SystemPromptPart
     from slashed import CommandContext
 
     from acp import Client
