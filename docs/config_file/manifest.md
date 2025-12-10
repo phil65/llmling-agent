@@ -214,10 +214,3 @@ async with AgentPool("agents.yml") as pool:
     agent = pool.get_agent("analyzer")
     result = await agent.run("Analyze this code...")
 ```
-
-## Next Steps
-
-- [Agent Configuration](agent_config.md) for individual agent setup
-- [Team Configuration](team_config.md) for multi-agent workflows  
-- [Storage Configuration](storage_config.md) for persistence options
-- [Response Configuration](response_config.md) for structured outputs

@@ -132,11 +132,3 @@ async def main():
 # Sync usage (convenience wrapper)
 result = run_with_model_sync("Quick question", model="openai:gpt-4")
 ```
-
-## Next Steps
-
-- Learn about [Basic Concepts](basic_concepts.md)
-- Explore [Agent Configuration](../agent_config.md)
-- Deep dive into [ACP Integration](../advanced/acp_integration.md)
-- Try the [Web Interface](../webui.md)
-- Check the [Command Reference](../commands.md)

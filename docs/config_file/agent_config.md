@@ -318,10 +318,3 @@ agents:
     system_prompts:
       - "You are a specialized agent..."
 ```
-
-## Next Steps
-
-- [Worker Configuration](worker_config.md) for configuring sub-agents
-- [Tool Configuration](tool_config.md) for custom tools
-- [Knowledge Configuration](knowledge_config.md) for advanced knowledge setup
-- [MCP Configuration](mcp_config.md) for Model Context Protocol servers
