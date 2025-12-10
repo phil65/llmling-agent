@@ -3,7 +3,7 @@
 [project]
 name = "llmling-agent"
 version = "1.15.7"
-description = "A brand new AI framework.  Fully async. Excellently typed. MCP & ACP Integration. Human in the loop. Unique messaging features."
+description = "Pydantic-AI based Multi-Agent Framework with YAML-based Agents, Teams, Workflows & Extended ACP / AGUI integration"
 readme = "README.md"
 requires-python = ">=3.13"
 license = "MIT"

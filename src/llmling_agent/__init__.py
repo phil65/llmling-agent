@@ -1,6 +1,7 @@
 """LLMling-Agent: main package.
 
-A pydantic-ai based Agent with LLMling backend.
+Pydantic-AI based Multi-Agent Framework with YAML-based Agents, Teams, Workflows &
+Extended ACP / AGUI integration.
 """
 
 from __future__ import annotations
@@ -31,7 +32,7 @@ __version__ = version("llmling-agent")
 __title__ = "LLMling-Agent"
 __author__ = "Philipp Temminghoff"
 __author_email__ = "philipptemminghoff@googlemail.com"
-__copyright__ = "Copyright (c) 2024 Philipp Temminghoff"
+__copyright__ = "Copyright (c) 2025 Philipp Temminghoff"
 __license__ = "MIT"
 __url__ = "https://github.com/phil65/llmling-agent"
 

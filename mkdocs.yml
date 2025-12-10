@@ -1,10 +1,11 @@
 site_name: "LLMling-Agent"
-site_description: "A brand new AI framework. Fully async. Excellently typed. MCP & ACP Integration. Human in the loop. Unique messaging features."
+site_description: "Pydantic-AI based Multi-Agent Framework with YAML-based Agents, Teams, Workflows & Extended ACP / AGUI integration"
 repo_url: "https://github.com/phil65/llmling-agent/"
 site_url: https://phil65.github.io/llmling-agent/
 site_author: "Philipp Temminghoff"
-copyright: Copyright &copy; 2024 Philipp Temminghoff
+copyright: Copyright &copy; 2025 Philipp Temminghoff
 edit_uri: edit/main/docs/
+
 theme:
   name: material
   custom_dir: overrides
