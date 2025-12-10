@@ -26,13 +26,6 @@ LLMling-agent excels at static YAML-based agent configuration:
 - Agent "connection" setup via YAML enabling workflows without step-based code
 - Configuration inheritance and reuse
 
-### ⚡ True Async Framework
-An async-first Agent framework:
-
-- Proper async context management
-- Non-blocking operations
-- Streaming responses
-- Automatic resource management
 
 ### 🧩 Unified Node Architecture
 Everything is a MessageNode - enabling seamless composition:
@@ -51,21 +44,45 @@ Central coordination point for multi-agent systems:
 - Dynamic agent/team creation and cloning
 - Central monitoring and statistics
 
-### 🔒 Type-Safety on Pydantic-Level
-- Excellently typed user APIs
-- Type-safe message passing
-- Type-safe agent-team forming
-- Structured response handling
-
-## Quick Start
 
 ### One-Line ACP Setup
 
 No installation needed - run directly with uvx:
 
 ```bash
-uvx --python 3.13 llmling-agent[default]@latest serve-acp agents.yml
+uvx --python 3.13 llmling-agent[default]@latest serve-acp 
+
+# or
+
+uvx --python 3.13 llmling-agent[default]@latest serve-acp path/to/agents.yml
 ```
+
+
+## Installation
+
+```bash
+uv tool install llmling-agent[default]
+```
+
+## Available Extras
+
+/// mknodes
+{{ "extras"| MkDependencyGroups }}
+///
+
+## Dependencies
+
+/// mknodes
+{{ "llmling_agent"| MkDependencyTable }}
+///
+
+## License
+
+MIT License - see [LICENSE](https://github.com/phil65/llmling-agent/blob/main/LICENSE) for details.
+
+
+## Quick Start
+
 
 ### Basic Agent Configuration
 
@@ -96,25 +113,3 @@ if __name__ == "__main__":
     import asyncio
     asyncio.run(main())
 ```
-
-## Installation
-
-```bash
-uv tool install llmling-agent[default]
-```
-
-## Available Extras
-
-/// mknodes
-{{ "extras"| MkDependencyGroups }}
-///
-
-## Dependencies
-
-/// mknodes
-{{ "llmling_agent"| MkDependencyTable }}
-///
-
-## License
-
-MIT License - see [LICENSE](https://github.com/phil65/llmling-agent/blob/main/LICENSE) for details.
