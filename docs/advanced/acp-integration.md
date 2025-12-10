@@ -75,7 +75,7 @@ Add this configuration to your Zed `settings.json`:
         "3.13",
         "llmling-agent[default]@latest",
         "serve-acp",
-        "https://raw.githubusercontent.com/phil65/llmling-agent/refs/heads/main/src/llmling_agent_docs/examples/pick_experts/config.yml", # <- insert your agent config here
+        "https://raw.githubusercontent.com/phil65/llmling-agent/refs/heads/main/docs/examples/pick_experts/config.yml", # <- insert your agent config here
         "--model-provider",
         "openai"
       ],

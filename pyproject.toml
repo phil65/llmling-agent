@@ -379,6 +379,9 @@ max-complexity = 15
 "__init__.py" = ["E402", "I001"]
 "scripts/*" = ["INP001"]
 "*tests/*" = ["D100"]
+"docs/examples/**/*.py" = [
+  "TC001",
+]  # Examples don't need TYPE_CHECKING imports
 
 [tool.ruff.format]
 preview = true

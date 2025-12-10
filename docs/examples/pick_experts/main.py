@@ -9,7 +9,7 @@ from __future__ import annotations
 import os
 
 from llmling_agent import AgentPool
-from llmling_agent_docs.examples.utils import get_config_path, is_pyodide, run
+from llmling_agent.docs.utils import get_config_path, is_pyodide, run
 
 
 # set your OpenAI API key here

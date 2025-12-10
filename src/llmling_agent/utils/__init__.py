@@ -23,6 +23,12 @@ def setup_env(env: jinja2.Environment) -> None:
         get_structured_multiple,
         pick_one,
     )
+    from llmling_agent.jinja_filters import (
+        pydantic_playground,
+        pydantic_playground_iframe,
+        pydantic_playground_link,
+        pydantic_playground_url,
+    )
 
     env.globals |= dict(agent=Agent)
     env.filters |= {
@@ -31,4 +37,8 @@ def setup_env(env: jinja2.Environment) -> None:
         "pick_one": pick_one,
         "get_structured": get_structured,
         "get_structured_multiple": get_structured_multiple,
+        "pydantic_playground": pydantic_playground,
+        "pydantic_playground_url": pydantic_playground_url,
+        "pydantic_playground_iframe": pydantic_playground_iframe,
+        "pydantic_playground_link": pydantic_playground_link,
     }

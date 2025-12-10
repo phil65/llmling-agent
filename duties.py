@@ -68,7 +68,7 @@ def lint(ctx):
     ctx.run(
         "uv run check-jsonschema --schemafile schema/config-schema.json "
         "src/llmling_agent/config_resources/*.yml "
-        "src/llmling_agent_docs/examples/**/config.yml"
+        "docs/examples/**/config.yml"
     )
 
 
@@ -81,7 +81,7 @@ def lint_check(ctx):
     ctx.run(
         "uv run check-jsonschema --schemafile schema/config-schema.json "
         "src/llmling_agent/config_resources/*.yml "
-        "src/llmling_agent_docs/examples/**/config.yml"
+        "docs/examples/**/config.yml"
     )
 
 

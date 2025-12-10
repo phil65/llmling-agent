@@ -843,7 +843,7 @@ wheels = [
 
 [[package]]
 name = "composio-client"
-version = "1.18.0"
+version = "1.19.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio" },
@@ -853,9 +853,9 @@ dependencies = [
     { name = "sniffio" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/75/e0/b0d32c293a70d0469bf9fe435d6a3b04a0c1b5148030f7f693197222cb78/composio_client-1.18.0.tar.gz", hash = "sha256:c973fc8538ae358051f8094801b067887e35f23d5ae60b12c9c181bc2da82586", size = 182540, upload-time = "2025-12-05T07:58:21.503Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/f7/18/87e1c5d2d915ef9ffeb4cc6e02785c87bf4277d6a1146aa947def738b09a/composio_client-1.19.0.tar.gz", hash = "sha256:7e3fd52ea43491c79023f6c00c9c678cf62107a486656fab770ac569893ad068", size = 183035, upload-time = "2025-12-10T11:32:34.838Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/02/c3/4f078e5dc9d24449838fd63145c2d3e4c301b343a7bed469b8cbebb3a25e/composio_client-1.18.0-py3-none-any.whl", hash = "sha256:27e020cb876748507a49df1ca36b8b3a3b5dedef91355e60e8c8563f794cfa6a", size = 198537, upload-time = "2025-12-05T07:58:20.277Z" },
+    { url = "https://files.pythonhosted.org/packages/a9/62/f4b27f734813905aa131dfcaccfec79a8107f0867de84b1bf0f772b0be97/composio_client-1.19.0-py3-none-any.whl", hash = "sha256:86ce017d6ba07818df58bea1c1d6e5963471fb26e36e8a5da0a5d4a389419d51", size = 198832, upload-time = "2025-12-10T11:32:33.261Z" },
 ]
 
 [[package]]
@@ -1485,15 +1485,15 @@ wheels = [
 
 [[package]]
 name = "githarbor"
-version = "1.0.0"
+version = "1.0.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "universal-pathlib" },
     { name = "upathtools" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/12/7f/d7b6b02a74c1c707d2e348269001164b89df45246d3cbbdc260c64f4c6be/githarbor-1.0.0.tar.gz", hash = "sha256:87b4755a5d88818fa29b4be287f3ad46600a8c457baf7f868b9c1f4ad2f7663f", size = 60220, upload-time = "2025-10-07T20:29:56.366Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/16/00/fffef32d9dd820616d346964c9cabb91fa3fc404483e3575c3a62f3137b8/githarbor-1.0.2.tar.gz", hash = "sha256:6df681fa04d8e951f8b1af508a44362d48cf88440037714b07be7fa589a6018e", size = 66500, upload-time = "2025-12-10T11:47:05.767Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/cc/62/deb1089daadf5371b993ef94a1e83f0a66fe5ac72a8a5f90b43614af910c/githarbor-1.0.0-py3-none-any.whl", hash = "sha256:24dd190c42b65e26d300edfb987c036b4f206f4bfb08281a854d6331b8c6f2aa", size = 83132, upload-time = "2025-10-07T20:29:54.79Z" },
+    { url = "https://files.pythonhosted.org/packages/bb/70/d546991d92c686dd3ee594497b52721f6750f5233abad5133b021fbab35e/githarbor-1.0.2-py3-none-any.whl", hash = "sha256:5c1ec1eb78d028a3f68188cec1e32ca5f6ffae4a90749a81513172afcfb3394e", size = 91646, upload-time = "2025-12-10T11:47:07.481Z" },
 ]
 
 [[package]]
@@ -4838,8 +4838,8 @@ name = "secretstorage"
 version = "3.5.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "cryptography", marker = "sys_platform != 'win32'" },
-    { name = "jeepney", marker = "sys_platform != 'win32'" },
+    { name = "cryptography" },
+    { name = "jeepney" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/1c/03/e834bcd866f2f8a49a85eaff47340affa3bfa391ee9912a952a1faa68c7b/secretstorage-3.5.0.tar.gz", hash = "sha256:f04b8e4689cbce351744d5537bf6b1329c6fc68f91fa666f60a380edddcd11be", size = 19884, upload-time = "2025-11-23T19:02:53.191Z" }
 wheels = [

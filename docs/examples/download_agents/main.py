@@ -22,7 +22,7 @@ from typing import TYPE_CHECKING, Any
 
 from llmling_agent import AgentPool, AgentsManifest
 from llmling_agent.agent.events import RichAgentStreamEvent
-from llmling_agent_docs.examples.utils import get_config_path, is_pyodide, run
+from llmling_agent.docs.utils import get_config_path, is_pyodide, run
 
 
 if TYPE_CHECKING:

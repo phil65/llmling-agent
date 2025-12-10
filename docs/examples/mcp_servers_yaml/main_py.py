@@ -7,7 +7,7 @@
 from __future__ import annotations
 
 from llmling_agent import Agent, Team
-from llmling_agent_docs.examples.utils import run
+from llmling_agent.docs.utils import run
 
 
 PICKER = """

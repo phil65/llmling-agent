@@ -9,7 +9,7 @@ import os
 from schemez import Schema
 
 from llmling_agent import Agent, AgentPool, AgentsManifest
-from llmling_agent_docs.examples.utils import get_config_path, is_pyodide, run
+from llmling_agent.docs.utils import get_config_path, is_pyodide, run
 
 
 # set your OpenAI API key here
