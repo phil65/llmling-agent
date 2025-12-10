@@ -33,7 +33,7 @@ def pydantic_playground_url(
     import mknodes as mk
 
     link = mk.MkLink.for_pydantic_playground(files, active_index=active_index)
-    return link.target
+    return str(link.target)
 
 
 @jinja2.pass_environment
@@ -59,7 +59,7 @@ def pydantic_playground_iframe(
     import mknodes as mk
 
     link = mk.MkLink.for_pydantic_playground(files, active_index=active_index)
-    return mk.MkIFrame(link.target, width=width, height=height, parent=env.node)
+    return str(mk.MkIFrame(link.target, width=width, height=height, parent=env.node))
 
 
 @jinja2.pass_environment
@@ -88,8 +88,8 @@ def pydantic_playground_link(
         files, title=title, active_index=active_index, parent=env.node
     )
     if as_button:
-        link.button = True
-    return link
+        link.as_button = True
+    return str(link)
 
 
 @jinja2.pass_environment
