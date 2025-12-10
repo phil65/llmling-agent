@@ -12,12 +12,13 @@ from pydantic_ai import (
     UrlContextTool,
     WebSearchTool,
 )
+from pydantic_ai.builtin_tools import WebSearchUserLocation  # noqa: TC002
 
 from llmling_agent_config.tools import BaseToolConfig
 
 
 if TYPE_CHECKING:
-    from pydantic_ai.builtin_tools import AbstractBuiltinTool, MemoryTool, WebSearchUserLocation
+    from pydantic_ai.builtin_tools import AbstractBuiltinTool, MemoryTool
 
 
 class BaseBuiltinToolConfig(BaseToolConfig):
