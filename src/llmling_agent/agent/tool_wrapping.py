@@ -82,6 +82,11 @@ def wrap_tool[TReturn](
 
     # Apply wraps first
     wraps(fn)(wrapped)  # pyright: ignore
+    # Python 3.14: functools.wraps copies __annotate__ but not __annotations__.
+    # Any subsequent assignment to __annotations__ destroys __annotate__ (PEP 649).
+    # Restore from original to preserve deferred annotation evaluation.
+    # TODO: probably review all wraps() calls in the codebase.
+    wrapped.__annotations__ = fn.__annotations__
     wrapped.__doc__ = tool.description
     wrapped.__name__ = tool.name
     # Modify signature for pydantic-ai: hide AgentContext, add RunContext if needed
