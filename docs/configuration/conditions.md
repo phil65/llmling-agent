@@ -1,108 +1,45 @@
 ---
-title: Conditions
-description: Condition configurations
+sync:
+  agent: doc_sync_agent
+  dependencies:
+    - src/llmling_agent_config/conditions.py
+title: Conditions Configuration
+description: Conditional logic for message flow and lifecycle control
 icon: material/source-branch
 ---
 
-# Connection Conditions
+# Conditions Configuration
 
-LLMling offers a powerful condition system for controlling message flow, connection lifecycle, and process termination. These conditions can be defined both in YAML configuration and programmatically.
+Conditions control message flow, connection lifecycle, and process termination. They provide fine-grained control over when messages are processed, when connections stop, and when the system should exit.
 
-## Condition Types
+## Overview
 
-### Word Match
+Conditions can be used at three control levels:
 
-Checks for specific words or phrases in messages:
+- **Filter Condition**: Controls which messages pass through a connection
+- **Stop Condition**: Triggers disconnection of a specific connection
+- **Exit Condition**: Stops the entire process (raises SystemExit)
 
-```yaml
-filter_condition:
-  type: word_match
-  words: ["analyze", "process"]    # Words to match
-  case_sensitive: false           # Ignore case
-  mode: "any"                     # Match any word ("all" for all words)
-```
+LLMling-Agent supports various condition types:
 
-### Message Count
+- **Word Match**: Check for specific words or phrases in messages
+- **Message Count**: Control based on number of messages processed
+- **Time**: Control based on elapsed time duration
+- **Token Threshold**: Monitor and limit token usage
+- **Cost Limit**: Control based on accumulated costs
+- **Callable**: Custom Python functions for complex logic
+- **Jinja2**: Template-based conditions with full context access
+- **AND/OR**: Composite conditions combining multiple checks
 
-Controls based on number of messages:
+## Configuration Reference
 
-```yaml
-filter_condition:
-  type: message_count
-  max_messages: 5                 # Maximum messages to allow
-  count_mode: "total"            # Count all messages
-  # or "per_agent" to count separately for each agent
-```
-
-### Time Based
-
-Controls based on elapsed time:
-
-```yaml
-filter_condition:
-  type: time
-  duration: 300                  # Maximum time in seconds
-```
-
-### Token Threshold
-
-Monitors token usage:
-
-```yaml
-filter_condition:
-  type: token_threshold
-  max_tokens: 1000              # Maximum tokens allowed
-  count_type: "total"          # Count all tokens
-  # or "prompt"/"completion" for specific token types
-```
-
-### Cost Limit
-
-Controls based on accumulated costs:
-
-```yaml
-filter_condition:
-  type: cost_limit
-  max_cost: 0.50               # Maximum cost in USD
-```
-
-## Composite Conditions
-
-Combine multiple conditions using AND/OR logic:
-
-### AND Condition
-
-All conditions must be met:
-
-```yaml
-filter_condition:
-  type: and
-  conditions:
-    - type: word_match
-      words: ["important"]
-    - type: cost_limit
-      max_cost: 1.0
-```
-
-### OR Condition
-
-Any condition can be met:
-
-```yaml
-filter_condition:
-  type: or
-  conditions:
-    - type: message_count
-      max_messages: 10
-    - type: time
-      duration: 300
-```
+/// mknodes
+{{ "llmling_agent_config.conditions.Condition" | union_to_markdown(display_mode="yaml", header_style="pymdownx") }}
+///
 
 ## Control Levels
 
-LLMling provides three levels of control through conditions:
-
-### 1. Filter Condition
+### Filter Condition
 
 Controls which messages pass through the connection:
 
@@ -112,37 +49,24 @@ connections:
     name: summarizer
     filter_condition:
       type: word_match
-      words: ["summarize"]
+      words: ["summarize", "summary"]
+      mode: "any"
 ```
 
-Programmatically:
-
-```python
-talk.when(lambda msg: "summarize" in msg.content)
-```
-
-### 2. Stop Condition
+### Stop Condition
 
 Triggers disconnection of this specific connection:
+
 ```yaml
 connections:
   - type: node
     name: expensive_model
     stop_condition:
       type: cost_limit
-      max_cost: 0.50
+      max_cost: 1.0
 ```
 
-Programmatically:
-
-```python
-agent.connect_to(
-    other,
-    stop_condition=lambda ctx: ctx.message.metadata.get("complete", False)
-)
-```
-
-### 3. Exit Condition
+### Exit Condition
 
 Stops the entire process by raising SystemExit:
 
@@ -155,156 +79,85 @@ connections:
       max_tokens: 10000
 ```
 
-Programmatically:
+## Composite Conditions
 
-```python
-agent.connect_to(
-    other,
-    exit_condition=lambda msg: msg.metadata.get("emergency", False)
-)
-```
+Combine multiple conditions using AND/OR logic:
 
-## Available Statistics
-
-Conditions have access to connection statistics through TalkStats:
-
-```python
-@dataclass(frozen=True)
-class TalkStats:
-    message_count: int          # Total messages processed
-    token_count: int           # Total tokens used
-    total_cost: float          # Total cost in USD
-    byte_count: int           # Total message size
-    start_time: datetime      # When connection started
-    last_message_time: datetime | None
-```
-
-
-### Jinja2 Template
-Flexible conditions using Jinja2 templates with full context access:
 ```yaml
+# All conditions must be met
 filter_condition:
-  type: jinja2
-  template: # your jinja temlate
-```
+  type: and
+  conditions:
+    - type: word_match
+      words: ["important"]
+    - type: cost_limit
+      max_cost: 1.0
 
-You have access to the context of the current connection through `ctx`.
-return `True` to pass the condition.
+# Any condition can be met
+stop_condition:
+  type: or
+  conditions:
+    - type: message_count
+      max_messages: 10
+    - type: time
+      duration: 300
+```
 
 ## Context Access
 
-All conditions receive an EventContext with complete state access:
+All conditions have access to `EventContext` which provides:
 
-```python
-@dataclass(frozen=True)
-class EventContext:
-    """Context for condition checks."""
-    message: ChatMessage[Any]     # Current message
-    target: MessageNode          # Target receiving message
-    stats: TalkStats            # Connection statistics
-    registry: ConnectionRegistry # All named connections
-    talk: Talk                  # Current connection
-```
+- `message`: Current ChatMessage being processed
+- `target`: MessageNode receiving the message
+- `stats`: Connection statistics (message count, tokens, cost, timing)
+- `registry`: All named connections
+- `talk`: Current connection object
 
-## Custom Conditions
-
-Create custom conditions using callable functions:
-
-```python
-async def check_rate_limit(message: ChatMessage[Any]) -> bool:
-    """Custom condition checking external rate limit."""
-    rate = await redis.get_rate(message.name)
-    return rate < MAX_RATE
-
-# Use as any condition type
-agent.connect_to(
-    other,
-    filter_condition=check_rate_limit  # or stop_condition/exit_condition
-)
-```
+This context is available in Jinja2 templates and callable conditions.
 
 ## Best Practices
 
-### 1. Condition Hierarchy
-- Use filter conditions for routine message control
-- Use stop conditions for graceful connection termination
-- Reserve exit conditions for critical system-wide issues
+### Condition Hierarchy
 
-### 2. Cost Control
+- Use **filter conditions** for routine message control
+- Use **stop conditions** for graceful connection termination
+- Reserve **exit conditions** for critical system-wide issues
+
+### Cost Control
+
 ```yaml
 connections:
   - type: node
-    name: gpt5_mini_agent
-    # Stop this connection if too expensive
+    name: expensive_agent
     stop_condition:
       type: cost_limit
       max_cost: 1.0
-    # Exit process on extreme cost
     exit_condition:
       type: cost_limit
       max_cost: 5.0
 ```
 
-### 3. Performance
-- Simple conditions for high-frequency filtering
-- Composite conditions for complex logic
-- Async conditions for external checks
+### Safety
 
-### 4. Safety
-```yaml
-connections:
-  - type: node
-    name: assistant
-    # Monitor token usage
-    filter_condition:
-      type: token_threshold
-      max_tokens: 1000
-    # Emergency exit on excessive cost
-    exit_condition:
-      type: or
-      conditions:
-        - type: cost_limit
-          max_cost: 10.0
-        - type: token_threshold
-          max_tokens: 50000
-```
-
-## Complete Example
+Combine multiple safeguards:
 
 ```yaml
-agents:
-  analyzer:
-    connections:
-      - type: node
-        name: expensive_processor
-        connection_type: run
-
-        # Only process relevant messages
-        filter_condition:
-          type: and
-          conditions:
-            - type: word_match
-              words: ["analyze", "process"]
-            - type: token_threshold
-              max_tokens: 500
-              count_type: "prompt"
-
-        # Stop connection when cost limit reached
-        stop_condition:
-          type: or
-          conditions:
-            - type: cost_limit
-              max_cost: 1.0
-            - type: message_count
-              max_messages: 50
-
-        # Emergency exit conditions
-        exit_condition:
-          type: or
-          conditions:
-            - type: cost_limit
-              max_cost: 5.0
-            - type: token_threshold
-              max_tokens: 10000
-              count_type: "total"
+exit_condition:
+  type: or
+  conditions:
+    - type: cost_limit
+      max_cost: 10.0
+    - type: token_threshold
+      max_tokens: 50000
+    - type: time
+      duration: 3600
 ```
+
+## Configuration Notes
+
+- Conditions are evaluated for each message
+- Simple conditions (word_match, message_count) have minimal overhead
+- Callable and Jinja2 conditions support async operations
+- Composite conditions (AND/OR) evaluate sub-conditions efficiently
+- Statistics are accumulated throughout the connection lifetime
+- Cost tracking requires model configurations with pricing information

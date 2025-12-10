@@ -13,6 +13,23 @@ if TYPE_CHECKING:
     from llmling_agent.tools.base import Tool
 
 
+class ToolHints(Schema):
+    """Configuration for tool execution hints."""
+
+    read_only: bool | None = Field(default=None, title="Read-only operation")
+    """Hints that this tool only reads data without modifying anything"""
+
+    destructive: bool | None = Field(default=None, title="Destructive operation")
+    """Hints that this tool performs destructive operations that cannot be undone"""
+
+    idempotent: bool | None = Field(default=None, title="Idempotent operation")
+    """Hints that this tool has idempotent behaviour"""
+
+    open_world: bool | None = Field(default=None, title="External resource access")
+    """Hints that this tool can access / interact with external resources beyond the
+    current system"""
+
+
 class BaseToolConfig(Schema):
     """Base configuration for agent tools."""
 
@@ -64,23 +81,6 @@ class BaseToolConfig(Schema):
     def get_tool(self) -> Tool:
         """Convert config to Tool instance."""
         raise NotImplementedError
-
-
-class ToolHints(Schema):
-    """Configuration for tool execution hints."""
-
-    read_only: bool | None = Field(default=None, title="Read-only operation")
-    """Hints that this tool only reads data without modifying anything"""
-
-    destructive: bool | None = Field(default=None, title="Destructive operation")
-    """Hints that this tool performs destructive operations that cannot be undone"""
-
-    idempotent: bool | None = Field(default=None, title="Idempotent operation")
-    """Hints that this tool has idempotent behaviour"""
-
-    open_world: bool | None = Field(default=None, title="External resource access")
-    """Hints that this tool can access / interact with external resources beyond the
-    current system"""
 
 
 class ImportToolConfig(BaseToolConfig):

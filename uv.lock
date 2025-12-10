@@ -2872,7 +2872,7 @@ wheels = [
 
 [[package]]
 name = "mknodes"
-version = "2.2.8"
+version = "2.2.9"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anybadge" },
@@ -2903,9 +2903,9 @@ dependencies = [
     { name = "yamling" },
     { name = "zensical" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/77/31/fe981e606deee2ce0f69f84b13fb2217bc103974d69a1210946fdeb923ba/mknodes-2.2.8.tar.gz", hash = "sha256:c75c5c3a9f7b8ecb4dc77b4f8e2b707e8194aea2260d327bf3398a8ac1063eb9", size = 5642747, upload-time = "2025-12-10T07:33:16.568Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/cc/8b/c9554770a780549805bfc82f1c85bb72b2a57e1931b6595fd7aee4c03d70/mknodes-2.2.9.tar.gz", hash = "sha256:625b3715ef81272bfe30487ad5d28738584ded38bbaf7817fe37c69f067e59ef", size = 334517, upload-time = "2025-12-10T12:17:15.906Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ae/68/453dac04c9a508ce2dbd8eb24c87d44766d55f60b12e08c0b1b66df2e41f/mknodes-2.2.8-py3-none-any.whl", hash = "sha256:febcf7c8f8a2ee51060075fbe0bebc6c15273bce9ecbce0a4ec15e1c356377f1", size = 9986688, upload-time = "2025-12-10T07:33:08.411Z" },
+    { url = "https://files.pythonhosted.org/packages/ab/bf/d8fc345ec6b9de259e5599a161363a0c77eb335fa748d29b3e23d237d5fa/mknodes-2.2.9-py3-none-any.whl", hash = "sha256:8862f3c48aa638453d995cd13a95af777f2aa58d5db3271fc5604b1069ce5dbb", size = 460402, upload-time = "2025-12-10T12:17:12.522Z" },
 ]
 
 [[package]]
