@@ -103,7 +103,9 @@ default = [
 events = ["evented[all]"]  # Event triggers for agents
 git = ["fsspec[git]"]  # Git support
 langfuse = ["langfuse"]  # Langfuse Prompt Hub
-markitdown = ["markitdown"]  # MarkItDown Media Converter
+markitdown = [
+  "markitdown; python_version < '3.14'"
+]  # MarkItDown Media Converter
 mcp_run = ["mcpx-py>=0.7.0"]  # MCP.run Toolset
 memory = ["typeagent>=0.3.3"]  # TypeAgent semantic knowledge DB
 notifications = ["apprise>=1.9.5"]  # Notification Toolset
