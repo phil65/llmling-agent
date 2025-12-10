@@ -1,3 +1,9 @@
+---
+title: Running Agents
+description: Different ways to run and interact with agents
+icon: material/play-circle
+---
+
 # Running Agents
 
 This guide covers different ways to interact with LLMling agents.

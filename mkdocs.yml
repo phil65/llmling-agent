@@ -1,10 +1,10 @@
 site_name: "LLMling-Agent"
-site_description: "A brand new AI framework.  Fully async. Excellently typed. MCP & ACP Integration. Human in the loop. Unique messaging features."
+site_description: "A brand new AI framework. Fully async. Excellently typed. MCP & ACP Integration. Human in the loop. Unique messaging features."
 repo_url: "https://github.com/phil65/llmling-agent/"
 site_url: https://phil65.github.io/llmling-agent/
 site_author: "Philipp Temminghoff"
 copyright: Copyright &copy; 2024 Philipp Temminghoff
-
+edit_uri: edit/main/docs/
 theme:
   name: material
   custom_dir: overrides
@@ -54,39 +54,64 @@ theme:
     - search.suggest
   # - search.share
 
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - toc:
+      permalink: true
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.snippets
+  - pymdownx.smartsymbols
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+  - mknodes.mdext
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
 plugins:
-  - search
-  - autorefs
-  - mknodes:
-      build_fn: llmling_agent_docs:Build.build
   - mkdocstrings:
-      default_handler: python
       handlers:
         python:
-          import:
-            - url: https://docs.python.org/3/objects.inv
-              domains: [std, py]
+          paths: [src]
+          inventories:
+            - https://docs.python.org/3/objects.inv
           options:
-            # https://mkdocstrings.github.io/python/usage/
-            enable_inventory: !ENV [CI, false]
+            docstring_style: google
+            inherited_members: true
+            show_source: false
             show_signature_annotations: true
             show_symbol_type_toc: true
             show_symbol_type_heading: true
             show_root_toc_entry: false
-            # merge_init_into_class: true
             ignore_init_summary: true
-            inherited_members: false
             signature_crossrefs: true
             separate_signature: true
             line_length: 100
-markdown_extensions:
-  - attr_list
-  - pymdownx.emoji
-  - admonition
-  - pymdownx.details
-  - pymdownx.superfences
-  - toc:
-      permalink: true
 
 extra:
   social:

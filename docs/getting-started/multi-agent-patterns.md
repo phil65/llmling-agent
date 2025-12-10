@@ -1,3 +1,9 @@
+---
+title: Multi-Agent Patterns
+description: Orchestration patterns for multiple agents
+icon: material/sitemap
+---
+
 # Multi-Agent Orchestration Patterns
 
 LLMling-agent offers several patterns for coordinating multiple agents. Each pattern has its strengths and is suited for different use cases.

@@ -26,16 +26,16 @@ else:
 
 @duty(capture=False)
 def build(ctx, *args: str):
-    """Build a MkNodes page."""
+    """Build documentation."""
     args_str = " " + " ".join(args) if args else ""
-    ctx.run(f"uv run mkdocs-mknodes build{args_str}")
+    ctx.run(f"uv run zensical build{args_str}")
 
 
 @duty(capture=False)
 def serve(ctx, *args: str):
-    """Serve a MkNodes page."""
+    """Serve documentation."""
     args_str = " " + " ".join(args) if args else ""
-    ctx.run(f"uv run mkdocs-mknodes serve{args_str}")
+    ctx.run(f"uv run zensical serve{args_str}")
 
 
 @duty(capture=False)

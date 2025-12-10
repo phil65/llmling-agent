@@ -1,3 +1,9 @@
+---
+title: Agent Usage
+description: Using agents in your application
+icon: material/robot
+---
+
 # Agent
 
 LLMling-agent provides an agent implementation based on pydantic-ai that integrates with the [LLMling](https://gitub.com/phil65/llmling) resource and tool system. The agent can be used standalone or as part of a larger application.

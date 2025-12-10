@@ -2290,7 +2290,7 @@ dev = [
 ]
 docs = [
     { name = "mkdocs-material" },
-    { name = "mkdocs-mknodes" },
+    { name = "mknodes" },
 ]
 lint = [
     { name = "mypy", extra = ["faster-cache"] },
@@ -2383,7 +2383,7 @@ dev = [
 ]
 docs = [
     { name = "mkdocs-material" },
-    { name = "mkdocs-mknodes" },
+    { name = "mknodes" },
 ]
 lint = [
     { name = "mypy", extras = ["faster-cache"] },
@@ -2817,31 +2817,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/79/9b/9b4c96d6593b2a541e1cb8b34899a6d021d208bb357042823d4d2cabdbe7/mkdocs_material_extensions-1.3.1.tar.gz", hash = "sha256:10c9511cea88f568257f960358a467d12b970e1f7b2c0e5fb2bb48cab1928443", size = 11847, upload-time = "2023-11-22T19:09:45.208Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/5b/54/662a4743aa81d9582ee9339d4ffa3c8fd40a4965e033d77b9da9774d3960/mkdocs_material_extensions-1.3.1-py3-none-any.whl", hash = "sha256:adff8b62700b25cb77b53358dad940f3ef973dd6db797907c49e3c2ef3ab4e31", size = 8728, upload-time = "2023-11-22T19:09:43.465Z" },
-]
-
-[[package]]
-name = "mkdocs-mknodes"
-version = "1.1.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "anyenv" },
-    { name = "jinja2" },
-    { name = "jinjarope" },
-    { name = "logfire" },
-    { name = "mkdocs" },
-    { name = "mknodes" },
-    { name = "pathspec" },
-    { name = "pydantic" },
-    { name = "rich" },
-    { name = "typer" },
-    { name = "universal-pathlib" },
-    { name = "upathtools" },
-    { name = "yamling" },
-    { name = "yarl" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/3d/e2/bcbd63bb31b9b08faea44b15e86295b55d07a36b2a3832c008cb0f142cc7/mkdocs_mknodes-1.1.0.tar.gz", hash = "sha256:b19a40a8391654b432dc299f72ef857635df56172ec3841ae3022e543a89b598", size = 48560, upload-time = "2025-12-09T00:56:51.626Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/24/5a/73f0d53642a63522b1b0d662c6aa6fb16af17d52c88bbeb23cb87d86b169/mkdocs_mknodes-1.1.0-py3-none-any.whl", hash = "sha256:edf14d8cd055899cbab15669e8b57aa8a19ba0edbb015077a19afd6396976f35", size = 67184, upload-time = "2025-12-09T00:56:52.981Z" },
 ]
 
 [[package]]
@@ -4863,8 +4838,8 @@ name = "secretstorage"
 version = "3.5.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "cryptography" },
-    { name = "jeepney" },
+    { name = "cryptography", marker = "sys_platform != 'win32'" },
+    { name = "jeepney", marker = "sys_platform != 'win32'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/1c/03/e834bcd866f2f8a49a85eaff47340affa3bfa391ee9912a952a1faa68c7b/secretstorage-3.5.0.tar.gz", hash = "sha256:f04b8e4689cbce351744d5537bf6b1329c6fc68f91fa666f60a380edddcd11be", size = 19884, upload-time = "2025-11-23T19:02:53.191Z" }
 wheels = [

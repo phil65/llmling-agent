@@ -1,3 +1,9 @@
+---
+title: Example Configurations
+description: Ready-to-use agent configuration examples
+icon: material/file-code
+---
+
 # Examples
 
 These examples demonstrate how to create and use agents through YAML configuration files.

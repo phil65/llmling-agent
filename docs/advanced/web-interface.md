@@ -1,3 +1,9 @@
+---
+title: Web Interface
+description: Web UI for agent management
+icon: material/web
+---
+
 ## Web Interface Integration
 
 The web interface provides a graphical way to manage and interact with agents.

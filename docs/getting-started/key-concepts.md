@@ -1,3 +1,9 @@
+---
+title: Key Concepts
+description: Core concepts and terminology
+icon: material/lightbulb
+---
+
 # Key Concepts
 
 ## LLMling and LLMling-Agent
