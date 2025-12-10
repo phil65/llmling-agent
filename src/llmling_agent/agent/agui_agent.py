@@ -16,11 +16,6 @@ from anyenv.processes import hard_kill
 import httpx
 from pydantic import TypeAdapter
 
-from llmling_agent.agent.agui_converters import (
-    agui_to_native_event,
-    extract_text_from_event,
-    to_agui_input_content,
-)
 from llmling_agent.agent.events import RunStartedEvent, StreamCompleteEvent, resolve_event_handlers
 from llmling_agent.common_types import IndividualEventHandler
 from llmling_agent.log import get_logger
@@ -313,6 +308,12 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
             Native streaming events converted from AG-UI protocol
         """
         from ag_ui.core import RunAgentInput, UserMessage
+
+        from llmling_agent.agent.agui_converters import (
+            agui_to_native_event,
+            extract_text_from_event,
+            to_agui_input_content,
+        )
 
         if not self._client or not self._state:
             msg = "Agent not initialized - use async context manager"
