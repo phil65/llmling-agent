@@ -30,50 +30,9 @@ See Config section to see the available types.
 
 You can set common model settings to fine-tune the LLM behavior:
 
-```yaml
-agents:
-  tuned_agent:
-    model_settings:
-      max_tokens: 2000          # Maximum tokens to generate
-      temperature: 0.7          # Randomness (0.0 - 2.0)
-      top_p: 0.9               # Nucleus sampling threshold
-      timeout: 30.0            # Request timeout in seconds
-      parallel_tool_calls: true # Allow parallel tool execution
-      seed: 42                 # Random seed for reproducibility
-      presence_penalty: 0.5     # (-2.0 to 2.0) Penalize token reuse
-      frequency_penalty: 0.3    # (-2.0 to 2.0) Penalize token frequency
-      logit_bias:              # Modify token likelihood
-        "1234": 100  # Increase likelihood
-        "5678": -100 # Decrease likelihood
-
-### Example with Provider and Model Settings
-
-  advanced_agent:
-    provider:
-      type: pydantic_ai
-      name: "Advanced GPT-5"
-      model: openai:gpt-5
-      end_strategy: early
-      validation_enabled: true
-      allow_text_fallback: true
-      model_settings:
-        temperature: 0.8
-        max_tokens: 1000
-        presence_penalty: 0.2
-        timeout: 60.0
-
-  cautious_agent:
-    provider:
-      type: pydantic_ai
-      name: "Careful Claude"
-      model: anthropic:claude-sonnet-4-0
-      retries: 3
-      model_settings:
-        temperature: 0.3  # More deterministic
-        max_tokens: 2000
-        timeout: 120.0    # Longer timeout
+```yaml title="agents.yml"
+--8<-- "docs/advanced/models_example.yml"
 ```
-
 
 All settings are optional and providers will use their defaults if not specified.
 
