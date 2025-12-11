@@ -7,7 +7,7 @@ cloud sandboxes like E2B that can't reach localhost.
 
 import asyncio
 
-from anyenv.code_execution.configs import LocalExecutionEnvironmentConfig
+from exxec.configs import LocalExecutionEnvironmentConfig
 
 from llmling_agent.resource_providers.codemode.remote_mcp_execution import (
     RemoteMCPExecutor,

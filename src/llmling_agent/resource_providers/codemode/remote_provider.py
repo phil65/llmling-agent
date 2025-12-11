@@ -6,7 +6,7 @@ import asyncio
 import contextlib
 from typing import TYPE_CHECKING, Any, Self
 
-from anyenv.code_execution.configs import LocalExecutionEnvironmentConfig
+from exxec.configs import LocalExecutionEnvironmentConfig
 
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.log import get_logger
@@ -26,7 +26,7 @@ logger = get_logger(__name__)
 if TYPE_CHECKING:
     from types import TracebackType
 
-    from anyenv.code_execution.configs import ExecutionEnvironmentConfig
+    from exxec.configs import ExecutionEnvironmentConfig
 
     from llmling_agent.resource_providers import ResourceProvider
 
@@ -138,7 +138,7 @@ class RemoteCodeModeResourceProvider(CodeModeResourceProvider):
 if __name__ == "__main__":
     import webbrowser
 
-    from anyenv.code_execution.configs import LocalExecutionEnvironmentConfig
+    from exxec.configs import LocalExecutionEnvironmentConfig
 
     from llmling_agent import Agent, log
     from llmling_agent.resource_providers import StaticResourceProvider

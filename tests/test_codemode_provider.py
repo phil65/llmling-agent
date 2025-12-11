@@ -1,6 +1,6 @@
 """Integration test for codemode providers."""
 
-from anyenv.code_execution.configs import LocalExecutionEnvironmentConfig
+from exxec.configs import LocalExecutionEnvironmentConfig
 import pytest
 
 from llmling_agent import Agent

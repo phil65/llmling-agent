@@ -13,7 +13,7 @@ import asyncio
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from anyenv.code_execution import LocalExecutionEnvironment
+from exxec import LocalExecutionEnvironment
 import pytest
 
 from llmling_agent.agent.acp_agent import ACPAgent

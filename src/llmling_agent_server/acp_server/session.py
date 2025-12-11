@@ -12,7 +12,7 @@ from dataclasses import dataclass, field
 import re
 from typing import TYPE_CHECKING, Any
 
-from anyenv.code_execution.acp_provider import ACPExecutionEnvironment
+from exxec.acp_provider import ACPExecutionEnvironment
 import logfire
 from pydantic_ai import (
     FinalResultEvent,

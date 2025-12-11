@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 import uuid
 
-from anyenv.code_execution.events import (
+from exxec.events import (
     OutputEvent,
     ProcessCompletedEvent,
     ProcessErrorEvent,
@@ -17,7 +17,7 @@ from llmling_agent.resource_providers import ResourceProvider
 
 
 if TYPE_CHECKING:
-    from anyenv.code_execution import ExecutionEnvironment
+    from exxec import ExecutionEnvironment
 
     from llmling_agent.tools.base import Tool
 

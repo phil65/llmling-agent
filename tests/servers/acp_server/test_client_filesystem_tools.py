@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock, Mock
 
-from anyenv.code_execution import MockExecutionEnvironment
+from exxec import MockExecutionEnvironment
 import pytest
 
 from llmling_agent import AgentContext

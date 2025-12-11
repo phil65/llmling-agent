@@ -58,7 +58,7 @@ if TYPE_CHECKING:
     from datetime import datetime
     from types import TracebackType
 
-    from anyenv.code_execution import ExecutionEnvironment
+    from exxec import ExecutionEnvironment
     from pydantic_ai import UsageLimits
     from pydantic_ai.output import OutputSpec
     from toprompt import AnyPromptType
@@ -294,7 +294,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         self._name = name
         self._background_task: asyncio.Task[ChatMessage[Any]] | None = None
         self.talk = Interactions(self)
-        from anyenv.code_execution import LocalExecutionEnvironment
+        from exxec import LocalExecutionEnvironment
 
         self.env = env or LocalExecutionEnvironment()
 

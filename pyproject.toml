@@ -38,6 +38,7 @@ dependencies = [
   "docstring-parser>=0.17.0",
   "epregistry",
   "evented>=1.0.5",
+  "exxec>=0.1.0",
   "fastmcp>=2.12.4",
   "fsspec",
   "httpx",

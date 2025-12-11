@@ -4,13 +4,13 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock, Mock
 
-from anyenv.code_execution.events import (
+from anyenv.process_manager import ProcessOutput
+from exxec.events import (
     OutputEvent,
     ProcessCompletedEvent,
     ProcessErrorEvent,
     ProcessStartedEvent,
 )
-from anyenv.process_manager import ProcessOutput
 import pytest
 
 from llmling_agent.agent.context import AgentContext

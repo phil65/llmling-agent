@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 
     from llmling_agent.tools.base import Tool
 
-from anyenv.code_execution.base import ExecutionEnvironment
+from exxec.base import ExecutionEnvironment
 
 
 logger = get_logger(__name__)

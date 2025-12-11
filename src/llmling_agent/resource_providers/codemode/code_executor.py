@@ -15,9 +15,9 @@ if TYPE_CHECKING:
     import socket
     from types import TracebackType
 
-    from anyenv.code_execution.base import ExecutionEnvironment
-    from anyenv.code_execution.configs import ExecutionEnvironmentConfig
-    from anyenv.code_execution.models import ServerInfo
+    from exxec.base import ExecutionEnvironment
+    from exxec.configs import ExecutionEnvironmentConfig
+    from exxec.models import ServerInfo
     from fastapi import FastAPI
     from schemez import ToolsetCodeGenerator
     import uvicorn
@@ -121,7 +121,7 @@ class ToolServerLifecycleHandler:
 
     async def __aenter__(self) -> ServerInfo:
         """Start FastAPI server with tool routes."""
-        from anyenv.code_execution.models import ServerInfo
+        from exxec.models import ServerInfo
         from fastapi import FastAPI
 
         from llmling_agent.utils.network import _create_socket
@@ -194,7 +194,7 @@ class ToolServerLifecycleHandler:
 
 
 if __name__ == "__main__":
-    from anyenv.code_execution.configs import LocalExecutionEnvironmentConfig
+    from exxec.configs import LocalExecutionEnvironmentConfig
 
     from llmling_agent.tools.base import Tool
 

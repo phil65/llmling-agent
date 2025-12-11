@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from anyenv.code_execution.acp_provider import ACPExecutionEnvironment
+from exxec.acp_provider import ACPExecutionEnvironment
 
 from llmling_agent.resource_providers import PlanProvider
 from llmling_agent_toolsets.builtin import CodeTools, ExecutionEnvironmentTools

@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 from typing import TYPE_CHECKING, Annotated, Literal
 
-from anyenv.code_execution.configs import ExecutionEnvironmentConfig
+from exxec.configs import ExecutionEnvironmentConfig
 from llmling_models.configs.model_configs import AnyModelConfig
 from pydantic import ConfigDict, EmailStr, Field, HttpUrl, SecretStr
 from schemez import Schema

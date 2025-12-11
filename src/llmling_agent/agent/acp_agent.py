@@ -72,8 +72,8 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Sequence
     from types import TracebackType
 
-    from anyenv.code_execution import ExecutionEnvironment
     from evented.configs import EventConfig
+    from exxec import ExecutionEnvironment
     from tokonomics.model_discovery import ProviderType
 
     from acp.agent.protocol import Agent as ACPAgentProtocol

@@ -11,7 +11,7 @@ import time
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urlparse
 
-from anyenv.code_execution.base import ExecutionEnvironment
+from exxec.base import ExecutionEnvironment
 from pydantic_ai import Agent as PydanticAgent, BinaryContent
 
 from llmling_agent.agent.context import AgentContext  # noqa: TC001

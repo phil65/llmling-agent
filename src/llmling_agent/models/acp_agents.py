@@ -14,8 +14,8 @@ from llmling_agent_config.toolsets import ToolsetConfig  # noqa: TC001
 
 
 if TYPE_CHECKING:
-    from anyenv.code_execution import ExecutionEnvironment
-    from anyenv.code_execution.configs import (
+    from exxec import ExecutionEnvironment
+    from exxec.configs import (
         ExecutionEnvironmentConfig as ExecutionEnvironmentConfigType,
     )
 
@@ -95,7 +95,7 @@ class BaseACPAgentConfig(NodeConfig):
 
     def get_execution_environment(self) -> ExecutionEnvironment:
         """Create execution environment from config."""
-        from anyenv.code_execution.configs import (
+        from exxec.configs import (
             ExecutionEnvironmentConfig,
             LocalExecutionEnvironmentConfig,
         )
