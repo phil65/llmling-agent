@@ -27,6 +27,7 @@ from llmling_agent_toolsets.fsspec_toolset.helpers import (
 
 if TYPE_CHECKING:
     import fsspec
+    from fsspec.asyn import AsyncFileSystem
 
     from llmling_agent.common_types import ModelType
     from llmling_agent.prompts.conversion_manager import ConversionManager
@@ -80,7 +81,7 @@ class FSSpecTools(ResourceProvider):
         self.converter = converter
         self._tools: list[Tool] | None = None
 
-    def get_fs(self, agent_ctx: AgentContext) -> Any:
+    def get_fs(self, agent_ctx: AgentContext) -> AsyncFileSystem:
         """Get filesystem, falling back to agent's env if not set.
 
         Args:
