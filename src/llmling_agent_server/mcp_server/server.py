@@ -23,9 +23,10 @@ if TYPE_CHECKING:
     from contextlib import AbstractAsyncContextManager
     from typing import Any
 
-    from fastmcp import SamplingMessage, ServerSession
+    from fastmcp.client.sampling import SamplingMessage
     import mcp
     from mcp.server.lowlevel.server import LifespanResultT
+    from mcp.server.session import ServerSession
     from mcp.shared.context import LifespanContextT, RequestContext
     from mcp.types import CreateMessageRequestParams as SamplingParams
 

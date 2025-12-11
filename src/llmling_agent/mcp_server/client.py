@@ -325,9 +325,9 @@ class MCPClient:
 
             async def elicitation_handler[T](
                 message: str,
-                response_type: type[T],
+                response_type: type[T] | None,
                 params: ElicitRequestParams,
-                context: RequestContext[Any, Any],
+                context: RequestContext[Any, Any, Any],
             ) -> T | dict[str, Any] | Any:
                 from fastmcp.client.elicitation import ElicitResult
                 from mcp.types import ElicitResult as MCPElicitResult, ErrorData
