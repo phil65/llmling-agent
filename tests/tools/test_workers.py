@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from pydantic_ai.models.test import TestModel
 import pytest
 
-from llmling_agent import AgentPool, AgentsManifest
+from llmling_agent import Agent, AgentPool, AgentsManifest
 
 
 if TYPE_CHECKING:
@@ -103,7 +103,6 @@ async def test_basic_worker_setup(tmp_path: Path):
     """Test basic worker registration and usage."""
     config_path = write_config(BASIC_WORKERS, tmp_path)
     manifest = AgentsManifest.from_file(config_path)
-
     async with AgentPool(manifest) as pool:
         main_agent = pool.get_agent("main")
         # Verify workers were registered as tools via toolset
@@ -194,26 +193,18 @@ async def test_multiple_workers_same_prompt(tmp_path: Path):
         assert any("helpful worker" in r.lower() for r in responses)
 
 
-async def test_structured_worker_output():
+async def test_structured_worker_output(default_model: str):
     """Test that agents with BaseModel output    convert correctly when used as tools."""
-    from llmling_agent import Agent
-
-    # Create structured agent with BaseModel output
-    structured_agent = Agent(
-        name="structured_agent",
-        model="openai:gpt-5-nano",
-        output_type=StructuredResponse,
-    )
-
-    # Create main agent that will use the structured agent as a tool
-    main_agent = Agent(name="main_agent", model="openai:gpt-5-nano")
+    # Create structured agent and main agent that will use him as a tool
+    structured = Agent(name="structured_agent", model=default_model, output_type=StructuredResponse)
+    main_agent = Agent(name="main_agent", model=default_model)
     # Convert structured agent to tool and register with main agent
-    tool = structured_agent.to_tool()
+    tool = structured.to_tool()
     # Verify that return type annotation is set correctly
     assert tool.callable.__annotations__.get("return") == StructuredResponse
     main_agent.tools.register_tool(tool, enabled=True)
     # Test that both agents work together
-    async with structured_agent, main_agent:
+    async with structured, main_agent:
         result = await main_agent.run("Ask structured_agent: return a message 'test' with value 42")
         tool_calls = result.get_tool_calls()
         assert len(tool_calls) > 0
