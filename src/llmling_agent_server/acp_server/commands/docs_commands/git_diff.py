@@ -44,20 +44,12 @@ class GitDiffCommand(NodeCommand):
         """
         session = ctx.context.data
         assert session
-
-        # Generate tool call ID
         tool_call_id = f"git-diff-{uuid.uuid4().hex[:8]}"
-
         try:
-            # Check if we have terminal access for running git
-            if not (
-                session.client_capabilities
-                and session.client_capabilities.terminal
-                and session.acp_agent.terminal_access
-            ):
-                await session.notifications.send_agent_text(
-                    "❌ **Terminal access not available for git operations**"
-                )
+            caps = session.client_capabilities  # Check if we have terminal access for running git
+            if not (caps and caps.terminal and session.acp_agent.terminal_access):
+                msg = "❌ **Terminal access not available for git operations**"
+                await session.notifications.send_agent_text(msg)
                 return
 
             # Build git diff command
@@ -90,7 +82,6 @@ class GitDiffCommand(NodeCommand):
                     title=f"Git diff failed (exit code: {exit_code})",
                 )
                 return
-
             diff_content = output.strip()
             if not diff_content:
                 await session.notifications.tool_call_progress(
@@ -103,7 +94,6 @@ class GitDiffCommand(NodeCommand):
             # Stage the diff content for use in agent context
             staged_part = UserPromptPart(content=f"Git diff for {display_title}:\n\n{diff_content}")
             session.add_staged_parts([staged_part])
-
             # Send successful result - wrap in code block for proper display
             staged_count = session.get_staged_parts_count()
             await session.notifications.tool_call_progress(
@@ -112,7 +102,6 @@ class GitDiffCommand(NodeCommand):
                 title=f"Git diff fetched and staged ({staged_count} total parts)",
                 content=[f"```diff\n{diff_content}\n```"],
             )
-
         except Exception as e:
             logger.exception("Unexpected error fetching git diff", commit=commit)
             await session.notifications.tool_call_progress(

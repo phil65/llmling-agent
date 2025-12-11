@@ -5,7 +5,7 @@ from __future__ import annotations
 import urllib.parse
 import uuid
 
-import httpx
+import anyenv
 from pydantic_ai import UserPromptPart
 from slashed import CommandContext  # noqa: TC002
 
@@ -48,51 +48,31 @@ class UrlToMarkdownCommand(NodeCommand):
         """
         session = ctx.context.data
         assert session
-
-        # Generate tool call ID
         tool_call_id = f"url-to-markdown-{uuid.uuid4().hex[:8]}"
-
+        api_url = "https://urltomarkdown.herokuapp.com/"  # Build API URL and parameters
+        params = {"url": url}
+        if title:
+            params["title"] = "true"
+        if not links:
+            params["links"] = "false"
+        if not clean:
+            params["clean"] = "false"
         try:
-            # Build API URL and parameters
-            api_url = "https://urltomarkdown.herokuapp.com/"
-            params = {"url": url}
-
-            if title:
-                params["title"] = "true"
-            if not links:
-                params["links"] = "false"
-            if not clean:
-                params["clean"] = "false"
-
-            # Start tool call
             await session.notifications.tool_call_start(
                 tool_call_id=tool_call_id,
                 title=f"Converting to markdown: {url}",
                 kind="fetch",
             )
-
-            # Make async HTTP request
-            async with httpx.AsyncClient() as client:
-                response = await client.get(
-                    api_url,
-                    params=params,
-                    timeout=30.0,
-                )
-                response.raise_for_status()
-                markdown_content = response.text
-
-            # Get title from header if available
+            response = await anyenv.get(api_url, params=params, timeout=30.0)
+            markdown_content = await response.text()
             page_title = ""
             if "X-Title" in response.headers:
                 page_title = urllib.parse.unquote(response.headers["X-Title"])
                 page_title = f" - {page_title}"
-
             # Stage the markdown content for use in agent context
-            staged_part = UserPromptPart(
-                content=f"Webpage content from {url}{page_title}:\n\n{markdown_content}"
-            )
+            content = f"Webpage content from {url}{page_title}:\n\n{markdown_content}"
+            staged_part = UserPromptPart(content=content)
             session.add_staged_parts([staged_part])
-
             # Send successful result - wrap in code block for proper display
             staged_count = session.get_staged_parts_count()
             await session.notifications.tool_call_progress(
@@ -100,21 +80,6 @@ class UrlToMarkdownCommand(NodeCommand):
                 status="completed",
                 title=f"Webpage converted and staged ({staged_count} total parts)",
                 content=[f"```markdown\n{markdown_content}\n```"],
-            )
-
-        except httpx.HTTPStatusError as e:
-            logger.exception("HTTP error converting URL", url=url, status=e.response.status_code)
-            await session.notifications.tool_call_progress(
-                tool_call_id=tool_call_id,
-                status="failed",
-                title=f"HTTP {e.response.status_code}: Failed to convert {url}",
-            )
-        except httpx.RequestError as e:
-            logger.exception("Request error converting URL", url=url)
-            await session.notifications.tool_call_progress(
-                tool_call_id=tool_call_id,
-                status="failed",
-                title=f"Network error: {e}",
             )
         except Exception as e:
             logger.exception("Unexpected error converting URL", url=url)

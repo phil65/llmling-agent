@@ -9,6 +9,7 @@ from slashed import CommandContext  # noqa: TC002
 
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.context import NodeContext  # noqa: TC001
+import llmling_agent.utils.importing
 from llmling_agent_commands.base import NodeCommand
 from llmling_agent_server.acp_server.session import ACPSession  # noqa: TC001
 
@@ -53,30 +54,22 @@ class GetSourceCommand(NodeCommand):
                 and session.client_capabilities.terminal
                 and session.acp_agent.terminal_access
             ):
-                await session.notifications.send_agent_text(
-                    "❌ **Terminal access not available for source code fetching**"
-                )
+                msg = "❌ **Terminal access not available for source code fetching**"
+                await session.notifications.send_agent_text(msg)
                 return
 
-            # Find importing.py path (using local copy)
-            import llmling_agent.utils.importing
-
             importing_py_path = llmling_agent.utils.importing.__file__
-
-            # Start tool call
             await session.notifications.tool_call_start(
                 tool_call_id=tool_call_id,
                 title=f"Getting source: {dot_path}",
                 kind="read",
             )
-
             # Run importing.py as script
             output, exit_code = await session.requests.run_command(
                 command="uv",
                 args=["run", importing_py_path, dot_path],
                 cwd=cwd or session.cwd,
             )
-
             # Check if command succeeded
             if exit_code != 0:
                 error_msg = output.strip() or f"Exit code: {exit_code}"
@@ -86,7 +79,6 @@ class GetSourceCommand(NodeCommand):
                     title=f"Failed to get source for {dot_path}: {error_msg}",
                 )
                 return
-
             source_content = output.strip()
             if not source_content:
                 await session.notifications.tool_call_progress(
@@ -95,13 +87,10 @@ class GetSourceCommand(NodeCommand):
                     title="No source code found",
                 )
                 return
-
             # Stage the source content for use in agent context
-            staged_part = UserPromptPart(
-                content=f"Python source code for {dot_path}:\n\n{source_content}"
-            )
+            content = f"Python source code for {dot_path}:\n\n{source_content}"
+            staged_part = UserPromptPart(content=content)
             session.add_staged_parts([staged_part])
-
             # Send successful result - wrap in code block for proper display
             staged_count = session.get_staged_parts_count()
             await session.notifications.tool_call_progress(
