@@ -288,8 +288,11 @@ class ACPSession:
         old_agent_name = self.current_agent_name
         self.current_agent_name = agent_name
         self.log.info("Switched agents", from_agent=old_agent_name, to_agent=agent_name)
-        # if new_model := new_agent.model_name:
-        #     await self.notifications.update_session_model(new_model)
+
+        # Persist the agent switch via session manager
+        if self.manager:
+            await self.manager.update_session_agent(self.session_id, agent_name)
+
         await self.send_available_commands_update()
 
     def cancel(self) -> None:

@@ -19,7 +19,10 @@ from acp.schema import (
     InitializeRequest,
     KillTerminalCommandRequest,
     KillTerminalCommandResponse,
+    ListSessionsRequest,
+    ListSessionsResponse,
     LoadSessionRequest,
+    LoadSessionResponse,
     NewSessionRequest,
     PromptRequest,
     ReadTextFileRequest,
@@ -195,7 +198,15 @@ async def _agent_handler(  # noqa: PLR0911
     method: AgentMethod | str,
     params: dict[str, Any] | None,
     is_notification: bool,
-) -> NewSessionResponse | InitializeResponse | PromptResponse | dict[str, Any] | None:
+) -> (
+    NewSessionResponse
+    | InitializeResponse
+    | PromptResponse
+    | LoadSessionResponse
+    | ListSessionsResponse
+    | dict[str, Any]
+    | None
+):
     """Handle an agent request."""
     match method:
         case "initialize":
@@ -206,8 +217,10 @@ async def _agent_handler(  # noqa: PLR0911
             return await agent.new_session(new_session_request)
         case "session/load":
             load_request = LoadSessionRequest.model_validate(params)
-            await agent.load_session(load_request)
-            return None
+            return await agent.load_session(load_request)
+        case "session/list":
+            list_request = ListSessionsRequest.model_validate(params)
+            return await agent.list_sessions(list_request)
         case "session/set_mode":
             set_mode_request = SetSessionModeRequest.model_validate(params)
             return (

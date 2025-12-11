@@ -104,6 +104,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         from llmling_agent.mcp_server.manager import MCPManager
         from llmling_agent.models.manifest import AgentsManifest
         from llmling_agent.observability import registry
+        from llmling_agent.sessions import SessionManager
         from llmling_agent.skills.manager import SkillsManager
         from llmling_agent.storage import StorageManager
 
@@ -124,6 +125,8 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         self.exit_stack = AsyncExitStack()
         self.parallel_load = parallel_load
         self.storage = StorageManager(self.manifest.storage)
+        session_store = self.manifest.storage.get_session_store()
+        self.sessions = SessionManager(pool=self, store=session_store)
         self.event_handlers = event_handlers or []
         self.connection_registry = ConnectionRegistry()
         servers = self.manifest.get_mcp_servers()
@@ -186,6 +189,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
                 # Collect remaining components to initialize (MCP already initialized)
                 components: list[AbstractAsyncContextManager[Any]] = [
                     self.storage,
+                    self.sessions,
                     *agents,
                     *acp_agents,
                     *agui_agents,

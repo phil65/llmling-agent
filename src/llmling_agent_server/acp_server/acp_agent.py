@@ -9,10 +9,12 @@ from typing import TYPE_CHECKING, Any, ClassVar
 from acp import Agent as ACPAgent
 from acp.schema import (
     InitializeResponse,
+    ListSessionsResponse,
     LoadSessionResponse,
     ModelInfo as ACPModelInfo,
     NewSessionResponse,
     PromptResponse,
+    SessionInfo,
     SessionModelState,
     SessionModeState,
     SetSessionModelRequest,
@@ -38,6 +40,7 @@ if TYPE_CHECKING:
         CancelNotification,
         ClientCapabilities,
         InitializeRequest,
+        ListSessionsRequest,
         LoadSessionRequest,
         NewSessionRequest,
         PromptRequest,
@@ -115,7 +118,7 @@ class LLMlingACPAgent(ACPAgent):
         """Initialize derived attributes and setup after field assignment."""
         self.client: Client = self.connection
         self.client_capabilities: ClientCapabilities | None = None
-        self.session_manager = ACPSessionManager()
+        self.session_manager = ACPSessionManager(pool=self.agent_pool)
         self.tasks = TaskManager()
         self._initialized = False
 
@@ -139,6 +142,7 @@ class LLMlingACPAgent(ACPAgent):
             title="LLMLing-Agent",
             version=_version("llmling-agent"),
             load_session=True,
+            list_sessions=True,
             http_mcp_servers=True,
             sse_mcp_servers=True,
             audio_prompts=True,
@@ -167,12 +171,11 @@ class LLMlingACPAgent(ACPAgent):
 
             logger.info("Creating new session", agents=names, default_agent=default_name)
             session_id = await self.session_manager.create_session(
-                agent_pool=self.agent_pool,
                 default_agent_name=default_name,
                 cwd=params.cwd,
                 client=self.client,
-                mcp_servers=params.mcp_servers,
                 acp_agent=self,
+                mcp_servers=params.mcp_servers,
                 client_capabilities=self.client_capabilities,
             )
 
@@ -203,21 +206,133 @@ class LLMlingACPAgent(ACPAgent):
             return NewSessionResponse(session_id=session_id, modes=state, models=models)
 
     async def load_session(self, params: LoadSessionRequest) -> LoadSessionResponse:
-        """Load an existing session."""
+        """Load an existing session from storage.
+
+        This tries to:
+        1. Check if session is already active
+        2. If not, try to resume from persistent storage
+        3. Initialize MCP servers and other session resources
+        4. Return session state (modes, models)
+        """
         if not self._initialized:
             raise RuntimeError("Agent not initialized")
 
         try:
+            # First check if session is already active
             session = self.session_manager.get_session(params.session_id)
+
             if not session:
-                logger.warning("Session not found", session_id=params.session_id)
+                # Try to resume from storage
+                logger.info(
+                    "Attempting to resume session from storage",
+                    session_id=params.session_id,
+                )
+                session = await self.session_manager.resume_session(
+                    session_id=params.session_id,
+                    client=self.client,
+                    acp_agent=self,
+                    client_capabilities=self.client_capabilities,
+                )
+
+            if not session:
+                logger.warning(
+                    "Session not found in storage",
+                    session_id=params.session_id,
+                )
                 return LoadSessionResponse()
+
+            # Update session with new request parameters if provided
+            if params.cwd and params.cwd != session.cwd:
+                session.cwd = params.cwd
+                logger.info("Updated session cwd", session_id=params.session_id, cwd=params.cwd)
+
+            # Initialize MCP servers if provided in load request
+            if params.mcp_servers:
+                session.mcp_servers = params.mcp_servers
+                await session.initialize_mcp_servers()
+
+            # Build response with current session state
+            modes = [agent_to_mode(agent) for agent in self.agent_pool.all_agents.values()]
+            mode_state = SessionModeState(
+                current_mode_id=session.current_agent_name,
+                available_modes=modes,
+            )
+
             current_model = session.agent.model_name if session.agent else None
             models = create_session_model_state(self.available_models, current_model)
-            return LoadSessionResponse(models=models)
+
+            # Schedule post-load initialization tasks
+            self.tasks.create_task(
+                session.send_available_commands_update(),
+                name=f"load_send_commands_{params.session_id}",
+            )
+            self.tasks.create_task(
+                session.init_project_context(),
+                name=f"load_init_context_{params.session_id}",
+            )
+
+            logger.info(
+                "Session loaded successfully",
+                session_id=params.session_id,
+                agent=session.current_agent_name,
+            )
+            return LoadSessionResponse(models=models, modes=mode_state)
+
         except Exception:
             logger.exception("Failed to load session", session_id=params.session_id)
             return LoadSessionResponse()
+
+    async def list_sessions(self, params: ListSessionsRequest) -> ListSessionsResponse:
+        """List available sessions.
+
+        Returns sessions from both active memory and persistent storage.
+        Supports pagination via cursor and optional cwd filtering.
+        """
+        if not self._initialized:
+            raise RuntimeError("Agent not initialized")
+
+        try:
+            # Get session IDs from storage (includes both active and persisted)
+            session_ids = await self.session_manager.list_sessions(active_only=False)
+
+            # Build SessionInfo objects
+            sessions: list[SessionInfo] = []
+            for session_id in session_ids:
+                # Try active session first
+                active_session = self.session_manager.get_session(session_id)
+                if active_session:
+                    # Filter by cwd if specified
+                    if params.cwd and active_session.cwd != params.cwd:
+                        continue
+                    sessions.append(
+                        SessionInfo(
+                            session_id=session_id,
+                            cwd=active_session.cwd,
+                            title=f"Session with {active_session.current_agent_name}",
+                        )
+                    )
+                else:
+                    # Load from storage to get details
+                    data = await self.session_manager.session_manager.store.load(session_id)
+                    if data:
+                        # Filter by cwd if specified
+                        if params.cwd and data.cwd != params.cwd:
+                            continue
+                        sessions.append(
+                            SessionInfo(
+                                session_id=session_id,
+                                cwd=data.cwd or "",
+                                title=f"Session with {data.agent_name}",
+                                updated_at=data.last_active.isoformat(),
+                            )
+                        )
+
+            logger.info("Listed sessions", count=len(sessions))
+            return ListSessionsResponse(sessions=sessions)
+
+        except Exception:
+            logger.exception("Failed to list sessions")
+            return ListSessionsResponse(sessions=[])
 
     async def authenticate(self, params: AuthenticateRequest) -> None:
         """Authenticate with the agent."""

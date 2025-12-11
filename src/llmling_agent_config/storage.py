@@ -15,6 +15,8 @@ from schemez import Schema
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncEngine
 
+    from llmling_agent.sessions.store import SessionStore
+
 
 LogFormat = Literal["chronological", "conversations"]
 FilterMode = Literal["and", "override"]
@@ -170,6 +172,9 @@ StorageProviderConfig = Annotated[
 ]
 
 
+SessionStoreType = Literal["sql", "memory"]
+
+
 class StorageConfig(Schema):
     """Global storage configuration.
 
@@ -182,6 +187,17 @@ class StorageConfig(Schema):
         examples=[[{"type": "file", "path": "/data/storage.json"}]],
     )
     """List of configured storage providers"""
+
+    session_store: SessionStoreType = Field(
+        default="sql",
+        title="Session store type",
+        examples=["sql", "memory"],
+    )
+    """Type of session store to use for session persistence.
+
+    - "sql": Persist sessions to SQL database (uses same URL as SQL provider)
+    - "memory": In-memory storage (sessions lost on restart)
+    """
 
     default_provider: str | None = Field(
         default=None,
@@ -254,3 +270,26 @@ class StorageConfig(Schema):
             model=self.title_generation_model,
             instructions=self.title_generation_prompt,
         )
+
+    def get_session_store(self) -> SessionStore:
+        """Create session store based on configuration.
+
+        Returns:
+            Configured session store instance
+        """
+        from llmling_agent.sessions.store import MemorySessionStore
+        from llmling_agent_storage.session_store import SQLSessionStore
+
+        match self.session_store:
+            case "memory":
+                return MemorySessionStore()
+            case "sql":
+                # Find SQL config or use default
+                sql_config = None
+                for provider in self.effective_providers:
+                    if isinstance(provider, SQLStorageConfig):
+                        sql_config = provider
+                        break
+                if sql_config is None:
+                    sql_config = SQLStorageConfig()
+                return SQLSessionStore(sql_config)

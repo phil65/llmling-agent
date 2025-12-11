@@ -12,6 +12,8 @@ if TYPE_CHECKING:
         CancelNotification,
         InitializeRequest,
         InitializeResponse,
+        ListSessionsRequest,
+        ListSessionsResponse,
         LoadSessionRequest,
         LoadSessionResponse,
         NewSessionRequest,
@@ -37,6 +39,8 @@ class Agent(Protocol):
     async def cancel(self, params: CancelNotification) -> None: ...
 
     async def load_session(self, params: LoadSessionRequest) -> LoadSessionResponse: ...
+
+    async def list_sessions(self, params: ListSessionsRequest) -> ListSessionsResponse: ...
 
     async def authenticate(self, params: AuthenticateRequest) -> AuthenticateResponse | None: ...
 

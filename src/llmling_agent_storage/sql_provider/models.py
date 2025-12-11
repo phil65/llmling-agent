@@ -1,4 +1,4 @@
-"""Logging configuration for llmling_agent."""
+"""Database models for llmling_agent storage."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from uuid import uuid4
 
 from pydantic import ConfigDict
 from schemez import Schema
-from sqlalchemy import Column, DateTime
+from sqlalchemy import Column, DateTime, Text
 from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy.types import TypeDecorator
 from sqlmodel import JSON, Field, SQLModel
@@ -182,6 +182,42 @@ class Message(AsyncAttrs, SQLModel, table=True):
 
     checkpoint_data: dict[str, Any] | None = Field(default=None, sa_column=Column(JSON))
     """A dictionary of checkpoints (name -> metadata)."""
+
+    model_config = SQLModelConfig(use_attribute_docstrings=True)  # pyright: ignore[reportCallIssue]
+
+
+class Session(AsyncAttrs, SQLModel, table=True):
+    """Database model for session persistence."""
+
+    session_id: str = Field(primary_key=True)
+    """Unique session identifier."""
+
+    agent_name: str = Field(index=True)
+    """Name of the currently active agent."""
+
+    conversation_id: str = Field(index=True)
+    """Links to conversation in message storage."""
+
+    pool_id: str | None = Field(default=None, index=True)
+    """Optional pool/manifest identifier for multi-pool setups."""
+
+    cwd: str | None = Field(default=None, sa_column=Column(Text))
+    """Working directory for the session."""
+
+    created_at: datetime = Field(
+        sa_column=Column(UTCDateTime, index=True),
+        default_factory=get_now,
+    )
+    """When the session was created."""
+
+    last_active: datetime = Field(
+        sa_column=Column(UTCDateTime, index=True),
+        default_factory=get_now,
+    )
+    """Last activity timestamp."""
+
+    metadata_json: dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON))
+    """Protocol-specific or custom metadata stored as JSON."""
 
     model_config = SQLModelConfig(use_attribute_docstrings=True)  # pyright: ignore[reportCallIssue]
 
