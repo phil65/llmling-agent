@@ -152,12 +152,3 @@ async with AgentPool(config) as pool:
 ```
 
 Events are processed asynchronously, allowing agents to handle multiple triggers concurrently while maintaining their regular capabilities.
-
-
-## Best Practices
-
-1. Always use async context managers (`async with`) to ensure proper cleanup
-2. Consider `wait_for_connections` when agent sequence matters
-3. Use `asyncio.gather` for concurrent agent operations
-4. Keep parallel initialization enabled unless you have specific sequential needs
-5. Handle errors appropriately to ensure resources are cleaned up

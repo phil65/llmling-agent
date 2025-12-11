@@ -24,157 +24,7 @@ agents:
 
 ## Available Model Types
 
-### Fallback Model
-
-Tries models in sequence until one succeeds. Perfect for handling rate limits.
-
-```yaml
-agents:
-  resilient_agent:
-    model:
-      type: fallback
-      models:
-        - openai:gpt-5          # First choice
-        - openai:gpt-5-mini  # Fallback option
-        - anthropic:claude-sonnet-4-0    # Last resort
-```
-
-### Cost-Optimized Model
-
-Selects models based on budget constraints:
-
-```yaml
-agents:
-  budget_agent:
-    model:
-      type: cost-optimized
-      models:
-        - openai:gpt-5
-        - openai:gpt-5-mini
-      max_input_cost: 0.1     # Maximum USD per request
-      strategy: cheapest_possible  # Or best_within_budget
-```
-
-### Token-Optimized Model
-
-Selects models based on context length:
-
-```yaml
-agents:
-  context_aware_agent:
-    model:
-      type: token-optimized
-      models:
-        - openai:gpt-4-32k     # 32k context
-        - openai:gpt-4         # 8k context
-        - openai:gpt-3.5-turbo # 4k context
-      strategy: efficient  # Or maximum_context
-```
-
-### Delegation Model
-
-Uses a selector model to choose appropriate models for tasks:
-
-```yaml
-agents:
-  smart_delegator:
-    model:
-      type: delegation
-      selector_model: openai:gpt-5-mini
-      models:
-        - openai:gpt-5
-        - openai:gpt-5-mini
-      selection_prompt: |
-        Pick gpt-5 for complex tasks,
-        gpt-5-mini for simple queries.
-```
-
-### Input Model
-
-For human-in-the-loop operations:
-
-```yaml
-agents:
-  human_assisted:
-    model:
-      type: input
-      prompt_template: "🤖 Question: {prompt}"
-      show_system: true
-      input_prompt: "Your answer: "
-```
-
-### Remote Input Model
-
-Connects to a remote human operator:
-
-```yaml
-agents:
-  remote_operator:
-    model:
-      type: remote-input
-      url: ws://operator:8000/v1/chat/stream
-      protocol: websocket  # or rest
-      api_key: your-api-key
-```
-
-### LLM Library Integration
-
-Use models from the LLM library:
-
-```yaml
-agents:
-  llm_based:
-    model:
-      type: llm
-      model_name: gpt-5-mini
-```
-
-### AISuite Integration
-
-Use models from AISuite:
-
-```yaml
-agents:
-  aisuite_agent:
-    model:
-      type: aisuite
-      model: anthropic:claude-3-opus-20240229
-      config:
-        anthropic:
-          api_key: your-api-key
-```
-
-### Augmented Model
-
-Enhance prompts with pre/post processing:
-
-```yaml
-agents:
-  enhanced_agent:
-    model:
-      type: augmented
-      main_model: openai:gpt-5
-      pre_prompt:
-        text: "Expand this question: {input}"
-        model: openai:gpt-5-mini
-      post_prompt:
-        text: "Summarize response: {output}"
-        model: openai:gpt-5-mini
-```
-
-## Common Settings
-
-Most models support these common settings:
-
-```yaml
-agents:
-  example_agent:
-    model:
-      type: any_model_type
-      # Common optional settings:
-      name: optional_name          # Custom name for the model
-      description: "Description"   # Model description
-```
+See Config section to see the available types.
 
 ## Model Settings
 
@@ -195,12 +45,9 @@ agents:
       logit_bias:              # Modify token likelihood
         "1234": 100  # Increase likelihood
         "5678": -100 # Decrease likelihood
-```
 
 ### Example with Provider and Model Settings
 
-```yaml
-agents:
   advanced_agent:
     provider:
       type: pydantic_ai
