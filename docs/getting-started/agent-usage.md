@@ -10,22 +10,6 @@ LLMling-agent provides an agent implementation based on pydantic-ai that integra
 
 ## Basic Usage
 
-config.yml
-``` yaml
-tools:
-  open_browser:
-    import_path: "webbrowser.open"
-  analyze:
-    import_path: "module.some_tool_for_analysis"
-
-resources:
-  llmling_agent_manual:
-    type: path
-    path: "https://raw.githubusercontent.com/phil65/llmling_agent/refs/heads/main/README.md"
-    description: "LLMling Agent Manual"
-```
-
-
 Create and use an agent:
 
 ```python
@@ -73,14 +57,12 @@ agent = Agent(
     # Model settings
     model="openai:gpt-5",            # Model to use
     output_type=Analysis,            # Optional result type
-
     # Prompt configuration
     system_prompt=[                  # Static system prompts
         "You are an assistant.",
         "Be concise and clear.",
     ],
     name="code-assistant",          # Agent name
-
     # Execution settings
     retries=3,                      # Max retries
 )

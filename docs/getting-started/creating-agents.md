@@ -67,74 +67,11 @@ Agents require proper async initialization for:
 
 Always use async context managers:
 ```python
-# ❌ Wrong - missing async init
-agent = Agent(...)
-result = await agent.run("Hello")
-
 # ❌ Limited: Works, but not everything is initialized
 agent = Agent(...)
-result = agent.run.sync("Hello")
+result = await agent.run("Hello")
 
 # ✅ Correct - proper async initialization
 async with Agent(...) as agent:
     result = await agent.run("Hello")
 ```
-
-## Dynamic Agent Creation
-Agents can be created dynamically in several ways:
-
-### CLI Creation
-The CLI can create agents on-the-fly:
-```bash
-# Add agent file
-llmling-agent add reviewer.yml
-```
-
-### Ephemeral Agents via Capabilities
-Agents with `can_create_delegates` capability can spawn temporary agents:
-
-```yaml
-agents:
-  orchestrator:
-    toolsets:
-      - type: agent_management
-    # ...
-
-# In Python
-await agent.spawn_delegate(
-    task="Research this topic",
-    system_prompt="You are a research specialist...",
-    model="gpt-5",
-    connect_back=True  # Send results back to creator
-)
-```
-
-### Worker Agents
-Agents can be registered as tools for other agents:
-
-```python
-# Register agent as tool
-parent.register_worker(
-    worker,
-    name="research_tool",
-    reset_history_on_run=True,
-    pass_message_history=False
-)
-```
-
-# In YAML config
-
-```yaml
-agents:
-  parent:
-    workers:
-      - type: agent
-        name: "researcher"
-        reset_history_on_run: true
-```
-
-## Best Practices
-
-1. Use `AgentPool` for managing multiple agents
-2. Always use async context managers
-3. Consider using templates for common agent types

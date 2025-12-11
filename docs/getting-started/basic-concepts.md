@@ -63,11 +63,9 @@ The unified node model means you can:
 
 ## Core Components
 
-The actual agent behavior (language model, human input, etc.) is pluggable via providers.
-
 ### Configuration and YAML
 
-LLMling-agent excels at static definition of agents using YAML files and Pydantic models:
+LLMling-agent excels at static definition of agents using a YAML configuration:
 
 ```yaml
 # agents.yml (AgentsManifest)
@@ -82,9 +80,11 @@ agents:
     ...
 ```
 
-Compared to other Frameworks, the YAML schema is a different beast and the capabilites to define agents statically are way more extensive.
+The YAML schema is very detailed and well-defined and should allow setting up Agent pools via YAML without having to permanently consult the docs.
+
 It is possible to:
 
+- Define Agents (ACP, AGUI, regular) & teams
 - Assign tools, toolsets, mcp servers
 - Connect the agent to other agents with different "Connection types"
 - Define and assign respone types for structured output in YAML
@@ -92,11 +92,10 @@ It is possible to:
 - Set up (multiple) storage providers to write the conversations, tool calls, commands and much more to databases as well as files (pretty-printed or structured)
 - Load previous conversations and even describe the Queries in the yaml file using simple syntax
 - Assign agents to other agents for agent-as-a-tool-usage
-- Assign agents to other agents as a resource (which gets evaluated on start. Also works nested to define pipeline-like patterns in easy ways)
 
 
 
-### Pools
+### Agent Pools
 A Pool is a collection of agents that can:
 
 - Share resources and knowledge
