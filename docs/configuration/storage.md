@@ -30,24 +30,8 @@ Key features:
 
 ## Usage Example
 
-```yaml
-storage:
-  # Global settings
-  agents: ["planner", "executor"]
-  filter_mode: "and"
-  log_messages: true
-  log_conversations: true
-  default_provider: "sql"
-
-  providers:
-    - type: "sql"
-      url: "sqlite:///history.db"
-      pool_size: 5
-      auto_migration: true
-
-    - type: "text_file"
-      path: "logs/chat.log"
-      format: "chronological"
+```yaml title="agents.yml"
+--8<-- "docs/configuration/storage_example.yml"
 ```
 
 ## Configuration Notes

@@ -67,26 +67,3 @@ conversion:
       llm_model: gpt-5  # Optional, for image descriptions
     # More providers will be added soon
 ```
-
-## Current Status
-
-The document conversion system is in active development. Currently supported:
-
-- MarkItDown converter for various document formats
-- Plain text fallback converter
-- Async file operations for efficient I/O
-
-Coming soon:
-
-- More converter implementations
-
-## Technical Details
-
-Converters are implemented as sync processors to keep them simple, while the conversion manager handles:
-
-- Async file I/O
-- Thread pool management for CPU-bound operations
-- Converter selection and fallback
-- Error handling
-
-This design ensures efficient processing while maintaining a clean interface.

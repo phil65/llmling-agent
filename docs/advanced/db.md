@@ -37,23 +37,9 @@ The SQLite database is stored using platformdirs:
 
 Agents can be configured with sophisticated memory management:
 
-```yaml
-agents:
-  assistant:
-    model: openai:gpt-5-mini
-    session:
-      enable: true              # Enable/disable memory tracking
-      max_tokens: 4000         # Rolling window token limit
-      max_messages: 100        # Rolling window message limit
-      provider: "sql"          # Optional storage provider override
-      session:                 # Initial session loading
-        name: my_session       # Optional session identifier
-        since: 1h             # Only messages from last hour
-        roles:                # Only specific message types
-          - user
-          - assistant
-        contains: "analysis"  # Filter by content
-        include_forwarded: true
+
+```yaml title="agents.yml"
+--8<-- "docs/advanced/db_example.yml"
 ```
 
 Or via code:
