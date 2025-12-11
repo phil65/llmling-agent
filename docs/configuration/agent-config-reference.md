@@ -17,142 +17,46 @@ agents:
   web_assistant:                   # Name of the agent
     description: "Helps with web tasks"  # Optional description
     model: openai:gpt-5           # Model to use
-
     tools:
       open_browser:
         import_path: webbrowser.open
         description: "Opens URLs in browser"
-
-    # Response type for structured output (optional)
-    output_type: WebResult       # Must be defined in 'responses' section
-
-    # Base behavior definition
     system_prompts:
       - "You are a web assistant."
       - "Use open_browser to open URLs."
-
-    # Default prompts for testing
-    user_prompts:
-      - "Open Python website"
-
-    # Advanced settings
-    retries: 2                   # Number of retries for failed operations
-    model_settings:              # Model-specific settings
-      temperature: 0.7
-      max_tokens: 1000
+    retries: 2                   # Number of retries for failed
 ```
 
-### Key Fields Explained
 
-**model**
-The language model to use. Can be:
-- Simple string: `openai:gpt-5`
-- Model name: `gpt-5`
-- Structured model configuration (for testing/development)
+## Field Reference
 
-**environment**
-Defines available tools and resources. Two formats:
-1. File reference: Path to LLMling environment file
-2. Inline configuration: Complete environment defined in agent file
-
-**system_prompts**
-List of prompts that define the agent's behavior. These are sent to the model before user input and can include:
-- Role definitions
-- Tool usage instructions
-- Response formatting requirements
-
-**output_type**
-Optional reference to a response type (defined in responses section) for structured output. Ensures the model returns data in a specific format.
-
-## Responses Section
-
-Complete example of response definitions:
-
-```yaml
-responses:
-  WebResult:                     # Name of the response type
-    response_schema:
-      type: inline                # Can be 'inline' or 'import'
-      description: "Web operation result"
-      fields:                     # Field definitions
-        success:
-          type: bool
-          description: "Whether operation succeeded"
-        url:
-          type: str
-          description: "URL that was processed"
-
-  AnalysisResult:
-    type: import                # Use existing Pydantic model
-    import_path: myapp.models.Analysis
-    description: "Complex analysis result"
-```
-
-### Key Fields Explained
-
-**type**
-Determines how the response type is defined:
-- `inline`: Define structure directly in YAML
-- `import`: Use existing Pydantic model
-
-**fields** (for inline types)
-Define the structure of the response including:
-- Field names and types
-- Descriptions
-- Optional constraints (min/max values, regex patterns, etc.)
-
-## Roles Section
-
-```yaml
-roles:
-  analyst:                      # Name of the role
-    can_list_agents: false     # Agent discovery permission
-    history_access: "own"      # History access level
-```
-
-> **Note**: The roles system is currently in development. The built-in roles
-> (`overseer`, `specialist`, `assistant`) are available with predefined capabilities.
-
-
-## Advanced Configuration Examples
-
-### Complex Response Types
-
-Define sophisticated structured outputs:
-
-```yaml
-responses:
-  WebResult:
-    response_schema:
-      type: inline
-      fields:
-        success:
-          type: bool
-          description: "Whether operation succeeded"
-        url:
-          type: str
-          description: "URL that was processed"
-        error:
-          type: str | None
-          description: "Error message if failed"
-        attempts:
-          type: int
-          description: "Number of attempts made"
-          constraints:
-            ge: 1
-            le: 5
-```
-
-### Model Settings
-
-Basic model configuration options:
-
-```yaml
-agents:
-  assistant:
-    model: openai:gpt-5
-    model_settings:
-      temperature: 0.7
-      max_tokens: 2000
-    retries: 3              # Number of retries for failed operations
-```
+| Field Name | Description |
+|------------|-------------|
+| [`name`](agent.md#name) | Identifier for the agent (set from dict key, not from YAML) |
+| [`config_file_path`](agent.md#config-file-path) | Config file path for resolving relative paths |
+| [`display_name`](agent.md#display-name) | Human-readable display name for the agent |
+| [`description`](agent.md#description) | Optional description of the agent |
+| [`triggers`](event-sources.md) | Event sources that activate this agent |
+| [`connections`](connections.md) | Targets to forward results to |
+| [`mcp_servers`](mcp.md) | List of MCP server configurations |
+| [`input_provider`](agent.md#input-provider) | Provider for human-input-handling |
+| [`event_handlers`](observability.md#event-handlers) | Event handlers for processing agent stream events |
+| [`inherits`](inheritance.md) | Name of agent config to inherit from |
+| [`model`](model.md) | The model to use for this agent |
+| [`tools`](tools.md) | A list of tools to register with this agent |
+| [`toolsets`](toolsets.md) | Toolset configurations for extensible tool collections |
+| [`session`](session.md) | Session configuration for conversation recovery |
+| [`output_type`](responses.md) | Name of the response definition to use |
+| [`retries`](agent.md#retries) | Number of retries for failed operations |
+| [`output_retries`](agent.md#output-retries) | Max retries for result validation |
+| [`end_strategy`](agent.md#end-strategy) | The strategy for handling multiple tool calls when a final result is found |
+| [`avatar`](agent.md#avatar) | URL or path to agent's avatar image |
+| [`system_prompts`](prompts.md) | System prompts for the agent |
+| [`knowledge`](knowledge.md) | Knowledge sources for this agent |
+| [`workers`](worker.md) | Worker agents which will be available as tools |
+| [`requires_tool_confirmation`](agent.md#tool-confirmation) | How to handle tool confirmation (always/never/per_tool) |
+| [`debug`](agent.md#debug) | Enable debug output for this agent |
+| [`environment`](execution-environments.md) | Execution environment configuration for this agent |
+| [`usage_limits`](agent.md#usage-limits) | Usage limits for this agent |
+| [`tool_mode`](agent.md#tool-mode) | Tool execution mode (None/codemode) |
+| [`auto_cache`](agent.md#auto-cache) | Automatic prompt caching configuration |
