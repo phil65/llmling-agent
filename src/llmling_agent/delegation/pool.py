@@ -859,6 +859,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
             name=name,
             display_name=config.display_name,
             deps_type=deps_type,
+            env=config.environment.get_provider() if config.environment else None,
             description=config.description,
             retries=config.retries,
             session=config.get_session_config(),
