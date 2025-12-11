@@ -2,11 +2,18 @@
 
 from __future__ import annotations
 
-from slashed import CommandContext  # noqa: TC002
+from typing import TYPE_CHECKING
 
-from llmling_agent.messaging.context import NodeContext  # noqa: TC001
 from llmling_agent_commands.base import NodeCommand
-from llmling_agent_server.acp_server.session import ACPSession  # noqa: TC001
+from llmling_agent_config.session import SessionQuery
+
+
+if TYPE_CHECKING:
+    from pydantic_ai import ModelRequest, ModelResponse
+    from slashed import CommandContext
+
+    from llmling_agent.messaging.context import NodeContext
+    from llmling_agent_server.acp_server.session import ACPSession
 
 
 class ListSessionsCommand(NodeCommand):
@@ -15,8 +22,11 @@ class ListSessionsCommand(NodeCommand):
     Shows:
     - Session ID and status (active/stored)
     - Agent name and working directory
-    - Creation time and message count
-    - Storage information
+    - Creation time and last activity
+
+    Options:
+      --active    Show only active sessions
+      --stored    Show only stored sessions
     """
 
     name = "list-sessions"
@@ -38,9 +48,9 @@ class ListSessionsCommand(NodeCommand):
         """
         session = ctx.context.data
         assert session
-        # Check if we have access to session manager
+
         if not session.manager:
-            await ctx.print("❌ **Session manager not available**")
+            await ctx.output.print("❌ **Session manager not available**")
             return
 
         # If no filter specified, show both
@@ -53,278 +63,335 @@ class ListSessionsCommand(NodeCommand):
             # Show active sessions
             if active:
                 output_lines.append("### 🟢 Active Sessions")
-                active_sessions = session.manager._sessions
+                active_sessions = session.manager._active
 
                 if not active_sessions:
                     output_lines.append("*No active sessions*\n")
                 else:
                     for session_id, sess in active_sessions.items():
-                        agent_name = getattr(sess, "current_agent_name", "unknown")
-                        cwd = getattr(sess, "cwd", "unknown")
-                        msg_count = len(getattr(sess, "_conversation_history", []))
+                        agent_name = sess.current_agent_name
+                        cwd = sess.cwd or "unknown"
+                        is_current = session_id == session.session_id
 
-                        output_lines.append(f"- **{session_id}**")
+                        status = " *(current)*" if is_current else ""
+                        output_lines.append(f"- **{session_id}**{status}")
                         output_lines.append(f"  - Agent: `{agent_name}`")
                         output_lines.append(f"  - Directory: `{cwd}`")
-                        output_lines.append(f"  - Messages: {msg_count}")
                     output_lines.append("")
 
-            # # Show stored sessions
-            # if stored and session.manager._persistent_manager:
-            #     output_lines.append("### 💾 Stored Sessions")
+            # Show stored sessions
+            if stored:
+                output_lines.append("### 💾 Stored Sessions")
 
-            #     try:
-            #         stored_sessions = (
-            #             await session.manager._persistent_manager.store.list_sessions()
-            #         )
+                try:
+                    stored_session_ids = await session.manager.session_manager.store.list_sessions()
+                    # Filter out active ones if we already showed them
+                    if active:
+                        stored_session_ids = [
+                            sid for sid in stored_session_ids if sid not in session.manager._active
+                        ]
 
-            #         if not stored_sessions:
-            #             output_lines.append("*No stored sessions*\n")
-            #         else:
-            #             for session_id in stored_sessions:
-            #                 store = session.manager._persistent_manager.store
-            #                 session_data = await store.load_session(session_id)
-            #                 if session_data:
-            #                     msg_count = len(session_data.conversation)
-            #                     created = session_data.metadata.get(
-            #                         "created_at", "unknown"
-            #                     )
+                    if not stored_session_ids:
+                        output_lines.append("*No stored sessions*\n")
+                    else:
+                        for session_id in stored_session_ids:
+                            session_data = await session.manager.session_manager.store.load(
+                                session_id
+                            )
+                            if session_data:
+                                output_lines.append(f"- **{session_id}**")
+                                output_lines.append(f"  - Agent: `{session_data.agent_name}`")
+                                output_lines.append(
+                                    f"  - Directory: `{session_data.cwd or 'unknown'}`"
+                                )
+                                output_lines.append(
+                                    f"  - Last active: {session_data.last_active.strftime('%Y-%m-%d %H:%M')}"  # noqa: E501
+                                )
+                        output_lines.append("")
+                except Exception as e:  # noqa: BLE001
+                    output_lines.append(f"*Error loading stored sessions: {e}*\n")
 
-            #                     output_lines.append(f"- **{session_id}**")
-            #                     output_lines.append(
-            #                         f"  - Agent: `{session_data.agent_name or 'unknown'}`"  # noqa: E501
-            #                     )
-            #                     output_lines.append(
-            #                         f"  - Directory: `{session_data.cwd}`"
-            #                     )
-            #                     output_lines.append(f"  - Messages: {msg_count}")
-            #                     output_lines.append(f"  - Created: {created}")
-            #             output_lines.append("")
-            #     except Exception as e:
-            #         output_lines.append(f"*Error loading stored sessions: {e}*\n")
-
-            await ctx.print("\n".join(output_lines))
+            await ctx.output.print("\n".join(output_lines))
 
         except Exception as e:  # noqa: BLE001
-            await ctx.print(f"❌ **Error listing sessions:** {e}")
+            await ctx.output.print(f"❌ **Error listing sessions:** {e}")
 
 
-# class LoadSessionCommand(SlashedCommand):
-#     """Load a previous ACP session with conversation replay.
+class LoadSessionCommand(NodeCommand):
+    """Load a previous ACP session with conversation replay.
 
-#     This command will:
-#     1. Look up the session by ID
-#     2. Replay the entire conversation history
-#     3. Restore the session context (agent, working directory, MCP servers)
-#     """
+    This command will:
+    1. Look up the session by ID
+    2. Replay the conversation history via ACP notifications
+    3. Restore the session context (agent, working directory)
 
-#     name = "load-session"
-#     category = "acp"
+    Options:
+      --preview     Show session info without loading
+      --no-replay   Load session without replaying conversation
 
-#     async def execute_command(
-#         self,
-#         ctx: CommandContext[ACPCommandContext],
-#         session_id: str,
-#         *,
-#         preview: bool = False,
-#         no_replay: bool = False,
-#     ):
-#         """Load a previous ACP session.
+    Examples:
+      /load-session sess_abc123def456
+      /load-session sess_abc123def456 --preview
+      /load-session sess_abc123def456 --no-replay
+    """
 
-#         Args:
-#             ctx: Command context with ACP session
-#             session_id: Session identifier to load
-#             preview: Show session info without loading
-#             no_replay: Load session without replaying conversation
-#         """
-#         session = ctx.context.session
-#         if not session.manager:
-#             await ctx.print("❌ **Session manager not available**")
-#             return
+    name = "load-session"
+    category = "acp"
 
-#         try:
-#             # Check if session exists
-#             if session.manager._persistent_manager:
-#                 session_data = (
-#                     await session.manager._persistent_manager.load_session_data(
-#                         session_id
-#                     )
-#                 )
-#                 if not session_data:
-#                     await ctx.print(f"❌ **Session not found:** `{session_id}`")
-#                     return
+    async def execute_command(
+        self,
+        ctx: CommandContext[NodeContext[ACPSession]],
+        session_id: str,
+        *,
+        preview: bool = False,
+        no_replay: bool = False,
+    ) -> None:
+        """Load a previous ACP session.
 
-#                 if preview:
-#                     # Show session preview
-#                     msg_count = len(session_data.conversation)
-#                     created = session_data.metadata.get("created_at", "unknown")
-#                     mcp_count = len(session_data.mcp_servers)
+        Args:
+            ctx: Command context with ACP session
+            session_id: Session identifier to load
+            preview: Show session info without loading
+            no_replay: Load session without replaying conversation
+        """
+        session = ctx.context.data
+        assert session
 
-#                     preview_lines = [
-#                         f"## 📋 Session Preview: `{session_id}`\n",
-#                         f"**Agent:** `{session_data.agent_name or 'unknown'}`",
-#                         f"**Directory:** `{session_data.cwd}`",
-#                         f"**Messages:** {msg_count}",
-#                         f"**MCP Servers:** {mcp_count}",
-#                         f"**Created:** {created}",
-#                     ]
+        if not session.manager:
+            await ctx.output.print("❌ **Session manager not available**")
+            return
 
-#                     if session_data.metadata:
-#                         metadata_json = json.dumps(session_data.metadata, indent=2)
-#                         preview_lines.append(
-#                             f"**Metadata:** ```json\n{metadata_json}\n```"
-#                         )
+        try:
+            # Load session data from storage
+            session_data = await session.manager.session_manager.store.load(session_id)
 
-#                     await ctx.print("\n".join(preview_lines))
-#                     return
+            if not session_data:
+                await ctx.output.print(f"❌ **Session not found:** `{session_id}`")
+                return
 
-#                 # Actually load the session
-#                 if no_replay:
-#                     await ctx.print(
-#                         f"🔄 **Loading session `{session_id}` without replay...**"
-#                     )
-#                     await ctx.print(
-#                         f"✅ **Session `{session_id}` is available for loading**"
-#                     )
-#                 else:
-#                     load_msg = f"🔄 **Loading session `{session_id}` with replay...**"
-#                     await ctx.print(load_msg)
+            # Get conversation history from storage
+            storage = session.agent_pool.storage
+            messages = []
+            if storage:
+                query = SessionQuery(name=session_data.conversation_id)
+                messages = await storage.filter_messages(query)
 
-#                     msg_count = len(session_data.conversation)
-#                     await ctx.print(f"📽️ **Replaying {msg_count} messages...**")
-#                     await ctx.print(
-#                         f"✅ **Session `{session_id}` loaded successfully**"
-#                     )
-#             else:
-#                 await ctx.print("❌ **Session persistence not enabled**")
+            if preview:
+                # Show session preview without loading
+                preview_lines = [
+                    f"## 📋 Session Preview: `{session_id}`\n",
+                    f"**Agent:** `{session_data.agent_name}`",
+                    f"**Directory:** `{session_data.cwd or 'unknown'}`",
+                    f"**Created:** {session_data.created_at.strftime('%Y-%m-%d %H:%M')}",
+                    f"**Last active:** {session_data.last_active.strftime('%Y-%m-%d %H:%M')}",
+                    f"**Conversation ID:** `{session_data.conversation_id}`",
+                    f"**Messages:** {len(messages)}",
+                ]
 
-#         except Exception as e:
-#             await ctx.print(f"❌ **Error loading session:** {e}")
+                if session_data.metadata:
+                    preview_lines.append(
+                        f"**Protocol:** {session_data.metadata.get('protocol', 'unknown')}"
+                    )
 
+                await ctx.output.print("\n".join(preview_lines))
+                return
 
-# class SaveSessionCommand(SlashedCommand):
-#     """Save the current ACP session to persistent storage.
+            # Actually load the session
+            await ctx.output.print(f"🔄 **Loading session `{session_id}`...**")
 
-#     This will save:
-#     - Complete conversation history
-#     - Current agent configuration
-#     - Working directory and MCP server setup
-#     - Session metadata
+            # Switch to the session's agent if different
+            if session_data.agent_name != session.current_agent_name:
+                if session_data.agent_name in session.agent_pool.all_agents:
+                    await session.switch_active_agent(session_data.agent_name)
+                    await ctx.output.print(f"📌 **Switched to agent:** `{session_data.agent_name}`")
+                else:
+                    await ctx.output.print(
+                        f"⚠️ **Agent `{session_data.agent_name}` not found, keeping current agent**"
+                    )
 
-#     The session can later be loaded with /load-session.
-#     """
+            # Update working directory if specified
+            if session_data.cwd and session_data.cwd != session.cwd:
+                session.cwd = session_data.cwd
+                await ctx.output.print(f"📂 **Working directory:** `{session_data.cwd}`")
 
-#     name = "save-session"
-#     category = "acp"
+            # Replay conversation history unless disabled
+            if not no_replay and messages:
+                await ctx.output.print(f"📽️ **Replaying {len(messages)} messages...**")
 
-#     async def execute_command(
-#         self,
-#         ctx: CommandContext[ACPCommandContext],
-#         *,
-#         description: str | None = None,
-#     ):
-#         """Save the current ACP session.
+                # Extract ModelRequest/ModelResponse from ChatMessage.messages field
 
-#         Args:
-#             ctx: Command context with ACP session
-#             description: Optional description for the session
-#         """
-#         session = ctx.context.session
+                model_messages: list[ModelRequest | ModelResponse] = []
+                for chat_msg in messages:
+                    if chat_msg.messages:
+                        model_messages.extend(chat_msg.messages)
 
-#         if not session.manager:
-#             await ctx.print("❌ **Session manager not available**")
-#             return
+                if model_messages:
+                    # Use ACPNotifications.replay() which handles all content types properly
+                    try:
+                        await session.notifications.replay(model_messages)
+                        await ctx.output.print(
+                            f"✅ **Replayed {len(model_messages)} model messages**"
+                        )
+                    except Exception as e:  # noqa: BLE001
+                        session.log.warning("Failed to replay conversation history", error=str(e))
+                        await ctx.output.print(f"⚠️ **Failed to replay messages:** {e}")
+                else:
+                    await ctx.output.print("📭 **No model messages to replay**")
+            elif no_replay:
+                await ctx.output.print("⏭️ **Skipped conversation replay**")
+            else:
+                await ctx.output.print("📭 **No conversation history to replay**")
 
-#         try:
-#             if session.manager._persistent_manager:
-#                 await session.manager._persistent_manager.save_session(session)
+            await ctx.output.print(f"✅ **Session `{session_id}` loaded successfully**")
 
-#                 msg_count = len(getattr(session, "_conversation_history", []))
-#                 await ctx.print(
-#                     f"💾 **Session `{session.session_id}` saved successfully**"
-#                 )
-#                 await ctx.print(f"📊 **Saved {msg_count} messages**")
-
-#                 if description:
-#                     await ctx.print(f"📝 **Description:** {description}")
-#             else:
-#                 await ctx.print("❌ **Session persistence not enabled**")
-
-#         except Exception as e:
-#             await ctx.print(f"❌ **Error saving session:** {e}")
+        except Exception as e:  # noqa: BLE001
+            await ctx.output.print(f"❌ **Error loading session:** {e}")
 
 
-# class DeleteSessionCommand(SlashedCommand):
-#     """Delete a stored ACP session.
+class SaveSessionCommand(NodeCommand):
+    """Save the current ACP session to persistent storage.
 
-#     This permanently removes the session from storage.
-#     Use with caution as this action cannot be undone.
-#     """
+    This will save:
+    - Current agent configuration
+    - Working directory
+    - Session metadata
 
-#     name = "delete-session"
-#     category = "acp"
+    Note: Conversation history is automatically saved if storage is enabled.
 
-#     async def execute_command(
-#         self,
-#         ctx: CommandContext[ACPCommandContext],
-#         session_id: str,
-#         *,
-#         confirm: bool = False,
-#     ):
-#         """Delete a stored ACP session.
+    Options:
+      --description "text"   Optional description for the session
 
-#         Args:
-#             ctx: Command context with ACP session
-#             session_id: Session identifier to delete
-#             confirm: Skip confirmation prompt
-#         """
-#         session = ctx.context.session
-#         if not session.manager:
-#             await ctx.print("❌ **Session manager not available**")
-#             return
+    Examples:
+      /save-session
+      /save-session --description "Working on feature X"
+    """
 
-#         try:
-#             if session.manager._persistent_manager:
-#                 # Check if session exists
-#                 session_data = (
-#                     await session.manager._persistent_manager.load_session_data(
-#                         session_id
-#                     )
-#                 )
-#                 if not session_data:
-#                     await ctx.print(f"❌ **Session not found:** `{session_id}`")
-#                     return
+    name = "save-session"
+    category = "acp"
 
-#                 if not confirm:
-#                     msg_count = len(session_data.conversation)
-#                     await ctx.print(
-#                         f"⚠️  **About to delete session `{session_id}`**"
-#                     )
-#                     await ctx.print(
-#                         f"📊 **This session has {msg_count} messages**"
-#                     )
-#                     await ctx.print(
-#                         f"**To confirm, run:** `/delete-session {session_id} --confirm`"
-#                     )
-#                     return
+    async def execute_command(
+        self,
+        ctx: CommandContext[NodeContext[ACPSession]],
+        *,
+        description: str | None = None,
+    ) -> None:
+        """Save the current ACP session.
 
-#                 # Delete the session
-#                 await session.manager._persistent_manager.store.delete_session(session_id)  # noqa: E501
-#                 await ctx.print(
-#                     f"🗑️  **Session `{session_id}` deleted successfully**"
-#                 )
-#             else:
-#                 await ctx.print("❌ **Session persistence not enabled**")
+        Args:
+            ctx: Command context with ACP session
+            description: Optional description for the session
+        """
+        session = ctx.context.data
+        assert session
 
-#         except Exception as e:
-#             await ctx.print(f"❌ **Error deleting session:** {e}")
+        if not session.manager:
+            await ctx.output.print("❌ **Session manager not available**")
+            return
+
+        try:
+            # Load current session data
+            session_data = await session.manager.session_manager.store.load(session.session_id)
+
+            if session_data:
+                # Update metadata if description provided
+                if description:
+                    session_data = session_data.with_metadata(description=description)
+
+                # Touch to update last_active
+                session_data.touch()
+
+                # Save back
+                await session.manager.session_manager.save(session_data)
+
+                await ctx.output.print(f"💾 **Session `{session.session_id}` saved successfully**")
+                if description:
+                    await ctx.output.print(f"📝 **Description:** {description}")
+            else:
+                await ctx.output.print(f"⚠️ **Session `{session.session_id}` not found in storage**")
+
+        except Exception as e:  # noqa: BLE001
+            await ctx.output.print(f"❌ **Error saving session:** {e}")
+
+
+class DeleteSessionCommand(NodeCommand):
+    """Delete a stored ACP session.
+
+    This permanently removes the session from storage.
+    Use with caution as this action cannot be undone.
+
+    Options:
+      --confirm   Skip confirmation prompt
+
+    Examples:
+      /delete-session sess_abc123def456
+      /delete-session sess_abc123def456 --confirm
+    """
+
+    name = "delete-session"
+    category = "acp"
+
+    async def execute_command(
+        self,
+        ctx: CommandContext[NodeContext[ACPSession]],
+        session_id: str,
+        *,
+        confirm: bool = False,
+    ) -> None:
+        """Delete a stored ACP session.
+
+        Args:
+            ctx: Command context with ACP session
+            session_id: Session identifier to delete
+            confirm: Skip confirmation prompt
+        """
+        session = ctx.context.data
+        assert session
+
+        if not session.manager:
+            await ctx.output.print("❌ **Session manager not available**")
+            return
+
+        # Prevent deleting current session
+        if session_id == session.session_id:
+            await ctx.output.print("❌ **Cannot delete the current active session**")
+            return
+
+        try:
+            # Check if session exists
+            session_data = await session.manager.session_manager.store.load(session_id)
+
+            if not session_data:
+                await ctx.output.print(f"❌ **Session not found:** `{session_id}`")
+                return
+
+            if not confirm:
+                await ctx.output.print(f"⚠️  **About to delete session `{session_id}`**")
+                await ctx.output.print(f"📌 **Agent:** `{session_data.agent_name}`")
+                await ctx.output.print(
+                    f"📅 **Last active:** {session_data.last_active.strftime('%Y-%m-%d %H:%M')}"
+                )
+                await ctx.output.print(
+                    f"**To confirm, run:** `/delete-session {session_id} --confirm`"
+                )
+                return
+
+            # Delete the session
+            deleted = await session.manager.session_manager.store.delete(session_id)
+
+            if deleted:
+                await ctx.output.print(f"🗑️  **Session `{session_id}` deleted successfully**")
+            else:
+                await ctx.output.print(f"⚠️ **Failed to delete session `{session_id}`**")
+
+        except Exception as e:  # noqa: BLE001
+            await ctx.output.print(f"❌ **Error deleting session:** {e}")
 
 
 def get_acp_commands() -> list[type[NodeCommand]]:
     """Get all ACP-specific slash commands."""
     return [
         ListSessionsCommand,
-        # LoadSessionCommand,
-        # SaveSessionCommand,
-        # DeleteSessionCommand,
+        LoadSessionCommand,
+        SaveSessionCommand,
+        DeleteSessionCommand,
     ]

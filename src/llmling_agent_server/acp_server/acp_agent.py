@@ -34,6 +34,7 @@ from llmling_agent_server.acp_server.session_manager import ACPSessionManager
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
+    from pydantic_ai import ModelRequest, ModelResponse
     from tokonomics.model_discovery.model_info import ModelInfo as TokoModelInfo
 
     from acp import AgentSideConnection, Client
@@ -52,6 +53,7 @@ if TYPE_CHECKING:
         SetSessionModeRequest,
     )
     from llmling_agent import AgentPool
+    from llmling_agent_server.acp_server.session import ACPSession
 
 logger = get_logger(__name__)
 
@@ -216,7 +218,8 @@ class LLMlingACPAgent(ACPAgent):
         1. Check if session is already active
         2. If not, try to resume from persistent storage
         3. Initialize MCP servers and other session resources
-        4. Return session state (modes, models)
+        4. Replay conversation history via ACP notifications
+        5. Return session state (modes, models)
         """
         if not self._initialized:
             raise RuntimeError("Agent not initialized")
@@ -275,6 +278,12 @@ class LLMlingACPAgent(ACPAgent):
                 name=f"load_init_context_{params.session_id}",
             )
 
+            # Replay conversation history via ACP notifications
+            self.tasks.create_task(
+                self._replay_conversation_history(session),
+                name=f"load_replay_history_{params.session_id}",
+            )
+
             logger.info(
                 "Session loaded successfully",
                 session_id=params.session_id,
@@ -285,6 +294,72 @@ class LLMlingACPAgent(ACPAgent):
         except Exception:
             logger.exception("Failed to load session", session_id=params.session_id)
             return LoadSessionResponse()
+
+    async def _replay_conversation_history(self, session: ACPSession) -> None:
+        """Replay conversation history for a loaded session via ACP notifications.
+
+        Per ACP spec, when loading a session the agent MUST replay the entire
+        conversation to the client via session/update notifications.
+
+        Args:
+            session: The ACP session to replay history for
+        """
+        from llmling_agent_config.session import SessionQuery
+
+        # Get session data to find conversation_id
+        session_data = await self.session_manager.session_manager.store.load(session.session_id)
+        if not session_data:
+            logger.warning("No session data found for replay", session_id=session.session_id)
+            return
+
+        # Get storage provider
+        storage = self.agent_pool.storage
+        if not storage:
+            logger.debug("No storage provider, skipping conversation replay")
+            return
+
+        # Query messages by conversation_id
+        query = SessionQuery(name=session_data.conversation_id)
+        try:
+            chat_messages = await storage.filter_messages(query)
+        except NotImplementedError:
+            logger.debug("Storage provider doesn't support history loading")
+            return
+
+        if not chat_messages:
+            logger.debug("No messages to replay", session_id=session.session_id)
+            return
+
+        logger.info(
+            "Replaying conversation history",
+            session_id=session.session_id,
+            message_count=len(chat_messages),
+        )
+
+        # Extract ModelRequest/ModelResponse from ChatMessage.messages field
+        model_messages: list[ModelRequest | ModelResponse] = []
+        for chat_msg in chat_messages:
+            if chat_msg.messages:
+                model_messages.extend(chat_msg.messages)
+
+        if not model_messages:
+            logger.debug("No model messages to replay", session_id=session.session_id)
+            return
+
+        # Use ACPNotifications.replay() which handles all content types properly
+        try:
+            await session.notifications.replay(model_messages)
+            logger.info(
+                "Conversation replay complete",
+                session_id=session.session_id,
+                replayed_count=len(model_messages),
+            )
+        except Exception as e:  # noqa: BLE001
+            logger.warning(
+                "Failed to replay conversation history",
+                error=str(e),
+                session_id=session.session_id,
+            )
 
     async def list_sessions(self, params: ListSessionsRequest) -> ListSessionsResponse:
         """List available sessions.
@@ -347,14 +422,16 @@ class LLMlingACPAgent(ACPAgent):
         logger.info("Forking session", session_id=params.session_id)
         # For now, just create a new session - full fork implementation would copy state
         default_agent = next(iter(self.agent_pool.manifest.agents.keys()))
-        session = await self.session_manager.create_session(
+        session_id = await self.session_manager.create_session(
             default_agent_name=default_agent,
-            client=self.connection.client,
+            cwd=params.cwd,
+            client=self.client,
             acp_agent=self,
+            mcp_servers=params.mcp_servers,
             session_id=None,  # Let it generate a new ID
-            client_capabilities=self._capabilities,
+            client_capabilities=self.client_capabilities,
         )
-        return ForkSessionResponse(session_id=session.session_id)
+        return ForkSessionResponse(session_id=session_id)
 
     async def resume_session(self, params: ResumeSessionRequest) -> ResumeSessionResponse:
         """Resume an existing session.
@@ -370,9 +447,9 @@ class LLMlingACPAgent(ACPAgent):
         try:
             session = await self.session_manager.resume_session(
                 session_id=params.session_id,
-                client=self.connection.client,
+                client=self.client,
                 acp_agent=self,
-                client_capabilities=self._capabilities,
+                client_capabilities=self.client_capabilities,
             )
             if not session:
                 logger.warning("Session not found", session_id=params.session_id)

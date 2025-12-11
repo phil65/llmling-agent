@@ -92,35 +92,34 @@ async def test_session_with_mcp_servers(test_client, mock_acp_agent, client_capa
 @pytest.mark.skipif(sys.platform == "darwin", reason="macOS subprocess handling differs")
 async def test_session_manager_with_mcp(test_client, mock_acp_agent, client_capabilities):
     """Test session manager creating sessions with MCP servers."""
-    session_manager = ACPSessionManager()
+    agent_pool = AgentPool()  # Create empty pool and register the agent
+    session_manager = ACPSessionManager(agent_pool)
 
     def simple_callback(message: str) -> str:
         return f"Test response for: {message}"
 
     agent = Agent.from_callback(name="test_agent", callback=simple_callback)
-    agent_pool = AgentPool()  # Create empty pool and register the agent
     agent_pool.register("test_agent", agent)
     mcp_servers = [StdioMcpServer(name="tools", command="echo", args=["tools"], env=[])]
+    async with agent_pool:
+        try:
+            session_id = await session_manager.create_session(
+                default_agent_name="test_agent",
+                cwd=tempfile.gettempdir(),
+                client=test_client,
+                mcp_servers=mcp_servers,
+                acp_agent=mock_acp_agent,
+                client_capabilities=client_capabilities,
+            )
 
-    try:
-        session_id = await session_manager.create_session(
-            agent_pool=agent_pool,
-            default_agent_name="test_agent",
-            cwd=tempfile.gettempdir(),
-            client=test_client,
-            mcp_servers=mcp_servers,
-            acp_agent=mock_acp_agent,
-            client_capabilities=client_capabilities,
-        )
+            session = session_manager.get_session(session_id)
+            assert session is not None
+            assert session.mcp_servers == mcp_servers
+            await session_manager.close_session(session_id)
 
-        session = session_manager.get_session(session_id)
-        assert session is not None
-        assert session.mcp_servers == mcp_servers
-        await session_manager.close_session(session_id)
-
-    except Exception:
-        logger.exception("Session manager test failed")
-        raise
+        except Exception:
+            logger.exception("Session manager test failed")
+            raise
 
 
 async def test_tool_integration():
