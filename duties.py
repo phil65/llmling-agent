@@ -126,4 +126,10 @@ def ui(ctx, *args: str):
 @duty(capture=False)
 def schema_html(ctx):
     """Create HTML documentation for JSON schema."""
-    ctx.run(r"generate-schema-doc")
+    ctx.run(
+        "generate-schema-doc "
+        "--config template_name=js "
+        "--config expand_buttons=true "
+        "schema/config-schema.json "
+        "docs/schema/index.html"
+    )

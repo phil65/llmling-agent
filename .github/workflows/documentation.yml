@@ -42,6 +42,10 @@ jobs:
         run: uv run zensical build
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      - name: Generate JSON Schema HTML documentation
+        run: |
+          mkdir -p site/schema
+          uv run generate-schema-doc --config template_name=js --config expand_buttons=true schema/config-schema.json site/schema/index.html
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
