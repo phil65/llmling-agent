@@ -65,3 +65,18 @@ class ExtNotification(AnnotatedObject):
 
     params: dict[str, Any] | None = None
     """Optional parameters for the notification."""
+
+
+AgentNotification = SessionNotification | ExtNotification
+"""All possible notifications that an agent can send to a client.
+
+This is used internally for routing RPC notifications.
+Notifications do not expect a response.
+"""
+
+ClientNotification = CancelNotification | ExtNotification
+"""All possible notifications that a client can send to an agent.
+
+This is used internally for routing RPC notifications.
+Notifications do not expect a response.
+"""

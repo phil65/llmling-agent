@@ -114,6 +114,26 @@ class SessionListCapabilities(AnnotatedObject):
     """
 
 
+class SessionForkCapabilities(AnnotatedObject):
+    """Capabilities for the `session/fork` method.
+
+    **UNSTABLE**: This capability is not part of the spec yet,
+    and may be removed or changed at any point.
+
+    By supplying `{}` it means that the agent supports forking of sessions.
+    """
+
+
+class SessionResumeCapabilities(AnnotatedObject):
+    """Capabilities for the `session/resume` method.
+
+    **UNSTABLE**: This capability is not part of the spec yet,
+    and may be removed or changed at any point.
+
+    By supplying `{}` it means that the agent supports resuming of sessions.
+    """
+
+
 class SessionCapabilities(AnnotatedObject):
     """Session capabilities supported by the agent.
 
@@ -129,12 +149,28 @@ class SessionCapabilities(AnnotatedObject):
     See protocol docs: [Session Capabilities](https://agentclientprotocol.com/protocol/initialization#session-capabilities)
     """
 
+    fork: SessionForkCapabilities | None = None
+    """**UNSTABLE**
+
+    This capability is not part of the spec yet, and may be removed or changed at any point.
+
+    Whether the agent supports `session/fork`.
+    """
+
     list: SessionListCapabilities | None = None
     """**UNSTABLE**
 
     This capability is not part of the spec yet, and may be removed or changed at any point.
 
     Whether the agent supports `session/list`.
+    """
+
+    resume: SessionResumeCapabilities | None = None
+    """**UNSTABLE**
+
+    This capability is not part of the spec yet, and may be removed or changed at any point.
+
+    Whether the agent supports `session/resume`.
     """
 
 

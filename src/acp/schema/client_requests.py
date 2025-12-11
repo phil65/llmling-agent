@@ -70,6 +70,42 @@ class ListSessionsRequest(Request):
     """Filter sessions by working directory. Must be an absolute path."""
 
 
+class ForkSessionRequest(Request):
+    """**UNSTABLE**: This capability is not part of the spec yet.
+
+    Request parameters for forking an existing session.
+
+    Creates a new session based on the context of an existing one, allowing
+    operations like generating summaries without affecting the original session's history.
+
+    Only available if the Agent supports the `session.fork` capability.
+    """
+
+    session_id: str
+    """The ID of the session to fork."""
+
+
+class ResumeSessionRequest(Request):
+    """**UNSTABLE**: This capability is not part of the spec yet.
+
+    Request parameters for resuming an existing session.
+
+    Resumes an existing session without returning previous messages (unlike `session/load`).
+    This is useful for agents that can resume sessions but don't implement full session loading.
+
+    Only available if the Agent supports the `session.resume` capability.
+    """
+
+    cwd: str
+    """The working directory for this session."""
+
+    mcp_servers: Sequence[McpServer] = Field(default_factory=list)
+    """List of MCP servers to connect to for this session."""
+
+    session_id: str
+    """The ID of the session to resume."""
+
+
 class SetSessionModeRequest(Request):
     """Request parameters for setting a session mode."""
 
@@ -179,6 +215,8 @@ ClientRequest = (
     | NewSessionRequest
     | LoadSessionRequest
     | ListSessionsRequest
+    | ForkSessionRequest
+    | ResumeSessionRequest
     | SetSessionModeRequest
     | PromptRequest
     | SetSessionModelRequest

@@ -16,11 +16,13 @@ from acp.schema.agent_responses import (
     AgentResponse,
     AuthenticateResponse,
     CustomResponse,
+    ForkSessionResponse,
     InitializeResponse,
     LoadSessionResponse,
     NewSessionResponse,
     ListSessionsResponse,
     PromptResponse,
+    ResumeSessionResponse,
     SetSessionModeResponse,
     SetSessionModelResponse,
     StopReason,
@@ -32,17 +34,21 @@ from acp.schema.capabilities import (
     McpCapabilities,
     PromptCapabilities,
     SessionCapabilities,
+    SessionForkCapabilities,
     SessionListCapabilities,
+    SessionResumeCapabilities,
 )
 from acp.schema.client_requests import (
     AuthenticateRequest,
     ClientRequest,
     CustomRequest,
+    ForkSessionRequest,
     InitializeRequest,
     ListSessionsRequest,
     LoadSessionRequest,
     NewSessionRequest,
     PromptRequest,
+    ResumeSessionRequest,
     SetSessionModeRequest,
     SetSessionModelRequest,
 )
@@ -79,7 +85,9 @@ from acp.schema.mcp import (
 )
 from acp.schema.messages import AgentMethod, ClientMethod
 from acp.schema.notifications import (
+    AgentNotification,
     CancelNotification,
+    ClientNotification,
     ExtNotification,
     SessionNotification,
 )
@@ -116,6 +124,7 @@ from acp.schema.session_updates import (
     AgentThoughtChunk,
     AvailableCommandsUpdate,
     CurrentModeUpdate,
+    CurrentModelUpdate,
     SessionUpdate,
     ToolCallProgress,
     ToolCallStart,
@@ -125,42 +134,31 @@ from acp.schema.session_updates import (
 PROTOCOL_VERSION = 1
 
 __all__ = [
-    # Protocol version
     "PROTOCOL_VERSION",
-    # Agent capabilities
     "AgentCapabilities",
-    # Session updates
     "AgentMessageChunk",
-    # Messages/Methods
     "AgentMethod",
+    "AgentNotification",
     "AgentPlanUpdate",
-    # Agent requests (agent -> client)
     "AgentRequest",
-    # Agent responses
     "AgentResponse",
     "AgentThoughtChunk",
-    # Tool calls
     "AllowedOutcome",
-    # Content blocks
     "Annotations",
     "Audience",
     "AudioContentBlock",
-    # Common types
     "AuthMethod",
-    # Client requests (client -> agent)
     "AuthenticateRequest",
     "AuthenticateResponse",
-    # Slash commands
     "AvailableCommand",
     "AvailableCommandInput",
     "AvailableCommandsUpdate",
     "BlobResourceContents",
-    # Notifications
     "CancelNotification",
     "ClientCapabilities",
     "ClientMethod",
+    "ClientNotification",
     "ClientRequest",
-    # Client responses
     "ClientResponse",
     "CommandInputHint",
     "ContentBlock",
@@ -168,6 +166,7 @@ __all__ = [
     "CreateTerminalRequest",
     "CreateTerminalResponse",
     "CurrentModeUpdate",
+    "CurrentModelUpdate",
     "CustomRequest",
     "CustomResponse",
     "DeniedOutcome",
@@ -176,7 +175,8 @@ __all__ = [
     "ExtNotification",
     "FileEditToolCallContent",
     "FileSystemCapability",
-    # MCP servers
+    "ForkSessionRequest",
+    "ForkSessionResponse",
     "HttpHeader",
     "HttpMcpServer",
     "ImageContentBlock",
@@ -191,13 +191,11 @@ __all__ = [
     "LoadSessionResponse",
     "McpCapabilities",
     "McpServer",
-    # Session state
     "ModelInfo",
     "NewSessionRequest",
     "NewSessionResponse",
     "PermissionKind",
     "PermissionOption",
-    # Plan
     "PlanEntry",
     "PlanEntryPriority",
     "PlanEntryStatus",
@@ -211,13 +209,17 @@ __all__ = [
     "RequestPermissionRequest",
     "RequestPermissionResponse",
     "ResourceContentBlock",
+    "ResumeSessionRequest",
+    "ResumeSessionResponse",
     "SessionCapabilities",
+    "SessionForkCapabilities",
     "SessionInfo",
     "SessionListCapabilities",
     "SessionMode",
     "SessionModeState",
     "SessionModelState",
     "SessionNotification",
+    "SessionResumeCapabilities",
     "SessionUpdate",
     "SetSessionModeRequest",
     "SetSessionModeResponse",
@@ -226,7 +228,6 @@ __all__ = [
     "SseMcpServer",
     "StdioMcpServer",
     "StopReason",
-    # Terminal
     "TerminalExitStatus",
     "TerminalOutputRequest",
     "TerminalOutputResponse",

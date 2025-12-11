@@ -8,7 +8,11 @@ from pydantic import Field
 from acp.schema.base import Response
 from acp.schema.capabilities import AgentCapabilities
 from acp.schema.common import AuthMethod, Implementation  # noqa: TC001
-from acp.schema.session_state import SessionInfo, SessionModelState, SessionModeState  # noqa: TC001
+from acp.schema.session_state import (  # noqa: TC001
+    SessionInfo,
+    SessionModelState,
+    SessionModeState,
+)
 
 
 class CustomResponse(Response):
@@ -63,6 +67,51 @@ class NewSessionResponse(Response):
 
 class LoadSessionResponse(Response):
     """Response from loading an existing session."""
+
+    models: SessionModelState | None = None
+    """**UNSTABLE**
+
+    This capability is not part of the spec yet.
+
+    Initial model state if supported by the Agent
+    """
+
+    modes: SessionModeState | None = None
+    """Initial mode state if supported by the Agent
+
+    See protocol docs: [Session Modes](https://agentclientprotocol.com/protocol/session-modes)
+    """
+
+
+class ForkSessionResponse(Response):
+    """**UNSTABLE**: This capability is not part of the spec yet.
+
+    Response from forking an existing session.
+    """
+
+    models: SessionModelState | None = None
+    """**UNSTABLE**
+
+    This capability is not part of the spec yet.
+
+    Initial model state if supported by the Agent
+    """
+
+    modes: SessionModeState | None = None
+    """Initial mode state if supported by the Agent
+
+    See protocol docs: [Session Modes](https://agentclientprotocol.com/protocol/session-modes)
+    """
+
+    session_id: str
+    """Unique identifier for the newly created forked session."""
+
+
+class ResumeSessionResponse(Response):
+    """**UNSTABLE**: This capability is not part of the spec yet.
+
+    Response from resuming an existing session.
+    """
 
     models: SessionModelState | None = None
     """**UNSTABLE**
@@ -192,6 +241,8 @@ AgentResponse = (
     | AuthenticateResponse
     | NewSessionResponse
     | LoadSessionResponse
+    | ForkSessionResponse
+    | ResumeSessionResponse
     | ListSessionsResponse
     | SetSessionModeResponse
     | PromptResponse
