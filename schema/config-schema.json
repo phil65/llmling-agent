@@ -2444,7 +2444,6 @@
                 "skills": "#/$defs/SkillsToolsetConfig",
                 "subagent": "#/$defs/SubagentToolsetConfig",
                 "tool_management": "#/$defs/ToolManagementToolsetConfig",
-                "upsonic": "#/$defs/UpsonicToolSetConfig",
                 "user_interaction": "#/$defs/UserInteractionToolsetConfig",
                 "vfs": "#/$defs/VFSToolsetConfig",
                 "workers": "#/$defs/WorkersToolsetConfig"
@@ -2460,9 +2459,6 @@
               },
               {
                 "$ref": "#/$defs/ComposioToolSetConfig"
-              },
-              {
-                "$ref": "#/$defs/UpsonicToolSetConfig"
               },
               {
                 "$ref": "#/$defs/AgentManagementToolsetConfig"
@@ -4457,7 +4453,6 @@
                 "skills": "#/$defs/SkillsToolsetConfig",
                 "subagent": "#/$defs/SubagentToolsetConfig",
                 "tool_management": "#/$defs/ToolManagementToolsetConfig",
-                "upsonic": "#/$defs/UpsonicToolSetConfig",
                 "user_interaction": "#/$defs/UserInteractionToolsetConfig",
                 "vfs": "#/$defs/VFSToolsetConfig",
                 "workers": "#/$defs/WorkersToolsetConfig"
@@ -4473,9 +4468,6 @@
               },
               {
                 "$ref": "#/$defs/ComposioToolSetConfig"
-              },
-              {
-                "$ref": "#/$defs/UpsonicToolSetConfig"
               },
               {
                 "$ref": "#/$defs/AgentManagementToolsetConfig"
@@ -7996,7 +7988,6 @@
                 "skills": "#/$defs/SkillsToolsetConfig",
                 "subagent": "#/$defs/SubagentToolsetConfig",
                 "tool_management": "#/$defs/ToolManagementToolsetConfig",
-                "upsonic": "#/$defs/UpsonicToolSetConfig",
                 "user_interaction": "#/$defs/UserInteractionToolsetConfig",
                 "vfs": "#/$defs/VFSToolsetConfig",
                 "workers": "#/$defs/WorkersToolsetConfig"
@@ -8012,9 +8003,6 @@
               },
               {
                 "$ref": "#/$defs/ComposioToolSetConfig"
-              },
-              {
-                "$ref": "#/$defs/UpsonicToolSetConfig"
               },
               {
                 "$ref": "#/$defs/AgentManagementToolsetConfig"
@@ -8478,7 +8466,6 @@
                 "skills": "#/$defs/SkillsToolsetConfig",
                 "subagent": "#/$defs/SubagentToolsetConfig",
                 "tool_management": "#/$defs/ToolManagementToolsetConfig",
-                "upsonic": "#/$defs/UpsonicToolSetConfig",
                 "user_interaction": "#/$defs/UserInteractionToolsetConfig",
                 "vfs": "#/$defs/VFSToolsetConfig",
                 "workers": "#/$defs/WorkersToolsetConfig"
@@ -8494,9 +8481,6 @@
               },
               {
                 "$ref": "#/$defs/ComposioToolSetConfig"
-              },
-              {
-                "$ref": "#/$defs/UpsonicToolSetConfig"
               },
               {
                 "$ref": "#/$defs/AgentManagementToolsetConfig"
@@ -18375,7 +18359,6 @@
                 "skills": "#/$defs/SkillsToolsetConfig",
                 "subagent": "#/$defs/SubagentToolsetConfig",
                 "tool_management": "#/$defs/ToolManagementToolsetConfig",
-                "upsonic": "#/$defs/UpsonicToolSetConfig",
                 "user_interaction": "#/$defs/UserInteractionToolsetConfig",
                 "vfs": "#/$defs/VFSToolsetConfig",
                 "workers": "#/$defs/WorkersToolsetConfig"
@@ -18391,9 +18374,6 @@
               },
               {
                 "$ref": "#/$defs/ComposioToolSetConfig"
-              },
-              {
-                "$ref": "#/$defs/UpsonicToolSetConfig"
               },
               {
                 "$ref": "#/$defs/AgentManagementToolsetConfig"
@@ -21386,7 +21366,6 @@
                 "skills": "#/$defs/SkillsToolsetConfig",
                 "subagent": "#/$defs/SubagentToolsetConfig",
                 "tool_management": "#/$defs/ToolManagementToolsetConfig",
-                "upsonic": "#/$defs/UpsonicToolSetConfig",
                 "user_interaction": "#/$defs/UserInteractionToolsetConfig",
                 "vfs": "#/$defs/VFSToolsetConfig",
                 "workers": "#/$defs/WorkersToolsetConfig"
@@ -21402,9 +21381,6 @@
               },
               {
                 "$ref": "#/$defs/ComposioToolSetConfig"
-              },
-              {
-                "$ref": "#/$defs/UpsonicToolSetConfig"
               },
               {
                 "$ref": "#/$defs/AgentManagementToolsetConfig"
@@ -28200,7 +28176,6 @@
                 "skills": "#/$defs/SkillsToolsetConfig",
                 "subagent": "#/$defs/SubagentToolsetConfig",
                 "tool_management": "#/$defs/ToolManagementToolsetConfig",
-                "upsonic": "#/$defs/UpsonicToolSetConfig",
                 "user_interaction": "#/$defs/UserInteractionToolsetConfig",
                 "vfs": "#/$defs/VFSToolsetConfig",
                 "workers": "#/$defs/WorkersToolsetConfig"
@@ -28216,9 +28191,6 @@
               },
               {
                 "$ref": "#/$defs/ComposioToolSetConfig"
-              },
-              {
-                "$ref": "#/$defs/UpsonicToolSetConfig"
               },
               {
                 "$ref": "#/$defs/AgentManagementToolsetConfig"
@@ -35866,82 +35838,6 @@
       ],
       "title": "Union Configuration",
       "type": "object"
-    },
-    "UpsonicToolSetConfig": {
-      "additionalProperties": false,
-      "description": "Configuration for Upsonic toolsets.",
-      "properties": {
-        "namespace": {
-          "default": null,
-          "description": "Optional namespace prefix for tool names",
-          "examples": [
-            "web",
-            "files"
-          ],
-          "title": "Tool namespace",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "type": {
-          "const": "upsonic",
-          "default": "upsonic",
-          "description": "Upsonic Toolsets.",
-          "title": "Type",
-          "type": "string"
-        },
-        "base_url": {
-          "anyOf": [
-            {
-              "format": "uri",
-              "maxLength": 2083,
-              "minLength": 1,
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Upsonic API URL.",
-          "examples": [
-            "https://api.upsonic.co",
-            "http://localhost:9000"
-          ],
-          "title": "Upsonic API URL"
-        },
-        "api_key": {
-          "anyOf": [
-            {
-              "format": "password",
-              "type": "string",
-              "writeOnly": true
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Upsonic API Key.",
-          "title": "Upsonic API key"
-        },
-        "entity_id": {
-          "default": "default",
-          "description": "Toolset entity id.",
-          "examples": [
-            "default",
-            "team1",
-            "project_alpha"
-          ],
-          "title": "Entity ID",
-          "type": "string"
-        }
-      },
-      "title": "UpsonicToolSetConfig",
-      "type": "object",
-      "x-doc-title": "Upsonic Toolset",
-      "x-icon": "octicon:cloud-16"
     },
     "UpstageConfig": {
       "additionalProperties": false,

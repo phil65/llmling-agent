@@ -136,44 +136,6 @@ class ComposioToolSetConfig(BaseToolsetConfig):
         return ComposioTools(user_id=self.user_id, toolsets=self.toolsets, api_key=key)
 
 
-class UpsonicToolSetConfig(BaseToolsetConfig):
-    """Configuration for Upsonic toolsets."""
-
-    model_config = ConfigDict(
-        json_schema_extra={
-            "x-icon": "octicon:cloud-16",
-            "x-doc-title": "Upsonic Toolset",
-        }
-    )
-
-    type: Literal["upsonic"] = Field("upsonic", init=False)
-    """Upsonic Toolsets."""
-
-    base_url: HttpUrl | None = Field(
-        default=None,
-        examples=["https://api.upsonic.co", "http://localhost:9000"],
-        title="Upsonic API URL",
-    )
-    """Upsonic API URL."""
-
-    api_key: SecretStr | None = Field(default=None, title="Upsonic API key")
-    """Upsonic API Key."""
-
-    entity_id: str = Field(
-        default="default",
-        examples=["default", "team1", "project_alpha"],
-        title="Entity ID",
-    )
-    """Toolset entity id."""
-
-    def get_provider(self) -> ResourceProvider:
-        """Create provider from this config."""
-        from llmling_agent_toolsets.upsonic_toolset import UpsonicTools
-
-        base_url = str(self.base_url) if self.base_url else None
-        return UpsonicTools(base_url=base_url, api_key=self.api_key)
-
-
 class AgentManagementToolsetConfig(BaseToolsetConfig):
     """Configuration for agent pool building tools."""
 
@@ -695,7 +657,6 @@ ToolsetConfig = Annotated[
     OpenAPIToolsetConfig
     | EntryPointToolsetConfig
     | ComposioToolSetConfig
-    | UpsonicToolSetConfig
     | AgentManagementToolsetConfig
     | ExecutionEnvironmentToolsetConfig
     | ToolManagementToolsetConfig
@@ -717,8 +678,3 @@ ToolsetConfig = Annotated[
     | CustomToolsetConfig,
     Field(discriminator="type"),
 ]
-
-if __name__ == "__main__":
-    import upsonic
-
-    tools = upsonic.Tiger().crewai

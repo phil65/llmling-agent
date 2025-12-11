@@ -19,7 +19,6 @@ LLMling-Agent supports multiple toolset types:
 - **OpenAPI**: Create tools from OpenAPI/Swagger specifications
 - **Entry Points**: Load tools registered through Python entry points
 - **Composio**: Integration with Composio tool platform
-- **Upsonic**: Integration with Upsonic tool platform
 - **Built-in Toolsets**: Agent management, execution environment, tool management, user interaction, history, and skills
 
 ## Configuration Reference
