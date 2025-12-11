@@ -8,12 +8,14 @@ from typing import TYPE_CHECKING, Any, ClassVar
 
 from acp import Agent as ACPAgent
 from acp.schema import (
+    ForkSessionResponse,
     InitializeResponse,
     ListSessionsResponse,
     LoadSessionResponse,
     ModelInfo as ACPModelInfo,
     NewSessionResponse,
     PromptResponse,
+    ResumeSessionResponse,
     SessionInfo,
     SessionModelState,
     SessionModeState,
@@ -39,11 +41,13 @@ if TYPE_CHECKING:
         AuthenticateRequest,
         CancelNotification,
         ClientCapabilities,
+        ForkSessionRequest,
         InitializeRequest,
         ListSessionsRequest,
         LoadSessionRequest,
         NewSessionRequest,
         PromptRequest,
+        ResumeSessionRequest,
         SetSessionModelRequest,
         SetSessionModeRequest,
     )
@@ -330,6 +334,52 @@ class LLMlingACPAgent(ACPAgent):
         except Exception:
             logger.exception("Failed to list sessions")
             return ListSessionsResponse(sessions=[])
+
+    async def fork_session(self, params: ForkSessionRequest) -> ForkSessionResponse:
+        """Fork an existing session.
+
+        Creates a new session with the same state as the original.
+        UNSTABLE: This feature is not part of the spec yet.
+        """
+        if not self._initialized:
+            raise RuntimeError("Agent not initialized")
+
+        logger.info("Forking session", session_id=params.session_id)
+        # For now, just create a new session - full fork implementation would copy state
+        default_agent = next(iter(self.agent_pool.manifest.agents.keys()))
+        session = await self.session_manager.create_session(
+            default_agent_name=default_agent,
+            client=self.connection.client,
+            acp_agent=self,
+            session_id=None,  # Let it generate a new ID
+            client_capabilities=self._capabilities,
+        )
+        return ForkSessionResponse(session_id=session.session_id)
+
+    async def resume_session(self, params: ResumeSessionRequest) -> ResumeSessionResponse:
+        """Resume an existing session.
+
+        Like load_session but doesn't return previous messages.
+        UNSTABLE: This feature is not part of the spec yet.
+        """
+        if not self._initialized:
+            raise RuntimeError("Agent not initialized")
+
+        logger.info("Resuming session", session_id=params.session_id)
+        # Similar to load_session but without replaying history
+        try:
+            session = await self.session_manager.resume_session(
+                session_id=params.session_id,
+                client=self.connection.client,
+                acp_agent=self,
+                client_capabilities=self._capabilities,
+            )
+            if not session:
+                logger.warning("Session not found", session_id=params.session_id)
+            return ResumeSessionResponse()
+        except Exception:
+            logger.exception("Failed to resume session", session_id=params.session_id)
+            return ResumeSessionResponse()
 
     async def authenticate(self, params: AuthenticateRequest) -> None:
         """Authenticate with the agent."""

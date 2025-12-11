@@ -18,14 +18,17 @@ if TYPE_CHECKING:
         CancelNotification,
         ClientMethod,
         CreateTerminalResponse,
+        ForkSessionRequest,
         InitializeRequest,
         KillTerminalCommandResponse,
+        ListSessionsRequest,
         LoadSessionRequest,
         NewSessionRequest,
         PromptRequest,
         ReadTextFileResponse,
         ReleaseTerminalResponse,
         RequestPermissionResponse,
+        ResumeSessionRequest,
         SetSessionModelRequest,
         SetSessionModeRequest,
         TerminalOutputResponse,
@@ -39,14 +42,17 @@ from acp.exceptions import RequestError
 from acp.schema import (
     AuthenticateResponse,
     CreateTerminalRequest,
+    ForkSessionResponse,
     InitializeResponse,
     KillTerminalCommandRequest,
+    ListSessionsResponse,
     LoadSessionResponse,
     NewSessionResponse,
     PromptResponse,
     ReadTextFileRequest,
     ReleaseTerminalRequest,
     RequestPermissionRequest,
+    ResumeSessionResponse,
     SessionNotification,
     SetSessionModelResponse,
     SetSessionModeResponse,
@@ -105,6 +111,28 @@ class ClientSideConnection(Agent):
         resp = await self._conn.send_request("session/load", dct)
         payload = resp if isinstance(resp, dict) else {}
         return LoadSessionResponse.model_validate(payload)
+
+    async def list_sessions(self, params: ListSessionsRequest) -> ListSessionsResponse:
+        dct = params.model_dump(
+            mode="json", by_alias=True, exclude_none=True, exclude_defaults=True
+        )
+        resp = await self._conn.send_request("session/list", dct)
+        return ListSessionsResponse.model_validate(resp)
+
+    async def fork_session(self, params: ForkSessionRequest) -> ForkSessionResponse:
+        dct = params.model_dump(
+            mode="json", by_alias=True, exclude_none=True, exclude_defaults=True
+        )
+        resp = await self._conn.send_request("session/fork", dct)
+        return ForkSessionResponse.model_validate(resp)
+
+    async def resume_session(self, params: ResumeSessionRequest) -> ResumeSessionResponse:
+        dct = params.model_dump(
+            mode="json", by_alias=True, exclude_none=True, exclude_defaults=True
+        )
+        resp = await self._conn.send_request("session/resume", dct)
+        payload = resp if isinstance(resp, dict) else {}
+        return ResumeSessionResponse.model_validate(payload)
 
     async def set_session_mode(self, params: SetSessionModeRequest) -> SetSessionModeResponse:
         dct = params.model_dump(

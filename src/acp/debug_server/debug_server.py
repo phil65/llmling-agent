@@ -38,12 +38,15 @@ from acp.schema import (
     CreateTerminalResponse,
     # CurrentModelUpdate,
     CurrentModeUpdate,
+    ForkSessionResponse,
     InitializeResponse,
+    ListSessionsResponse,
     LoadSessionResponse,
     NewSessionResponse,
     PlanEntry,
     PromptResponse,
     ReadTextFileResponse,
+    ResumeSessionResponse,
     SessionNotification,
     ToolCallProgress,
     ToolCallStart,
@@ -62,11 +65,14 @@ if TYPE_CHECKING:
         AuthenticateRequest,
         CancelNotification,
         CreateTerminalRequest,
+        ForkSessionRequest,
         InitializeRequest,
+        ListSessionsRequest,
         LoadSessionRequest,
         NewSessionRequest,
         PromptRequest,
         ReadTextFileRequest,
+        ResumeSessionRequest,
         SessionUpdate,
         WriteTextFileRequest,
     )
@@ -192,6 +198,33 @@ class MockAgent(Agent):
         """Mock extensibility method."""
         logger.info("Mock ext method", method=method)
         return {"result": "mock response"}
+
+    async def list_sessions(self, params: ListSessionsRequest) -> ListSessionsResponse:
+        """Mock list sessions."""
+        session_ids = list(self.debug_state.sessions.keys())
+        from acp.schema import SessionInfo
+
+        sessions = [SessionInfo(session_id=sid, cwd="/mock/cwd") for sid in session_ids]
+        return ListSessionsResponse(sessions=sessions)
+
+    async def fork_session(self, params: ForkSessionRequest) -> ForkSessionResponse:
+        """Mock fork session."""
+        new_session_id = str(uuid.uuid4())
+        if params.session_id in self.debug_state.sessions:
+            old_session = self.debug_state.sessions[params.session_id]
+            new_session = DebugSession(
+                session_id=new_session_id,
+                created_at=asyncio.get_event_loop().time(),
+                cwd=old_session.cwd,
+            )
+            self.debug_state.sessions[new_session_id] = new_session
+        return ForkSessionResponse(session_id=new_session_id)
+
+    async def resume_session(self, params: ResumeSessionRequest) -> ResumeSessionResponse:
+        """Mock resume session."""
+        if params.session_id in self.debug_state.sessions:
+            self.debug_state.active_session_id = params.session_id
+        return ResumeSessionResponse()
 
 
 # FastAPI models for web interface

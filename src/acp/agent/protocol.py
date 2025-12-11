@@ -10,6 +10,8 @@ if TYPE_CHECKING:
         AuthenticateRequest,
         AuthenticateResponse,
         CancelNotification,
+        ForkSessionRequest,
+        ForkSessionResponse,
         InitializeRequest,
         InitializeResponse,
         ListSessionsRequest,
@@ -20,6 +22,8 @@ if TYPE_CHECKING:
         NewSessionResponse,
         PromptRequest,
         PromptResponse,
+        ResumeSessionRequest,
+        ResumeSessionResponse,
         SetSessionModelRequest,
         SetSessionModelResponse,
         SetSessionModeRequest,
@@ -41,6 +45,10 @@ class Agent(Protocol):
     async def load_session(self, params: LoadSessionRequest) -> LoadSessionResponse: ...
 
     async def list_sessions(self, params: ListSessionsRequest) -> ListSessionsResponse: ...
+
+    async def fork_session(self, params: ForkSessionRequest) -> ForkSessionResponse: ...
+
+    async def resume_session(self, params: ResumeSessionRequest) -> ResumeSessionResponse: ...
 
     async def authenticate(self, params: AuthenticateRequest) -> AuthenticateResponse | None: ...
 

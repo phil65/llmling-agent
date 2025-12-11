@@ -84,6 +84,12 @@ class ForkSessionRequest(Request):
     session_id: str
     """The ID of the session to fork."""
 
+    cwd: str
+    """The working directory for the new session."""
+
+    mcp_servers: Sequence[McpServer] = Field(default_factory=list)
+    """List of MCP servers to connect to for this session."""
+
 
 class ResumeSessionRequest(Request):
     """**UNSTABLE**: This capability is not part of the spec yet.

@@ -109,7 +109,7 @@ class SQLSessionStore:
 
         async with AsyncSession(engine) as session:
             # Delete existing if present (upsert via delete+insert)
-            stmt = delete(Session).where(Session.session_id == data.session_id)
+            stmt = delete(Session).where(Session.session_id == data.session_id)  # type: ignore[arg-type]
             await session.execute(stmt)
 
             # Insert new/updated
@@ -130,7 +130,7 @@ class SQLSessionStore:
         engine = self._get_engine()
 
         async with AsyncSession(engine) as session:
-            stmt = select(Session).where(Session.session_id == session_id)
+            stmt = select(Session).where(Session.session_id == session_id)  # type: ignore[arg-type]
             result = await session.execute(stmt)
             row = result.scalars().first()
 
@@ -151,11 +151,11 @@ class SQLSessionStore:
         engine = self._get_engine()
 
         async with AsyncSession(engine) as session:
-            stmt = delete(Session).where(Session.session_id == session_id)
+            stmt = delete(Session).where(Session.session_id == session_id)  # type: ignore[arg-type]
             result = await session.execute(stmt)
             await session.commit()
 
-            deleted = result.rowcount > 0
+            deleted: bool = result.rowcount > 0  # type: ignore[attr-defined]
             if deleted:
                 logger.debug("Deleted session", session_id=session_id)
             return deleted
@@ -177,14 +177,14 @@ class SQLSessionStore:
         engine = self._get_engine()
 
         async with AsyncSession(engine) as session:
-            stmt = select(Session.session_id)
+            stmt = select(Session.session_id)  # type: ignore[call-overload]
 
             if pool_id is not None:
                 stmt = stmt.where(Session.pool_id == pool_id)
             if agent_name is not None:
                 stmt = stmt.where(Session.agent_name == agent_name)
 
-            stmt = stmt.order_by(Session.last_active.desc())
+            stmt = stmt.order_by(Session.last_active.desc())  # type: ignore[attr-defined]
             result = await session.execute(stmt)
             # When selecting a single column, scalars() gives us the values directly
             return list(result.scalars().all())
@@ -202,11 +202,11 @@ class SQLSessionStore:
         cutoff = get_now() - timedelta(hours=max_age_hours)
 
         async with AsyncSession(engine) as session:
-            stmt = delete(Session).where(Session.last_active < cutoff)
+            stmt = delete(Session).where(Session.last_active < cutoff)  # type: ignore[arg-type]
             result = await session.execute(stmt)
             await session.commit()
 
-            count = result.rowcount or 0
+            count = result.rowcount or 0  # type: ignore[attr-defined]
             if count > 0:
                 logger.info("Cleaned up expired sessions", count=count)
             return count
@@ -231,9 +231,9 @@ class SQLSessionStore:
             stmt = select(Session)
 
             if pool_id is not None:
-                stmt = stmt.where(Session.pool_id == pool_id)
+                stmt = stmt.where(Session.pool_id == pool_id)  # type: ignore[arg-type]
 
-            stmt = stmt.order_by(Session.last_active.desc())
+            stmt = stmt.order_by(Session.last_active.desc())  # type: ignore[attr-defined]
 
             if limit is not None:
                 stmt = stmt.limit(limit)
