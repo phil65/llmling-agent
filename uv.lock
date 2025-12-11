@@ -2379,7 +2379,7 @@ requires-dist = [
     { name = "pydantic-ai-slim", extras = ["openai", "google", "anthropic", "mistral", "retries"], marker = "extra == 'default'", specifier = ">=1.0.0" },
     { name = "python-dotenv", specifier = ">=1.0.1" },
     { name = "rich" },
-    { name = "schemez", editable = "../schemez" },
+    { name = "schemez" },
     { name = "searchly", specifier = ">=2.0.1" },
     { name = "slashed", specifier = ">=0.1.0" },
     { name = "sounddevice", marker = "extra == 'tts'", specifier = ">=0.5.0" },
@@ -4863,47 +4863,16 @@ wheels = [
 [[package]]
 name = "schemez"
 version = "2.2.23"
-source = { editable = "../schemez" }
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "docstring-parser" },
     { name = "griffe" },
     { name = "pydantic" },
     { name = "universal-pathlib" },
 ]
-
-[package.metadata]
-requires-dist = [
-    { name = "aiosqlite", marker = "extra == 'storage'", specifier = ">=0.20.0" },
-    { name = "anyenv", marker = "extra == 'ai'", specifier = ">=0.4.14" },
-    { name = "datamodel-code-generator", marker = "extra == 'codegen'" },
-    { name = "docstring-parser", specifier = ">=0.17.0" },
-    { name = "fastapi", marker = "extra == 'tool-execution'", specifier = ">=0.118.2" },
-    { name = "griffe", specifier = ">=1.7.3" },
-    { name = "jinja2", marker = "extra == 'markdown'", specifier = ">=3.1.0" },
-    { name = "llmling-agent", marker = "extra == 'ai'" },
-    { name = "pydantic" },
-    { name = "universal-pathlib", specifier = ">=0.2.6" },
-    { name = "yamling", marker = "extra == 'yaml'" },
-]
-provides-extras = ["ai", "codegen", "markdown", "storage", "tool-execution", "yaml"]
-
-[package.metadata.requires-dev]
-benchmark = [{ name = "pyinstrument" }]
-dev = [
-    { name = "devtools" },
-    { name = "pyreadline3" },
-    { name = "pytest" },
-    { name = "pytest-asyncio", specifier = ">=1.2.0" },
-    { name = "pytest-cov" },
-]
-docs = [
-    { name = "mkdocs-material" },
-    { name = "mkdocs-mknodes" },
-]
-lint = [
-    { name = "mypy", marker = "python_full_version >= '3.14'" },
-    { name = "mypy", extras = ["faster-cache"], marker = "python_full_version < '3.14'" },
-    { name = "ruff" },
+sdist = { url = "https://files.pythonhosted.org/packages/39/cf/83824973e4bd4eba5ef862a6b2ec8deec172d712633abc667665b168430a/schemez-2.2.23.tar.gz", hash = "sha256:6a409e3ba8eb2dec80b56b38fb8545b5d78f291d903098001b0ddc56e519b500", size = 75354, upload-time = "2025-12-11T02:50:08.217Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/66/72/2023200c296d564dc29c45c180837329bec95a68ad8721dadeca93fa134d/schemez-2.2.23-py3-none-any.whl", hash = "sha256:38607d13a1c73697d15733bdb884814aef50fa6afd8391bbce891bba5ba9100a", size = 93454, upload-time = "2025-12-11T02:50:06.871Z" },
 ]
 
 [[package]]
@@ -5482,7 +5451,7 @@ wheels = [
 
 [[package]]
 name = "upathtools"
-version = "1.15.1"
+version = "1.15.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "fsspec" },
@@ -5490,9 +5459,9 @@ dependencies = [
     { name = "python-dotenv" },
     { name = "universal-pathlib" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/79/bc/0c6a164f16168ffe8f87c5068548aec6a64ff3fcf3d25f0be48b0d0345dc/upathtools-1.15.1.tar.gz", hash = "sha256:fae5497474db40875d4d2b0d4c2bb477fac2e83592354e0d0fbb9cadb010d58f", size = 160653, upload-time = "2025-12-10T07:51:22.532Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/cd/25/3763f0e92d84f65dfdee1f08b0906d6d964237715c317680f0d68908eee8/upathtools-1.15.2.tar.gz", hash = "sha256:75f1fc7a5f21464610b03ce9ef57cf4a237a3c5d7c79123f5b203a554aee2cb2", size = 161116, upload-time = "2025-12-11T05:30:22.105Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/8f/24/975900fb106f96ce42db307d7c254f5fd27fe2a5a6cfee4b3bf8177c8e26/upathtools-1.15.1-py3-none-any.whl", hash = "sha256:22d3e81f6221cffa16b23767fdec0de43b735b11a60868a88e267dab71a33680", size = 213844, upload-time = "2025-12-10T07:51:24.296Z" },
+    { url = "https://files.pythonhosted.org/packages/bd/f2/c83220e4b998d9041e7636f9e9e2a5bcbfd0d358a51f0f34a515ce8dce78/upathtools-1.15.2-py3-none-any.whl", hash = "sha256:664dbbbe9d60699d768527e61924eef029b6960c7c1cd8f0aaf98d323e8046e2", size = 216529, upload-time = "2025-12-11T05:30:20.715Z" },
 ]
 
 [package.optional-dependencies]
