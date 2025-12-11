@@ -304,12 +304,9 @@ class LLMlingACPAgent(ACPAgent):
                     # Filter by cwd if specified
                     if params.cwd and active_session.cwd != params.cwd:
                         continue
+                    title = f"Session with {active_session.current_agent_name}"
                     sessions.append(
-                        SessionInfo(
-                            session_id=session_id,
-                            cwd=active_session.cwd,
-                            title=f"Session with {active_session.current_agent_name}",
-                        )
+                        SessionInfo(session_id=session_id, cwd=active_session.cwd, title=title)
                     )
                 else:
                     # Load from storage to get details
@@ -355,10 +352,8 @@ class LLMlingACPAgent(ACPAgent):
             msg = f"Error processing prompt: {e}"
             if session:
                 # Send error notification asynchronously to avoid blocking response
-                self.tasks.create_task(
-                    session._send_error_notification(msg),
-                    name=f"error_notification_{params.session_id}",
-                )
+                name = f"error_notification_{params.session_id}"
+                self.tasks.create_task(session._send_error_notification(msg), name=name)
 
             return PromptResponse(stop_reason="end_turn")
         else:
@@ -427,11 +422,7 @@ class LLMlingACPAgent(ACPAgent):
                 return None
             if isinstance(session.agent, Agent):
                 session.agent.set_model(params.model_id)
-            logger.info(
-                "Set model",
-                model_id=params.model_id,
-                session_id=params.session_id,
-            )
+            logger.info("Set model", model_id=params.model_id, session_id=params.session_id)
             return SetSessionModelResponse()
         except Exception:
             logger.exception("Failed to set session model", session_id=params.session_id)
