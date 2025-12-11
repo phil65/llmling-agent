@@ -115,15 +115,13 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
         try:
             parts = shlex.split(command_str)
             if not parts:
-                msg = "Empty command string"
-                raise ValueError(msg)  # noqa: TRY301
+                raise ValueError("Empty command string")  # noqa: TRY301
             return parts[0], parts[1:]
         except ValueError as e:
             # Fallback for problematic shell strings
             parts = command_str.split()
             if not parts:
-                msg = "Empty command string"
-                raise ValueError(msg) from e
+                raise ValueError("Empty command string") from e
             return parts[0], parts[1:]
 
     async def _cat_file(
@@ -156,8 +154,7 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
                 content = await self.requests.read_text_file(path)
                 return content.encode("utf-8")
             except Exception as e:
-                msg = f"Could not read file {path}: {e}"
-                raise FileNotFoundError(msg) from e
+                raise FileNotFoundError(f"Could not read file {path}: {e}") from e
 
         # Binary file - use base64 encoding via terminal command
         try:
@@ -267,8 +264,7 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
             output, exit_code = await self.requests.run_command(cmd, args=args, timeout_seconds=5)
 
             if exit_code != 0:
-                msg = f"File not found: {path}"
-                raise FileNotFoundError(msg)
+                raise FileNotFoundError(f"File not found: {path}")
             file_info = info_cmd.parse_command(output.strip(), path)
             return AcpInfo(
                 name=file_info.name,
@@ -298,8 +294,7 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
                             permissions=item.get("permissions"),
                         )
 
-                msg = f"File not found: {path}"
-                raise FileNotFoundError(msg)
+                raise FileNotFoundError(f"File not found: {path}")
             except (OSError, ValueError):
                 msg = f"Could not get file info for {path}: {e}"
                 raise FileNotFoundError(msg) from e

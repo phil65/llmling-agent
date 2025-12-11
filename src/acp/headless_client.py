@@ -101,12 +101,10 @@ class HeadlessACPClient(Client):
     async def read_text_file(self, params: ReadTextFileRequest) -> ReadTextFileResponse:
         """Read text from file."""
         if not self.allow_file_operations:
-            msg = "File operations not allowed"
-            raise RuntimeError(msg)
+            raise RuntimeError("File operations not allowed")
         path = Path(params.path)
         if not path.exists():
-            msg = f"File not found: {params.path}"
-            raise FileNotFoundError(msg)
+            raise FileNotFoundError(f"File not found: {params.path}")
         try:
             content = path.read_text(encoding="utf-8")
             # Apply line filtering if requested
@@ -125,8 +123,7 @@ class HeadlessACPClient(Client):
     async def write_text_file(self, params: WriteTextFileRequest) -> WriteTextFileResponse:
         """Write text to file."""
         if not self.allow_file_operations:
-            msg = "File operations not allowed"
-            raise RuntimeError(msg)
+            raise RuntimeError("File operations not allowed")
         try:
             path = Path(params.path)
             path.parent.mkdir(parents=True, exist_ok=True)

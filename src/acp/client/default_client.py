@@ -110,8 +110,7 @@ class DefaultACPClient(Client):
             params: File write request parameters
         """
         if not self.allow_file_operations:
-            msg = "File operations not allowed"
-            raise RuntimeError(msg)
+            raise RuntimeError("File operations not allowed")
 
         if self.use_real_files:
             try:
@@ -137,16 +136,14 @@ class DefaultACPClient(Client):
             File content response
         """
         if not self.allow_file_operations:
-            msg = "File operations not allowed"
-            raise RuntimeError(msg)
+            raise RuntimeError("File operations not allowed")
 
         if self.use_real_files:
             try:
                 path = Path(params.path)
 
                 if not path.exists():
-                    msg = f"File not found: {params.path}"
-                    raise FileNotFoundError(msg)  # noqa: TRY301
+                    raise FileNotFoundError(f"File not found: {params.path}")  # noqa: TRY301
 
                 content = path.read_text(encoding="utf-8")
 
@@ -177,8 +174,7 @@ class DefaultACPClient(Client):
         Returns:
             Terminal creation response
         """
-        msg = "Terminal operations not implemented"
-        raise NotImplementedError(msg)
+        raise NotImplementedError("Terminal operations not implemented")
 
     async def terminal_output(self, params: TerminalOutputRequest) -> TerminalOutputResponse:
         """Get terminal output (not implemented).
@@ -189,8 +185,7 @@ class DefaultACPClient(Client):
         Returns:
             Terminal output response
         """
-        msg = "Terminal operations not implemented"
-        raise NotImplementedError(msg)
+        raise NotImplementedError("Terminal operations not implemented")
 
     async def release_terminal(
         self, params: ReleaseTerminalRequest
@@ -200,8 +195,7 @@ class DefaultACPClient(Client):
         Args:
             params: Terminal release parameters
         """
-        msg = "Terminal operations not implemented"
-        raise NotImplementedError(msg)
+        raise NotImplementedError("Terminal operations not implemented")
 
     async def wait_for_terminal_exit(
         self, params: WaitForTerminalExitRequest
@@ -214,8 +208,7 @@ class DefaultACPClient(Client):
         Returns:
             Terminal exit response
         """
-        msg = "Terminal operations not implemented"
-        raise NotImplementedError(msg)
+        raise NotImplementedError("Terminal operations not implemented")
 
     async def kill_terminal(
         self, params: KillTerminalCommandRequest
@@ -225,8 +218,7 @@ class DefaultACPClient(Client):
         Args:
             params: Terminal kill parameters
         """
-        msg = "Terminal operations not implemented"
-        raise NotImplementedError(msg)
+        raise NotImplementedError("Terminal operations not implemented")
 
     def get_session_updates(self) -> list[SessionNotification]:
         """Get all received session updates.

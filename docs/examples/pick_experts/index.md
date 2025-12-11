@@ -2,6 +2,8 @@
 title: Expert Selection
 description: Using pick() for expert selection
 icon: material/account-group
+hide:
+  - toc
 ---
 
 # Expert Selection

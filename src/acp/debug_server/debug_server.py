@@ -342,8 +342,7 @@ async def _create_notification_update(  # noqa: PLR0911
         # case "model_update":
         #     return CurrentModelUpdate(current_model_id=data.get("model_id", "None"))
         case _:
-            msg = f"Unknown notification type: {notification_type}"
-            raise ValueError(msg)
+            raise ValueError(f"Unknown notification type: {notification_type}")
 
 
 # Global state reference for FastAPI endpoints (unavoidable with FastAPI)
@@ -359,8 +358,7 @@ def _set_debug_state(state: DebugState) -> None:
 def _get_debug_state() -> DebugState:
     """Get global debug state reference."""
     if _global_debug_state is None:
-        msg = "Debug state not initialized"
-        raise RuntimeError(msg)
+        raise RuntimeError("Debug state not initialized")
     return _global_debug_state
 
 
@@ -387,8 +385,7 @@ class ACPDebugServer:
     async def run(self) -> None:
         """Run both ACP server (stdio) and FastAPI server."""
         if self._running:
-            msg = "Server already running"
-            raise RuntimeError(msg)
+            raise RuntimeError("Server already running")
 
         self._running = True
         logger.info("Starting ACP Debug Server")
@@ -449,8 +446,7 @@ class ACPDebugServer:
     async def shutdown(self) -> None:
         """Shutdown the debug server."""
         if not self._running:
-            msg = "Server is not running"
-            raise RuntimeError(msg)
+            raise RuntimeError("Server is not running")
 
         self._running = False
         logger.info("Shutting down ACP Debug Server")

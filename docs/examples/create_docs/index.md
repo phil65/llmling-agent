@@ -2,6 +2,8 @@
 title: Create Docs
 description: Agent collaboration for documentation generation
 icon: material/book
+hide:
+  - toc
 ---
 
 # Create Docs

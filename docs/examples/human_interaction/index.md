@@ -2,6 +2,8 @@
 title: Human Interaction
 description: AI-Human interaction patterns
 icon: material/account
+hide:
+  - toc
 ---
 
 # Human Interaction

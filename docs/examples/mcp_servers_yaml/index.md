@@ -2,6 +2,8 @@
 title: MCP Servers (YAML)
 description: MCP server integration with git tools
 icon: material/file-code
+hide:
+  - toc
 ---
 
 # MCP Servers (YAML)

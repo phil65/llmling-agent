@@ -2,6 +2,8 @@
 title: MCP Sampling & Elicitation
 description: MCP server with sampling tools
 icon: material/lightning-bolt
+hide:
+  - toc
 ---
 
 # MCP Sampling & Elicitation

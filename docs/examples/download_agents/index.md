@@ -2,6 +2,8 @@
 title: Download Agents
 description: Sequential vs parallel downloads comparison
 icon: material/download
+hide:
+  - toc
 ---
 
 # Download Agents

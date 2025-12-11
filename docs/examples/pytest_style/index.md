@@ -2,6 +2,8 @@
 title: PyTest-Style Functions
 description: PyTest-style example patterns
 icon: material/code-braces
+hide:
+  - toc
 ---
 
 # PyTest-Style Functions

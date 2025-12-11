@@ -2,6 +2,8 @@
 title: Structured Responses
 description: Structured response type examples
 icon: material/code-json
+hide:
+  - toc
 ---
 
 # Structured Responses

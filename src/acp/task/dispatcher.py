@@ -49,8 +49,7 @@ class DefaultMessageDispatcher(MessageDispatcher):
 
     def start(self) -> None:
         if self._task is not None:
-            msg = "dispatcher already started"
-            raise RuntimeError(msg)
+            raise RuntimeError("dispatcher already started")
         self._task = self._supervisor.create(self._run(), name="acp.Dispatcher.loop")
 
     async def _run(self) -> None:

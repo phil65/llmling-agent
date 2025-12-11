@@ -2,6 +2,8 @@
 title: Structured Validation
 description: Response validation examples
 icon: material/check-circle
+hide:
+  - toc
 ---
 
 # Structured Validation

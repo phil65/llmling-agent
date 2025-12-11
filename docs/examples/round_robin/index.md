@@ -2,6 +2,8 @@
 title: Round-Robin Communication
 description: Round-robin message passing
 icon: material/sync
+hide:
+  - toc
 ---
 
 # Round-Robin Communication
