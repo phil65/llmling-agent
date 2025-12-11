@@ -1,0 +1,14 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/phil65/llmling-agent/refs/heads/main/schema/config-schema.json
+agents:
+  url_opener:
+    model: openai:gpt-5-mini
+    system_prompts:
+      - |
+        You help users open websites. Use the open_url tool to open URLs.
+        When given a website name, find its URL in the bookmarks resource.
+        Always confirm what you're about to open.
+    tools:
+      - type: import
+        name: open_url
+        import_path: webbrowser.open
+        description: "Open URL in default browser"

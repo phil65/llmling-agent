@@ -1,0 +1,20 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/phil65/llmling-agent/refs/heads/main/schema/config-schema.json
+responses:
+  CodeReview:
+    response_schema:
+      type: inline
+      description: "Code review result"
+      fields:
+        issues:
+          type: list[str]
+          description: "Found issues"
+        score:
+          type: int
+          description: "Quality score (0-100)"
+
+agents:
+  code_reviewer:
+    model: openai:gpt-5
+    output_type: CodeReview # Use structured response
+    system_prompts:
+      - "You review Python code and provide structured feedback."
