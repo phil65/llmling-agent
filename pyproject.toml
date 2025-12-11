@@ -428,3 +428,6 @@ source-exclude = [
   ".pytest_cache/**",
   ".ruff_cache/**",
 ]
+
+# [tool.uv.sources]
+# schemez = { path = "../schemez", editable = true }
