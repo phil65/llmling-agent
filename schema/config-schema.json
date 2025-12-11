@@ -370,10 +370,8 @@
       "required": [
         "command"
       ],
-      "title": "ACPAgentConfig",
-      "type": "object",
-      "x-doc-title": "ACP Agent Configuration",
-      "x-icon": "octicon:terminal-16"
+      "title": "Custom ACP Agent Configuration",
+      "type": "object"
     },
     "ACPAgentWorkerConfig": {
       "additionalProperties": false,
@@ -696,9 +694,8 @@
       "required": [
         "endpoint"
       ],
-      "title": "AGUIAgentConfig",
+      "title": "AG-UI Agent Configuration",
       "type": "object",
-      "x-doc-title": "AG-UI Agent Configuration",
       "x-icon": "mdi:api"
     },
     "AGUIAgentWorkerConfig": {
@@ -3355,10 +3352,8 @@
           "type": "string"
         }
       },
-      "title": "AmpACPAgentConfig",
-      "type": "object",
-      "x-doc-title": "ACP Agent Configuration",
-      "x-icon": "octicon:terminal-16"
+      "title": "Amp ACP Agent Configuration",
+      "type": "object"
     },
     "AndCondition": {
       "additionalProperties": false,
@@ -3397,7 +3392,7 @@
       "required": [
         "conditions"
       ],
-      "title": "AndCondition",
+      "title": "AND Condition",
       "type": "object"
     },
     "AnthropicModelConfig": {
@@ -3744,6 +3739,11 @@
         "root_path": {
           "default": null,
           "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "examples": [
+            "/data",
+            "/app/uploads",
+            "C:\\Documents"
+          ],
           "title": "Root Path",
           "type": [
             "string",
@@ -3753,7 +3753,12 @@
         "cwd": {
           "default": null,
           "description": "Working directory for relative path operations (uses fs.chdir).",
-          "title": "Cwd",
+          "examples": [
+            "/workspace",
+            "/tmp",
+            "data/"
+          ],
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -3762,7 +3767,7 @@
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
-          "title": "Cached",
+          "title": "Enable Caching",
           "type": "boolean"
         },
         "endpoint": {
@@ -3835,7 +3840,7 @@
           "type": "boolean"
         }
       },
-      "title": "AppwriteFilesystemConfig",
+      "title": "Appwrite Configuration",
       "type": "object"
     },
     "ArizePhoenixObservabilityConfig": {
@@ -3957,6 +3962,11 @@
         "root_path": {
           "default": null,
           "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "examples": [
+            "/data",
+            "/app/uploads",
+            "C:\\Documents"
+          ],
           "title": "Root Path",
           "type": [
             "string",
@@ -3966,7 +3976,12 @@
         "cwd": {
           "default": null,
           "description": "Working directory for relative path operations (uses fs.chdir).",
-          "title": "Cwd",
+          "examples": [
+            "/workspace",
+            "/tmp",
+            "data/"
+          ],
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -3975,11 +3990,11 @@
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
-          "title": "Cached",
+          "title": "Enable Caching",
           "type": "boolean"
         }
       },
-      "title": "ArrowFilesystemConfig",
+      "title": "Arrow Configuration",
       "type": "object"
     },
     "AsyncLocalFilesystemConfig": {
@@ -3996,6 +4011,11 @@
         "root_path": {
           "default": null,
           "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "examples": [
+            "/data",
+            "/app/uploads",
+            "C:\\Documents"
+          ],
           "title": "Root Path",
           "type": [
             "string",
@@ -4005,7 +4025,12 @@
         "cwd": {
           "default": null,
           "description": "Working directory for relative path operations (uses fs.chdir).",
-          "title": "Cwd",
+          "examples": [
+            "/workspace",
+            "/tmp",
+            "data/"
+          ],
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -4014,7 +4039,7 @@
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
-          "title": "Cached",
+          "title": "Enable Caching",
           "type": "boolean"
         },
         "auto_mkdir": {
@@ -4024,7 +4049,7 @@
           "type": "boolean"
         }
       },
-      "title": "AsyncLocalFilesystemConfig",
+      "title": "Async Local Configuration",
       "type": "object"
     },
     "AuggieACPAgentConfig": {
@@ -4604,10 +4629,8 @@
           ]
         }
       },
-      "title": "AuggieACPAgentConfig",
-      "type": "object",
-      "x-doc-title": "ACP Agent Configuration",
-      "x-icon": "octicon:terminal-16"
+      "title": "Auggie ACP Agent Configuration",
+      "type": "object"
     },
     "AugmentedModelConfig": {
       "additionalProperties": false,
@@ -5983,6 +6006,11 @@
         "root_path": {
           "default": null,
           "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "examples": [
+            "/data",
+            "/app/uploads",
+            "C:\\Documents"
+          ],
           "title": "Root Path",
           "type": [
             "string",
@@ -5992,7 +6020,12 @@
         "cwd": {
           "default": null,
           "description": "Working directory for relative path operations (uses fs.chdir).",
-          "title": "Cwd",
+          "examples": [
+            "/workspace",
+            "/tmp",
+            "data/"
+          ],
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -6001,7 +6034,7 @@
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
-          "title": "Cached",
+          "title": "Enable Caching",
           "type": "boolean"
         },
         "account_name": {
@@ -6085,7 +6118,7 @@
       "required": [
         "account_name"
       ],
-      "title": "AzureBlobFilesystemConfig",
+      "title": "Azure Blob Storage Configuration",
       "type": "object"
     },
     "AzureConfig": {
@@ -6212,6 +6245,11 @@
         "root_path": {
           "default": null,
           "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "examples": [
+            "/data",
+            "/app/uploads",
+            "C:\\Documents"
+          ],
           "title": "Root Path",
           "type": [
             "string",
@@ -6221,7 +6259,12 @@
         "cwd": {
           "default": null,
           "description": "Working directory for relative path operations (uses fs.chdir).",
-          "title": "Cwd",
+          "examples": [
+            "/workspace",
+            "/tmp",
+            "data/"
+          ],
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -6230,7 +6273,7 @@
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
-          "title": "Cached",
+          "title": "Enable Caching",
           "type": "boolean"
         },
         "model": {
@@ -6248,7 +6291,7 @@
       "required": [
         "model"
       ],
-      "title": "BaseModelFilesystemConfig",
+      "title": "BaseModel Configuration",
       "type": "object"
     },
     "BaseModelInstanceFilesystemConfig": {
@@ -6265,6 +6308,11 @@
         "root_path": {
           "default": null,
           "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "examples": [
+            "/data",
+            "/app/uploads",
+            "C:\\Documents"
+          ],
           "title": "Root Path",
           "type": [
             "string",
@@ -6274,7 +6322,12 @@
         "cwd": {
           "default": null,
           "description": "Working directory for relative path operations (uses fs.chdir).",
-          "title": "Cwd",
+          "examples": [
+            "/workspace",
+            "/tmp",
+            "data/"
+          ],
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -6283,7 +6336,7 @@
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
-          "title": "Cached",
+          "title": "Enable Caching",
           "type": "boolean"
         },
         "instance": {
@@ -6301,7 +6354,7 @@
       "required": [
         "instance"
       ],
-      "title": "BaseModelInstanceFilesystemConfig",
+      "title": "BaseModel Instance Configuration",
       "type": "object"
     },
     "BasePrompt": {
@@ -6452,7 +6505,8 @@
         }
       },
       "title": "BeamExecutionEnvironmentConfig",
-      "type": "object"
+      "type": "object",
+      "x-doc-title": "Beam Execution Environment"
     },
     "BeamFilesystemConfig": {
       "additionalProperties": true,
@@ -6468,6 +6522,11 @@
         "root_path": {
           "default": null,
           "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "examples": [
+            "/data",
+            "/app/uploads",
+            "C:\\Documents"
+          ],
           "title": "Root Path",
           "type": [
             "string",
@@ -6477,7 +6536,12 @@
         "cwd": {
           "default": null,
           "description": "Working directory for relative path operations (uses fs.chdir).",
-          "title": "Cwd",
+          "examples": [
+            "/workspace",
+            "/tmp",
+            "data/"
+          ],
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -6486,7 +6550,7 @@
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
-          "title": "Cached",
+          "title": "Enable Caching",
           "type": "boolean"
         },
         "sandbox_id": {
@@ -6583,7 +6647,7 @@
           "title": "Environment Variables"
         }
       },
-      "title": "BeamFilesystemConfig",
+      "title": "Beam Configuration",
       "type": "object"
     },
     "BraintrustConfig": {
@@ -7104,10 +7168,8 @@
           ]
         }
       },
-      "title": "CagentACPAgentConfig",
-      "type": "object",
-      "x-doc-title": "ACP Agent Configuration",
-      "x-icon": "octicon:terminal-16"
+      "title": "Cagent ACP Agent Configuration",
+      "type": "object"
     },
     "CallableCommandConfig": {
       "additionalProperties": false,
@@ -7161,7 +7223,7 @@
       "required": [
         "function"
       ],
-      "title": "CallableCommandConfig",
+      "title": "Callable Command Configuration",
       "type": "object"
     },
     "CallableCondition": {
@@ -7202,7 +7264,7 @@
       "required": [
         "predicate"
       ],
-      "title": "CallableCondition",
+      "title": "Callable Condition",
       "type": "object"
     },
     "CallableConnectionConfig": {
@@ -7493,7 +7555,7 @@
       "required": [
         "callable"
       ],
-      "title": "CallableConnectionConfig",
+      "title": "Callable Connection Configuration",
       "type": "object"
     },
     "CallbackEventHandlerConfig": {
@@ -8237,10 +8299,8 @@
           "title": "Output Type"
         }
       },
-      "title": "ClaudeACPAgentConfig",
-      "type": "object",
-      "x-doc-title": "ACP Agent Configuration",
-      "x-icon": "octicon:terminal-16"
+      "title": "Claude ACP Agent Configuration",
+      "type": "object"
     },
     "CliFilesystemConfig": {
       "additionalProperties": true,
@@ -8256,6 +8316,11 @@
         "root_path": {
           "default": null,
           "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "examples": [
+            "/data",
+            "/app/uploads",
+            "C:\\Documents"
+          ],
           "title": "Root Path",
           "type": [
             "string",
@@ -8265,7 +8330,12 @@
         "cwd": {
           "default": null,
           "description": "Working directory for relative path operations (uses fs.chdir).",
-          "title": "Cwd",
+          "examples": [
+            "/workspace",
+            "/tmp",
+            "data/"
+          ],
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -8274,7 +8344,7 @@
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
-          "title": "Cached",
+          "title": "Enable Caching",
           "type": "boolean"
         },
         "shell": {
@@ -8294,7 +8364,7 @@
           "type": "string"
         }
       },
-      "title": "CliFilesystemConfig",
+      "title": "CLI Configuration",
       "type": "object"
     },
     "CodeModeToolsetConfig": {
@@ -8833,10 +8903,8 @@
           "title": "Shell Environment Policy Inherit"
         }
       },
-      "title": "CodexACPAgentConfig",
-      "type": "object",
-      "x-doc-title": "ACP Agent Configuration",
-      "x-icon": "octicon:terminal-16"
+      "title": "Codex ACP Agent Configuration",
+      "type": "object"
     },
     "ComposioToolSetConfig": {
       "additionalProperties": false,
@@ -9167,7 +9235,7 @@
       "required": [
         "max_cost"
       ],
-      "title": "CostLimitCondition",
+      "title": "Cost Limit Condition",
       "type": "object"
     },
     "CrewAIToolConfig": {
@@ -9423,6 +9491,11 @@
         "root_path": {
           "default": null,
           "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "examples": [
+            "/data",
+            "/app/uploads",
+            "C:\\Documents"
+          ],
           "title": "Root Path",
           "type": [
             "string",
@@ -9432,7 +9505,12 @@
         "cwd": {
           "default": null,
           "description": "Working directory for relative path operations (uses fs.chdir).",
-          "title": "Cwd",
+          "examples": [
+            "/workspace",
+            "/tmp",
+            "data/"
+          ],
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -9441,7 +9519,7 @@
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
-          "title": "Cached",
+          "title": "Enable Caching",
           "type": "boolean"
         },
         "target_protocol": {
@@ -9491,7 +9569,7 @@
           "title": "Dask Client"
         }
       },
-      "title": "DaskWorkerFilesystemConfig",
+      "title": "Dask Worker Configuration",
       "type": "object"
     },
     "DataFilesystemConfig": {
@@ -9508,6 +9586,11 @@
         "root_path": {
           "default": null,
           "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "examples": [
+            "/data",
+            "/app/uploads",
+            "C:\\Documents"
+          ],
           "title": "Root Path",
           "type": [
             "string",
@@ -9517,7 +9600,12 @@
         "cwd": {
           "default": null,
           "description": "Working directory for relative path operations (uses fs.chdir).",
-          "title": "Cwd",
+          "examples": [
+            "/workspace",
+            "/tmp",
+            "data/"
+          ],
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -9526,11 +9614,11 @@
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
-          "title": "Cached",
+          "title": "Enable Caching",
           "type": "boolean"
         }
       },
-      "title": "DataFilesystemConfig",
+      "title": "Data URL Configuration",
       "type": "object"
     },
     "DataForSEOConfig": {
@@ -9766,7 +9854,8 @@
         }
       },
       "title": "DaytonaExecutionEnvironmentConfig",
-      "type": "object"
+      "type": "object",
+      "x-doc-title": "Daytona Execution Environment"
     },
     "DaytonaFilesystemConfig": {
       "additionalProperties": true,
@@ -9782,6 +9871,11 @@
         "root_path": {
           "default": null,
           "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "examples": [
+            "/data",
+            "/app/uploads",
+            "C:\\Documents"
+          ],
           "title": "Root Path",
           "type": [
             "string",
@@ -9791,7 +9885,12 @@
         "cwd": {
           "default": null,
           "description": "Working directory for relative path operations (uses fs.chdir).",
-          "title": "Cwd",
+          "examples": [
+            "/workspace",
+            "/tmp",
+            "data/"
+          ],
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -9800,7 +9899,7 @@
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
-          "title": "Cached",
+          "title": "Enable Caching",
           "type": "boolean"
         },
         "sandbox_id": {
@@ -9833,7 +9932,7 @@
           "type": "number"
         }
       },
-      "title": "DaytonaFilesystemConfig",
+      "title": "Daytona Configuration",
       "type": "object"
     },
     "DelegationModelConfig": {
@@ -12538,6 +12637,11 @@
         "root_path": {
           "default": null,
           "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "examples": [
+            "/data",
+            "/app/uploads",
+            "C:\\Documents"
+          ],
           "title": "Root Path",
           "type": [
             "string",
@@ -12547,7 +12651,12 @@
         "cwd": {
           "default": null,
           "description": "Working directory for relative path operations (uses fs.chdir).",
-          "title": "Cwd",
+          "examples": [
+            "/workspace",
+            "/tmp",
+            "data/"
+          ],
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -12556,11 +12665,11 @@
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
-          "title": "Cached",
+          "title": "Enable Caching",
           "type": "boolean"
         }
       },
-      "title": "DistributionFilesystemConfig",
+      "title": "Distribution Configuration",
       "type": "object"
     },
     "DockerExecutionEnvironmentConfig": {
@@ -12633,7 +12742,8 @@
         }
       },
       "title": "DockerExecutionEnvironmentConfig",
-      "type": "object"
+      "type": "object",
+      "x-doc-title": "Docker Execution Environment"
     },
     "DoclingConverterConfig": {
       "additionalProperties": false,
@@ -12929,6 +13039,11 @@
         "root_path": {
           "default": null,
           "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "examples": [
+            "/data",
+            "/app/uploads",
+            "C:\\Documents"
+          ],
           "title": "Root Path",
           "type": [
             "string",
@@ -12938,7 +13053,12 @@
         "cwd": {
           "default": null,
           "description": "Working directory for relative path operations (uses fs.chdir).",
-          "title": "Cwd",
+          "examples": [
+            "/workspace",
+            "/tmp",
+            "data/"
+          ],
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -12947,7 +13067,7 @@
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
-          "title": "Cached",
+          "title": "Enable Caching",
           "type": "boolean"
         },
         "api_key": {
@@ -13002,7 +13122,7 @@
       "required": [
         "api_key"
       ],
-      "title": "E2BFilesystemConfig",
+      "title": "E2B Configuration",
       "type": "object"
     },
     "E2bExecutionEnvironmentConfig": {
@@ -13084,7 +13204,8 @@
         }
       },
       "title": "E2bExecutionEnvironmentConfig",
-      "type": "object"
+      "type": "object",
+      "x-doc-title": "E2B Execution Environment"
     },
     "EmailConfig": {
       "additionalProperties": false,
@@ -13368,7 +13489,12 @@
                   "docker": "#/$defs/DockerExecutionEnvironmentConfig",
                   "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
                   "local": "#/$defs/LocalExecutionEnvironmentConfig",
-                  "srt": "#/$defs/SRTExecutionEnvironmentConfig"
+                  "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "modal": "#/$defs/ModalExecutionEnvironmentConfig",
+                  "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
+                  "srt": "#/$defs/SRTExecutionEnvironmentConfig",
+                  "ssh": "#/$defs/SshExecutionEnvironmentConfig",
+                  "vercel": "#/$defs/VercelExecutionEnvironmentConfig"
                 },
                 "propertyName": "type"
               },
@@ -13390,6 +13516,21 @@
                 },
                 {
                   "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SshExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/PyodideExecutionEnvironmentConfig"
                 }
               ]
             },
@@ -14879,6 +15020,11 @@
         "root_path": {
           "default": null,
           "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "examples": [
+            "/data",
+            "/app/uploads",
+            "C:\\Documents"
+          ],
           "title": "Root Path",
           "type": [
             "string",
@@ -14888,7 +15034,12 @@
         "cwd": {
           "default": null,
           "description": "Working directory for relative path operations (uses fs.chdir).",
-          "title": "Cwd",
+          "examples": [
+            "/workspace",
+            "/tmp",
+            "data/"
+          ],
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -14897,7 +15048,7 @@
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
-          "title": "Cached",
+          "title": "Enable Caching",
           "type": "boolean"
         },
         "host": {
@@ -15032,7 +15183,7 @@
       "required": [
         "host"
       ],
-      "title": "FTPFilesystemConfig",
+      "title": "FTP Configuration",
       "type": "object"
     },
     "FabricConfig": {
@@ -16392,7 +16543,7 @@
     },
     "FastAgentACPAgentConfig": {
       "additionalProperties": false,
-      "description": "Configuration for fast-agent via ACP.\n\nRobust LLM agent with comprehensive MCP support.\n\nExample:\n    ```yaml\n    acp_agents:\n      coder:\n        type: fast-agent\n        cwd: /path/to/project\n        model: sonnet\n        shell_access: true\n    ```",
+      "description": "Configuration for fast-agent via ACP.\n\nRobust LLM agent with comprehensive MCP support.\n\nExample:\n    ```yaml\n    acp_agents:\n      coder:\n        type: fast-agent\n        cwd: /path/to/project\n        model: claude-3.5-sonnet-20241022\n    ```",
       "properties": {
         "name": {
           "default": null,
@@ -16746,10 +16897,8 @@
       "required": [
         "model"
       ],
-      "title": "FastAgentACPAgentConfig",
-      "type": "object",
-      "x-doc-title": "ACP Agent Configuration",
-      "x-icon": "octicon:terminal-16"
+      "title": "FastAgent ACP Agent Configuration",
+      "type": "object"
     },
     "FileCommandConfig": {
       "additionalProperties": false,
@@ -16814,7 +16963,7 @@
       "required": [
         "path"
       ],
-      "title": "FileCommandConfig",
+      "title": "File-based Command Configuration",
       "type": "object"
     },
     "FileConnectionConfig": {
@@ -17122,7 +17271,7 @@
       "required": [
         "path"
       ],
-      "title": "FileConnectionConfig",
+      "title": "File Connection Configuration",
       "type": "object"
     },
     "FilePrompt": {
@@ -17557,6 +17706,11 @@
         "root_path": {
           "default": null,
           "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "examples": [
+            "/data",
+            "/app/uploads",
+            "C:\\Documents"
+          ],
           "title": "Root Path",
           "type": [
             "string",
@@ -17566,7 +17720,12 @@
         "cwd": {
           "default": null,
           "description": "Working directory for relative path operations (uses fs.chdir).",
-          "title": "Cwd",
+          "examples": [
+            "/workspace",
+            "/tmp",
+            "data/"
+          ],
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -17575,7 +17734,7 @@
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
-          "title": "Cached",
+          "title": "Enable Caching",
           "type": "boolean"
         },
         "filesystems": {
@@ -17598,7 +17757,7 @@
       "required": [
         "filesystems"
       ],
-      "title": "FlatUnionFilesystemConfig",
+      "title": "Flat Union Configuration",
       "type": "object"
     },
     "FunctionModelConfig": {
@@ -17699,6 +17858,11 @@
         "root_path": {
           "default": null,
           "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "examples": [
+            "/data",
+            "/app/uploads",
+            "C:\\Documents"
+          ],
           "title": "Root Path",
           "type": [
             "string",
@@ -17708,7 +17872,12 @@
         "cwd": {
           "default": null,
           "description": "Working directory for relative path operations (uses fs.chdir).",
-          "title": "Cwd",
+          "examples": [
+            "/workspace",
+            "/tmp",
+            "data/"
+          ],
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -17717,7 +17886,7 @@
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
-          "title": "Cached",
+          "title": "Enable Caching",
           "type": "boolean"
         },
         "project": {
@@ -17798,12 +17967,12 @@
           "type": "boolean"
         }
       },
-      "title": "GCSFilesystemConfig",
+      "title": "Google Cloud Storage Configuration",
       "type": "object"
     },
     "GeminiACPAgentConfig": {
       "additionalProperties": false,
-      "description": "Configuration for Gemini CLI via ACP.\n\nProvides typed settings for the gemini CLI with ACP support.\n\nExample:\n    ```yaml\n    acp_agents:\n      coder:\n        type: gemini\n        cwd: /path/to/project\n        model: gemini-2.5-pro\n        approval_mode: auto_edit\n        allowed_tools:\n          - read_file\n          - write_file\n    ```",
+      "description": "Configuration for Gemini CLI via ACP.\n\nProvides typed settings for the gemini CLI with ACP support.\n\nExample:\n    ```yaml\n    acp_agents:\n      coder:\n        type: gemini\n        cwd: /path/to/project\n        model: gemini-2.5-pro\n        approval_mode: auto_edit\n        allowed_tools:\n          - read_file\n          - write_file\n          - terminal\n    ```",
       "properties": {
         "name": {
           "default": null,
@@ -18358,10 +18527,8 @@
           "title": "Output Format"
         }
       },
-      "title": "GeminiACPAgentConfig",
-      "type": "object",
-      "x-doc-title": "ACP Agent Configuration",
-      "x-icon": "octicon:terminal-16"
+      "title": "Gemini ACP Agent Configuration",
+      "type": "object"
     },
     "GeminiModelConfig": {
       "additionalProperties": false,
@@ -18721,6 +18888,11 @@
         "root_path": {
           "default": null,
           "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "examples": [
+            "/data",
+            "/app/uploads",
+            "C:\\Documents"
+          ],
           "title": "Root Path",
           "type": [
             "string",
@@ -18730,7 +18902,12 @@
         "cwd": {
           "default": null,
           "description": "Working directory for relative path operations (uses fs.chdir).",
-          "title": "Cwd",
+          "examples": [
+            "/workspace",
+            "/tmp",
+            "data/"
+          ],
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -18739,7 +18916,7 @@
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
-          "title": "Cached",
+          "title": "Enable Caching",
           "type": "boolean"
         },
         "gist_id": {
@@ -18830,7 +19007,7 @@
           "title": "Connection Timeout"
         }
       },
-      "title": "GistFilesystemConfig",
+      "title": "GitHub Gist Configuration",
       "type": "object"
     },
     "GitFilesystemConfig": {
@@ -18847,6 +19024,11 @@
         "root_path": {
           "default": null,
           "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "examples": [
+            "/data",
+            "/app/uploads",
+            "C:\\Documents"
+          ],
           "title": "Root Path",
           "type": [
             "string",
@@ -18856,7 +19038,12 @@
         "cwd": {
           "default": null,
           "description": "Working directory for relative path operations (uses fs.chdir).",
-          "title": "Cwd",
+          "examples": [
+            "/workspace",
+            "/tmp",
+            "data/"
+          ],
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -18865,7 +19052,7 @@
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
-          "title": "Cached",
+          "title": "Enable Caching",
           "type": "boolean"
         },
         "path": {
@@ -18941,7 +19128,7 @@
           "title": "Git Reference"
         }
       },
-      "title": "GitFilesystemConfig",
+      "title": "Git Configuration",
       "type": "object"
     },
     "GitLabFilesystemConfig": {
@@ -18958,6 +19145,11 @@
         "root_path": {
           "default": null,
           "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "examples": [
+            "/data",
+            "/app/uploads",
+            "C:\\Documents"
+          ],
           "title": "Root Path",
           "type": [
             "string",
@@ -18967,7 +19159,12 @@
         "cwd": {
           "default": null,
           "description": "Working directory for relative path operations (uses fs.chdir).",
-          "title": "Cwd",
+          "examples": [
+            "/workspace",
+            "/tmp",
+            "data/"
+          ],
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -18976,7 +19173,7 @@
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
-          "title": "Cached",
+          "title": "Enable Caching",
           "type": "boolean"
         },
         "project_id": {
@@ -19038,7 +19235,7 @@
       "required": [
         "project_id"
       ],
-      "title": "GitLabFilesystemConfig",
+      "title": "GitLab Configuration",
       "type": "object"
     },
     "GithubFilesystemConfig": {
@@ -19055,6 +19252,11 @@
         "root_path": {
           "default": null,
           "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "examples": [
+            "/data",
+            "/app/uploads",
+            "C:\\Documents"
+          ],
           "title": "Root Path",
           "type": [
             "string",
@@ -19064,7 +19266,12 @@
         "cwd": {
           "default": null,
           "description": "Working directory for relative path operations (uses fs.chdir).",
-          "title": "Cwd",
+          "examples": [
+            "/workspace",
+            "/tmp",
+            "data/"
+          ],
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -19073,7 +19280,7 @@
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
-          "title": "Cached",
+          "title": "Enable Caching",
           "type": "boolean"
         },
         "org": {
@@ -19196,7 +19403,7 @@
         "org",
         "repo"
       ],
-      "title": "GithubFilesystemConfig",
+      "title": "GitHub Configuration",
       "type": "object"
     },
     "GooseACPAgentConfig": {
@@ -19515,10 +19722,8 @@
           "type": "string"
         }
       },
-      "title": "GooseACPAgentConfig",
-      "type": "object",
-      "x-doc-title": "ACP Agent Configuration",
-      "x-icon": "octicon:terminal-16"
+      "title": "Goose ACP Agent Configuration",
+      "type": "object"
     },
     "HadoopFilesystemConfig": {
       "additionalProperties": true,
@@ -19534,6 +19739,11 @@
         "root_path": {
           "default": null,
           "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "examples": [
+            "/data",
+            "/app/uploads",
+            "C:\\Documents"
+          ],
           "title": "Root Path",
           "type": [
             "string",
@@ -19543,7 +19753,12 @@
         "cwd": {
           "default": null,
           "description": "Working directory for relative path operations (uses fs.chdir).",
-          "title": "Cwd",
+          "examples": [
+            "/workspace",
+            "/tmp",
+            "data/"
+          ],
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -19552,7 +19767,7 @@
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
-          "title": "Cached",
+          "title": "Enable Caching",
           "type": "boolean"
         },
         "host": {
@@ -19639,7 +19854,7 @@
           "title": "Extra Configuration"
         }
       },
-      "title": "HadoopFilesystemConfig",
+      "title": "Hadoop Configuration",
       "type": "object"
     },
     "HistoryToolsetConfig": {
@@ -19686,6 +19901,11 @@
         "root_path": {
           "default": null,
           "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "examples": [
+            "/data",
+            "/app/uploads",
+            "C:\\Documents"
+          ],
           "title": "Root Path",
           "type": [
             "string",
@@ -19695,7 +19915,12 @@
         "cwd": {
           "default": null,
           "description": "Working directory for relative path operations (uses fs.chdir).",
-          "title": "Cwd",
+          "examples": [
+            "/workspace",
+            "/tmp",
+            "data/"
+          ],
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -19704,7 +19929,7 @@
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
-          "title": "Cached",
+          "title": "Enable Caching",
           "type": "boolean"
         },
         "simple_links": {
@@ -19768,7 +19993,7 @@
           "type": "boolean"
         }
       },
-      "title": "HttpFilesystemConfig",
+      "title": "HTTP Configuration",
       "type": "object"
     },
     "HttpxFilesystemConfig": {
@@ -19785,6 +20010,11 @@
         "root_path": {
           "default": null,
           "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "examples": [
+            "/data",
+            "/app/uploads",
+            "C:\\Documents"
+          ],
           "title": "Root Path",
           "type": [
             "string",
@@ -19794,7 +20024,12 @@
         "cwd": {
           "default": null,
           "description": "Working directory for relative path operations (uses fs.chdir).",
-          "title": "Cwd",
+          "examples": [
+            "/workspace",
+            "/tmp",
+            "data/"
+          ],
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -19803,7 +20038,7 @@
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
-          "title": "Cached",
+          "title": "Enable Caching",
           "type": "boolean"
         },
         "simple_links": {
@@ -19886,7 +20121,7 @@
           "title": "Request Timeout"
         }
       },
-      "title": "HttpxFilesystemConfig",
+      "title": "HTTPX Configuration",
       "type": "object"
     },
     "HuggingFaceFilesystemConfig": {
@@ -19903,6 +20138,11 @@
         "root_path": {
           "default": null,
           "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "examples": [
+            "/data",
+            "/app/uploads",
+            "C:\\Documents"
+          ],
           "title": "Root Path",
           "type": [
             "string",
@@ -19912,7 +20152,12 @@
         "cwd": {
           "default": null,
           "description": "Working directory for relative path operations (uses fs.chdir).",
-          "title": "Cwd",
+          "examples": [
+            "/workspace",
+            "/tmp",
+            "data/"
+          ],
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -19921,7 +20166,7 @@
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
-          "title": "Cached",
+          "title": "Enable Caching",
           "type": "boolean"
         },
         "token": {
@@ -19971,7 +20216,7 @@
           ]
         }
       },
-      "title": "HuggingFaceFilesystemConfig",
+      "title": "HuggingFace Hub Configuration",
       "type": "object"
     },
     "ImportModelConfig": {
@@ -20363,7 +20608,7 @@
       "required": [
         "template"
       ],
-      "title": "Jinja2Condition",
+      "title": "Jinja2 Template Condition",
       "type": "object"
     },
     "Job_Any_str_": {
@@ -20524,6 +20769,11 @@
         "root_path": {
           "default": null,
           "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "examples": [
+            "/data",
+            "/app/uploads",
+            "C:\\Documents"
+          ],
           "title": "Root Path",
           "type": [
             "string",
@@ -20533,7 +20783,12 @@
         "cwd": {
           "default": null,
           "description": "Working directory for relative path operations (uses fs.chdir).",
-          "title": "Cwd",
+          "examples": [
+            "/workspace",
+            "/tmp",
+            "data/"
+          ],
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -20542,7 +20797,7 @@
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
-          "title": "Cached",
+          "title": "Enable Caching",
           "type": "boolean"
         },
         "fo": {
@@ -20610,7 +20865,7 @@
       "required": [
         "fo"
       ],
-      "title": "JsonSchemaFilesystemConfig",
+      "title": "JSON Schema Configuration",
       "type": "object"
     },
     "JupyterFilesystemConfig": {
@@ -20627,6 +20882,11 @@
         "root_path": {
           "default": null,
           "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "examples": [
+            "/data",
+            "/app/uploads",
+            "C:\\Documents"
+          ],
           "title": "Root Path",
           "type": [
             "string",
@@ -20636,7 +20896,12 @@
         "cwd": {
           "default": null,
           "description": "Working directory for relative path operations (uses fs.chdir).",
-          "title": "Cwd",
+          "examples": [
+            "/workspace",
+            "/tmp",
+            "data/"
+          ],
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -20645,7 +20910,7 @@
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
-          "title": "Cached",
+          "title": "Enable Caching",
           "type": "boolean"
         },
         "url": {
@@ -20678,7 +20943,7 @@
       "required": [
         "url"
       ],
-      "title": "JupyterFilesystemConfig",
+      "title": "Jupyter Configuration",
       "type": "object"
     },
     "KagiConfig": {
@@ -21202,10 +21467,8 @@
           ]
         }
       },
-      "title": "KimiACPAgentConfig",
-      "type": "object",
-      "x-doc-title": "ACP Agent Configuration",
-      "x-icon": "octicon:terminal-16"
+      "title": "Kimi ACP Agent Configuration",
+      "type": "object"
     },
     "Knowledge": {
       "additionalProperties": false,
@@ -21261,7 +21524,7 @@
           "type": "boolean"
         }
       },
-      "title": "Knowledge",
+      "title": "Knowledge Configuration",
       "type": "object"
     },
     "LLMConverterConfig": {
@@ -21630,6 +21893,11 @@
         "root_path": {
           "default": null,
           "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "examples": [
+            "/data",
+            "/app/uploads",
+            "C:\\Documents"
+          ],
           "title": "Root Path",
           "type": [
             "string",
@@ -21639,7 +21907,12 @@
         "cwd": {
           "default": null,
           "description": "Working directory for relative path operations (uses fs.chdir).",
-          "title": "Cwd",
+          "examples": [
+            "/workspace",
+            "/tmp",
+            "data/"
+          ],
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -21648,7 +21921,7 @@
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
-          "title": "Cached",
+          "title": "Enable Caching",
           "type": "boolean"
         },
         "fo": {
@@ -21739,7 +22012,7 @@
       "required": [
         "fo"
       ],
-      "title": "LibArchiveFilesystemConfig",
+      "title": "LibArchive Configuration",
       "type": "object"
     },
     "LibraryPromptConfig": {
@@ -21784,6 +22057,11 @@
         "root_path": {
           "default": null,
           "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "examples": [
+            "/data",
+            "/app/uploads",
+            "C:\\Documents"
+          ],
           "title": "Root Path",
           "type": [
             "string",
@@ -21793,7 +22071,12 @@
         "cwd": {
           "default": null,
           "description": "Working directory for relative path operations (uses fs.chdir).",
-          "title": "Cwd",
+          "examples": [
+            "/workspace",
+            "/tmp",
+            "data/"
+          ],
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -21802,7 +22085,7 @@
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
-          "title": "Cached",
+          "title": "Enable Caching",
           "type": "boolean"
         },
         "api_key": {
@@ -21822,7 +22105,7 @@
         },
         "extended": {
           "default": false,
-          "description": "If True, issues are folders with comments as sub-files",
+          "description": "Whether to use extended mode with issue directories.\n\nIf True, issues are folders with comments as sub-files",
           "title": "Extended Mode",
           "type": "boolean"
         },
@@ -21837,7 +22120,7 @@
             }
           ],
           "default": null,
-          "description": "How to group issues. None for flat, 'project' for project folders",
+          "description": "Grouping strategy for issues.\n\nHow to group issues. None for flat, 'project' for project folders",
           "title": "Group By"
         },
         "timeout": {
@@ -21851,11 +22134,11 @@
             }
           ],
           "default": null,
-          "description": "Connection timeout in seconds",
+          "description": "Request timeout in seconds",
           "title": "Timeout"
         }
       },
-      "title": "LinearFilesystemConfig",
+      "title": "Linear Configuration",
       "type": "object"
     },
     "LinkUpConfig": {
@@ -22070,7 +22353,8 @@
         }
       },
       "title": "LocalExecutionEnvironmentConfig",
-      "type": "object"
+      "type": "object",
+      "x-doc-title": "Local Execution Environment"
     },
     "LocalFilesystemConfig": {
       "additionalProperties": true,
@@ -22086,6 +22370,11 @@
         "root_path": {
           "default": null,
           "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "examples": [
+            "/data",
+            "/app/uploads",
+            "C:\\Documents"
+          ],
           "title": "Root Path",
           "type": [
             "string",
@@ -22095,7 +22384,12 @@
         "cwd": {
           "default": null,
           "description": "Working directory for relative path operations (uses fs.chdir).",
-          "title": "Cwd",
+          "examples": [
+            "/workspace",
+            "/tmp",
+            "data/"
+          ],
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -22104,7 +22398,7 @@
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
-          "title": "Cached",
+          "title": "Enable Caching",
           "type": "boolean"
         },
         "auto_mkdir": {
@@ -22125,7 +22419,7 @@
           "type": "string"
         }
       },
-      "title": "LocalFilesystemConfig",
+      "title": "Local Filesystem Configuration",
       "type": "object"
     },
     "LogfireObservabilityConfig": {
@@ -22475,6 +22769,11 @@
         "root_path": {
           "default": null,
           "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "examples": [
+            "/data",
+            "/app/uploads",
+            "C:\\Documents"
+          ],
           "title": "Root Path",
           "type": [
             "string",
@@ -22484,7 +22783,12 @@
         "cwd": {
           "default": null,
           "description": "Working directory for relative path operations (uses fs.chdir).",
-          "title": "Cwd",
+          "examples": [
+            "/workspace",
+            "/tmp",
+            "data/"
+          ],
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -22493,7 +22797,7 @@
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
-          "title": "Cached",
+          "title": "Enable Caching",
           "type": "boolean"
         },
         "fo": {
@@ -22566,7 +22870,7 @@
       "required": [
         "fo"
       ],
-      "title": "MarkdownFilesystemConfig",
+      "title": "Markdown Configuration",
       "type": "object"
     },
     "MarkerConfig": {
@@ -22633,6 +22937,11 @@
         "root_path": {
           "default": null,
           "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "examples": [
+            "/data",
+            "/app/uploads",
+            "C:\\Documents"
+          ],
           "title": "Root Path",
           "type": [
             "string",
@@ -22642,7 +22951,12 @@
         "cwd": {
           "default": null,
           "description": "Working directory for relative path operations (uses fs.chdir).",
-          "title": "Cwd",
+          "examples": [
+            "/workspace",
+            "/tmp",
+            "data/"
+          ],
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -22651,7 +22965,7 @@
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
-          "title": "Cached",
+          "title": "Enable Caching",
           "type": "boolean"
         },
         "url": {
@@ -22692,7 +23006,7 @@
           "title": "Server Command"
         }
       },
-      "title": "McpFilesystemConfig",
+      "title": "MCP Configuration",
       "type": "object"
     },
     "McpToolsFilesystemConfig": {
@@ -22709,6 +23023,11 @@
         "root_path": {
           "default": null,
           "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "examples": [
+            "/data",
+            "/app/uploads",
+            "C:\\Documents"
+          ],
           "title": "Root Path",
           "type": [
             "string",
@@ -22718,7 +23037,12 @@
         "cwd": {
           "default": null,
           "description": "Working directory for relative path operations (uses fs.chdir).",
-          "title": "Cwd",
+          "examples": [
+            "/workspace",
+            "/tmp",
+            "data/"
+          ],
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -22727,7 +23051,7 @@
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
-          "title": "Cached",
+          "title": "Enable Caching",
           "type": "boolean"
         },
         "url": {
@@ -22771,7 +23095,7 @@
           "type": "boolean"
         }
       },
-      "title": "McpToolsFilesystemConfig",
+      "title": "MCP Tools Configuration",
       "type": "object"
     },
     "MemoryConfig": {
@@ -22857,6 +23181,11 @@
         "root_path": {
           "default": null,
           "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "examples": [
+            "/data",
+            "/app/uploads",
+            "C:\\Documents"
+          ],
           "title": "Root Path",
           "type": [
             "string",
@@ -22866,7 +23195,12 @@
         "cwd": {
           "default": null,
           "description": "Working directory for relative path operations (uses fs.chdir).",
-          "title": "Cwd",
+          "examples": [
+            "/workspace",
+            "/tmp",
+            "data/"
+          ],
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -22875,11 +23209,11 @@
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
-          "title": "Cached",
+          "title": "Enable Caching",
           "type": "boolean"
         }
       },
-      "title": "MemoryFilesystemConfig",
+      "title": "Memory Filesystem Configuration",
       "type": "object"
     },
     "MemoryStorageConfig": {
@@ -23026,8 +23360,130 @@
       "required": [
         "max_messages"
       ],
-      "title": "MessageCountCondition",
+      "title": "Message Count Condition",
       "type": "object"
+    },
+    "MicrosandboxExecutionEnvironmentConfig": {
+      "additionalProperties": false,
+      "description": "Microsandbox execution environment configuration.\n\nExecutes code in lightweight microVMs for strong isolation.",
+      "properties": {
+        "type": {
+          "const": "microsandbox",
+          "default": "microsandbox",
+          "title": "Type",
+          "type": "string"
+        },
+        "dependencies": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "List of packages to install (pip for Python, npm for JS/TS).",
+          "examples": [
+            "numpy",
+            "pandas"
+          ],
+          "title": "Dependencies"
+        },
+        "timeout": {
+          "default": 60.0,
+          "description": "Execution timeout in seconds.",
+          "examples": [
+            120.0,
+            300.0
+          ],
+          "exclusiveMinimum": 0.0,
+          "title": "Execution Timeout",
+          "type": "number"
+        },
+        "server_url": {
+          "default": null,
+          "description": "Microsandbox server URL (uses MSB_SERVER_URL env var if None).",
+          "examples": [
+            "http://localhost:8080"
+          ],
+          "title": "Server URL",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "namespace": {
+          "default": "default",
+          "description": "Sandbox namespace.",
+          "title": "Namespace",
+          "type": "string"
+        },
+        "api_key": {
+          "anyOf": [
+            {
+              "format": "password",
+              "type": "string",
+              "writeOnly": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "API key for authentication (uses MSB_API_KEY env var if None).",
+          "title": "API Key"
+        },
+        "memory": {
+          "default": 512,
+          "description": "Memory limit in MB.",
+          "minimum": 128,
+          "title": "Memory (MB)",
+          "type": "integer"
+        },
+        "cpus": {
+          "default": 1.0,
+          "description": "CPU limit.",
+          "minimum": 0.1,
+          "title": "CPU Cores",
+          "type": "number"
+        },
+        "language": {
+          "default": "python",
+          "description": "Programming language to use.",
+          "enum": [
+            "python",
+            "javascript",
+            "typescript"
+          ],
+          "examples": [
+            "python",
+            "javascript",
+            "typescript"
+          ],
+          "title": "Programming Language",
+          "type": "string"
+        },
+        "image": {
+          "default": null,
+          "description": "Custom Docker image (uses default for language if None).",
+          "examples": [
+            "python:3.13-slim",
+            "node:20-alpine"
+          ],
+          "title": "Docker Image",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "title": "MicrosandboxExecutionEnvironmentConfig",
+      "type": "object",
+      "x-doc-title": "Microsandbox Execution Environment"
     },
     "MicrosandboxFilesystemConfig": {
       "additionalProperties": true,
@@ -23043,6 +23499,11 @@
         "root_path": {
           "default": null,
           "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "examples": [
+            "/data",
+            "/app/uploads",
+            "C:\\Documents"
+          ],
           "title": "Root Path",
           "type": [
             "string",
@@ -23052,7 +23513,12 @@
         "cwd": {
           "default": null,
           "description": "Working directory for relative path operations (uses fs.chdir).",
-          "title": "Cwd",
+          "examples": [
+            "/workspace",
+            "/tmp",
+            "data/"
+          ],
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -23061,7 +23527,7 @@
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
-          "title": "Cached",
+          "title": "Enable Caching",
           "type": "boolean"
         },
         "server_url": {
@@ -23166,12 +23632,12 @@
           "type": "number"
         }
       },
-      "title": "MicrosandboxFilesystemConfig",
+      "title": "Microsandbox Configuration",
       "type": "object"
     },
     "MistralAgentConfig": {
       "additionalProperties": false,
-      "description": "Configuration for Mistral agent via ACP.\n\nExample:\n    ```yaml\n    acp_agents:\n      coder:\n        type: mistral\n        cwd: /path/to/project\n    ```",
+      "description": "Configuration for Mistral Agent via ACP.\n\nExample:\n    ```yaml\n    acp_agents:\n      coder:\n        type: mistral\n        cwd: /path/to/project\n    ```",
       "properties": {
         "name": {
           "default": null,
@@ -23485,10 +23951,8 @@
           "type": "string"
         }
       },
-      "title": "MistralAgentConfig",
-      "type": "object",
-      "x-doc-title": "ACP Agent Configuration",
-      "x-icon": "octicon:terminal-16"
+      "title": "Mistral ACP Agent Configuration",
+      "type": "object"
     },
     "MistralConfig": {
       "additionalProperties": false,
@@ -23545,6 +24009,138 @@
       "title": "MistralConfig",
       "type": "object"
     },
+    "ModalExecutionEnvironmentConfig": {
+      "additionalProperties": false,
+      "description": "Modal execution environment configuration.\n\nExecutes code in Modal serverless sandboxes for scalable cloud execution.",
+      "properties": {
+        "type": {
+          "const": "modal",
+          "default": "modal",
+          "title": "Type",
+          "type": "string"
+        },
+        "dependencies": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "List of packages to install (pip for Python, npm for JS/TS).",
+          "examples": [
+            "numpy",
+            "pandas"
+          ],
+          "title": "Dependencies"
+        },
+        "timeout": {
+          "default": 60.0,
+          "description": "Execution timeout in seconds.",
+          "examples": [
+            120.0,
+            300.0
+          ],
+          "exclusiveMinimum": 0.0,
+          "title": "Execution Timeout",
+          "type": "number"
+        },
+        "app_name": {
+          "default": null,
+          "description": "Modal app name (creates if missing).",
+          "examples": [
+            "my-app",
+            "anyenv-execution"
+          ],
+          "title": "App Name",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cpu": {
+          "anyOf": [
+            {
+              "minimum": 0.1,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "CPU allocation in cores.",
+          "title": "CPU Cores"
+        },
+        "memory": {
+          "anyOf": [
+            {
+              "minimum": 128,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Memory allocation in MB.",
+          "title": "Memory (MB)"
+        },
+        "gpu": {
+          "default": null,
+          "description": "GPU type.",
+          "examples": [
+            "T4",
+            "A100",
+            "A10G"
+          ],
+          "title": "GPU Type",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "idle_timeout": {
+          "default": null,
+          "description": "Idle timeout in seconds.",
+          "title": "Idle Timeout (seconds)",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "workdir": {
+          "default": "/tmp",
+          "description": "Working directory in sandbox.",
+          "title": "Working Directory",
+          "type": "string"
+        },
+        "language": {
+          "default": "python",
+          "description": "Programming language to use.",
+          "enum": [
+            "python",
+            "javascript",
+            "typescript"
+          ],
+          "examples": [
+            "python",
+            "javascript",
+            "typescript"
+          ],
+          "title": "Programming Language",
+          "type": "string"
+        }
+      },
+      "title": "ModalExecutionEnvironmentConfig",
+      "type": "object",
+      "x-doc-title": "Modal Execution Environment"
+    },
     "ModalFilesystemConfig": {
       "additionalProperties": true,
       "description": "Configuration for Modal sandbox filesystem.",
@@ -23559,6 +24155,11 @@
         "root_path": {
           "default": null,
           "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "examples": [
+            "/data",
+            "/app/uploads",
+            "C:\\Documents"
+          ],
           "title": "Root Path",
           "type": [
             "string",
@@ -23568,7 +24169,12 @@
         "cwd": {
           "default": null,
           "description": "Working directory for relative path operations (uses fs.chdir).",
-          "title": "Cwd",
+          "examples": [
+            "/workspace",
+            "/tmp",
+            "data/"
+          ],
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -23577,7 +24183,7 @@
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
-          "title": "Cached",
+          "title": "Enable Caching",
           "type": "boolean"
         },
         "app_name": {
@@ -23638,7 +24244,7 @@
       "required": [
         "app_name"
       ],
-      "title": "ModalFilesystemConfig",
+      "title": "Modal Configuration",
       "type": "object"
     },
     "ModuleFilesystemConfig": {
@@ -23655,6 +24261,11 @@
         "root_path": {
           "default": null,
           "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "examples": [
+            "/data",
+            "/app/uploads",
+            "C:\\Documents"
+          ],
           "title": "Root Path",
           "type": [
             "string",
@@ -23664,7 +24275,12 @@
         "cwd": {
           "default": null,
           "description": "Working directory for relative path operations (uses fs.chdir).",
-          "title": "Cwd",
+          "examples": [
+            "/workspace",
+            "/tmp",
+            "data/"
+          ],
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -23673,7 +24289,7 @@
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
-          "title": "Cached",
+          "title": "Enable Caching",
           "type": "boolean"
         },
         "fo": {
@@ -23746,7 +24362,7 @@
       "required": [
         "fo"
       ],
-      "title": "ModuleFilesystemConfig",
+      "title": "Module Configuration",
       "type": "object"
     },
     "NodeConnectionConfig": {
@@ -24041,7 +24657,7 @@
       "required": [
         "name"
       ],
-      "title": "NodeConnectionConfig",
+      "title": "Node Connection Configuration",
       "type": "object"
     },
     "NotificationsToolsetConfig": {
@@ -24116,6 +24732,11 @@
         "root_path": {
           "default": null,
           "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "examples": [
+            "/data",
+            "/app/uploads",
+            "C:\\Documents"
+          ],
           "title": "Root Path",
           "type": [
             "string",
@@ -24125,7 +24746,12 @@
         "cwd": {
           "default": null,
           "description": "Working directory for relative path operations (uses fs.chdir).",
-          "title": "Cwd",
+          "examples": [
+            "/workspace",
+            "/tmp",
+            "data/"
+          ],
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -24134,7 +24760,7 @@
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
-          "title": "Cached",
+          "title": "Enable Caching",
           "type": "boolean"
         },
         "token": {
@@ -24147,7 +24773,7 @@
         "parent_page_id": {
           "description": "ID of the parent page where new pages will be created",
           "examples": [
-            "64b1f2c8e8c9a1234567890"
+            "64b1f2c8e8c9a123456789012345"
           ],
           "maxLength": 36,
           "minLength": 32,
@@ -24160,7 +24786,7 @@
         "token",
         "parent_page_id"
       ],
-      "title": "NotionFilesystemConfig",
+      "title": "Notion Configuration",
       "type": "object"
     },
     "ObservabilityConfig": {
@@ -24652,6 +25278,11 @@
         "root_path": {
           "default": null,
           "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "examples": [
+            "/data",
+            "/app/uploads",
+            "C:\\Documents"
+          ],
           "title": "Root Path",
           "type": [
             "string",
@@ -24661,7 +25292,12 @@
         "cwd": {
           "default": null,
           "description": "Working directory for relative path operations (uses fs.chdir).",
-          "title": "Cwd",
+          "examples": [
+            "/workspace",
+            "/tmp",
+            "data/"
+          ],
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -24670,7 +25306,7 @@
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
-          "title": "Cached",
+          "title": "Enable Caching",
           "type": "boolean"
         },
         "fo": {
@@ -24744,7 +25380,7 @@
       "required": [
         "fo"
       ],
-      "title": "OpenApiFilesystemConfig",
+      "title": "OpenAPI Configuration",
       "type": "object"
     },
     "OpenCodeACPAgentConfig": {
@@ -25110,10 +25746,8 @@
           ]
         }
       },
-      "title": "OpenCodeACPAgentConfig",
-      "type": "object",
-      "x-doc-title": "ACP Agent Configuration",
-      "x-icon": "octicon:terminal-16"
+      "title": "OpenCode ACP Agent Configuration",
+      "type": "object"
     },
     "OpenHandsACPAgentConfig": {
       "additionalProperties": false,
@@ -25431,10 +26065,8 @@
           "type": "string"
         }
       },
-      "title": "OpenHandsACPAgentConfig",
-      "type": "object",
-      "x-doc-title": "ACP Agent Configuration",
-      "x-icon": "octicon:terminal-16"
+      "title": "OpenHands ACP Agent Configuration",
+      "type": "object"
     },
     "OrCondition": {
       "additionalProperties": false,
@@ -25473,7 +26105,7 @@
       "required": [
         "conditions"
       ],
-      "title": "OrCondition",
+      "title": "OR Condition",
       "type": "object"
     },
     "OverlayFilesystemConfig": {
@@ -25490,6 +26122,11 @@
         "root_path": {
           "default": null,
           "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "examples": [
+            "/data",
+            "/app/uploads",
+            "C:\\Documents"
+          ],
           "title": "Root Path",
           "type": [
             "string",
@@ -25499,7 +26136,12 @@
         "cwd": {
           "default": null,
           "description": "Working directory for relative path operations (uses fs.chdir).",
-          "title": "Cwd",
+          "examples": [
+            "/workspace",
+            "/tmp",
+            "data/"
+          ],
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -25508,7 +26150,7 @@
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
-          "title": "Cached",
+          "title": "Enable Caching",
           "type": "boolean"
         },
         "filesystems": {
@@ -25530,7 +26172,7 @@
       "required": [
         "filesystems"
       ],
-      "title": "OverlayFilesystemConfig",
+      "title": "Overlay Configuration",
       "type": "object"
     },
     "PackageFilesystemConfig": {
@@ -25547,6 +26189,11 @@
         "root_path": {
           "default": null,
           "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "examples": [
+            "/data",
+            "/app/uploads",
+            "C:\\Documents"
+          ],
           "title": "Root Path",
           "type": [
             "string",
@@ -25556,7 +26203,12 @@
         "cwd": {
           "default": null,
           "description": "Working directory for relative path operations (uses fs.chdir).",
-          "title": "Cwd",
+          "examples": [
+            "/workspace",
+            "/tmp",
+            "data/"
+          ],
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -25565,7 +26217,7 @@
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
-          "title": "Cached",
+          "title": "Enable Caching",
           "type": "boolean"
         },
         "package": {
@@ -25582,7 +26234,7 @@
       "required": [
         "package"
       ],
-      "title": "PackageFilesystemConfig",
+      "title": "Package Configuration",
       "type": "object"
     },
     "PrePostPromptConfig": {
@@ -27102,6 +27754,168 @@
       "title": "PromptParameter",
       "type": "object"
     },
+    "PyodideExecutionEnvironmentConfig": {
+      "additionalProperties": false,
+      "description": "Pyodide execution environment configuration.\n\nExecutes Python code in WASM via Deno for sandboxed browser-like execution.",
+      "properties": {
+        "type": {
+          "const": "pyodide",
+          "default": "pyodide",
+          "title": "Type",
+          "type": "string"
+        },
+        "dependencies": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "List of packages to install (pip for Python, npm for JS/TS).",
+          "examples": [
+            "numpy",
+            "pandas"
+          ],
+          "title": "Dependencies"
+        },
+        "timeout": {
+          "default": 60.0,
+          "description": "Execution timeout in seconds.",
+          "examples": [
+            120.0,
+            300.0
+          ],
+          "exclusiveMinimum": 0.0,
+          "title": "Execution Timeout",
+          "type": "number"
+        },
+        "startup_timeout": {
+          "default": 60.0,
+          "description": "Timeout for Pyodide initialization in seconds.",
+          "exclusiveMinimum": 0.0,
+          "title": "Startup Timeout",
+          "type": "number"
+        },
+        "allow_net": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          ],
+          "default": true,
+          "description": "Network access (True=all, list=specific hosts, False=none).",
+          "title": "Network Access"
+        },
+        "allow_read": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          ],
+          "default": false,
+          "description": "File read access.",
+          "title": "File Read Access"
+        },
+        "allow_write": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          ],
+          "default": false,
+          "description": "File write access.",
+          "title": "File Write Access"
+        },
+        "allow_env": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          ],
+          "default": false,
+          "description": "Environment variable access.",
+          "title": "Environment Variable Access"
+        },
+        "allow_run": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          ],
+          "default": false,
+          "description": "Subprocess execution (limited in WASM).",
+          "title": "Subprocess Execution"
+        },
+        "allow_ffi": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          ],
+          "default": false,
+          "description": "Foreign function interface access.",
+          "title": "FFI Access"
+        },
+        "deno_executable": {
+          "default": null,
+          "description": "Path to deno executable (auto-detected if None).",
+          "examples": [
+            "deno",
+            "/usr/local/bin/deno"
+          ],
+          "title": "Deno Executable",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "title": "PyodideExecutionEnvironmentConfig",
+      "type": "object",
+      "x-doc-title": "Pyodide Execution Environment"
+    },
     "PythonAstFilesystemConfig": {
       "additionalProperties": true,
       "description": "Configuration for Python AST filesystem.",
@@ -27116,6 +27930,11 @@
         "root_path": {
           "default": null,
           "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "examples": [
+            "/data",
+            "/app/uploads",
+            "C:\\Documents"
+          ],
           "title": "Root Path",
           "type": [
             "string",
@@ -27125,7 +27944,12 @@
         "cwd": {
           "default": null,
           "description": "Working directory for relative path operations (uses fs.chdir).",
-          "title": "Cwd",
+          "examples": [
+            "/workspace",
+            "/tmp",
+            "data/"
+          ],
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -27134,7 +27958,7 @@
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
-          "title": "Cached",
+          "title": "Enable Caching",
           "type": "boolean"
         },
         "fo": {
@@ -27207,7 +28031,7 @@
       "required": [
         "fo"
       ],
-      "title": "PythonAstFilesystemConfig",
+      "title": "Python AST Configuration",
       "type": "object"
     },
     "RemoteCodeModeToolsetConfig": {
@@ -27243,7 +28067,12 @@
               "docker": "#/$defs/DockerExecutionEnvironmentConfig",
               "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
               "local": "#/$defs/LocalExecutionEnvironmentConfig",
-              "srt": "#/$defs/SRTExecutionEnvironmentConfig"
+              "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+              "modal": "#/$defs/ModalExecutionEnvironmentConfig",
+              "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
+              "srt": "#/$defs/SRTExecutionEnvironmentConfig",
+              "ssh": "#/$defs/SshExecutionEnvironmentConfig",
+              "vercel": "#/$defs/VercelExecutionEnvironmentConfig"
             },
             "propertyName": "type"
           },
@@ -27265,6 +28094,21 @@
             },
             {
               "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
+            },
+            {
+              "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+            },
+            {
+              "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
+            },
+            {
+              "$ref": "#/$defs/SshExecutionEnvironmentConfig"
+            },
+            {
+              "$ref": "#/$defs/VercelExecutionEnvironmentConfig"
+            },
+            {
+              "$ref": "#/$defs/PyodideExecutionEnvironmentConfig"
             }
           ],
           "title": "Execution environment"
@@ -27485,6 +28329,11 @@
         "root_path": {
           "default": null,
           "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "examples": [
+            "/data",
+            "/app/uploads",
+            "C:\\Documents"
+          ],
           "title": "Root Path",
           "type": [
             "string",
@@ -27494,7 +28343,12 @@
         "cwd": {
           "default": null,
           "description": "Working directory for relative path operations (uses fs.chdir).",
-          "title": "Cwd",
+          "examples": [
+            "/workspace",
+            "/tmp",
+            "data/"
+          ],
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -27503,7 +28357,7 @@
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
-          "title": "Cached",
+          "title": "Enable Caching",
           "type": "boolean"
         },
         "key": {
@@ -27613,7 +28467,7 @@
           "title": "Block Size"
         }
       },
-      "title": "S3FilesystemConfig",
+      "title": "Amazon S3 Configuration",
       "type": "object"
     },
     "SFTPFilesystemConfig": {
@@ -27630,6 +28484,11 @@
         "root_path": {
           "default": null,
           "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "examples": [
+            "/data",
+            "/app/uploads",
+            "C:\\Documents"
+          ],
           "title": "Root Path",
           "type": [
             "string",
@@ -27639,7 +28498,12 @@
         "cwd": {
           "default": null,
           "description": "Working directory for relative path operations (uses fs.chdir).",
-          "title": "Cwd",
+          "examples": [
+            "/workspace",
+            "/tmp",
+            "data/"
+          ],
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -27648,7 +28512,7 @@
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
-          "title": "Cached",
+          "title": "Enable Caching",
           "type": "boolean"
         },
         "host": {
@@ -27733,7 +28597,7 @@
       "required": [
         "host"
       ],
-      "title": "SFTPFilesystemConfig",
+      "title": "SFTP Configuration",
       "type": "object"
     },
     "SMBFilesystemConfig": {
@@ -27750,6 +28614,11 @@
         "root_path": {
           "default": null,
           "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "examples": [
+            "/data",
+            "/app/uploads",
+            "C:\\Documents"
+          ],
           "title": "Root Path",
           "type": [
             "string",
@@ -27759,7 +28628,12 @@
         "cwd": {
           "default": null,
           "description": "Working directory for relative path operations (uses fs.chdir).",
-          "title": "Cwd",
+          "examples": [
+            "/workspace",
+            "/tmp",
+            "data/"
+          ],
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -27768,7 +28642,7 @@
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
-          "title": "Cached",
+          "title": "Enable Caching",
           "type": "boolean"
         },
         "host": {
@@ -27863,7 +28737,7 @@
       "required": [
         "host"
       ],
-      "title": "SMBFilesystemConfig",
+      "title": "SMB Configuration",
       "type": "object"
     },
     "SQLStorageConfig": {
@@ -28025,7 +28899,8 @@
         }
       },
       "title": "SRTExecutionEnvironmentConfig",
-      "type": "object"
+      "type": "object",
+      "x-doc-title": "SRT Execution Environment"
     },
     "SRTFilesystemConfig": {
       "additionalProperties": true,
@@ -28041,6 +28916,11 @@
         "root_path": {
           "default": null,
           "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "examples": [
+            "/data",
+            "/app/uploads",
+            "C:\\Documents"
+          ],
           "title": "Root Path",
           "type": [
             "string",
@@ -28050,7 +28930,12 @@
         "cwd": {
           "default": null,
           "description": "Working directory for relative path operations (uses fs.chdir).",
-          "title": "Cwd",
+          "examples": [
+            "/workspace",
+            "/tmp",
+            "data/"
+          ],
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -28059,7 +28944,7 @@
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
-          "title": "Cached",
+          "title": "Enable Caching",
           "type": "boolean"
         },
         "allowed_domains": {
@@ -28173,7 +29058,7 @@
           "type": "number"
         }
       },
-      "title": "SRTFilesystemConfig",
+      "title": "SRT Configuration",
       "type": "object"
     },
     "SSEMCPServerConfig": {
@@ -30595,6 +31480,11 @@
         "root_path": {
           "default": null,
           "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "examples": [
+            "/data",
+            "/app/uploads",
+            "C:\\Documents"
+          ],
           "title": "Root Path",
           "type": [
             "string",
@@ -30604,7 +31494,12 @@
         "cwd": {
           "default": null,
           "description": "Working directory for relative path operations (uses fs.chdir).",
-          "title": "Cwd",
+          "examples": [
+            "/workspace",
+            "/tmp",
+            "data/"
+          ],
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -30613,7 +31508,7 @@
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
-          "title": "Cached",
+          "title": "Enable Caching",
           "type": "boolean"
         },
         "skills_dir": {
@@ -30660,7 +31555,7 @@
           "title": "Skills Directory"
         }
       },
-      "title": "SkillsFilesystemConfig",
+      "title": "Skills Configuration",
       "type": "object"
     },
     "SkillsToolsetConfig": {
@@ -30707,6 +31602,11 @@
         "root_path": {
           "default": null,
           "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "examples": [
+            "/data",
+            "/app/uploads",
+            "C:\\Documents"
+          ],
           "title": "Root Path",
           "type": [
             "string",
@@ -30716,7 +31616,12 @@
         "cwd": {
           "default": null,
           "description": "Working directory for relative path operations (uses fs.chdir).",
-          "title": "Cwd",
+          "examples": [
+            "/workspace",
+            "/tmp",
+            "data/"
+          ],
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -30725,7 +31630,7 @@
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
-          "title": "Cached",
+          "title": "Enable Caching",
           "type": "boolean"
         },
         "db_path": {
@@ -30768,8 +31673,141 @@
       "required": [
         "db_path"
       ],
-      "title": "SqliteFilesystemConfig",
+      "title": "SQLite Configuration",
       "type": "object"
+    },
+    "SshExecutionEnvironmentConfig": {
+      "additionalProperties": false,
+      "description": "SSH execution environment configuration.\n\nExecutes code on a remote machine via SSH connection.",
+      "properties": {
+        "type": {
+          "const": "ssh",
+          "default": "ssh",
+          "title": "Type",
+          "type": "string"
+        },
+        "dependencies": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "List of packages to install (pip for Python, npm for JS/TS).",
+          "examples": [
+            "numpy",
+            "pandas"
+          ],
+          "title": "Dependencies"
+        },
+        "timeout": {
+          "default": 60.0,
+          "description": "Execution timeout in seconds.",
+          "examples": [
+            120.0,
+            300.0
+          ],
+          "exclusiveMinimum": 0.0,
+          "title": "Execution Timeout",
+          "type": "number"
+        },
+        "host": {
+          "description": "Remote host to connect to.",
+          "examples": [
+            "192.168.1.100",
+            "example.com"
+          ],
+          "title": "Host",
+          "type": "string"
+        },
+        "username": {
+          "description": "SSH username.",
+          "examples": [
+            "ubuntu",
+            "root"
+          ],
+          "title": "Username",
+          "type": "string"
+        },
+        "password": {
+          "anyOf": [
+            {
+              "format": "password",
+              "type": "string",
+              "writeOnly": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "SSH password (if not using key auth).",
+          "title": "Password"
+        },
+        "private_key_path": {
+          "default": null,
+          "description": "Path to SSH private key file.",
+          "examples": [
+            "~/.ssh/id_rsa",
+            "/path/to/key"
+          ],
+          "title": "Private Key Path",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "port": {
+          "default": 22,
+          "description": "SSH port.",
+          "maximum": 65535,
+          "minimum": 1,
+          "title": "SSH Port",
+          "type": "integer"
+        },
+        "language": {
+          "default": "python",
+          "description": "Programming language to use.",
+          "enum": [
+            "python",
+            "javascript",
+            "typescript"
+          ],
+          "examples": [
+            "python",
+            "javascript",
+            "typescript"
+          ],
+          "title": "Programming Language",
+          "type": "string"
+        },
+        "cwd": {
+          "default": null,
+          "description": "Remote working directory (auto-generated if None).",
+          "examples": [
+            "/tmp",
+            "~/workspace"
+          ],
+          "title": "Working Directory",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "host",
+        "username"
+      ],
+      "title": "SshExecutionEnvironmentConfig",
+      "type": "object",
+      "x-doc-title": "SSH Execution Environment"
     },
     "StakpakACPAgentConfig": {
       "additionalProperties": false,
@@ -31219,10 +32257,8 @@
           ]
         }
       },
-      "title": "StakpakACPAgentConfig",
-      "type": "object",
-      "x-doc-title": "ACP Agent Configuration",
-      "x-icon": "octicon:terminal-16"
+      "title": "Stakpak ACP Agent Configuration",
+      "type": "object"
     },
     "StaticCommandConfig": {
       "additionalProperties": false,
@@ -31276,7 +32312,7 @@
       "required": [
         "content"
       ],
-      "title": "StaticCommandConfig",
+      "title": "Static Command Configuration",
       "type": "object"
     },
     "StaticPrompt": {
@@ -33298,7 +34334,7 @@
           },
           "examples": [
             {
-              "import_path": "llmling_agent.models.content:ImageBase64Content",
+              "import_path": "pydantic_ai:BinaryImage",
               "type": "import"
             },
             {
@@ -33547,6 +34583,11 @@
         "root_path": {
           "default": null,
           "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "examples": [
+            "/data",
+            "/app/uploads",
+            "C:\\Documents"
+          ],
           "title": "Root Path",
           "type": [
             "string",
@@ -33556,7 +34597,12 @@
         "cwd": {
           "default": null,
           "description": "Working directory for relative path operations (uses fs.chdir).",
-          "title": "Cwd",
+          "examples": [
+            "/workspace",
+            "/tmp",
+            "data/"
+          ],
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -33565,7 +34611,7 @@
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
-          "title": "Cached",
+          "title": "Enable Caching",
           "type": "boolean"
         },
         "fo": {
@@ -33668,7 +34714,7 @@
       "required": [
         "fo"
       ],
-      "title": "TarFilesystemConfig",
+      "title": "TAR Archive Configuration",
       "type": "object"
     },
     "TavilyConfig": {
@@ -34222,7 +35268,7 @@
       "required": [
         "duration"
       ],
-      "title": "TimeCondition",
+      "title": "Time-based Condition",
       "type": "object"
     },
     "TimeEventConfig": {
@@ -34381,7 +35427,7 @@
       "required": [
         "max_tokens"
       ],
-      "title": "TokenThresholdCondition",
+      "title": "Token Threshold Condition",
       "type": "object"
     },
     "ToolHints": {
@@ -34472,6 +35518,11 @@
         "root_path": {
           "default": null,
           "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "examples": [
+            "/data",
+            "/app/uploads",
+            "C:\\Documents"
+          ],
           "title": "Root Path",
           "type": [
             "string",
@@ -34481,7 +35532,12 @@
         "cwd": {
           "default": null,
           "description": "Working directory for relative path operations (uses fs.chdir).",
-          "title": "Cwd",
+          "examples": [
+            "/workspace",
+            "/tmp",
+            "data/"
+          ],
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -34490,7 +35546,7 @@
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
-          "title": "Cached",
+          "title": "Enable Caching",
           "type": "boolean"
         },
         "source_file": {
@@ -34547,7 +35603,7 @@
       "required": [
         "source_file"
       ],
-      "title": "TreeSitterFilesystemConfig",
+      "title": "TreeSitter Configuration",
       "type": "object"
     },
     "TypeAdapterFilesystemConfig": {
@@ -34564,6 +35620,11 @@
         "root_path": {
           "default": null,
           "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "examples": [
+            "/data",
+            "/app/uploads",
+            "C:\\Documents"
+          ],
           "title": "Root Path",
           "type": [
             "string",
@@ -34573,7 +35634,12 @@
         "cwd": {
           "default": null,
           "description": "Working directory for relative path operations (uses fs.chdir).",
-          "title": "Cwd",
+          "examples": [
+            "/workspace",
+            "/tmp",
+            "data/"
+          ],
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -34582,7 +35648,7 @@
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
-          "title": "Cached",
+          "title": "Enable Caching",
           "type": "boolean"
         },
         "type_adapter": {
@@ -34600,7 +35666,7 @@
       "required": [
         "type_adapter"
       ],
-      "title": "TypeAdapterFilesystemConfig",
+      "title": "TypeAdapter Configuration",
       "type": "object"
     },
     "URIFileSystemConfig": {
@@ -34617,6 +35683,11 @@
         "root_path": {
           "default": null,
           "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "examples": [
+            "/data",
+            "/app/uploads",
+            "C:\\Documents"
+          ],
           "title": "Root Path",
           "type": [
             "string",
@@ -34626,7 +35697,12 @@
         "cwd": {
           "default": null,
           "description": "Working directory for relative path operations (uses fs.chdir).",
-          "title": "Cwd",
+          "examples": [
+            "/workspace",
+            "/tmp",
+            "data/"
+          ],
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -34635,7 +35711,7 @@
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
-          "title": "Cached",
+          "title": "Enable Caching",
           "type": "boolean"
         },
         "uri": {
@@ -34645,12 +35721,21 @@
             "s3://bucket/data",
             "https://example.com"
           ],
-          "title": "Uri",
+          "title": "Resource URI",
           "type": "string"
         },
         "storage_options": {
           "additionalProperties": true,
           "description": "Protocol-specific storage options passed to fsspec.",
+          "examples": [
+            {
+              "key": "access_key",
+              "secret": "secret_key"
+            },
+            {
+              "token": "auth_token"
+            }
+          ],
           "title": "Storage Options",
           "type": "object"
         }
@@ -34675,6 +35760,11 @@
         "root_path": {
           "default": null,
           "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "examples": [
+            "/data",
+            "/app/uploads",
+            "C:\\Documents"
+          ],
           "title": "Root Path",
           "type": [
             "string",
@@ -34684,7 +35774,12 @@
         "cwd": {
           "default": null,
           "description": "Working directory for relative path operations (uses fs.chdir).",
-          "title": "Cwd",
+          "examples": [
+            "/workspace",
+            "/tmp",
+            "data/"
+          ],
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -34693,7 +35788,7 @@
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
-          "title": "Cached",
+          "title": "Enable Caching",
           "type": "boolean"
         },
         "filesystems": {
@@ -34706,7 +35801,7 @@
       "required": [
         "filesystems"
       ],
-      "title": "UnionFilesystemConfig",
+      "title": "Union Configuration",
       "type": "object"
     },
     "UpsonicToolSetConfig": {
@@ -36842,10 +37937,157 @@
           "type": "boolean"
         }
       },
-      "title": "VTCodeACPAgentConfig",
+      "title": "VTCode ACP Agent Configuration",
+      "type": "object"
+    },
+    "VercelExecutionEnvironmentConfig": {
+      "additionalProperties": false,
+      "description": "Vercel execution environment configuration.\n\nExecutes code in Vercel cloud sandboxes for serverless execution.",
+      "properties": {
+        "type": {
+          "const": "vercel",
+          "default": "vercel",
+          "title": "Type",
+          "type": "string"
+        },
+        "dependencies": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "List of packages to install (pip for Python, npm for JS/TS).",
+          "examples": [
+            "numpy",
+            "pandas"
+          ],
+          "title": "Dependencies"
+        },
+        "timeout": {
+          "default": 60.0,
+          "description": "Execution timeout in seconds.",
+          "examples": [
+            120.0,
+            300.0
+          ],
+          "exclusiveMinimum": 0.0,
+          "title": "Execution Timeout",
+          "type": "number"
+        },
+        "runtime": {
+          "anyOf": [
+            {
+              "enum": [
+                "node22",
+                "python3.13",
+                "v0-next-shadcn",
+                "cua-ubuntu-xfce",
+                "walleye-python"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Vercel runtime to use.",
+          "title": "Runtime"
+        },
+        "resources": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "anyOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "string"
+                  }
+                ]
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Resource configuration for the sandbox.",
+          "title": "Resources"
+        },
+        "ports": {
+          "default": [
+            3000
+          ],
+          "description": "List of ports to expose.",
+          "items": {
+            "type": "integer"
+          },
+          "title": "Ports",
+          "type": "array"
+        },
+        "language": {
+          "default": "python",
+          "description": "Programming language to use.",
+          "enum": [
+            "python",
+            "javascript",
+            "typescript"
+          ],
+          "examples": [
+            "python",
+            "javascript",
+            "typescript"
+          ],
+          "title": "Programming Language",
+          "type": "string"
+        },
+        "token": {
+          "anyOf": [
+            {
+              "format": "password",
+              "type": "string",
+              "writeOnly": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Vercel API token (uses environment if None).",
+          "title": "API Token"
+        },
+        "project_id": {
+          "default": null,
+          "description": "Vercel project ID (uses environment if None).",
+          "title": "Project ID",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "team_id": {
+          "default": null,
+          "description": "Vercel team ID (uses environment if None).",
+          "title": "Team ID",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "title": "VercelExecutionEnvironmentConfig",
       "type": "object",
-      "x-doc-title": "ACP Agent Configuration",
-      "x-icon": "octicon:terminal-16"
+      "x-doc-title": "Vercel Execution Environment"
     },
     "VercelFilesystemConfig": {
       "additionalProperties": true,
@@ -36861,6 +38103,11 @@
         "root_path": {
           "default": null,
           "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "examples": [
+            "/data",
+            "/app/uploads",
+            "C:\\Documents"
+          ],
           "title": "Root Path",
           "type": [
             "string",
@@ -36870,7 +38117,12 @@
         "cwd": {
           "default": null,
           "description": "Working directory for relative path operations (uses fs.chdir).",
-          "title": "Cwd",
+          "examples": [
+            "/workspace",
+            "/tmp",
+            "data/"
+          ],
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -36879,7 +38131,7 @@
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
-          "title": "Cached",
+          "title": "Enable Caching",
           "type": "boolean"
         },
         "template": {
@@ -36939,7 +38191,7 @@
           "type": "number"
         }
       },
-      "title": "VercelFilesystemConfig",
+      "title": "Vercel Configuration",
       "type": "object"
     },
     "WebHDFSFilesystemConfig": {
@@ -36956,6 +38208,11 @@
         "root_path": {
           "default": null,
           "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "examples": [
+            "/data",
+            "/app/uploads",
+            "C:\\Documents"
+          ],
           "title": "Root Path",
           "type": [
             "string",
@@ -36965,7 +38222,12 @@
         "cwd": {
           "default": null,
           "description": "Working directory for relative path operations (uses fs.chdir).",
-          "title": "Cwd",
+          "examples": [
+            "/workspace",
+            "/tmp",
+            "data/"
+          ],
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -36974,7 +38236,7 @@
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
-          "title": "Cached",
+          "title": "Enable Caching",
           "type": "boolean"
         },
         "host": {
@@ -37065,7 +38327,7 @@
       "required": [
         "host"
       ],
-      "title": "WebHDFSFilesystemConfig",
+      "title": "WebHDFS Configuration",
       "type": "object"
     },
     "WebdavFilesystemConfig": {
@@ -37082,6 +38344,11 @@
         "root_path": {
           "default": null,
           "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "examples": [
+            "/data",
+            "/app/uploads",
+            "C:\\Documents"
+          ],
           "title": "Root Path",
           "type": [
             "string",
@@ -37091,7 +38358,12 @@
         "cwd": {
           "default": null,
           "description": "Working directory for relative path operations (uses fs.chdir).",
-          "title": "Cwd",
+          "examples": [
+            "/workspace",
+            "/tmp",
+            "data/"
+          ],
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -37100,7 +38372,7 @@
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
-          "title": "Cached",
+          "title": "Enable Caching",
           "type": "boolean"
         },
         "base_url": {
@@ -37211,7 +38483,7 @@
       "required": [
         "base_url"
       ],
-      "title": "WebdavFilesystemConfig",
+      "title": "WebDAV Configuration",
       "type": "object"
     },
     "WebhookConfig": {
@@ -37323,6 +38595,11 @@
         "root_path": {
           "default": null,
           "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "examples": [
+            "/data",
+            "/app/uploads",
+            "C:\\Documents"
+          ],
           "title": "Root Path",
           "type": [
             "string",
@@ -37332,7 +38609,12 @@
         "cwd": {
           "default": null,
           "description": "Working directory for relative path operations (uses fs.chdir).",
-          "title": "Cwd",
+          "examples": [
+            "/workspace",
+            "/tmp",
+            "data/"
+          ],
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -37341,7 +38623,7 @@
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
-          "title": "Cached",
+          "title": "Enable Caching",
           "type": "boolean"
         },
         "owner": {
@@ -37409,7 +38691,7 @@
         "owner",
         "repo"
       ],
-      "title": "WikiFilesystemConfig",
+      "title": "GitHub Wiki Configuration",
       "type": "object"
     },
     "WordMatchCondition": {
@@ -37483,7 +38765,7 @@
       "required": [
         "words"
       ],
-      "title": "WordMatchCondition",
+      "title": "Word Match Condition",
       "type": "object"
     },
     "WorkersToolsetConfig": {
@@ -37595,6 +38877,11 @@
         "root_path": {
           "default": null,
           "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
+          "examples": [
+            "/data",
+            "/app/uploads",
+            "C:\\Documents"
+          ],
           "title": "Root Path",
           "type": [
             "string",
@@ -37604,7 +38891,12 @@
         "cwd": {
           "default": null,
           "description": "Working directory for relative path operations (uses fs.chdir).",
-          "title": "Cwd",
+          "examples": [
+            "/workspace",
+            "/tmp",
+            "data/"
+          ],
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -37613,7 +38905,7 @@
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
-          "title": "Cached",
+          "title": "Enable Caching",
           "type": "boolean"
         },
         "fo": {
@@ -37730,7 +39022,7 @@
       "required": [
         "fo"
       ],
-      "title": "ZipFilesystemConfig",
+      "title": "ZIP Archive Configuration",
       "type": "object"
     }
   },
@@ -37825,9 +39117,6 @@
             },
             "oneOf": [
               {
-                "$ref": "#/$defs/AppwriteFilesystemConfig"
-              },
-              {
                 "$ref": "#/$defs/AsyncLocalFilesystemConfig"
               },
               {
@@ -37837,28 +39126,13 @@
                 "$ref": "#/$defs/BaseModelInstanceFilesystemConfig"
               },
               {
-                "$ref": "#/$defs/BeamFilesystemConfig"
-              },
-              {
                 "$ref": "#/$defs/CliFilesystemConfig"
-              },
-              {
-                "$ref": "#/$defs/DaytonaFilesystemConfig"
               },
               {
                 "$ref": "#/$defs/DistributionFilesystemConfig"
               },
               {
-                "$ref": "#/$defs/E2BFilesystemConfig"
-              },
-              {
                 "$ref": "#/$defs/FlatUnionFilesystemConfig"
-              },
-              {
-                "$ref": "#/$defs/GistFilesystemConfig"
-              },
-              {
-                "$ref": "#/$defs/GitLabFilesystemConfig"
               },
               {
                 "$ref": "#/$defs/HttpFilesystemConfig"
@@ -37867,67 +39141,19 @@
                 "$ref": "#/$defs/HttpxFilesystemConfig"
               },
               {
-                "$ref": "#/$defs/JsonSchemaFilesystemConfig"
-              },
-              {
-                "$ref": "#/$defs/LinearFilesystemConfig"
-              },
-              {
-                "$ref": "#/$defs/MarkdownFilesystemConfig"
-              },
-              {
-                "$ref": "#/$defs/McpFilesystemConfig"
-              },
-              {
-                "$ref": "#/$defs/McpToolsFilesystemConfig"
-              },
-              {
-                "$ref": "#/$defs/MicrosandboxFilesystemConfig"
-              },
-              {
-                "$ref": "#/$defs/ModalFilesystemConfig"
-              },
-              {
-                "$ref": "#/$defs/ModuleFilesystemConfig"
-              },
-              {
-                "$ref": "#/$defs/NotionFilesystemConfig"
-              },
-              {
-                "$ref": "#/$defs/OpenApiFilesystemConfig"
-              },
-              {
                 "$ref": "#/$defs/OverlayFilesystemConfig"
               },
               {
                 "$ref": "#/$defs/PackageFilesystemConfig"
               },
               {
-                "$ref": "#/$defs/PythonAstFilesystemConfig"
-              },
-              {
                 "$ref": "#/$defs/SkillsFilesystemConfig"
-              },
-              {
-                "$ref": "#/$defs/SqliteFilesystemConfig"
-              },
-              {
-                "$ref": "#/$defs/SRTFilesystemConfig"
-              },
-              {
-                "$ref": "#/$defs/TreeSitterFilesystemConfig"
               },
               {
                 "$ref": "#/$defs/TypeAdapterFilesystemConfig"
               },
               {
                 "$ref": "#/$defs/UnionFilesystemConfig"
-              },
-              {
-                "$ref": "#/$defs/VercelFilesystemConfig"
-              },
-              {
-                "$ref": "#/$defs/WikiFilesystemConfig"
               },
               {
                 "$ref": "#/$defs/ArrowFilesystemConfig"
@@ -37994,6 +39220,72 @@
               },
               {
                 "$ref": "#/$defs/URIFileSystemConfig"
+              },
+              {
+                "$ref": "#/$defs/BeamFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/DaytonaFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/E2BFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/ModalFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/MicrosandboxFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/SRTFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/VercelFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/AppwriteFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/GistFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/GitLabFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/LinearFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/McpFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/McpToolsFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/NotionFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/WikiFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/JsonSchemaFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/MarkdownFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/ModuleFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/OpenApiFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/PythonAstFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/SqliteFilesystemConfig"
+              },
+              {
+                "$ref": "#/$defs/TreeSitterFilesystemConfig"
               }
             ]
           },
