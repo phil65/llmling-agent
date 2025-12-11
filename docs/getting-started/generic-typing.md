@@ -76,8 +76,8 @@ The bridge between YAML configuration and code is the `get_agent` method, which 
 
 ```python
 # Type-safe programmatic usage
-agent = pool.get_agent("name", return_type=MyResponseType)
-# Results in Agent[MyDeps, MyResponseType]
+agent = pool.get_agent("name", return_type=MyOutputType)
+# Results in Agent[MyDeps, MyOutputType]
 ```
 
 For type safety, programmatic usage with explicit return_type is preferred over YAML response type definitions.

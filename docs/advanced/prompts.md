@@ -58,7 +58,7 @@ class APIEndpoint:
 Types can implement the `__prompt_type__` classmethod to provide type-level information:
 
 ```python
-class ResponseType:
+class OutputType:
     @classmethod
     def __prompt_type__(cls) -> str:
         return "A structured response with fields: ..."
@@ -71,7 +71,7 @@ Prompts are resolved recursively:
 await agent.run([
     "Basic text",
     data_source,        # __prompt__ called
-    ResponseType,       # __prompt_type__ called
+    OutputType,       # __prompt_type__ called
     {"key": "value"},   # Formatted as key-value
     my_prompt_func,     # Called to get result
 ])

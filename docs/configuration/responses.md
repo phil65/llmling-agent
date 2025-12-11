@@ -170,5 +170,5 @@ response_schema:
 
 response_schema:
   type: "import"  # Import from Python
-  import_path: "myapp.types:MyResponseType"
+  import_path: "myapp.types:MyOutputType"
 ```
