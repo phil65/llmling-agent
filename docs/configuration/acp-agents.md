@@ -36,7 +36,7 @@ These agents can be configured to work alongside LLMling agents, enabling hybrid
 ## Configuration Reference
 
 /// mknodes
-{{ "llmling_agent.models.acp_agents.ACPAgentConfigTypes" | union_to_markdown(display_mode="yaml", header_style="pymdownx") }}
+{{ "llmling_agent.models.acp_agents.ACPAgentConfigTypes" | union_to_markdown(display_mode="yaml", header_style="pymdownx", as_listitem=False, wrapped_in="agentname") }}
 ///
 
 ## Configuration Notes

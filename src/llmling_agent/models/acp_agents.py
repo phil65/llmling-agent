@@ -707,7 +707,6 @@ class FastAgentACPAgentConfig(BaseACPAgentConfig):
             type: fast-agent
             cwd: /path/to/project
             model: claude-3.5-sonnet-20241022
-            tools: ["mcp", "terminal", "editor"]
         ```
     """
 
