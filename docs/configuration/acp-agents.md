@@ -39,23 +39,6 @@ These agents can be configured to work alongside LLMling agents, enabling hybrid
 {{ "llmling_agent.models.acp_agents.ACPAgentConfigTypes" | union_to_markdown(display_mode="yaml", header_style="pymdownx") }}
 ///
 
-## Basic Usage
-
-```yaml
-acp_agents:
-  claude_coder:
-    type: claude
-    model: claude-sonnet-4-20250514
-    allowed_tools:
-      - Bash
-      - Read
-      - Write
-    
-  gemini_assistant:
-    type: gemini
-    model: gemini-2.5-pro
-```
-
 ## Configuration Notes
 
 - ACP agents run as separate processes managed by LLMling-Agent
