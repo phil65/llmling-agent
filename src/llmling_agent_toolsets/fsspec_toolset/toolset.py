@@ -286,7 +286,7 @@ class FSSpecTools(ResourceProvider):
             await agent_ctx.events.file_operation("read", path=path, success=True, size=len(data))
             mime = mime_type or "application/octet-stream"
             return BinaryContent(data=data, media_type=mime, identifier=path)
-        except (OSError, ValueError) as e:
+        except Exception as e:  # noqa: BLE001
             await agent_ctx.events.file_operation("read", path=path, success=False, error=str(e))
             return {"error": f"Failed to read file {path}: {e}"}
 
@@ -353,7 +353,7 @@ class FSSpecTools(ResourceProvider):
                 size = len(content)
             result = {"path": path, "size": size, "mode": mode}
             await agent_ctx.events.file_operation("write", path=path, success=True, size=size)
-        except (OSError, ValueError) as e:
+        except Exception as e:  # noqa: BLE001
             await agent_ctx.events.file_operation("write", path=path, success=False, error=str(e))
             return {"error": f"Failed to write file {path}: {e}"}
         else:
@@ -414,7 +414,7 @@ class FSSpecTools(ResourceProvider):
             else:  # It's a file
                 await fs._rm(path)  # or _rm_file?
 
-        except (OSError, ValueError) as e:
+        except Exception as e:  # noqa: BLE001
             await agent_ctx.events.file_operation("delete", path=path, success=False, error=str(e))
             return {"error": f"Failed to delete {path}: {e}"}
         else:
@@ -592,7 +592,7 @@ class FSSpecTools(ResourceProvider):
                 except (UnicodeDecodeError, OSError):
                     continue
 
-        except (OSError, ValueError) as e:
+        except Exception as e:  # noqa: BLE001
             return {"error": f"Search failed: {e}"}
         else:
             return {
