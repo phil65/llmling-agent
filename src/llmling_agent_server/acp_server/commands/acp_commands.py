@@ -4,16 +4,16 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from slashed import CommandContext  # noqa: TC002
+
+from llmling_agent.messaging.context import NodeContext  # noqa: TC001
 from llmling_agent_commands.base import NodeCommand
 from llmling_agent_config.session import SessionQuery
+from llmling_agent_server.acp_server.session import ACPSession  # noqa: TC001
 
 
 if TYPE_CHECKING:
     from pydantic_ai import ModelRequest, ModelResponse
-    from slashed import CommandContext
-
-    from llmling_agent.messaging.context import NodeContext
-    from llmling_agent_server.acp_server.session import ACPSession
 
 
 class ListSessionsCommand(NodeCommand):
