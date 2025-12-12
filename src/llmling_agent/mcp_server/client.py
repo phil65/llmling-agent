@@ -15,6 +15,7 @@ be swapped per tool call (allowing AgentContext.handle_elicitation to be used).
 from __future__ import annotations
 
 import contextlib
+from importlib.metadata import version
 import logging
 from typing import TYPE_CHECKING, Any, Self, assert_never
 
@@ -50,6 +51,8 @@ if TYPE_CHECKING:
         ContentBlock,
         ElicitRequestParams,
         GetPromptResult,
+        Icon,
+        Implementation,
         Prompt as MCPPrompt,
         Resource as MCPResource,
         TextResourceContents,
@@ -76,6 +79,10 @@ class MCPClient:
         tool_change_callback: Callable[[], Awaitable[None]] | None = None,
         prompt_change_callback: Callable[[], Awaitable[None]] | None = None,
         resource_change_callback: Callable[[], Awaitable[None]] | None = None,
+        client_name: str | None = None,
+        client_title: str | None = None,
+        client_website_url: str | None = None,
+        client_icon_path: str | None = None,
     ) -> None:
         # Mutable handler swapped per call_tool for dynamic elicitation
         self._current_elicitation_handler: ElicitationHandler | None = None
@@ -87,6 +94,10 @@ class MCPClient:
         self._tool_change_callback = tool_change_callback
         self._prompt_change_callback = prompt_change_callback
         self._resource_change_callback = resource_change_callback
+        self._client_name = client_name
+        self._client_title = client_title
+        self._client_website_url = client_website_url
+        self._client_icon_path = client_icon_path
         self._client = self._get_client(self.config)
 
     @property
@@ -167,6 +178,7 @@ class MCPClient:
         import fastmcp
         from fastmcp.client import SSETransport, StreamableHttpTransport
         from fastmcp.client.transports import StdioTransport
+        from mcp.types import Icon, Implementation
 
         transport: ClientTransport
         # Create transport based on config type
@@ -196,6 +208,21 @@ class MCPClient:
             self._prompt_change_callback,
             self._resource_change_callback,
         )
+
+        # Build client_info if client_name is provided
+        client_info: Implementation | None = None
+        if self._client_name:
+            icons: list[Icon] | None = None
+            if self._client_icon_path:
+                icons = [Icon(src=self._client_icon_path)]
+            client_info = Implementation(
+                name=self._client_name,
+                version=version("llmling-agent"),
+                title=self._client_title,
+                websiteUrl=self._client_website_url,
+                icons=icons,
+            )
+
         return fastmcp.Client(
             transport,
             log_handler=self._log_handler,
@@ -205,6 +232,7 @@ class MCPClient:
             sampling_handler=self._sampling_callback,
             message_handler=msg_handler,
             auth="oauth" if (force_oauth or oauth) else None,
+            client_info=client_info,
         )
 
     async def list_tools(self) -> list[MCPTool]:
