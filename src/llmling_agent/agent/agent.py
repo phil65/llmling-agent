@@ -307,7 +307,9 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         self.sys_prompts = SystemPrompts(all_prompts, prompt_manager=ctx.prompt_manager)
 
         # Store auto_cache setting
-        self._auto_cache = auto_cache or (ctx.config.auto_cache if ctx and ctx.config else "off")
+        self._auto_cache: AutoCache = auto_cache or (
+            ctx.config.auto_cache if ctx and ctx.config else "off"
+        )
 
     def __repr__(self) -> str:
         desc = f", {self.description!r}" if self.description else ""

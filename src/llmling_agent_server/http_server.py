@@ -15,6 +15,7 @@ from llmling_agent_server.base import BaseServer
 
 
 if TYPE_CHECKING:
+    from starlette.applications import Starlette
     from starlette.routing import Route
     from upath.types import JoinablePathLike
 
@@ -128,17 +129,13 @@ class HTTPServer(BaseServer):
 
         return prefixed
 
-    async def create_app(self):
+    async def create_app(self) -> Starlette:
         """Create Starlette application with this server's routes.
 
         Returns:
             Starlette application instance
         """
-        try:
-            from starlette.applications import Starlette
-        except ImportError as e:
-            msg = "Please install 'starlette' to use HTTPServer. You can use: uv add starlette"
-            raise ImportError(msg) from e
+        from starlette.applications import Starlette
 
         routes = await self.get_prefixed_routes()
         app = Starlette(debug=False, routes=routes)

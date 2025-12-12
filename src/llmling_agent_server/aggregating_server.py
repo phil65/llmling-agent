@@ -390,7 +390,7 @@ class AggregatingServer(BaseServer):
     async def _wait_for_tasks(
         self,
         tasks: list[asyncio.Task[None]],
-        server_tasks: list[tuple[BaseServer | None, asyncio.Task[None] | None]],
+        server_tasks: Sequence[tuple[BaseServer | None, asyncio.Task[None] | None]],
     ) -> None:
         """Wait for server tasks and handle shutdown."""
         try:
