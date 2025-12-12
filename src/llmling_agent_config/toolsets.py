@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from typing import TYPE_CHECKING, Annotated, Literal
+from typing import TYPE_CHECKING, Annotated, Literal, cast
 
 from exxec.configs import ExecutionEnvironmentConfig
 from llmling_models.configs.model_configs import AnyModelConfig
@@ -215,7 +215,7 @@ class AgentManagementToolsetConfig(BaseToolsetConfig):
         if self.tools is not None:
             from llmling_agent.resource_providers import FilteringResourceProvider
 
-            return FilteringResourceProvider(provider, self.tools)
+            return FilteringResourceProvider(provider, cast(dict[str, bool], self.tools))
         return provider
 
 
@@ -246,7 +246,7 @@ class SubagentToolsetConfig(BaseToolsetConfig):
         if self.tools is not None:
             from llmling_agent.resource_providers import FilteringResourceProvider
 
-            return FilteringResourceProvider(provider, self.tools)
+            return FilteringResourceProvider(provider, cast(dict[str, bool], self.tools))
         return provider
 
 
@@ -311,7 +311,7 @@ class ExecutionEnvironmentToolsetConfig(BaseToolsetConfig):
         if self.tools is not None:
             from llmling_agent.resource_providers import FilteringResourceProvider
 
-            return FilteringResourceProvider(provider, self.tools)
+            return FilteringResourceProvider(provider, cast(dict[str, bool], self.tools))
         return provider
 
 
@@ -342,7 +342,7 @@ class ToolManagementToolsetConfig(BaseToolsetConfig):
         if self.tools is not None:
             from llmling_agent.resource_providers import FilteringResourceProvider
 
-            return FilteringResourceProvider(provider, self.tools)
+            return FilteringResourceProvider(provider, cast(dict[str, bool], self.tools))
         return provider
 
 
@@ -373,7 +373,7 @@ class UserInteractionToolsetConfig(BaseToolsetConfig):
         if self.tools is not None:
             from llmling_agent.resource_providers import FilteringResourceProvider
 
-            return FilteringResourceProvider(provider, self.tools)
+            return FilteringResourceProvider(provider, cast(dict[str, bool], self.tools))
         return provider
 
 
@@ -404,7 +404,7 @@ class HistoryToolsetConfig(BaseToolsetConfig):
         if self.tools is not None:
             from llmling_agent.resource_providers import FilteringResourceProvider
 
-            return FilteringResourceProvider(provider, self.tools)
+            return FilteringResourceProvider(provider, cast(dict[str, bool], self.tools))
         return provider
 
 
@@ -440,7 +440,7 @@ class SkillsToolsetConfig(BaseToolsetConfig):
         if self.tools is not None:
             from llmling_agent.resource_providers import FilteringResourceProvider
 
-            return FilteringResourceProvider(provider, self.tools)
+            return FilteringResourceProvider(provider, cast(dict[str, bool], self.tools))
         return provider
 
 
@@ -471,7 +471,7 @@ class IntegrationToolsetConfig(BaseToolsetConfig):
         if self.tools is not None:
             from llmling_agent.resource_providers import FilteringResourceProvider
 
-            return FilteringResourceProvider(provider, self.tools)
+            return FilteringResourceProvider(provider, cast(dict[str, bool], self.tools))
         return provider
 
 
@@ -502,7 +502,7 @@ class CodeToolsetConfig(BaseToolsetConfig):
         if self.tools is not None:
             from llmling_agent.resource_providers import FilteringResourceProvider
 
-            return FilteringResourceProvider(provider, self.tools)
+            return FilteringResourceProvider(provider, cast(dict[str, bool], self.tools))
         return provider
 
 

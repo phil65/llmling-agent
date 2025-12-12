@@ -504,14 +504,17 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         self,
         *,
         name: str | None = None,
+        description: str | None = None,
         reset_history_on_run: bool = True,
         pass_message_history: bool = False,
         parent: Agent[Any, Any] | None = None,
+        **_kwargs: Any,
     ) -> Tool[OutputDataT]:
         """Create a tool from this agent.
 
         Args:
             name: Optional tool name override
+            description: Optional tool description override
             reset_history_on_run: Clear agent's history before each run
             pass_message_history: Pass parent's message history to agent
             parent: Optional parent agent for history/context sharing
@@ -540,8 +543,9 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
 
         normalized_name = self.name.replace("_", " ").title()
         docstring = f"Get expert answer from specialized agent: {normalized_name}"
-        if self.description:
-            docstring = f"{docstring}\n\n{self.description}"
+        description = description or self.description
+        if description:
+            docstring = f"{docstring}\n\n{description}"
         tool_name = name or f"ask_{self.name}"
         wrapped_tool.__doc__ = docstring
         wrapped_tool.__name__ = tool_name

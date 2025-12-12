@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from llmling_agent.resource_providers import ResourceProvider
 
@@ -28,7 +28,7 @@ class FilteringResourceProvider(ResourceProvider):
         self._provider = provider
         self._tool_filter = tool_filter
 
-    def __getattr__(self, name: str):
+    def __getattr__(self, name: str) -> Any:
         """Delegate attribute access to wrapped provider."""
         return getattr(self._provider, name)
 
