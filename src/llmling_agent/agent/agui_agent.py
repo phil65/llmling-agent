@@ -32,7 +32,7 @@ from llmling_agent.tools import ToolManager
 
 if TYPE_CHECKING:
     from asyncio.subprocess import Process
-    from collections.abc import AsyncIterator, Callable, Sequence
+    from collections.abc import AsyncIterator, Sequence
     from types import TracebackType
 
     from ag_ui.core import Event, Message, ToolMessage
@@ -204,12 +204,7 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
         self._event_queue: asyncio.Queue[RichAgentStreamEvent[Any]] = asyncio.Queue()
         resolved_handlers = resolve_event_handlers(event_handlers)
         self.event_handler = MultiEventHandler[IndividualEventHandler](resolved_handlers)
-        self._tools = ToolManager(tools)
-
-    @property
-    def tools(self) -> ToolManager:
-        """Get the tool manager for client-side tools."""
-        return self._tools
+        self.tools = ToolManager(tools)
 
     @property
     def context(self) -> NodeContext:
@@ -257,7 +252,7 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
         Returns:
             Registered Tool instance
         """
-        return self._tools.register_tool(tool)
+        return self.tools.register_tool(tool)
 
     async def _start_server(self) -> None:
         """Start the AG-UI server subprocess."""
@@ -443,7 +438,7 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
         user_message = UserMessage(id=str(uuid4()), content=final_content)
 
         # Convert registered tools to AG-UI format
-        available_tools = await self._tools.get_tools(state="enabled")
+        available_tools = await self.tools.get_tools(state="enabled")
         agui_tools = [to_agui_tool(t) for t in available_tools]
         tools_by_name = {t.name: t for t in available_tools}
 
@@ -603,24 +598,30 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
             mid = f"{message_id or 'msg'}_{i}" if message_id else None
             yield await self.run(*prompts, message_id=mid)
 
-    def to_tool(self, description: str | None = None) -> Callable[[str], Any]:
+    def to_tool(self, *, name: str | None = None, description: str | None = None) -> Tool[str]:
         """Convert agent to a callable tool.
 
         Args:
+            name: Optional tool name override
             description: Tool description
 
         Returns:
-            Async function that can be used as a tool
+            Tool instance that can be registered
         """
+        from llmling_agent.tools.base import Tool
 
         async def wrapped(prompt: str) -> str:
             """Execute AG-UI agent with given prompt."""
             result = await self.run(prompt)
             return result.content
 
-        wrapped.__name__ = self.name
-        wrapped.__doc__ = description or f"Call {self.name} AG-UI agent"
-        return wrapped
+        tool_name = name or f"ask_{self.name}"
+        docstring = description or f"Call {self.name} AG-UI agent"
+        if self.description:
+            docstring = f"{docstring}\n\n{self.description}"
+        wrapped.__doc__ = docstring
+        wrapped.__name__ = tool_name
+        return Tool.from_callable(wrapped, name_override=tool_name, description_override=docstring)
 
     @property
     def model_name(self) -> str | None:

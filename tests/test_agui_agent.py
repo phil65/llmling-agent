@@ -190,12 +190,12 @@ async def test_agui_agent_to_tool():
         mock_client.stream = MagicMock(return_value=mock_stream_cm)
 
         async with AGUIAgent(endpoint="http://localhost:8000/run", name="test-agent") as agent:
-            tool = agent.to_tool("Test tool description")
-            assert callable(tool)
-            assert tool.__name__ == "test-agent"
-            assert "Test tool description" in str(tool.__doc__)
+            tool = agent.to_tool(description="Test tool description")
+            assert callable(tool.callable)
+            assert tool.name == "ask_test-agent"
+            assert "Test tool description" in tool.description
 
-            result = await tool("Test question")
+            result = await tool.execute(prompt="Test question")
             assert result == "Answer"
 
 

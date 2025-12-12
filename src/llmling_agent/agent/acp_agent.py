@@ -96,7 +96,6 @@ if TYPE_CHECKING:
     from llmling_agent.mcp_server.tool_bridge import ToolManagerBridge
     from llmling_agent.messaging.context import NodeContext
     from llmling_agent.models.acp_agents import BaseACPAgentConfig
-    from llmling_agent.tools import ToolManager
     from llmling_agent.ui.base import InputProvider
 
 
@@ -543,7 +542,7 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         self.event_handler = MultiEventHandler[IndividualEventHandler](resolved_handlers)
         self._extra_mcp_servers: list[McpServer] = []
         # Initialize ToolManager for toolsets (read-only, for bridge exposure)
-        self._tools = ToolManager()
+        self.tools = ToolManager()
         self._tool_bridge: ToolManagerBridge | None = None
         self._owns_bridge = False  # Track if we created the bridge (for cleanup)
 
@@ -561,11 +560,6 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
             definition=self.agent_pool.manifest if self.agent_pool else AgentsManifest(),
         )
 
-    @property
-    def tools(self) -> ToolManager:
-        """Get the tool manager (read-only, for bridge exposure)."""
-        return self._tools
-
     async def _setup_toolsets(self) -> None:
         """Initialize toolsets from config and create bridge if needed."""
         from llmling_agent.mcp_server.tool_bridge import BridgeConfig, ToolManagerBridge
@@ -575,11 +569,11 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         # Create providers from toolset configs and add to tool manager
         for toolset_config in self.config.toolsets:
             provider = toolset_config.get_provider()
-            self._tools.add_provider(provider)
+            self.tools.add_provider(provider)
         # Auto-create bridge to expose tools via MCP
         config = BridgeConfig(transport="sse", server_name=f"llmling-{self.name}-tools")
         self._tool_bridge = ToolManagerBridge(
-            tool_manager=self._tools,
+            tool_manager=self.tools,
             pool=self.agent_pool,  # type: ignore[arg-type]
             config=config,
             owner_agent_name=self.name,
