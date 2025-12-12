@@ -29,6 +29,7 @@ def build(ctx, *args: str):
     """Build documentation."""
     args_str = " " + " ".join(args) if args else ""
     ctx.run(f"uv run zensical build{args_str}")
+    ctx.run("uv run python scripts/reorder_nav.py")
 
 
 @duty(capture=False)
