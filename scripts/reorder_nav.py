@@ -138,6 +138,7 @@ def sort_nav_items(nav_items: list[Tag], orders: dict[str, int]) -> list[Tag]:
     """Sort navigation items based on frontmatter order.
 
     Items are sorted within their parent directory context.
+    Works for both md-tabs__item and md-nav__item elements.
 
     Args:
         nav_items: List of BeautifulSoup Tag objects representing nav items
@@ -149,10 +150,32 @@ def sort_nav_items(nav_items: list[Tag], orders: dict[str, int]) -> list[Tag]:
 
     def get_sort_key(nav_item: Tag) -> tuple[int, str]:
         """Generate sort key for a navigation item."""
-        path, title = extract_nav_item_info(nav_item)
-
-        if path is None:
+        # Handle both md-tabs__item and md-nav__item
+        link = nav_item.find(
+            "a", class_=lambda c: c and ("md-tabs__link" in c or "md-nav__link" in c)
+        )
+        if not link:
             return (999999, "")
+
+        href = link.get("href", "")
+
+        # Extract path from href
+        href = href.strip("/")
+        if href.endswith("/"):
+            href = href[:-1]
+        if href.endswith("index.html"):
+            href = href[:-11] or "index"
+        if href.endswith(".html"):
+            href = href[:-5]
+
+        # Empty href means root index
+        if not href:
+            href = "index"
+
+        # Get title for fallback sorting
+        title = link.get_text(strip=True)
+
+        path = href
 
         # Check for exact match first
         if path in orders:
@@ -188,7 +211,20 @@ def reorder_navigation_in_html(html_file: Path, orders: dict[str, int]) -> bool:
         soup = BeautifulSoup(content, "html.parser")
         modified = False
 
-        # Find all primary navigation containers
+        # 1. Reorder tabs navigation (md-tabs__list)
+        tabs_container = soup.find("ul", class_="md-tabs__list")
+        if tabs_container:
+            tab_items = tabs_container.find_all("li", class_="md-tabs__item", recursive=False)
+            if len(tab_items) > 1:
+                sorted_tabs = sort_nav_items(tab_items, orders)
+                if tab_items != sorted_tabs:
+                    modified = True
+                    for item in tab_items:
+                        item.extract()
+                    for item in sorted_tabs:
+                        tabs_container.append(item)
+
+        # 2. Reorder sidebar navigation (md-nav__list)
         nav_containers = soup.find_all("ul", class_="md-nav__list")
 
         for nav_container in nav_containers:
