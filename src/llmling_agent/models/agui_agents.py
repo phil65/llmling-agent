@@ -2,15 +2,10 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from pydantic import ConfigDict, Field
 
 from llmling_agent_config.nodes import NodeConfig
-
-
-if TYPE_CHECKING:
-    from llmling_agent_config.tools import ToolConfig
+from llmling_agent_config.tools import ToolConfig  # noqa: TC001
 
 
 class AGUIAgentConfig(NodeConfig):
