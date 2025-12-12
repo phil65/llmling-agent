@@ -120,7 +120,14 @@ class MCPServer(BaseServer):
 
             # Register using FastMCP's tool decorator
             tool_handler = make_handler(tool)
-            self.fastmcp.tool()(tool_handler)
+            tool_annotations = types.ToolAnnotations(
+                title=tool.name,
+                readOnlyHint=tool.hints.read_only,
+                destructiveHint=tool.hints.destructive,
+                idempotentHint=tool.hints.idempotent,
+                openWorldHint=tool.hints.open_world,
+            )
+            self.fastmcp.tool(annotations=tool_annotations, task=True)(tool_handler)
 
         self._tools_registered = True
         logger.info("Registered MCP tools", count=len(tools))

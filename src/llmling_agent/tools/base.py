@@ -12,7 +12,7 @@ import schemez
 
 from llmling_agent.log import get_logger
 from llmling_agent.utils.inspection import dataclasses_no_defaults_repr, execute
-from llmling_agent_config.tools import ToolHints  # noqa: TC001
+from llmling_agent_config.tools import ToolHints
 
 
 if TYPE_CHECKING:
@@ -56,7 +56,7 @@ class Tool[TOutputType = Any]:
     schema_override: schemez.OpenAIFunctionDefinition | None = None
     """Schema override. If not set, the schema is inferred from the callable."""
 
-    hints: ToolHints | None = None
+    hints: ToolHints = field(default_factory=ToolHints)
     """Hints for the tool."""
 
     import_path: str | None = None
