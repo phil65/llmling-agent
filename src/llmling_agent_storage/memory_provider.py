@@ -158,8 +158,30 @@ class MemoryStorageProvider(StorageProvider):
         self.conversations.append({
             "id": conversation_id,
             "agent_name": node_name,
+            "title": None,
             "start_time": start_time or get_now(),
         })
+
+    async def update_conversation_title(
+        self,
+        conversation_id: str,
+        title: str,
+    ) -> None:
+        """Update the title of a conversation."""
+        for conv in self.conversations:
+            if conv["id"] == conversation_id:
+                conv["title"] = title
+                return
+
+    async def get_conversation_title(
+        self,
+        conversation_id: str,
+    ) -> str | None:
+        """Get the title of a conversation."""
+        for conv in self.conversations:
+            if conv["id"] == conversation_id:
+                return conv.get("title")
+        return None
 
     async def log_command(
         self,
@@ -270,6 +292,7 @@ class MemoryStorageProvider(StorageProvider):
             conv_data = ConversationData(
                 id=conv_id,
                 agent=conv["agent_name"],
+                title=conv.get("title"),
                 start_time=conv["start_time"].isoformat(),
                 messages=message_data,  # Now using properly typed MessageData
                 token_usage=self._aggregate_token_usage(conv_messages),

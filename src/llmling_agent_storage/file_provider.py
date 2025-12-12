@@ -20,6 +20,7 @@ from llmling_agent_storage.models import TokenUsage
 
 if TYPE_CHECKING:
     from pydantic_ai import FinishReason
+    from yamling import FormatType
 
     from llmling_agent_config.session import SessionQuery
     from llmling_agent_config.storage import FileStorageConfig
@@ -52,6 +53,7 @@ class ConversationData(TypedDict):
 
     id: str
     agent_name: str
+    title: str | None
     start_time: str
 
 
@@ -91,7 +93,7 @@ class FileProvider(StorageProvider):
         """
         super().__init__(config)
         self.path = to_upath(config.path)
-        self.format = config.format
+        self.format: FormatType = config.format
         self.encoding = config.encoding
         self._data: StorageData = {
             "messages": [],
@@ -117,7 +119,7 @@ class FileProvider(StorageProvider):
         import yamling
 
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        yamling.dump_file(self._data, self.path, mode=self.format)  # pyright: ignore
+        yamling.dump_file(self._data, self.path, mode=self.format, overwrite=True)
 
     def cleanup(self) -> None:
         """Save final state."""
@@ -239,10 +241,33 @@ class FileProvider(StorageProvider):
         conversation: ConversationData = {
             "id": conversation_id,
             "agent_name": node_name,
+            "title": None,
             "start_time": (start_time or get_now()).isoformat(),
         }
         self._data["conversations"].append(conversation)
         self._save()
+
+    async def update_conversation_title(
+        self,
+        conversation_id: str,
+        title: str,
+    ) -> None:
+        """Update the title of a conversation."""
+        for conv in self._data["conversations"]:
+            if conv["id"] == conversation_id:
+                conv["title"] = title
+                self._save()
+                return
+
+    async def get_conversation_title(
+        self,
+        conversation_id: str,
+    ) -> str | None:
+        """Get the title of a conversation."""
+        for conv in self._data["conversations"]:
+            if conv["id"] == conversation_id:
+                return conv.get("title")
+        return None
 
     async def log_command(
         self,

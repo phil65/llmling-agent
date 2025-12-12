@@ -8,8 +8,8 @@ from typing import TYPE_CHECKING, Annotated, Final, Literal
 
 from platformdirs import user_data_dir
 from pydantic import ConfigDict, Field
-from pydantic_ai import Agent
 from schemez import Schema
+from tokonomics import ModelName
 
 
 if TYPE_CHECKING:
@@ -27,9 +27,9 @@ APP_NAME: Final = "llmling-agent"
 APP_AUTHOR: Final = "llmling"
 DATA_DIR: Final = Path(user_data_dir(APP_NAME, APP_AUTHOR))
 DEFAULT_DB_NAME: Final = "history.db"
-DEFAULT_TITLE_PROMPT = """\
-Create a short & consise title for this message. Only answer with that title.
-"""
+DEFAULT_TITLE_PROMPT: Final = """\
+Generate a short, descriptive title (3-7 words) for this conversation. \
+Only respond with the title, nothing else."""
 
 
 def get_database_path() -> str:
@@ -232,19 +232,20 @@ class StorageConfig(Schema):
     log_context: bool = Field(default=True, title="Log context")
     """Whether to log additions to the context."""
 
-    title_generation_model: str = Field(
-        default="openai:gpt-5-nano",
-        examples=["openai:gpt-5-nano", "anthropic:claude-3-haiku"],
+    title_generation_model: ModelName | str | None = Field(
+        default="openai:gpt-4o-mini",
+        examples=["openai:gpt-4o-mini", "anthropic:claude-3-haiku-20240307", None],
         title="Title generation model",
     )
-    """Whether to log command executions."""
+    """Model to use for generating conversation titles.
+    Set to None to disable automatic title generation."""
 
     title_generation_prompt: str = Field(
         default=DEFAULT_TITLE_PROMPT,
         examples=[DEFAULT_TITLE_PROMPT, "Summarize this conversation in 5 words"],
         title="Title generation prompt",
     )
-    """Whether to log additions to the context."""
+    """Prompt template for generating conversation titles."""
 
     model_config = ConfigDict(frozen=True)
 
@@ -263,20 +264,8 @@ class StorageConfig(Schema):
             return [SQLStorageConfig()]
         return self.providers
 
-    def get_title_generation_agent(self) -> Agent:
-        """Get title generation agent configuration."""
-        return Agent(
-            name="title_generation",
-            model=self.title_generation_model,
-            instructions=self.title_generation_prompt,
-        )
-
     def get_session_store(self) -> SessionStore:
-        """Create session store based on configuration.
-
-        Returns:
-            Configured session store instance
-        """
+        """Create session store based on configuration."""
         from llmling_agent.sessions.store import MemorySessionStore
         from llmling_agent_storage.session_store import SQLSessionStore
 

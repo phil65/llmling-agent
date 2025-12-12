@@ -168,43 +168,37 @@ def format_conversation(
     if compact and len(msgs) > 1:
         msgs = [msgs[0], msgs[-1]]
 
-    # Convert both Conversation and ConversationData to dict format
-    if isinstance(conv, Conversation):
-        conv_dict = {
-            "id": conv.id,
-            "agent": conv.agent_name,
-            "start_time": conv.start_time.isoformat(),
-        }
-    else:
-        conv_dict = {
-            "id": conv["id"],
-            "agent": conv["agent"],
-            "start_time": conv["start_time"],
-        }
-
     # Convert messages to ChatMessage format if needed
     chat_messages = [msg if isinstance(msg, ChatMessage) else to_chat_message(msg) for msg in msgs]
 
-    return ConversationData(
-        id=conv_dict["id"],
-        agent=conv_dict["agent"],
-        start_time=conv_dict["start_time"],
-        messages=[
-            {
-                "role": msg.role,
-                "content": msg.content,
-                "timestamp": msg.timestamp.isoformat(),
-                "model": msg.model_name,
-                "name": msg.name,
-                "token_usage": {
-                    "prompt": msg.usage.input_tokens,
-                    "completion": msg.usage.output_tokens,
-                    "total": msg.usage.total_tokens,
-                },
-                "cost": float(msg.cost_info.total_cost) if msg.cost_info else None,
-                "response_time": msg.response_time,
-            }
-            for msg in chat_messages
-        ],
-        token_usage=aggregate_token_usage(messages) if include_tokens else None,
-    )
+    # Convert Conversation to ConversationData format
+    if isinstance(conv, Conversation):
+        return ConversationData(
+            id=conv.id,
+            agent=conv.agent_name,
+            title=conv.title,
+            start_time=conv.start_time.isoformat(),
+            messages=[
+                {
+                    "role": msg.role,
+                    "content": msg.content,
+                    "timestamp": msg.timestamp.isoformat(),
+                    "model": msg.model_name,
+                    "name": msg.name,
+                    "token_usage": {
+                        "prompt": msg.usage.input_tokens,
+                        "completion": msg.usage.output_tokens,
+                        "total": msg.usage.total_tokens,
+                    },
+                    "cost": float(msg.cost_info.total_cost) if msg.cost_info else None,
+                    "response_time": msg.response_time,
+                }
+                for msg in chat_messages
+            ],
+            token_usage=aggregate_token_usage(msgs) if include_tokens else None,
+        )
+
+    # If it's already ConversationData, update token_usage if needed
+    if include_tokens and conv["token_usage"] is None:
+        conv["token_usage"] = aggregate_token_usage(msgs)
+    return conv

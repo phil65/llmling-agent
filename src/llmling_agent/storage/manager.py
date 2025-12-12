@@ -6,6 +6,7 @@ import asyncio
 from typing import TYPE_CHECKING, Any, Self
 
 from anyenv import method_spawner
+from pydantic_ai import Agent
 
 from llmling_agent.log import get_logger
 from llmling_agent.storage.serialization import serialize_messages
@@ -19,6 +20,7 @@ from llmling_agent_config.storage import (
 
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from datetime import datetime
     from types import TracebackType
 
@@ -331,3 +333,87 @@ class StorageManager:
             limit=limit,
             current_session_only=current_session_only,
         )
+
+    async def update_conversation_title(
+        self,
+        conversation_id: str,
+        title: str,
+    ) -> None:
+        """Update conversation title in all providers.
+
+        Args:
+            conversation_id: ID of the conversation to update
+            title: New title for the conversation
+        """
+        for provider in self.providers:
+            await provider.update_conversation_title(conversation_id, title)
+
+    async def get_conversation_title(
+        self,
+        conversation_id: str,
+    ) -> str | None:
+        """Get the title of a conversation.
+
+        Args:
+            conversation_id: ID of the conversation
+
+        Returns:
+            The conversation title, or None if not set.
+        """
+        provider = self.get_history_provider()
+        return await provider.get_conversation_title(conversation_id)
+
+    async def generate_conversation_title(
+        self,
+        conversation_id: str,
+        messages: Sequence[ChatMessage[Any]],
+    ) -> str | None:
+        """Generate and store a title for a conversation.
+
+        Uses the configured title generation model to create a short,
+        descriptive title based on the conversation content.
+
+        Args:
+            conversation_id: ID of the conversation to title
+            messages: Messages to use for title generation
+
+        Returns:
+            The generated title, or None if title generation is disabled.
+        """
+        if not self.config.title_generation_model:
+            return None
+
+        # Check if title already exists
+        existing = await self.get_conversation_title(conversation_id)
+        if existing:
+            return existing
+
+        # Format messages for the prompt
+        formatted = "\n".join(
+            f"{msg.role}: {msg.content[:500]}"
+            for msg in messages[:4]  # Limit context
+        )
+
+        try:
+            agent: Agent[None, str] = Agent(
+                model=self.config.title_generation_model,
+                instructions=self.config.title_generation_prompt,
+            )
+            result = await agent.run(formatted)
+            title = result.output.strip().strip("\"'")  # Remove quotes if present
+
+            # Store the title
+            await self.update_conversation_title(conversation_id, title)
+            logger.debug(
+                "Generated conversation title",
+                conversation_id=conversation_id,
+                title=title,
+            )
+        except Exception:
+            logger.exception(
+                "Failed to generate conversation title",
+                conversation_id=conversation_id,
+            )
+            return None
+        else:
+            return title

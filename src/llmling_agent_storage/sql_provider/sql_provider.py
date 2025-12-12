@@ -189,6 +189,33 @@ class SQLModelProvider(StorageProvider):
             session.add(convo)
             await session.commit()
 
+    async def update_conversation_title(
+        self,
+        conversation_id: str,
+        title: str,
+    ) -> None:
+        """Update the title of a conversation."""
+        async with AsyncSession(self.engine) as session:
+            result = await session.execute(
+                select(Conversation).where(Conversation.id == conversation_id)
+            )
+            conversation = result.scalar_one_or_none()
+            if conversation:
+                conversation.title = title
+                session.add(conversation)
+                await session.commit()
+
+    async def get_conversation_title(
+        self,
+        conversation_id: str,
+    ) -> str | None:
+        """Get the title of a conversation."""
+        async with AsyncSession(self.engine) as session:
+            result = await session.execute(
+                select(Conversation.title).where(Conversation.id == conversation_id)
+            )
+            return result.scalar_one_or_none()
+
     async def log_command(
         self,
         *,

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from typing import TYPE_CHECKING, Any, Self
 
 from llmling_agent.log import get_logger
@@ -56,7 +57,8 @@ class ClientSession:
         self._manager = manager
         self._agent: Agent[Any, Any] | None = None
         self._closed = False
-
+        self._title_generation_triggered = False
+        self._title_task: asyncio.Task[None] | None = None
         # Session owns conversation history - agent is stateless
         self._history = MessageHistory()
 
@@ -142,11 +144,30 @@ class ClientSession:
             **kwargs,
         )
 
-        # Persist message if storage is available
-        if self._pool.storage:
-            await self._pool.storage.log_message(result)
+        # Trigger title generation after first exchange (fire-and-forget)
+        # Note: Message logging is handled by the agent itself via MessageNode.log_message
+        if not self._title_generation_triggered and self._pool.storage:
+            self._title_generation_triggered = True
+            self._title_task = asyncio.create_task(self._generate_title())
 
         return result
+
+    async def _generate_title(self) -> None:
+        """Generate conversation title in the background."""
+        if not self._pool.storage:
+            return
+        try:
+            messages = self._history.get_history()
+            if messages:
+                await self._pool.storage.generate_conversation_title(
+                    self.conversation_id,
+                    messages,
+                )
+        except Exception:
+            logger.exception(
+                "Failed to generate conversation title",
+                conversation_id=self.conversation_id,
+            )
 
     async def switch_agent(self, agent_name: str) -> None:
         """Switch to a different agent.

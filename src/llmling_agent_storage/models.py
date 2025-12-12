@@ -61,6 +61,9 @@ class ConversationData(TypedDict):
     agent: str
     """Name of the agent that handled this conversation"""
 
+    title: str | None
+    """AI-generated or user-provided conversation title"""
+
     start_time: str
     """When the conversation started (ISO format)"""
 

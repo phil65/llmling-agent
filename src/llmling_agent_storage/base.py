@@ -118,6 +118,32 @@ class StorageProvider:
     ) -> None:
         """Log a conversation (if supported)."""
 
+    async def update_conversation_title(
+        self,
+        conversation_id: str,
+        title: str,
+    ) -> None:
+        """Update the title of a conversation.
+
+        Args:
+            conversation_id: ID of the conversation to update
+            title: New title for the conversation
+        """
+
+    async def get_conversation_title(
+        self,
+        conversation_id: str,
+    ) -> str | None:
+        """Get the title of a conversation.
+
+        Args:
+            conversation_id: ID of the conversation
+
+        Returns:
+            The conversation title, or None if not set or conversation doesn't exist.
+        """
+        return None
+
     async def log_command(
         self,
         *,
