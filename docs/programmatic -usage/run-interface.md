@@ -104,13 +104,3 @@ async for item in team_run.execute_iter("analyze"):
         case AgentResponse(agent_name=agent_name, message=message):
             print(f"Response from {agent_name}: {message.content}")
 ```
-
-## Summary
-
-The run interface provides:
-
-- Consistent interaction patterns across all message handlers
-- Synchronous and asynchronous execution options
-- Background execution with monitoring
-- Streaming and iteration capabilities
-- Support for both simple and complex use cases

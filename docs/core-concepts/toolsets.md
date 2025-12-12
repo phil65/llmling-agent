@@ -1,6 +1,6 @@
 ---
-title: Capabilities
-description: Agent capabilities system
+title: Toolsets
+description: Agent toolset system
 icon: material/shield-check
 ---
 
