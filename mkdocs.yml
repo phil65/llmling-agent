@@ -82,7 +82,6 @@ markdown_extensions:
   - pymdownx.mark
   - pymdownx.snippets
   - pymdownx.smartsymbols
-  - pymdownx.superfences
   - pymdownx.tabbed:
       alternate_style: true
   - pymdownx.tasklist:
@@ -94,6 +93,15 @@ markdown_extensions:
         - name: mermaid
           class: mermaid
           format: !!python/name:pymdownx.superfences.fence_code_format
+        - name: python
+          class: python
+          validator: !!python/name:mknodes.mdext.execute_ext.validator
+          format: !!python/name:mknodes.mdext.execute_ext.formatter
+        - name: py
+          class: python
+          validator: !!python/name:mknodes.mdext.execute_ext.validator
+          format: !!python/name:mknodes.mdext.execute_ext.formatter
+
 plugins:
   - mkdocstrings:
       handlers:
