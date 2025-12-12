@@ -27,6 +27,9 @@ class SessionData(Schema):
     conversation_id: str
     """Links to conversation in StorageManager."""
 
+    title: str | None = None
+    """AI-generated or user-provided title for the conversation."""
+
     pool_id: str | None = None
     """Optional pool/manifest identifier for multi-pool setups."""
 
@@ -62,3 +65,7 @@ class SessionData(Schema):
         """Return copy with updated metadata."""
         new_metadata = {**self.metadata, **kwargs}
         return self.model_copy(update={"metadata": new_metadata, "last_active": get_now()})
+
+    def with_title(self, title: str) -> SessionData:
+        """Return copy with updated title."""
+        return self.model_copy(update={"title": title, "last_active": get_now()})

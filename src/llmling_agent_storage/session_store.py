@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
-from typing import TYPE_CHECKING, Self
+from typing import TYPE_CHECKING, Any, Self
 
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -50,8 +50,25 @@ class SQLSessionStore:
         async with self._engine.begin() as conn:
             await conn.run_sync(SQLModel.metadata.create_all)
 
+        # Auto-migrate missing columns
+        await self._migrate_columns()
+
         logger.debug("SQL session store initialized", url=self._config.url)
         return self
+
+    async def _migrate_columns(self) -> None:
+        """Add missing columns to existing tables."""
+        from llmling_agent_storage.sql_provider.utils import auto_migrate_columns
+
+        if self._engine is None:
+            return
+
+        async with self._engine.begin() as conn:
+
+            def sync_migrate(sync_conn: Any) -> None:
+                auto_migrate_columns(sync_conn, self._engine.dialect)  # type: ignore[union-attr]
+
+            await conn.run_sync(sync_migrate)
 
     async def __aexit__(
         self,
@@ -78,6 +95,7 @@ class SQLSessionStore:
             agent_name=data.agent_name,
             conversation_id=data.conversation_id,
             pool_id=data.pool_id,
+            title=data.title,
             cwd=data.cwd,
             created_at=data.created_at,
             last_active=data.last_active,
@@ -91,6 +109,7 @@ class SQLSessionStore:
             agent_name=row.agent_name,
             conversation_id=row.conversation_id,
             pool_id=row.pool_id,
+            title=row.title,
             cwd=row.cwd,
             created_at=row.created_at,
             last_active=row.last_active,

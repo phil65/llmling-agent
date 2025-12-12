@@ -159,10 +159,14 @@ class ClientSession:
         try:
             messages = self._history.get_history()
             if messages:
-                await self._pool.storage.generate_conversation_title(
+                title = await self._pool.storage.generate_conversation_title(
                     self.conversation_id,
                     messages,
                 )
+                # Also update SessionData so title is available when listing sessions
+                if title and self._manager:
+                    self._data = self._data.with_title(title)
+                    await self._manager.save(self._data)
         except Exception:
             logger.exception(
                 "Failed to generate conversation title",

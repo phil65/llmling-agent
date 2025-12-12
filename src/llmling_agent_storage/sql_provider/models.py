@@ -201,6 +201,9 @@ class Session(AsyncAttrs, SQLModel, table=True):
     pool_id: str | None = Field(default=None, index=True)
     """Optional pool/manifest identifier for multi-pool setups."""
 
+    title: str | None = Field(default=None, index=True)
+    """AI-generated or user-provided title for the conversation."""
+
     cwd: str | None = Field(default=None, sa_column=Column(Text))
     """Working directory for the session."""
 

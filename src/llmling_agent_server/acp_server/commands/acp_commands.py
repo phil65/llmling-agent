@@ -73,8 +73,13 @@ class ListSessionsCommand(NodeCommand):
                         cwd = sess.cwd or "unknown"
                         is_current = session_id == session.session_id
 
+                        # Get title from SessionData
+                        session_data = await session.manager.session_manager.store.load(session_id)
+                        title = session_data.title if session_data else None
+
                         status = " *(current)*" if is_current else ""
-                        output_lines.append(f"- **{session_id}**{status}")
+                        title_text = f": {title}" if title else ""
+                        output_lines.append(f"- **{session_id}**{status}{title_text}")
                         output_lines.append(f"  - Agent: `{agent_name}`")
                         output_lines.append(f"  - Directory: `{cwd}`")
                     output_lines.append("")
@@ -99,7 +104,8 @@ class ListSessionsCommand(NodeCommand):
                                 session_id
                             )
                             if session_data:
-                                output_lines.append(f"- **{session_id}**")
+                                title_text = f": {session_data.title}" if session_data.title else ""
+                                output_lines.append(f"- **{session_id}**{title_text}")
                                 output_lines.append(f"  - Agent: `{session_data.agent_name}`")
                                 output_lines.append(
                                     f"  - Directory: `{session_data.cwd or 'unknown'}`"
@@ -138,7 +144,7 @@ class LoadSessionCommand(NodeCommand):
     name = "load-session"
     category = "acp"
 
-    async def execute_command(
+    async def execute_command(  # noqa: PLR0915
         self,
         ctx: CommandContext[NodeContext[ACPSession]],
         session_id: str,
@@ -180,13 +186,19 @@ class LoadSessionCommand(NodeCommand):
                 # Show session preview without loading
                 preview_lines = [
                     f"## 📋 Session Preview: `{session_id}`\n",
+                ]
+
+                if session_data.title:
+                    preview_lines.append(f"**Title:** {session_data.title}")
+
+                preview_lines.extend([
                     f"**Agent:** `{session_data.agent_name}`",
                     f"**Directory:** `{session_data.cwd or 'unknown'}`",
                     f"**Created:** {session_data.created_at.strftime('%Y-%m-%d %H:%M')}",
                     f"**Last active:** {session_data.last_active.strftime('%Y-%m-%d %H:%M')}",
                     f"**Conversation ID:** `{session_data.conversation_id}`",
                     f"**Messages:** {len(messages)}",
-                ]
+                ])
 
                 if session_data.metadata:
                     preview_lines.append(

@@ -89,6 +89,36 @@ def get_column_default(column: Any) -> str:
     return ""
 
 
+def auto_migrate_columns(sync_conn: Any, dialect: Any) -> None:
+    """Automatically add missing columns to existing tables.
+
+    Args:
+        sync_conn: Synchronous database connection
+        dialect: SQLAlchemy dialect for SQL type compilation
+    """
+    from sqlalchemy import inspect
+    from sqlalchemy.sql import text
+    from sqlmodel import SQLModel
+
+    inspector = inspect(sync_conn)
+
+    # For each table in our models
+    for table_name, table in SQLModel.metadata.tables.items():
+        existing = {col["name"] for col in inspector.get_columns(table_name)}
+
+        # For each column in model that doesn't exist in DB
+        for col in table.columns:
+            if col.name not in existing:
+                # Create ALTER TABLE statement based on column type
+                type_sql = col.type.compile(dialect)
+                nullable = "" if col.nullable else " NOT NULL"
+                default = get_column_default(col)
+                sql = (
+                    f"ALTER TABLE {table_name} ADD COLUMN {col.name} {type_sql}{nullable}{default}"
+                )
+                sync_conn.execute(text(sql))
+
+
 def parse_model_info(model: str | None) -> tuple[str | None, str | None]:
     """Parse model string into provider and name.
 

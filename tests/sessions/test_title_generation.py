@@ -11,7 +11,7 @@ import pytest
 from llmling_agent import AgentPool
 from llmling_agent.models.agents import AgentConfig
 from llmling_agent.models.manifest import AgentsManifest
-from llmling_agent.sessions import SessionManager
+from llmling_agent.sessions import SessionData, SessionManager
 from llmling_agent.storage.manager import StorageManager
 from llmling_agent_config.storage import MemoryStorageConfig, StorageConfig
 
@@ -55,6 +55,47 @@ async def pool_with_storage(storage_config: StorageConfig):
     pool = AgentPool(manifest=manifest)
     async with pool:
         yield pool
+
+
+class TestSessionDataTitle:
+    """Tests for SessionData title field and methods."""
+
+    def test_session_data_title_field(self) -> None:
+        """Test that SessionData has title field."""
+        data = SessionData(
+            session_id="test_session",
+            agent_name="test_agent",
+            conversation_id="conv_123",
+            title="My Conversation",
+        )
+        assert data.title == "My Conversation"
+
+    def test_session_data_title_default_none(self) -> None:
+        """Test that SessionData title defaults to None."""
+        data = SessionData(
+            session_id="test_session",
+            agent_name="test_agent",
+            conversation_id="conv_123",
+        )
+        assert data.title is None
+
+    def test_with_title(self) -> None:
+        """Test SessionData.with_title returns copy with updated title."""
+        original = SessionData(
+            session_id="test_session",
+            agent_name="test_agent",
+            conversation_id="conv_123",
+        )
+        updated = original.with_title("New Title")
+
+        # Original unchanged
+        assert original.title is None
+        # New instance has title
+        assert updated.title == "New Title"
+        # Other fields preserved
+        assert updated.session_id == original.session_id
+        assert updated.agent_name == original.agent_name
+        assert updated.conversation_id == original.conversation_id
 
 
 class TestStorageManagerTitleGeneration:

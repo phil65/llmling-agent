@@ -19,7 +19,6 @@ from llmling_agent_storage.sql_provider.models import CommandHistory, Conversati
 from llmling_agent_storage.sql_provider.utils import (
     build_message_query,
     format_conversation,
-    get_column_default,
     parse_model_info,
     to_chat_message,
 )
@@ -68,9 +67,9 @@ class SQLModelProvider(StorageProvider):
         Args:
             auto_migrate: Whether to automatically add missing columns
         """
-        from sqlalchemy import inspect
-        from sqlalchemy.sql import text
         from sqlmodel import SQLModel
+
+        from llmling_agent_storage.sql_provider.utils import auto_migrate_columns
 
         # Create tables if they don't exist
         async with self.engine.begin() as conn:
@@ -81,21 +80,7 @@ class SQLModelProvider(StorageProvider):
             async with self.engine.begin() as conn:
 
                 def sync_migrate(sync_conn: Connection) -> None:
-                    inspector = inspect(sync_conn)
-
-                    # For each table in our models
-                    for table_name, table in SQLModel.metadata.tables.items():
-                        existing = {col["name"] for col in inspector.get_columns(table_name)}
-
-                        # For each column in model that doesn't exist in DB
-                        for col in table.columns:
-                            if col.name not in existing:
-                                # Create ALTER TABLE statement based on column type
-                                type_sql = col.type.compile(self.engine.dialect)
-                                nullable = "" if col.nullable else " NOT NULL"
-                                default = get_column_default(col)
-                                sql = f"ALTER TABLE {table_name} ADD COLUMN {col.name} {type_sql}{nullable}{default}"  # noqa: E501
-                                sync_conn.execute(text(sql))
+                    auto_migrate_columns(sync_conn, self.engine.dialect)
 
                 await conn.run_sync(sync_migrate)
 
