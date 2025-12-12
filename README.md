@@ -28,26 +28,16 @@
 LLMling Agent is a framework for creating and managing LLM-powered agents. It integrates with LLMling's resource system and provides structured interactions with language models.
 
 ## ✨ Features
+
 - 🔄 Modern python written from ground up with Python 3.13
-- 📝 Easy consistent APIs
+- 🤝 Integrate multiple external ACP agents (Claude Code, Codex, Goose, etc.) into a single pool where they can cooperate on tasks
 - 🛡️ Complete (multi-)agent pool setup via YAML files including extensive JSON schema to help with creating configurations.
-- 🔌 Extensive MCP support including elicitation, sampling, progress reporting, multi-modality.
+- 🔌 Extensive MCP support including elicitation, sampling, progress reporting, multi-modality, including bridging to ACP / AG-UI protocols.
 - 💾 Storage providers to allow writing to local files, databases, etc. with many customizable backends. Log to SQL databases and pretty-print to a file according to your own wishes.
-- 💬 Object-oriented async messaging and routing system using Connection ("Talk") objects which allow all kind of new patterns for async agent communication
-- 🧩 Support for creating "description prompts" for many common python type(s / instances). Your agent understands common datatypes.
-- 🎮 Complete integrated command sytem to control agents from prompt-based interfaces
-- 🔗 Unique powerful connection-based messaging approach for object-oriented routing and observation.
-- 🎯 Integration of Meta-Model system based on [LLMling-models](https://github.com/phil65/llmling-models), also configurable via YAML.
-- 🛡️ Capabilites system allowing runtime modifications and "special" commands (on-the-fly agent generation, history lookups)
-- 🛜 Comletely UPath backed. Any file operations are handled by fsspec to allow referencing remote sourcces.
+- 🛜 Comletely UPath backed. All file operations (& Code execution) by agents are abstrated in a way that agents can operate directly on remote sources.
 - 📕 Integrated prompt management system.
 - 🔧 Tasks, tools, and what else you can expect from an Agent framework.
-- 🖥️ ACP (Agent Client Protocol) integration for seamless IDE connectivity via JSON-RPC 2.0
-- 🤝 Integrate multiple external ACP agents (Claude Code, Codex, Goose, etc.) into a single pool where they can cooperate on tasks
 - 👥 Easy human-in-the-loop interactions
-- 💻 A CLI application with extensive slash command support to build agent flows interactively. Set up message connections via commands.
-- ℹ️ The most easy way available to generate static websites in combination with [MkNodes](https://github.com/phil/mknodes) and  [the corresponding MkDocs plugin](https://github.com/phil65/mkdocs_mknodes)
-
 
 
 ## Quick Start
@@ -58,73 +48,16 @@ The fastest way to start chatting with an AI:
 
 llmling-agent supports the Agent Client Protocol for seamless integration with desktop applications and IDEs. Run your agents as ACP servers to enable bidirectional communication, session management, and file operations through JSON-RPC 2.0 over stdio.
 
+*The recommended client is Zed IDE (& soon Toad, a python client based on Textual)*
+
 ```bash
 # Start ACP server
-llmling-agent acp config.yml --file-access --terminal-access
+llmling-agent serve-acp [path/to/config.yml]
 ```
 
 Compatible with ACP-enabled Clients like Zed. See the [ACP Integration documentation](https://phil65.github.io/llmling-agent/advanced/acp_integration/) for setup instructions.
 
-
-Use `/help` to see what commands are at your disposal.
-
-
-## 🚀 Quick Examples
-
-Ways to create a simple agent flow:
-
-
-### Python Version
-```python
-from llmling_agent import AgentPool
-
-async def main():
-    async with AgentPool() as pool:
-        # Create browser assistant
-        browser = await pool.add_agent(
-            "browser",
-            system_prompt="Open Wikipedia pages matching the topics you receive.",
-            model="openai:gpt-5-nano",
-            tools=["webbrowser.open"],
-        )
-        # Create main agent and connect
-        agent = await pool.add_agent("assistant", model="openai:gpt-5-nano")
-        connection = agent >> browser  # this sets up a permanent connection.
-        await agent.run("Tell us a random major city! Just one word!")
-        print(connection.stats.total_cost)  # Check cost of this connection
-```
-
-This flow will:
-
-- Ask the 1st agent to tell a major city
-- Will make the 2nd agent open a related webpage using that info
-
-
-### YAML Version
-```yaml
-# agents.yml
-agents:
-  browser:
-    model: openai:gpt-5-mini
-    system_prompts:
-      - "Open Wikipedia pages matching the topics you receive."
-    tools:
-      - type: import
-        name: open_url
-        import_path: webbrowser.open
-
-  assistant:
-    model: openai:gpt-5-mini
-    connections:  # this forwards any output to the 2nd agent
-      - type: node
-        name: browser
-```
-
-```bash
-llmling-agent run assistant --config agents.yml "whats your favourite holiday destination?"
-> What's your favorite holiday destination?
-```
-
+Run `/help` in the chat to see what commands are at your disposal.
 
 ### YAML configuration
 
@@ -283,27 +216,12 @@ jobs:
 
 You can use an Agents manifest in multiple ways:
 
-- Use it for CLI sessions
 
-```bash
-llmling-agent chat --config agents.yml system_checker
-```
 
 - Run it using the CLI
 
 ```bash
 llmling-agent run --config agents.yml my_agent "Some prompt"
-```
-
-- Use the defined Agent programmatically
-
-```python
-from llmling_agent import AgentPool
-
-async with AgentPool("agents.yml") as pool:
-    agent = pool.get_agent("my_agent")
-    result = await agent.run("User prompt!")
-    print(result.data)
 ```
 
 - Start *watch mode* and only react to triggers
@@ -340,6 +258,8 @@ agents:
         2. Report the results.
 
 ```
+
+Programmatic Usage:
 
 ```python
 from llmling_agent.delegation import AgentPool
@@ -392,22 +312,6 @@ async with AgentPool("agents.yml") as pool:
 
 See the [ACP Integration documentation](https://phil65.github.io/llmling-agent/advanced/acp_integration/#external-acp-agents) for supported agents and configuration options.
 
-## Message System
-
-LLMling provides a unified messaging system based on a simple but powerful concept: Every entity that can process messages is a message node. This creates a clean, composable architecture where all nodes:
-
-1. Share a common interface:
-   - `run()` -> Returns ChatMessage
-   - `connect_to()` -> Creates connections
-   - `message_received`: Message-received signal
-   - `message_sent`: Message-sent signal
-
-2. Can be freely connected:
-```python
-# Any message node can connect to any other
-node_a.connect_to(node_b)
-node_a >> node_b  # Shorthand syntax
-```
 
 The framework provides three types of message nodes:
 
@@ -457,8 +361,9 @@ print(f"Messages: {node.stats.message_count}")
 print(f"Cost: ${node.stats.total_cost:.2f}")
 ```
 (note: the operator overloading is just syntactic sugar. In general, teams should be created
-using pool.create_team()/ pool.create_team_run() or agent/team.connect_to())
+using `pool.create_team()` / `pool.create_team_run()` or `agent/team.connect_to()`)
 )
+
 All message nodes support the same execution patterns:
 ```python
 # Single execution
@@ -468,9 +373,6 @@ result = await node.run("prompt")
 async for event in node.run_stream("prompt"):
     print(event)
 
-# Background execution
-stats = await node.run_in_background("prompt", max_count=5)
-await node.wait()  # Wait for completion
 
 # Nested teams work naturally
 team_1 = analyzer & planner  # First team
@@ -499,8 +401,6 @@ This unified system makes it easy to:
 - Use consistent patterns across all node types
 
 Each message in the system carries content, metadata, and execution information, providing a consistent interface across all types of interactions. See [Message System](docs/core-concepts/messages.md) for details.
-
-
 
 
 ### Advanced Connection Features
@@ -579,34 +479,6 @@ You can also use LLMling-models for more sophisticated human-in-the-loop integra
 - Input streaming support
 - Custom UI integration
 
-### Capability System
-
-Fine-grained control over agent permissions:
-
-```python
-agent.capabilities.can_load_resources = True
-agent.capabilities.history_access = "own"  # "none" | "own" | "all"
-```
-
-```yaml
-agents:
-  restricted_agent:
-    toolsets: []  # No toolsets = minimal permissions
-```
-
-### Event-Driven Automation
-
-React to file changes, webhooks, and more:
-
-```python
-# File watching
-agent.events.add_file_watch(paths=["src/**/*.py"], debounce=1000)
-
-# Webhook endpoint
-agent.events.add_webhook("/hooks/github",port=8000)
-
-# Also included: time-based and email
-```
 
 ### Multi-Modal Support
 
@@ -622,7 +494,7 @@ async with Agent(...) as agent:
 
 ### Command System
 
-Extensive slash commands available in all interfaces:
+Extensive slash commands available when used via ACP:
 
 ```bash
 /list-tools              # Show available tools
@@ -667,117 +539,6 @@ def gen_docs(page: mk.MkPage):
     page += mk.MkCode() # if you want to display source code
     result = agent.run.sync("Describle Feature XYZ in MkDocs compatible markdown including examples.", content)
     page += result.content
-```
-
-
-
-This diagram shows the main components of the LLMling Agent framework:
-
-```mermaid
-classDiagram
-    %% Core relationships
-    AgentsManifest --* AgentConfig : contains
-    AgentsManifest --> AgentPool : creates
-    AgentPool --* Agent : manages
-    FileEnvironment --> Config : loads
-    InlineEnvironment --* Config : contains
-    Config --> RuntimeConfig : initialized as
-    Agent --> RuntimeConfig : uses
-    AgentConfig --> FileEnvironment : uses
-    AgentConfig --> InlineEnvironment : uses
-    Agent --* ToolManager : uses
-    Agent --* ConversationManager : uses
-
-    class Config ["[LLMling Core] Config"] {
-        Base configuration format defining tools, resources, and settings
-        +
-        +tools: dict
-        +resources: dict
-        +prompts: dict
-        +global_settings: GlobalSettings
-        +from_file()
-    }
-
-    class RuntimeConfig ["[LLMling Core] RuntimeConfig"] {
-        Runtime state of a config with instantiated components
-        +
-        +config: Config
-        +tools: dict[str, Tool]
-        +resources: dict[str, Resource]
-        +prompts: dict[str, BasePrompt]
-        +register_tool()
-        +load_resource()
-    }
-
-    class AgentsManifest {
-        Complete agent configuration manifest defining all available agents
-        +
-        +responses: dict[str, ResponseDefinition]
-        +agents: dict[str, AgentConfig]
-    }
-
-    class AgentConfig {
-        Configuration for a single agent including model, environment and capabilities
-        +
-        +name: str
-        +model: str | Model
-        +environment: AgentEnvironment
-        +toolsets: list[ToolsetConfig]
-        +system_prompts: list[str]
-        +get_config(): Config
-    }
-
-    class FileEnvironment {
-        Environment loaded from external YAML file
-        +
-        +type: "file"
-        +uri: str
-    }
-
-    class InlineEnvironment {
-        Direct environment configuration without external files
-        +
-        +type: "inline"
-        +tools: ...
-        +resources: ...
-        +prompts: ...
-    }
-
-    class AgentPool {
-        Manager for multiple initialized agents
-        +
-        +manifest: AgentsManifest
-        +agents: dict[str, Agent]
-        +open()
-    }
-
-    class Agent {
-        Main agent class handling LLM interactions and tool usage
-        +
-        +runtime: RuntimeConfig
-        +tools: ToolManager
-        +conversation: ConversationManager
-        +run()
-        +run_stream()
-        +open()
-    }
-
-    class ToolManager {
-        Manages tool registration, enabling/disabling and access
-        +
-        +register_tool()
-        +get_tools()
-        +list_tools()
-    }
-
-    class ConversationManager {
-        Manages conversation state and system prompts
-        +
-        +get_history()
-        +clear()
-        +add_context_from_path()
-        +add_context_from_resource()
-    }
 ```
 
 ### [Read the documentation for further info!](https://phil65.github.io/llmling-agent/)
