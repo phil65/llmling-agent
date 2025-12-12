@@ -47,29 +47,6 @@ Central coordination point for multi-agent systems:
 - Dynamic agent/team creation and cloning
 - Central monitoring and statistics
 
-### One-Line ACP Setup
-
-No installation needed - run directly with uvx:
-
-```bash
-uvx --python 3.13 llmling-agent[default]@latest serve-acp 
-
-# or
-
-uvx --python 3.13 llmling-agent[default]@latest serve-acp path/to/agents.yml
-```
-
-## Installation
-
-```bash
-uv tool install llmling-agent[default]
-```
-
-## Available Extras
-
-/// mknodes
-{{ "extras"| MkDependencyGroups }}
-///
 
 ## Dependencies
 
