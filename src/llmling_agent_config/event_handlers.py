@@ -43,8 +43,10 @@ class BaseEventHandlerConfig(Schema):
         raise NotImplementedError
 
 
-class BuiltinEventHandlerConfig(BaseEventHandlerConfig):
+class StdoutEventHandlerConfig(BaseEventHandlerConfig):
     """Configuration for built-in event handlers (simple, detailed)."""
+
+    model_config = ConfigDict(title="Stdout Event Handler")
 
     type: Literal["builtin"] = Field("builtin", init=False)
     """Builtin event handler."""
@@ -70,6 +72,8 @@ class BuiltinEventHandlerConfig(BaseEventHandlerConfig):
 class CallbackEventHandlerConfig(BaseEventHandlerConfig):
     """Configuration for custom callback event handlers via import path."""
 
+    model_config = ConfigDict(title="Callback Event Handler")
+
     type: Literal["callback"] = Field("callback", init=False)
     """Callback event handler."""
 
@@ -90,6 +94,8 @@ class CallbackEventHandlerConfig(BaseEventHandlerConfig):
 
 class TTSEventHandlerConfig(BaseEventHandlerConfig):
     """Configuration for Text-to-Speech event handler with OpenAI streaming."""
+
+    model_config = ConfigDict(title="Text-to-Speech Event Handler")
 
     type: Literal["tts"] = Field("tts", init=False)
     """TTS event handler."""
@@ -259,7 +265,7 @@ class TTSEventHandlerConfig(BaseEventHandlerConfig):
 
 
 EventHandlerConfig = Annotated[
-    BuiltinEventHandlerConfig | CallbackEventHandlerConfig | TTSEventHandlerConfig,
+    StdoutEventHandlerConfig | CallbackEventHandlerConfig | TTSEventHandlerConfig,
     Field(discriminator="type"),
 ]
 
