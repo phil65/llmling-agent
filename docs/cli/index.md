@@ -2,6 +2,7 @@
 title: CLI
 description: Command-line interface overview
 icon: lucide/terminal
+order: 4
 ---
 
 The LLMling Agent CLI provides a comprehensive set of commands to manage and interact with AI agents.

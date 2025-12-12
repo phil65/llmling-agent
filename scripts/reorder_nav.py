@@ -147,6 +147,22 @@ def sort_nav_items(nav_items: list[Tag], orders: dict[str, int]) -> list[Tag]:
     Returns:
         Sorted list of nav items
     """
+    return sort_nav_items_with_context(nav_items, orders, "")
+
+
+def sort_nav_items_with_context(
+    nav_items: list[Tag], orders: dict[str, int], current_page_path: str
+) -> list[Tag]:
+    """Sort navigation items based on frontmatter order with context awareness.
+
+    Args:
+        nav_items: List of BeautifulSoup Tag objects representing nav items
+        orders: Dictionary mapping paths to order values
+        current_page_path: Current page path for resolving relative links (e.g., "getting-started")
+
+    Returns:
+        Sorted list of nav items
+    """
 
     def get_sort_key(nav_item: Tag) -> tuple[int, str]:
         """Generate sort key for a navigation item."""
@@ -158,6 +174,20 @@ def sort_nav_items(nav_items: list[Tag], orders: dict[str, int]) -> list[Tag]:
             return (999999, "")
 
         href = link.get("href", "")
+
+        # Resolve relative paths based on current page context
+        if href.startswith("../"):
+            # ../ means parent directory
+            href = href[3:]  # Remove ../
+        elif href == "..":
+            # .. means parent (root from sub-pages)
+            href = ""
+        elif href.startswith("./"):
+            # ./ means current directory
+            # On getting-started page, ./ means getting-started
+            href = current_page_path if current_page_path else ""
+        elif href == ".":
+            href = current_page_path if current_page_path else ""
 
         # Extract path from href
         href = href.strip("/")
@@ -211,12 +241,29 @@ def reorder_navigation_in_html(html_file: Path, orders: dict[str, int]) -> bool:
         soup = BeautifulSoup(content, "html.parser")
         modified = False
 
+        # Determine current page path for relative link resolution
+        # site/getting-started/index.html -> getting-started
+        # site/index.html -> ""
+        site_dir = html_file.parent
+        while site_dir.name != "site" and site_dir.parent != site_dir:
+            site_dir = site_dir.parent
+
+        if site_dir.name == "site":
+            try:
+                current_page_path = str(html_file.parent.relative_to(site_dir))
+                if current_page_path == ".":
+                    current_page_path = ""
+            except ValueError:
+                current_page_path = ""
+        else:
+            current_page_path = ""
+
         # 1. Reorder tabs navigation (md-tabs__list)
         tabs_container = soup.find("ul", class_="md-tabs__list")
         if tabs_container:
             tab_items = tabs_container.find_all("li", class_="md-tabs__item", recursive=False)
             if len(tab_items) > 1:
-                sorted_tabs = sort_nav_items(tab_items, orders)
+                sorted_tabs = sort_nav_items_with_context(tab_items, orders, current_page_path)
                 if tab_items != sorted_tabs:
                     modified = True
                     for item in tab_items:
@@ -234,8 +281,8 @@ def reorder_navigation_in_html(html_file: Path, orders: dict[str, int]) -> bool:
             if len(nav_items) <= 1:
                 continue  # Skip if only one or no items
 
-            # Sort the items
-            sorted_items = sort_nav_items(nav_items, orders)
+            # Sort the items with context
+            sorted_items = sort_nav_items_with_context(nav_items, orders, current_page_path)
 
             # Check if order actually changed
             if nav_items != sorted_items:
