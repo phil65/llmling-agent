@@ -123,6 +123,10 @@ def extract_nav_item_info(nav_item: Tag) -> tuple[str | None, str | None]:
     if href.endswith(".html"):
         href = href[:-5]
 
+    # Empty href means root index
+    if not href:
+        href = "index"
+
     # Extract title from the span with md-ellipsis class
     title_span = link.find("span", class_="md-ellipsis")
     title = title_span.get_text(strip=True) if title_span else href
