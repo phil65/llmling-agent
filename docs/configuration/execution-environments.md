@@ -9,7 +9,7 @@ Execution environments allow you to configure the runtime environment for your a
 Any Agent which can perform IO (regular Agents & ACP Agents) can get assigned an execution environment.
 
 /// mknodes
-{{ "anyenv.code_execution.configs.ExecutionEnvironmentConfig" | union_to_markdown(display_mode="yaml", header_style="pymdownx") }}
+{{ "exxec.configs.ExecutionEnvironmentConfig" | union_to_markdown(display_mode="yaml", header_style="pymdownx") }}
 ///
 
 Theres one more execution environment, the ACP environment.
