@@ -11,7 +11,7 @@ from evented.configs import (
     TimeEventConfig,
     WebhookConfig,
 )
-from pydantic import Field
+from pydantic import ConfigDict, Field
 from schemez import Schema
 
 
@@ -30,6 +30,8 @@ ConnectionEventType = Literal[
 
 class ConnectionTriggerConfig(EventSourceConfig):
     """Trigger config specifically for connection events."""
+
+    model_config = ConfigDict(title="Connection Trigger")
 
     type: Literal["connection"] = Field("connection", init=False)
     """Connection event trigger."""
@@ -94,6 +96,8 @@ class ConnectionEventCondition(Schema):
 class ConnectionContentCondition(ConnectionEventCondition):
     """Simple content matching for connection events."""
 
+    model_config = ConfigDict(title="Content Condition")
+
     type: Literal["content"] = Field("content", init=False)
     """Content-based trigger."""
 
@@ -119,6 +123,8 @@ class ConnectionContentCondition(ConnectionEventCondition):
 
 class ConnectionJinja2Condition(ConnectionEventCondition):
     """Flexible Jinja2 condition for connection events."""
+
+    model_config = ConfigDict(title="Jinja2 Condition")
 
     type: Literal["jinja2"] = Field("jinja2", init=False)
     """Jinja2-based trigger configuration."""

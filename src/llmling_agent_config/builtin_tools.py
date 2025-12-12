@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Annotated, Literal
 
-from pydantic import Field
+from pydantic import ConfigDict, Field
 from pydantic_ai import (
     CodeExecutionTool,
     ImageGenerationTool,
@@ -31,6 +31,8 @@ class BaseBuiltinToolConfig(BaseToolConfig):
 
 class WebSearchToolConfig(BaseBuiltinToolConfig):
     """Configuration for PydanticAI web search builtin tool."""
+
+    model_config = ConfigDict(title="Web Search Tool")
 
     type: Literal["web_search"] = Field("web_search", init=False)
     """Web search builtin tool."""
@@ -76,6 +78,8 @@ class WebSearchToolConfig(BaseBuiltinToolConfig):
 class CodeExecutionToolConfig(BaseBuiltinToolConfig):
     """Configuration for PydanticAI code execution builtin tool."""
 
+    model_config = ConfigDict(title="Code Execution Tool")
+
     type: Literal["code_execution"] = Field("code_execution", init=False)
     """Code execution builtin tool."""
 
@@ -87,6 +91,8 @@ class CodeExecutionToolConfig(BaseBuiltinToolConfig):
 class UrlContextToolConfig(BaseBuiltinToolConfig):
     """Configuration for PydanticAI URL context builtin tool."""
 
+    model_config = ConfigDict(title="Url Context Tool")
+
     type: Literal["url_context"] = Field("url_context", init=False)
     """URL context builtin tool."""
 
@@ -97,6 +103,8 @@ class UrlContextToolConfig(BaseBuiltinToolConfig):
 
 class ImageGenerationToolConfig(BaseBuiltinToolConfig):
     """Configuration for PydanticAI image generation builtin tool."""
+
+    model_config = ConfigDict(title="Image Generation Tool")
 
     type: Literal["image_generation"] = Field("image_generation", init=False)
     """Image generation builtin tool."""
@@ -177,6 +185,8 @@ class ImageGenerationToolConfig(BaseBuiltinToolConfig):
 class MemoryToolConfig(BaseBuiltinToolConfig):
     """Configuration for PydanticAI memory builtin tool."""
 
+    model_config = ConfigDict(title="Memory Tool")
+
     type: Literal["memory"] = Field("memory", init=False)
     """Memory builtin tool."""
 
@@ -189,6 +199,8 @@ class MemoryToolConfig(BaseBuiltinToolConfig):
 
 class MCPServerToolConfig(BaseBuiltinToolConfig):
     """Configuration for PydanticAI MCP server builtin tool."""
+
+    model_config = ConfigDict(title="MCP Server Tool")
 
     type: Literal["mcp_server"] = Field("mcp_server", init=False)
     """MCP server builtin tool."""

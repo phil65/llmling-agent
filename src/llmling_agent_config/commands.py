@@ -15,7 +15,7 @@ from schemez import Schema
 class BaseCommandConfig(Schema):
     """Base configuration for commands."""
 
-    model_config = ConfigDict(json_schema_extra={"title": "Base Command Configuration"})
+    model_config = ConfigDict(json_schema_extra={"title": "Base Command"})
 
     type: str = Field(title="Command type")
     """Type discriminator for command configurations."""
@@ -47,7 +47,7 @@ class BaseCommandConfig(Schema):
 class StaticCommandConfig(BaseCommandConfig):
     """Static command with inline content."""
 
-    model_config = ConfigDict(json_schema_extra={"title": "Static Command Configuration"})
+    model_config = ConfigDict(json_schema_extra={"title": "Static Command"})
 
     type: Literal["static"] = Field("static", init=False)
     """Static command configuration."""
@@ -109,7 +109,7 @@ class StaticCommandConfig(BaseCommandConfig):
 class CallableCommandConfig(BaseCommandConfig):
     """Callable command that references a Python function."""
 
-    model_config = ConfigDict(json_schema_extra={"title": "Callable Command Configuration"})
+    model_config = ConfigDict(json_schema_extra={"title": "Callable Command"})
 
     type: Literal["callable"] = Field("callable", init=False)
     """Callable command configuration."""
@@ -159,7 +159,7 @@ class CallableCommandConfig(BaseCommandConfig):
 class FileCommandConfig(BaseCommandConfig):
     """File-based command that loads content from external file."""
 
-    model_config = ConfigDict(json_schema_extra={"title": "File-based Command Configuration"})
+    model_config = ConfigDict(json_schema_extra={"title": "File-based Command"})
 
     type: Literal["file"] = Field("file", init=False)
     """File-based command configuration."""
