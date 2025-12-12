@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Post-process generated HTML to reorder navigation by frontmatter order.
 
 This script reorders navigation items in generated Zensical/MkDocs documentation
@@ -38,14 +37,14 @@ from __future__ import annotations
 
 from pathlib import Path
 import re
+import sys
+from typing import TYPE_CHECKING
+
+from bs4 import BeautifulSoup
 
 
-try:
-    from bs4 import BeautifulSoup, NavigableString, Tag
-except ImportError as e:
-    print(f"Missing required dependencies: {e}")
-    print("Install with: uv add beautifulsoup4")
-    exit(1)
+if TYPE_CHECKING:
+    from bs4 import Tag
 
 
 def extract_frontmatter_order(content: str) -> int | None:
@@ -82,7 +81,7 @@ def extract_frontmatter_orders(docs_dir: Path) -> dict[str, int]:
 
     for md_file in docs_dir.rglob("*.md"):
         try:
-            with open(md_file, encoding="utf-8") as f:
+            with md_file.open(encoding="utf-8") as f:
                 content = f.read()
 
             order = extract_frontmatter_order(content)
@@ -92,7 +91,7 @@ def extract_frontmatter_orders(docs_dir: Path) -> dict[str, int]:
                 path_key = str(rel_path.with_suffix(""))
                 orders[path_key] = order
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             print(f"Error processing {md_file}: {e}")
 
     return orders
@@ -235,7 +234,7 @@ def reorder_navigation_in_html(html_file: Path, orders: dict[str, int]) -> bool:
         True if any changes were made, False otherwise
     """
     try:
-        with open(html_file, encoding="utf-8") as f:
+        with html_file.open(encoding="utf-8") as f:
             content = f.read()
 
         soup = BeautifulSoup(content, "html.parser")
@@ -298,11 +297,11 @@ def reorder_navigation_in_html(html_file: Path, orders: dict[str, int]) -> bool:
 
         # Write back if modified
         if modified:
-            with open(html_file, "w", encoding="utf-8") as f:
+            with html_file.open("w", encoding="utf-8") as f:
                 f.write(str(soup))
             return True
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         print(f"Error processing {html_file}: {e}")
 
     return False
@@ -351,4 +350,4 @@ def main():
 
 
 if __name__ == "__main__":
-    exit(main())
+    sys.exit(main())
