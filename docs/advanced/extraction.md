@@ -13,6 +13,7 @@ These methods can work with any Python class that has a proper constructor.
 ## Basic Usage
 
 ### Single Instance Extraction
+
 ```python
 class Person:
     def __init__(self, name: str, age: int | None = None):
@@ -25,6 +26,7 @@ print(f"Found: {person.name}, {person.age}")  # "John", 30
 ```
 
 ### Multiple Instances
+
 ```python
 text = """
 Team members:
@@ -52,7 +54,6 @@ result = await agent.talk.extract(
 )
 ```
 
-
 ## Working with Complex Types
 
 ### Nested Objects
@@ -71,7 +72,6 @@ class Employee:
 text = "Alice lives at 123 Main St in New York"
 employee = await agent.talk.extract(text, as_type=Employee)
 ```
-
 
 ## Custom Prompts
 
@@ -113,6 +113,7 @@ results = await agent.talk.extract_multiple(
 The structured mode works by converting the target class's constructor into a Pydantic model and using it for validation:
 
 1. **Constructor Analysis**
+
 ```python
 # Your class
 class Person:
@@ -127,6 +128,7 @@ class PersonModel(BaseModel):
 ```
 
 2. **Response Container**
+
 ```python
 # For single extraction
 class Extraction(BaseModel):
@@ -152,11 +154,11 @@ result = as_type(**model_instance.model_dump())
 ```
 
 Benefits:
+
 - Single round-trip to LLM
 - Clear schema validation
 - Better handling of complex types
 - More robust extraction
-
 
 2. **Constructor Tool**
 
@@ -185,7 +187,6 @@ Trade-offs:
 - Multiple round-trips for multiple instances
 - Harder to maintain complex state
 - More points of potential failure
-
 
 ### When to Use Which
 

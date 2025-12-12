@@ -7,6 +7,7 @@ icon: material/power-plug
 # Node Connection System
 
 ## Overview
+
 LLMling provides a clean, object-oriented approach to message routing through a simple but powerful concept:
 Every entity that can process messages is a message node and can be connected to other nodes.
 This creates a flexible and composable system for building complex message flows.
@@ -28,6 +29,7 @@ Types of nodes:
 - TeamRuns (Sequential execution chains)
 
 #### Talk
+
 The fundamental connection unit representing a one-to-many relationship between agents:
 
 ```python
@@ -47,6 +49,7 @@ class Talk:
 ```
 
 #### Connection Types
+
 Three different ways messages can be handled:
 
 - `run`: Execute message as a new run in target agent
@@ -85,14 +88,18 @@ agents:
 ## Connection Patterns
 
 ### Agent-to-Agent
+
 Simple connection between two agents:
+
 ```python
 # Direct connection
 connection = agent_a.connect_to(agent_b)
 ```
 
 ### Agent-to-Team
+
 Connect an agent to multiple targets:
+
 ```python
 # Create team
 team = agent_b & agent_c & agent_d
@@ -102,7 +109,9 @@ connection = agent_a.connect_to(team)
 ```
 
 ### Team-to-Team
+
 Connect groups of agents:
+
 ```python
 team_a = agent_1 & agent_2
 team_b = agent_3 & agent_4
@@ -110,7 +119,9 @@ connection = team_a.connect_to(team_b)
 ```
 
 ### Complex Structures
+
 Nodes can be combined in any way:
+
 ```python
 # Create teams for parallel execution
 team_1 = analyzer & planner  # Team of two agents
@@ -141,6 +152,7 @@ Each connection tracks:
 ### Control Mechanisms
 
 1. **Message Filtering**:
+
    ```python
    # Using lambda
    # Rich context object with access to message, stats, other connections etc
@@ -172,7 +184,6 @@ talk = agent.connect_to(
     exit_condition=lambda ctx: ctx.message.content == "EXIT"
 )
 ```
-
 
 ## Example Usage
 

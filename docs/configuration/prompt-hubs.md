@@ -22,6 +22,7 @@ LLMling-Agent supports integration with leading prompt hub platforms:
 - **Braintrust**: Enterprise prompt management with evaluation and testing
 
 These integrations allow you to:
+
 - Access curated prompt libraries
 - Version and manage prompts centrally
 - A/B test different prompt variations

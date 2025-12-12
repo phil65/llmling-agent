@@ -79,8 +79,6 @@ def get_prompt(ctx):
 await agent.run_in_background(get_prompt)
 ```
 
-
-
 ## Agents with output types
 
 ```python
@@ -95,7 +93,6 @@ class AnalysisResult(BaseModel):
 agent = Agent(base_agent, output_type=AnalysisResult)
 
 ```
-
 
 ## YAML Configuration
 
@@ -144,6 +141,7 @@ responses:
 There are two distinct ways to use structured agents, which should not be mixed:
 
 ### Programmatic Usage (Type-Safe)
+
 ```python
 class AnalysisResult(BaseModel):
     sentiment: float

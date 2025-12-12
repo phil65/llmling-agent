@@ -10,6 +10,7 @@ Response types define structured output formats for agents. They can be defined 
 
 !!! tip "Type Safety"
     While YAML configuration is convenient, defining response types as Pydantic models in Python code provides better type safety, IDE support, and reusability:
+
     ```python
     from pydantic import BaseModel
 
@@ -36,6 +37,7 @@ responses:
 ```
 
 ## Inline Responses
+
 Define response structure directly in YAML:
 
 ```yaml
@@ -43,9 +45,11 @@ Define response structure directly in YAML:
 ```
 
 ## Imported Responses
+
 Import response types from Python code:
 
 ### Python Type Import
+
 ```yaml
 responses:
   AdvancedAnalysis:
@@ -61,6 +65,7 @@ responses:
 ### Using Response Types
 
 ### Assign to Agent
+
 ```yaml
 agents:
   analyzer:
@@ -69,6 +74,7 @@ agents:
 ```
 
 ### Inline with Custom Tool Name
+
 ```yaml
 agents:
   processor:
@@ -86,6 +92,7 @@ agents:
 ```
 
 ## Available Field Types
+
 - `str`: Text strings
 - `int`: Integer numbers
 - `float`: Floating point numbers

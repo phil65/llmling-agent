@@ -30,7 +30,6 @@ LLMling-Agent supports three connection types:
 
 ## Configuration Reference
 
-
 /// mknodes
 {{ "llmling_agent_config.forward_targets.ForwardingTarget" | union_to_markdown(display_mode="yaml", header_style="pymdownx") }}
 ///
@@ -52,6 +51,7 @@ agents:
 ```
 
 Connection types:
+
 - `run`: Execute target agent with the message
 - `queue`: Add message to target's queue
 - `forward`: Simple message forwarding

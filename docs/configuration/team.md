@@ -65,8 +65,10 @@ teams:
 - `sequential`: Members execute in sequence (like | operator)
 
 ### Members
+
 - References to agents or other teams
 - Can include any message node type:
+
   ```yaml
   members:
     - single_agent  # Individual agent
@@ -75,7 +77,9 @@ teams:
   ```
 
 ### Shared Prompt
+
 Additional context provided to all team members:
+
 ```yaml
 teams:
   security_team:
@@ -85,7 +89,9 @@ teams:
 ```
 
 ### Connections
+
 Message forwarding configuration:
+
 ```yaml
 connections:
   - type: node
@@ -125,11 +131,13 @@ teams:
 ## Connection Control
 
 ### Message Flow
+
 - `wait_for_completion`: Whether to wait for target to complete
 - `queued`: Queue messages for manual processing
 - `queue_strategy`: How to handle queued messages (latest/concat/buffer)
 
 ### Filtering
+
 ```yaml
 filter_condition:
   type: word_match
@@ -138,12 +146,15 @@ filter_condition:
 ```
 
 ### Transformation
+
 ```yaml
 transform: myapp.transforms.process_message  # Python callable
 ```
 
 ### Monitoring
+
 All teams provide statistics:
+
 - Message count
 - Token usage
 - Execution timing
@@ -186,6 +197,7 @@ teams:
 ```
 
 This configuration creates a sophisticated workflow where:
+
 1. Analysis runs in parallel
 2. Planning happens sequentially
 3. Execution runs in parallel again

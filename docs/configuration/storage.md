@@ -23,6 +23,7 @@ The storage configuration defines how agent interactions, messages, and tool usa
 Storage providers define how agent interactions, messages, and tool usage are persisted. The system supports multiple providers including SQL databases, file storage, text logs, and in-memory storage.
 
 Key features:
+
 - **Multiple Providers**: Use multiple storage backends simultaneously
 - **Agent Filtering**: Control which agents are logged per provider
 - **Flexible Logging**: Configure what gets logged (messages, conversations, commands, context)

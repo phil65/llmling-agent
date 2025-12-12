@@ -32,7 +32,9 @@ Settings can be configured at two levels:
 ## Storage Providers
 
 ### SQL Storage
+
 The SQL provider offers full history tracking with database persistence:
+
 ```yaml
 storage:
   providers:
@@ -41,6 +43,7 @@ storage:
       pool_size: 5              # Connection pool size
       auto_migration: true      # Add missing columns automatically
 ```
+
 Features:
 
 - Complete conversation history
@@ -61,6 +64,7 @@ storage:
       format: auto            # Or yaml/json
       encoding: utf-8
 ```
+
 Features:
 
 - Human-readable storage format
@@ -80,6 +84,7 @@ storage:
       format: chronological     # Or conversations
       template: custom_template.txt  # Optional
 ```
+
 Features:
 
 - Simple text file output
@@ -96,8 +101,8 @@ storage:
   providers:
     - type: memory
 ```
-Provides temporary storage without persistence, ideal for testing and development.
 
+Provides temporary storage without persistence, ideal for testing and development.
 
 ## Provider Capabilities
 
@@ -126,6 +131,7 @@ Storable Content:
 ## Configuration
 
 Global Settings:
+
 ```yaml
 storage:
   # Global filters
@@ -150,6 +156,7 @@ Provider Filtering:
   - `override`: Provider filter takes precedence
 
 Multiple Providers Example:
+
 ```yaml
 storage:
   providers:
@@ -164,6 +171,7 @@ storage:
 ## Usage Examples
 
 Basic Setup:
+
 ```yaml
 storage:
   providers:
@@ -171,6 +179,7 @@ storage:
 ```
 
 Multiple Providers:
+
 ```yaml
 storage:
   providers:
@@ -185,6 +194,7 @@ storage:
 ```
 
 History Queries:
+
 ```python
 # Get recent messages
 messages = await storage.filter_messages(
@@ -205,6 +215,7 @@ stats = await storage.get_conversation_stats(
 ```
 
 Custom Filtering:
+
 ```yaml
 storage:
   # Global filter

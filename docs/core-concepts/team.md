@@ -286,9 +286,6 @@ Both team types support:
   - `1`: Single agent per task/step
   - `N`: Exact number of agents required
 
-
-
-
 ## Best Practices
 
 1. **Team Size**: Keep teams focused and reasonably sized

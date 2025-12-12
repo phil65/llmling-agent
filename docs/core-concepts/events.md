@@ -16,7 +16,6 @@ LLMling-agent supports different types of triggers that can activate agents auto
 - User interface actions
 - Function calls (monitor functions using a decorator and get event each time it is called)
 
-
 ## Basic Concepts
 
 Events flow through the system in this order:
@@ -29,6 +28,7 @@ Events flow through the system in this order:
 ## Event Types
 
 ### File Watch Events
+
 Monitor file system changes and trigger agent actions:ä
 
 ```yaml
@@ -48,6 +48,7 @@ agents:
 ```
 
 ### Webhook Events
+
 Listen for HTTP requests:
 
 ```yaml
@@ -65,6 +66,7 @@ agents:
 ## Event Configuration
 
 ### Common Properties
+
 All event types share these base properties:
 
 ```yaml
@@ -81,6 +83,7 @@ triggers:
 ```
 
 ### Multiple Triggers
+
 Agents can have multiple triggers of different types:
 
 ```yaml
@@ -108,6 +111,7 @@ agents:
 ## Event Handling
 
 ### In Configuration
+
 Configure how agents handle events through system prompts:
 
 ```yaml
@@ -153,7 +157,6 @@ Events can be handled in two ways:
 1. **Automatic Handling**: Events are automatically converted to agent runs using their `to_prompt()` method
 2. **Custom Callbacks**: Custom event handlers for more control
 
-
 #### Custom Event Handlers
 
 Register custom callbacks to handle events:
@@ -186,6 +189,7 @@ llmling-agent watch agents.yml --log-level DEBUG
 ```
 
 The agents will:
+
 1. Start monitoring configured event sources
 2. Handle events based on their configuration
 3. Run until interrupted (Ctrl+C)
@@ -195,6 +199,7 @@ The agents will:
 Each event type provides specific data:
 
 ### FileEvent
+
 ```python
 @dataclass(frozen=True)
 class FileEventData(EventData):
@@ -205,6 +210,7 @@ class FileEventData(EventData):
 ```
 
 ### WebhookEvent
+
 ```python
 @dataclass(frozen=True)
 class WebhookEventData(EventData):
@@ -214,7 +220,6 @@ class WebhookEventData(EventData):
     timestamp: datetime
     source: str
 ```
-
 
 ## Function Monitoring
 
@@ -243,6 +248,7 @@ def user_login(username: str) -> bool:
 ```
 
 The decorator:
+
 - Creates an event for each function call
 - Includes function result as event content
 - Adds timing and error information
@@ -273,16 +279,17 @@ def check_database() -> DBStatus:
 ```
 
 The decorator:
+
 - Executes function at specified intervals
 - Converts results to events
 - Handles both sync and async functions
 - Can include custom metadata
 - Supports flexible time intervals
 
-
 ## Common Patterns
 
 ### Code Review Automation
+
 ```yaml
 agents:
   code_reviewer:
@@ -295,6 +302,7 @@ agents:
 ```
 
 ### Configuration Monitor
+
 ```yaml
 agents:
   config_monitor:
@@ -306,6 +314,7 @@ agents:
 ```
 
 ### Mixed Handling
+
 ```python
 # Custom handling for specific cases
 async def special_handler(event: EventData):

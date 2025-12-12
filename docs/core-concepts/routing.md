@@ -10,7 +10,6 @@ icon: material/source-branch
 
 LLMling's message routing system provides a flexible and powerful way to control how messages flow between agents. Unlike simple point-to-point connections, the routing system allows for sophisticated decision-making based on message content, agent state, and historical statistics.
 
-
 ## Basic Concepts
 
 At its core, routing is handled through filter functions that determine whether a message should be forwarded to a specific target. These functions can consider:
@@ -71,6 +70,7 @@ Filter functions can make routing decisions based on:
 ### Advanced Routing Patterns
 
 #### Load Balancing
+
 ```python
 def least_busy(context: EventContext):
     return not context.target.is_busy()
@@ -78,8 +78,8 @@ def least_busy(context: EventContext):
 source >> team.when(least_busy)
 ```
 
-
 #### Cost-Aware Routing
+
 ```python
 def within_budget(context: EventContext):
     return context.stats.total_cost < 1.0  # $1 limit
@@ -120,6 +120,7 @@ This context allows conditions to:
 - Make decisions based on complete state
 
 Example usage:
+
 ```python
 def check_condition(ctx: EventContext) -> bool:
     # Check current message

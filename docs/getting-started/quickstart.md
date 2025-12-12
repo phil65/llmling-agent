@@ -56,6 +56,7 @@ acp_agents:
   goose:
     type: goose
 ```
+
 See [ACP Integration](../advanced/acp-integration/) for full details.
 
 ## CLI Usage

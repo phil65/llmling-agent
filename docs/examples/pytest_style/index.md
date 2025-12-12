@@ -22,7 +22,6 @@ This example demonstrates a pytest-inspired way to work with agents:
 - Execution order control
 - Function result handling
 
-
 ## How It Works
 
 1. Functions are decorated with `@node_function`

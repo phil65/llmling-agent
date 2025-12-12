@@ -19,7 +19,6 @@ Messages in LLMling-Agent can flow between:
 
 Each message carries not just its content, but also metadata about its journey through the system (costs, timing, routing information).
 
-
 ## Message Types
 
 The system uses two main message types:
@@ -103,6 +102,7 @@ class ChatMessage[TContent]:
 ```
 
 #### Usage Examples
+
 ```python
 # Simple text message
 msg = ChatMessage[str](
@@ -153,6 +153,7 @@ class TeamResponse(list[AgentResponse]):
 ```
 
 #### Usage Examples
+
 ```python
 # Execute team
 team = pool.create_team(["analyzer", "planner", "executor"])

@@ -50,6 +50,7 @@ Connections are managed by the `ConnectionManager`, which provides:
 ### Agent-to-Agent
 
 Simple connection between two agents:
+
 ```python
 # Direct connection
 agent_a.connect_to(agent_b)
@@ -61,6 +62,7 @@ agent_a.connect_to("agent_b")
 ### Agent-to-Team
 
 Connect an agent to multiple targets:
+
 ```python
 # Create team
 team = agent_b & agent_c & agent_d
@@ -72,6 +74,7 @@ agent_a.connect_to(team)
 ### Team-to-Team
 
 Connect groups of agents:
+
 ```python
 team_a = agent_1 & agent_2
 team_b = agent_3 & agent_4
@@ -161,7 +164,6 @@ agent >> other_agent.when(
     )
 )
 ```
-
 
 ### Manual Message Triggering
 

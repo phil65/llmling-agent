@@ -13,6 +13,7 @@ hide:
 ///
 
 ## Multi-Agent Download System with Cheerleader
+
 This example demonstrates several advanced features of LLMling-agent:
 
 - Continuous repetitive tasks
@@ -21,7 +22,6 @@ This example demonstrates several advanced features of LLMling-agent:
 - Capability usage (agent listing and task delegation)
 - Stateful callback mechanism
 - Multiple storage providers (SQLite + pretty-printed logs)
-
 
 ## How It Works
 

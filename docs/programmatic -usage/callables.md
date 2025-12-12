@@ -31,6 +31,7 @@ agent = Agent.from_callback(analyze)
 Callables are automatically converted to agents when used in:
 
 ### Teams (using `&`)
+
 ```python
 def analyze(text: str) -> AnalysisResult:
     return AnalysisResult(...)
@@ -43,12 +44,14 @@ team = analyzer & analyze & summarize
 ```
 
 ### Pipelines (using `|`)
+
 ```python
 # Functions become agents in the pipeline
 pipeline = agent | analyze | summarize
 ```
 
 ### Connections (using `>>`)
+
 ```python
 # Function becomes agent when used as target
 agent >> analyze
@@ -91,7 +94,6 @@ This seamless integration of callables allows you to:
 - Create lightweight processing steps without full agent overhead
 - Preserve type safety throughout the workflow
 - Gradually convert functions to full agents as needed
-
 
 ## Callables for prompts
 

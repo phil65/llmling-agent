@@ -31,6 +31,7 @@ The `__prompt__` protocol allows objects to provide LLM-friendly descriptions of
 ### Best Practices
 
 **Be Descriptive Yet Concise**
+
 ```python
 class DataAnalysis:
     def __prompt__(self) -> str:
@@ -40,6 +41,7 @@ class DataAnalysis:
 ```
 
 **Format for LLM Understanding**
+
 ```python
 class APIEndpoint:
     def __prompt__(self) -> str:
@@ -55,6 +57,7 @@ class APIEndpoint:
 ```
 
 ### `__prompt_type__` Protocol
+
 Types can implement the `__prompt_type__` classmethod to provide type-level information:
 
 ```python
@@ -67,6 +70,7 @@ class OutputType:
 ## Recursive Resolution
 
 Prompts are resolved recursively:
+
 ```python
 await agent.run([
     "Basic text",

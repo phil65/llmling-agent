@@ -13,7 +13,9 @@ icon: material/history
 Session configuration allows loading previous conversations and managing agent state. Sessions can be identified by name or configured using detailed query parameters.
 
 ## Basic Configuration
+
 Simple session by name:
+
 ```yaml
 agents:
   assistant:
@@ -21,6 +23,7 @@ agents:
 ```
 
 You can also configure memory settings:
+
 ```yaml
 agents:
   assistant:
@@ -34,7 +37,9 @@ agents:
 ```
 
 ## Detailed Query Configuration
+
 Complex filtering of previous conversations:
+
 ```yaml
 agents:
   assistant:
@@ -50,7 +55,9 @@ agents:
 ```
 
 ## Time Period Examples
+
 The `since` and `until` fields support various formats:
+
 ```yaml
 agents:
   assistant:
@@ -64,7 +71,9 @@ agents:
 ```
 
 ## Role Filtering
+
 Filter messages by their roles:
+
 ```yaml
 agents:
   assistant:
@@ -78,6 +87,7 @@ agents:
 ## Usage Examples
 
 ### Continue Previous Chat
+
 ```yaml
 agents:
   assistant:
@@ -85,6 +95,7 @@ agents:
 ```
 
 ### Load Recent History
+
 ```yaml
 agents:
   assistant:
@@ -94,6 +105,7 @@ agents:
 ```
 
 ### Load Specific Topic
+
 ```yaml
 agents:
   assistant:
@@ -104,6 +116,7 @@ agents:
 ```
 
 ### Team History
+
 ```yaml
 agents:
   coordinator:

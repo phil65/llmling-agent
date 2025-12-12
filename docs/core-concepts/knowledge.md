@@ -84,6 +84,5 @@ async with Agent(knowledge=knowledge) as agent:
 
 Knowledge initialization happens in parallel with other async setup (MCP servers, runtime) unless `parallel_init=False` is set.
 
-
 !!! info
     This part will undergo significant refactor in the future and is subject to change. There will be adapters for LangChain's resources, and more.

@@ -136,7 +136,6 @@ async def improve_code(
     return await manager.run(f"Improve this code:\n{code}")
 ```
 
-
 ## Type Safety
 
 The system provides comprehensive type checking:
@@ -172,7 +171,6 @@ Type checking is:
 - Validated at runtime
 - Clear about errors
 
-
 ### Continuous Monitoring
 
 Set up agents for continuous operation:
@@ -196,6 +194,7 @@ async def monitor_system(
 1. **Type Hints**: Always use `Agent[None]` or appropriate generic type for proper typing.
 
 2. **Default Values**: Use `Agent[None] | None = None` when agent is optional:
+
 ```python
 async def optional_review(
     reviewer: Agent[None] | None = None,
@@ -207,6 +206,7 @@ async def optional_review(
 ```
 
 3. **Pool Access**: You can also inject the pool directly:
+
 ```python
 async def dynamic_team(
     pool: AgentPool,
@@ -218,6 +218,7 @@ async def dynamic_team(
 ```
 
 4. **Context Sharing**: Use shared dependencies for coordinated agents:
+
 ```python
 async def shared_analysis(
     analyzer1: Agent[Context],

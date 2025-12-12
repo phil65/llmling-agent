@@ -93,9 +93,8 @@ It is possible to:
 - Load previous conversations and even describe the Queries in the yaml file using simple syntax
 - Assign agents to other agents for agent-as-a-tool-usage
 
-
-
 ### Agent Pools
+
 A Pool is a collection of agents that can:
 
 - Share resources and knowledge
@@ -106,6 +105,7 @@ A Pool is a collection of agents that can:
 Think of a pool as a workspace where agents can collaborate.
 
 ### Teams
+
 Teams are dynamic groups of agents from a pool that work together on specific tasks. They support:
 
 - Parallel execution

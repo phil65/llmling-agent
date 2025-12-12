@@ -27,7 +27,6 @@ agents:
     retries: 2                   # Number of retries for failed
 ```
 
-
 ## Field Reference
 
 | Field Name | Description |

@@ -116,7 +116,6 @@ class Agent[TDeps, TResult]:
 Jobs provide a clean way to define work requirements and manage resources while maintaining type safety throughout the execution chain.
 This separation of concerns allows for better reusability and clearer contracts between task definitions and their executors.
 
-
 ## YAML Definition
 
 Jobs can be defined directly in the agent manifest YAML file:

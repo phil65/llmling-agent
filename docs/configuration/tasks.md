@@ -7,12 +7,14 @@ icon: material/format-list-checks
 # Task Configuration
 
 Tasks (called "jobs" in YAML) define reusable operations that agents can execute. They can be defined in YAML and include:
+
 - Prompt templates
 - Required tools
 - Knowledge sources
 - Result type validation
 
 ## Basic Task
+
 Simple task with prompt and result type:
 
 ```yaml
@@ -24,6 +26,7 @@ jobs:
 ```
 
 ## Knowledge Sources
+
 Tasks can load context from various sources:
 
 ```yaml
@@ -51,6 +54,7 @@ jobs:
 ```
 
 ## Required Tools
+
 Specify tools needed for the task:
 
 ```yaml
@@ -67,6 +71,7 @@ jobs:
 ```
 
 ## Dependencies and Context
+
 Tasks can require specific data:
 
 ```yaml
@@ -80,6 +85,7 @@ jobs:
 ```
 
 ## Using Tasks
+
 Execute tasks through the API:
 
 ```python
@@ -88,6 +94,7 @@ result = await agent.run_job("analyze_code")
 ```
 
 You can also use the Job directly:
+
 ```python
 from llmling_agent import AgentPool
 
@@ -99,6 +106,7 @@ result = await pool.run_job("analyze_code", agent="my-agent")
 ```
 
 ## Complete Example
+
 Complex task with all features:
 
 ```yaml
@@ -133,6 +141,7 @@ jobs:
 ```
 
 ## Task Registry
+
 All tasks are available through the agent pool:
 
 ```python

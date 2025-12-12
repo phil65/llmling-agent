@@ -14,7 +14,6 @@ hide:
 
 This example demonstrates how to set up a cyclic communication pattern between agents using LLMling's connection system.
 
-
 !!! note
     Mermaid diagrams can be generated using pool.get_mermaid_diagram() for a whole pool, as well as
     ConnectionManager.get_mermaid_diagram() for a single agent.
@@ -22,7 +21,6 @@ This example demonstrates how to set up a cyclic communication pattern between a
 ## Running the Example
 
 Start the chain by sending a word to player1:
-
 
 Example output:
 
@@ -32,7 +30,6 @@ Example output:
 2. Agents are connected in a circle: player1 -> player2 -> player3 -> player1
 3. Messages flow through the connections automatically
 4. Optional stop condition can terminate the loop when needed
-
 
 ## Adding Controls
 

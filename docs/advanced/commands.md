@@ -11,12 +11,15 @@ LLMling Agent provides a consistent command system across both CLI and web inter
 ## Essential Commands
 
 ### Session Management
+
 ```bash
 /exit
 ```
+
 Exit the current chat session cleanly.
 
 ### Tool Management
+
 ```bash
 # List available tools
 /list-tools
@@ -37,6 +40,7 @@ Example: /register-tool json.dumps --name format_json --description "Format JSON
 ```
 
 ### Resource Management
+
 ```bash
 # List available resources
 /list-resources
@@ -48,6 +52,7 @@ Example: /show-resource template --date today
 ```
 
 ### Agent Configuration
+
 ```bash
 # Show current agent configuration
 /show-agent
@@ -66,6 +71,7 @@ Example: /set-model gpt-5
 ## Additional Commands
 
 ### Environment
+
 ```bash
 # Change environment file
 /set-env <path>
@@ -75,6 +81,7 @@ Example: /set-model gpt-5
 ```
 
 ### History and Stats
+
 ```bash
 # Clear chat history
 /clear
@@ -90,6 +97,7 @@ Example: /set-model gpt-5
 ```
 
 ### Utility Commands
+
 ```bash
 # Copy last assistant message
 /copy-clipboard
@@ -104,12 +112,14 @@ Example: /set-model gpt-5
 ## Command Categories
 
 ### Core Operations
+
 - `/help` - Show available commands or help for specific command
 - `/exit` - Exit chat session
 - `/clear` - Clear chat history
 - `/reset` - Reset session state
 
 ### Tool Management
+
 - `/list-tools` - List available tools
 - `/enable-tool` - Enable a tool
 - `/disable-tool` - Disable a tool
@@ -118,24 +128,29 @@ Example: /set-model gpt-5
 - `/write-tool` - Create new tool interactively
 
 ### Resource Management
+
 - `/list-resources` - List available resources
 - `/show-resource` - Show resource content
 
 ### Agent Management
+
 - `/show-agent` - Show current configuration
 - `/switch-agent` - Switch to different agent
 - `/list-agents` - List available agents
 - `/set-model` - Change model
 
 ### Environment
+
 - `/set-env` - Change environment file
 - `/open-env-file` - Open environment config
 
 ### History and Analysis
+
 - `/search-history` - Search conversation history
 - `/show-statistics` - Show usage statistics
 
 ### Utilities
+
 - `/copy-clipboard` - Copy last response
 - `/open-agent-file` - Open config file
 
@@ -143,21 +158,23 @@ Example: /set-model gpt-5
 
 - Commands start with forward slash (`/`)
 - Arguments can be positional or named:
+
   ```bash
   /command arg1 arg2              # Positional
   /command --name value           # Named
   /command arg --name "value"     # Mixed
   ```
+
 - Arguments with spaces must be quoted
 - Options are prefixed with `--`
 
 ## Command Output
 
 Commands provide feedback in different ways:
+
 - Direct responses (success/failure messages)
 - Formatted data (tables, JSON, YAML)
 - System messages in chat
 - Status updates
-
 
 > **Note**: Some commands may be restricted based on agent capabilities and role configuration.

@@ -67,7 +67,6 @@ await agent.run(
 )
 ```
 
-
 ## Streaming Response
 
 The same input types work with streaming:
@@ -79,7 +78,6 @@ async for event in agent.run_stream(
 ) :
     print(event)  # pydantic-ai events
 ```
-
 
 ## Input Conversion
 

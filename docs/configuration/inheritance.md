@@ -40,6 +40,7 @@ agents:
 ```
 
 Child agents:
+
 - Inherit all fields from parent
 - Can override any inherited field
 - Can add new fields
@@ -86,10 +87,10 @@ INHERIT:
   - git+https://github.com/org/repo/config.yml
 ```
 
-
 ## Inheritance Resolution
 
 ### Agent Inheritance
+
 1. Start with parent configuration
 2. Recursively resolve parent inheritances
 3. Apply child configuration:
@@ -98,11 +99,11 @@ INHERIT:
    - Update dictionaries (e.g., capabilities)
 
 ### YAML File Inheritance
+
 1. Load all inherited files in order
 2. Merge configurations:
    - Later files override earlier ones
    - Lists and dictionaries are merged
    - Complex fields use smart merging
-
 
 Inheritance in LLMling helps maintain DRY (Don't Repeat Yourself) configurations while allowing for flexible specialization at both the agent and file level.

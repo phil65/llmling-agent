@@ -25,7 +25,9 @@ events.removed = Signal(object, object)           # (key, value) - After removal
 ### Components using BaseRegistry
 
 #### AgentPool
+
 Monitors agent additions and removals:
+
 ```python
 def on_agent_added(name: str, agent: Agent):
     print(f"New agent {name} added to pool")
@@ -34,7 +36,9 @@ pool.events.added.connect(on_agent_added)
 ```
 
 #### ToolManager
+
 Tracks tool registration and modifications:
+
 ```python
 def on_tool_changed(name: str, old_info: Tool, new_info: Tool):
     print(f"Tool {name} configuration changed")
@@ -75,6 +79,7 @@ connection_added = Signal(Talk)          # New connection created
 ## Common Use Cases
 
 ### Building UIs
+
 ```python
 class ConsoleUI:
     def __init__(self, agent: Agent):
@@ -87,6 +92,7 @@ class ConsoleUI:
 ```
 
 ### Monitoring and Logging
+
 ```python
 def setup_monitoring(pool: AgentPool):
     # Monitor agent lifecycle
@@ -97,6 +103,7 @@ def setup_monitoring(pool: AgentPool):
 ```
 
 ### Provider Model Changes
+
 ```python
 def on_model_change(new_model):
     # Update provider-specific settings for new model

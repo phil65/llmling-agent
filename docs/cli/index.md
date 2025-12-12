@@ -58,17 +58,20 @@ Most commands will use the currently active agent file by default, but can be ov
 ## Quick Start
 
 1. Add and activate an agent configuration:
+
    ```bash
    llmling-agent add myconfig agents.yml
    llmling-agent set myconfig
    ```
 
 2. List available agents:
+
    ```bash
    llmling-agent list
    ```
 
 3. Run a prompt with an agent:
+
    ```bash
    llmling-agent run analyzer "Analyze this text"
    ```

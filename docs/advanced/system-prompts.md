@@ -76,7 +76,6 @@ agents:
           experience: "senior"
 ```
 
-
 ### Library Reference Prompts
 
 Reference prompts from the configured prompt library:
@@ -114,6 +113,7 @@ agents:
 ```
 
 Function example:
+
 ```python
 def generate_context_prompt(user_id: str, session_type: str) -> str:
     # Could fetch user preferences, history, etc.
@@ -223,6 +223,7 @@ agent.sys_prompts.tool_usage_style = "suggestive"  # or "strict"
 ```
 
 This will automatically include tool descriptions in the system prompt:
+
 ```
 You are log_analyzer. Analyze system logs for issues.
 
@@ -236,12 +237,14 @@ Use them when appropriate to complete your tasks.
 ```
 
 For strict enforcement:
+
 ```python
 agent.sys_prompts.inject_tools = "required"
 agent.sys_prompts.tool_usage_style = "strict"
 ```
 
 This changes the tone:
+
 ```
 You MUST use these tools to complete your tasks:
 
@@ -380,6 +383,7 @@ prompts:
 !!! tip "Organizing Prompts"
     It's recommended to keep prompt libraries in separate files and use YAML inheritance
     to include them. This keeps your agent configurations clean and promotes reuse:
+
     ```yaml
     # prompts.yml
     prompts:

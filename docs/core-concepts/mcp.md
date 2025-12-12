@@ -13,6 +13,7 @@ LLMling integrates with MCP (Model Context Protocol) servers to provide addition
 ## Defining MCP Servers
 
 ### In YAML Configuration
+
 ```yaml
 # In agent configuration
 agents:
@@ -37,6 +38,7 @@ agents:
 ```
 
 ### In Agent Constructor
+
 ```python
 from llmling_agent import Agent, StdioMCPServerConfig
 
@@ -94,10 +96,10 @@ async with Agent(mcp_servers=servers) as agent:
 
 Tools are automatically converted to LLMling's tool format with proper typing and documentation.
 
-
 ## Configuration Options
 
 ### StdioMCPServerConfig
+
 ```python
 class StdioMCPServerConfig:
     """MCP server using stdio communication."""
@@ -115,6 +117,7 @@ class StdioMCPServerConfig:
 ```
 
 ### SSEMCPServerConfig (Coming Soon)
+
 ```python
 class SSEMCPServerConfig:
     """MCP server using SSE transport."""
@@ -124,6 +127,5 @@ class SSEMCPServerConfig:
     enabled: bool = True
     """Whether server is active"""
 ```
-
 
 MCP integration allows agents to seamlessly use tools from external services while maintaining LLMling's type safety and resource management.

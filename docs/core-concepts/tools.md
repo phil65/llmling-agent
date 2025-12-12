@@ -9,6 +9,7 @@ icon: material/tools
 ## Overview
 
 The `ToolManager` is a central component that manages the lifecycle and availability of tools for agents. It handles:
+
 - Tool registration and validation
 - Tool enabling/disabling
 - Tool filtering and sorting
@@ -103,8 +104,8 @@ await agent.tools.setup_mcp_servers([
     SSEMCPServerConfig(url="http://localhost:3001/events")
 ])
 ```
-Note: By default the tool manager is already initialzed with MCP server tools from the config when the agent itself enters the async context
 
+Note: By default the tool manager is already initialzed with MCP server tools from the config when the agent itself enters the async context
 
 ## Tool Information
 
@@ -121,7 +122,6 @@ print(tool_info.requires_confirmation)  # Whether to confirm
 print(tool_info.metadata)             # Custom metadata
 print(tool_info.parameters)           # Parameter information
 ```
-
 
 ### Capability-Based Tools
 

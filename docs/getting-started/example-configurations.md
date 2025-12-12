@@ -19,6 +19,7 @@ Create a simple agent that opens websites in your browser:
 Use the agent via an ACP client of your choice.
 
 Or programmatically:
+
 ```python
 from llmling_agent import AgentPool
 
@@ -45,6 +46,7 @@ Create an agent that interacts with the file system:
 ```
 
 Use the file manager:
+
 ```python
 from llmling_agent import Agent
 

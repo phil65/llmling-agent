@@ -7,6 +7,7 @@ icon: material/server
 # MCP Server Integration
 
 ## Overview
+
 LLMling Agent supports integration with MCP (Model Control Protocol) servers to extend agent capabilities through standardized interfaces. Currently, we support tool integration with both stdio and SSE-based MCP servers.
 
 ## Configuration
@@ -14,7 +15,9 @@ LLMling Agent supports integration with MCP (Model Control Protocol) servers to 
 MCP servers can be configured in two ways:
 
 ### String Configuration
+
 Simple command-line style configuration:
+
 ```yaml
 agents:
   my_agent:
@@ -24,7 +27,9 @@ agents:
 ```
 
 ### Full Configuration
+
 Detailed configuration with environment variables and options:
+
 ```yaml
 agents:
   my_agent:

@@ -56,6 +56,7 @@ pipeline = analysis_team | planning_team | execution_team
 ### Direct Execution
 
 Simple run that waits for completion:
+
 ```python
 # Run and wait for results
 results = await run.execute("Process this task")
@@ -68,6 +69,7 @@ for response in results:
 ### Monitored Execution
 
 Get statistics while the run executes in background:
+
 ```python
 # Start run and get stats object
 stats = await run.run_in_background("Process this task")
@@ -93,6 +95,7 @@ This allows you to:
 - Transform messages between agents
 
 Example:
+
 ```python
 async for item in run.execute_iter("analyze this"):
     match item:
@@ -108,8 +111,6 @@ async for item in run.execute_iter("analyze this"):
                 break
 ```
 
-
-
 ## Resource Management
 
 TeamRuns handle cleanup automatically:
@@ -119,6 +120,7 @@ TeamRuns handle cleanup automatically:
 - Resources are released on completion
 
 You can also explicitly control the run:
+
 ```python
 # Cancel execution
 await run.cancel()
@@ -215,6 +217,5 @@ except Exception:
     # Connections are properly closed
     await run.cancel()  # Explicit cancellation if needed
 ```
-
 
 The combination of sequential processing and monitoring capabilities makes TeamRuns suitable for both simple pipelines and complex multi-agent workflows.

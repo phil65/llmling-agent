@@ -39,5 +39,4 @@ A single tool that demonstrates both MCP capabilities in one workflow:
 
 ## Running the Example
 
-
 The demo shows a complete workflow: code analysis → user confirmation → code fixing, all within one tool call.

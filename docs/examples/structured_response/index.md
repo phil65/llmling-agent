@@ -20,7 +20,6 @@ This example demonstrates two ways to define structured responses in LLMling-age
 - Type validation and constraints
 - Agent integration with structured outputs
 
-
 ## How It Works
 
 1. Python-defined Responses:

@@ -19,6 +19,7 @@ The ConversationManager handles message history and context for agents. It provi
 ## Core Functionality
 
 ### Managing History
+
 ```python
 # Access conversation manager
 conversation = agent.conversation
@@ -34,6 +35,7 @@ conversation.set_history(new_messages)
 ```
 
 ### Context Management
+
 ```python
 # Add context
 conversation.add_context_message(
@@ -55,6 +57,7 @@ history_text = await conversation.format_history(
 ```
 
 ### Token Management
+
 ```python
 # Get token counts
 total = conversation.get_history_tokens()
@@ -109,6 +112,7 @@ agents:
 ```
 
 You can also provide just the session ID:
+
 ```yaml
 agents:
   my_agent:
@@ -116,6 +120,7 @@ agents:
 ```
 
 When using `Agent.__init__()`:
+
 ```python
 # With session query
 async with Agent(

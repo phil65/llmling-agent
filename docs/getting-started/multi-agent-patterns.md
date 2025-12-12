@@ -20,7 +20,6 @@ LLMling-agent offers several patterns for coordinating multiple agents. Each pat
 | Decorator Pattern | Testing/scripted | Medium | ✅ | ❌ | Programmatic |
 | Pydantic Graph | Complex workflows | High | ✅ | ✅ | Graph-based |
 
-
 ## 1. Direct Connections (Simple Forwarding)
 
 Best for: Simple linear flows between agents

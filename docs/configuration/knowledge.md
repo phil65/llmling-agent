@@ -119,6 +119,7 @@ knowledge:
 ## Examples
 
 ### Documentation Assistant
+
 ```yaml
 agents:
   docs_helper:
@@ -133,6 +134,7 @@ agents:
 ```
 
 ### Code Reviewer
+
 ```yaml
 agents:
   reviewer:

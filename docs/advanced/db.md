@@ -26,6 +26,7 @@ LLMling-agent provides flexible storage and memory management for agent interact
 ### Storage Location
 
 The SQLite database is stored using platformdirs:
+
 ```python
 # Default location:
 # Linux: ~/.local/share/llmling/history.db
@@ -37,12 +38,12 @@ The SQLite database is stored using platformdirs:
 
 Agents can be configured with sophisticated memory management:
 
-
 ```yaml title="agents.yml"
 --8<-- "docs/advanced/db_example.yml"
 ```
 
 Or via code:
+
 ```python
 from llmling_agent_config.session import MemoryConfig, SessionQuery
 
@@ -76,6 +77,7 @@ agent = Agent(..., session=memory_cfg)
 Sessions can be recovered in multiple ways:
 
 ### Simple Recovery
+
 ```yaml
 agents:
   assistant:
@@ -83,6 +85,7 @@ agents:
 ```
 
 ### Query-Based Recovery
+
 ```yaml
 agents:
   assistant:
@@ -100,6 +103,7 @@ agents:
 ```
 
 ### Programmatic Recovery
+
 ```python
 # Store session ID for later
 session = agent.conversation.id

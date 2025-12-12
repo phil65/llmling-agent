@@ -9,6 +9,7 @@ icon: material/tools
 There are several ways to create and initialize agents. Since agents can have complex setup requirements (MCP servers, runtime configuration, etc.), proper initialization is important.
 
 ## Main Approach: AgentPool
+
 The recommended way to create agents is through `AgentPool`:
 
 ```python
@@ -32,6 +33,7 @@ This ensures:
 - Resource loading
 
 ## Direct Agent Creation
+
 For simpler cases, agents can be created directly:
 
 ```python
@@ -42,6 +44,7 @@ async with agent:
 ```
 
 ## Advanced Pool Creation
+
 `AgentPool` offers additional creation methods:
 
 ```python
@@ -66,6 +69,7 @@ Agents require proper async initialization for:
 4. Connection setup
 
 Always use async context managers:
+
 ```python
 # ❌ Limited: Works, but not everything is initialized
 agent = Agent(...)

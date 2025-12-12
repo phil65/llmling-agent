@@ -93,6 +93,7 @@ a BaseModel since the type is generated dynamically.
 class AgentPool[TSharedDeps]:
     """Pool with optional shared dependencies."""
 ```
+
 The pool can provide shared dependencies to its agents while still allowing individual agents to specify their own dependency types through `get_agent`.
 
 ### Team Type Management
@@ -109,6 +110,7 @@ Type information is preserved when all team members share the same dependency ty
 we must fall back to Any due to the limitations of the type system in representing mixed dependencies.
 
 ### Communication Types
+
 ```python
 class Talk[TTransmittedData]:
     """Type-safe communication channel between agents."""
@@ -118,7 +120,6 @@ The Talk class is generically typed over the transmitted message content, provid
 While currently primarily serving type hint purposes, this typing lays the groundwork for future "Structured Connections" - a system for type-safe,
 structured communication between agents. (We already do this now already, but since our Agent currently takes any BaseModel input and converts it to LLM-readable form,
 this doesnt yet guarantee "real" type-safe connections based on specific BaseModels subclasses)
-
 
 ### And more!
 

@@ -11,6 +11,7 @@ The `pick()` method provides a flexible way for agents to make decisions by sele
 ## Basic Usage
 
 ### Simple Options
+
 ```python
 agent = Agent(model="gpt-5")
 decision = await agent.talk.pick(
@@ -22,7 +23,9 @@ print(f"Reason: {decision.reason}")       # explanation for the choice
 ```
 
 ### Labeled Options
+
 You can provide explicit labels for better context:
+
 ```python
 decision = await agent.talk.pick(
     {
@@ -35,7 +38,9 @@ decision = await agent.talk.pick(
 ```
 
 ### Agent Selection
+
 Pick can naturally select from teams or pools of agents:
+
 ```python
 # From a team
 expert = await agent.talk.pick(team, "Who should handle this task?")
@@ -53,14 +58,15 @@ reviewer = await agent.talk.pick(
     task="Who should review this critical component?"
 )
 ```
+
 !!! info
     In order for this mechanism to work, the name (and ideally also the description) of the agents should match
     their expertise and skillset.
 
-
 ## Return Values
 
 The method returns a `Pick[T]` object containing:
+
 - `selection`: The selected item (with proper type)
 - `reason`: The reasoning behind the selection
 
@@ -100,7 +106,6 @@ The method accepts:
 
 Where `T` is any type that can be converted to a prompt (implements `__prompt__` or is convertible by `to_prompt()`).
 
-
 ## Example: Complex Decision Making
 
 ```python
@@ -135,7 +140,6 @@ match decision.selection:
 
 The `pick()` method provides a natural way for agents to make decisions while maintaining type safety and providing clear reasoning for choices.
 
-
 ## Multiple Selections with pick_multiple()
 
 When you need to select multiple options, use `pick_multiple()`. This method provides similar functionality to `pick()` but allows selecting multiple items with constraints.
@@ -157,6 +161,7 @@ print(f"Reasoning: {steps.reason}")
 ### With Constraints
 
 You can control the number of selections:
+
 ```python
 team_members = await agent.talk.pick_multiple(
     {

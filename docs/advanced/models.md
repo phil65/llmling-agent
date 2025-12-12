@@ -6,7 +6,6 @@ icon: material/cpu-64-bit
 
 # Provider models
 
-
 In addition to the regular pydantic-ai models,
 LLMling-agent supports all model types from [llmling-models](https://github.com/phil65/llmling-models) through YAML configuration. Each model is identified by its `type` field.
 These models often are some kind of "meta-models", allowing model selection patterns as well
@@ -35,7 +34,6 @@ You can set common model settings to fine-tune the LLM behavior:
 ```
 
 All settings are optional and providers will use their defaults if not specified.
-
 
 ## Setting pydantic-ai models by identifier
 

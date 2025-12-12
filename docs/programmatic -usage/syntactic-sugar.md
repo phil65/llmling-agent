@@ -11,6 +11,7 @@ LLMling-agent provides three operators for composing and connecting agents: `&`,
 ## Operators Overview
 
 ### `&` (AND) - Team Composition
+
 Combines agents into a team that can work together in parallel or sequentially.
 
 ```python
@@ -30,6 +31,7 @@ When combining with `&`:
 - Team capabilities are merged
 
 ### `|` (OR) - Pipeline Creation
+
 Creates sequential processing pipelines where output flows from one agent to the next.
 
 ```python
@@ -52,6 +54,7 @@ When creating pipelines with `|`:
 - Monitoring is automatically set up
 
 ### `>>` (Forward) - Message Routing
+
 Sets up message forwarding between agents.
 
 ```python
@@ -142,7 +145,6 @@ The shared prompt provides team-level instructions without modifying individual 
 - Setting shared goals
 - Providing context for collaboration
 - Guiding multi-agent interactions
-
 
 ## Usage Examples
 

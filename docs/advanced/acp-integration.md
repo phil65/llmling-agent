@@ -11,6 +11,7 @@ icon: material/desktop-tower
 The Agent Client Protocol (ACP) is a standardized JSON-RPC 2.0 protocol that enables communication between code editors and AI agents. It allows llmling-agent to integrate seamlessly with desktop applications and IDEs that support the protocol.
 
 ACP provides:
+
 - Bidirectional communication between editor and agent
 - Session management and conversation history
 - File system operations with permission handling
@@ -48,7 +49,6 @@ Start an ACP server from a configuration file:
 ```bash
 llmling-agent serve-acp agents.yml
 ```
-
 
 ### Available Options
 
@@ -120,6 +120,7 @@ graph LR
 ```
 
 In this mode, llmling-agent:
+
 - Receives prompts from the IDE
 - Sends back agent responses
 - Handles file operations on behalf of the IDE
@@ -136,6 +137,7 @@ graph LR
 ```
 
 In this mode, llmling-agent:
+
 - Spawns external ACP agent processes (Claude Code, Gemini CLI, etc.)
 - Sends prompts to those agents
 - Receives their responses
@@ -264,7 +266,7 @@ These agents support MCP servers and can use internal llmling-agent toolsets:
   - Full MCP support via `--mcp-config`
   - Permission modes, structured outputs
   - Tool filtering and access control
-  
+
 - **gemini**: Google's Gemini CLI
   - Native MCP integration
   - Configurable temperature, context window
@@ -390,6 +392,7 @@ acp_agents:
 - **srt**: Run on remote server via Secure Remote Terminal
 
 The execution environment handles:
+
 - File system access (sandboxed or real)
 - Terminal operations (bash, command execution)
 - Network access controls
@@ -410,6 +413,7 @@ acp_agents:
 ```
 
 Permissions are enforced at multiple levels:
+
 - **Client side**: llmling-agent's ACPClientHandler validates requests
 - **Agent side**: External agent's own permission system
 - **Environment side**: Execution environment provides isolation
@@ -462,6 +466,7 @@ agents:
 ```
 
 With this configuration, the Claude agent can:
+
 - List available agents via `list_available_nodes`
 - Delegate work via `delegate_to` or `ask_agent`
 - Create new agents dynamically via `add_agent`
@@ -557,6 +562,7 @@ acp_agents:
 ```
 
 The agent will have access to:
+
 1. **Internal toolsets** via automatic bridge
 2. **External MCP servers** you explicitly configure
 3. **Agent's built-in tools** (if any)
@@ -573,6 +579,7 @@ Toolset bridging is secure by design:
 - ✅ **Environment sandboxing**: Execution environment provides additional isolation
 
 Best practices:
+
 - Use `allow_file_operations: false` for read-only agents
 - Use `auto_grant_permissions: false` for sensitive operations
 - Use sandboxed execution environments (Docker, E2B) for untrusted agents
@@ -587,7 +594,6 @@ You can reference remote configuration files directly:
 ```bash
 llmling-agent serve-acp https://example.com/config.yml
 ```
-
 
 ### Provider Selection
 

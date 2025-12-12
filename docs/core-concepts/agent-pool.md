@@ -177,7 +177,6 @@ planner = await pool.add_agent(
 
 ```
 
-
 ### Creating Teams
 
 The pool can also create teams from its registered agents:

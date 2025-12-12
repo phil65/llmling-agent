@@ -15,6 +15,7 @@ Think of toolsets as "skill packages" that give agents specific capabilities - f
 ## Available Toolsets
 
 ### Agent Management (`agent_management`)
+
 Enables agents to discover, coordinate with, and manage other agents:
 
 ```yaml
@@ -25,6 +26,7 @@ agents:
 ```
 
 **Provides tools:**
+
 - `list_available_agents` - Discover other agents in the pool
 - `list_available_teams` - Discover available teams
 - `delegate_to` - Assign tasks to other agents
@@ -36,6 +38,7 @@ agents:
 - `spawn_delegate` - Create temporary delegate agents
 
 ### File Access (`fsspec`)
+
 File system operations via fsspec (supports local, S3, GCS, etc.):
 
 ```yaml
@@ -46,6 +49,7 @@ agents:
 ```
 
 **Provides tools:**
+
 - `read_file` - Read files (text or binary)
 - `list_directory` - List directory contents with filtering
 - `write_file` - Write content to files
@@ -54,6 +58,7 @@ agents:
 - `download_file` - Download files from URLs
 
 ### Resource Access (`resource_access`)
+
 Access to LLMling resources and configurations:
 
 ```yaml
@@ -64,10 +69,12 @@ agents:
 ```
 
 **Provides tools:**
+
 - `load_resource` - Load resource content
 - `get_resources` - Discover available resources
 
 ### Code Execution (`code_execution`)
+
 Execute Python code and system commands:
 
 ```yaml
@@ -78,10 +85,12 @@ agents:
 ```
 
 **Provides tools:**
+
 - `execute_python` - Execute Python code (WARNING: No sandbox)
 - `execute_command` - Execute CLI commands
 
 ### Process Management (`process_management`)
+
 Start and manage background processes:
 
 ```yaml
@@ -92,6 +101,7 @@ agents:
 ```
 
 **Provides tools:**
+
 - `start_process` - Start background processes
 - `get_process_output` - Check process output
 - `wait_for_process` - Wait for process completion
@@ -100,6 +110,7 @@ agents:
 - `list_processes` - Show active processes
 
 ### Tool Management (`tool_management`)
+
 Register and manage tools dynamically:
 
 ```yaml
@@ -110,10 +121,12 @@ agents:
 ```
 
 **Provides tools:**
+
 - `register_tool` - Register importable functions as tools
 - `register_code_tool` - Create tools from code
 
 ### User Interaction (`user_interaction`)
+
 Direct interaction with users:
 
 ```yaml
@@ -124,9 +137,11 @@ agents:
 ```
 
 **Provides tools:**
+
 - `ask_user` - Ask users clarifying questions
 
 ### History (`history`)
+
 Access conversation history and statistics:
 
 ```yaml
@@ -137,10 +152,12 @@ agents:
 ```
 
 **Provides tools:**
+
 - `search_history` - Search conversation history
 - `show_statistics` - Display usage statistics
 
 ### Integrations (`integrations`)
+
 External service integrations:
 
 ```yaml
@@ -151,6 +168,7 @@ agents:
 ```
 
 **Provides tools:**
+
 - `add_local_mcp_server` - Add local MCP servers
 - `add_remote_mcp_server` - Add remote MCP servers
 - `load_skill` - Load Claude Code Skills
@@ -158,6 +176,7 @@ agents:
 ## Common Patterns
 
 ### Basic Assistant
+
 ```yaml
 agents:
   assistant:
@@ -169,6 +188,7 @@ agents:
 ```
 
 ### Team Coordinator
+
 ```yaml
 agents:
   coordinator:
@@ -181,6 +201,7 @@ agents:
 ```
 
 ### Developer Agent
+
 ```yaml
 agents:
   developer:
@@ -195,6 +216,7 @@ agents:
 ```
 
 ### Restricted Agent
+
 ```yaml
 agents:
   restricted:
@@ -210,16 +232,19 @@ agents:
 Toolsets provide different levels of system access:
 
 **Low Risk:**
+
 - `fsspec` - File system operations (configurable scope)
 - `resource_access` - Access to configured resources
 - `user_interaction` - User prompts only
 
 **Medium Risk:**
+
 - `agent_management` - Can create and coordinate agents
 - `history` - Access to conversation data
 - `integrations` - External service access
 
 **High Risk:**
+
 - `code_execution` - Can execute arbitrary code
 - `process_management` - System process control
 - `tool_management` - Can modify available tools

@@ -11,6 +11,7 @@ icon: material/robot-outline
 ## Key Features
 
 ### 🔌 ACP Integration
+
 First-class support for the Agent Client Protocol (ACP):
 
 - Integrate directly into IDEs like Zed, VS Code, and others
@@ -19,6 +20,7 @@ First-class support for the Agent Client Protocol (ACP):
 - Compose ACP agents into teams with native agents
 
 ### 📝 Easy Agent Configuration
+
 LLMling-agent excels at static YAML-based agent configuration:
 
 - Define agents with unprecedented detail in pure YAML (Pydantic-backed)
@@ -26,8 +28,8 @@ LLMling-agent excels at static YAML-based agent configuration:
 - Agent "connection" setup via YAML enabling workflows without step-based code
 - Configuration inheritance and reuse
 
-
 ### 🧩 Unified Node Architecture
+
 Everything is a MessageNode - enabling seamless composition:
 
 - Native LLM agents
@@ -37,13 +39,13 @@ Everything is a MessageNode - enabling seamless composition:
 - All nodes share the same interface
 
 ### 🏊 Pool-Based Architecture
+
 Central coordination point for multi-agent systems:
 
 - Type-safe dependency injection
 - Shared resource management
 - Dynamic agent/team creation and cloning
 - Central monitoring and statistics
-
 
 ### One-Line ACP Setup
 
@@ -56,7 +58,6 @@ uvx --python 3.13 llmling-agent[default]@latest serve-acp
 
 uvx --python 3.13 llmling-agent[default]@latest serve-acp path/to/agents.yml
 ```
-
 
 ## Installation
 
@@ -80,9 +81,7 @@ uv tool install llmling-agent[default]
 
 MIT License - see [LICENSE](https://github.com/phil65/llmling-agent/blob/main/LICENSE) for details.
 
-
 ## Quick Start
-
 
 ### Basic Agent Configuration
 

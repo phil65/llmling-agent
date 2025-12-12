@@ -18,6 +18,7 @@ graph TD
 ```
 
 ### LLMling Core Provides
+
 - Resource management (files, APIs, databases)
 - Tool registration and execution
 - Environment configuration
@@ -25,6 +26,7 @@ graph TD
 - Prompt management
 
 ### LLMling-Agent Adds
+
 - Pure YAML-based agent configuration
 - Interactive chat sessions (CLI and web)
 - Model interaction handling
@@ -34,7 +36,9 @@ graph TD
 ## Core Strengths
 
 ### YAML-First Philosophy
+
 LLMling-Agent is built around the idea that AI agents should be:
+
 - Easily configurable through YAML
 - Fully reproducible
 - Version controllable
@@ -44,7 +48,9 @@ LLMling-Agent is built around the idea that AI agents should be:
 This means you can define complete agents, their capabilities, and their environments in pure YAML without writing any code.
 
 ### Universal Resource Access
+
 Thanks to UPath integration, agents can work with resources from anywhere:
+
 - Local files
 - Remote URLs (http, https, s3, etc.)
 - Git repositories
@@ -112,12 +118,14 @@ async with Agent(..., tools=["webbrowser.open"]) as agent:
 LLMling-Agent leverages LLMling's resource system, providing agents with access to:
 
 ### Tools
+
 - File operations
 - API interactions
 - System commands
 - Custom Python functions
 
 ### Resources
+
 - File content
 - API endpoints
 - Database connections
@@ -125,6 +133,7 @@ LLMling-Agent leverages LLMling's resource system, providing agents with access 
 - Template systems
 
 All tool and resource access is:
+
 - Configurable through YAML
 - Permission controlled
 - Usage tracked
@@ -133,6 +142,7 @@ All tool and resource access is:
 ## Agent Capabilities
 
 Agents have role-based capabilities that control their access to:
+
 - Tool usage
 - Resource access
 - History viewing
@@ -142,5 +152,6 @@ Agents have role-based capabilities that control their access to:
 > interaction patterns across different models and configurations.
 
 For detailed configuration options, see:
+
 - [Agent Configuration](https://github.com/phil65/llmling-agent/blob/main/docs/agent_config.md)
 - [LLMling Environment Documentation](https://github.com/phil65/llmling)

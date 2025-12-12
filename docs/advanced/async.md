@@ -80,6 +80,7 @@ For an Agent, these components can initialize concurrently:
   - External resources
 
 For an AgentPool:
+
 - All agents' async contexts
 - Each agent's individual components
 
@@ -91,7 +92,6 @@ Parallel initialization can significantly speed up startup when you have:
 - Multiple agents using MCP servers
 - Many knowledge sources
 - External resources to load
-
 
 ## Background Operations
 
@@ -120,6 +120,7 @@ This command:
 - Keeps them running until interrupted (Ctrl+C)
 
 ### Configuration Example
+
 ```yaml
 agents:
   file_processor:
@@ -140,6 +141,7 @@ agents:
 ```
 
 ### Programmatic Usage
+
 ```python
 async with AgentPool(config) as pool:
     # Events are automatically set up for configured triggers

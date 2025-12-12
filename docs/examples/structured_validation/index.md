@@ -14,6 +14,4 @@ hide:
 
 This example demonstrates structured response validation patterns.
 
-
-
 ## Running

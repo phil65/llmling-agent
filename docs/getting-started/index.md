@@ -8,11 +8,13 @@ description: Installation instructions for LLMling-Agent
 ## Basic Installation
 
 Simple installation
+
 ```bash
 uv tool install llmling-agent[default]
 ```
 
 Multiple extras
+
 ```bash
 uv tool install llmling-agent[default, coding]
 ```

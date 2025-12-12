@@ -14,15 +14,12 @@ hide:
 
 with pick() and pick_multiple()
 
-
-
 This example demonstrates LLMling-agent's type-safe selection methods:
 
 - Using pick() for single expert selection
 - Using pick_multiple() for team selection
 - Type-safe results with reasoning
 - Team-based agent selection
-
 
 ## How It Works
 
