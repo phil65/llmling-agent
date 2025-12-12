@@ -2,9 +2,15 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from pydantic import ConfigDict, Field
 
 from llmling_agent_config.nodes import NodeConfig
+
+
+if TYPE_CHECKING:
+    from llmling_agent_config.tools import ToolConfig
 
 
 class AGUIAgentConfig(NodeConfig):
@@ -21,11 +27,16 @@ class AGUIAgentConfig(NodeConfig):
             timeout: 30.0
             headers:
               X-API-Key: ${API_KEY}
+            tools:
+              - import_path: mymodule.my_tool_function
 
           managed_agent:
             endpoint: http://localhost:8765/agent/run
             startup_command: "uv run ag-ui-server config.yml"
             startup_delay: 3.0
+            tools:
+              - import_path: package.tool_one
+              - import_path: package.tool_two
         ```
     """
 
@@ -66,4 +77,12 @@ class AGUIAgentConfig(NodeConfig):
     """Seconds to wait after starting server before connecting.
 
     Only relevant when startup_command is provided.
+    """
+
+    tools: list[ToolConfig] = Field(default_factory=list)
+    """Tools to expose to the remote agent for client-side execution.
+
+    When the remote AG-UI agent requests a tool call, these tools are executed
+    locally and the result is sent back. This enables human-in-the-loop workflows
+    and local capability exposure to remote agents.
     """

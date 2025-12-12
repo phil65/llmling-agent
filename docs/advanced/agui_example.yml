@@ -1,0 +1,144 @@
+# AG-UI Integration Example Configuration
+# This file demonstrates various AG-UI agent configurations
+
+# Basic AG-UI agent connection
+agui_agents:
+  # Simple remote agent
+  remote_assistant:
+    endpoint: http://localhost:8000/agent/run
+    description: Basic remote AG-UI agent
+    timeout: 60.0
+
+  # Agent with authentication
+  authenticated_agent:
+    endpoint: https://api.example.com/agent/run
+    headers:
+      Authorization: Bearer ${API_TOKEN}
+      X-Custom-Header: value
+    description: Authenticated AG-UI agent
+    timeout: 120.0
+
+  # Agent with client-side tools
+  tool_enabled_agent:
+    endpoint: http://localhost:8000/agent/run
+    description: Agent with local tool execution
+    tools:
+      # User confirmation tool
+      - import_path: myapp.tools.confirm_action
+        name: confirm_action
+        description: Ask user to confirm important actions
+        enabled: true
+
+      # Data retrieval tool
+      - import_path: myapp.tools.fetch_data
+        name: fetch_data
+        description: Retrieve data from local database
+
+      # File operations
+      - import_path: myapp.tools.read_file
+        description: Read files from local filesystem
+
+  # Managed agent (auto-start/stop)
+  managed_agent:
+    endpoint: http://localhost:8765/agent/run
+    startup_command: "uv run ag-ui-server config.yml"
+    startup_delay: 3.0
+    description: Automatically managed AG-UI server
+    tools:
+      - import_path: myapp.tools.local_tool
+
+  # Agent with MCP servers
+  enhanced_agent:
+    endpoint: http://localhost:8000/agent/run
+    description: AG-UI agent with MCP server access
+    mcp_servers:
+      - name: filesystem
+        type: stdio
+        command: npx
+        args:
+          - "-y"
+          - "@modelcontextprotocol/server-filesystem"
+          - "/path/to/workspace"
+
+      - name: database
+        type: stdio
+        command: python
+        args:
+          - "-m"
+          - "mcp_server_sqlite"
+
+# Native agents for comparison/composition
+agents:
+  local_assistant:
+    model: openai:gpt-4
+    system_prompt: You are a helpful local assistant
+    tools:
+      - import_path: local_tools.calculator
+
+  coordinator:
+    model: anthropic:claude-sonnet-4
+    system_prompt: You coordinate between local and remote agents
+    toolsets:
+      - type: agent_management
+
+# Teams mixing native and AG-UI agents
+teams:
+  hybrid_team:
+    members:
+      - local_assistant
+      - remote_assistant
+    strategy: parallel
+    description: Team with both local and remote agents
+
+  sequential_team:
+    members:
+      - coordinator
+      - tool_enabled_agent
+    strategy: sequential
+    description: Coordinator delegates to AG-UI agent
+
+# Example workflows
+connections:
+  # Forward from local to remote
+  local_to_remote:
+    from: local_assistant
+    to: remote_assistant
+    condition: "message contains 'specialized task'"
+
+  # Bidirectional communication
+  bidirectional:
+    from: coordinator
+    to: enhanced_agent
+    bidirectional: true
+
+# Event handlers for monitoring
+event_handlers:
+  - type: detailed
+    include_events:
+      - tool_call_start
+      - tool_call_end
+      - text_delta
+
+# Example: Production setup
+# agui_agents:
+#   production_agent:
+#     endpoint: https://prod-api.company.com/agent/run
+#     headers:
+#       Authorization: Bearer ${PROD_API_KEY}
+#       X-Request-ID: ${REQUEST_ID}
+#     timeout: 180.0
+#     tools:
+#       - import_path: company.tools.approval_workflow
+#       - import_path: company.tools.audit_log
+#       - import_path: company.tools.notification
+#     description: Production AG-UI agent with audit tools
+
+# Example: Testing setup
+# agui_agents:
+#   test_agent:
+#     endpoint: http://localhost:8888/agent/run
+#     startup_command: "uv run pytest --ag-ui-server"
+#     startup_delay: 5.0
+#     tools:
+#       - import_path: tests.mocks.mock_tool
+#     description: Test AG-UI agent for integration tests

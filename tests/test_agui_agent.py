@@ -236,3 +236,237 @@ async def test_agui_agent_error_handling(mock_sse_response):
                     pass
             assert agent._state
             assert agent._state.error is not None
+
+
+@pytest.mark.asyncio
+async def test_agui_agent_with_tools(mock_sse_response):
+    """Test AGUIAgent with client-side tool execution."""
+
+    # Define a simple test tool
+    def test_calculator(x: int, y: int) -> int:
+        """Add two numbers."""
+        return x + y
+
+    # Create mock SSE events that include tool calls
+    events = [
+        'data: {"type":"TEXT_MESSAGE_START","messageId":"msg1"}\n\n',
+        'data: {"type":"TOOL_CALL_START","toolCallId":"call1","toolCallName":"test_calculator"}\n\n',  # noqa: E501
+        'data: {"type":"TOOL_CALL_ARGS","toolCallId":"call1","delta":"{\\"x\\": 5"}\n\n',
+        'data: {"type":"TOOL_CALL_ARGS","toolCallId":"call1","delta":", \\"y\\": 3}"}\n\n',
+        'data: {"type":"TOOL_CALL_END","toolCallId":"call1"}\n\n',
+        'data: {"type":"TEXT_MESSAGE_END","messageId":"msg1"}\n\n',
+    ]
+
+    # Second response after tool execution (with tool results)
+    final_events = [
+        'data: {"type":"TEXT_MESSAGE_START","messageId":"msg2"}\n\n',
+        'data: {"type":"TEXT_MESSAGE_CONTENT","messageId":"msg2","delta":"The result is 8"}\n\n',
+        'data: {"type":"TEXT_MESSAGE_END","messageId":"msg2"}\n\n',
+    ]
+
+    with patch("llmling_agent.agent.agui_agent.httpx.AsyncClient") as mock_client_class:
+        mock_client = AsyncMock()
+        mock_client_class.return_value = mock_client
+
+        # Create mock responses
+        mock_response1 = mock_sse_response(events)
+        mock_response2 = mock_sse_response(final_events)
+
+        # Track call count to return different responses
+        call_count = 0
+
+        def create_stream_cm(*args, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            mock_stream_cm = MagicMock()
+            if call_count == 1:
+                mock_stream_cm.__aenter__ = AsyncMock(return_value=mock_response1)
+            else:
+                mock_stream_cm.__aenter__ = AsyncMock(return_value=mock_response2)
+            mock_stream_cm.__aexit__ = AsyncMock(return_value=None)
+            return mock_stream_cm
+
+        mock_client.stream = MagicMock(side_effect=create_stream_cm)
+
+        async with AGUIAgent(
+            endpoint="http://localhost:8000/run",
+            name="test-agent",
+            tools=[test_calculator],
+        ) as agent:
+            # Verify tool is registered
+            tools = await agent.tools.get_tools()
+            assert len(tools) == 1
+            assert tools[0].name == "test_calculator"
+
+            # Run with tool execution
+            result = await agent.run("Calculate 5 + 3")
+            assert isinstance(result, ChatMessage)
+            assert "8" in result.content
+
+
+@pytest.mark.asyncio
+async def test_agui_agent_register_tool():
+    """Test registering tools dynamically."""
+
+    def my_tool(text: str) -> str:
+        """Uppercase a string."""
+        return text.upper()
+
+    async with AGUIAgent(endpoint="http://localhost:8000/run", name="test-agent") as agent:
+        # Register tool dynamically
+        tool = agent.register_tool(my_tool)
+        assert tool.name == "my_tool"
+
+        # Verify it's in the tool manager
+        tools = await agent.tools.get_tools()
+        assert len(tools) == 1
+        assert tools[0].name == "my_tool"
+
+
+@pytest.mark.asyncio
+async def test_agui_tool_execution_error(mock_sse_response):
+    """Test handling tool execution errors."""
+
+    def failing_tool() -> str:
+        """A tool that always fails."""
+        raise ValueError("Tool execution failed")
+
+    events = [
+        'data: {"type":"TOOL_CALL_START","toolCallId":"call1","toolCallName":"failing_tool"}\n\n',
+        'data: {"type":"TOOL_CALL_ARGS","toolCallId":"call1","delta":"{}"}\n\n',
+        'data: {"type":"TOOL_CALL_END","toolCallId":"call1"}\n\n',
+    ]
+
+    final_events = [
+        'data: {"type":"TEXT_MESSAGE_CONTENT","messageId":"msg1","delta":"Tool failed"}\n\n',
+    ]
+
+    with patch("llmling_agent.agent.agui_agent.httpx.AsyncClient") as mock_client_class:
+        mock_client = AsyncMock()
+        mock_client_class.return_value = mock_client
+
+        mock_response1 = mock_sse_response(events)
+        mock_response2 = mock_sse_response(final_events)
+
+        call_count = 0
+
+        def create_stream_cm(*args, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            mock_stream_cm = MagicMock()
+            if call_count == 1:
+                mock_stream_cm.__aenter__ = AsyncMock(return_value=mock_response1)
+            else:
+                mock_stream_cm.__aenter__ = AsyncMock(return_value=mock_response2)
+            mock_stream_cm.__aexit__ = AsyncMock(return_value=None)
+            return mock_stream_cm
+
+        mock_client.stream = MagicMock(side_effect=create_stream_cm)
+
+        async with AGUIAgent(
+            endpoint="http://localhost:8000/run",
+            name="test-agent",
+            tools=[failing_tool],
+        ) as agent:
+            result = await agent.run("Use the tool")
+            # Should handle error and continue
+            assert isinstance(result, ChatMessage)
+
+
+def test_tool_call_accumulator():
+    """Test ToolCallAccumulator for streaming tool arguments."""
+    from llmling_agent.agent.agui_converters import ToolCallAccumulator
+
+    accumulator = ToolCallAccumulator()
+
+    # Start a tool call
+    accumulator.start("call1", "my_tool")
+
+    # Add argument deltas
+    accumulator.add_args("call1", '{"arg1":')
+    accumulator.add_args("call1", ' "value1"')
+    accumulator.add_args("call1", ', "arg2": 42}')
+
+    # Complete and parse
+    result = accumulator.complete("call1")
+    assert result is not None
+    tool_name, args = result
+    assert tool_name == "my_tool"
+    assert args == {"arg1": "value1", "arg2": 42}
+
+    # Tool call should be removed after completion
+    assert accumulator.get_pending("call1") is None
+
+
+def test_tool_call_accumulator_invalid_json():
+    """Test ToolCallAccumulator with invalid JSON."""
+    from llmling_agent.agent.agui_converters import ToolCallAccumulator
+
+    accumulator = ToolCallAccumulator()
+    accumulator.start("call1", "test_tool")
+    accumulator.add_args("call1", "invalid json {")
+
+    result = accumulator.complete("call1")
+    assert result is not None
+    tool_name, args = result
+    assert tool_name == "test_tool"
+    # Should wrap in raw key when parsing fails
+    assert "raw" in args
+
+
+def test_tool_call_accumulator_multiple_calls():
+    """Test ToolCallAccumulator with multiple concurrent tool calls."""
+    from llmling_agent.agent.agui_converters import ToolCallAccumulator
+
+    accumulator = ToolCallAccumulator()
+
+    # Start multiple tool calls
+    accumulator.start("call1", "tool1")
+    accumulator.start("call2", "tool2")
+
+    # Add args to both
+    accumulator.add_args("call1", '{"x": 1}')
+    accumulator.add_args("call2", '{"y": 2}')
+
+    # Check pending
+    pending1 = accumulator.get_pending("call1")
+    assert pending1 is not None
+    assert pending1[0] == "tool1"
+
+    pending2 = accumulator.get_pending("call2")
+    assert pending2 is not None
+    assert pending2[0] == "tool2"
+
+    # Complete both
+    result1 = accumulator.complete("call1")
+    result2 = accumulator.complete("call2")
+
+    assert result1 is not None
+    assert result1[0] == "tool1"
+    assert result1[1] == {"x": 1}
+
+    assert result2 is not None
+    assert result2[0] == "tool2"
+    assert result2[1] == {"y": 2}
+
+
+def test_to_agui_tool():
+    """Test converting llmling Tool to AG-UI Tool format."""
+    from llmling_agent.agent.agui_converters import to_agui_tool
+    from llmling_agent.tools import Tool
+
+    def example_tool(name: str, count: int = 1) -> str:
+        """Process a name with count."""
+        return name * count
+
+    tool = Tool.from_callable(example_tool)
+    agui_tool = to_agui_tool(tool)
+
+    assert agui_tool.name == "example_tool"
+    assert "Process a name" in agui_tool.description
+    assert agui_tool.parameters is not None
+    assert "type" in agui_tool.parameters
+    assert "properties" in agui_tool.parameters
+    # Should have parameters for name and count
+    assert "name" in agui_tool.parameters["properties"]
+    assert "count" in agui_tool.parameters["properties"]

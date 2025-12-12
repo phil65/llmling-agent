@@ -945,6 +945,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
             headers=config.headers,
             startup_command=config.startup_command,
             startup_delay=config.startup_delay,
+            tools=[tool_config.get_tool() for tool_config in config.tools],
             mcp_servers=config.mcp_servers,
         )
 

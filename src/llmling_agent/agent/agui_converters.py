@@ -2,6 +2,9 @@
 
 This module provides conversion from AG-UI protocol events to native llmling-agent
 streaming events, enabling AGUIAgent to yield the same event types as native agents.
+
+Also provides conversion of llmling Tool objects to AG-UI Tool format for
+client-side tool execution.
 """
 
 from __future__ import annotations
@@ -34,6 +37,7 @@ from ag_ui.core import (
     ToolCallResultEvent,
     ToolCallStartEvent,
 )
+import anyenv
 from pydantic_ai import (
     AudioUrl,
     BinaryContent,
@@ -60,10 +64,11 @@ from llmling_agent.resource_providers.plan_provider import PlanEntry
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from ag_ui.core import Event, InputContent
+    from ag_ui.core import Event, InputContent, Tool as AGUITool
     from pydantic_ai import UserContent
 
     from llmling_agent.agent.events import RichAgentStreamEvent
+    from llmling_agent.tools.base import Tool
 
 
 def agui_to_native_event(event: Event) -> RichAgentStreamEvent[Any] | None:  # noqa: PLR0911
@@ -279,3 +284,71 @@ def to_agui_input_content(
                 result.append(TextInputContent(text=str(part)))
 
     return result
+
+
+def to_agui_tool(tool: Tool) -> AGUITool:
+    """Convert llmling Tool to AG-UI Tool format.
+
+    Args:
+        tool: llmling Tool instance
+
+    Returns:
+        AG-UI Tool with JSON Schema parameters
+    """
+    from ag_ui.core import Tool as AGUITool
+
+    schema = tool.schema
+    func_schema = schema["function"]
+    return AGUITool(
+        name=func_schema["name"],
+        description=func_schema.get("description", ""),
+        parameters=func_schema.get("parameters", {"type": "object", "properties": {}}),
+    )
+
+
+class ToolCallAccumulator:
+    """Accumulates streamed tool call arguments.
+
+    AG-UI streams tool call arguments as deltas, this class accumulates them
+    and provides the complete arguments when the tool call ends.
+    """
+
+    def __init__(self) -> None:
+        self._calls: dict[str, dict[str, Any]] = {}
+
+    def start(self, tool_call_id: str, tool_name: str) -> None:
+        """Start tracking a new tool call."""
+        self._calls[tool_call_id] = {"name": tool_name, "args_buffer": ""}
+
+    def add_args(self, tool_call_id: str, delta: str) -> None:
+        """Add argument delta to a tool call."""
+        if tool_call_id in self._calls:
+            self._calls[tool_call_id]["args_buffer"] += delta
+
+    def complete(self, tool_call_id: str) -> tuple[str, dict[str, Any]] | None:
+        """Complete a tool call and return (tool_name, parsed_args).
+
+        Returns:
+            Tuple of (tool_name, args_dict) or None if call not found
+        """
+        if tool_call_id not in self._calls:
+            return None
+
+        call_data = self._calls.pop(tool_call_id)
+        args_str = call_data["args_buffer"]
+        try:
+            args = anyenv.load_json(args_str) if args_str else {}
+        except anyenv.JsonLoadError:
+            args = {"raw": args_str}
+        return call_data["name"], args
+
+    def get_pending(self, tool_call_id: str) -> tuple[str, str] | None:
+        """Get pending call data (tool_name, args_buffer) without completing."""
+        if tool_call_id not in self._calls:
+            return None
+        data = self._calls[tool_call_id]
+        return data["name"], data["args_buffer"]
+
+    def clear(self) -> None:
+        """Clear all pending tool calls."""
+        self._calls.clear()

@@ -2,6 +2,10 @@
 
 This module provides a MessageNode adapter that connects to remote AG-UI protocol servers,
 enabling remote agent execution with streaming support.
+
+Supports client-side tool execution: tools can be defined locally and sent to the
+remote AG-UI agent. When the agent requests tool execution, the tools are executed
+locally and results sent back.
 """
 
 from __future__ import annotations
@@ -23,6 +27,7 @@ from llmling_agent.messaging import ChatMessage, MessageHistory
 from llmling_agent.messaging.messagenode import MessageNode
 from llmling_agent.messaging.processing import prepare_prompts
 from llmling_agent.talk.stats import MessageStats
+from llmling_agent.tools import ToolManager
 
 
 if TYPE_CHECKING:
@@ -30,13 +35,14 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Callable, Sequence
     from types import TracebackType
 
-    from ag_ui.core import Event
+    from ag_ui.core import Event, Message, ToolMessage
     from evented.configs import EventConfig
 
     from llmling_agent.agent.events import RichAgentStreamEvent
-    from llmling_agent.common_types import BuiltinEventHandlerType, PromptCompatible
+    from llmling_agent.common_types import BuiltinEventHandlerType, PromptCompatible, ToolType
     from llmling_agent.delegation import AgentPool
     from llmling_agent.messaging.context import NodeContext
+    from llmling_agent.tools import Tool
     from llmling_agent_config.mcp_server import MCPServerConfig
 
 
@@ -95,8 +101,15 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
     - AG-UI protocol communication via SSE streams
     - Event conversion to native llmling-agent events
     - Message accumulation and final response generation
+    - Client-side tool execution (tools defined locally, executed when requested)
 
     Supports both blocking `run()` and streaming `run_stream()` execution modes.
+
+    Client-Side Tools:
+        Tools can be registered with this agent and sent to the remote AG-UI server.
+        When the server requests a tool call, the tool is executed locally and the
+        result is sent back. This enables human-in-the-loop workflows and local
+        capability exposure to remote agents.
 
     Example:
         ```python
@@ -108,6 +121,15 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
             result = await agent.run("Hello, world!")
             async for event in agent.run_stream("Tell me a story"):
                 print(event)
+
+        # With client-side tools
+        async with AGUIAgent(
+            endpoint="http://localhost:8000/agent/run",
+            name="tool-agent",
+            tools=[my_tool_function],
+        ) as agent:
+            # Remote agent can request execution of my_tool_function
+            result = await agent.run("Use the tool to help me")
 
         # Start server automatically (useful for testing)
         async with AGUIAgent(
@@ -131,6 +153,7 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
         headers: dict[str, str] | None = None,
         startup_command: str | None = None,
         startup_delay: float = 2.0,
+        tools: Sequence[Tool | ToolType] | None = None,
         mcp_servers: Sequence[str | MCPServerConfig] | None = None,
         agent_pool: AgentPool[Any] | None = None,
         enable_logging: bool = True,
@@ -150,6 +173,7 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
                            Useful for testing - server lifecycle is managed by the agent.
                            Example: "ag ui agent config.yml"
             startup_delay: Seconds to wait after starting server before connecting (default: 2.0)
+            tools: Tools to expose to the remote agent (executed locally when called)
             mcp_servers: MCP servers to connect
             agent_pool: Agent pool for multi-agent coordination
             enable_logging: Whether to enable database logging
@@ -180,6 +204,12 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
         self._event_queue: asyncio.Queue[RichAgentStreamEvent[Any]] = asyncio.Queue()
         resolved_handlers = resolve_event_handlers(event_handlers)
         self.event_handler = MultiEventHandler[IndividualEventHandler](resolved_handlers)
+        self._tools = ToolManager(tools)
+
+    @property
+    def tools(self) -> ToolManager:
+        """Get the tool manager for client-side tools."""
+        return self._tools
 
     @property
     def context(self) -> NodeContext:
@@ -217,6 +247,17 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
             await self._stop_server()
         self.log.debug("AG-UI client closed")
         await super().__aexit__(exc_type, exc_val, exc_tb)
+
+    def register_tool(self, tool: Tool | ToolType) -> Tool:
+        """Register a tool for client-side execution.
+
+        Args:
+            tool: Tool instance or callable to register
+
+        Returns:
+            Registered Tool instance
+        """
+        return self._tools.register_tool(tool)
 
     async def _start_server(self) -> None:
         """Start the AG-UI server subprocess."""
@@ -256,6 +297,55 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
             self._startup_process = None
             self.log.info("AG-UI server stopped")
 
+    async def _execute_tool_calls(
+        self,
+        tool_calls: list[tuple[str, str, dict[str, Any]]],
+        tools_by_name: dict[str, Tool],
+    ) -> list[ToolMessage]:
+        """Execute tool calls locally and return results.
+
+        Args:
+            tool_calls: List of (tool_call_id, tool_name, args) tuples
+            tools_by_name: Dictionary mapping tool names to Tool instances
+
+        Returns:
+            List of ToolMessage with execution results
+        """
+        from ag_ui.core import ToolMessage as AGUIToolMessage
+
+        results: list[AGUIToolMessage] = []
+        for tc_id, tool_name, args in tool_calls:
+            if tool_name not in tools_by_name:
+                self.log.warning("Unknown tool requested", tool=tool_name)
+                result_msg = AGUIToolMessage(
+                    id=str(uuid4()),
+                    tool_call_id=tc_id,
+                    content=f"Error: Unknown tool '{tool_name}'",
+                    error=f"Tool '{tool_name}' not found",
+                )
+            else:
+                tool = tools_by_name[tool_name]
+                try:
+                    self.log.info("Executing tool", tool=tool_name, args=args)
+                    result = await tool.execute(**args)
+                    result_str = str(result) if not isinstance(result, str) else result
+                    result_msg = AGUIToolMessage(
+                        id=str(uuid4()),
+                        tool_call_id=tc_id,
+                        content=result_str,
+                    )
+                    self.log.debug("Tool executed", tool=tool_name, result=result_str[:100])
+                except Exception as e:
+                    self.log.exception("Tool execution failed", tool=tool_name)
+                    result_msg = AGUIToolMessage(
+                        id=str(uuid4()),
+                        tool_call_id=tc_id,
+                        content=f"Error executing tool: {e}",
+                        error=str(e),
+                    )
+            results.append(result_msg)
+        return results
+
     async def run(
         self,
         *prompts: PromptCompatible,
@@ -289,7 +379,7 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
             raise RuntimeError("No final message received from stream")
         return final_message
 
-    async def run_stream(
+    async def run_stream(  # noqa: PLR0915
         self,
         *prompts: PromptCompatible,
         message_id: str | None = None,
@@ -297,6 +387,10 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
         **kwargs: Any,
     ) -> AsyncIterator[RichAgentStreamEvent[str]]:
         """Execute prompt with streaming events.
+
+        Sends the prompt to the remote AG-UI agent along with any registered tools.
+        When the agent requests a tool call, the tool is executed locally and the
+        result is sent back in a continuation request.
 
         Args:
             prompts: Prompts to send
@@ -307,12 +401,20 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
         Yields:
             Native streaming events converted from AG-UI protocol
         """
-        from ag_ui.core import RunAgentInput, UserMessage
+        from ag_ui.core import (
+            RunAgentInput,
+            ToolCallArgsEvent as AGUIToolCallArgsEvent,
+            ToolCallEndEvent as AGUIToolCallEndEvent,
+            ToolCallStartEvent as AGUIToolCallStartEvent,
+            UserMessage,
+        )
 
         from llmling_agent.agent.agui_converters import (
+            ToolCallAccumulator,
             agui_to_native_event,
             extract_text_from_event,
             to_agui_input_content,
+            to_agui_tool,
         )
 
         if not self._client or not self._state:
@@ -334,73 +436,120 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
         # Get pending parts from conversation and convert them
         pending_parts = conversation.get_pending_parts()
         pending_content = to_agui_input_content(pending_parts)
-
-        # Convert prompts to pydantic-ai format, then to AGUI content
-        from llmling_agent.prompts.convert import convert_prompts
-
-        converted_prompts = await convert_prompts(prompts)
-        content = to_agui_input_content(converted_prompts)
-
+        # Convert user message content to AGUI format using processed prompts
+        user_content = to_agui_input_content(_processed_prompts)
         # Combine pending parts with new content
-        final_content = [*pending_content, *content]
-
+        final_content = [*pending_content, *user_content]
         user_message = UserMessage(id=str(uuid4()), content=final_content)
-        request_data = RunAgentInput(
-            thread_id=self._state.thread_id,
-            run_id=self._state.run_id,
-            state={},
-            messages=[user_message],
-            tools=[],
-            context=[],
-            forwarded_props={},
+
+        # Convert registered tools to AG-UI format
+        available_tools = await self._tools.get_tools(state="enabled")
+        agui_tools = [to_agui_tool(t) for t in available_tools]
+        tools_by_name = {t.name: t for t in available_tools}
+
+        # Build initial messages list
+        messages: list[Message] = [user_message]
+        tool_accumulator = ToolCallAccumulator()
+        pending_tool_results: list[ToolMessage] = []
+
+        self.log.debug(
+            "Sending prompt to AG-UI agent",
+            tools_count=len(agui_tools),
+            tool_names=[t.name for t in agui_tools],
         )
 
-        self.log.debug("Sending prompt to AG-UI agent")
-        data = request_data.model_dump(by_alias=True)
-        try:  # Send request and stream events
-            async with self._client.stream("POST", self.endpoint, json=data) as response:
-                response.raise_for_status()
-                async for event in self._parse_sse_stream(response):
-                    # Track text chunks
-                    if text := extract_text_from_event(event):
-                        self._state.text_chunks.append(text)
-
-                    # Convert to native event and distribute to handlers
-                    if native_event := agui_to_native_event(event):
-                        # Check for queued custom events first
-                        while not self._event_queue.empty():
-                            try:
-                                custom_event = self._event_queue.get_nowait()
-                                for handler in self.event_handler._wrapped_handlers:
-                                    await handler(None, custom_event)
-                                yield custom_event
-                            except asyncio.QueueEmpty:
-                                break
-                        # Distribute to handlers
-                        for handler in self.event_handler._wrapped_handlers:
-                            await handler(None, native_event)
-                        yield native_event
-
-        except httpx.HTTPError as e:
-            self._state.error = str(e)
-            self.log.exception("HTTP error during AG-UI run")
-            raise
-        finally:
-            self._state.is_complete = True
-            # Emit final message
-            final_message = ChatMessage[str](
-                content="".join(self._state.text_chunks),
-                role="assistant",
-                name=self.name,
-                message_id=message_id or str(uuid4()),
-                conversation_id=self.conversation_id,
+        # Loop to handle tool calls - agent may request multiple rounds
+        while True:
+            request_data = RunAgentInput(
+                thread_id=self._state.thread_id,
+                run_id=self._state.run_id,  # pyright: ignore[reportArgumentType]
+                state={},
+                messages=messages,
+                tools=agui_tools,
+                context=[],
+                forwarded_props={},
             )
-            complete_event = StreamCompleteEvent(message=final_message)
-            for handler in self.event_handler._wrapped_handlers:
-                await handler(None, complete_event)
-            yield complete_event
-            # Record to conversation history
-            conversation.add_chat_messages([user_msg, final_message])
+
+            data = request_data.model_dump(by_alias=True)
+            tool_calls_pending: list[tuple[str, str, dict[str, Any]]] = []
+
+            try:
+                async with self._client.stream("POST", self.endpoint, json=data) as response:
+                    response.raise_for_status()
+                    async for event in self._parse_sse_stream(response):
+                        # Track text chunks
+                        if text := extract_text_from_event(event):
+                            self._state.text_chunks.append(text)
+
+                        # Handle tool call events for client-side execution
+                        match event:
+                            case AGUIToolCallStartEvent(
+                                tool_call_id=tc_id, tool_call_name=name
+                            ) if name:
+                                tool_accumulator.start(tc_id, name)
+                                self.log.debug("Tool call started", tool_call_id=tc_id, tool=name)
+
+                            case AGUIToolCallArgsEvent(tool_call_id=tc_id, delta=delta):
+                                tool_accumulator.add_args(tc_id, delta)
+
+                            case AGUIToolCallEndEvent(tool_call_id=tc_id):
+                                if result := tool_accumulator.complete(tc_id):
+                                    tool_name, args = result
+                                    tool_calls_pending.append((tc_id, tool_name, args))
+                                    self.log.debug(
+                                        "Tool call completed",
+                                        tool_call_id=tc_id,
+                                        tool=tool_name,
+                                        args=args,
+                                    )
+
+                        # Convert to native event and distribute to handlers
+                        if native_event := agui_to_native_event(event):
+                            # Check for queued custom events first
+                            while not self._event_queue.empty():
+                                try:
+                                    custom_event = self._event_queue.get_nowait()
+                                    for handler in self.event_handler._wrapped_handlers:
+                                        await handler(None, custom_event)
+                                    yield custom_event
+                                except asyncio.QueueEmpty:
+                                    break
+                            # Distribute to handlers
+                            for handler in self.event_handler._wrapped_handlers:
+                                await handler(None, native_event)
+                            yield native_event
+
+            except httpx.HTTPError as e:
+                self._state.error = str(e)
+                self.log.exception("HTTP error during AG-UI run")
+                raise
+
+            # If no tool calls pending, we're done
+            if not tool_calls_pending:
+                break
+
+            # Execute pending tool calls locally and collect results
+            pending_tool_results = await self._execute_tool_calls(tool_calls_pending, tools_by_name)
+
+            # Add tool results to messages for next iteration
+            messages = [*pending_tool_results]
+            self.log.debug("Continuing with tool results", count=len(pending_tool_results))
+
+        # Finalize
+        self._state.is_complete = True
+        final_message = ChatMessage[str](
+            content="".join(self._state.text_chunks),
+            role="assistant",
+            name=self.name,
+            message_id=message_id or str(uuid4()),
+            conversation_id=self.conversation_id,
+        )
+        complete_event = StreamCompleteEvent(message=final_message)
+        for handler in self.event_handler._wrapped_handlers:
+            await handler(None, complete_event)
+        yield complete_event
+        # Record to conversation history
+        conversation.add_chat_messages([user_msg, final_message])
 
     async def _parse_sse_stream(self, response: httpx.Response) -> AsyncIterator[Event]:
         """Parse Server-Sent Events stream.
