@@ -10,63 +10,63 @@ This section contains practical examples demonstrating various features and patt
 
 ## Agent Patterns
 
-### [Create Docs](create_docs.md)
+### [Create Docs](create_docs/)
 
 Agent collaboration for documentation generation - demonstrates how multiple agents can work together to create structured documentation.
 
-### [CrewAI-Style Flow](crewai_flow.md)
+### [CrewAI-Style Flow](crewai_flow/)
 
 Adaptation of CrewAI-like workflow patterns - shows how to implement familiar workflow patterns from other frameworks.
 
-### [PyTest-Style Functions](pytest_style.md)
+### [PyTest-Style Functions](pytest_style/)
 
 PyTest-style example patterns - demonstrates testing patterns and function-based agent definitions.
 
 ## Multi-Agent Communication
 
-### [Round-Robin Communication](round_robin.md)
+### [Round-Robin Communication](round_robin/)
 
 Round-robin message passing between agents - shows how to implement circular communication patterns.
 
-### [Expert Selection](pick_experts.md)
+### [Expert Selection](pick_experts/)
 
 Using `pick()` for expert selection - demonstrates dynamic agent selection based on expertise.
 
 ## Downloads & Workers
 
-### [Download Agents](download_agents.md)
+### [Download Agents](download_agents/)
 
 Sequential vs parallel downloads comparison - compares different approaches to handling multiple download tasks.
 
-### [Download Workers](download_workers.md)
+### [Download Workers](download_workers/)
 
 Using agents as tools for downloads - shows how to use one agent as a tool for another.
 
 ## MCP Integration
 
-### [MCP Servers (YAML)](mcp_servers_yaml.md)
+### [MCP Servers (YAML)](mcp_servers_yaml/)
 
 MCP server integration with git tools - demonstrates how to integrate MCP servers via YAML configuration.
 
-### [MCP Sampling & Elicitation](mcp_sampling_elicitation.md)
+### [MCP Sampling & Elicitation](mcp_sampling_elicitation/)
 
 MCP server with sampling tools - shows advanced MCP features including sampling and elicitation.
 
 ## Structured Responses
 
-### [Structured Responses](structured_response.md)
+### [Structured Responses](structured_response/)
 
 Structured response type examples - demonstrates how to define and use typed response models.
 
 ## Human Interaction
 
-### [Human Interaction](human_interaction.md)
+### [Human Interaction](human_interaction/)
 
 AI-Human interaction patterns - shows how to implement human-in-the-loop workflows.
 
 ## Model Comparison
 
-### [Model Comparison](model_comparison.md)
+### [Model Comparison](model_comparison/)
 
 Comparing different models using parallel teams - demonstrates how to run the same task across multiple models simultaneously.
 

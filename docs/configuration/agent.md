@@ -53,12 +53,12 @@ agents:
 
 ## Related Configuration
 
-- [Model Configuration](model.md) - Configure LLM providers
-- [System Prompts](prompts.md) - Define agent behavior
-- [Tools](tools.md) - Individual tool configuration
-- [Toolsets](toolsets.md) - Tool collections
-- [Workers](worker.md) - Sub-agent delegation
-- [Connections](connections.md) - Message routing
-- [MCP Servers](mcp.md) - MCP integration
+- [Model Configuration](./model.md) - Configure LLM providers
+- [System Prompts](./prompts.md) - Define agent behavior
+- [Tools](./tools.md) - Individual tool configuration
+- [Toolsets](./toolsets.md) - Tool collections
+- [Workers](./worker.md) - Sub-agent delegation
+- [Connections](./connections.md) - Message routing
+- [MCP Servers](./mcp.md) - MCP integration
 - [ACP Agents](acp-agents.md) - External ACP agent integration
 - [AG-UI Agents](agui-agents.md) - AG-UI protocol agents

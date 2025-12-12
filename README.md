@@ -498,7 +498,7 @@ This unified system makes it easy to:
 - Compose nodes in any combination
 - Use consistent patterns across all node types
 
-Each message in the system carries content, metadata, and execution information, providing a consistent interface across all types of interactions. See [Message System](docs/concepts/messages.md) for details.
+Each message in the system carries content, metadata, and execution information, providing a consistent interface across all types of interactions. See [Message System](docs/core-concepts/messages.md) for details.
 
 
 

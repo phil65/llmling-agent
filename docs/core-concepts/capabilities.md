@@ -263,4 +263,4 @@ agents:
         import_path: "mypackage.toolsets.SpecializedTools"
 ```
 
-See the [Custom Tools](../tools/custom.md) guide for implementation details.
+See the [Tools](./tools.md) documentation for implementation details.

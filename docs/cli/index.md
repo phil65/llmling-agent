@@ -162,4 +162,4 @@ agents:
       - type: file_access
 ```
 
-See the [Configuration Guide](config/index.md) for detailed information about agent configuration.
+See the [Configuration Guide](../configuration/index.md) for detailed information about agent configuration.

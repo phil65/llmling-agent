@@ -269,4 +269,4 @@ The key is that the `with_nodes` decorator needs a pool, which is your connectio
 3. Allows flexible pool management strategies
 4. Maintains type safety throughout
 
-For more examples and detailed API documentation, see the [API Reference](api_reference.md).
+For more examples and detailed API documentation, refer to the inline docstrings and type hints in the source code.
