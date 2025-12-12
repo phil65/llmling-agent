@@ -598,31 +598,6 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
             mid = f"{message_id or 'msg'}_{i}" if message_id else None
             yield await self.run(*prompts, message_id=mid)
 
-    def to_tool(self, *, name: str | None = None, description: str | None = None) -> Tool[str]:
-        """Convert agent to a callable tool.
-
-        Args:
-            name: Optional tool name override
-            description: Tool description
-
-        Returns:
-            Tool instance that can be registered
-        """
-        from llmling_agent.tools.base import Tool
-
-        async def wrapped(prompt: str) -> str:
-            """Execute AG-UI agent with given prompt."""
-            result = await self.run(prompt)
-            return result.content
-
-        tool_name = name or f"ask_{self.name}"
-        docstring = description or f"Call {self.name} AG-UI agent"
-        if self.description:
-            docstring = f"{docstring}\n\n{self.description}"
-        wrapped.__doc__ = docstring
-        wrapped.__name__ = tool_name
-        return Tool.from_callable(wrapped, name_override=tool_name, description_override=docstring)
-
     @property
     def model_name(self) -> str | None:
         """Get model name (AG-UI doesn't expose this)."""

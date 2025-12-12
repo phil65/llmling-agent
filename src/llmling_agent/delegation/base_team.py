@@ -15,7 +15,6 @@ from llmling_agent.messaging import MessageNode
 from llmling_agent.messaging.context import NodeContext
 from llmling_agent.models.manifest import AgentsManifest
 from llmling_agent.talk.stats import AggregatedMessageStats
-from llmling_agent.tools.base import Tool
 from llmling_agent_config.teams import TeamConfig
 
 
@@ -97,26 +96,6 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
         self.picker = picker
         self.num_picks = num_picks
         self.pick_prompt = pick_prompt
-
-    def to_tool(self, *, name: str | None = None, description: str | None = None) -> Tool:
-        """Create a tool from this agent.
-
-        Args:
-            name: Optional tool name override
-            description: Optional tool description override
-        """
-
-        async def wrapped(prompt: str) -> TResult:
-            result = await self.run(prompt)
-            return result.data
-
-        tool_name = name or f"ask_{self.name}"
-        docstring = description or f"Get expert answer from node {self.name}"
-        if self.description:
-            docstring = f"{docstring}\n\n{self.description}"
-        wrapped.__doc__ = docstring
-        wrapped.__name__ = tool_name
-        return Tool.from_callable(wrapped, description_override=docstring)
 
     async def pick_agents(self, task: str) -> Sequence[MessageNode[Any, Any]]:
         """Pick agents to run."""

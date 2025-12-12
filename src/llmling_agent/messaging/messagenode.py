@@ -34,6 +34,7 @@ if TYPE_CHECKING:
     from llmling_agent.storage import StorageManager
     from llmling_agent.talk import Talk, TeamTalk
     from llmling_agent.talk.stats import AggregatedMessageStats, MessageStats
+    from llmling_agent.tools.base import Tool
     from llmling_agent_config.forward_targets import ConnectionType
     from llmling_agent_config.mcp_server import MCPServerConfig
 
@@ -149,6 +150,33 @@ class MessageNode[TDeps, TResult](ABC):
     @display_name.setter
     def display_name(self, value: str | None) -> None:
         self._display_name = value
+
+    def to_tool(
+        self, *, name: str | None = None, description: str | None = None, **kwargs: Any
+    ) -> Tool[TResult]:
+        """Convert node to a callable tool.
+
+        Args:
+            name: Optional tool name override
+            description: Optional tool description override
+            **kwargs: Additional arguments for subclass customization
+
+        Returns:
+            Tool instance that can be registered
+        """
+        from llmling_agent.tools.base import Tool
+
+        async def wrapped(prompt: str) -> TResult:
+            result = await self.run(prompt)
+            return result.content
+
+        tool_name = name or f"ask_{self.name}"
+        docstring = description or f"Get expert answer from {self.name}"
+        if self.description:
+            docstring = f"{docstring}\n\n{self.description}"
+        wrapped.__doc__ = docstring
+        wrapped.__name__ = tool_name
+        return Tool.from_callable(wrapped, name_override=tool_name, description_override=docstring)
 
     @overload
     def __rshift__(

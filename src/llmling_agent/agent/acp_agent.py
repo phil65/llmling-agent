@@ -889,22 +889,6 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
             response = await self.run(*prompts)
             yield response
 
-    def to_tool(self, *, name: str | None = None, description: str | None = None) -> Tool[str]:
-        """Create a tool from this agent."""
-        from llmling_agent.tools.base import Tool
-
-        async def wrapped(prompt: str) -> str:
-            result = await self.run(prompt)
-            return result.content
-
-        tool_name = name or f"ask_{self.name}"
-        docstring = description or f"Get expert answer from ACP agent: {self.name}"
-        if self.description:
-            docstring = f"{docstring}\n\n{self.description}"
-        wrapped.__doc__ = docstring
-        wrapped.__name__ = tool_name
-        return Tool.from_callable(wrapped, name_override=tool_name, description_override=docstring)
-
     @property
     def model_name(self) -> str | None:
         """Get the model name in a consistent format."""
