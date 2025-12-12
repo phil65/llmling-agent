@@ -14,14 +14,6 @@ hide:
 
 # PyTest-Style Agent Functions
 
-
-
-
-
-
-
-
-
 This example demonstrates a pytest-inspired way to work with agents:
 
 - Using agents as function decorators

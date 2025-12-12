@@ -12,16 +12,7 @@ hide:
 {{ ['docs/examples/download_agents/main.py', 'docs/examples/download_agents/config.yml'] | pydantic_playground }}
 ///
 
-# Multi-Agent Download System with Cheerleader
-
-
-
-
-
-
-
-
-
+## Multi-Agent Download System with Cheerleader
 This example demonstrates several advanced features of LLMling-agent:
 
 - Continuous repetitive tasks

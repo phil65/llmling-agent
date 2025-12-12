@@ -13,15 +13,6 @@ hide:
 ///
 
 # AI-Human Interaction
-
-
-
-
-
-
-
-
-
 This example demonstrates how AI agents can interact with humans:
 
 - Using agent capabilities for human interaction
@@ -40,7 +31,7 @@ This example demonstrates how AI agents can interact with humans:
    - Incorporates the human's response into its answer
 
 3. The conversation might look like this:
-   ```
+   ```text
    Assistant: I need to check about Project DoomsDay's status. Let me ask the human.
    Human: Project DoomsDay is currently in Phase 2, with 60% completion.
    Assistant: Based on the human's input, Project DoomsDay is in Phase 2 and is 60% complete.

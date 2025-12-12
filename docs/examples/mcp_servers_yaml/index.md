@@ -16,15 +16,6 @@ hide:
 
 
 
-
-
-
-
-
-
-
-
-
 This example demonstrates how AI agents can interact with humans:
 
 - Using agent capabilities for human interaction

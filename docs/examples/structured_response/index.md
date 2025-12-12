@@ -13,15 +13,6 @@ hide:
 ///
 
 : Python vs YAML
-
-
-
-
-
-
-
-
-
 This example demonstrates two ways to define structured responses in LLMling-agent:
 
 - Using Python Pydantic models

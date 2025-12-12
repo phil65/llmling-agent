@@ -13,15 +13,6 @@ hide:
 ///
 
 # Multi-Agent Documentation System
-
-
-
-
-
-
-
-
-
 This example demonstrates a team of three agents working together to scan, document, and validate Python code. It shows different patterns of agent collaboration:
 
 - Async delegation (fire and forget)

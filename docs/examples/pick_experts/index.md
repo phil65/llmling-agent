@@ -16,15 +16,6 @@ with pick() and pick_multiple()
 
 
 
-
-
-
-
-
-
-
-
-
 This example demonstrates LLMling-agent's type-safe selection methods:
 
 - Using pick() for single expert selection

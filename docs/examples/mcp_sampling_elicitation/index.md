@@ -13,15 +13,6 @@ hide:
 ///
 
 Example
-
-
-
-
-
-
-
-
-
 This example demonstrates how to create and use a FastMCP server that combines **sampling** and **elicitation** in a single workflow.
 
 ## Overview

@@ -60,7 +60,9 @@ agents:
 ## Components
 
 ### Simple Paths
+
 Quick access to files and URLs:
+
 ```yaml
 knowledge:
   paths:
@@ -70,7 +72,9 @@ knowledge:
 ```
 
 ### Rich Resources
+
 Detailed resource configurations:
+
 ```yaml
 knowledge:
   resources:
@@ -85,7 +89,9 @@ knowledge:
 ```
 
 ### Dynamic Prompts
+
 Content generated at load time:
+
 ```yaml
 knowledge:
   prompts:

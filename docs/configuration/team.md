@@ -60,6 +60,7 @@ teams:
 ## Components
 
 ### Mode
+
 - `parallel`: Members execute simultaneously (like & operator)
 - `sequential`: Members execute in sequence (like | operator)
 
