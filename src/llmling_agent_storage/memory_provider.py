@@ -18,12 +18,7 @@ if TYPE_CHECKING:
     from llmling_agent.common_types import JsonValue
     from llmling_agent_config.session import SessionQuery
     from llmling_agent_config.storage import MemoryStorageConfig
-    from llmling_agent_storage.models import (
-        MessageData,
-        QueryFilters,
-        StatsFilters,
-        TokenUsage,
-    )
+    from llmling_agent_storage.models import MessageData, QueryFilters, StatsFilters, TokenUsage
 
 
 class MemoryStorageProvider(StorageProvider):
@@ -157,7 +152,7 @@ class MemoryStorageProvider(StorageProvider):
         start_time: datetime | None = None,
     ) -> None:
         """Store conversation in memory."""
-        if next((i for i in self.messages if i["conversation_id"] == conversation_id), None):
+        if next((i for i in self.conversations if i["id"] == conversation_id), None):
             msg = f"Duplicate conversation ID: {conversation_id}"
             raise ValueError(msg)
         self.conversations.append({
