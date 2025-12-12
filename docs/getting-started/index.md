@@ -1,6 +1,7 @@
 ---
 title: Installation
 description: Installation instructions for LLMling-Agent
+order: 1
 ---
 
 # Installation

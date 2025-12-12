@@ -1,7 +1,10 @@
 ---
-title: LLMling-Agent
+title: Home
 description: A brand new AI framework. Fully async. Excellently typed. MCP & ACP Integration. Human in the loop. Unique messaging features.
 icon: material/robot-outline
+order: 0
+hide:
+  - navigation
 ---
 
 # LLMling-Agent
