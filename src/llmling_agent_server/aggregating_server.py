@@ -15,6 +15,8 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
     from types import TracebackType
 
+    from starlette.routing import Route
+
     from llmling_agent import AgentPool
 
 # Type-safe server status literals
@@ -28,6 +30,7 @@ class ServerInfo:
     name: str
     server_type: type[BaseServer]
     status: ServerStatus
+    is_http: bool = False
 
 
 logger = get_logger(__name__)
@@ -36,32 +39,46 @@ logger = get_logger(__name__)
 class AggregatingServer(BaseServer):
     """Server that aggregates multiple servers with unified interface.
 
-    Manages multiple server instances (MCP, OpenAI API, ACP, etc.) as a single
+    Manages multiple server instances (MCP, OpenAI API, ACP, AG-UI, A2A, etc.) as a single
     coordinated unit. All servers share the same AgentPool and are started/stopped
     together while maintaining the same BaseServer interface.
 
-    The aggregating server properly manages the lifecycle of all child servers:
-    - Initializes all servers during __aenter__ using AsyncExitStack
-    - Starts all servers concurrently during _start_async
-    - Automatically cleans up all servers during __aexit
+    Supports two modes of operation:
 
-    Example:
+    1. **Separate mode** (default): Each server runs independently on its own port
+    2. **Unified HTTP mode**: All HTTP servers (AG-UI, A2A, OpenAI API) are combined
+       into a single Starlette application on one port
+
+    The unified mode is more efficient as it:
+    - Uses a single uvicorn instance
+    - Shares connection resources
+    - Simplifies deployment (one port to expose)
+
+    Example (separate mode):
         ```python
-        pool = AgentPool(manifest)
-
         servers = [
+            AGUIServer(pool, port=8002),
+            A2AServer(pool, port=8001),
             MCPServer(pool, mcp_config),
-            OpenAIServer(pool, host="localhost", port=8000),
-            ResponsesServer(pool, host="localhost", port=8001),
         ]
-
         aggregating_server = AggregatingServer(pool, servers)
+        ```
 
-        # Use like any other server
-        async with aggregating_server:
-            async with aggregating_server.run_context():
-                # All servers running in background
-                await do_other_work()
+    Example (unified HTTP mode):
+        ```python
+        servers = [
+            AGUIServer(pool),  # port ignored in unified mode
+            A2AServer(pool),   # port ignored in unified mode
+        ]
+        aggregating_server = AggregatingServer(
+            pool, servers,
+            unified_http=True,
+            unified_host="localhost",
+            unified_port=8000,
+        )
+        # All routes accessible at http://localhost:8000
+        # AG-UI: /agui/{agent_name}
+        # A2A: /a2a/{agent_name}
         ```
     """
 
@@ -72,6 +89,9 @@ class AggregatingServer(BaseServer):
         *,
         name: str | None = None,
         raise_exceptions: bool = False,
+        unified_http: bool = False,
+        unified_host: str = "localhost",
+        unified_port: int = 8000,
     ) -> None:
         """Initialize aggregating server.
 
@@ -80,40 +100,47 @@ class AggregatingServer(BaseServer):
             servers: Sequence of servers to aggregate
             name: Server name for logging (auto-generated if None)
             raise_exceptions: Whether to raise exceptions during server start
+            unified_http: Whether to combine HTTP servers into single app
+            unified_host: Host for unified HTTP server (only used if unified_http=True)
+            unified_port: Port for unified HTTP server (only used if unified_http=True)
         """
         if not servers:
             msg = "At least one server must be provided"
             raise ValueError(msg)
 
-        # Initialize base with the shared pool
         super().__init__(pool, name=name, raise_exceptions=raise_exceptions)
 
         self.servers = list(servers)
         self.exit_stack = AsyncExitStack()
         self._initialized_servers: list[BaseServer] = []
 
+        # Unified HTTP mode settings
+        self.unified_http = unified_http
+        self.unified_host = unified_host
+        self.unified_port = unified_port
+        self._unified_app: Any = None
+
     async def __aenter__(self) -> Self:
         """Initialize aggregating server and all child servers."""
-        # Initialize base server (pool)
         await super().__aenter__()
 
         self.log.info("Initializing aggregated servers", count=len(self.servers))
 
         try:
-            # Initialize all child servers using exit stack
             for server in self.servers:
                 try:
                     initialized_server = await self.exit_stack.enter_async_context(server)
                     self._initialized_servers.append(initialized_server)
-                    self.log.info("Initialized server")
+                    self.log.info("Initialized server", server_name=server.name)
                 except Exception:
-                    self.log.exception("Failed to initialize server")
+                    self.log.exception("Failed to initialize server", server_name=server.name)
                     if self.raise_exceptions:
                         raise
 
             if not self._initialized_servers:
                 msg = "No servers were successfully initialized"
                 raise RuntimeError(msg)  # noqa: TRY301
+
             self.log.info(
                 "All servers initialized",
                 successful=len(self._initialized_servers),
@@ -121,7 +148,6 @@ class AggregatingServer(BaseServer):
             )
 
         except Exception:
-            # If initialization fails, cleanup what we've done so far
             await self.exit_stack.aclose()
             raise
 
@@ -136,14 +162,144 @@ class AggregatingServer(BaseServer):
         """Cleanup all servers and base server resources."""
         self.log.info("Shutting down aggregated servers")
 
-        # Exit stack will automatically cleanup all initialized servers
         await self.exit_stack.aclose()
         self._initialized_servers.clear()
 
-        # Cleanup base server
         await super().__aexit__(exc_type, exc_val, exc_tb)
 
         self.log.info("Aggregated servers shutdown complete")
+
+    def _is_http_server(self, server: BaseServer) -> bool:
+        """Check if server is an HTTP-based server."""
+        from llmling_agent_server.http_server import HTTPServer
+
+        return isinstance(server, HTTPServer)
+
+    def _get_http_servers(self) -> list[BaseServer]:
+        """Get all HTTP-based servers."""
+        return [s for s in self._initialized_servers if self._is_http_server(s)]
+
+    def _get_non_http_servers(self) -> list[BaseServer]:
+        """Get all non-HTTP servers."""
+        return [s for s in self._initialized_servers if not self._is_http_server(s)]
+
+    async def _collect_all_routes(self) -> list[Route]:
+        """Collect routes from all HTTP servers with appropriate prefixes.
+
+        Returns:
+            Combined list of routes from all HTTP servers
+        """
+        from starlette.routing import Route
+
+        from llmling_agent_server.http_server import HTTPServer
+
+        all_routes: list[Route] = []
+
+        for server in self._get_http_servers():
+            if not isinstance(server, HTTPServer):
+                continue
+
+            # Get routes with server's own prefix
+            routes = await server.get_routes()
+            prefix = server.get_route_prefix()
+
+            # If server doesn't have a prefix, generate one from class name
+            if not prefix:
+                # AGUIServer -> /agui, A2AServer -> /a2a, etc.
+                class_name = server.__class__.__name__
+                prefix = "/" + class_name.replace("Server", "").lower()
+
+            # Apply prefix to routes
+            for route in routes:
+                if isinstance(route, Route):
+                    new_path = f"{prefix}{route.path}"
+                    all_routes.append(
+                        Route(
+                            new_path,
+                            route.endpoint,
+                            methods=route.methods,
+                            name=f"{server.name}_{route.name}" if route.name else None,
+                        )
+                    )
+                else:
+                    all_routes.append(route)
+
+            self.log.debug(
+                "Collected routes from server",
+                server=server.name,
+                prefix=prefix,
+                route_count=len(routes),
+            )
+
+        return all_routes
+
+    async def _create_unified_app(self) -> Any:
+        """Create unified Starlette application with all HTTP routes.
+
+        Returns:
+            Starlette application with combined routes
+        """
+        from starlette.applications import Starlette
+        from starlette.responses import JSONResponse
+        from starlette.routing import Route
+
+        all_routes = await self._collect_all_routes()
+
+        # Add root endpoint that lists all servers and routes
+        async def list_all_routes(request: Any) -> Any:
+            """List all available routes from all servers."""
+            server_info = []
+            for server in self._get_http_servers():
+                routes = await server.get_routes() if hasattr(server, "get_routes") else []
+                prefix = server.get_route_prefix() if hasattr(server, "get_route_prefix") else ""
+                if not prefix:
+                    prefix = "/" + server.__class__.__name__.replace("Server", "").lower()
+
+                server_info.append({
+                    "name": server.name,
+                    "type": server.__class__.__name__,
+                    "prefix": prefix,
+                    "routes": [f"{prefix}{r.path}" for r in routes if isinstance(r, Route)],
+                })
+
+            return JSONResponse({
+                "servers": server_info,
+                "total_routes": len(all_routes),
+                "mode": "unified",
+            })
+
+        all_routes.append(Route("/", list_all_routes, methods=["GET"]))
+
+        app = Starlette(debug=False, routes=all_routes)
+        self.log.info(
+            "Created unified HTTP app",
+            total_routes=len(all_routes),
+            http_servers=len(self._get_http_servers()),
+        )
+        return app
+
+    async def _start_unified_http(self) -> None:
+        """Start unified HTTP server with combined routes."""
+        import uvicorn
+
+        self._unified_app = await self._create_unified_app()
+
+        config = uvicorn.Config(
+            app=self._unified_app,
+            host=self.unified_host,
+            port=self.unified_port,
+            log_level="info",
+        )
+
+        server = uvicorn.Server(config)
+
+        self.log.info(
+            "Starting unified HTTP server",
+            host=self.unified_host,
+            port=self.unified_port,
+        )
+
+        await server.serve()
 
     async def _start_async(self) -> None:
         """Start all initialized servers concurrently."""
@@ -151,20 +307,64 @@ class AggregatingServer(BaseServer):
             self.log.warning("No initialized servers to start")
             return
 
-        self.log.info("Starting aggregated servers", count=len(self._initialized_servers))
+        self.log.info(
+            "Starting aggregated servers",
+            count=len(self._initialized_servers),
+            unified_http=self.unified_http,
+        )
 
-        # Start all servers in background
-        server_tasks = []
+        if self.unified_http:
+            # In unified mode: combine HTTP servers, start non-HTTP separately
+            non_http_servers = self._get_non_http_servers()
+            http_servers = self._get_http_servers()
+
+            server_tasks: list[tuple[BaseServer | None, asyncio.Task[None] | None]] = []
+
+            # Start non-HTTP servers in background
+            for server in non_http_servers:
+                try:
+                    server.start_background()
+                    server_tasks.append((server, server._server_task))
+                    self.log.info("Started non-HTTP server in background", server=server.name)
+                except Exception:
+                    self.log.exception("Failed to start non-HTTP server", server=server.name)
+                    if self.raise_exceptions:
+                        raise
+
+            # Create unified HTTP task if we have HTTP servers
+            unified_task: asyncio.Task[None] | None = None
+            if http_servers:
+                unified_task = self.task_manager.create_task(
+                    self._start_unified_http(), name="unified-http"
+                )
+                server_tasks.append((None, unified_task))
+                self.log.info(
+                    "Started unified HTTP server",
+                    http_server_count=len(http_servers),
+                )
+
+            # Wait for any task to complete
+            tasks = [task for _, task in server_tasks if task is not None]
+            if tasks:
+                await self._wait_for_tasks(tasks, server_tasks)
+
+        else:
+            # Separate mode: start each server independently
+            await self._start_separate_servers()
+
+    async def _start_separate_servers(self) -> None:
+        """Start all servers in separate mode (each on its own port)."""
+        server_tasks: list[tuple[BaseServer, asyncio.Task[None] | None]] = []
+
         for server in self._initialized_servers:
             try:
                 server.start_background()
                 server_tasks.append((server, server._server_task))
-                self.log.info("Started server in background")
+                self.log.info("Started server in background", server=server.name)
             except Exception:
-                self.log.exception("Failed to start server")
+                self.log.exception("Failed to start server", server=server.name)
                 if self.raise_exceptions:
-                    # Stop any servers we've already started
-                    for started_server, _task in server_tasks:
+                    for started_server, _ in server_tasks:
                         try:
                             started_server.stop()
                         except Exception:
@@ -183,37 +383,45 @@ class AggregatingServer(BaseServer):
             failed=len(self._initialized_servers) - len(server_tasks),
         )
 
+        tasks = [task for _, task in server_tasks if task is not None]
+        if tasks:
+            await self._wait_for_tasks(tasks, server_tasks)
+
+    async def _wait_for_tasks(
+        self,
+        tasks: list[asyncio.Task[None]],
+        server_tasks: list[tuple[BaseServer | None, asyncio.Task[None] | None]],
+    ) -> None:
+        """Wait for server tasks and handle shutdown."""
         try:
-            # Wait for any server to complete (indicates shutdown or failure)
-            tasks = [task for _, task in server_tasks if task is not None]
-            if tasks:
-                done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+            done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
 
-                # Log which server completed first
-                for task in done:
-                    if task.exception():
-                        self.log.error("Server failed", error=task.exception())
-                    else:
-                        self.log.info("Server completed")
+            for task in done:
+                if task.exception():
+                    self.log.error("Server task failed", error=task.exception())
+                else:
+                    self.log.info("Server task completed")
 
-                # Stop all other servers gracefully
-                for server, _ in server_tasks:
+            # Stop all other servers gracefully
+            for server, _ in server_tasks:
+                if server is not None:
                     try:
                         server.stop()
                     except Exception:
                         self.log.exception("Error stopping server")
 
-                # Wait for all tasks to complete
-                if pending:
-                    await asyncio.gather(*pending, return_exceptions=True)
+            if pending:
+                for task in pending:
+                    task.cancel()
+                await asyncio.gather(*pending, return_exceptions=True)
 
         except asyncio.CancelledError:
-            # If we're cancelled, stop all servers
             for server, _ in server_tasks:
-                try:
-                    server.stop()
-                except Exception:
-                    self.log.exception("Error stopping server during cancellation")
+                if server is not None:
+                    try:
+                        server.stop()
+                    except Exception:
+                        self.log.exception("Error stopping server during cancellation")
             raise
 
     def add_server(self, server: BaseServer) -> None:
@@ -230,7 +438,7 @@ class AggregatingServer(BaseServer):
             raise RuntimeError(msg)
 
         self.servers.append(server)
-        self.log.info("Added server to aggregation")
+        self.log.info("Added server to aggregation", server=server.name)
 
     def remove_server(self, server: BaseServer) -> None:
         """Remove a server from the aggregation.
@@ -248,7 +456,7 @@ class AggregatingServer(BaseServer):
 
         try:
             self.servers.remove(server)
-            self.log.info("Removed server from aggregation")
+            self.log.info("Removed server from aggregation", server=server.name)
         except ValueError as e:
             msg = f"Server {server.name} not found in aggregation"
             raise ValueError(msg) from e
@@ -262,7 +470,6 @@ class AggregatingServer(BaseServer):
         Returns:
             Server instance or None if not found
         """
-        # Check both configured and initialized servers
         all_servers = self.servers + self._initialized_servers
         for server in all_servers:
             if server.name == name:
@@ -280,6 +487,7 @@ class AggregatingServer(BaseServer):
                 name=server.name,
                 server_type=type(server),
                 status=self._get_server_status(server),
+                is_http=self._is_http_server(server),
             )
             for server in self.servers
         ]
@@ -308,10 +516,17 @@ class AggregatingServer(BaseServer):
         """Number of currently running servers."""
         return sum(1 for server in self._initialized_servers if server.is_running)
 
+    @property
+    def unified_base_url(self) -> str:
+        """Get base URL for unified HTTP server (only valid in unified mode)."""
+        return f"http://{self.unified_host}:{self.unified_port}"
+
     def __repr__(self) -> str:
         """String representation of aggregating server."""
+        mode = "unified" if self.unified_http else "separate"
         return (
             f"AggregatingServer(name={self.name}, "
+            f"mode={mode}, "
             f"servers={len(self.servers)}, "
             f"initialized={len(self._initialized_servers)}, "
             f"running={self.running_server_count})"

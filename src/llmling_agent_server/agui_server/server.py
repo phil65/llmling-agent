@@ -1,7 +1,7 @@
-"""A2A server implementation for llmling-agent pool.
+"""AG-UI server implementation for llmling-agent pool.
 
 This module provides a server that exposes all agents in an AgentPool
-via the A2A (Agent-to-Agent) protocol, with each agent accessible at its own route.
+via the AG-UI protocol, with each agent accessible at its own route.
 """
 
 from __future__ import annotations
@@ -22,26 +22,26 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 
-DEFAULT_PORT = 8001
+DEFAULT_PORT = 8002
 
 
-class A2AServer(HTTPServer):
-    """A2A server for exposing pool agents on separate routes.
+class AGUIServer(HTTPServer):
+    """AG-UI server for exposing pool agents on separate routes.
 
     Provides a unified HTTP server that exposes all agents in the pool via
-    the A2A protocol. Each agent is accessible at `/{agent_name}` route.
+    the AG-UI protocol. Each agent is accessible at `/{agent_name}` route.
 
     Example:
         ```python
         pool = AgentPool(manifest)
 
-        server = A2AServer(pool, host="localhost", port=8001)
+        server = AGUIServer(pool, host="localhost", port=8002)
 
         async with server:
             async with server.run_context():
                 # Agents accessible at:
-                # POST http://localhost:8001/agent1
-                # POST http://localhost:8001/agent2
+                # POST http://localhost:8002/agent1
+                # POST http://localhost:8002/agent2
                 await do_other_work()
         ```
     """
@@ -55,7 +55,7 @@ class A2AServer(HTTPServer):
         port: int = DEFAULT_PORT,
         raise_exceptions: bool = False,
     ) -> None:
-        """Initialize A2A server.
+        """Initialize AG-UI server.
 
         Args:
             pool: AgentPool containing available agents
@@ -67,7 +67,7 @@ class A2AServer(HTTPServer):
         super().__init__(pool, name=name, host=host, port=port, raise_exceptions=raise_exceptions)
 
     async def get_routes(self) -> list[Route]:
-        """Get Starlette routes for A2A protocol.
+        """Get Starlette routes for AG-UI protocol.
 
         Returns:
             List of Route objects for each agent plus root listing endpoint
@@ -80,7 +80,7 @@ class A2AServer(HTTPServer):
         for agent_name in self.pool.agents:
 
             async def agent_handler(request: Request, agent_name: str = agent_name) -> Response:
-                """Handle A2A requests for a specific agent."""
+                """Handle AG-UI requests for a specific agent."""
                 from starlette.responses import JSONResponse
 
                 try:
@@ -92,35 +92,25 @@ class A2AServer(HTTPServer):
                             status_code=404,
                         )
 
-                    # Get the underlying pydantic-ai agentlet and convert to A2A app
+                    # Get the underlying pydantic-ai agentlet and convert to AG-UI app
                     agentlet = await pool_agent.get_agentlet(None, pool_agent.model_name, str)
-                    a2a_app = agentlet.to_a2a()
+                    agui_app = agentlet.to_ag_ui(deps=None)
 
                     # ASGI apps don't return a value, they write to send()
-                    await a2a_app(request.scope, request.receive, request._send)
+                    await agui_app(request.scope, request.receive, request._send)
                     from starlette.responses import Response
 
                     return Response()
 
                 except Exception as e:
-                    self.log.exception("Error handling A2A request", agent=agent_name)
+                    self.log.exception("Error handling AG-UI request", agent=agent_name)
                     return JSONResponse(
                         {"error": str(e)},
                         status_code=500,
                     )
 
-            # A2A protocol routes
             routes.append(Route(f"/{agent_name}", agent_handler, methods=["POST"]))
-            routes.append(
-                Route(
-                    f"/{agent_name}/.well-known/agent-card.json",
-                    agent_handler,
-                    methods=["HEAD", "GET", "OPTIONS"],
-                )
-            )
-            routes.append(Route(f"/{agent_name}/docs", agent_handler, methods=["GET"]))
-
-            self.log.debug("Registered A2A routes", agent=agent_name, route=f"/{agent_name}")
+            self.log.debug("Registered AG-UI route", agent=agent_name, route=f"/{agent_name}")
 
         # Add root endpoint that lists available agents
         async def list_agents(request: Request) -> Response:
@@ -131,8 +121,6 @@ class A2AServer(HTTPServer):
                 {
                     "name": name,
                     "route": f"/{name}",
-                    "agent_card": f"/{name}/.well-known/agent-card.json",
-                    "docs": f"/{name}/docs",
                     "model": agent.model_name,
                 }
                 for name, agent in self.pool.agents.items()
@@ -140,14 +128,12 @@ class A2AServer(HTTPServer):
             return JSONResponse({
                 "agents": agent_list,
                 "count": len(agent_list),
-                "protocol": "A2A",
-                "version": "0.3.0",
             })
 
         routes.append(Route("/", list_agents, methods=["GET"]))
 
         self.log.info(
-            "Created A2A routes",
+            "Created AG-UI routes",
             agent_count=len(self.pool.agents),
         )
         return routes
@@ -159,32 +145,14 @@ class A2AServer(HTTPServer):
             agent_name: Name of the agent
 
         Returns:
-            Full URL for the agent's A2A endpoint
+            Full URL for the agent's AG-UI endpoint
         """
         return f"{self.base_url}/{agent_name}"
 
-    def get_agent_card_url(self, agent_name: str) -> str:
-        """Get the agent card URL for a specific agent.
-
-        Args:
-            agent_name: Name of the agent
-
-        Returns:
-            Full URL for the agent's A2A card endpoint
-        """
-        return f"{self.base_url}/{agent_name}/.well-known/agent-card.json"
-
-    def list_agent_routes(self) -> dict[str, dict[str, str]]:
+    def list_agent_routes(self) -> dict[str, str]:
         """List all agent routes.
 
         Returns:
             Dictionary mapping agent names to their URLs
         """
-        return {
-            name: {
-                "endpoint": self.get_agent_url(name),
-                "agent_card": self.get_agent_card_url(name),
-                "docs": f"{self.base_url}/{name}/docs",
-            }
-            for name in self.pool.agents
-        }
+        return {name: self.get_agent_url(name) for name in self.pool.agents}
