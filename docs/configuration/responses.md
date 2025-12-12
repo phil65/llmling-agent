@@ -38,63 +38,8 @@ responses:
 ## Inline Responses
 Define response structure directly in YAML:
 
-### Simple Status Response
 ```yaml
-responses:
-  StatusResponse:
-    response_schema:
-      type: "inline"
-      description: "Simple operation result with status"
-      fields:
-        success:
-          type: "bool"
-          description: "Whether operation succeeded"
-        message:
-          type: "str"
-          description: "Status message or error details"
-```
-
-### Analysis Result
-```yaml
-responses:
-  CodeAnalysis:
-    response_schema:
-      type: "inline"
-      description: "Code analysis results with issues"
-      fields:
-        issues:
-          type: "list[str]"
-          description: "List of found issues"
-        severity:
-          type: "str"
-          description: "Overall severity level"
-        locations:
-          type: "list[str]"
-          description: "Source code locations"
-    result_tool_name: "create_analysis"
-    result_tool_description: "Create code analysis result"
-```
-
-### Complex Response
-```yaml
-responses:
-  DataProcessingResult:
-    response_schema:
-      type: "inline"
-      description: "Complex data processing result"
-      fields:
-        success:
-          type: "bool"
-          description: "Operation success"
-        records_processed:
-          type: "int"
-          description: "Number of processed records"
-        errors:
-          type: "list[str]"
-          description: "List of errors if any"
-        metrics:
-          type: "dict[str, float]"
-          description: "Processing metrics"
+--8<-- "docs/configuration/responses.yml"
 ```
 
 ## Imported Responses
@@ -107,11 +52,6 @@ responses:
     response_schema:
       type: "import"
       import_path: "myapp.types:AnalysisResult"
-```
-
-### Package Response Type
-```yaml
-responses:
   MetricsResult:
     response_schema:
       type: "import"
@@ -154,21 +94,3 @@ agents:
 - `dict[key_type, value_type]`: Dictionaries
 - `datetime`: Date and time values
 - Custom types through imports
-
-## Schema Definition
-
-The response schema defines the structure of the return value:
-
-```yaml
-response_schema:
-  type: "inline"  # Define structure inline
-  description: "Result description"
-  fields:
-    # Field definitions
-
-# OR
-
-response_schema:
-  type: "import"  # Import from Python
-  import_path: "myapp.types:MyOutputType"
-```

@@ -1,0 +1,46 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/phil65/llmling-agent/refs/heads/main/schema/config-schema.json
+responses:
+  WebResult:
+    response_schema:
+      type: inline
+      fields:
+        success:
+          type: bool
+          description: "Whether operation succeeded"
+        url:
+          type: str
+          description: "URL that was processed"
+        attempts:
+          type: int
+          description: "Number of attempts made"
+          constraints:
+            ge: 1
+            le: 5
+  CodeAnalysis:
+    response_schema:
+      type: "inline"
+      description: "Code analysis results with issues"
+      fields:
+        issues:
+          type: "list[str]"
+          description: "List of found issues"
+        severity:
+          type: "str"
+          description: "Overall severity level"
+    result_tool_name: "create_analysis"
+    result_tool_description: "Create code analysis result"
+  ### Complex Response
+  DataProcessingResult:
+    response_schema:
+      type: "inline"
+      description: "Complex data processing result"
+      fields:
+        records_processed:
+          type: "int"
+          description: "Number of processed records"
+        errors:
+          type: "list[str]"
+          description: "List of errors if any"
+        metrics:
+          type: "dict[str, float]"
+          description: "Processing metrics"
