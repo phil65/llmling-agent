@@ -8,8 +8,6 @@ description: External prompt hub integration
 icon: material/hub
 ---
 
-# Prompt Hub Configuration
-
 Prompt hubs are external platforms for managing, versioning, and sharing prompts. LLMling-Agent integrates with popular prompt management platforms to leverage curated prompt libraries and collaborative prompt development.
 
 ## Overview

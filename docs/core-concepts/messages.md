@@ -4,8 +4,6 @@ description: Message types and response handling
 icon: material/comment-multiple
 ---
 
-# Messages and Responses
-
 LLMling's messaging system provides a unified way to handle communication between agents and teams. The system is built around two core concepts:
 
 ## Message Flow

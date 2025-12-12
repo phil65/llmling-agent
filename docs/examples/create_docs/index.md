@@ -6,8 +6,6 @@ hide:
   - toc
 ---
 
-# Create Docs
-
 /// mknodes
 {{ ['docs/examples/create_docs/main.py', 'docs/examples/create_docs/config.yml'] | pydantic_playground }}
 ///

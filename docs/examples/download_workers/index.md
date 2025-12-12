@@ -6,8 +6,6 @@ hide:
   - toc
 ---
 
-# Download Workers
-
 /// mknodes
 {{ ['docs/examples/download_workers/main.py', 'docs/examples/download_workers/config.yml'] | pydantic_playground }}
 ///

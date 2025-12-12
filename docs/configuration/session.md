@@ -8,8 +8,6 @@ description: Session management and configuration
 icon: material/history
 ---
 
-# Session Configuration
-
 Session configuration allows loading previous conversations and managing agent state. Sessions can be identified by name or configured using detailed query parameters.
 
 ## Basic Configuration

@@ -8,8 +8,6 @@ description: PydanticAI built-in tool configuration
 icon: material/wrench
 ---
 
-# Built-in Tools Configuration
-
 Built-in tools are pre-configured tools provided by PydanticAI that offer common functionality like web search, code execution, and image generation.
 
 ## Overview

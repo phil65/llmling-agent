@@ -8,8 +8,6 @@ description: Resource loader configuration
 icon: material/file-document
 ---
 
-# Resource Configuration
-
 Resources provide dynamic content that can be accessed by agents during execution. They allow agents to fetch data from various sources like files, CLI commands, source code, and external systems.
 
 ## Overview

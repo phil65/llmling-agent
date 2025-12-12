@@ -4,8 +4,6 @@ description: Language model setup and configuration
 icon: material/cpu-64-bit
 ---
 
-# Models & Providers
-
 ## Overview
 
 LLMling-Agent supports a wide range of model types through [LLMling-models](https://github.com/phil65/LLMling-models):

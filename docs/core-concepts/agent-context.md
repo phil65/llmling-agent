@@ -4,8 +4,6 @@ description: Agent context and state management
 icon: material/folder-cog
 ---
 
-# Agent Context
-
 ## Overview
 
 AgentContext provides a powerful way to access agent capabilities and dependencies in your tools:

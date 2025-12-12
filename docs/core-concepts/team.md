@@ -4,8 +4,6 @@ description: Working with agent teams and groups
 icon: material/account-group
 ---
 
-# Teams in LLMling
-
 ## Overview
 
 Teams in LLMling allow you to organize and orchestrate multiple agents as a group. Teams provide:

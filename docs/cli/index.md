@@ -4,8 +4,6 @@ description: Command-line interface overview
 icon: lucide/terminal
 ---
 
-# LLMling Agent CLI
-
 The LLMling Agent CLI provides a comprehensive set of commands to manage and interact with AI agents.
 It's designed around the concept of an "active agent file" - a YAML configuration that defines your agents and their settings.
 This avoids the need to pass the config file path each time you want to run a command.

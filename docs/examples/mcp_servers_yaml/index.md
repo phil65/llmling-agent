@@ -6,8 +6,6 @@ hide:
   - toc
 ---
 
-# MCP Servers (YAML)
-
 /// mknodes
 {{ ['docs/examples/mcp_servers_yaml/main_py.py', 'docs/examples/mcp_servers_yaml/main_yaml.py', 'docs/examples/mcp_servers_yaml/config.yml'] | pydantic_playground }}
 ///

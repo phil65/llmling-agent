@@ -1,10 +1,8 @@
 ---
-title: Manifest Overview
+title: Agent Manifest
 description: Complete manifest structure and organization
 icon: material/file-code
 ---
-
-# Agent Manifest
 
 The agent manifest is a YAML file that defines your complete agent setup at the top level.
 The config part is powered by [Pydantic](https://docs.pydantic.dev/latest/) and provides excellent validation

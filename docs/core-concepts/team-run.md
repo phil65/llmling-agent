@@ -1,10 +1,8 @@
 ---
-title: TeamRun
+title: TeamRuns
 description: Team execution and monitoring
 icon: material/play
 ---
-
-# Team Runs
 
 ## What is a TeamRun?
 

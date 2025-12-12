@@ -6,8 +6,6 @@ hide:
   - toc
 ---
 
-# Structured Validation
-
 /// mknodes
 {{ ['docs/examples/structured_validation/main.py'] | pydantic_playground }}
 ///

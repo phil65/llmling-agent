@@ -8,8 +8,6 @@ description: System prompt configuration and library
 icon: material/text-box
 ---
 
-# System Prompts Configuration
-
 ## Overview
 
 LLMling's prompt library allows defining reusable system prompts that can be shared across agents. Prompts are defined in the `prompts` section of your configuration and can be referenced by name.

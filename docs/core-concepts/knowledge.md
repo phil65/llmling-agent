@@ -4,8 +4,6 @@ description: Knowledge management and access
 icon: material/book
 ---
 
-# Knowledge
-
 ## Overview
 
 The Knowledge system in LLMling provides a way to give agents access to information sources. These can be files, resources, or prompts that provide context for the agent's operations.

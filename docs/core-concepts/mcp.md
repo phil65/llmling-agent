@@ -1,10 +1,8 @@
 ---
-title: MCP Servers
+title: MCP Server integration
 description: Model Context Protocol integration
 icon: material/server
 ---
-
-# MCP Server Integration
 
 ## Overview
 

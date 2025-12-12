@@ -1,10 +1,8 @@
 ---
-title: Toolsets
+title: Agent Toolsets
 description: Agent toolset system
 icon: material/shield-check
 ---
-
-# Agent Toolsets
 
 ## What are Toolsets?
 

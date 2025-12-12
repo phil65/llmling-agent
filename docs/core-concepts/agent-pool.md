@@ -4,8 +4,6 @@ description: Agent pool management and features
 icon: material/database
 ---
 
-# Agent Pool
-
 ## Pool Basics
 
 The Agent Pool is the central coordination point for multi-agent systems in LLMling. It manages agent lifecycles, enables collaboration, and provides shared resources across agents.

@@ -8,8 +8,6 @@ description: Knowledge source configuration and management
 icon: material/database
 ---
 
-# Knowledge Configuration
-
 Knowledge defines information sources that are loaded during agent initialization to provide context for the agent's operations. Unlike environment resources (which are loaded on-demand), knowledge sources are loaded at startup and remain available in the agent's context.
 
 ```yaml

@@ -8,8 +8,6 @@ description: Database and storage setup
 icon: material/database
 ---
 
-# Storage Configuration
-
 The storage configuration defines how agent interactions, messages, and tool usage are logged. It's defined at the root level of the manifest.
 
 ## Configuration Reference

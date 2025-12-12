@@ -4,8 +4,6 @@ description: Structured response type configuration
 icon: material/reply
 ---
 
-# Response Types
-
 Response types define structured output formats for agents. They can be defined directly in YAML or imported from Python code.
 
 !!! tip "Type Safety"

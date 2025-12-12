@@ -1,14 +1,12 @@
 ---
-title: Conversation Manager
-description: Conversation history and management
+title: Message history
+description: Message history and management
 icon: material/history
 ---
 
-# Conversation Manager
-
 ## Overview
 
-The ConversationManager handles message history and context for agents. It provides:
+The MessageHistory handles message history and context for agents. It provides:
 
 - Message history storage and retrieval
 - Conversation context management
@@ -21,35 +19,35 @@ The ConversationManager handles message history and context for agents. It provi
 ### Managing History
 
 ```python
-# Access conversation manager
-conversation = agent.conversation
+# Access Message history
+history = agent.conversation
 # Get message history
-messages = conversation.get_history()
+messages = history.get_history()
 # Get specific messages
-recent = conversation[-5:]  # Last 5 messages
-agent_msgs = conversation["other_agent"]  # Messages from specific agent
+recent = history[-5:]  # Last 5 messages
+agent_msgs = history["other_agent"]  # Messages from specific agent
 # Clear history
-conversation.clear()
+history.clear()
 # Set history
-conversation.set_history(new_messages)
+history.set_history(new_messages)
 ```
 
 ### Context Management
 
 ```python
 # Add context
-conversation.add_context_message(
+history.add_context_message(
     content="Important background info",
     source="documentation",
     metadata={"type": "background"}
 )
 
 # Load context from sources
-await conversation.load_context_source("docs/api.md")
-await conversation.add_context_from_prompt(system_prompt)
+await history.load_context_source("docs/api.md")
+await history.add_context_from_prompt(system_prompt)
 
 # Format history for context
-history_text = await conversation.format_history(
+history_text = await history.format_history(
     max_tokens=1000,
     include_system=False,
     num_messages=5
@@ -60,9 +58,9 @@ history_text = await conversation.format_history(
 
 ```python
 # Get token counts
-total = conversation.get_history_tokens()
+total = history.get_history_tokens()
 # Format with token limit
-context = await conversation.format_history(
+context = await history.format_history(
     max_tokens=2000,
     num_messages=None  # All messages within token limit
 )

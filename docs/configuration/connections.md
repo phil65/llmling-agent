@@ -8,8 +8,6 @@ description: Message routing and forwarding configuration
 icon: material/arrow-right
 ---
 
-# Connections Configuration
-
 Connections define how messages are automatically forwarded from agents to other destinations. They enable agent pipelines, parallel processing, and message routing patterns.
 
 ## Overview

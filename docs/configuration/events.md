@@ -8,8 +8,6 @@ description: Event handler setup and configuration
 icon: material/bell-ring
 ---
 
-# Event Handler Configuration
-
 Event handlers allow you to respond to various agent events such as messages, tool calls, and state changes.
 
 /// mknodes

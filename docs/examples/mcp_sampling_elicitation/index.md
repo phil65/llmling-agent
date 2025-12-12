@@ -6,8 +6,6 @@ hide:
   - toc
 ---
 
-# MCP Sampling & Elicitation
-
 /// mknodes
 {{ ['docs/examples/mcp_sampling_elicitation/demo.py', 'docs/examples/mcp_sampling_elicitation/server.py'] | pydantic_playground }}
 ///

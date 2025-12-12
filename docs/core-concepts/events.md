@@ -1,10 +1,8 @@
 ---
-title: Events
+title: Events & Triggers
 description: Event system and handlers
 icon: material/broadcast
 ---
-
-# Events & Triggers
 
 Events allow agents to respond to external changes and automate actions based on various triggers.
 LLMling-agent supports different types of triggers that can activate agents automatically.

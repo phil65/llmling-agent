@@ -8,8 +8,6 @@ description: Agent configuration options
 icon: material/robot
 ---
 
-# Agent Configuration
-
 Individual agent configurations define the behavior, capabilities, and settings for each agent in your manifest. Each agent entry in the `agents` dictionary represents a complete agent setup.
 
 ## Overview

@@ -8,8 +8,6 @@ description: Monitoring and tracing configuration
 icon: material/monitor-eye
 ---
 
-# Observability Configuration
-
 Observability providers enable monitoring, tracing, and logging of agent operations. This helps you understand agent behavior, track performance, and debug issues in production.
 
 ## Overview

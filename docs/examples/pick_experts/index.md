@@ -6,8 +6,6 @@ hide:
   - toc
 ---
 
-# Expert Selection
-
 /// mknodes
 {{ ['docs/examples/pick_experts/main.py', 'docs/examples/pick_experts/pick_teams.py', 'docs/examples/pick_experts/config.yml'] | pydantic_playground }}
 ///

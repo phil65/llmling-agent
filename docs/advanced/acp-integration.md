@@ -4,8 +4,6 @@ description: Agent Client Protocol integration for desktop applications
 icon: material/desktop-tower
 ---
 
-# ACP Integration
-
 ## What is ACP?
 
 The Agent Client Protocol (ACP) is a standardized JSON-RPC 2.0 protocol that enables communication between code editors and AI agents. It allows llmling-agent to integrate seamlessly with desktop applications and IDEs that support the protocol.

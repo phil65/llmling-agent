@@ -4,8 +4,6 @@ description: Tool management and registration
 icon: material/tools
 ---
 
-# Tool Manager in LLMling
-
 ## Overview
 
 The `ToolManager` is a central component that manages the lifecycle and availability of tools for agents. It handles:

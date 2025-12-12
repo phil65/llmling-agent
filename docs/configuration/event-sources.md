@@ -8,8 +8,6 @@ description: Event source configuration for triggering agent actions
 icon: material/bell-alert
 ---
 
-# Event Sources Configuration
-
 Event sources define external triggers that can start agent tasks or workflows. They allow agents to respond to file changes, webhooks, scheduled events, and connection events.
 
 ## Overview

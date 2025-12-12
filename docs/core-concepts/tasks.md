@@ -1,10 +1,8 @@
 ---
-title: Tasks
+title: Tasks / Agent Jobs
 description: Task definition and execution
 icon: material/format-list-checks
 ---
-
-# Agent Jobs
 
 ## What are Agent Jobs?
 

@@ -8,8 +8,6 @@ description: Worker agent configuration
 icon: material/account-hard-hat
 ---
 
-# Worker Configuration
-
 Workers are specialized agents that can be registered with other agents to provide specific capabilities.
 
 /// mknodes

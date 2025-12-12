@@ -8,8 +8,6 @@ description: AG-UI protocol agent integration
 icon: material/api
 ---
 
-# AG-UI Agents Configuration
-
 AG-UI (Agent User Interface) agents connect to remote HTTP endpoints that implement the AG-UI protocol, enabling integration of any AG-UI compatible server into the LLMling-Agent pool.
 
 ## Overview

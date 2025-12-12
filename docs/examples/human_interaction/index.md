@@ -12,7 +12,6 @@ hide:
 {{ ['docs/examples/human_interaction/main.py', 'docs/examples/human_interaction/config.yml'] | pydantic_playground }}
 ///
 
-# AI-Human Interaction
 
 This example demonstrates how AI agents can interact with humans:
 

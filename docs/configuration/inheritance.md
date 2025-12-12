@@ -4,8 +4,6 @@ description: Configuration inheritance system
 icon: material/source-merge
 ---
 
-# Inheritance
-
 LLMling supports inheritance both for individual agents and entire YAML files, making configurations more reusable and maintainable.
 
 ## Agent Inheritance

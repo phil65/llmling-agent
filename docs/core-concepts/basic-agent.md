@@ -4,8 +4,6 @@ description: Core Agent implementation and features
 icon: material/account
 ---
 
-# Basic Agent
-
 ## Core Interface
 
 ### Running Queries

@@ -8,8 +8,6 @@ description: External ACP agent integration
 icon: material/connection
 ---
 
-# ACP Agents Configuration
-
 ACP (Agent Communication Protocol) agents allow integration of external coding agents and AI assistants into the LLMling-Agent pool. These agents run as separate processes and communicate via the ACP protocol.
 
 ## Overview

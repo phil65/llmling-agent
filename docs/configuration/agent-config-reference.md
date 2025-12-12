@@ -1,10 +1,8 @@
 ---
-title: Agent Config Reference
+title: Agent Configuration
 description: Complete agent configuration reference
 icon: material/file-document
 ---
-
-# Agent Configuration
 
 Agent configurations are defined in YAML files and consist of three main sections: agents, responses, and roles.
 
