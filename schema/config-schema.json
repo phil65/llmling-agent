@@ -214,7 +214,7 @@
           "items": {
             "discriminator": {
               "mapping": {
-                "builtin": "#/$defs/BuiltinEventHandlerConfig",
+                "builtin": "#/$defs/StdoutEventHandlerConfig",
                 "callback": "#/$defs/CallbackEventHandlerConfig",
                 "tts": "#/$defs/TTSEventHandlerConfig"
               },
@@ -222,7 +222,7 @@
             },
             "oneOf": [
               {
-                "$ref": "#/$defs/BuiltinEventHandlerConfig"
+                "$ref": "#/$defs/StdoutEventHandlerConfig"
               },
               {
                 "$ref": "#/$defs/CallbackEventHandlerConfig"
@@ -615,7 +615,7 @@
           "items": {
             "discriminator": {
               "mapping": {
-                "builtin": "#/$defs/BuiltinEventHandlerConfig",
+                "builtin": "#/$defs/StdoutEventHandlerConfig",
                 "callback": "#/$defs/CallbackEventHandlerConfig",
                 "tts": "#/$defs/TTSEventHandlerConfig"
               },
@@ -623,7 +623,7 @@
             },
             "oneOf": [
               {
-                "$ref": "#/$defs/BuiltinEventHandlerConfig"
+                "$ref": "#/$defs/StdoutEventHandlerConfig"
               },
               {
                 "$ref": "#/$defs/CallbackEventHandlerConfig"
@@ -940,7 +940,7 @@
           "items": {
             "discriminator": {
               "mapping": {
-                "builtin": "#/$defs/BuiltinEventHandlerConfig",
+                "builtin": "#/$defs/StdoutEventHandlerConfig",
                 "callback": "#/$defs/CallbackEventHandlerConfig",
                 "tts": "#/$defs/TTSEventHandlerConfig"
               },
@@ -948,7 +948,7 @@
             },
             "oneOf": [
               {
-                "$ref": "#/$defs/BuiltinEventHandlerConfig"
+                "$ref": "#/$defs/StdoutEventHandlerConfig"
               },
               {
                 "$ref": "#/$defs/CallbackEventHandlerConfig"
@@ -1660,6 +1660,7 @@
                 "copilot:gpt-5.1-codex",
                 "copilot:gpt-5.1-codex-max",
                 "copilot:gpt-5.1-codex-mini",
+                "copilot:gpt-5.2",
                 "copilot:grok-code-fast-1",
                 "copilot:oswe-vscode-prime"
               ],
@@ -1675,6 +1676,7 @@
             {
               "enum": [
                 "gemini:aqa",
+                "gemini:deep-research-pro-preview-12-2025",
                 "gemini:gemini-2.0-flash",
                 "gemini:gemini-2.0-flash-001",
                 "gemini:gemini-2.0-flash-exp",
@@ -1682,16 +1684,12 @@
                 "gemini:gemini-2.0-flash-lite-001",
                 "gemini:gemini-2.0-flash-lite-preview",
                 "gemini:gemini-2.0-flash-lite-preview-02-05",
-                "gemini:gemini-2.0-flash-live-001",
-                "gemini:gemini-2.0-pro-exp",
-                "gemini:gemini-2.0-pro-exp-02-05",
                 "gemini:gemini-2.5-computer-use-preview-10-2025",
                 "gemini:gemini-2.5-flash",
                 "gemini:gemini-2.5-flash-image",
                 "gemini:gemini-2.5-flash-image-preview",
                 "gemini:gemini-2.5-flash-lite",
                 "gemini:gemini-2.5-flash-lite-preview-09-2025",
-                "gemini:gemini-2.5-flash-live-preview",
                 "gemini:gemini-2.5-flash-native-audio-latest",
                 "gemini:gemini-2.5-flash-native-audio-preview-09-2025",
                 "gemini:gemini-2.5-flash-preview-09-2025",
@@ -1703,7 +1701,6 @@
                 "gemini:gemini-exp-1206",
                 "gemini:gemini-flash-latest",
                 "gemini:gemini-flash-lite-latest",
-                "gemini:gemini-live-2.5-flash-preview",
                 "gemini:gemini-pro-latest",
                 "gemini:gemini-robotics-er-1.5-preview",
                 "gemini:gemma-3-12b-it",
@@ -1842,10 +1839,12 @@
               "enum": [
                 "mistral:codestral-2508",
                 "mistral:codestral-latest",
+                "mistral:devstral-2512",
                 "mistral:devstral-medium-2507",
                 "mistral:devstral-medium-latest",
                 "mistral:devstral-small-2507",
                 "mistral:devstral-small-latest",
+                "mistral:labs-devstral-small-2512",
                 "mistral:magistral-medium-2509",
                 "mistral:magistral-medium-latest",
                 "mistral:magistral-small-2509",
@@ -1872,6 +1871,7 @@
                 "mistral:mistral-tiny-2312",
                 "mistral:mistral-tiny-2407",
                 "mistral:mistral-tiny-latest",
+                "mistral:mistral-vibe-cli-latest",
                 "mistral:open-mistral-7b",
                 "mistral:open-mistral-nemo",
                 "mistral:open-mistral-nemo-2407",
@@ -1908,6 +1908,9 @@
                 "openai:gpt-5.1-codex",
                 "openai:gpt-5.1-codex-max",
                 "openai:gpt-5.1-codex-mini",
+                "openai:gpt-5.2",
+                "openai:gpt-5.2-chat-latest",
+                "openai:gpt-5.2-pro",
                 "openai:o3-pro"
               ],
               "type": "string"
@@ -1971,6 +1974,8 @@
                 "openrouter:minimax/minimax-m1",
                 "openrouter:minimax/minimax-m2",
                 "openrouter:mistralai/codestral-2508",
+                "openrouter:mistralai/devstral-2512",
+                "openrouter:mistralai/devstral-2512:free",
                 "openrouter:mistralai/devstral-medium",
                 "openrouter:mistralai/devstral-small",
                 "openrouter:mistralai/ministral-14b-2512",
@@ -1989,6 +1994,7 @@
                 "openrouter:moonshotai/kimi-linear-48b-a3b-instruct",
                 "openrouter:morph/morph-v3-fast",
                 "openrouter:morph/morph-v3-large",
+                "openrouter:nex-agi/deepseek-v3.1-nex-n1:free",
                 "openrouter:nousresearch/hermes-4-405b",
                 "openrouter:nousresearch/hermes-4-70b",
                 "openrouter:nvidia/llama-3.3-nemotron-super-49b-v1.5",
@@ -2010,6 +2016,9 @@
                 "openrouter:openai/gpt-5.1-codex",
                 "openrouter:openai/gpt-5.1-codex-max",
                 "openrouter:openai/gpt-5.1-codex-mini",
+                "openrouter:openai/gpt-5.2",
+                "openrouter:openai/gpt-5.2-chat",
+                "openrouter:openai/gpt-5.2-pro",
                 "openrouter:openai/gpt-oss-120b",
                 "openrouter:openai/gpt-oss-120b:exacto",
                 "openrouter:openai/gpt-oss-120b:free",
@@ -2103,6 +2112,7 @@
                 "requesty:groq/openai/gpt-oss-120b",
                 "requesty:groq/openai/gpt-oss-20b",
                 "requesty:minimaxi/MiniMax-M2",
+                "requesty:mistral/devstral-latest",
                 "requesty:moonshot/kimi-k2-0711-preview",
                 "requesty:moonshot/kimi-k2-0905-preview",
                 "requesty:moonshot/kimi-k2-thinking",
@@ -2134,12 +2144,12 @@
                 "requesty:openai/gpt-5-nano:flex",
                 "requesty:openai/gpt-5.1",
                 "requesty:openai/gpt-5.1-chat",
+                "requesty:openai/gpt-5.2",
                 "requesty:openai/gpt-5:flex",
                 "requesty:openai/gpt-5:priority",
                 "requesty:openai/o3-deep-research",
                 "requesty:openai/o4-mini-deep-research",
                 "requesty:parasail/parasail-deepseek-v3-0324",
-                "requesty:parasail/parasail-glm-45",
                 "requesty:parasail/parasail-kimi-k2-instruct",
                 "requesty:parasail/parasail-qwen3-235b-a22b-instruct-2507",
                 "requesty:together/deepseek-ai/DeepSeek-R1",
@@ -2226,6 +2236,7 @@
                 "vercel-gateway:google/imagen-4.0-generate-001",
                 "vercel-gateway:google/imagen-4.0-ultra-generate-001",
                 "vercel-gateway:inception/mercury-coder-small",
+                "vercel-gateway:kwaikat/kat-coder-pro-v1",
                 "vercel-gateway:meituan/longcat-flash-chat",
                 "vercel-gateway:meituan/longcat-flash-thinking",
                 "vercel-gateway:meta/llama-3.1-70b",
@@ -2239,7 +2250,9 @@
                 "vercel-gateway:meta/llama-4-scout",
                 "vercel-gateway:minimax/minimax-m2",
                 "vercel-gateway:mistral/codestral",
+                "vercel-gateway:mistral/devstral-2",
                 "vercel-gateway:mistral/devstral-small",
+                "vercel-gateway:mistral/devstral-small-2",
                 "vercel-gateway:mistral/magistral-medium",
                 "vercel-gateway:mistral/magistral-small",
                 "vercel-gateway:mistral/ministral-14b",
@@ -2278,6 +2291,9 @@
                 "vercel-gateway:openai/gpt-5.1-codex-mini",
                 "vercel-gateway:openai/gpt-5.1-instant",
                 "vercel-gateway:openai/gpt-5.1-thinking",
+                "vercel-gateway:openai/gpt-5.2",
+                "vercel-gateway:openai/gpt-5.2-chat",
+                "vercel-gateway:openai/gpt-5.2-pro",
                 "vercel-gateway:openai/gpt-oss-120b",
                 "vercel-gateway:openai/gpt-oss-20b",
                 "vercel-gateway:openai/gpt-oss-safeguard-20b",
@@ -2333,7 +2349,8 @@
                 "zai:glm-4.5-air",
                 "zai:glm-4.5-flash",
                 "zai:glm-4.5v",
-                "zai:glm-4.6"
+                "zai:glm-4.6",
+                "zai:glm-4.6v"
               ],
               "type": "string"
             },
@@ -3309,7 +3326,7 @@
           "items": {
             "discriminator": {
               "mapping": {
-                "builtin": "#/$defs/BuiltinEventHandlerConfig",
+                "builtin": "#/$defs/StdoutEventHandlerConfig",
                 "callback": "#/$defs/CallbackEventHandlerConfig",
                 "tts": "#/$defs/TTSEventHandlerConfig"
               },
@@ -3317,7 +3334,7 @@
             },
             "oneOf": [
               {
-                "$ref": "#/$defs/BuiltinEventHandlerConfig"
+                "$ref": "#/$defs/StdoutEventHandlerConfig"
               },
               {
                 "$ref": "#/$defs/CallbackEventHandlerConfig"
@@ -4325,7 +4342,7 @@
           "items": {
             "discriminator": {
               "mapping": {
-                "builtin": "#/$defs/BuiltinEventHandlerConfig",
+                "builtin": "#/$defs/StdoutEventHandlerConfig",
                 "callback": "#/$defs/CallbackEventHandlerConfig",
                 "tts": "#/$defs/TTSEventHandlerConfig"
               },
@@ -4333,7 +4350,7 @@
             },
             "oneOf": [
               {
-                "$ref": "#/$defs/BuiltinEventHandlerConfig"
+                "$ref": "#/$defs/StdoutEventHandlerConfig"
               },
               {
                 "$ref": "#/$defs/CallbackEventHandlerConfig"
@@ -5323,6 +5340,7 @@
                 "copilot:gpt-5.1-codex",
                 "copilot:gpt-5.1-codex-max",
                 "copilot:gpt-5.1-codex-mini",
+                "copilot:gpt-5.2",
                 "copilot:grok-code-fast-1",
                 "copilot:oswe-vscode-prime"
               ],
@@ -5338,6 +5356,7 @@
             {
               "enum": [
                 "gemini:aqa",
+                "gemini:deep-research-pro-preview-12-2025",
                 "gemini:gemini-2.0-flash",
                 "gemini:gemini-2.0-flash-001",
                 "gemini:gemini-2.0-flash-exp",
@@ -5345,16 +5364,12 @@
                 "gemini:gemini-2.0-flash-lite-001",
                 "gemini:gemini-2.0-flash-lite-preview",
                 "gemini:gemini-2.0-flash-lite-preview-02-05",
-                "gemini:gemini-2.0-flash-live-001",
-                "gemini:gemini-2.0-pro-exp",
-                "gemini:gemini-2.0-pro-exp-02-05",
                 "gemini:gemini-2.5-computer-use-preview-10-2025",
                 "gemini:gemini-2.5-flash",
                 "gemini:gemini-2.5-flash-image",
                 "gemini:gemini-2.5-flash-image-preview",
                 "gemini:gemini-2.5-flash-lite",
                 "gemini:gemini-2.5-flash-lite-preview-09-2025",
-                "gemini:gemini-2.5-flash-live-preview",
                 "gemini:gemini-2.5-flash-native-audio-latest",
                 "gemini:gemini-2.5-flash-native-audio-preview-09-2025",
                 "gemini:gemini-2.5-flash-preview-09-2025",
@@ -5366,7 +5381,6 @@
                 "gemini:gemini-exp-1206",
                 "gemini:gemini-flash-latest",
                 "gemini:gemini-flash-lite-latest",
-                "gemini:gemini-live-2.5-flash-preview",
                 "gemini:gemini-pro-latest",
                 "gemini:gemini-robotics-er-1.5-preview",
                 "gemini:gemma-3-12b-it",
@@ -5505,10 +5519,12 @@
               "enum": [
                 "mistral:codestral-2508",
                 "mistral:codestral-latest",
+                "mistral:devstral-2512",
                 "mistral:devstral-medium-2507",
                 "mistral:devstral-medium-latest",
                 "mistral:devstral-small-2507",
                 "mistral:devstral-small-latest",
+                "mistral:labs-devstral-small-2512",
                 "mistral:magistral-medium-2509",
                 "mistral:magistral-medium-latest",
                 "mistral:magistral-small-2509",
@@ -5535,6 +5551,7 @@
                 "mistral:mistral-tiny-2312",
                 "mistral:mistral-tiny-2407",
                 "mistral:mistral-tiny-latest",
+                "mistral:mistral-vibe-cli-latest",
                 "mistral:open-mistral-7b",
                 "mistral:open-mistral-nemo",
                 "mistral:open-mistral-nemo-2407",
@@ -5571,6 +5588,9 @@
                 "openai:gpt-5.1-codex",
                 "openai:gpt-5.1-codex-max",
                 "openai:gpt-5.1-codex-mini",
+                "openai:gpt-5.2",
+                "openai:gpt-5.2-chat-latest",
+                "openai:gpt-5.2-pro",
                 "openai:o3-pro"
               ],
               "type": "string"
@@ -5634,6 +5654,8 @@
                 "openrouter:minimax/minimax-m1",
                 "openrouter:minimax/minimax-m2",
                 "openrouter:mistralai/codestral-2508",
+                "openrouter:mistralai/devstral-2512",
+                "openrouter:mistralai/devstral-2512:free",
                 "openrouter:mistralai/devstral-medium",
                 "openrouter:mistralai/devstral-small",
                 "openrouter:mistralai/ministral-14b-2512",
@@ -5652,6 +5674,7 @@
                 "openrouter:moonshotai/kimi-linear-48b-a3b-instruct",
                 "openrouter:morph/morph-v3-fast",
                 "openrouter:morph/morph-v3-large",
+                "openrouter:nex-agi/deepseek-v3.1-nex-n1:free",
                 "openrouter:nousresearch/hermes-4-405b",
                 "openrouter:nousresearch/hermes-4-70b",
                 "openrouter:nvidia/llama-3.3-nemotron-super-49b-v1.5",
@@ -5673,6 +5696,9 @@
                 "openrouter:openai/gpt-5.1-codex",
                 "openrouter:openai/gpt-5.1-codex-max",
                 "openrouter:openai/gpt-5.1-codex-mini",
+                "openrouter:openai/gpt-5.2",
+                "openrouter:openai/gpt-5.2-chat",
+                "openrouter:openai/gpt-5.2-pro",
                 "openrouter:openai/gpt-oss-120b",
                 "openrouter:openai/gpt-oss-120b:exacto",
                 "openrouter:openai/gpt-oss-120b:free",
@@ -5766,6 +5792,7 @@
                 "requesty:groq/openai/gpt-oss-120b",
                 "requesty:groq/openai/gpt-oss-20b",
                 "requesty:minimaxi/MiniMax-M2",
+                "requesty:mistral/devstral-latest",
                 "requesty:moonshot/kimi-k2-0711-preview",
                 "requesty:moonshot/kimi-k2-0905-preview",
                 "requesty:moonshot/kimi-k2-thinking",
@@ -5797,12 +5824,12 @@
                 "requesty:openai/gpt-5-nano:flex",
                 "requesty:openai/gpt-5.1",
                 "requesty:openai/gpt-5.1-chat",
+                "requesty:openai/gpt-5.2",
                 "requesty:openai/gpt-5:flex",
                 "requesty:openai/gpt-5:priority",
                 "requesty:openai/o3-deep-research",
                 "requesty:openai/o4-mini-deep-research",
                 "requesty:parasail/parasail-deepseek-v3-0324",
-                "requesty:parasail/parasail-glm-45",
                 "requesty:parasail/parasail-kimi-k2-instruct",
                 "requesty:parasail/parasail-qwen3-235b-a22b-instruct-2507",
                 "requesty:together/deepseek-ai/DeepSeek-R1",
@@ -5889,6 +5916,7 @@
                 "vercel-gateway:google/imagen-4.0-generate-001",
                 "vercel-gateway:google/imagen-4.0-ultra-generate-001",
                 "vercel-gateway:inception/mercury-coder-small",
+                "vercel-gateway:kwaikat/kat-coder-pro-v1",
                 "vercel-gateway:meituan/longcat-flash-chat",
                 "vercel-gateway:meituan/longcat-flash-thinking",
                 "vercel-gateway:meta/llama-3.1-70b",
@@ -5902,7 +5930,9 @@
                 "vercel-gateway:meta/llama-4-scout",
                 "vercel-gateway:minimax/minimax-m2",
                 "vercel-gateway:mistral/codestral",
+                "vercel-gateway:mistral/devstral-2",
                 "vercel-gateway:mistral/devstral-small",
+                "vercel-gateway:mistral/devstral-small-2",
                 "vercel-gateway:mistral/magistral-medium",
                 "vercel-gateway:mistral/magistral-small",
                 "vercel-gateway:mistral/ministral-14b",
@@ -5941,6 +5971,9 @@
                 "vercel-gateway:openai/gpt-5.1-codex-mini",
                 "vercel-gateway:openai/gpt-5.1-instant",
                 "vercel-gateway:openai/gpt-5.1-thinking",
+                "vercel-gateway:openai/gpt-5.2",
+                "vercel-gateway:openai/gpt-5.2-chat",
+                "vercel-gateway:openai/gpt-5.2-pro",
                 "vercel-gateway:openai/gpt-oss-120b",
                 "vercel-gateway:openai/gpt-oss-20b",
                 "vercel-gateway:openai/gpt-oss-safeguard-20b",
@@ -5996,7 +6029,8 @@
                 "zai:glm-4.5-air",
                 "zai:glm-4.5-flash",
                 "zai:glm-4.5v",
-                "zai:glm-4.6"
+                "zai:glm-4.6",
+                "zai:glm-4.6v"
               ],
               "type": "string"
             },
@@ -6802,41 +6836,6 @@
       "title": "BraveSearchConfig",
       "type": "object"
     },
-    "BuiltinEventHandlerConfig": {
-      "additionalProperties": false,
-      "description": "Configuration for built-in event handlers (simple, detailed).",
-      "properties": {
-        "type": {
-          "const": "builtin",
-          "default": "builtin",
-          "description": "Builtin event handler.",
-          "title": "Type",
-          "type": "string"
-        },
-        "enabled": {
-          "default": true,
-          "description": "Whether this handler is enabled.",
-          "title": "Enabled",
-          "type": "boolean"
-        },
-        "handler": {
-          "default": "simple",
-          "description": "Which builtin handler to use.\n\n- simple: Basic text and tool notifications\n- detailed: Comprehensive execution visibility",
-          "enum": [
-            "simple",
-            "detailed"
-          ],
-          "examples": [
-            "simple",
-            "detailed"
-          ],
-          "title": "Handler",
-          "type": "string"
-        }
-      },
-      "title": "BuiltinEventHandlerConfig",
-      "type": "object"
-    },
     "CagentACPAgentConfig": {
       "additionalProperties": false,
       "description": "Configuration for Docker cagent via ACP.\n\nAgent Builder and Runtime by Docker Engineering.\n\nExample:\n    ```yaml\n    acp_agents:\n      cagent:\n        type: cagent\n        cwd: /path/to/project\n        agent_file: ./agent.yaml\n        code_mode_tools: true\n        working_dir: /path/to/work\n    ```",
@@ -7051,7 +7050,7 @@
           "items": {
             "discriminator": {
               "mapping": {
-                "builtin": "#/$defs/BuiltinEventHandlerConfig",
+                "builtin": "#/$defs/StdoutEventHandlerConfig",
                 "callback": "#/$defs/CallbackEventHandlerConfig",
                 "tts": "#/$defs/TTSEventHandlerConfig"
               },
@@ -7059,7 +7058,7 @@
             },
             "oneOf": [
               {
-                "$ref": "#/$defs/BuiltinEventHandlerConfig"
+                "$ref": "#/$defs/StdoutEventHandlerConfig"
               },
               {
                 "$ref": "#/$defs/CallbackEventHandlerConfig"
@@ -7278,7 +7277,7 @@
       "required": [
         "function"
       ],
-      "title": "Callable Command Configuration",
+      "title": "Callable Command",
       "type": "object"
     },
     "CallableCondition": {
@@ -7643,7 +7642,7 @@
       "required": [
         "import_path"
       ],
-      "title": "CallbackEventHandlerConfig",
+      "title": "Callback Event Handler",
       "type": "object"
     },
     "ClaudeACPAgentConfig": {
@@ -7860,7 +7859,7 @@
           "items": {
             "discriminator": {
               "mapping": {
-                "builtin": "#/$defs/BuiltinEventHandlerConfig",
+                "builtin": "#/$defs/StdoutEventHandlerConfig",
                 "callback": "#/$defs/CallbackEventHandlerConfig",
                 "tts": "#/$defs/TTSEventHandlerConfig"
               },
@@ -7868,7 +7867,7 @@
             },
             "oneOf": [
               {
-                "$ref": "#/$defs/BuiltinEventHandlerConfig"
+                "$ref": "#/$defs/StdoutEventHandlerConfig"
               },
               {
                 "$ref": "#/$defs/CallbackEventHandlerConfig"
@@ -8797,7 +8796,7 @@
           "items": {
             "discriminator": {
               "mapping": {
-                "builtin": "#/$defs/BuiltinEventHandlerConfig",
+                "builtin": "#/$defs/StdoutEventHandlerConfig",
                 "callback": "#/$defs/CallbackEventHandlerConfig",
                 "tts": "#/$defs/TTSEventHandlerConfig"
               },
@@ -8805,7 +8804,7 @@
             },
             "oneOf": [
               {
-                "$ref": "#/$defs/BuiltinEventHandlerConfig"
+                "$ref": "#/$defs/StdoutEventHandlerConfig"
               },
               {
                 "$ref": "#/$defs/CallbackEventHandlerConfig"
@@ -10618,6 +10617,7 @@
                 "copilot:gpt-5.1-codex",
                 "copilot:gpt-5.1-codex-max",
                 "copilot:gpt-5.1-codex-mini",
+                "copilot:gpt-5.2",
                 "copilot:grok-code-fast-1",
                 "copilot:oswe-vscode-prime"
               ],
@@ -10633,6 +10633,7 @@
             {
               "enum": [
                 "gemini:aqa",
+                "gemini:deep-research-pro-preview-12-2025",
                 "gemini:gemini-2.0-flash",
                 "gemini:gemini-2.0-flash-001",
                 "gemini:gemini-2.0-flash-exp",
@@ -10640,16 +10641,12 @@
                 "gemini:gemini-2.0-flash-lite-001",
                 "gemini:gemini-2.0-flash-lite-preview",
                 "gemini:gemini-2.0-flash-lite-preview-02-05",
-                "gemini:gemini-2.0-flash-live-001",
-                "gemini:gemini-2.0-pro-exp",
-                "gemini:gemini-2.0-pro-exp-02-05",
                 "gemini:gemini-2.5-computer-use-preview-10-2025",
                 "gemini:gemini-2.5-flash",
                 "gemini:gemini-2.5-flash-image",
                 "gemini:gemini-2.5-flash-image-preview",
                 "gemini:gemini-2.5-flash-lite",
                 "gemini:gemini-2.5-flash-lite-preview-09-2025",
-                "gemini:gemini-2.5-flash-live-preview",
                 "gemini:gemini-2.5-flash-native-audio-latest",
                 "gemini:gemini-2.5-flash-native-audio-preview-09-2025",
                 "gemini:gemini-2.5-flash-preview-09-2025",
@@ -10661,7 +10658,6 @@
                 "gemini:gemini-exp-1206",
                 "gemini:gemini-flash-latest",
                 "gemini:gemini-flash-lite-latest",
-                "gemini:gemini-live-2.5-flash-preview",
                 "gemini:gemini-pro-latest",
                 "gemini:gemini-robotics-er-1.5-preview",
                 "gemini:gemma-3-12b-it",
@@ -10800,10 +10796,12 @@
               "enum": [
                 "mistral:codestral-2508",
                 "mistral:codestral-latest",
+                "mistral:devstral-2512",
                 "mistral:devstral-medium-2507",
                 "mistral:devstral-medium-latest",
                 "mistral:devstral-small-2507",
                 "mistral:devstral-small-latest",
+                "mistral:labs-devstral-small-2512",
                 "mistral:magistral-medium-2509",
                 "mistral:magistral-medium-latest",
                 "mistral:magistral-small-2509",
@@ -10830,6 +10828,7 @@
                 "mistral:mistral-tiny-2312",
                 "mistral:mistral-tiny-2407",
                 "mistral:mistral-tiny-latest",
+                "mistral:mistral-vibe-cli-latest",
                 "mistral:open-mistral-7b",
                 "mistral:open-mistral-nemo",
                 "mistral:open-mistral-nemo-2407",
@@ -10866,6 +10865,9 @@
                 "openai:gpt-5.1-codex",
                 "openai:gpt-5.1-codex-max",
                 "openai:gpt-5.1-codex-mini",
+                "openai:gpt-5.2",
+                "openai:gpt-5.2-chat-latest",
+                "openai:gpt-5.2-pro",
                 "openai:o3-pro"
               ],
               "type": "string"
@@ -10929,6 +10931,8 @@
                 "openrouter:minimax/minimax-m1",
                 "openrouter:minimax/minimax-m2",
                 "openrouter:mistralai/codestral-2508",
+                "openrouter:mistralai/devstral-2512",
+                "openrouter:mistralai/devstral-2512:free",
                 "openrouter:mistralai/devstral-medium",
                 "openrouter:mistralai/devstral-small",
                 "openrouter:mistralai/ministral-14b-2512",
@@ -10947,6 +10951,7 @@
                 "openrouter:moonshotai/kimi-linear-48b-a3b-instruct",
                 "openrouter:morph/morph-v3-fast",
                 "openrouter:morph/morph-v3-large",
+                "openrouter:nex-agi/deepseek-v3.1-nex-n1:free",
                 "openrouter:nousresearch/hermes-4-405b",
                 "openrouter:nousresearch/hermes-4-70b",
                 "openrouter:nvidia/llama-3.3-nemotron-super-49b-v1.5",
@@ -10968,6 +10973,9 @@
                 "openrouter:openai/gpt-5.1-codex",
                 "openrouter:openai/gpt-5.1-codex-max",
                 "openrouter:openai/gpt-5.1-codex-mini",
+                "openrouter:openai/gpt-5.2",
+                "openrouter:openai/gpt-5.2-chat",
+                "openrouter:openai/gpt-5.2-pro",
                 "openrouter:openai/gpt-oss-120b",
                 "openrouter:openai/gpt-oss-120b:exacto",
                 "openrouter:openai/gpt-oss-120b:free",
@@ -11061,6 +11069,7 @@
                 "requesty:groq/openai/gpt-oss-120b",
                 "requesty:groq/openai/gpt-oss-20b",
                 "requesty:minimaxi/MiniMax-M2",
+                "requesty:mistral/devstral-latest",
                 "requesty:moonshot/kimi-k2-0711-preview",
                 "requesty:moonshot/kimi-k2-0905-preview",
                 "requesty:moonshot/kimi-k2-thinking",
@@ -11092,12 +11101,12 @@
                 "requesty:openai/gpt-5-nano:flex",
                 "requesty:openai/gpt-5.1",
                 "requesty:openai/gpt-5.1-chat",
+                "requesty:openai/gpt-5.2",
                 "requesty:openai/gpt-5:flex",
                 "requesty:openai/gpt-5:priority",
                 "requesty:openai/o3-deep-research",
                 "requesty:openai/o4-mini-deep-research",
                 "requesty:parasail/parasail-deepseek-v3-0324",
-                "requesty:parasail/parasail-glm-45",
                 "requesty:parasail/parasail-kimi-k2-instruct",
                 "requesty:parasail/parasail-qwen3-235b-a22b-instruct-2507",
                 "requesty:together/deepseek-ai/DeepSeek-R1",
@@ -11184,6 +11193,7 @@
                 "vercel-gateway:google/imagen-4.0-generate-001",
                 "vercel-gateway:google/imagen-4.0-ultra-generate-001",
                 "vercel-gateway:inception/mercury-coder-small",
+                "vercel-gateway:kwaikat/kat-coder-pro-v1",
                 "vercel-gateway:meituan/longcat-flash-chat",
                 "vercel-gateway:meituan/longcat-flash-thinking",
                 "vercel-gateway:meta/llama-3.1-70b",
@@ -11197,7 +11207,9 @@
                 "vercel-gateway:meta/llama-4-scout",
                 "vercel-gateway:minimax/minimax-m2",
                 "vercel-gateway:mistral/codestral",
+                "vercel-gateway:mistral/devstral-2",
                 "vercel-gateway:mistral/devstral-small",
+                "vercel-gateway:mistral/devstral-small-2",
                 "vercel-gateway:mistral/magistral-medium",
                 "vercel-gateway:mistral/magistral-small",
                 "vercel-gateway:mistral/ministral-14b",
@@ -11236,6 +11248,9 @@
                 "vercel-gateway:openai/gpt-5.1-codex-mini",
                 "vercel-gateway:openai/gpt-5.1-instant",
                 "vercel-gateway:openai/gpt-5.1-thinking",
+                "vercel-gateway:openai/gpt-5.2",
+                "vercel-gateway:openai/gpt-5.2-chat",
+                "vercel-gateway:openai/gpt-5.2-pro",
                 "vercel-gateway:openai/gpt-oss-120b",
                 "vercel-gateway:openai/gpt-oss-20b",
                 "vercel-gateway:openai/gpt-oss-safeguard-20b",
@@ -11291,7 +11306,8 @@
                 "zai:glm-4.5-air",
                 "zai:glm-4.5-flash",
                 "zai:glm-4.5v",
-                "zai:glm-4.6"
+                "zai:glm-4.6",
+                "zai:glm-4.6v"
               ],
               "type": "string"
             },
@@ -11941,6 +11957,7 @@
                   "copilot:gpt-5.1-codex",
                   "copilot:gpt-5.1-codex-max",
                   "copilot:gpt-5.1-codex-mini",
+                  "copilot:gpt-5.2",
                   "copilot:grok-code-fast-1",
                   "copilot:oswe-vscode-prime"
                 ],
@@ -11956,6 +11973,7 @@
               {
                 "enum": [
                   "gemini:aqa",
+                  "gemini:deep-research-pro-preview-12-2025",
                   "gemini:gemini-2.0-flash",
                   "gemini:gemini-2.0-flash-001",
                   "gemini:gemini-2.0-flash-exp",
@@ -11963,16 +11981,12 @@
                   "gemini:gemini-2.0-flash-lite-001",
                   "gemini:gemini-2.0-flash-lite-preview",
                   "gemini:gemini-2.0-flash-lite-preview-02-05",
-                  "gemini:gemini-2.0-flash-live-001",
-                  "gemini:gemini-2.0-pro-exp",
-                  "gemini:gemini-2.0-pro-exp-02-05",
                   "gemini:gemini-2.5-computer-use-preview-10-2025",
                   "gemini:gemini-2.5-flash",
                   "gemini:gemini-2.5-flash-image",
                   "gemini:gemini-2.5-flash-image-preview",
                   "gemini:gemini-2.5-flash-lite",
                   "gemini:gemini-2.5-flash-lite-preview-09-2025",
-                  "gemini:gemini-2.5-flash-live-preview",
                   "gemini:gemini-2.5-flash-native-audio-latest",
                   "gemini:gemini-2.5-flash-native-audio-preview-09-2025",
                   "gemini:gemini-2.5-flash-preview-09-2025",
@@ -11984,7 +11998,6 @@
                   "gemini:gemini-exp-1206",
                   "gemini:gemini-flash-latest",
                   "gemini:gemini-flash-lite-latest",
-                  "gemini:gemini-live-2.5-flash-preview",
                   "gemini:gemini-pro-latest",
                   "gemini:gemini-robotics-er-1.5-preview",
                   "gemini:gemma-3-12b-it",
@@ -12123,10 +12136,12 @@
                 "enum": [
                   "mistral:codestral-2508",
                   "mistral:codestral-latest",
+                  "mistral:devstral-2512",
                   "mistral:devstral-medium-2507",
                   "mistral:devstral-medium-latest",
                   "mistral:devstral-small-2507",
                   "mistral:devstral-small-latest",
+                  "mistral:labs-devstral-small-2512",
                   "mistral:magistral-medium-2509",
                   "mistral:magistral-medium-latest",
                   "mistral:magistral-small-2509",
@@ -12153,6 +12168,7 @@
                   "mistral:mistral-tiny-2312",
                   "mistral:mistral-tiny-2407",
                   "mistral:mistral-tiny-latest",
+                  "mistral:mistral-vibe-cli-latest",
                   "mistral:open-mistral-7b",
                   "mistral:open-mistral-nemo",
                   "mistral:open-mistral-nemo-2407",
@@ -12189,6 +12205,9 @@
                   "openai:gpt-5.1-codex",
                   "openai:gpt-5.1-codex-max",
                   "openai:gpt-5.1-codex-mini",
+                  "openai:gpt-5.2",
+                  "openai:gpt-5.2-chat-latest",
+                  "openai:gpt-5.2-pro",
                   "openai:o3-pro"
                 ],
                 "type": "string"
@@ -12252,6 +12271,8 @@
                   "openrouter:minimax/minimax-m1",
                   "openrouter:minimax/minimax-m2",
                   "openrouter:mistralai/codestral-2508",
+                  "openrouter:mistralai/devstral-2512",
+                  "openrouter:mistralai/devstral-2512:free",
                   "openrouter:mistralai/devstral-medium",
                   "openrouter:mistralai/devstral-small",
                   "openrouter:mistralai/ministral-14b-2512",
@@ -12270,6 +12291,7 @@
                   "openrouter:moonshotai/kimi-linear-48b-a3b-instruct",
                   "openrouter:morph/morph-v3-fast",
                   "openrouter:morph/morph-v3-large",
+                  "openrouter:nex-agi/deepseek-v3.1-nex-n1:free",
                   "openrouter:nousresearch/hermes-4-405b",
                   "openrouter:nousresearch/hermes-4-70b",
                   "openrouter:nvidia/llama-3.3-nemotron-super-49b-v1.5",
@@ -12291,6 +12313,9 @@
                   "openrouter:openai/gpt-5.1-codex",
                   "openrouter:openai/gpt-5.1-codex-max",
                   "openrouter:openai/gpt-5.1-codex-mini",
+                  "openrouter:openai/gpt-5.2",
+                  "openrouter:openai/gpt-5.2-chat",
+                  "openrouter:openai/gpt-5.2-pro",
                   "openrouter:openai/gpt-oss-120b",
                   "openrouter:openai/gpt-oss-120b:exacto",
                   "openrouter:openai/gpt-oss-120b:free",
@@ -12384,6 +12409,7 @@
                   "requesty:groq/openai/gpt-oss-120b",
                   "requesty:groq/openai/gpt-oss-20b",
                   "requesty:minimaxi/MiniMax-M2",
+                  "requesty:mistral/devstral-latest",
                   "requesty:moonshot/kimi-k2-0711-preview",
                   "requesty:moonshot/kimi-k2-0905-preview",
                   "requesty:moonshot/kimi-k2-thinking",
@@ -12415,12 +12441,12 @@
                   "requesty:openai/gpt-5-nano:flex",
                   "requesty:openai/gpt-5.1",
                   "requesty:openai/gpt-5.1-chat",
+                  "requesty:openai/gpt-5.2",
                   "requesty:openai/gpt-5:flex",
                   "requesty:openai/gpt-5:priority",
                   "requesty:openai/o3-deep-research",
                   "requesty:openai/o4-mini-deep-research",
                   "requesty:parasail/parasail-deepseek-v3-0324",
-                  "requesty:parasail/parasail-glm-45",
                   "requesty:parasail/parasail-kimi-k2-instruct",
                   "requesty:parasail/parasail-qwen3-235b-a22b-instruct-2507",
                   "requesty:together/deepseek-ai/DeepSeek-R1",
@@ -12507,6 +12533,7 @@
                   "vercel-gateway:google/imagen-4.0-generate-001",
                   "vercel-gateway:google/imagen-4.0-ultra-generate-001",
                   "vercel-gateway:inception/mercury-coder-small",
+                  "vercel-gateway:kwaikat/kat-coder-pro-v1",
                   "vercel-gateway:meituan/longcat-flash-chat",
                   "vercel-gateway:meituan/longcat-flash-thinking",
                   "vercel-gateway:meta/llama-3.1-70b",
@@ -12520,7 +12547,9 @@
                   "vercel-gateway:meta/llama-4-scout",
                   "vercel-gateway:minimax/minimax-m2",
                   "vercel-gateway:mistral/codestral",
+                  "vercel-gateway:mistral/devstral-2",
                   "vercel-gateway:mistral/devstral-small",
+                  "vercel-gateway:mistral/devstral-small-2",
                   "vercel-gateway:mistral/magistral-medium",
                   "vercel-gateway:mistral/magistral-small",
                   "vercel-gateway:mistral/ministral-14b",
@@ -12559,6 +12588,9 @@
                   "vercel-gateway:openai/gpt-5.1-codex-mini",
                   "vercel-gateway:openai/gpt-5.1-instant",
                   "vercel-gateway:openai/gpt-5.1-thinking",
+                  "vercel-gateway:openai/gpt-5.2",
+                  "vercel-gateway:openai/gpt-5.2-chat",
+                  "vercel-gateway:openai/gpt-5.2-pro",
                   "vercel-gateway:openai/gpt-oss-120b",
                   "vercel-gateway:openai/gpt-oss-20b",
                   "vercel-gateway:openai/gpt-oss-safeguard-20b",
@@ -12614,7 +12646,8 @@
                   "zai:glm-4.5-air",
                   "zai:glm-4.5-flash",
                   "zai:glm-4.5v",
-                  "zai:glm-4.6"
+                  "zai:glm-4.6",
+                  "zai:glm-4.6v"
                 ],
                 "type": "string"
               },
@@ -14260,6 +14293,7 @@
                 "copilot:gpt-5.1-codex",
                 "copilot:gpt-5.1-codex-max",
                 "copilot:gpt-5.1-codex-mini",
+                "copilot:gpt-5.2",
                 "copilot:grok-code-fast-1",
                 "copilot:oswe-vscode-prime"
               ],
@@ -14275,6 +14309,7 @@
             {
               "enum": [
                 "gemini:aqa",
+                "gemini:deep-research-pro-preview-12-2025",
                 "gemini:gemini-2.0-flash",
                 "gemini:gemini-2.0-flash-001",
                 "gemini:gemini-2.0-flash-exp",
@@ -14282,16 +14317,12 @@
                 "gemini:gemini-2.0-flash-lite-001",
                 "gemini:gemini-2.0-flash-lite-preview",
                 "gemini:gemini-2.0-flash-lite-preview-02-05",
-                "gemini:gemini-2.0-flash-live-001",
-                "gemini:gemini-2.0-pro-exp",
-                "gemini:gemini-2.0-pro-exp-02-05",
                 "gemini:gemini-2.5-computer-use-preview-10-2025",
                 "gemini:gemini-2.5-flash",
                 "gemini:gemini-2.5-flash-image",
                 "gemini:gemini-2.5-flash-image-preview",
                 "gemini:gemini-2.5-flash-lite",
                 "gemini:gemini-2.5-flash-lite-preview-09-2025",
-                "gemini:gemini-2.5-flash-live-preview",
                 "gemini:gemini-2.5-flash-native-audio-latest",
                 "gemini:gemini-2.5-flash-native-audio-preview-09-2025",
                 "gemini:gemini-2.5-flash-preview-09-2025",
@@ -14303,7 +14334,6 @@
                 "gemini:gemini-exp-1206",
                 "gemini:gemini-flash-latest",
                 "gemini:gemini-flash-lite-latest",
-                "gemini:gemini-live-2.5-flash-preview",
                 "gemini:gemini-pro-latest",
                 "gemini:gemini-robotics-er-1.5-preview",
                 "gemini:gemma-3-12b-it",
@@ -14442,10 +14472,12 @@
               "enum": [
                 "mistral:codestral-2508",
                 "mistral:codestral-latest",
+                "mistral:devstral-2512",
                 "mistral:devstral-medium-2507",
                 "mistral:devstral-medium-latest",
                 "mistral:devstral-small-2507",
                 "mistral:devstral-small-latest",
+                "mistral:labs-devstral-small-2512",
                 "mistral:magistral-medium-2509",
                 "mistral:magistral-medium-latest",
                 "mistral:magistral-small-2509",
@@ -14472,6 +14504,7 @@
                 "mistral:mistral-tiny-2312",
                 "mistral:mistral-tiny-2407",
                 "mistral:mistral-tiny-latest",
+                "mistral:mistral-vibe-cli-latest",
                 "mistral:open-mistral-7b",
                 "mistral:open-mistral-nemo",
                 "mistral:open-mistral-nemo-2407",
@@ -14508,6 +14541,9 @@
                 "openai:gpt-5.1-codex",
                 "openai:gpt-5.1-codex-max",
                 "openai:gpt-5.1-codex-mini",
+                "openai:gpt-5.2",
+                "openai:gpt-5.2-chat-latest",
+                "openai:gpt-5.2-pro",
                 "openai:o3-pro"
               ],
               "type": "string"
@@ -14571,6 +14607,8 @@
                 "openrouter:minimax/minimax-m1",
                 "openrouter:minimax/minimax-m2",
                 "openrouter:mistralai/codestral-2508",
+                "openrouter:mistralai/devstral-2512",
+                "openrouter:mistralai/devstral-2512:free",
                 "openrouter:mistralai/devstral-medium",
                 "openrouter:mistralai/devstral-small",
                 "openrouter:mistralai/ministral-14b-2512",
@@ -14589,6 +14627,7 @@
                 "openrouter:moonshotai/kimi-linear-48b-a3b-instruct",
                 "openrouter:morph/morph-v3-fast",
                 "openrouter:morph/morph-v3-large",
+                "openrouter:nex-agi/deepseek-v3.1-nex-n1:free",
                 "openrouter:nousresearch/hermes-4-405b",
                 "openrouter:nousresearch/hermes-4-70b",
                 "openrouter:nvidia/llama-3.3-nemotron-super-49b-v1.5",
@@ -14610,6 +14649,9 @@
                 "openrouter:openai/gpt-5.1-codex",
                 "openrouter:openai/gpt-5.1-codex-max",
                 "openrouter:openai/gpt-5.1-codex-mini",
+                "openrouter:openai/gpt-5.2",
+                "openrouter:openai/gpt-5.2-chat",
+                "openrouter:openai/gpt-5.2-pro",
                 "openrouter:openai/gpt-oss-120b",
                 "openrouter:openai/gpt-oss-120b:exacto",
                 "openrouter:openai/gpt-oss-120b:free",
@@ -14703,6 +14745,7 @@
                 "requesty:groq/openai/gpt-oss-120b",
                 "requesty:groq/openai/gpt-oss-20b",
                 "requesty:minimaxi/MiniMax-M2",
+                "requesty:mistral/devstral-latest",
                 "requesty:moonshot/kimi-k2-0711-preview",
                 "requesty:moonshot/kimi-k2-0905-preview",
                 "requesty:moonshot/kimi-k2-thinking",
@@ -14734,12 +14777,12 @@
                 "requesty:openai/gpt-5-nano:flex",
                 "requesty:openai/gpt-5.1",
                 "requesty:openai/gpt-5.1-chat",
+                "requesty:openai/gpt-5.2",
                 "requesty:openai/gpt-5:flex",
                 "requesty:openai/gpt-5:priority",
                 "requesty:openai/o3-deep-research",
                 "requesty:openai/o4-mini-deep-research",
                 "requesty:parasail/parasail-deepseek-v3-0324",
-                "requesty:parasail/parasail-glm-45",
                 "requesty:parasail/parasail-kimi-k2-instruct",
                 "requesty:parasail/parasail-qwen3-235b-a22b-instruct-2507",
                 "requesty:together/deepseek-ai/DeepSeek-R1",
@@ -14826,6 +14869,7 @@
                 "vercel-gateway:google/imagen-4.0-generate-001",
                 "vercel-gateway:google/imagen-4.0-ultra-generate-001",
                 "vercel-gateway:inception/mercury-coder-small",
+                "vercel-gateway:kwaikat/kat-coder-pro-v1",
                 "vercel-gateway:meituan/longcat-flash-chat",
                 "vercel-gateway:meituan/longcat-flash-thinking",
                 "vercel-gateway:meta/llama-3.1-70b",
@@ -14839,7 +14883,9 @@
                 "vercel-gateway:meta/llama-4-scout",
                 "vercel-gateway:minimax/minimax-m2",
                 "vercel-gateway:mistral/codestral",
+                "vercel-gateway:mistral/devstral-2",
                 "vercel-gateway:mistral/devstral-small",
+                "vercel-gateway:mistral/devstral-small-2",
                 "vercel-gateway:mistral/magistral-medium",
                 "vercel-gateway:mistral/magistral-small",
                 "vercel-gateway:mistral/ministral-14b",
@@ -14878,6 +14924,9 @@
                 "vercel-gateway:openai/gpt-5.1-codex-mini",
                 "vercel-gateway:openai/gpt-5.1-instant",
                 "vercel-gateway:openai/gpt-5.1-thinking",
+                "vercel-gateway:openai/gpt-5.2",
+                "vercel-gateway:openai/gpt-5.2-chat",
+                "vercel-gateway:openai/gpt-5.2-pro",
                 "vercel-gateway:openai/gpt-oss-120b",
                 "vercel-gateway:openai/gpt-oss-20b",
                 "vercel-gateway:openai/gpt-oss-safeguard-20b",
@@ -14933,7 +14982,8 @@
                 "zai:glm-4.5-air",
                 "zai:glm-4.5-flash",
                 "zai:glm-4.5v",
-                "zai:glm-4.6"
+                "zai:glm-4.6",
+                "zai:glm-4.6v"
               ],
               "type": "string"
             },
@@ -15892,6 +15942,7 @@
                   "copilot:gpt-5.1-codex",
                   "copilot:gpt-5.1-codex-max",
                   "copilot:gpt-5.1-codex-mini",
+                  "copilot:gpt-5.2",
                   "copilot:grok-code-fast-1",
                   "copilot:oswe-vscode-prime"
                 ],
@@ -15907,6 +15958,7 @@
               {
                 "enum": [
                   "gemini:aqa",
+                  "gemini:deep-research-pro-preview-12-2025",
                   "gemini:gemini-2.0-flash",
                   "gemini:gemini-2.0-flash-001",
                   "gemini:gemini-2.0-flash-exp",
@@ -15914,16 +15966,12 @@
                   "gemini:gemini-2.0-flash-lite-001",
                   "gemini:gemini-2.0-flash-lite-preview",
                   "gemini:gemini-2.0-flash-lite-preview-02-05",
-                  "gemini:gemini-2.0-flash-live-001",
-                  "gemini:gemini-2.0-pro-exp",
-                  "gemini:gemini-2.0-pro-exp-02-05",
                   "gemini:gemini-2.5-computer-use-preview-10-2025",
                   "gemini:gemini-2.5-flash",
                   "gemini:gemini-2.5-flash-image",
                   "gemini:gemini-2.5-flash-image-preview",
                   "gemini:gemini-2.5-flash-lite",
                   "gemini:gemini-2.5-flash-lite-preview-09-2025",
-                  "gemini:gemini-2.5-flash-live-preview",
                   "gemini:gemini-2.5-flash-native-audio-latest",
                   "gemini:gemini-2.5-flash-native-audio-preview-09-2025",
                   "gemini:gemini-2.5-flash-preview-09-2025",
@@ -15935,7 +15983,6 @@
                   "gemini:gemini-exp-1206",
                   "gemini:gemini-flash-latest",
                   "gemini:gemini-flash-lite-latest",
-                  "gemini:gemini-live-2.5-flash-preview",
                   "gemini:gemini-pro-latest",
                   "gemini:gemini-robotics-er-1.5-preview",
                   "gemini:gemma-3-12b-it",
@@ -16074,10 +16121,12 @@
                 "enum": [
                   "mistral:codestral-2508",
                   "mistral:codestral-latest",
+                  "mistral:devstral-2512",
                   "mistral:devstral-medium-2507",
                   "mistral:devstral-medium-latest",
                   "mistral:devstral-small-2507",
                   "mistral:devstral-small-latest",
+                  "mistral:labs-devstral-small-2512",
                   "mistral:magistral-medium-2509",
                   "mistral:magistral-medium-latest",
                   "mistral:magistral-small-2509",
@@ -16104,6 +16153,7 @@
                   "mistral:mistral-tiny-2312",
                   "mistral:mistral-tiny-2407",
                   "mistral:mistral-tiny-latest",
+                  "mistral:mistral-vibe-cli-latest",
                   "mistral:open-mistral-7b",
                   "mistral:open-mistral-nemo",
                   "mistral:open-mistral-nemo-2407",
@@ -16140,6 +16190,9 @@
                   "openai:gpt-5.1-codex",
                   "openai:gpt-5.1-codex-max",
                   "openai:gpt-5.1-codex-mini",
+                  "openai:gpt-5.2",
+                  "openai:gpt-5.2-chat-latest",
+                  "openai:gpt-5.2-pro",
                   "openai:o3-pro"
                 ],
                 "type": "string"
@@ -16203,6 +16256,8 @@
                   "openrouter:minimax/minimax-m1",
                   "openrouter:minimax/minimax-m2",
                   "openrouter:mistralai/codestral-2508",
+                  "openrouter:mistralai/devstral-2512",
+                  "openrouter:mistralai/devstral-2512:free",
                   "openrouter:mistralai/devstral-medium",
                   "openrouter:mistralai/devstral-small",
                   "openrouter:mistralai/ministral-14b-2512",
@@ -16221,6 +16276,7 @@
                   "openrouter:moonshotai/kimi-linear-48b-a3b-instruct",
                   "openrouter:morph/morph-v3-fast",
                   "openrouter:morph/morph-v3-large",
+                  "openrouter:nex-agi/deepseek-v3.1-nex-n1:free",
                   "openrouter:nousresearch/hermes-4-405b",
                   "openrouter:nousresearch/hermes-4-70b",
                   "openrouter:nvidia/llama-3.3-nemotron-super-49b-v1.5",
@@ -16242,6 +16298,9 @@
                   "openrouter:openai/gpt-5.1-codex",
                   "openrouter:openai/gpt-5.1-codex-max",
                   "openrouter:openai/gpt-5.1-codex-mini",
+                  "openrouter:openai/gpt-5.2",
+                  "openrouter:openai/gpt-5.2-chat",
+                  "openrouter:openai/gpt-5.2-pro",
                   "openrouter:openai/gpt-oss-120b",
                   "openrouter:openai/gpt-oss-120b:exacto",
                   "openrouter:openai/gpt-oss-120b:free",
@@ -16335,6 +16394,7 @@
                   "requesty:groq/openai/gpt-oss-120b",
                   "requesty:groq/openai/gpt-oss-20b",
                   "requesty:minimaxi/MiniMax-M2",
+                  "requesty:mistral/devstral-latest",
                   "requesty:moonshot/kimi-k2-0711-preview",
                   "requesty:moonshot/kimi-k2-0905-preview",
                   "requesty:moonshot/kimi-k2-thinking",
@@ -16366,12 +16426,12 @@
                   "requesty:openai/gpt-5-nano:flex",
                   "requesty:openai/gpt-5.1",
                   "requesty:openai/gpt-5.1-chat",
+                  "requesty:openai/gpt-5.2",
                   "requesty:openai/gpt-5:flex",
                   "requesty:openai/gpt-5:priority",
                   "requesty:openai/o3-deep-research",
                   "requesty:openai/o4-mini-deep-research",
                   "requesty:parasail/parasail-deepseek-v3-0324",
-                  "requesty:parasail/parasail-glm-45",
                   "requesty:parasail/parasail-kimi-k2-instruct",
                   "requesty:parasail/parasail-qwen3-235b-a22b-instruct-2507",
                   "requesty:together/deepseek-ai/DeepSeek-R1",
@@ -16458,6 +16518,7 @@
                   "vercel-gateway:google/imagen-4.0-generate-001",
                   "vercel-gateway:google/imagen-4.0-ultra-generate-001",
                   "vercel-gateway:inception/mercury-coder-small",
+                  "vercel-gateway:kwaikat/kat-coder-pro-v1",
                   "vercel-gateway:meituan/longcat-flash-chat",
                   "vercel-gateway:meituan/longcat-flash-thinking",
                   "vercel-gateway:meta/llama-3.1-70b",
@@ -16471,7 +16532,9 @@
                   "vercel-gateway:meta/llama-4-scout",
                   "vercel-gateway:minimax/minimax-m2",
                   "vercel-gateway:mistral/codestral",
+                  "vercel-gateway:mistral/devstral-2",
                   "vercel-gateway:mistral/devstral-small",
+                  "vercel-gateway:mistral/devstral-small-2",
                   "vercel-gateway:mistral/magistral-medium",
                   "vercel-gateway:mistral/magistral-small",
                   "vercel-gateway:mistral/ministral-14b",
@@ -16510,6 +16573,9 @@
                   "vercel-gateway:openai/gpt-5.1-codex-mini",
                   "vercel-gateway:openai/gpt-5.1-instant",
                   "vercel-gateway:openai/gpt-5.1-thinking",
+                  "vercel-gateway:openai/gpt-5.2",
+                  "vercel-gateway:openai/gpt-5.2-chat",
+                  "vercel-gateway:openai/gpt-5.2-pro",
                   "vercel-gateway:openai/gpt-oss-120b",
                   "vercel-gateway:openai/gpt-oss-20b",
                   "vercel-gateway:openai/gpt-oss-safeguard-20b",
@@ -16565,7 +16631,8 @@
                   "zai:glm-4.5-air",
                   "zai:glm-4.5-flash",
                   "zai:glm-4.5v",
-                  "zai:glm-4.6"
+                  "zai:glm-4.6",
+                  "zai:glm-4.6v"
                 ],
                 "type": "string"
               },
@@ -16802,7 +16869,7 @@
           "items": {
             "discriminator": {
               "mapping": {
-                "builtin": "#/$defs/BuiltinEventHandlerConfig",
+                "builtin": "#/$defs/StdoutEventHandlerConfig",
                 "callback": "#/$defs/CallbackEventHandlerConfig",
                 "tts": "#/$defs/TTSEventHandlerConfig"
               },
@@ -16810,7 +16877,7 @@
             },
             "oneOf": [
               {
-                "$ref": "#/$defs/BuiltinEventHandlerConfig"
+                "$ref": "#/$defs/StdoutEventHandlerConfig"
               },
               {
                 "$ref": "#/$defs/CallbackEventHandlerConfig"
@@ -17010,7 +17077,7 @@
       "required": [
         "path"
       ],
-      "title": "File-based Command Configuration",
+      "title": "File-based Command",
       "type": "object"
     },
     "FileConnectionConfig": {
@@ -18231,7 +18298,7 @@
           "items": {
             "discriminator": {
               "mapping": {
-                "builtin": "#/$defs/BuiltinEventHandlerConfig",
+                "builtin": "#/$defs/StdoutEventHandlerConfig",
                 "callback": "#/$defs/CallbackEventHandlerConfig",
                 "tts": "#/$defs/TTSEventHandlerConfig"
               },
@@ -18239,7 +18306,7 @@
             },
             "oneOf": [
               {
-                "$ref": "#/$defs/BuiltinEventHandlerConfig"
+                "$ref": "#/$defs/StdoutEventHandlerConfig"
               },
               {
                 "$ref": "#/$defs/CallbackEventHandlerConfig"
@@ -18588,6 +18655,7 @@
           "description": "String identifier for the model.",
           "enum": [
             "gemini:aqa",
+            "gemini:deep-research-pro-preview-12-2025",
             "gemini:gemini-2.0-flash",
             "gemini:gemini-2.0-flash-001",
             "gemini:gemini-2.0-flash-exp",
@@ -18595,16 +18663,12 @@
             "gemini:gemini-2.0-flash-lite-001",
             "gemini:gemini-2.0-flash-lite-preview",
             "gemini:gemini-2.0-flash-lite-preview-02-05",
-            "gemini:gemini-2.0-flash-live-001",
-            "gemini:gemini-2.0-pro-exp",
-            "gemini:gemini-2.0-pro-exp-02-05",
             "gemini:gemini-2.5-computer-use-preview-10-2025",
             "gemini:gemini-2.5-flash",
             "gemini:gemini-2.5-flash-image",
             "gemini:gemini-2.5-flash-image-preview",
             "gemini:gemini-2.5-flash-lite",
             "gemini:gemini-2.5-flash-lite-preview-09-2025",
-            "gemini:gemini-2.5-flash-live-preview",
             "gemini:gemini-2.5-flash-native-audio-latest",
             "gemini:gemini-2.5-flash-native-audio-preview-09-2025",
             "gemini:gemini-2.5-flash-preview-09-2025",
@@ -18616,7 +18680,6 @@
             "gemini:gemini-exp-1206",
             "gemini:gemini-flash-latest",
             "gemini:gemini-flash-lite-latest",
-            "gemini:gemini-live-2.5-flash-preview",
             "gemini:gemini-pro-latest",
             "gemini:gemini-robotics-er-1.5-preview",
             "gemini:gemma-3-12b-it",
@@ -19663,7 +19726,7 @@
           "items": {
             "discriminator": {
               "mapping": {
-                "builtin": "#/$defs/BuiltinEventHandlerConfig",
+                "builtin": "#/$defs/StdoutEventHandlerConfig",
                 "callback": "#/$defs/CallbackEventHandlerConfig",
                 "tts": "#/$defs/TTSEventHandlerConfig"
               },
@@ -19671,7 +19734,7 @@
             },
             "oneOf": [
               {
-                "$ref": "#/$defs/BuiltinEventHandlerConfig"
+                "$ref": "#/$defs/StdoutEventHandlerConfig"
               },
               {
                 "$ref": "#/$defs/CallbackEventHandlerConfig"
@@ -21238,7 +21301,7 @@
           "items": {
             "discriminator": {
               "mapping": {
-                "builtin": "#/$defs/BuiltinEventHandlerConfig",
+                "builtin": "#/$defs/StdoutEventHandlerConfig",
                 "callback": "#/$defs/CallbackEventHandlerConfig",
                 "tts": "#/$defs/TTSEventHandlerConfig"
               },
@@ -21246,7 +21309,7 @@
             },
             "oneOf": [
               {
-                "$ref": "#/$defs/BuiltinEventHandlerConfig"
+                "$ref": "#/$defs/StdoutEventHandlerConfig"
               },
               {
                 "$ref": "#/$defs/CallbackEventHandlerConfig"
@@ -23888,7 +23951,7 @@
           "items": {
             "discriminator": {
               "mapping": {
-                "builtin": "#/$defs/BuiltinEventHandlerConfig",
+                "builtin": "#/$defs/StdoutEventHandlerConfig",
                 "callback": "#/$defs/CallbackEventHandlerConfig",
                 "tts": "#/$defs/TTSEventHandlerConfig"
               },
@@ -23896,7 +23959,7 @@
             },
             "oneOf": [
               {
-                "$ref": "#/$defs/BuiltinEventHandlerConfig"
+                "$ref": "#/$defs/StdoutEventHandlerConfig"
               },
               {
                 "$ref": "#/$defs/CallbackEventHandlerConfig"
@@ -24906,6 +24969,9 @@
             "openai:gpt-5.1-codex",
             "openai:gpt-5.1-codex-max",
             "openai:gpt-5.1-codex-mini",
+            "openai:gpt-5.2",
+            "openai:gpt-5.2-chat-latest",
+            "openai:gpt-5.2-pro",
             "openai:o3-pro"
           ],
           "examples": [
@@ -25636,7 +25702,7 @@
           "items": {
             "discriminator": {
               "mapping": {
-                "builtin": "#/$defs/BuiltinEventHandlerConfig",
+                "builtin": "#/$defs/StdoutEventHandlerConfig",
                 "callback": "#/$defs/CallbackEventHandlerConfig",
                 "tts": "#/$defs/TTSEventHandlerConfig"
               },
@@ -25644,7 +25710,7 @@
             },
             "oneOf": [
               {
-                "$ref": "#/$defs/BuiltinEventHandlerConfig"
+                "$ref": "#/$defs/StdoutEventHandlerConfig"
               },
               {
                 "$ref": "#/$defs/CallbackEventHandlerConfig"
@@ -26002,7 +26068,7 @@
           "items": {
             "discriminator": {
               "mapping": {
-                "builtin": "#/$defs/BuiltinEventHandlerConfig",
+                "builtin": "#/$defs/StdoutEventHandlerConfig",
                 "callback": "#/$defs/CallbackEventHandlerConfig",
                 "tts": "#/$defs/TTSEventHandlerConfig"
               },
@@ -26010,7 +26076,7 @@
             },
             "oneOf": [
               {
-                "$ref": "#/$defs/BuiltinEventHandlerConfig"
+                "$ref": "#/$defs/StdoutEventHandlerConfig"
               },
               {
                 "$ref": "#/$defs/CallbackEventHandlerConfig"
@@ -26914,6 +26980,7 @@
                 "copilot:gpt-5.1-codex",
                 "copilot:gpt-5.1-codex-max",
                 "copilot:gpt-5.1-codex-mini",
+                "copilot:gpt-5.2",
                 "copilot:grok-code-fast-1",
                 "copilot:oswe-vscode-prime"
               ],
@@ -26929,6 +26996,7 @@
             {
               "enum": [
                 "gemini:aqa",
+                "gemini:deep-research-pro-preview-12-2025",
                 "gemini:gemini-2.0-flash",
                 "gemini:gemini-2.0-flash-001",
                 "gemini:gemini-2.0-flash-exp",
@@ -26936,16 +27004,12 @@
                 "gemini:gemini-2.0-flash-lite-001",
                 "gemini:gemini-2.0-flash-lite-preview",
                 "gemini:gemini-2.0-flash-lite-preview-02-05",
-                "gemini:gemini-2.0-flash-live-001",
-                "gemini:gemini-2.0-pro-exp",
-                "gemini:gemini-2.0-pro-exp-02-05",
                 "gemini:gemini-2.5-computer-use-preview-10-2025",
                 "gemini:gemini-2.5-flash",
                 "gemini:gemini-2.5-flash-image",
                 "gemini:gemini-2.5-flash-image-preview",
                 "gemini:gemini-2.5-flash-lite",
                 "gemini:gemini-2.5-flash-lite-preview-09-2025",
-                "gemini:gemini-2.5-flash-live-preview",
                 "gemini:gemini-2.5-flash-native-audio-latest",
                 "gemini:gemini-2.5-flash-native-audio-preview-09-2025",
                 "gemini:gemini-2.5-flash-preview-09-2025",
@@ -26957,7 +27021,6 @@
                 "gemini:gemini-exp-1206",
                 "gemini:gemini-flash-latest",
                 "gemini:gemini-flash-lite-latest",
-                "gemini:gemini-live-2.5-flash-preview",
                 "gemini:gemini-pro-latest",
                 "gemini:gemini-robotics-er-1.5-preview",
                 "gemini:gemma-3-12b-it",
@@ -27096,10 +27159,12 @@
               "enum": [
                 "mistral:codestral-2508",
                 "mistral:codestral-latest",
+                "mistral:devstral-2512",
                 "mistral:devstral-medium-2507",
                 "mistral:devstral-medium-latest",
                 "mistral:devstral-small-2507",
                 "mistral:devstral-small-latest",
+                "mistral:labs-devstral-small-2512",
                 "mistral:magistral-medium-2509",
                 "mistral:magistral-medium-latest",
                 "mistral:magistral-small-2509",
@@ -27126,6 +27191,7 @@
                 "mistral:mistral-tiny-2312",
                 "mistral:mistral-tiny-2407",
                 "mistral:mistral-tiny-latest",
+                "mistral:mistral-vibe-cli-latest",
                 "mistral:open-mistral-7b",
                 "mistral:open-mistral-nemo",
                 "mistral:open-mistral-nemo-2407",
@@ -27162,6 +27228,9 @@
                 "openai:gpt-5.1-codex",
                 "openai:gpt-5.1-codex-max",
                 "openai:gpt-5.1-codex-mini",
+                "openai:gpt-5.2",
+                "openai:gpt-5.2-chat-latest",
+                "openai:gpt-5.2-pro",
                 "openai:o3-pro"
               ],
               "type": "string"
@@ -27225,6 +27294,8 @@
                 "openrouter:minimax/minimax-m1",
                 "openrouter:minimax/minimax-m2",
                 "openrouter:mistralai/codestral-2508",
+                "openrouter:mistralai/devstral-2512",
+                "openrouter:mistralai/devstral-2512:free",
                 "openrouter:mistralai/devstral-medium",
                 "openrouter:mistralai/devstral-small",
                 "openrouter:mistralai/ministral-14b-2512",
@@ -27243,6 +27314,7 @@
                 "openrouter:moonshotai/kimi-linear-48b-a3b-instruct",
                 "openrouter:morph/morph-v3-fast",
                 "openrouter:morph/morph-v3-large",
+                "openrouter:nex-agi/deepseek-v3.1-nex-n1:free",
                 "openrouter:nousresearch/hermes-4-405b",
                 "openrouter:nousresearch/hermes-4-70b",
                 "openrouter:nvidia/llama-3.3-nemotron-super-49b-v1.5",
@@ -27264,6 +27336,9 @@
                 "openrouter:openai/gpt-5.1-codex",
                 "openrouter:openai/gpt-5.1-codex-max",
                 "openrouter:openai/gpt-5.1-codex-mini",
+                "openrouter:openai/gpt-5.2",
+                "openrouter:openai/gpt-5.2-chat",
+                "openrouter:openai/gpt-5.2-pro",
                 "openrouter:openai/gpt-oss-120b",
                 "openrouter:openai/gpt-oss-120b:exacto",
                 "openrouter:openai/gpt-oss-120b:free",
@@ -27357,6 +27432,7 @@
                 "requesty:groq/openai/gpt-oss-120b",
                 "requesty:groq/openai/gpt-oss-20b",
                 "requesty:minimaxi/MiniMax-M2",
+                "requesty:mistral/devstral-latest",
                 "requesty:moonshot/kimi-k2-0711-preview",
                 "requesty:moonshot/kimi-k2-0905-preview",
                 "requesty:moonshot/kimi-k2-thinking",
@@ -27388,12 +27464,12 @@
                 "requesty:openai/gpt-5-nano:flex",
                 "requesty:openai/gpt-5.1",
                 "requesty:openai/gpt-5.1-chat",
+                "requesty:openai/gpt-5.2",
                 "requesty:openai/gpt-5:flex",
                 "requesty:openai/gpt-5:priority",
                 "requesty:openai/o3-deep-research",
                 "requesty:openai/o4-mini-deep-research",
                 "requesty:parasail/parasail-deepseek-v3-0324",
-                "requesty:parasail/parasail-glm-45",
                 "requesty:parasail/parasail-kimi-k2-instruct",
                 "requesty:parasail/parasail-qwen3-235b-a22b-instruct-2507",
                 "requesty:together/deepseek-ai/DeepSeek-R1",
@@ -27480,6 +27556,7 @@
                 "vercel-gateway:google/imagen-4.0-generate-001",
                 "vercel-gateway:google/imagen-4.0-ultra-generate-001",
                 "vercel-gateway:inception/mercury-coder-small",
+                "vercel-gateway:kwaikat/kat-coder-pro-v1",
                 "vercel-gateway:meituan/longcat-flash-chat",
                 "vercel-gateway:meituan/longcat-flash-thinking",
                 "vercel-gateway:meta/llama-3.1-70b",
@@ -27493,7 +27570,9 @@
                 "vercel-gateway:meta/llama-4-scout",
                 "vercel-gateway:minimax/minimax-m2",
                 "vercel-gateway:mistral/codestral",
+                "vercel-gateway:mistral/devstral-2",
                 "vercel-gateway:mistral/devstral-small",
+                "vercel-gateway:mistral/devstral-small-2",
                 "vercel-gateway:mistral/magistral-medium",
                 "vercel-gateway:mistral/magistral-small",
                 "vercel-gateway:mistral/ministral-14b",
@@ -27532,6 +27611,9 @@
                 "vercel-gateway:openai/gpt-5.1-codex-mini",
                 "vercel-gateway:openai/gpt-5.1-instant",
                 "vercel-gateway:openai/gpt-5.1-thinking",
+                "vercel-gateway:openai/gpt-5.2",
+                "vercel-gateway:openai/gpt-5.2-chat",
+                "vercel-gateway:openai/gpt-5.2-pro",
                 "vercel-gateway:openai/gpt-oss-120b",
                 "vercel-gateway:openai/gpt-oss-20b",
                 "vercel-gateway:openai/gpt-oss-safeguard-20b",
@@ -27587,7 +27669,8 @@
                 "zai:glm-4.5-air",
                 "zai:glm-4.5-flash",
                 "zai:glm-4.5v",
-                "zai:glm-4.6"
+                "zai:glm-4.6",
+                "zai:glm-4.6v"
               ],
               "type": "string"
             },
@@ -30542,6 +30625,7 @@
                 "copilot:gpt-5.1-codex",
                 "copilot:gpt-5.1-codex-max",
                 "copilot:gpt-5.1-codex-mini",
+                "copilot:gpt-5.2",
                 "copilot:grok-code-fast-1",
                 "copilot:oswe-vscode-prime"
               ],
@@ -30557,6 +30641,7 @@
             {
               "enum": [
                 "gemini:aqa",
+                "gemini:deep-research-pro-preview-12-2025",
                 "gemini:gemini-2.0-flash",
                 "gemini:gemini-2.0-flash-001",
                 "gemini:gemini-2.0-flash-exp",
@@ -30564,16 +30649,12 @@
                 "gemini:gemini-2.0-flash-lite-001",
                 "gemini:gemini-2.0-flash-lite-preview",
                 "gemini:gemini-2.0-flash-lite-preview-02-05",
-                "gemini:gemini-2.0-flash-live-001",
-                "gemini:gemini-2.0-pro-exp",
-                "gemini:gemini-2.0-pro-exp-02-05",
                 "gemini:gemini-2.5-computer-use-preview-10-2025",
                 "gemini:gemini-2.5-flash",
                 "gemini:gemini-2.5-flash-image",
                 "gemini:gemini-2.5-flash-image-preview",
                 "gemini:gemini-2.5-flash-lite",
                 "gemini:gemini-2.5-flash-lite-preview-09-2025",
-                "gemini:gemini-2.5-flash-live-preview",
                 "gemini:gemini-2.5-flash-native-audio-latest",
                 "gemini:gemini-2.5-flash-native-audio-preview-09-2025",
                 "gemini:gemini-2.5-flash-preview-09-2025",
@@ -30585,7 +30666,6 @@
                 "gemini:gemini-exp-1206",
                 "gemini:gemini-flash-latest",
                 "gemini:gemini-flash-lite-latest",
-                "gemini:gemini-live-2.5-flash-preview",
                 "gemini:gemini-pro-latest",
                 "gemini:gemini-robotics-er-1.5-preview",
                 "gemini:gemma-3-12b-it",
@@ -30724,10 +30804,12 @@
               "enum": [
                 "mistral:codestral-2508",
                 "mistral:codestral-latest",
+                "mistral:devstral-2512",
                 "mistral:devstral-medium-2507",
                 "mistral:devstral-medium-latest",
                 "mistral:devstral-small-2507",
                 "mistral:devstral-small-latest",
+                "mistral:labs-devstral-small-2512",
                 "mistral:magistral-medium-2509",
                 "mistral:magistral-medium-latest",
                 "mistral:magistral-small-2509",
@@ -30754,6 +30836,7 @@
                 "mistral:mistral-tiny-2312",
                 "mistral:mistral-tiny-2407",
                 "mistral:mistral-tiny-latest",
+                "mistral:mistral-vibe-cli-latest",
                 "mistral:open-mistral-7b",
                 "mistral:open-mistral-nemo",
                 "mistral:open-mistral-nemo-2407",
@@ -30790,6 +30873,9 @@
                 "openai:gpt-5.1-codex",
                 "openai:gpt-5.1-codex-max",
                 "openai:gpt-5.1-codex-mini",
+                "openai:gpt-5.2",
+                "openai:gpt-5.2-chat-latest",
+                "openai:gpt-5.2-pro",
                 "openai:o3-pro"
               ],
               "type": "string"
@@ -30853,6 +30939,8 @@
                 "openrouter:minimax/minimax-m1",
                 "openrouter:minimax/minimax-m2",
                 "openrouter:mistralai/codestral-2508",
+                "openrouter:mistralai/devstral-2512",
+                "openrouter:mistralai/devstral-2512:free",
                 "openrouter:mistralai/devstral-medium",
                 "openrouter:mistralai/devstral-small",
                 "openrouter:mistralai/ministral-14b-2512",
@@ -30871,6 +30959,7 @@
                 "openrouter:moonshotai/kimi-linear-48b-a3b-instruct",
                 "openrouter:morph/morph-v3-fast",
                 "openrouter:morph/morph-v3-large",
+                "openrouter:nex-agi/deepseek-v3.1-nex-n1:free",
                 "openrouter:nousresearch/hermes-4-405b",
                 "openrouter:nousresearch/hermes-4-70b",
                 "openrouter:nvidia/llama-3.3-nemotron-super-49b-v1.5",
@@ -30892,6 +30981,9 @@
                 "openrouter:openai/gpt-5.1-codex",
                 "openrouter:openai/gpt-5.1-codex-max",
                 "openrouter:openai/gpt-5.1-codex-mini",
+                "openrouter:openai/gpt-5.2",
+                "openrouter:openai/gpt-5.2-chat",
+                "openrouter:openai/gpt-5.2-pro",
                 "openrouter:openai/gpt-oss-120b",
                 "openrouter:openai/gpt-oss-120b:exacto",
                 "openrouter:openai/gpt-oss-120b:free",
@@ -30985,6 +31077,7 @@
                 "requesty:groq/openai/gpt-oss-120b",
                 "requesty:groq/openai/gpt-oss-20b",
                 "requesty:minimaxi/MiniMax-M2",
+                "requesty:mistral/devstral-latest",
                 "requesty:moonshot/kimi-k2-0711-preview",
                 "requesty:moonshot/kimi-k2-0905-preview",
                 "requesty:moonshot/kimi-k2-thinking",
@@ -31016,12 +31109,12 @@
                 "requesty:openai/gpt-5-nano:flex",
                 "requesty:openai/gpt-5.1",
                 "requesty:openai/gpt-5.1-chat",
+                "requesty:openai/gpt-5.2",
                 "requesty:openai/gpt-5:flex",
                 "requesty:openai/gpt-5:priority",
                 "requesty:openai/o3-deep-research",
                 "requesty:openai/o4-mini-deep-research",
                 "requesty:parasail/parasail-deepseek-v3-0324",
-                "requesty:parasail/parasail-glm-45",
                 "requesty:parasail/parasail-kimi-k2-instruct",
                 "requesty:parasail/parasail-qwen3-235b-a22b-instruct-2507",
                 "requesty:together/deepseek-ai/DeepSeek-R1",
@@ -31108,6 +31201,7 @@
                 "vercel-gateway:google/imagen-4.0-generate-001",
                 "vercel-gateway:google/imagen-4.0-ultra-generate-001",
                 "vercel-gateway:inception/mercury-coder-small",
+                "vercel-gateway:kwaikat/kat-coder-pro-v1",
                 "vercel-gateway:meituan/longcat-flash-chat",
                 "vercel-gateway:meituan/longcat-flash-thinking",
                 "vercel-gateway:meta/llama-3.1-70b",
@@ -31121,7 +31215,9 @@
                 "vercel-gateway:meta/llama-4-scout",
                 "vercel-gateway:minimax/minimax-m2",
                 "vercel-gateway:mistral/codestral",
+                "vercel-gateway:mistral/devstral-2",
                 "vercel-gateway:mistral/devstral-small",
+                "vercel-gateway:mistral/devstral-small-2",
                 "vercel-gateway:mistral/magistral-medium",
                 "vercel-gateway:mistral/magistral-small",
                 "vercel-gateway:mistral/ministral-14b",
@@ -31160,6 +31256,9 @@
                 "vercel-gateway:openai/gpt-5.1-codex-mini",
                 "vercel-gateway:openai/gpt-5.1-instant",
                 "vercel-gateway:openai/gpt-5.1-thinking",
+                "vercel-gateway:openai/gpt-5.2",
+                "vercel-gateway:openai/gpt-5.2-chat",
+                "vercel-gateway:openai/gpt-5.2-pro",
                 "vercel-gateway:openai/gpt-oss-120b",
                 "vercel-gateway:openai/gpt-oss-20b",
                 "vercel-gateway:openai/gpt-oss-safeguard-20b",
@@ -31215,7 +31314,8 @@
                 "zai:glm-4.5-air",
                 "zai:glm-4.5-flash",
                 "zai:glm-4.5v",
-                "zai:glm-4.6"
+                "zai:glm-4.6",
+                "zai:glm-4.6v"
               ],
               "type": "string"
             },
@@ -32058,7 +32158,7 @@
           "items": {
             "discriminator": {
               "mapping": {
-                "builtin": "#/$defs/BuiltinEventHandlerConfig",
+                "builtin": "#/$defs/StdoutEventHandlerConfig",
                 "callback": "#/$defs/CallbackEventHandlerConfig",
                 "tts": "#/$defs/TTSEventHandlerConfig"
               },
@@ -32066,7 +32166,7 @@
             },
             "oneOf": [
               {
-                "$ref": "#/$defs/BuiltinEventHandlerConfig"
+                "$ref": "#/$defs/StdoutEventHandlerConfig"
               },
               {
                 "$ref": "#/$defs/CallbackEventHandlerConfig"
@@ -32347,7 +32447,7 @@
       "required": [
         "content"
       ],
-      "title": "Static Command Configuration",
+      "title": "Static Command",
       "type": "object"
     },
     "StaticPrompt": {
@@ -32557,6 +32657,41 @@
       "title": "StdioMCPServerConfig",
       "type": "object"
     },
+    "StdoutEventHandlerConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for built-in event handlers (simple, detailed).",
+      "properties": {
+        "type": {
+          "const": "builtin",
+          "default": "builtin",
+          "description": "Builtin event handler.",
+          "title": "Type",
+          "type": "string"
+        },
+        "enabled": {
+          "default": true,
+          "description": "Whether this handler is enabled.",
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "handler": {
+          "default": "simple",
+          "description": "Which builtin handler to use.\n\n- simple: Basic text and tool notifications\n- detailed: Comprehensive execution visibility",
+          "enum": [
+            "simple",
+            "detailed"
+          ],
+          "examples": [
+            "simple",
+            "detailed"
+          ],
+          "title": "Handler",
+          "type": "string"
+        }
+      },
+      "title": "Stdout Event Handler",
+      "type": "object"
+    },
     "StorageConfig": {
       "additionalProperties": false,
       "description": "Global storage configuration.\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/storage_configuration/",
@@ -32606,6 +32741,20 @@
             ]
           ],
           "title": "Storage providers"
+        },
+        "session_store": {
+          "default": "sql",
+          "description": "Type of session store to use for session persistence.\n\n- \"sql\": Persist sessions to SQL database (uses same URL as SQL provider)\n- \"memory\": In-memory storage (sessions lost on restart)",
+          "enum": [
+            "sql",
+            "memory"
+          ],
+          "examples": [
+            "sql",
+            "memory"
+          ],
+          "title": "Session store type",
+          "type": "string"
         },
         "default_provider": {
           "default": null,
@@ -33435,6 +33584,7 @@
                 "copilot:gpt-5.1-codex",
                 "copilot:gpt-5.1-codex-max",
                 "copilot:gpt-5.1-codex-mini",
+                "copilot:gpt-5.2",
                 "copilot:grok-code-fast-1",
                 "copilot:oswe-vscode-prime"
               ],
@@ -33450,6 +33600,7 @@
             {
               "enum": [
                 "gemini:aqa",
+                "gemini:deep-research-pro-preview-12-2025",
                 "gemini:gemini-2.0-flash",
                 "gemini:gemini-2.0-flash-001",
                 "gemini:gemini-2.0-flash-exp",
@@ -33457,16 +33608,12 @@
                 "gemini:gemini-2.0-flash-lite-001",
                 "gemini:gemini-2.0-flash-lite-preview",
                 "gemini:gemini-2.0-flash-lite-preview-02-05",
-                "gemini:gemini-2.0-flash-live-001",
-                "gemini:gemini-2.0-pro-exp",
-                "gemini:gemini-2.0-pro-exp-02-05",
                 "gemini:gemini-2.5-computer-use-preview-10-2025",
                 "gemini:gemini-2.5-flash",
                 "gemini:gemini-2.5-flash-image",
                 "gemini:gemini-2.5-flash-image-preview",
                 "gemini:gemini-2.5-flash-lite",
                 "gemini:gemini-2.5-flash-lite-preview-09-2025",
-                "gemini:gemini-2.5-flash-live-preview",
                 "gemini:gemini-2.5-flash-native-audio-latest",
                 "gemini:gemini-2.5-flash-native-audio-preview-09-2025",
                 "gemini:gemini-2.5-flash-preview-09-2025",
@@ -33478,7 +33625,6 @@
                 "gemini:gemini-exp-1206",
                 "gemini:gemini-flash-latest",
                 "gemini:gemini-flash-lite-latest",
-                "gemini:gemini-live-2.5-flash-preview",
                 "gemini:gemini-pro-latest",
                 "gemini:gemini-robotics-er-1.5-preview",
                 "gemini:gemma-3-12b-it",
@@ -33617,10 +33763,12 @@
               "enum": [
                 "mistral:codestral-2508",
                 "mistral:codestral-latest",
+                "mistral:devstral-2512",
                 "mistral:devstral-medium-2507",
                 "mistral:devstral-medium-latest",
                 "mistral:devstral-small-2507",
                 "mistral:devstral-small-latest",
+                "mistral:labs-devstral-small-2512",
                 "mistral:magistral-medium-2509",
                 "mistral:magistral-medium-latest",
                 "mistral:magistral-small-2509",
@@ -33647,6 +33795,7 @@
                 "mistral:mistral-tiny-2312",
                 "mistral:mistral-tiny-2407",
                 "mistral:mistral-tiny-latest",
+                "mistral:mistral-vibe-cli-latest",
                 "mistral:open-mistral-7b",
                 "mistral:open-mistral-nemo",
                 "mistral:open-mistral-nemo-2407",
@@ -33683,6 +33832,9 @@
                 "openai:gpt-5.1-codex",
                 "openai:gpt-5.1-codex-max",
                 "openai:gpt-5.1-codex-mini",
+                "openai:gpt-5.2",
+                "openai:gpt-5.2-chat-latest",
+                "openai:gpt-5.2-pro",
                 "openai:o3-pro"
               ],
               "type": "string"
@@ -33746,6 +33898,8 @@
                 "openrouter:minimax/minimax-m1",
                 "openrouter:minimax/minimax-m2",
                 "openrouter:mistralai/codestral-2508",
+                "openrouter:mistralai/devstral-2512",
+                "openrouter:mistralai/devstral-2512:free",
                 "openrouter:mistralai/devstral-medium",
                 "openrouter:mistralai/devstral-small",
                 "openrouter:mistralai/ministral-14b-2512",
@@ -33764,6 +33918,7 @@
                 "openrouter:moonshotai/kimi-linear-48b-a3b-instruct",
                 "openrouter:morph/morph-v3-fast",
                 "openrouter:morph/morph-v3-large",
+                "openrouter:nex-agi/deepseek-v3.1-nex-n1:free",
                 "openrouter:nousresearch/hermes-4-405b",
                 "openrouter:nousresearch/hermes-4-70b",
                 "openrouter:nvidia/llama-3.3-nemotron-super-49b-v1.5",
@@ -33785,6 +33940,9 @@
                 "openrouter:openai/gpt-5.1-codex",
                 "openrouter:openai/gpt-5.1-codex-max",
                 "openrouter:openai/gpt-5.1-codex-mini",
+                "openrouter:openai/gpt-5.2",
+                "openrouter:openai/gpt-5.2-chat",
+                "openrouter:openai/gpt-5.2-pro",
                 "openrouter:openai/gpt-oss-120b",
                 "openrouter:openai/gpt-oss-120b:exacto",
                 "openrouter:openai/gpt-oss-120b:free",
@@ -33878,6 +34036,7 @@
                 "requesty:groq/openai/gpt-oss-120b",
                 "requesty:groq/openai/gpt-oss-20b",
                 "requesty:minimaxi/MiniMax-M2",
+                "requesty:mistral/devstral-latest",
                 "requesty:moonshot/kimi-k2-0711-preview",
                 "requesty:moonshot/kimi-k2-0905-preview",
                 "requesty:moonshot/kimi-k2-thinking",
@@ -33909,12 +34068,12 @@
                 "requesty:openai/gpt-5-nano:flex",
                 "requesty:openai/gpt-5.1",
                 "requesty:openai/gpt-5.1-chat",
+                "requesty:openai/gpt-5.2",
                 "requesty:openai/gpt-5:flex",
                 "requesty:openai/gpt-5:priority",
                 "requesty:openai/o3-deep-research",
                 "requesty:openai/o4-mini-deep-research",
                 "requesty:parasail/parasail-deepseek-v3-0324",
-                "requesty:parasail/parasail-glm-45",
                 "requesty:parasail/parasail-kimi-k2-instruct",
                 "requesty:parasail/parasail-qwen3-235b-a22b-instruct-2507",
                 "requesty:together/deepseek-ai/DeepSeek-R1",
@@ -34001,6 +34160,7 @@
                 "vercel-gateway:google/imagen-4.0-generate-001",
                 "vercel-gateway:google/imagen-4.0-ultra-generate-001",
                 "vercel-gateway:inception/mercury-coder-small",
+                "vercel-gateway:kwaikat/kat-coder-pro-v1",
                 "vercel-gateway:meituan/longcat-flash-chat",
                 "vercel-gateway:meituan/longcat-flash-thinking",
                 "vercel-gateway:meta/llama-3.1-70b",
@@ -34014,7 +34174,9 @@
                 "vercel-gateway:meta/llama-4-scout",
                 "vercel-gateway:minimax/minimax-m2",
                 "vercel-gateway:mistral/codestral",
+                "vercel-gateway:mistral/devstral-2",
                 "vercel-gateway:mistral/devstral-small",
+                "vercel-gateway:mistral/devstral-small-2",
                 "vercel-gateway:mistral/magistral-medium",
                 "vercel-gateway:mistral/magistral-small",
                 "vercel-gateway:mistral/ministral-14b",
@@ -34053,6 +34215,9 @@
                 "vercel-gateway:openai/gpt-5.1-codex-mini",
                 "vercel-gateway:openai/gpt-5.1-instant",
                 "vercel-gateway:openai/gpt-5.1-thinking",
+                "vercel-gateway:openai/gpt-5.2",
+                "vercel-gateway:openai/gpt-5.2-chat",
+                "vercel-gateway:openai/gpt-5.2-pro",
                 "vercel-gateway:openai/gpt-oss-120b",
                 "vercel-gateway:openai/gpt-oss-20b",
                 "vercel-gateway:openai/gpt-oss-safeguard-20b",
@@ -34108,7 +34273,8 @@
                 "zai:glm-4.5-air",
                 "zai:glm-4.5-flash",
                 "zai:glm-4.5v",
-                "zai:glm-4.6"
+                "zai:glm-4.6",
+                "zai:glm-4.6v"
               ],
               "type": "string"
             },
@@ -34601,7 +34767,7 @@
           "type": "integer"
         }
       },
-      "title": "TTSEventHandlerConfig",
+      "title": "Text-to-Speech Event Handler",
       "type": "object"
     },
     "TarFilesystemConfig": {
@@ -34995,7 +35161,7 @@
           "items": {
             "discriminator": {
               "mapping": {
-                "builtin": "#/$defs/BuiltinEventHandlerConfig",
+                "builtin": "#/$defs/StdoutEventHandlerConfig",
                 "callback": "#/$defs/CallbackEventHandlerConfig",
                 "tts": "#/$defs/TTSEventHandlerConfig"
               },
@@ -35003,7 +35169,7 @@
             },
             "oneOf": [
               {
-                "$ref": "#/$defs/BuiltinEventHandlerConfig"
+                "$ref": "#/$defs/StdoutEventHandlerConfig"
               },
               {
                 "$ref": "#/$defs/CallbackEventHandlerConfig"
@@ -36643,6 +36809,7 @@
                   "copilot:gpt-5.1-codex",
                   "copilot:gpt-5.1-codex-max",
                   "copilot:gpt-5.1-codex-mini",
+                  "copilot:gpt-5.2",
                   "copilot:grok-code-fast-1",
                   "copilot:oswe-vscode-prime"
                 ],
@@ -36658,6 +36825,7 @@
               {
                 "enum": [
                   "gemini:aqa",
+                  "gemini:deep-research-pro-preview-12-2025",
                   "gemini:gemini-2.0-flash",
                   "gemini:gemini-2.0-flash-001",
                   "gemini:gemini-2.0-flash-exp",
@@ -36665,16 +36833,12 @@
                   "gemini:gemini-2.0-flash-lite-001",
                   "gemini:gemini-2.0-flash-lite-preview",
                   "gemini:gemini-2.0-flash-lite-preview-02-05",
-                  "gemini:gemini-2.0-flash-live-001",
-                  "gemini:gemini-2.0-pro-exp",
-                  "gemini:gemini-2.0-pro-exp-02-05",
                   "gemini:gemini-2.5-computer-use-preview-10-2025",
                   "gemini:gemini-2.5-flash",
                   "gemini:gemini-2.5-flash-image",
                   "gemini:gemini-2.5-flash-image-preview",
                   "gemini:gemini-2.5-flash-lite",
                   "gemini:gemini-2.5-flash-lite-preview-09-2025",
-                  "gemini:gemini-2.5-flash-live-preview",
                   "gemini:gemini-2.5-flash-native-audio-latest",
                   "gemini:gemini-2.5-flash-native-audio-preview-09-2025",
                   "gemini:gemini-2.5-flash-preview-09-2025",
@@ -36686,7 +36850,6 @@
                   "gemini:gemini-exp-1206",
                   "gemini:gemini-flash-latest",
                   "gemini:gemini-flash-lite-latest",
-                  "gemini:gemini-live-2.5-flash-preview",
                   "gemini:gemini-pro-latest",
                   "gemini:gemini-robotics-er-1.5-preview",
                   "gemini:gemma-3-12b-it",
@@ -36825,10 +36988,12 @@
                 "enum": [
                   "mistral:codestral-2508",
                   "mistral:codestral-latest",
+                  "mistral:devstral-2512",
                   "mistral:devstral-medium-2507",
                   "mistral:devstral-medium-latest",
                   "mistral:devstral-small-2507",
                   "mistral:devstral-small-latest",
+                  "mistral:labs-devstral-small-2512",
                   "mistral:magistral-medium-2509",
                   "mistral:magistral-medium-latest",
                   "mistral:magistral-small-2509",
@@ -36855,6 +37020,7 @@
                   "mistral:mistral-tiny-2312",
                   "mistral:mistral-tiny-2407",
                   "mistral:mistral-tiny-latest",
+                  "mistral:mistral-vibe-cli-latest",
                   "mistral:open-mistral-7b",
                   "mistral:open-mistral-nemo",
                   "mistral:open-mistral-nemo-2407",
@@ -36891,6 +37057,9 @@
                   "openai:gpt-5.1-codex",
                   "openai:gpt-5.1-codex-max",
                   "openai:gpt-5.1-codex-mini",
+                  "openai:gpt-5.2",
+                  "openai:gpt-5.2-chat-latest",
+                  "openai:gpt-5.2-pro",
                   "openai:o3-pro"
                 ],
                 "type": "string"
@@ -36954,6 +37123,8 @@
                   "openrouter:minimax/minimax-m1",
                   "openrouter:minimax/minimax-m2",
                   "openrouter:mistralai/codestral-2508",
+                  "openrouter:mistralai/devstral-2512",
+                  "openrouter:mistralai/devstral-2512:free",
                   "openrouter:mistralai/devstral-medium",
                   "openrouter:mistralai/devstral-small",
                   "openrouter:mistralai/ministral-14b-2512",
@@ -36972,6 +37143,7 @@
                   "openrouter:moonshotai/kimi-linear-48b-a3b-instruct",
                   "openrouter:morph/morph-v3-fast",
                   "openrouter:morph/morph-v3-large",
+                  "openrouter:nex-agi/deepseek-v3.1-nex-n1:free",
                   "openrouter:nousresearch/hermes-4-405b",
                   "openrouter:nousresearch/hermes-4-70b",
                   "openrouter:nvidia/llama-3.3-nemotron-super-49b-v1.5",
@@ -36993,6 +37165,9 @@
                   "openrouter:openai/gpt-5.1-codex",
                   "openrouter:openai/gpt-5.1-codex-max",
                   "openrouter:openai/gpt-5.1-codex-mini",
+                  "openrouter:openai/gpt-5.2",
+                  "openrouter:openai/gpt-5.2-chat",
+                  "openrouter:openai/gpt-5.2-pro",
                   "openrouter:openai/gpt-oss-120b",
                   "openrouter:openai/gpt-oss-120b:exacto",
                   "openrouter:openai/gpt-oss-120b:free",
@@ -37086,6 +37261,7 @@
                   "requesty:groq/openai/gpt-oss-120b",
                   "requesty:groq/openai/gpt-oss-20b",
                   "requesty:minimaxi/MiniMax-M2",
+                  "requesty:mistral/devstral-latest",
                   "requesty:moonshot/kimi-k2-0711-preview",
                   "requesty:moonshot/kimi-k2-0905-preview",
                   "requesty:moonshot/kimi-k2-thinking",
@@ -37117,12 +37293,12 @@
                   "requesty:openai/gpt-5-nano:flex",
                   "requesty:openai/gpt-5.1",
                   "requesty:openai/gpt-5.1-chat",
+                  "requesty:openai/gpt-5.2",
                   "requesty:openai/gpt-5:flex",
                   "requesty:openai/gpt-5:priority",
                   "requesty:openai/o3-deep-research",
                   "requesty:openai/o4-mini-deep-research",
                   "requesty:parasail/parasail-deepseek-v3-0324",
-                  "requesty:parasail/parasail-glm-45",
                   "requesty:parasail/parasail-kimi-k2-instruct",
                   "requesty:parasail/parasail-qwen3-235b-a22b-instruct-2507",
                   "requesty:together/deepseek-ai/DeepSeek-R1",
@@ -37209,6 +37385,7 @@
                   "vercel-gateway:google/imagen-4.0-generate-001",
                   "vercel-gateway:google/imagen-4.0-ultra-generate-001",
                   "vercel-gateway:inception/mercury-coder-small",
+                  "vercel-gateway:kwaikat/kat-coder-pro-v1",
                   "vercel-gateway:meituan/longcat-flash-chat",
                   "vercel-gateway:meituan/longcat-flash-thinking",
                   "vercel-gateway:meta/llama-3.1-70b",
@@ -37222,7 +37399,9 @@
                   "vercel-gateway:meta/llama-4-scout",
                   "vercel-gateway:minimax/minimax-m2",
                   "vercel-gateway:mistral/codestral",
+                  "vercel-gateway:mistral/devstral-2",
                   "vercel-gateway:mistral/devstral-small",
+                  "vercel-gateway:mistral/devstral-small-2",
                   "vercel-gateway:mistral/magistral-medium",
                   "vercel-gateway:mistral/magistral-small",
                   "vercel-gateway:mistral/ministral-14b",
@@ -37261,6 +37440,9 @@
                   "vercel-gateway:openai/gpt-5.1-codex-mini",
                   "vercel-gateway:openai/gpt-5.1-instant",
                   "vercel-gateway:openai/gpt-5.1-thinking",
+                  "vercel-gateway:openai/gpt-5.2",
+                  "vercel-gateway:openai/gpt-5.2-chat",
+                  "vercel-gateway:openai/gpt-5.2-pro",
                   "vercel-gateway:openai/gpt-oss-120b",
                   "vercel-gateway:openai/gpt-oss-20b",
                   "vercel-gateway:openai/gpt-oss-safeguard-20b",
@@ -37316,7 +37498,8 @@
                   "zai:glm-4.5-air",
                   "zai:glm-4.5-flash",
                   "zai:glm-4.5v",
-                  "zai:glm-4.6"
+                  "zai:glm-4.6",
+                  "zai:glm-4.6v"
                 ],
                 "type": "string"
               },
@@ -37615,7 +37798,7 @@
           "items": {
             "discriminator": {
               "mapping": {
-                "builtin": "#/$defs/BuiltinEventHandlerConfig",
+                "builtin": "#/$defs/StdoutEventHandlerConfig",
                 "callback": "#/$defs/CallbackEventHandlerConfig",
                 "tts": "#/$defs/TTSEventHandlerConfig"
               },
@@ -37623,7 +37806,7 @@
             },
             "oneOf": [
               {
-                "$ref": "#/$defs/BuiltinEventHandlerConfig"
+                "$ref": "#/$defs/StdoutEventHandlerConfig"
               },
               {
                 "$ref": "#/$defs/CallbackEventHandlerConfig"
