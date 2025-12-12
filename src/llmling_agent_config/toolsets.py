@@ -19,6 +19,58 @@ from llmling_agent_config.workers import WorkerConfig
 
 MarkupType = Literal["yaml", "json", "toml"]
 
+# Tool name literals for statically-defined toolsets
+AgentManagementToolName = Literal[
+    "create_worker_agent",
+    "add_agent",
+    "add_team",
+    "connect_nodes",
+]
+
+SubagentToolName = Literal[
+    "list_available_nodes",
+    "delegate_to",
+    "ask_agent",
+]
+
+ExecutionEnvironmentToolName = Literal[
+    "execute_code",
+    "execute_command",
+    "start_process",
+    "get_process_output",
+    "wait_for_process",
+    "kill_process",
+    "release_process",
+    "list_processes",
+]
+
+ToolManagementToolName = Literal[
+    "register_tool",
+    "register_code_tool",
+]
+
+UserInteractionToolName = Literal["ask_user",]
+
+HistoryToolName = Literal[
+    "search_history",
+    "show_statistics",
+]
+
+SkillsToolName = Literal[
+    "load_skill",
+    "list_skills",
+]
+
+IntegrationToolName = Literal[
+    "add_local_mcp_server",
+    "add_remote_mcp_server",
+]
+
+CodeToolName = Literal[
+    "format_code",
+    "ast_grep",
+]
+
 
 if TYPE_CHECKING:
     from llmling_agent.resource_providers import ResourceProvider
@@ -149,11 +201,22 @@ class AgentManagementToolsetConfig(BaseToolsetConfig):
     type: Literal["agent_management"] = Field("agent_management", init=False)
     """Agent pool building toolset (create_worker_agent, add_agent, add_team, connect_nodes)."""
 
+    tools: dict[AgentManagementToolName, bool] | None = Field(
+        default=None,
+        title="Tool filter",
+    )
+    """Optional tool filter to enable/disable specific tools."""
+
     def get_provider(self) -> ResourceProvider:
         """Create agent management tools provider."""
         from llmling_agent_toolsets.builtin import AgentManagementTools
 
-        return AgentManagementTools(name="agent_management")
+        provider = AgentManagementTools(name="agent_management")
+        if self.tools is not None:
+            from llmling_agent.resource_providers import FilteringResourceProvider
+
+            return FilteringResourceProvider(provider, self.tools)
+        return provider
 
 
 class SubagentToolsetConfig(BaseToolsetConfig):
@@ -169,11 +232,22 @@ class SubagentToolsetConfig(BaseToolsetConfig):
     type: Literal["subagent"] = Field("subagent", init=False)
     """Subagent interaction toolset (delegate_to, ask_agent, list_available_agents/teams)."""
 
+    tools: dict[SubagentToolName, bool] | None = Field(
+        default=None,
+        title="Tool filter",
+    )
+    """Optional tool filter to enable/disable specific tools."""
+
     def get_provider(self) -> ResourceProvider:
         """Create subagent tools provider."""
         from llmling_agent_toolsets.builtin.subagent_tools import SubagentTools
 
-        return SubagentTools(name="subagent_tools")
+        provider = SubagentTools(name="subagent_tools")
+        if self.tools is not None:
+            from llmling_agent.resource_providers import FilteringResourceProvider
+
+            return FilteringResourceProvider(provider, self.tools)
+        return provider
 
 
 class WorkersToolsetConfig(BaseToolsetConfig):
@@ -222,12 +296,23 @@ class ExecutionEnvironmentToolsetConfig(BaseToolsetConfig):
     )
     """Optional execution environment configuration (defaults to local)."""
 
+    tools: dict[ExecutionEnvironmentToolName, bool] | None = Field(
+        default=None,
+        title="Tool filter",
+    )
+    """Optional tool filter to enable/disable specific tools."""
+
     def get_provider(self) -> ResourceProvider:
         """Create execution environment tools provider."""
         from llmling_agent_toolsets.builtin import ExecutionEnvironmentTools
 
         env = self.environment.get_provider() if self.environment else None
-        return ExecutionEnvironmentTools(env=env, name="execution")
+        provider = ExecutionEnvironmentTools(env=env, name="execution")
+        if self.tools is not None:
+            from llmling_agent.resource_providers import FilteringResourceProvider
+
+            return FilteringResourceProvider(provider, self.tools)
+        return provider
 
 
 class ToolManagementToolsetConfig(BaseToolsetConfig):
@@ -243,11 +328,22 @@ class ToolManagementToolsetConfig(BaseToolsetConfig):
     type: Literal["tool_management"] = Field("tool_management", init=False)
     """Tool management toolset."""
 
+    tools: dict[ToolManagementToolName, bool] | None = Field(
+        default=None,
+        title="Tool filter",
+    )
+    """Optional tool filter to enable/disable specific tools."""
+
     def get_provider(self) -> ResourceProvider:
         """Create tool management tools provider."""
         from llmling_agent_toolsets.builtin import ToolManagementTools
 
-        return ToolManagementTools(name="tool_management")
+        provider = ToolManagementTools(name="tool_management")
+        if self.tools is not None:
+            from llmling_agent.resource_providers import FilteringResourceProvider
+
+            return FilteringResourceProvider(provider, self.tools)
+        return provider
 
 
 class UserInteractionToolsetConfig(BaseToolsetConfig):
@@ -263,11 +359,22 @@ class UserInteractionToolsetConfig(BaseToolsetConfig):
     type: Literal["user_interaction"] = Field("user_interaction", init=False)
     """User interaction toolset."""
 
+    tools: dict[UserInteractionToolName, bool] | None = Field(
+        default=None,
+        title="Tool filter",
+    )
+    """Optional tool filter to enable/disable specific tools."""
+
     def get_provider(self) -> ResourceProvider:
         """Create user interaction tools provider."""
         from llmling_agent_toolsets.builtin import UserInteractionTools
 
-        return UserInteractionTools(name="user_interaction")
+        provider = UserInteractionTools(name="user_interaction")
+        if self.tools is not None:
+            from llmling_agent.resource_providers import FilteringResourceProvider
+
+            return FilteringResourceProvider(provider, self.tools)
+        return provider
 
 
 class HistoryToolsetConfig(BaseToolsetConfig):
@@ -283,11 +390,22 @@ class HistoryToolsetConfig(BaseToolsetConfig):
     type: Literal["history"] = Field("history", init=False)
     """History toolset."""
 
+    tools: dict[HistoryToolName, bool] | None = Field(
+        default=None,
+        title="Tool filter",
+    )
+    """Optional tool filter to enable/disable specific tools."""
+
     def get_provider(self) -> ResourceProvider:
         """Create history tools provider."""
         from llmling_agent_toolsets.builtin import HistoryTools
 
-        return HistoryTools(name="history")
+        provider = HistoryTools(name="history")
+        if self.tools is not None:
+            from llmling_agent.resource_providers import FilteringResourceProvider
+
+            return FilteringResourceProvider(provider, self.tools)
+        return provider
 
 
 class SkillsToolsetConfig(BaseToolsetConfig):
@@ -308,11 +426,22 @@ class SkillsToolsetConfig(BaseToolsetConfig):
     type: Literal["skills"] = Field("skills", init=False)
     """Skills toolset."""
 
+    tools: dict[SkillsToolName, bool] | None = Field(
+        default=None,
+        title="Tool filter",
+    )
+    """Optional tool filter to enable/disable specific tools."""
+
     def get_provider(self) -> ResourceProvider:
         """Create skills tools provider."""
         from llmling_agent_toolsets.builtin import SkillsTools
 
-        return SkillsTools(name="skills")
+        provider = SkillsTools(name="skills")
+        if self.tools is not None:
+            from llmling_agent.resource_providers import FilteringResourceProvider
+
+            return FilteringResourceProvider(provider, self.tools)
+        return provider
 
 
 class IntegrationToolsetConfig(BaseToolsetConfig):
@@ -328,11 +457,22 @@ class IntegrationToolsetConfig(BaseToolsetConfig):
     type: Literal["integrations"] = Field("integrations", init=False)
     """Integration toolset."""
 
+    tools: dict[IntegrationToolName, bool] | None = Field(
+        default=None,
+        title="Tool filter",
+    )
+    """Optional tool filter to enable/disable specific tools."""
+
     def get_provider(self) -> ResourceProvider:
         """Create integration tools provider."""
         from llmling_agent_toolsets.builtin import IntegrationTools
 
-        return IntegrationTools(name="integrations")
+        provider = IntegrationTools(name="integrations")
+        if self.tools is not None:
+            from llmling_agent.resource_providers import FilteringResourceProvider
+
+            return FilteringResourceProvider(provider, self.tools)
+        return provider
 
 
 class CodeToolsetConfig(BaseToolsetConfig):
@@ -348,11 +488,22 @@ class CodeToolsetConfig(BaseToolsetConfig):
     type: Literal["code"] = Field("code", init=False)
     """Code toolset."""
 
+    tools: dict[CodeToolName, bool] | None = Field(
+        default=None,
+        title="Tool filter",
+    )
+    """Optional tool filter to enable/disable specific tools."""
+
     def get_provider(self) -> ResourceProvider:
         """Create code tools provider."""
         from llmling_agent_toolsets.builtin.code import CodeTools
 
-        return CodeTools(name="code")
+        provider = CodeTools(name="code")
+        if self.tools is not None:
+            from llmling_agent.resource_providers import FilteringResourceProvider
+
+            return FilteringResourceProvider(provider, self.tools)
+        return provider
 
 
 class FSSpecToolsetConfig(BaseToolsetConfig):

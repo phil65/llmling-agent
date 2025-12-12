@@ -403,7 +403,7 @@
     },
     "AGUIAgentConfig": {
       "additionalProperties": false,
-      "description": "Configuration for AG-UI protocol agents.\n\nAG-UI agents connect to remote HTTP endpoints that implement the AG-UI protocol,\nenabling integration of any AG-UI compatible server into the llmling-agent pool.\n\nExample:\n    ```yaml\n    agui_agents:\n      remote_assistant:\n        endpoint: http://localhost:8000/agent/run\n        timeout: 30.0\n        headers:\n          X-API-Key: ${API_KEY}\n\n      managed_agent:\n        endpoint: http://localhost:8765/agent/run\n        startup_command: \"uv run ag-ui-server config.yml\"\n        startup_delay: 3.0\n    ```",
+      "description": "Configuration for AG-UI protocol agents.\n\nAG-UI agents connect to remote HTTP endpoints that implement the AG-UI protocol,\nenabling integration of any AG-UI compatible server into the llmling-agent pool.\n\nExample:\n    ```yaml\n    agui_agents:\n      remote_assistant:\n        endpoint: http://localhost:8000/agent/run\n        timeout: 30.0\n        headers:\n          X-API-Key: ${API_KEY}\n        tools:\n          - import_path: mymodule.my_tool_function\n\n      managed_agent:\n        endpoint: http://localhost:8765/agent/run\n        startup_command: \"uv run ag-ui-server config.yml\"\n        startup_delay: 3.0\n        tools:\n          - import_path: package.tool_one\n          - import_path: package.tool_two\n    ```",
       "properties": {
         "name": {
           "default": null,
@@ -689,6 +689,32 @@
           "minimum": 0.0,
           "title": "Startup Delay",
           "type": "number"
+        },
+        "tools": {
+          "description": "Tools to expose to the remote agent for client-side execution.\n\nWhen the remote AG-UI agent requests a tool call, these tools are executed\nlocally and the result is sent back. This enables human-in-the-loop workflows\nand local capability exposure to remote agents.",
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "crewai": "#/$defs/CrewAIToolConfig",
+                "import": "#/$defs/ImportToolConfig",
+                "langchain": "#/$defs/LangChainToolConfig"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/ImportToolConfig"
+              },
+              {
+                "$ref": "#/$defs/CrewAIToolConfig"
+              },
+              {
+                "$ref": "#/$defs/LangChainToolConfig"
+              }
+            ]
+          },
+          "title": "Tools",
+          "type": "array"
         }
       },
       "required": [
@@ -2898,6 +2924,30 @@
           "description": "Agent pool building toolset (create_worker_agent, add_agent, add_team, connect_nodes).",
           "title": "Type",
           "type": "string"
+        },
+        "tools": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "boolean"
+              },
+              "propertyNames": {
+                "enum": [
+                  "create_worker_agent",
+                  "add_agent",
+                  "add_team",
+                  "connect_nodes"
+                ]
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional tool filter to enable/disable specific tools.",
+          "title": "Tool filter"
         }
       },
       "title": "AgentManagementToolsetConfig",
@@ -8575,6 +8625,28 @@
           "description": "Code toolset.",
           "title": "Type",
           "type": "string"
+        },
+        "tools": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "boolean"
+              },
+              "propertyNames": {
+                "enum": [
+                  "format_code",
+                  "ast_grep"
+                ]
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional tool filter to enable/disable specific tools.",
+          "title": "Tool filter"
         }
       },
       "title": "CodeToolsetConfig",
@@ -13621,6 +13693,34 @@
           "default": null,
           "description": "Optional execution environment configuration (defaults to local).",
           "title": "Execution environment"
+        },
+        "tools": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "boolean"
+              },
+              "propertyNames": {
+                "enum": [
+                  "execute_code",
+                  "execute_command",
+                  "start_process",
+                  "get_process_output",
+                  "wait_for_process",
+                  "kill_process",
+                  "release_process",
+                  "list_processes"
+                ]
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional tool filter to enable/disable specific tools.",
+          "title": "Tool filter"
         }
       },
       "title": "ExecutionEnvironmentToolsetConfig",
@@ -19986,6 +20086,28 @@
           "description": "History toolset.",
           "title": "Type",
           "type": "string"
+        },
+        "tools": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "boolean"
+              },
+              "propertyNames": {
+                "enum": [
+                  "search_history",
+                  "show_statistics"
+                ]
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional tool filter to enable/disable specific tools.",
+          "title": "Tool filter"
         }
       },
       "title": "HistoryToolsetConfig",
@@ -20633,6 +20755,28 @@
           "description": "Integration toolset.",
           "title": "Type",
           "type": "string"
+        },
+        "tools": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "boolean"
+              },
+              "propertyNames": {
+                "enum": [
+                  "add_local_mcp_server",
+                  "add_remote_mcp_server"
+                ]
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional tool filter to enable/disable specific tools.",
+          "title": "Tool filter"
         }
       },
       "title": "IntegrationToolsetConfig",
@@ -31716,6 +31860,28 @@
           "description": "Skills toolset.",
           "title": "Type",
           "type": "string"
+        },
+        "tools": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "boolean"
+              },
+              "propertyNames": {
+                "enum": [
+                  "load_skill",
+                  "list_skills"
+                ]
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional tool filter to enable/disable specific tools.",
+          "title": "Tool filter"
         }
       },
       "title": "SkillsToolsetConfig",
@@ -34644,6 +34810,29 @@
           "description": "Subagent interaction toolset (delegate_to, ask_agent, list_available_agents/teams).",
           "title": "Type",
           "type": "string"
+        },
+        "tools": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "boolean"
+              },
+              "propertyNames": {
+                "enum": [
+                  "list_available_nodes",
+                  "delegate_to",
+                  "ask_agent"
+                ]
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional tool filter to enable/disable specific tools.",
+          "title": "Tool filter"
         }
       },
       "title": "SubagentToolsetConfig",
@@ -35698,6 +35887,28 @@
           "description": "Tool management toolset.",
           "title": "Type",
           "type": "string"
+        },
+        "tools": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "boolean"
+              },
+              "propertyNames": {
+                "enum": [
+                  "register_tool",
+                  "register_code_tool"
+                ]
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional tool filter to enable/disable specific tools.",
+          "title": "Tool filter"
         }
       },
       "title": "ToolManagementToolsetConfig",
@@ -36158,6 +36369,25 @@
           "description": "User interaction toolset.",
           "title": "Type",
           "type": "string"
+        },
+        "tools": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "boolean"
+              },
+              "propertyNames": {
+                "const": "ask_user"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional tool filter to enable/disable specific tools.",
+          "title": "Tool filter"
         }
       },
       "title": "UserInteractionToolsetConfig",
