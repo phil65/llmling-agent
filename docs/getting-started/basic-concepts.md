@@ -10,6 +10,16 @@ icon: material/book
 
 LLMling-agent uses a unified **node** abstraction for all message-processing entities. This enables seamless composition and communication between different types of agents.
 
+
+````python exec="true"
+from llmling_agent.messaging import MessageNode
+node = mk.MkClassDiagram(MessageNode, mode="subclasses")
+print(node)
+````
+
+
+
+
 ### MessageNode
 
 The base interface that all nodes implement. A node can receive messages, process them, and emit responses. This common interface allows uniform handling regardless of implementation.
