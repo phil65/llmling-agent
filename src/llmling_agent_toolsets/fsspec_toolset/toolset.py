@@ -39,7 +39,11 @@ logger = get_logger(__name__)
 
 
 class FSSpecTools(ResourceProvider):
-    """Provider for fsspec filesystem tools."""
+    """Provider for fsspec filesystem tools.
+
+    NOTE: The ACP execution environment used handles the Terminal events of the protocol,
+    the toolset should deal with the ToolCall events for UI display purposes.
+    """
 
     def __init__(
         self,

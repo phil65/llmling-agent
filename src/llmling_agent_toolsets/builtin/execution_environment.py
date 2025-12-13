@@ -27,6 +27,9 @@ class ExecutionEnvironmentTools(ResourceProvider):
 
     Combines code execution and process management capabilities
     using any ExecutionEnvironment backend. Emits events via AgentContext.
+
+    NOTE: The ACP execution environment used handles the Terminal events of the protocol,
+    the toolset should deal with the ToolCall events for UI display purposes.
     """
 
     def __init__(
