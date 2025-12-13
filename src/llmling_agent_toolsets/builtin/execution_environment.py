@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING, Any
 import uuid
 
@@ -14,6 +15,9 @@ from exxec.events import (
 
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.resource_providers import ResourceProvider
+
+
+logger = logging.getLogger(__name__)
 
 
 if TYPE_CHECKING:
@@ -174,31 +178,44 @@ class ExecutionEnvironmentTools(ResourceProvider):
                 match event:
                     case ProcessStartedEvent(process_id=pid, command=cmd):
                         process_id = pid
-                        await agent_ctx.events.process_started(
-                            process_id=pid,
-                            command=cmd,
-                            success=True,
-                        )
+                        if pid is not None:
+                            await agent_ctx.events.process_started(
+                                process_id=pid,
+                                command=cmd,
+                                success=True,
+                            )
+                        else:
+                            logger.warning(
+                                "ProcessStartedEvent missing process_id for command: %s", cmd
+                            )
                     case OutputEvent(process_id=pid, data=data, stream=stream):
                         if stream == "stderr":
                             stderr_parts.append(data)
                         else:
                             stdout_parts.append(data)
-                        await agent_ctx.events.process_output(
-                            process_id=pid,
-                            output=data,
-                            stdout=data if stream != "stderr" else None,
-                            stderr=data if stream == "stderr" else None,
-                        )
+                        if pid is not None:
+                            await agent_ctx.events.process_output(
+                                process_id=pid,
+                                output=data,
+                                stdout=data if stream != "stderr" else None,
+                                stderr=data if stream == "stderr" else None,
+                            )
+                        else:
+                            logger.warning("OutputEvent missing process_id for %s stream", stream)
                     case ProcessCompletedEvent(process_id=pid, exit_code=code_, duration=dur):
                         exit_code = code_
                         duration = dur
                         combined = "".join(stdout_parts) + "".join(stderr_parts)
-                        await agent_ctx.events.process_exit(
-                            process_id=pid,
-                            exit_code=exit_code,
-                            final_output=combined,
-                        )
+                        if pid is not None:
+                            await agent_ctx.events.process_exit(
+                                process_id=pid,
+                                exit_code=exit_code,
+                                final_output=combined,
+                            )
+                        else:
+                            logger.warning(
+                                "ProcessCompletedEvent missing process_id, exit_code: %s", code_
+                            )
                     case ProcessErrorEvent(process_id=pid, error=err, exit_code=code_):
                         error_msg = err
                         exit_code = code_

@@ -470,8 +470,8 @@ class ACPSession:
                     async for chunk in content:
                         full_content += str(chunk)
                         # Stream progress through state
-                        if state := self._tool_call_states.get(tool_call_id):
-                            await state.update(status="in_progress", raw_output=chunk)
+                        if tool_state := self._tool_call_states.get(tool_call_id):
+                            await tool_state.update(status="in_progress", raw_output=chunk)
 
                     # Replace the AsyncGenerator with the full content to prevent errors
                     result.content = full_content
@@ -480,9 +480,9 @@ class ACPSession:
                     final_output = result.content
 
                 # Complete tool call through state (preserves accumulated content/locations)
-                if state := self._tool_call_states.get(tool_call_id):
+                if complete_state := self._tool_call_states.get(tool_call_id):
                     converted_blocks = to_acp_content_blocks(final_output)
-                    await state.complete(raw_output=converted_blocks)
+                    await complete_state.complete(raw_output=converted_blocks)
                 self._cleanup_tool_state(tool_call_id)
 
             # Tool failed with retry - update state with error
@@ -491,8 +491,8 @@ class ACPSession:
                 tool_call_id=tool_call_id,
             ):
                 error_message = result.model_response()
-                if state := self._tool_call_states.get(tool_call_id):
-                    await state.fail(error=error_message)
+                if fail_state := self._tool_call_states.get(tool_call_id):
+                    await fail_state.fail(error=error_message)
                 self._cleanup_tool_state(tool_call_id)
 
             # Tool emits its own start event - update state with better title/content
@@ -536,8 +536,10 @@ class ACPSession:
                 output = message if message else f"Progress: {progress}"
                 if total:
                     output += f"/{total}"
-                if state := self._tool_call_states.get(tool_call_id):
-                    await state.update(title=message, status="in_progress", raw_output=output)
+                if progress_state := self._tool_call_states.get(tool_call_id):
+                    await progress_state.update(
+                        title=message, status="in_progress", raw_output=output
+                    )
 
             case FinalResultEvent():
                 self.log.debug("Final result received")
@@ -560,8 +562,8 @@ class ACPSession:
                 error=error,
                 tool_call_id=str() as tool_call_id,
             ):
-                if state := self._tool_call_states.get(tool_call_id):
-                    await state.update(add_location=path)
+                if file_state := self._tool_call_states.get(tool_call_id):
+                    await file_state.update(add_location=path)
 
             # File operation failed - update state with error
             case FileOperationEvent(
@@ -571,8 +573,8 @@ class ACPSession:
                 error=error,
                 tool_call_id=str() as tool_call_id,
             ):
-                if state := self._tool_call_states.get(tool_call_id):
-                    await state.update(
+                if file_error_state := self._tool_call_states.get(tool_call_id):
+                    await file_error_state.update(
                         add_location=path,
                         raw_output=f"File operation {operation!r} failed: {error}",
                     )
@@ -605,7 +607,7 @@ class ACPSession:
                 error=error,
                 tool_call_id=str() as tool_call_id,
             ):
-                if state := self._tool_call_states.get(tool_call_id):
+                if proc_start_state := self._tool_call_states.get(tool_call_id):
                     # Truncate long commands for title
                     cmd_display = (
                         command[:MAX_CMD_OUTPUT_LENGTH] + "..."
@@ -614,7 +616,7 @@ class ACPSession:
                     )
                     # process_id is the terminal_id from ACP
                     terminal_content = TerminalToolCallContent(terminal_id=process_id)
-                    await state.update(
+                    await proc_start_state.update(
                         title=f"Running: {cmd_display}",
                         status="in_progress",
                         add_content=terminal_content,
@@ -628,8 +630,8 @@ class ACPSession:
                 error=error,
                 tool_call_id=str() as tool_call_id,
             ):
-                if state := self._tool_call_states.get(tool_call_id):
-                    await state.update(
+                if proc_fail_state := self._tool_call_states.get(tool_call_id):
+                    await proc_fail_state.update(
                         title=f"Failed to start: {command}",
                         raw_output=f"Process start failed: {error}",
                     )
@@ -646,12 +648,14 @@ class ACPSession:
                 final_output=final_output,
                 tool_call_id=str() as tool_call_id,
             ):
-                if state := self._tool_call_states.get(tool_call_id):
+                if proc_exit_state := self._tool_call_states.get(tool_call_id):
                     # Append exit status to existing title
                     status_icon = "✓" if success else "✗"
-                    title = f"{state.title} [{status_icon} exit {exit_code}]"
+                    title = f"{proc_exit_state.title} [{status_icon} exit {exit_code}]"
                     # Don't mark complete yet, wait for FunctionToolResultEvent
-                    await state.update(title=title, status="in_progress")
+                    await proc_exit_state.update(
+                        title=title, status="in_progress", raw_output=final_output
+                    )
 
             # Process killed
             case ProcessKillEvent(
@@ -660,8 +664,8 @@ class ACPSession:
                 error=error,
                 tool_call_id=str() as tool_call_id,
             ):
-                if state := self._tool_call_states.get(tool_call_id):
-                    await state.update(title=f"Killed process {process_id}")
+                if kill_state := self._tool_call_states.get(tool_call_id):
+                    await kill_state.update(title=f"Killed process {process_id}")
 
             case ProcessKillEvent(
                 process_id=process_id,
@@ -669,8 +673,8 @@ class ACPSession:
                 error=error,
                 tool_call_id=str() as tool_call_id,
             ):
-                if state := self._tool_call_states.get(tool_call_id):
-                    await state.update(
+                if kill_fail_state := self._tool_call_states.get(tool_call_id):
+                    await kill_fail_state.update(
                         title=f"Failed to kill process {process_id}",
                         raw_output=f"Process kill failed: {error}",
                     )
@@ -682,8 +686,8 @@ class ACPSession:
                 error=error,
                 tool_call_id=str() as tool_call_id,
             ):
-                if state := self._tool_call_states.get(tool_call_id):
-                    await state.update(title=f"Released process {process_id}")
+                if release_state := self._tool_call_states.get(tool_call_id):
+                    await release_state.update(title=f"Released process {process_id}")
 
             case ProcessReleaseEvent(
                 process_id=process_id,
@@ -691,8 +695,8 @@ class ACPSession:
                 error=error,
                 tool_call_id=str() as tool_call_id,
             ):
-                if state := self._tool_call_states.get(tool_call_id):
-                    await state.update(
+                if release_fail_state := self._tool_call_states.get(tool_call_id):
+                    await release_fail_state.update(
                         title=f"Failed to release process {process_id}",
                         raw_output=f"Process release failed: {error}",
                     )

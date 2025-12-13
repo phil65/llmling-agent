@@ -503,7 +503,7 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
                 raise ValueError(msg)
             config = ACPAgentConfig(
                 name=name,
-                description=description,  # type: ignore[call-arg]
+                description=description,
                 display_name=display_name,
                 command=command,
                 args=args or [],
