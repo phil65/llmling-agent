@@ -228,7 +228,7 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
             if detail:
                 return [
                     AcpInfo(
-                        name=item.name,
+                        name=item.path,  # fsspec expects full path in 'name'
                         path=item.path,
                         type="file" if item.type == "link" else item.type,
                         size=item.size,
@@ -238,7 +238,7 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
                     )
                     for item in result
                 ]
-            return [item.name for item in result]
+            return [item.path for item in result]  # Return full paths for consistency
 
         except Exception as e:
             msg = f"Could not list directory {path}: {e}"
@@ -267,7 +267,7 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
                 raise FileNotFoundError(f"File not found: {path}")
             file_info = info_cmd.parse_command(output.strip(), path)
             return AcpInfo(
-                name=file_info.name,
+                name=file_info.path,  # fsspec expects full path in 'name'
                 path=file_info.path,
                 type="file" if file_info.type == "link" else file_info.type,
                 size=file_info.size,
@@ -283,9 +283,10 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
                 filename = Path(path).name
 
                 for item in ls_result:
-                    if item["name"] == filename:
+                    # After _ls fix, item["name"] is now full path
+                    if Path(item["name"]).name == filename:
                         return AcpInfo(
-                            name=item["name"],
+                            name=path,  # fsspec expects full path in 'name'
                             path=path,
                             type=item["type"],
                             size=item["size"],
