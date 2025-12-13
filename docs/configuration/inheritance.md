@@ -48,29 +48,33 @@ Child agents:
 
 Using Yamling's inheritance system, entire YAML files can inherit from other files:
 
-```yaml
-# base.yml - Base configuration
-agents:
-  base_agent:
-    model: openai:gpt-5
-    toolsets:
-      - type: resource_access
 
-storage:
-  providers:
-    - type: sql
-      url: sqlite:///history.db
-```
+=== "Base config"
 
-```yaml
-# specialized.yml - Specialized configuration
-INHERIT: base.yml  # Inherit entire base configuration
+    ```yaml title="base.yml"
+    agents:
+      base_agent:
+        model: openai:gpt-5
+        toolsets:
+          - type: resource_access
+    
+    storage:
+      providers:
+        - type: sql
+          url: sqlite:///history.db
+    ```
 
-agents:
-  specialized_agent:
-    inherits: base_agent
-    description: "Specialized version"
-```
+=== "Specialized config"
+
+    ```yaml title="agents.yml"
+    INHERIT: base.yml  # Inherit entire base configuration
+    
+    agents:
+      specialized_agent:
+        inherits: base_agent
+        description: "Specialized version"
+    ```
+
 
 ### Remote File Inheritance
 

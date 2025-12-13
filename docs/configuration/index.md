@@ -14,7 +14,7 @@ and IDE support for YAML linters by providing an extensive, detailed schema.
 Here's the complete manifest structure with all available top-level sections:
 
 /// mknodes
-{{ "llmling_agent.models.manifest.AgentsManifest" | schema_to_markdown(display_mode="yaml", header_style="pymdownx", as_listitem=False) }}
+{{ "llmling_agent.AgentsManifest" | schema_to_markdown(display_mode="yaml", header_style="pymdownx", as_listitem=False) }}
 ///
 
 ## Top-Level Sections
@@ -85,24 +85,30 @@ Global resource definitions for filesystems, APIs, and data sources that agents 
 
 The manifest supports YAML inheritance using the `INHERIT` key at the top level, similar to MkDocs:
 
-```yaml
-# base-config.yml
-storage:
-  log_messages: true
-agents:
-  base_agent:
-    model: "openai:gpt-5"
-    retries: 2
 
-# main-config.yml  
-INHERIT: base-config.yml
-agents:
-  my_agent:
-    inherits: base_agent
-    description: "Specialized agent"
-```
+=== "Base config"
 
-LLMling-Agent supports UPaths (universal-pathlib) for inheritance, allowing remote configurations.
+    ```yaml title="base.yml"
+    storage:
+      log_messages: true
+    agents:
+      base_agent:
+        model: "openai:gpt-5"
+        retries: 2
+    ```
+
+=== "Specialized config"
+
+    ```yaml title="agents.yml"
+    INHERIT: base-config.yml
+    agents:
+      my_agent:
+        inherits: base_agent
+        description: "Specialized agent"
+    ```
+
+
+LLMling-Agent supports UPaths (universal-pathlib) for `INHERIT`, allowing pointing to remote configurations (`http://path/to/config.yml`).
 
 ## Schema Validation
 
