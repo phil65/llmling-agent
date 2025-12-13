@@ -79,6 +79,7 @@ Issues = "https://github.com/phil65/llmling-agent/issues"
 Source = "https://github.com/phil65/llmling-agent"
 
 [project.scripts]
+acp-bridge = "acp.bridge.__main__:main"
 llmling-agent = "llmling_agent.__main__:cli"
 llmling-agent-db = "llmling_agent_storage.sql_provider.cli:main"
 

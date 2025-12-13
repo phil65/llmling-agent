@@ -2,6 +2,7 @@
 
 from acp.client import DefaultACPClient, ClientSideConnection
 from acp.agent import AgentSideConnection
+from acp.bridge import ACPBridge, BridgeSettings
 from acp.debug_server import cli
 from acp.filesystem import ACPFileSystem, ACPPath
 from acp.agent.protocol import Agent
@@ -77,6 +78,9 @@ from acp.exceptions import RequestError
 __version__ = "0.0.1"
 
 __all__ = [  # noqa: RUF022
+    # bridge
+    "ACPBridge",
+    "BridgeSettings",
     # constants
     "PROTOCOL_VERSION",
     # literal types
