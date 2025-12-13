@@ -631,7 +631,7 @@ class GooseACPAgentConfig(BaseACPAgentConfig):
         return ["openai", "anthropic", "gemini", "openrouter"]
 
 
-class MistralAgentConfig(BaseACPAgentConfig):
+class MistralACPAgentConfig(BaseACPAgentConfig):
     """Configuration for Mistral Agent via ACP.
 
     Example:
@@ -1456,7 +1456,7 @@ ACPAgentConfigTypes = Annotated[
     | CagentACPAgentConfig
     | KimiACPAgentConfig
     | StakpakACPAgentConfig
-    | MistralAgentConfig
+    | MistralACPAgentConfig
     | VTCodeACPAgentConfig
     | CursorACPAgentConfig,
     Field(discriminator="type"),

@@ -141,6 +141,7 @@ dev = [
   "pytest-cov",
   "pytest-rerunfailures>=16.1",
   "pytest-xdist",
+  "syrupy>=4.0.0",
 ]
 benchmark = ["pyinstrument"]
 docs = [
@@ -231,7 +232,7 @@ reportPrivateImportUsage = false
 reportUnusedExpression = false
 
 [tool.pytest]
-addopts = ["-m", "not slow"]
+addopts = ["-m", "not slow and not acp_cli_snapshot"]
 filterwarnings = [
   "ignore::DeprecationWarning:psygnal.*",
   "ignore::DeprecationWarning:pydantic.*:",
@@ -242,6 +243,7 @@ log_date_format = "%Y-%m-%d %H:%M:%S"
 log_format = "%(asctime)s %(levelname)s %(message)s"
 log_level = "ERROR"
 markers = [
+  "acp_cli_snapshot: marks tests as ACP CLI snapshot tests (excluded by default)",
   "asyncio: mark test as async",
   "integration: marks tests as integration tests",
   "slow: marks tests as slow",
