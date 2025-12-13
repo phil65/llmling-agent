@@ -53,11 +53,7 @@ class GitRepo:
             return False
         return True
 
-    def files_changed_between(
-        self,
-        old_commit: str,
-        new_commit: str | None = None,
-    ) -> set[str]:
+    def files_changed_between(self, old_commit: str, new_commit: str | None = None) -> set[str]:
         """Get set of files that changed between two commits.
 
         Args:

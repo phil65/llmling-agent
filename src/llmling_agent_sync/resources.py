@@ -204,11 +204,7 @@ class ResourceRegistry:
         self.save()
         return changes
 
-    async def _fetch(
-        self,
-        url: str,
-        fetcher: Callable[[str], str],
-    ) -> str:
+    async def _fetch(self, url: str, fetcher: Callable[[str], str]) -> str:
         """Fetch URL content using provided fetcher."""
         result = fetcher(url)
         if inspect.isawaitable(result):
