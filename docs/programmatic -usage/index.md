@@ -2,6 +2,7 @@
 title: Programmatic usage
 description: Using LLMling-Agent as a library
 icon: lucide/braces
+order: 9
 ---
 
 !!! warning
