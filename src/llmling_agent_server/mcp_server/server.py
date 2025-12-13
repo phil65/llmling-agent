@@ -19,13 +19,15 @@ from llmling_agent_server import BaseServer
 
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Awaitable, Callable
     from contextlib import AbstractAsyncContextManager
 
     from mcp.server.lowlevel.server import LifespanResultT
     from pydantic import AnyUrl
 
     from llmling_agent import AgentPool
+    from llmling_agent.prompts.prompts import BasePrompt
+    from llmling_agent.tools import Tool
     from llmling_agent_config.pool_server import MCPPoolServerConfig
 
     LifespanHandler = Callable[
@@ -101,7 +103,7 @@ class MCPServer(BaseServer):
 
         for tool in tools:
             # Create handler with closure to capture tool instance
-            def make_handler(tool_instance):
+            def make_handler(tool_instance: Tool) -> Callable[..., Awaitable[str]]:
                 async def handler(**kwargs: Any) -> str:
                     """Dynamically generated tool handler."""
                     # Filter out _meta arguments
@@ -141,12 +143,13 @@ class MCPServer(BaseServer):
 
         for prompt in prompts:
             # Create handler with closure to capture prompt instance
-            def make_handler(prompt_instance):
+            def make_handler(prompt_instance: BasePrompt) -> Callable[..., Awaitable[str]]:
                 async def handler(**kwargs: Any) -> str:
                     """Dynamically generated prompt handler."""
                     from llmling_agent.mcp_server import conversions
 
                     try:
+                        assert prompt_instance.name
                         parts = await self.provider.get_request_parts(
                             prompt_instance.name, kwargs or {}
                         )
@@ -155,7 +158,7 @@ class MCPServer(BaseServer):
                         # Format messages as text
                         result_lines = []
                         for msg in messages:
-                            if hasattr(msg.content, "text"):
+                            if isinstance(msg.content, types.TextContent):
                                 result_lines.append(f"{msg.role}: {msg.content.text}")
                             else:
                                 result_lines.append(f"{msg.role}: {msg.content}")
@@ -166,6 +169,7 @@ class MCPServer(BaseServer):
                         return f"Prompt execution failed: {exc}"
 
                 # Set proper function metadata for FastMCP
+                assert prompt_instance.name
                 handler.__name__ = prompt_instance.name
                 handler.__doc__ = (
                     prompt_instance.description or f"Get prompt {prompt_instance.name}"
@@ -182,14 +186,14 @@ class MCPServer(BaseServer):
     def _register_resource_handlers(self) -> None:
         """Register resource subscription handlers."""
 
-        @self.server.subscribe_resource()  # type: ignore[misc]
+        @self.server.subscribe_resource()  # type: ignore[no-untyped-call, untyped-decorator]
         async def handle_subscribe(uri: AnyUrl) -> None:
             """Subscribe to resource updates."""
             uri_str = str(uri)
             self._subscriptions[uri_str].add(self.current_session)
             logger.debug("Added subscription", uri=uri)
 
-        @self.server.unsubscribe_resource()  # type: ignore[misc]
+        @self.server.unsubscribe_resource()  # type: ignore[no-untyped-call, untyped-decorator]
         async def handle_unsubscribe(uri: AnyUrl) -> None:
             """Unsubscribe from resource updates."""
             if (uri_str := str(uri)) in self._subscriptions:
@@ -201,7 +205,7 @@ class MCPServer(BaseServer):
     def _register_logging_handlers(self) -> None:
         """Register logging-related handlers."""
 
-        @self.server.set_logging_level()  # type: ignore[misc]
+        @self.server.set_logging_level()  # type: ignore[no-untyped-call, untyped-decorator]
         async def handle_set_level(level: mcp.LoggingLevel) -> None:
             """Handle logging level changes."""
             try:
@@ -217,7 +221,7 @@ class MCPServer(BaseServer):
                 )
                 raise mcp.McpError(error_data) from exc
 
-        @self.server.progress_notification()  # type: ignore[misc]
+        @self.server.progress_notification()  # type: ignore[no-untyped-call, untyped-decorator]
         async def handle_progress(
             token: str | int,
             progress: float,

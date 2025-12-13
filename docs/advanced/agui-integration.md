@@ -489,15 +489,9 @@ This will enable:
 - Web UI integration
 - Bidirectional AG-UI workflows
 
-## Related Documentation
-
-- [ACP Integration](acp-integration.md) - IDE integration via Agent Client Protocol
-- [Agent Pool](../core-concepts/agent-pool.md) - Multi-agent coordination
-- [Tools](../core-concepts/tools.md) - Tool system overview
-- [MCP Integration](mcp-integration.md) - Model Context Protocol servers
 
 ## External Resources
 
-- [AG-UI Protocol Specification](https://docs.agentic.so/ag-ui/introduction)
+- [AG-UI Protocol Specification](https://docs.ag-ui.com/)
 - [AG-UI GitHub Repository](https://github.com/CopilotKit/ag-ui)
 - [CopilotKit Documentation](https://docs.copilotkit.ai/)

@@ -211,7 +211,7 @@ class Tool[TOutputType = Any]:
             import_path=import_path,
             schema_override=schema_override,
             category=category,
-            hints=hints,
+            hints=hints or ToolHints(),
             enabled=enabled,
             source=source or "dynamic",
             **kwargs,
