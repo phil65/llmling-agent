@@ -39,10 +39,10 @@ from acp.schema import (
     AvailableCommand,
     ClientCapabilities,
     PlanEntry,
-    TerminalToolCallContent,
     ToolCallLocation,
 )
-from acp.utils import to_acp_content_blocks
+from acp.tool_call_state import ToolCallState
+from acp.utils import generate_tool_title, infer_tool_kind, to_acp_content_blocks
 from llmling_agent import Agent, AgentContext  # noqa: TC001
 from llmling_agent.agent import SlashedAgent
 from llmling_agent.agent.acp_agent import ACPAgent
@@ -92,31 +92,6 @@ ACP_COMMANDS = {"list-sessions", "load-session", "save-session", "delete-session
 
 
 logger = get_logger(__name__)
-# Tools that send their own rich ACP notifications (with TerminalToolCallContent, etc.)
-# These tools are excluded from generic session-level notifications to prevent duplication
-# TODO: This centralized string-based list is brittle. Tools/toolsets should self-report
-# whether they emit their own tool call status updates
-# via a flag like `is_self_notifying: bool`
-# on the Tool class or ResourceProvider level. This would eliminate the need for manual
-# maintenance of this list and provide better type safety.
-ACP_SELF_NOTIFYING_TOOLS = {
-    "read_text_file",
-    "read_file",
-    "write_text_file",
-    "run_command",
-    "start_process",
-    "get_process_output",
-    "wait_for_process",
-    "kill_process",
-    "release_process",
-    "list_processes",
-    "list_directory",
-    "delete_path",
-    "edit_file",
-    "agentic_edit",
-    "execute_code",
-    "execute_script",
-}
 
 
 def _is_slash_command(text: str) -> bool:
@@ -185,6 +160,7 @@ class ACPSession:
         self._task_lock = asyncio.Lock()
         self._cancelled = False
         self._current_tool_inputs: dict[str, dict[str, Any]] = {}
+        self._tool_call_states: dict[str, ToolCallState] = {}
         self.fs = ACPFileSystem(self.client, session_id=self.session_id)
         cmds = [
             *get_commands(
@@ -212,6 +188,39 @@ class ACPSession:
                 agent.sys_prompts.prompts.append(self.get_cwd_context)  # pyright: ignore[reportArgumentType]
 
         self.log.info("Created ACP session", current_agent=self.current_agent_name)
+
+    def _get_or_create_tool_state(
+        self,
+        tool_call_id: str,
+        tool_name: str,
+        tool_input: dict[str, Any],
+    ) -> ToolCallState:
+        """Get existing tool call state or create a new one.
+
+        Args:
+            tool_call_id: Unique identifier for the tool call
+            tool_name: Name of the tool being called
+            tool_input: Input parameters for the tool
+
+        Returns:
+            ToolCallState instance (existing or newly created)
+        """
+        if tool_call_id not in self._tool_call_states:
+            state = ToolCallState(
+                notifications=self.notifications,
+                tool_call_id=tool_call_id,
+                tool_name=tool_name,
+                title=generate_tool_title(tool_name, tool_input),
+                kind=infer_tool_kind(tool_name),
+                raw_input=tool_input,
+            )
+            self._tool_call_states[tool_call_id] = state
+        return self._tool_call_states[tool_call_id]
+
+    def _cleanup_tool_state(self, tool_call_id: str) -> None:
+        """Remove tool call state after completion."""
+        self._tool_call_states.pop(tool_call_id, None)
+        self._current_tool_inputs.pop(tool_call_id, None)
 
     async def initialize_mcp_servers(self) -> None:
         """Initialize MCP servers if any are configured."""
@@ -411,52 +420,45 @@ class ACPSession:
             case PartStartEvent(part=part):
                 self.log.debug("Received unhandled PartStartEvent", part=part)
 
+            # Tool call streaming delta - create/update state and start notification
             case PartDeltaEvent(delta=ToolCallPartDelta() as delta):
                 if delta_part := delta.as_part():
                     tool_call_id = delta_part.tool_call_id
-                    self._current_tool_inputs[tool_call_id] = delta_part.args_as_dict()
-                    # Skip generic notifications for self-notifying tools
-                    if delta_part.tool_name not in ACP_SELF_NOTIFYING_TOOLS:
-                        await self.notifications.tool_call(
-                            tool_name=delta_part.tool_name,
-                            tool_input=delta_part.args_as_dict(),
-                            tool_output=None,  # Not available yet
-                            status="pending",
-                            tool_call_id=tool_call_id,
-                        )
+                    tool_input = delta_part.args_as_dict()
+                    self._current_tool_inputs[tool_call_id] = tool_input
+                    # Create state and send initial notification
+                    state = self._get_or_create_tool_state(
+                        tool_call_id=tool_call_id,
+                        tool_name=delta_part.tool_name,
+                        tool_input=tool_input,
+                    )
+                    await state.start()
 
+            # Tool call started - create/update state and start notification
             case FunctionToolCallEvent(part=part):
                 tool_call_id = part.tool_call_id
-                self._current_tool_inputs[tool_call_id] = part.args_as_dict()
-                # Skip generic notifications for self-notifying tools
-                if part.tool_name not in ACP_SELF_NOTIFYING_TOOLS:
-                    await self.notifications.tool_call(
-                        tool_name=part.tool_name,
-                        tool_input=part.args_as_dict(),
-                        tool_output=None,  # Not available yet
-                        status="pending",
-                        tool_call_id=tool_call_id,
-                    )
+                tool_input = part.args_as_dict()
+                self._current_tool_inputs[tool_call_id] = tool_input
+                # Create state and send initial notification
+                state = self._get_or_create_tool_state(
+                    tool_call_id=tool_call_id,
+                    tool_name=part.tool_name,
+                    tool_input=tool_input,
+                )
+                await state.start()
 
+            # Tool completed successfully - update state and finalize
             case FunctionToolResultEvent(
                 result=ToolReturnPart(content=content, tool_name=tool_name) as result,
                 tool_call_id=tool_call_id,
             ):
-                tool_input = self._current_tool_inputs.get(tool_call_id, {})
                 if isinstance(content, AsyncGenerator):
                     full_content = ""
                     async for chunk in content:
                         full_content += str(chunk)
-                        # Yield intermediate streaming notification
-                        # Skip generic notifications for self-notifying tools
-                        if tool_name not in ACP_SELF_NOTIFYING_TOOLS:
-                            await self.notifications.tool_call(
-                                tool_name=tool_name,
-                                tool_input=tool_input,
-                                tool_output=chunk,
-                                status="in_progress",
-                                tool_call_id=tool_call_id,
-                            )
+                        # Stream progress through state
+                        if state := self._tool_call_states.get(tool_call_id):
+                            await state.update(status="in_progress", raw_output=chunk)
 
                     # Replace the AsyncGenerator with the full content to prevent errors
                     result.content = full_content
@@ -464,35 +466,23 @@ class ACPSession:
                 else:
                     final_output = result.content
 
-                # Final completion notification. Skip generic notifications for self-notifying tools
-                if result.tool_name not in ACP_SELF_NOTIFYING_TOOLS:
+                # Complete tool call through state (preserves accumulated content/locations)
+                if state := self._tool_call_states.get(tool_call_id):
                     converted_blocks = to_acp_content_blocks(final_output)
-                    await self.notifications.tool_call(
-                        tool_name=result.tool_name,
-                        tool_input=tool_input,
-                        tool_output=converted_blocks,
-                        status="completed",
-                        tool_call_id=tool_call_id,
-                    )
-                self._current_tool_inputs.pop(tool_call_id, None)  # Clean up stored input
+                    await state.complete(raw_output=converted_blocks)
+                self._cleanup_tool_state(tool_call_id)
 
+            # Tool failed with retry - update state with error
             case FunctionToolResultEvent(
                 result=RetryPromptPart(tool_name=tool_name) as result,
                 tool_call_id=tool_call_id,
             ):
-                tool_name = tool_name or "unknown"
                 error_message = result.model_response()
-                # Skip generic notifications for self-notifying tools
-                if tool_name not in ACP_SELF_NOTIFYING_TOOLS:
-                    await self.notifications.tool_call(
-                        tool_name=tool_name,
-                        tool_input=self._current_tool_inputs.get(tool_call_id, {}),
-                        tool_output=f"Error: {error_message}",
-                        status="failed",
-                        tool_call_id=tool_call_id,
-                    )
-                self._current_tool_inputs.pop(tool_call_id, None)  # Clean up stored input
+                if state := self._tool_call_states.get(tool_call_id):
+                    await state.fail(error=error_message)
+                self._cleanup_tool_state(tool_call_id)
 
+            # Tool emits its own start event - update state with better title/content
             case ToolCallStartEvent(
                 tool_call_id=tool_call_id,
                 tool_name=tool_name,
@@ -502,19 +492,25 @@ class ACPSession:
                 locations=locations,
                 raw_input=raw_input,
             ):
-                msg = "Received tool call start event"
-                self.log.debug(msg, tool_name=tool_name, tool_call_id=tool_call_id)
+                self.log.debug(
+                    "Tool call start event", tool_name=tool_name, tool_call_id=tool_call_id
+                )
+                # Get or create state (may already exist from FunctionToolCallEvent)
+                state = self._get_or_create_tool_state(
+                    tool_call_id=tool_call_id,
+                    tool_name=tool_name,
+                    tool_input=raw_input or {},
+                )
                 # Convert LocationContentItem objects to ACP format
                 acp_locations = [ToolCallLocation(path=i.path, line=i.line) for i in locations]
-                # Send initial tool_call notification (creation)
-                await self.notifications.tool_call_start(
-                    tool_call_id=tool_call_id,
+                # Update state with tool-provided details (better title, content, locations)
+                await state.update(
                     title=title,
                     kind=kind,
-                    locations=acp_locations,
-                    raw_input=raw_input,
+                    add_locations=acp_locations if acp_locations else None,
                 )
 
+            # Tool progress event - update state
             case ToolCallProgressEvent(
                 progress=progress,
                 total=total,
@@ -523,17 +519,12 @@ class ACPSession:
                 tool_call_id=tool_call_id,
                 tool_input=tool_input,
             ):
-                msg = "Received progress event for tool"
-                self.log.debug(msg, tool_name=tool_name, tool_call_id=tool_call_id)
+                self.log.debug("Progress event", tool_name=tool_name, tool_call_id=tool_call_id)
                 output = message if message else f"Progress: {progress}"
                 if total:
                     output += f"/{total}"
-                await self.notifications.tool_call_progress(
-                    title=message,
-                    raw_output=output,
-                    status="in_progress",
-                    tool_call_id=tool_call_id,
-                )
+                if state := self._tool_call_states.get(tool_call_id):
+                    await state.update(title=message, status="in_progress", raw_output=output)
 
             case FinalResultEvent():
                 self.log.debug("Final result received")
@@ -548,6 +539,7 @@ class ACPSession:
                 ]
                 await self.notifications.update_plan(acp_entries)
 
+            # File operation completed - update state with location
             case FileOperationEvent(
                 operation=operation,
                 path=path,
@@ -555,11 +547,10 @@ class ACPSession:
                 error=error,
                 tool_call_id=str() as tool_call_id,
             ):
-                await self.notifications.tool_call_progress(
-                    tool_call_id=tool_call_id,
-                    status="completed",
-                    locations=[ToolCallLocation(path=path)],
-                )
+                if state := self._tool_call_states.get(tool_call_id):
+                    await state.update(add_location=path)
+
+            # File operation failed - update state with error
             case FileOperationEvent(
                 operation=operation,
                 path=path,
@@ -567,12 +558,13 @@ class ACPSession:
                 error=error,
                 tool_call_id=str() as tool_call_id,
             ):
-                await self.notifications.tool_call_progress(
-                    tool_call_id=tool_call_id,
-                    status="failed",
-                    raw_output=f"File operation {operation!r} failed: {error}",
-                )
+                if state := self._tool_call_states.get(tool_call_id):
+                    await state.update(
+                        add_location=path,
+                        raw_output=f"File operation {operation!r} failed: {error}",
+                    )
 
+            # File edit progress - update state with diff content
             case FileEditProgressEvent(
                 path=path,
                 old_text=old_text,
@@ -581,6 +573,7 @@ class ACPSession:
                 changed_lines=changed_lines,
                 tool_call_id=str() as tool_call_id,
             ):
+                # Still use direct notification for diff content (special format)
                 await self.notifications.file_edit_progress(
                     tool_call_id=tool_call_id,
                     path=path,
@@ -590,6 +583,7 @@ class ACPSession:
                     changed_lines=changed_lines,
                 )
 
+            # Process started - update state with terminal and better title
             case ProcessStartEvent(
                 process_id=process_id,
                 command=command,
@@ -597,12 +591,13 @@ class ACPSession:
                 error=error,
                 tool_call_id=str() as tool_call_id,
             ):
-                await self.notifications.tool_call_start(
-                    tool_call_id=tool_call_id,
-                    title=f"Running: {command}",
-                    kind="execute",
-                    content=[TerminalToolCallContent(terminal_id=process_id)],
-                )
+                if state := self._tool_call_states.get(tool_call_id):
+                    await state.add_terminal(
+                        terminal_id=process_id,
+                        title=f"Running: {command}",
+                    )
+
+            # Process start failed - update state with error
             case ProcessStartEvent(
                 process_id=process_id,
                 command=command,
@@ -610,21 +605,17 @@ class ACPSession:
                 error=error,
                 tool_call_id=str() as tool_call_id,
             ):
-                await self.notifications.tool_call_progress(
-                    tool_call_id=tool_call_id,
-                    status="failed",
-                    title=f"Failed to start process: {command}",
-                    raw_output=f"Process start failed: {error}",
-                )
+                if state := self._tool_call_states.get(tool_call_id):
+                    await state.update(
+                        title=f"Failed to start: {command}",
+                        raw_output=f"Process start failed: {error}",
+                    )
 
+            # Process output - just log, terminal content streams separately
             case ProcessOutputEvent(process_id=process_id, tool_call_id=str() as tool_call_id):
-                await self.notifications.terminal_progress(
-                    tool_call_id=tool_call_id,
-                    terminal_id=process_id,
-                    status="in_progress",
-                    title=f"Process {process_id} output",
-                )
+                pass  # Terminal content streams through terminal protocol
 
+            # Process exited - update state title
             case ProcessExitEvent(
                 process_id=process_id,
                 exit_code=exit_code,
@@ -632,62 +623,55 @@ class ACPSession:
                 final_output=final_output,
                 tool_call_id=str() as tool_call_id,
             ):
-                await self.notifications.terminal_progress(
-                    tool_call_id=tool_call_id,
-                    terminal_id=process_id,
-                    status="completed" if success else "failed",
-                    title=f"Process {process_id} exited with code {exit_code}",
-                )
+                if state := self._tool_call_states.get(tool_call_id):
+                    await state.update(
+                        title=f"Exited with code {exit_code}",
+                        status="in_progress",  # Don't mark complete yet, wait for FunctionToolResultEvent
+                    )
 
+            # Process killed
             case ProcessKillEvent(
                 process_id=process_id,
                 success=True,
                 error=error,
                 tool_call_id=str() as tool_call_id,
             ):
-                await self.notifications.terminal_progress(
-                    tool_call_id=tool_call_id,
-                    terminal_id=process_id,
-                    status="completed",
-                    title=f"Killed process {process_id}",
-                )
+                if state := self._tool_call_states.get(tool_call_id):
+                    await state.update(title=f"Killed process {process_id}")
+
             case ProcessKillEvent(
                 process_id=process_id,
                 success=False,
                 error=error,
                 tool_call_id=str() as tool_call_id,
             ):
-                await self.notifications.tool_call_progress(
-                    tool_call_id=tool_call_id,
-                    status="failed",
-                    title=f"Failed to kill process {process_id}",
-                    raw_output=f"Process kill failed: {error}",
-                )
+                if state := self._tool_call_states.get(tool_call_id):
+                    await state.update(
+                        title=f"Failed to kill process {process_id}",
+                        raw_output=f"Process kill failed: {error}",
+                    )
 
+            # Process released
             case ProcessReleaseEvent(
                 process_id=process_id,
                 success=True,
                 error=error,
                 tool_call_id=str() as tool_call_id,
             ):
-                await self.notifications.terminal_progress(
-                    tool_call_id=tool_call_id,
-                    terminal_id=process_id,
-                    status="completed",
-                    title=f"Released process {process_id}",
-                )
+                if state := self._tool_call_states.get(tool_call_id):
+                    await state.update(title=f"Released process {process_id}")
+
             case ProcessReleaseEvent(
                 process_id=process_id,
                 success=False,
                 error=error,
                 tool_call_id=str() as tool_call_id,
             ):
-                await self.notifications.tool_call_progress(
-                    tool_call_id=tool_call_id,
-                    status="failed",
-                    title=f"Failed to release process {process_id}",
-                    raw_output=f"Process release failed: {error}",
-                )
+                if state := self._tool_call_states.get(tool_call_id):
+                    await state.update(
+                        title=f"Failed to release process {process_id}",
+                        raw_output=f"Process release failed: {error}",
+                    )
 
             case _:
                 self.log.debug("Unhandled event", event_type=type(event).__name__)
@@ -695,6 +679,7 @@ class ACPSession:
     async def close(self) -> None:
         """Close the session and cleanup resources."""
         self._current_tool_inputs.clear()
+        self._tool_call_states.clear()
 
         try:
             # Remove cwd context callable from all agents

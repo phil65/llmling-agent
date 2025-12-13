@@ -8,6 +8,7 @@ from acp.filesystem import ACPFileSystem, ACPPath
 from acp.agent.protocol import Agent
 from acp.client.protocol import Client
 from acp.terminal_handle import TerminalHandle
+from acp.tool_call_state import ToolCallState
 from acp.schema import (
     AuthenticateRequest,
     AuthenticateResponse,
@@ -158,6 +159,7 @@ __all__ = [  # noqa: RUF022
     "Agent",
     "Client",
     "TerminalHandle",
+    "ToolCallState",
     # connection helpers (recommended)
     "run_agent",
     "connect_to_agent",
