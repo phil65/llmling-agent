@@ -50,7 +50,8 @@ async def test_acp_filesystem_fsspec_operations():
 
             # Test directory listing
             files = await fs._ls(str(temp_path), detail=True)
-            file_names = [f["name"] for f in files]
+            # fsspec convention: 'name' contains full path, extract basename for comparison
+            file_names = [Path(f["name"]).name for f in files]
 
             assert "file1.txt" in file_names
             assert "file2.md" in file_names
@@ -68,7 +69,8 @@ async def test_acp_filesystem_fsspec_operations():
 
             # Test file info
             info = await fs._info(str(temp_path / "file1.txt"))
-            assert info["name"] == "file1.txt"
+            # fsspec convention: 'name' contains full path
+            assert Path(info["name"]).name == "file1.txt"
             assert info["type"] == "file"
             assert info["size"] == 17  # Length of "Content of file 1"  # noqa: PLR2004
 

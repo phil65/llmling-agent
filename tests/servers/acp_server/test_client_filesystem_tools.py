@@ -230,7 +230,7 @@ async def test_read_then_write(
 
     # Write new content
     await write_tool.execute(
-        agent_ctx=mock_ctx, path="/home/user/test.txt", content="modified content"
+        agent_ctx=mock_ctx, path="/home/user/test.txt", content="modified content", overwrite=True
     )
 
     # Read modified

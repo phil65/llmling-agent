@@ -208,13 +208,12 @@ def truncate_lines(
     for line in selected_lines:
         line_bytes = len(line.encode("utf-8"))
         if total_bytes + line_bytes > max_bytes:
-            # Would exceed limit
+            # Would exceed limit - this is actual truncation
             return result_lines, True
 
         result_lines.append(line)
         total_bytes += line_bytes
 
-    # Check if we hit the line limit or end of file
-    was_truncated = end_idx < len(lines) or (limit is not None and len(selected_lines) >= limit)
-
-    return result_lines, was_truncated
+    # Successfully returned all requested content - not truncated
+    # (byte truncation already handled above with early return)
+    return result_lines, False
