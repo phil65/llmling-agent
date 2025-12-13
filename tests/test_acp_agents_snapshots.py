@@ -131,10 +131,10 @@ def get_help_output(agent_class: type[BaseACPAgentConfig]) -> str:
         providers = instance.model_providers
         if providers:
             for provider in providers:
-                lines.append(f"  - {provider}")
+                lines.append(f"  - {provider}")  # noqa: PERF401
         else:
             lines.append("  (none)")
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         lines.append(f"  Error getting providers: {e}")
 
     return "\n".join(lines)

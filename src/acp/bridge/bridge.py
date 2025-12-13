@@ -41,7 +41,7 @@ class NoOpClient(Client):
     async def request_permission(self, params: Any) -> Any:
         from acp.schema import AllowedOutcome, RequestPermissionResponse
 
-        return RequestPermissionResponse(outcome=AllowedOutcome())
+        return RequestPermissionResponse(outcome=AllowedOutcome(option_id="allow"))
 
     async def session_update(self, params: Any) -> None:
         pass
@@ -54,7 +54,7 @@ class NoOpClient(Client):
     async def read_text_file(self, params: Any) -> Any:
         from acp.schema import ReadTextFileResponse
 
-        return ReadTextFileResponse(contents="")
+        return ReadTextFileResponse(content="")
 
     async def create_terminal(self, params: Any) -> Any:
         from acp.schema import CreateTerminalResponse
@@ -64,7 +64,7 @@ class NoOpClient(Client):
     async def terminal_output(self, params: Any) -> Any:
         from acp.schema import TerminalOutputResponse
 
-        return TerminalOutputResponse()
+        return TerminalOutputResponse(output="", truncated=False)
 
     async def release_terminal(self, params: Any) -> Any:
         from acp.schema import ReleaseTerminalResponse
@@ -129,7 +129,7 @@ class ACPBridge:
 
         try:
             body = await request.json()
-        except Exception:
+        except Exception:  # noqa: BLE001
             return JSONResponse(
                 {"jsonrpc": "2.0", "error": {"code": -32700, "message": "Parse error"}},
                 status_code=400,
@@ -166,7 +166,7 @@ class ACPBridge:
                 status_code=500,
             )
 
-    async def _dispatch_to_agent(
+    async def _dispatch_to_agent(  # noqa: PLR0911
         self,
         method: str,
         params: dict[str, Any] | None,
