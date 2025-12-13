@@ -132,7 +132,7 @@ def to_acp_content_blocks(  # noqa: PLR0911
             return [TextContentBlock(text=str(tool_output))]
 
 
-def generate_tool_title(tool_name: str, tool_input: dict[str, Any]) -> str:
+def generate_tool_title(tool_name: str, tool_input: dict[str, Any]) -> str:  # noqa: PLR0911
     """Generate a descriptive title for a tool call based on name and inputs.
 
     Args:
@@ -145,61 +145,69 @@ def generate_tool_title(tool_name: str, tool_input: dict[str, Any]) -> str:
     name_lower = tool_name.lower()
 
     # Command/script execution - show the command
-    if any(k in name_lower for k in ["command", "execute", "run", "shell", "script"]):
-        if cmd := tool_input.get("command"):
-            # Truncate long commands
-            cmd_str = str(cmd)
-            if len(cmd_str) > 60:
-                cmd_str = cmd_str[:57] + "..."
-            return f"Running: {cmd_str}"
+    if any(k in name_lower for k in ["command", "execute", "run", "shell", "script"]) and (
+        cmd := tool_input.get("command")
+    ):
+        # Truncate long commands
+        cmd_str = str(cmd)
+        if len(cmd_str) > 60:  # noqa: PLR2004
+            cmd_str = cmd_str[:57] + "..."
+        return f"Running: {cmd_str}"
 
     # File reading
-    if any(k in name_lower for k in ["read", "load", "get"]) and "file" in name_lower:
-        if path := tool_input.get("path") or tool_input.get("file_path"):
-            return f"Reading: {path}"
+    if (
+        any(k in name_lower for k in ["read", "load", "get"])
+        and "file" in name_lower
+        and (path := tool_input.get("path") or tool_input.get("file_path"))
+    ):
+        return f"Reading: {path}"
 
     # File writing/editing
-    if any(k in name_lower for k in ["write", "save", "edit", "modify"]):
-        if path := tool_input.get("path") or tool_input.get("file_path"):
-            return f"Editing: {path}"
+    if any(k in name_lower for k in ["write", "save", "edit", "modify"]) and (
+        path := tool_input.get("path") or tool_input.get("file_path")
+    ):
+        return f"Editing: {path}"
 
     # File deletion
-    if any(k in name_lower for k in ["delete", "remove"]):
-        if path := tool_input.get("path") or tool_input.get("file_path"):
-            return f"Deleting: {path}"
+    if any(k in name_lower for k in ["delete", "remove"]) and (
+        path := tool_input.get("path") or tool_input.get("file_path")
+    ):
+        return f"Deleting: {path}"
 
     # Directory listing
-    if "list" in name_lower and any(k in name_lower for k in ["dir", "folder", "path"]):
-        if path := tool_input.get("path") or tool_input.get("directory"):
-            return f"Listing: {path}"
+    if (
+        "list" in name_lower
+        and any(k in name_lower for k in ["dir", "folder", "path"])
+        and (path := tool_input.get("path") or tool_input.get("directory"))
+    ):
+        return f"Listing: {path}"
 
     # Search operations
-    if any(k in name_lower for k in ["search", "find", "grep", "query"]):
-        if query := tool_input.get("query") or tool_input.get("pattern") or tool_input.get("regex"):
-            query_str = str(query)
-            if len(query_str) > 40:
-                query_str = query_str[:37] + "..."
-            return f"Searching: {query_str}"
+    if any(k in name_lower for k in ["search", "find", "grep", "query"]) and (
+        query := tool_input.get("query") or tool_input.get("pattern") or tool_input.get("regex")
+    ):
+        query_str = str(query)
+        if len(query_str) > 40:  # noqa: PLR2004
+            query_str = query_str[:37] + "..."
+        return f"Searching: {query_str}"
 
     # Fetch/download
-    if any(k in name_lower for k in ["fetch", "download", "request"]):
-        if url := tool_input.get("url"):
-            url_str = str(url)
-            if len(url_str) > 50:
-                url_str = url_str[:47] + "..."
-            return f"Fetching: {url_str}"
+    if any(k in name_lower for k in ["fetch", "download", "request"]) and (
+        url := tool_input.get("url")
+    ):
+        url_str = str(url)
+        if len(url_str) > 50:  # noqa: PLR2004
+            url_str = url_str[:47] + "..."
+        return f"Fetching: {url_str}"
 
     # Process management
     if "process" in name_lower:
-        if "start" in name_lower:
-            if cmd := tool_input.get("command"):
-                return f"Starting process: {cmd}"
-        if "kill" in name_lower:
-            if pid := tool_input.get("process_id"):
-                return f"Killing process: {pid}"
-        if "output" in name_lower:
-            if pid := tool_input.get("process_id"):
-                return f"Getting output: {pid}"
+        if "start" in name_lower and (cmd := tool_input.get("command")):
+            return f"Starting process: {cmd}"
+        if "kill" in name_lower and (pid := tool_input.get("process_id")):
+            return f"Killing process: {pid}"
+        if "output" in name_lower and (pid := tool_input.get("process_id")):
+            return f"Getting output: {pid}"
 
     # Code execution
     if "code" in name_lower and any(k in name_lower for k in ["execute", "run", "eval"]):
@@ -211,7 +219,7 @@ def generate_tool_title(tool_name: str, tool_input: dict[str, Any]) -> str:
     for key in ["path", "file_path", "filepath", "filename", "name", "url", "command"]:
         if value := tool_input.get(key):
             value_str = str(value)
-            if len(value_str) > 50:
+            if len(value_str) > 50:  # noqa: PLR2004
                 value_str = value_str[:47] + "..."
             return f"{tool_name}: {value_str}"
 

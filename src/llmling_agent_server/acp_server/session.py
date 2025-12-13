@@ -90,7 +90,7 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 SLASH_PATTERN = re.compile(r"^/([\w-]+)(?:\s+(.*))?$")
 ACP_COMMANDS = {"list-sessions", "load-session", "save-session", "delete-session"}
-
+MAX_CMD_OUTPUT_LENGTH = 60
 
 logger = get_logger(__name__)
 
@@ -607,7 +607,11 @@ class ACPSession:
             ):
                 if state := self._tool_call_states.get(tool_call_id):
                     # Truncate long commands for title
-                    cmd_display = command[:60] + "..." if len(command) > 60 else command
+                    cmd_display = (
+                        command[:MAX_CMD_OUTPUT_LENGTH] + "..."
+                        if len(command) > MAX_CMD_OUTPUT_LENGTH
+                        else command
+                    )
                     # process_id is the terminal_id from ACP
                     terminal_content = TerminalToolCallContent(terminal_id=process_id)
                     await state.update(
@@ -645,10 +649,9 @@ class ACPSession:
                 if state := self._tool_call_states.get(tool_call_id):
                     # Append exit status to existing title
                     status_icon = "✓" if success else "✗"
-                    await state.update(
-                        title=f"{state.title} [{status_icon} exit {exit_code}]",
-                        status="in_progress",  # Don't mark complete yet, wait for FunctionToolResultEvent
-                    )
+                    title = f"{state.title} [{status_icon} exit {exit_code}]"
+                    # Don't mark complete yet, wait for FunctionToolResultEvent
+                    await state.update(title=title, status="in_progress")
 
             # Process killed
             case ProcessKillEvent(
