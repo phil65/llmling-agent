@@ -141,49 +141,57 @@ class ACPBridge:
 
         match method:
             case "initialize":
-                req = InitializeRequest.model_validate(params)
-                resp = await self._connection.initialize(req)
-                return resp.model_dump(by_alias=True, exclude_none=True)
+                init_request = InitializeRequest.model_validate(params)
+                init_resp = await self._connection.initialize(init_request)
+                return init_resp.model_dump(by_alias=True, exclude_none=True)
             case "session/new":
-                req = NewSessionRequest.model_validate(params)
-                resp = await self._connection.new_session(req)
-                return resp.model_dump(by_alias=True, exclude_none=True)
+                new_session_request = NewSessionRequest.model_validate(params)
+                new_session_resp = await self._connection.new_session(new_session_request)
+                return new_session_resp.model_dump(by_alias=True, exclude_none=True)
             case "session/load":
-                req = LoadSessionRequest.model_validate(params)
-                resp = await self._connection.load_session(req)
-                return resp.model_dump(by_alias=True, exclude_none=True)
+                load_session_request = LoadSessionRequest.model_validate(params)
+                load_sessoin_resp = await self._connection.load_session(load_session_request)
+                return load_sessoin_resp.model_dump(by_alias=True, exclude_none=True)
             case "session/list":
-                req = ListSessionsRequest.model_validate(params)
-                resp = await self._connection.list_sessions(req)
-                return resp.model_dump(by_alias=True, exclude_none=True)
+                list_sessions_request = ListSessionsRequest.model_validate(params)
+                list_session_resp = await self._connection.list_sessions(list_sessions_request)
+                return list_session_resp.model_dump(by_alias=True, exclude_none=True)
             case "session/fork":
-                req = ForkSessionRequest.model_validate(params)
-                resp = await self._connection.fork_session(req)
-                return resp.model_dump(by_alias=True, exclude_none=True)
+                fork_session_request = ForkSessionRequest.model_validate(params)
+                fork_session_resp = await self._connection.fork_session(fork_session_request)
+                return fork_session_resp.model_dump(by_alias=True, exclude_none=True)
             case "session/resume":
-                req = ResumeSessionRequest.model_validate(params)
-                resp = await self._connection.resume_session(req)
-                return resp.model_dump(by_alias=True, exclude_none=True)
+                resume_session_request = ResumeSessionRequest.model_validate(params)
+                resume_session_resp = await self._connection.resume_session(resume_session_request)
+                return resume_session_resp.model_dump(by_alias=True, exclude_none=True)
             case "session/prompt":
-                req = PromptRequest.model_validate(params)
-                resp = await self._connection.prompt(req)
-                return resp.model_dump(by_alias=True, exclude_none=True)
+                prompt_request = PromptRequest.model_validate(params)
+                prompt_resp = await self._connection.prompt(prompt_request)
+                return prompt_resp.model_dump(by_alias=True, exclude_none=True)
             case "session/cancel":
-                req = CancelNotification.model_validate(params)
-                await self._connection.cancel(req)
+                cancel_request = CancelNotification.model_validate(params)
+                await self._connection.cancel(cancel_request)
                 return None
             case "session/set_mode":
-                req = SetSessionModeRequest.model_validate(params)
-                resp = await self._connection.set_session_mode(req)
+                set_mode_request = SetSessionModeRequest.model_validate(params)
+                resp = await self._connection.set_session_mode(set_mode_request)
                 return resp.model_dump(by_alias=True, exclude_none=True) if resp else {}
             case "session/set_model":
-                req = SetSessionModelRequest.model_validate(params)
-                resp = await self._connection.set_session_model(req)
-                return resp.model_dump(by_alias=True, exclude_none=True) if resp else {}
+                set_model_request = SetSessionModelRequest.model_validate(params)
+                set_model_resp = await self._connection.set_session_model(set_model_request)
+                return (
+                    set_model_resp.model_dump(by_alias=True, exclude_none=True)
+                    if set_model_resp
+                    else {}
+                )
             case "authenticate":
-                req = AuthenticateRequest.model_validate(params)
-                resp = await self._connection.authenticate(req)
-                return resp.model_dump(by_alias=True, exclude_none=True) if resp else {}
+                authenticate_request = AuthenticateRequest.model_validate(params)
+                authenticate_resp = await self._connection.authenticate(authenticate_request)
+                return (
+                    authenticate_resp.model_dump(by_alias=True, exclude_none=True)
+                    if authenticate_resp
+                    else {}
+                )
             case str() if method.startswith("_") and is_notification:
                 await self._connection.ext_notification(method[1:], params or {})
                 return None
