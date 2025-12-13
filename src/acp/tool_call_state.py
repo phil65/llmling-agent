@@ -7,6 +7,7 @@ accumulated rather than overwritten by subsequent notifications.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
 from acp.schema import ContentToolCallContent, TerminalToolCallContent
@@ -14,8 +15,6 @@ from acp.schema.tool_call import ToolCallLocation
 
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
-
     from acp.notifications import ACPNotifications
     from acp.schema.tool_call import ToolCallContent, ToolCallKind, ToolCallStatus
 
@@ -127,12 +126,13 @@ class ToolCallState:
 
         # Accumulate content (never replace)
         if add_content is not None:
-            if isinstance(add_content, (list, tuple)):
+            if isinstance(add_content, Sequence):
                 self.content.extend(add_content)
             else:
                 self.content.append(add_content)
 
         # Accumulate locations (never replace)
+        # TODO: perhaps both should be possible?
         if add_location is not None:
             if isinstance(add_location, str):
                 add_location = ToolCallLocation(path=add_location)
@@ -140,9 +140,8 @@ class ToolCallState:
 
         if add_locations is not None:
             for loc in add_locations:
-                if isinstance(loc, str):
-                    loc = ToolCallLocation(path=loc)
-                self.locations.append(loc)
+                location = ToolCallLocation(path=loc) if isinstance(loc, str) else loc
+                self.locations.append(location)
 
         # Send update with ALL accumulated data
         await self._notifications.tool_call_progress(
