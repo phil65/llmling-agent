@@ -8,6 +8,7 @@ __pycache__/
 coverage.xml
 .cache
 .hatch
+build/
 .pytest_cache/
 junit.xml
 # Jupyter Notebook
