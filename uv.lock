@@ -452,11 +452,11 @@ wheels = [
 
 [[package]]
 name = "beartype"
-version = "0.22.8"
+version = "0.22.9"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/8c/1d/794ae2acaa67c8b216d91d5919da2606c2bb14086849ffde7f5555f3a3a5/beartype-0.22.8.tar.gz", hash = "sha256:b19b21c9359722ee3f7cc433f063b3e13997b27ae8226551ea5062e621f61165", size = 1602262, upload-time = "2025-12-03T05:11:10.766Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c7/94/1009e248bbfbab11397abca7193bea6626806be9a327d399810d523a07cb/beartype-0.22.9.tar.gz", hash = "sha256:8f82b54aa723a2848a56008d18875f91c1db02c32ef6a62319a002e3e25a975f", size = 1608866, upload-time = "2025-12-13T06:50:30.72Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/14/2a/fbcbf5a025d3e71ddafad7efd43e34ec4362f4d523c3c471b457148fb211/beartype-0.22.8-py3-none-any.whl", hash = "sha256:b832882d04e41a4097bab9f63e6992bc6de58c414ee84cba9b45b67314f5ab2e", size = 1331895, upload-time = "2025-12-03T05:11:08.373Z" },
+    { url = "https://files.pythonhosted.org/packages/71/cc/18245721fa7747065ab478316c7fea7c74777d07f37ae60db2e84f8172e8/beartype-0.22.9-py3-none-any.whl", hash = "sha256:d16c9bbc61ea14637596c5f6fbff2ee99cbe3573e46a716401734ef50c3060c2", size = 1333658, upload-time = "2025-12-13T06:50:28.266Z" },
 ]
 
 [[package]]
@@ -1252,16 +1252,17 @@ wheels = [
 
 [[package]]
 name = "exxec"
-version = "0.1.1"
+version = "0.1.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
+    { name = "anyenv" },
     { name = "pydantic" },
     { name = "schemez" },
     { name = "upathtools" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/74/35/dfb8d3ff74ab5c7d3f634f0367d97aeaeb6fcce30b927aff2b7dd3480567/exxec-0.1.1.tar.gz", hash = "sha256:de763571abc3e2b96b2f12dbcb31181880c7a6d26bea7cc02164dc151c1bb7b8", size = 65544, upload-time = "2025-12-11T07:59:55.724Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/9c/e7/1ebbcf8d5265135552fa0196d7373559f0b23dd75e8593703253133d3263/exxec-0.1.2.tar.gz", hash = "sha256:b383642d01348a32a4e70abf27bb18a36e99878f804c605d36f603e6d2d74b3a", size = 67956, upload-time = "2025-12-13T07:29:03.595Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/88/96/9ffc3892129ce60e12d868a74a5508db82039f0f339f52fb2089c36ed23e/exxec-0.1.1-py3-none-any.whl", hash = "sha256:aba30ca5295500d7f8932c6da4a6bb251bb3bd7e3aa2c38b8417746a3c58c3e3", size = 91335, upload-time = "2025-12-11T07:59:57.116Z" },
+    { url = "https://files.pythonhosted.org/packages/fc/c2/26cbafa964ef3d6032c750532eaf4f7abd178ac77887e9a70ab30a3d1a7b/exxec-0.1.2-py3-none-any.whl", hash = "sha256:4d0059c7b1fb4e52077afee717731d029d41f5e54dd1a3928a2ce45d9ca6a854", size = 93563, upload-time = "2025-12-13T07:29:05.1Z" },
 ]
 
 [[package]]
