@@ -8,17 +8,13 @@ import inspect
 import os
 from typing import TYPE_CHECKING, Annotated, Any, Literal, Self, assert_never
 
-from fastmcp.prompts.prompt import (
-    Prompt as FastMCPPrompt,
-    PromptArgument as FastMCPArgument,
-)
+from fastmcp.prompts.prompt import Prompt as FastMCPPrompt, PromptArgument as FastMCPArgument
 from mcp.types import Prompt as MCPPrompt, PromptArgument
 from pydantic import ConfigDict, Field
 from pydantic_ai import BinaryContent, SystemPromptPart, UserPromptPart
 from pydantic_ai.messages import ImageUrl
 from schemez import Schema
-import upath
-from upathtools import to_upath
+from upathtools import UPath, to_upath
 
 from llmling_agent.log import get_logger
 from llmling_agent.mcp_server import MCPClient
@@ -501,7 +497,7 @@ class FilePrompt(BasePrompt):
     and parsed according to the specified format.
     """
 
-    path: str | os.PathLike[str] | upath.UPath
+    path: str | os.PathLike[str] | UPath
     """Path to the file containing the prompt content."""
 
     fmt: Literal["text", "markdown", "jinja2"] = Field("text", alias="format")
@@ -516,7 +512,7 @@ class FilePrompt(BasePrompt):
     def to_mcp_prompt(self) -> MCPPrompt:
         """Convert to MCP Prompt."""
         return MCPPrompt(
-            name=self.name or upath.UPath(self.path).name,
+            name=self.name or to_upath(self.path).name,
             description=self.description,
         )
 

@@ -64,7 +64,6 @@ dependencies = [
   "tokonomics>=0.1.2",
   "toprompt>=0.0.1",
   "typer",
-  "universal-pathlib",
   "upathtools>=0.1.0",
   "yamling>=2.0.2",
 ]

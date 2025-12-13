@@ -7,8 +7,7 @@ from typing import TYPE_CHECKING
 
 from pydantic_ai import AudioUrl, BinaryContent, BinaryImage, DocumentUrl, ImageUrl, VideoUrl
 from toprompt import to_prompt
-import upath
-from upathtools import read_path, to_upath
+from upathtools import UPath, read_path, to_upath
 
 
 if TYPE_CHECKING:
@@ -33,7 +32,7 @@ async def convert_prompts(
     result: list[UserContent] = []
     for p in prompts:
         match p:
-            case os.PathLike() | upath.UPath():
+            case os.PathLike() | UPath():
                 from mimetypes import guess_type
 
                 path_obj = to_upath(p)

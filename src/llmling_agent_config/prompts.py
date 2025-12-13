@@ -8,7 +8,7 @@ from typing import Annotated, Any, Literal
 
 from pydantic import ConfigDict, Field, ImportString
 from schemez import Schema
-import upath
+from upathtools import UPath
 
 from llmling_agent.log import get_logger
 
@@ -157,7 +157,7 @@ class FilePromptConfig(BasePromptConfig):
     and parsed according to the specified format.
     """
 
-    path: str | os.PathLike[str] | upath.UPath = Field(
+    path: str | os.PathLike[str] | UPath = Field(
         title="File path",
         examples=["prompts/greeting.txt", "/path/to/prompt.md", "templates/system.j2"],
     )

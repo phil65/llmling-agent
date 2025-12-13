@@ -8,13 +8,14 @@ from typing import TYPE_CHECKING, Annotated, Any, Literal
 
 from pydantic import ConfigDict, Field, ImportString
 from schemez import Schema
-from upath import UPath
+from upathtools import to_upath
 
 from llmling_agent_config.conditions import Condition
 
 
 if TYPE_CHECKING:
     from pydantic_ai.models.function import FunctionModel
+    from upathtools import UPath
 
     from llmling_agent.messaging import ChatMessage
 
@@ -184,14 +185,14 @@ class FileConnectionConfig(ConnectionConfig):
         date = now.strftime("%Y-%m-%d")
         time_ = now.strftime("%H-%M-%S")
         variables = {"date": date, "time": time_, **context}
-        return UPath(self.path.format(**variables))
+        return to_upath(self.path.format(**variables))
 
     def get_model(self) -> FunctionModel:
         """Get provider for file writing."""
         from jinja2 import Template
         from llmling_models import function_to_model
 
-        path_obj = UPath(self.path)
+        path_obj = to_upath(self.path)
         template_obj = Template(self.template)
 
         async def write_message(message: str) -> str:

@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any, ClassVar
 
+from pydantic import ValidationError
 import typer
+from upathtools import to_upath
 
 from llmling_agent_cli.cli_types import Provider  # noqa: TC001
 
@@ -25,15 +27,11 @@ def create(
     ),
 ) -> None:
     """Interactive config generator for agents and teams."""
-    from typing import TYPE_CHECKING, ClassVar
-
-    from pydantic import ValidationError
     from schemez import YAMLCode
     from textual.app import App
     from textual.binding import Binding
     from textual.containers import ScrollableContainer
     from textual.widgets import Header, Input, Static
-    from upath import UPath
 
     from llmling_agent import Agent, AgentsManifest
     from llmling_agent.agent.architect import create_architect_agent
@@ -116,7 +114,7 @@ def create(
             agent = Agent(output_type=YAMLCode)
             self.agent = agent
             self.current_config: str | None = None
-            self.output_path = UPath(output_path) if output_path else None
+            self.output_path = to_upath(output_path) if output_path else None
             self.add_to_store = add_to_store
             self._token_count: int = 0
 

@@ -17,7 +17,7 @@ from searchly.config import (
     get_config_class,
 )
 from tokonomics import ModelName
-from upath import UPath
+from upathtools import UPath
 
 from llmling_agent_config.converters import ConversionConfig
 from llmling_agent_config.workers import WorkerConfig

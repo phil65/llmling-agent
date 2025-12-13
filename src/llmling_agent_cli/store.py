@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, TypedDict
 
 import anyenv
 import platformdirs
-from upath import UPath
 from upathtools import to_upath
 
 from llmling_agent.log import get_logger
@@ -45,7 +44,7 @@ class ConfigStore:
     def __init__(self, filename: str | None = None) -> None:
         """Initialize store with default paths."""
         llmling_dir = platformdirs.user_config_dir("llmling")
-        self.config_dir = UPath(llmling_dir)
+        self.config_dir = to_upath(llmling_dir)
         name = filename or "configs.json"
         self.config_file = self.config_dir / name
         self._ensure_config_dir()
