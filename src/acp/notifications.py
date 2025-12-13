@@ -30,7 +30,7 @@ from acp.schema import (
 )
 from acp.schema.tool_call import ToolCallLocation
 from acp.tool_call_reporter import ToolCallReporter
-from acp.utils import infer_tool_kind, to_acp_content_blocks
+from acp.utils import generate_tool_title, infer_tool_kind, to_acp_content_blocks
 from llmling_agent.log import get_logger
 
 
@@ -173,11 +173,14 @@ class ACPNotifications:
             if key in {"path", "file_path", "filepath"} and isinstance(value, str)
         ]
 
+        # Generate a descriptive title from tool name and inputs
+        title = generate_tool_title(tool_name, tool_input)
+
         # Use appropriate notification type based on status
         if status == "pending":
             await self.tool_call_start(
                 tool_call_id=tool_call_id or f"{tool_name}_{hash(str(tool_input))}",
-                title=f"Execute {tool_name}",
+                title=title,
                 kind=infer_tool_kind(tool_name),
                 locations=locations or None,
                 content=content or None,
@@ -187,7 +190,7 @@ class ACPNotifications:
             # For in_progress, completed, and failed statuses
             await self.tool_call_progress(
                 tool_call_id=tool_call_id or f"{tool_name}_{hash(str(tool_input))}",
-                title=f"Execute {tool_name}",
+                title=title,
                 status=status,
                 locations=locations or None,
                 content=content or None,

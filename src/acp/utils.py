@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import base64
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from pydantic_ai import BinaryContent, FileUrl, ToolReturn
 
@@ -130,6 +130,93 @@ def to_acp_content_blocks(  # noqa: PLR0911
         case _:
             # Everything else - convert to string
             return [TextContentBlock(text=str(tool_output))]
+
+
+def generate_tool_title(tool_name: str, tool_input: dict[str, Any]) -> str:
+    """Generate a descriptive title for a tool call based on name and inputs.
+
+    Args:
+        tool_name: Name of the tool being called
+        tool_input: Input parameters passed to the tool
+
+    Returns:
+        Human-readable title describing what the tool is doing
+    """
+    name_lower = tool_name.lower()
+
+    # Command/script execution - show the command
+    if any(k in name_lower for k in ["command", "execute", "run", "shell", "script"]):
+        if cmd := tool_input.get("command"):
+            # Truncate long commands
+            cmd_str = str(cmd)
+            if len(cmd_str) > 60:
+                cmd_str = cmd_str[:57] + "..."
+            return f"Running: {cmd_str}"
+
+    # File reading
+    if any(k in name_lower for k in ["read", "load", "get"]) and "file" in name_lower:
+        if path := tool_input.get("path") or tool_input.get("file_path"):
+            return f"Reading: {path}"
+
+    # File writing/editing
+    if any(k in name_lower for k in ["write", "save", "edit", "modify"]):
+        if path := tool_input.get("path") or tool_input.get("file_path"):
+            return f"Editing: {path}"
+
+    # File deletion
+    if any(k in name_lower for k in ["delete", "remove"]):
+        if path := tool_input.get("path") or tool_input.get("file_path"):
+            return f"Deleting: {path}"
+
+    # Directory listing
+    if "list" in name_lower and any(k in name_lower for k in ["dir", "folder", "path"]):
+        if path := tool_input.get("path") or tool_input.get("directory"):
+            return f"Listing: {path}"
+
+    # Search operations
+    if any(k in name_lower for k in ["search", "find", "grep", "query"]):
+        if query := tool_input.get("query") or tool_input.get("pattern") or tool_input.get("regex"):
+            query_str = str(query)
+            if len(query_str) > 40:
+                query_str = query_str[:37] + "..."
+            return f"Searching: {query_str}"
+
+    # Fetch/download
+    if any(k in name_lower for k in ["fetch", "download", "request"]):
+        if url := tool_input.get("url"):
+            url_str = str(url)
+            if len(url_str) > 50:
+                url_str = url_str[:47] + "..."
+            return f"Fetching: {url_str}"
+
+    # Process management
+    if "process" in name_lower:
+        if "start" in name_lower:
+            if cmd := tool_input.get("command"):
+                return f"Starting process: {cmd}"
+        if "kill" in name_lower:
+            if pid := tool_input.get("process_id"):
+                return f"Killing process: {pid}"
+        if "output" in name_lower:
+            if pid := tool_input.get("process_id"):
+                return f"Getting output: {pid}"
+
+    # Code execution
+    if "code" in name_lower and any(k in name_lower for k in ["execute", "run", "eval"]):
+        if lang := tool_input.get("language"):
+            return f"Executing {lang} code"
+        return "Executing code"
+
+    # Default: try to find any path-like or meaningful parameter
+    for key in ["path", "file_path", "filepath", "filename", "name", "url", "command"]:
+        if value := tool_input.get(key):
+            value_str = str(value)
+            if len(value_str) > 50:
+                value_str = value_str[:47] + "..."
+            return f"{tool_name}: {value_str}"
+
+    # Final fallback
+    return f"Calling {tool_name}"
 
 
 def infer_tool_kind(tool_name: str) -> ToolCallKind:  # noqa: PLR0911
