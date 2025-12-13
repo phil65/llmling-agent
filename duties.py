@@ -106,6 +106,15 @@ def version(
     new_version = ctx.run("uv version --short", capture=True).strip()
     print(f"New version: {new_version}")
     ctx.run("uv lock")
+
+    # Update extension.toml
+    ext_toml = Path("distribution/zed/extension.toml")
+    if ext_toml.exists():
+        content = ext_toml.read_text()
+        content = content.replace(old_version, new_version)
+        ext_toml.write_text(content)
+        ctx.run("git add distribution/zed/extension.toml")
+
     ctx.run("git add pyproject.toml uv.lock")
     ctx.run(f'git commit -m "chore: bump version {old_version} -> {new_version}"')
 
