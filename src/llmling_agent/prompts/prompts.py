@@ -8,7 +8,6 @@ import inspect
 import os
 from typing import TYPE_CHECKING, Annotated, Any, Literal, Self, assert_never
 
-from fastmcp.prompts.prompt import Prompt as FastMCPPrompt, PromptArgument as FastMCPArgument
 from mcp.types import Prompt as MCPPrompt, PromptArgument
 from pydantic import ConfigDict, Field
 from pydantic_ai import BinaryContent, SystemPromptPart, UserPromptPart
@@ -25,7 +24,7 @@ from llmling_agent.utils.inspection import execute
 if TYPE_CHECKING:
     from collections.abc import Mapping
 
-    from fastmcp.prompts.prompt import FunctionPrompt
+    from fastmcp.prompts.prompt import FunctionPrompt, Prompt as FastMCPPrompt
     from pydantic_ai import ModelRequestPart
 
 
@@ -186,6 +185,11 @@ class StaticPrompt(BasePrompt):
         return MCPPrompt(name=self.name, description=self.description, arguments=args)
 
     def to_fastmcp_prompt(self) -> FastMCPPrompt:
+        from fastmcp.prompts.prompt import (
+            Prompt as FastMCPPrompt,
+            PromptArgument as FastMCPArgument,
+        )
+
         params = [
             FastMCPArgument(name=p.name, description=p.description, required=p.required)
             for p in self.arguments
