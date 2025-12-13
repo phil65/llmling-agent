@@ -15,8 +15,7 @@ if TYPE_CHECKING:
     from datetime import datetime
 
     from jinja2 import Template
-    from upath import UPath
-    from upathtools import JoinablePathLike
+    from upathtools import JoinablePathLike, UPath
 
     from llmling_agent.common_types import JsonValue
     from llmling_agent_config.storage import LogFormat, TextLogConfig
@@ -146,10 +145,8 @@ class TextLogProvider(StorageProvider):
             template_str = self.TEMPLATES["chronological"]
         elif template in self.TEMPLATES:
             template_str = self.TEMPLATES[template]  # type: ignore
-        else:
-            # Assume it's a path
-            with to_upath(template).open() as f:
-                template_str = f.read()
+        else:  # Assume it's a path
+            template_str = to_upath(template).read_text()
         return Template(template_str)
 
     def _get_base_context(self, operation: str) -> dict[str, Any]:

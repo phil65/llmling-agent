@@ -30,7 +30,7 @@ def init_agent_config(
     Creates and activates a new agent configuration. The configuration will be
     automatically registered and set as active.
     """
-    from upath import UPath
+    from pathlib import Path
 
     if interactive:
         validate_import("promptantic", "chat")
@@ -46,7 +46,7 @@ def init_agent_config(
 
         shutil.copy2(config_resources.AGENTS_TEMPLATE, output)
 
-    config_name = name or UPath(output).stem
+    config_name = name or Path(output).stem
     agent_store.add_config(config_name, output)
     agent_store.set_active(config_name)
 

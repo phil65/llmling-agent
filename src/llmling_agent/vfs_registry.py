@@ -3,8 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Literal, assert_never, overload
 
 from fsspec import AbstractFileSystem
-from upath import UPath
-from upathtools import AsyncUPath, UnionFileSystem, list_files, read_folder, read_path
+from upathtools import AsyncUPath, UnionFileSystem, list_files, read_folder, read_path, to_upath
 from upathtools.configs.base import FileSystemConfig, URIFileSystemConfig
 
 from llmling_agent.log import get_logger
@@ -12,6 +11,8 @@ from llmling_agent.utils.baseregistry import BaseRegistry
 
 
 if TYPE_CHECKING:
+    from upathtools import UPath
+
     from llmling_agent.models.manifest import ResourceConfig
 
 logger = get_logger(__name__)
@@ -69,7 +70,7 @@ class VFSRegistry(BaseRegistry[str, AbstractFileSystem]):
         self, resource_name: str | None = None, *, as_async: bool = False
     ) -> UPath | AsyncUPath:
         """Get a UPath object for accessing a resource."""
-        path = UPath(resource_name or "")
+        path = to_upath(resource_name or "")
         path._fs_cached = self.get_fs()  # pyright: ignore[reportAttributeAccessIssue]
         return AsyncUPath(path) if as_async else path
 

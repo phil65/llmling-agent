@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Self, Unpack, overload
 
 from anyenv import ProcessManager
-from upath import UPath
+from upathtools import UPath
 
 from llmling_agent.agent import Agent
 from llmling_agent.common_types import NodeName
@@ -606,7 +606,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
                             raise ValueError(msg)
                         target_node = self[name_]
                     case FileConnectionConfig(path=path_obj):
-                        agent_name = f"file_writer_{UPath(path_obj).stem}"
+                        agent_name = f"file_writer_{Path(path_obj).stem}"
                         target_node = Agent(model=target.get_model(), name=agent_name)
                     case CallableConnectionConfig(callable=fn):
                         target_node = Agent(model=target.get_model(), name=fn.__name__)

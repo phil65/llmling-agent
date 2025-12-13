@@ -10,7 +10,6 @@ from fsspec.asyn import AsyncFileSystem
 from fsspec.implementations.asyn_wrapper import (
     AsyncFileSystemWrapper,
 )
-from upath import UPath
 from upathtools.helpers import to_upath, upath_to_fs
 
 from llmling_agent.log import get_logger
@@ -22,7 +21,7 @@ from llmling_agent.utils.baseregistry import BaseRegistry
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from upathtools import JoinablePathLike
+    from upathtools import JoinablePathLike, UPath
 
 
 SKILL_NAME_LIMIT = 64
@@ -39,9 +38,9 @@ class SkillsRegistry(BaseRegistry[str, Skill]):
         """Initialize with custom skill directories or auto-detect."""
         super().__init__()
         if skills_dirs:
-            self.skills_dirs = [UPath(i) for i in skills_dirs or []]
+            self.skills_dirs = [to_upath(i) for i in skills_dirs or []]
         else:
-            self.skills_dirs = [UPath(i) for i in self.DEFAULT_SKILL_PATHS or []]
+            self.skills_dirs = [to_upath(i) for i in self.DEFAULT_SKILL_PATHS or []]
 
     async def discover_skills(self) -> None:
         """Scan filesystem and register all found skills.
@@ -55,7 +54,7 @@ class SkillsRegistry(BaseRegistry[str, Skill]):
 
     async def register_skills_from_path(
         self,
-        skills_dir: UPath | AbstractFileSystem,
+        skills_dir: JoinablePathLike | AbstractFileSystem,
         **storage_options: Any,
     ) -> None:
         """Register skills from a given path.
@@ -162,6 +161,8 @@ class SkillsRegistry(BaseRegistry[str, Skill]):
 if __name__ == "__main__":
     import asyncio
     import os
+
+    from upathtools import UPath
 
     from llmling_agent.log import configure_logging
 

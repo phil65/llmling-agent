@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 
 if TYPE_CHECKING:
-    from upath import UPath
+    from upathtools import UPath
 
 
 @dataclass
