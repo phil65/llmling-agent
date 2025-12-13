@@ -13,8 +13,8 @@ import uuid
 
 from anyenv import ProcessManager
 
-from acp import (
-    Client,
+from acp.client.protocol import Client
+from acp.schema import (
     CreateTerminalResponse,
     KillTerminalCommandResponse,
     ReadTextFileResponse,
@@ -28,7 +28,7 @@ from llmling_agent.log import get_logger
 
 
 if TYPE_CHECKING:
-    from acp import (
+    from acp.schema import (
         CreateTerminalRequest,
         KillTerminalCommandRequest,
         ReadTextFileRequest,

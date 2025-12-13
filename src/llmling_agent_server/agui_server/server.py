@@ -72,6 +72,7 @@ class AGUIServer(HTTPServer):
         Returns:
             List of Route objects for each agent plus root listing endpoint
         """
+        from pydantic_ai.ui.ag_ui.app import AGUIApp
         from starlette.routing import Route
 
         routes: list[Route] = []
@@ -94,8 +95,28 @@ class AGUIServer(HTTPServer):
 
                     # Get the underlying pydantic-ai agentlet and convert to AG-UI app
                     agentlet = await pool_agent.get_agentlet(None, pool_agent.model_name, str)
-                    agui_app = agentlet.to_ag_ui(deps=None)
-
+                    agui_app = AGUIApp(
+                        agent=agentlet,
+                        # Agent.iter parameters
+                        # output_type=output_type,
+                        # message_history=message_history,
+                        # deferred_tool_results=deferred_tool_results,
+                        # model=model,
+                        # deps=deps,
+                        # model_settings=model_settings,
+                        # usage_limits=usage_limits,
+                        # usage=usage,
+                        # infer_name=infer_name,
+                        # toolsets=toolsets,
+                        # # Starlette
+                        # debug=debug,
+                        # routes=routes,
+                        # middleware=middleware,
+                        # exception_handlers=exception_handlers,
+                        # on_startup=on_startup,
+                        # on_shutdown=on_shutdown,
+                        # lifespan=lifespan,
+                    )
                     # ASGI apps don't return a value, they write to send()
                     await agui_app(request.scope, request.receive, request._send)
                     from starlette.responses import Response

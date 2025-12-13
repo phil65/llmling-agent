@@ -10,8 +10,8 @@ import tempfile
 
 import pytest
 
+from acp.client.implementations import HeadlessACPClient
 from acp.filesystem import ACPFileSystem
-from acp.headless_client import HeadlessACPClient
 
 
 async def test_acp_filesystem_fsspec_operations():

@@ -1,6 +1,6 @@
 """Agent Client protocol (ACP) implementation."""
 
-from acp.client import DefaultACPClient, ClientSideConnection
+from acp.client import DefaultACPClient, HeadlessACPClient, NoOpClient, ClientSideConnection
 from acp.agent import AgentSideConnection
 from acp.bridge import ACPBridge, BridgeSettings
 from acp.debug_server import cli
@@ -81,6 +81,10 @@ __all__ = [  # noqa: RUF022
     # bridge
     "ACPBridge",
     "BridgeSettings",
+    # client implementations
+    "DefaultACPClient",
+    "HeadlessACPClient",
+    "NoOpClient",
     # constants
     "PROTOCOL_VERSION",
     # literal types
@@ -153,7 +157,6 @@ __all__ = [  # noqa: RUF022
     "RequestError",
     "Agent",
     "Client",
-    "DefaultACPClient",
     "TerminalHandle",
     # connection helpers (recommended)
     "run_agent",

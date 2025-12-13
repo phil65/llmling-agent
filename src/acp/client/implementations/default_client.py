@@ -69,14 +69,7 @@ class DefaultACPClient(Client):
     async def request_permission(
         self, params: RequestPermissionRequest
     ) -> RequestPermissionResponse:
-        """Default permission handler - grants all permissions or uses test queue.
-
-        Args:
-            params: Permission request parameters
-
-        Returns:
-            Permission response granting access
-        """
+        """Default permission handler - grants all permissions or uses test queue."""
         title = params.tool_call.title or "operation"
         logger.info("Permission requested", title=title)
 
@@ -94,21 +87,13 @@ class DefaultACPClient(Client):
         return RequestPermissionResponse.denied()
 
     async def session_update(self, params: SessionNotification) -> None:
-        """Handle session update notifications.
-
-        Args:
-            params: Session update notification
-        """
+        """Handle session update notifications."""
         msg = "Session update for %s: %s"
         logger.debug(msg, params.session_id, params.update.session_update)
         self.notifications.append(params)
 
     async def write_text_file(self, params: WriteTextFileRequest) -> WriteTextFileResponse:
-        """Write text to file (if allowed).
-
-        Args:
-            params: File write request parameters
-        """
+        """Write text to file (if allowed)."""
         if not self.allow_file_operations:
             raise RuntimeError("File operations not allowed")
 
@@ -127,14 +112,7 @@ class DefaultACPClient(Client):
         return WriteTextFileResponse()
 
     async def read_text_file(self, params: ReadTextFileRequest) -> ReadTextFileResponse:
-        """Read text from file (if allowed).
-
-        Args:
-            params: File read request parameters
-
-        Returns:
-            File content response
-        """
+        """Read text from file (if allowed)."""
         if not self.allow_file_operations:
             raise RuntimeError("File operations not allowed")
 
@@ -166,66 +144,33 @@ class DefaultACPClient(Client):
             return ReadTextFileResponse(content=content)
 
     async def create_terminal(self, params: CreateTerminalRequest) -> CreateTerminalResponse:
-        """Create terminal (not implemented).
-
-        Args:
-            params: Terminal creation parameters
-
-        Returns:
-            Terminal creation response
-        """
+        """Create terminal (not implemented)."""
         raise NotImplementedError("Terminal operations not implemented")
 
     async def terminal_output(self, params: TerminalOutputRequest) -> TerminalOutputResponse:
-        """Get terminal output (not implemented).
-
-        Args:
-            params: Terminal output request parameters
-
-        Returns:
-            Terminal output response
-        """
+        """Get terminal output (not implemented)."""
         raise NotImplementedError("Terminal operations not implemented")
 
     async def release_terminal(
         self, params: ReleaseTerminalRequest
     ) -> ReleaseTerminalResponse | None:
-        """Release terminal (not implemented).
-
-        Args:
-            params: Terminal release parameters
-        """
+        """Release terminal (not implemented)."""
         raise NotImplementedError("Terminal operations not implemented")
 
     async def wait_for_terminal_exit(
         self, params: WaitForTerminalExitRequest
     ) -> WaitForTerminalExitResponse:
-        """Wait for terminal exit (not implemented).
-
-        Args:
-            params: Terminal wait parameters
-
-        Returns:
-            Terminal exit response
-        """
+        """Wait for terminal exit (not implemented)."""
         raise NotImplementedError("Terminal operations not implemented")
 
     async def kill_terminal(
         self, params: KillTerminalCommandRequest
     ) -> KillTerminalCommandResponse | None:
-        """Kill terminal (not implemented).
-
-        Args:
-            params: Terminal kill parameters
-        """
+        """Kill terminal (not implemented)."""
         raise NotImplementedError("Terminal operations not implemented")
 
     def get_session_updates(self) -> list[SessionNotification]:
-        """Get all received session updates.
-
-        Returns:
-            List of session update notifications
-        """
+        """Get all received session updates."""
         return self.notifications.copy()
 
     def clear_session_updates(self) -> None:

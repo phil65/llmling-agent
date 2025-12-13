@@ -18,7 +18,7 @@ from starlette.routing import Route
 import uvicorn
 
 from acp.client.connection import ClientSideConnection
-from acp.client.protocol import Client
+from acp.client.implementations import NoOpClient
 from acp.transports import spawn_stdio_transport
 
 
@@ -33,59 +33,6 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
-
-
-class NoOpClient(Client):
-    """Minimal client that handles agent-to-client calls during bridging."""
-
-    async def request_permission(self, params: Any) -> Any:
-        from acp.schema import AllowedOutcome, RequestPermissionResponse
-
-        return RequestPermissionResponse(outcome=AllowedOutcome(option_id="allow"))
-
-    async def session_update(self, params: Any) -> None:
-        pass
-
-    async def write_text_file(self, params: Any) -> Any:
-        from acp.schema import WriteTextFileResponse
-
-        return WriteTextFileResponse()
-
-    async def read_text_file(self, params: Any) -> Any:
-        from acp.schema import ReadTextFileResponse
-
-        return ReadTextFileResponse(content="")
-
-    async def create_terminal(self, params: Any) -> Any:
-        from acp.schema import CreateTerminalResponse
-
-        return CreateTerminalResponse(terminal_id="bridge-terminal")
-
-    async def terminal_output(self, params: Any) -> Any:
-        from acp.schema import TerminalOutputResponse
-
-        return TerminalOutputResponse(output="", truncated=False)
-
-    async def release_terminal(self, params: Any) -> Any:
-        from acp.schema import ReleaseTerminalResponse
-
-        return ReleaseTerminalResponse()
-
-    async def wait_for_terminal_exit(self, params: Any) -> Any:
-        from acp.schema import WaitForTerminalExitResponse
-
-        return WaitForTerminalExitResponse(exit_code=0)
-
-    async def kill_terminal(self, params: Any) -> Any:
-        from acp.schema import KillTerminalCommandResponse
-
-        return KillTerminalCommandResponse()
-
-    async def ext_method(self, method: str, params: dict[str, Any]) -> dict[str, Any]:
-        return {}
-
-    async def ext_notification(self, method: str, params: dict[str, Any]) -> None:
-        pass
 
 
 class ACPBridge:
@@ -294,7 +241,7 @@ class ACPBridge:
             self._process = process
 
             # Create client connection to the agent
-            def client_factory(agent: Any) -> Client:
+            def client_factory(agent: Any) -> NoOpClient:
                 return NoOpClient()
 
             self._connection = ClientSideConnection(client_factory, writer, reader)
