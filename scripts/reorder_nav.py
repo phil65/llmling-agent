@@ -154,20 +154,26 @@ def sort_nav_items_with_context(
 ) -> list[Tag]:
     """Sort navigation items based on frontmatter order with context awareness.
 
+    Resolves relative paths (../, ./, etc.) based on the current page location
+    to correctly match against the orders dictionary. This ensures navigation
+    items are properly sorted even on deeply nested pages where hrefs use
+    multiple levels of parent directory references (e.g., ../../).
+
     Args:
         nav_items: List of BeautifulSoup Tag objects representing nav items
         orders: Dictionary mapping paths to order values
-        current_page_path: Current page path for resolving relative links (e.g., "getting-started")
+        current_page_path: Current page path for resolving relative links (e.g., "getting-started/quickstart")
 
     Returns:
         Sorted list of nav items
-    """
+    """  # noqa: E501
 
     def get_sort_key(nav_item: Tag) -> tuple[int, str]:
         """Generate sort key for a navigation item."""
         # Handle both md-tabs__item and md-nav__item
         link = nav_item.find(
-            "a", class_=lambda c: c and ("md-tabs__link" in c or "md-nav__link" in c)
+            "a",
+            class_=lambda c: c and ("md-tabs__link" in c or "md-nav__link" in c),  # pyright: ignore[reportArgumentType]
         )
         if not link:
             return (999999, "")
@@ -175,20 +181,31 @@ def sort_nav_items_with_context(
         href = link.get("href", "")
 
         # Resolve relative paths based on current page context
-        if href.startswith("../"):
-            # ../ means parent directory
-            href = href[3:]  # Remove ../
-        elif href == "..":
-            # .. means parent (root from sub-pages)
-            href = ""
-        elif href.startswith("./"):
-            # ./ means current directory
-            # On getting-started page, ./ means getting-started
-            href = current_page_path if current_page_path else ""
-        elif href == ".":
-            href = current_page_path if current_page_path else ""
+        # Use Path-like resolution
 
-        # Extract path from href
+        current_parts = Path(current_page_path).parts if current_page_path else ()
+
+        # Clean up href first
+        href = href.strip("/")
+
+        # Resolve relative path
+        if href in (".", "..") or href.startswith(("./", "../")):
+            # Build absolute path from current location
+            resolved_parts = list(current_parts)
+            href_parts = Path(href).parts
+
+            for part in href_parts:
+                if part == "..":
+                    if resolved_parts:
+                        resolved_parts.pop()
+                elif part == ".":
+                    continue
+                else:
+                    resolved_parts.append(part)
+
+            href = "/".join(resolved_parts) if resolved_parts else ""
+
+        # Extract path from href (remove .html extensions)
         href = href.strip("/")
         if href.endswith("/"):
             href = href[:-1]
