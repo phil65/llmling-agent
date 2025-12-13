@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 import logging
+from logging.handlers import RotatingFileHandler
 import sys
 from typing import TYPE_CHECKING, Any
 
@@ -55,13 +56,22 @@ def configure_logging(
     _LOGGING_CONFIGURED = True
 
 
-def _configure_file_logging(level: LogLevel, log_file: str) -> None:
-    """Configure logging to write to a file with human-readable format."""
+def _configure_file_logging(level: LogLevel, log_file: str, max_lines: int = 5000) -> None:
+    """Configure logging to write to a file with human-readable format and line-based rotation.
+
+    Args:
+        level: Logging level
+        log_file: Path to log file
+        max_lines: Maximum number of lines before rotation (default: 5000)
+    """
     if isinstance(level, str):
         level = getattr(logging, level.upper())
 
-    # Set up file handler
-    handler = logging.FileHandler(log_file)
+    # Estimate bytes per line (assuming ~200 chars average)
+    max_bytes = max_lines * 200
+
+    # Set up rotating file handler with 3 backup files
+    handler = RotatingFileHandler(log_file, maxBytes=max_bytes, backupCount=3, encoding="utf-8")
     handler.setFormatter(logging.Formatter("%(message)s"))
     logging.basicConfig(level=level, handlers=[handler], force=True)
 

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 
+from platformdirs import user_log_path
 import typer as t
 
 from llmling_agent.log import get_logger
@@ -38,11 +39,6 @@ def acp_command(
         None,
         "--debug-file",
         help="File to save JSON-RPC debug messages (default: acp-debug.jsonl)",
-    ),
-    log_file: str | None = t.Option(
-        None,
-        "--log-file",
-        help="File to save logs to (default: acp.log when serving over stdio)",
     ),
     providers: list[str] | None = t.Option(  # noqa: B008
         None,
@@ -84,10 +80,12 @@ def acp_command(
     from llmling_agent import log
     from llmling_agent_server.acp_server import ACPServer
 
-    if log_file:  # Default to file logging for ACP
-        actual_log_file = log_file or "acp.log"
-        log.configure_logging(force=True, log_file=actual_log_file)
-        logger.info("Configured file logging", log_file=actual_log_file)
+    # Always log to file with rollover
+    log_dir = user_log_path("llmling-agent", appauthor=False)
+    log_dir.mkdir(parents=True, exist_ok=True)
+    log_file = log_dir / "acp.log"
+    log.configure_logging(force=True, log_file=str(log_file))
+    logger.info("Configured file logging with rollover", log_file=str(log_file))
 
     if config:
         # Use config file
