@@ -135,6 +135,7 @@ dev = [
   "check-jsonschema>=0.35.0",
   "devtools",
   "openapi_spec_validator",
+  "pyinstaller>=6.17.0",
   "pyreadline3",
   "pytest",
   # Only add below (Copier)

@@ -56,3 +56,7 @@ cli.command(name="serve-api")(api_command)
 cli.command(name="task")(task_command)
 
 cli.add_typer(history_cli, name="history")
+
+
+if __name__ == "__main__":
+    cli()
