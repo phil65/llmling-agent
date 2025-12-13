@@ -21,7 +21,8 @@ from llmling_agent_toolsets.builtin.file_edit import replace_content
 from llmling_agent_toolsets.fsspec_toolset.helpers import (
     apply_structured_edits,
     get_changed_line_numbers,
-    is_text_mime,
+    is_binary_content,
+    is_definitely_binary_mime,
 )
 
 
@@ -265,30 +266,43 @@ class FSSpecTools(ResourceProvider):
         try:
             mime_type = mimetypes.guess_type(path)[0]
 
-            if is_text_mime(mime_type):
-                content = await self._read(agent_ctx, path, encoding=encoding)
-                if isinstance(content, bytes):
-                    content = content.decode(encoding)
-                # Apply line filtering if specified
-                if line is not None or limit is not None:
-                    lines = content.splitlines()
-                    start_idx = max(0, (line - 1) if line else 0)
-                    end_idx = start_idx + limit if limit is not None else len(lines)
-                    content = "\n".join(lines[start_idx:end_idx])
-
+            # Fast path: known binary MIME types (images, audio, video, etc.)
+            if is_definitely_binary_mime(mime_type):
+                data = await self.get_fs(agent_ctx)._cat_file(path)
                 await agent_ctx.events.file_operation(
-                    "read", path=path, success=True, size=len(content)
+                    "read", path=path, success=True, size=len(data)
                 )
-                return content
+                return BinaryContent(data=data, media_type=mime_type, identifier=path)
 
-            # Binary file - return as BinaryContent for native model handling
+            # Read content and probe for binary (git-style null byte detection)
             data = await self.get_fs(agent_ctx)._cat_file(path)
-            await agent_ctx.events.file_operation("read", path=path, success=True, size=len(data))
-            mime = mime_type or "application/octet-stream"
-            return BinaryContent(data=data, media_type=mime, identifier=path)
+
+            if is_binary_content(data):
+                # Binary file - return as BinaryContent for native model handling
+                await agent_ctx.events.file_operation(
+                    "read", path=path, success=True, size=len(data)
+                )
+                mime = mime_type or "application/octet-stream"
+                return BinaryContent(data=data, media_type=mime, identifier=path)
+
+            # Text file - decode and return as string
+            content = data.decode(encoding)
+
+            # Apply line filtering if specified
+            if line is not None or limit is not None:
+                lines = content.splitlines()
+                start_idx = max(0, (line - 1) if line else 0)
+                end_idx = start_idx + limit if limit is not None else len(lines)
+                content = "\n".join(lines[start_idx:end_idx])
+
+            await agent_ctx.events.file_operation(
+                "read", path=path, success=True, size=len(content)
+            )
         except Exception as e:  # noqa: BLE001
             await agent_ctx.events.file_operation("read", path=path, success=False, error=str(e))
             return {"error": f"Failed to read file {path}: {e}"}
+        else:
+            return content
 
     async def read_as_markdown(self, agent_ctx: AgentContext, path: str) -> str | dict[str, Any]:
         """Read file and convert to markdown text representation.

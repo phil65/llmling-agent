@@ -12,8 +12,22 @@ from llmling_agent.log import get_logger
 
 logger = get_logger(__name__)
 
-# MIME types that should be treated as text
-TEXT_MIME_PREFIXES = ("text/", "application/json", "application/xml", "application/javascript")
+# MIME types that are definitely binary (don't probe, just treat as binary)
+BINARY_MIME_PREFIXES = (
+    "image/",
+    "audio/",
+    "video/",
+    "application/octet-stream",
+    "application/zip",
+    "application/gzip",
+    "application/x-tar",
+    "application/pdf",
+    "application/x-executable",
+    "application/x-sharedlib",
+)
+
+# How many bytes to probe for binary detection
+BINARY_PROBE_SIZE = 8192
 
 
 async def apply_structured_edits(original_content: str, edits_response: str) -> str:
@@ -122,8 +136,18 @@ def get_changed_line_numbers(original_content: str, new_content: str) -> list[in
     return sorted(changed_line_numbers)
 
 
-def is_text_mime(mime_type: str | None) -> bool:
-    """Check if a MIME type represents text content."""
+def is_definitely_binary_mime(mime_type: str | None) -> bool:
+    """Check if MIME type is known to be binary (skip content probing)."""
     if mime_type is None:
         return False
-    return any(mime_type.startswith(prefix) for prefix in TEXT_MIME_PREFIXES)
+    return any(mime_type.startswith(prefix) for prefix in BINARY_MIME_PREFIXES)
+
+
+def is_binary_content(data: bytes) -> bool:
+    """Detect binary content by probing for null bytes.
+
+    Uses the same heuristic as git: if the first ~8KB contains a null byte,
+    the content is considered binary.
+    """
+    probe = data[:BINARY_PROBE_SIZE]
+    return b"\x00" in probe
