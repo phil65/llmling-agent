@@ -2242,7 +2242,7 @@ wheels = [
 
 [[package]]
 name = "llmling-agent"
-version = "1.15.11"
+version = "1.15.12"
 source = { editable = "." }
 dependencies = [
     { name = "aioitertools" },
