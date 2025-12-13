@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+import asyncio
+import sys
 from typing import TYPE_CHECKING, Annotated, Any, Literal
 
 from pydantic import ConfigDict, Field
+from pydantic.types import SecretStr
+from pydantic_ai import PartDeltaEvent, PartStartEvent, TextPart, TextPartDelta
 from schemez import Schema
 
 
@@ -17,13 +21,13 @@ if TYPE_CHECKING:
     from llmling_agent.common_types import IndividualEventHandler
 
 
+StdOutStyle = Literal["simple", "detailed"]
+TTSModel = Literal["tts-1", "tts-1-hd"]
+TTSVoice = Literal["alloy", "echo", "fable", "onyx", "nova", "shimmer"]
+
+
 class BaseEventHandlerConfig(Schema):
     """Base configuration for event handlers."""
-
-    model_config = ConfigDict(
-        frozen=True,
-        arbitrary_types_allowed=True,
-    )
 
     type: str = Field(init=False)
     """Event handler type discriminator."""
@@ -51,10 +55,7 @@ class StdoutEventHandlerConfig(BaseEventHandlerConfig):
     type: Literal["builtin"] = Field("builtin", init=False)
     """Builtin event handler."""
 
-    handler: Literal["simple", "detailed"] = Field(
-        default="simple",
-        examples=["simple", "detailed"],
-    )
+    handler: StdOutStyle = Field(default="simple", examples=["simple", "detailed"])
     """Which builtin handler to use.
 
     - simple: Basic text and tool notifications
@@ -100,25 +101,20 @@ class TTSEventHandlerConfig(BaseEventHandlerConfig):
     type: Literal["tts"] = Field("tts", init=False)
     """TTS event handler."""
 
-    api_key: str | None = Field(
-        default=None,
-        examples=["sk-..."],
-    )
+    api_key: SecretStr | None = Field(default=None, examples=["sk-..."], title="OpenAI API Key")
     """OpenAI API key. If not provided, uses OPENAI_API_KEY env var."""
 
-    model: Literal["tts-1", "tts-1-hd"] = Field(
-        default="tts-1",
-        examples=["tts-1", "tts-1-hd"],
-    )
+    model: TTSModel = Field(default="tts-1", examples=["tts-1", "tts-1-hd"], title="TTS Model")
     """TTS model to use.
 
     - tts-1: Fast, optimized for real-time streaming
     - tts-1-hd: Higher quality, slightly higher latency
     """
 
-    voice: Literal["alloy", "echo", "fable", "onyx", "nova", "shimmer"] = Field(
+    voice: TTSVoice = Field(
         default="alloy",
         examples=["alloy", "echo", "fable", "onyx", "nova", "shimmer"],
+        title="Voice type",
     )
     """Voice to use for synthesis."""
 
@@ -127,53 +123,33 @@ class TTSEventHandlerConfig(BaseEventHandlerConfig):
         ge=0.25,
         le=4.0,
         examples=[0.5, 1.0, 1.5, 2.0],
+        title="Speed of speech",
     )
     """Speed of speech (0.25 to 4.0, default 1.0)."""
 
-    chunk_size: int = Field(
-        default=1024,
-        ge=256,
-        examples=[512, 1024, 2048],
-    )
+    chunk_size: int = Field(default=1024, ge=256, examples=[512, 1024, 2048], title="Chunk Size")
     """Size of audio chunks to process (in bytes)."""
 
-    sample_rate: int = Field(
-        default=24000,
-        examples=[16000, 22050, 24000, 44100],
-    )
+    sample_rate: int = Field(default=24000, examples=[16000, 24000, 44100], title="Sample Rate")
     """Audio sample rate in Hz (for PCM format)."""
 
     min_text_length: int = Field(
         default=20,
         ge=5,
         examples=[10, 20, 50],
+        title="Minimum Text Length",
     )
     """Minimum text length before synthesizing (in characters)."""
 
     def get_handler(self) -> IndividualEventHandler:  # noqa: PLR0915
         """Get the TTS event handler."""
-        import asyncio
-        import sys
-
-        try:
-            from openai import AsyncOpenAI
-        except ImportError as e:
-            msg = "openai package required for TTS. Install with: uv pip install llmling-agent[tts]"
-            raise ImportError(msg) from e
-
-        try:
-            import sounddevice as sd  # type: ignore[import-untyped]
-        except ImportError as e:
-            msg = "sounddevice package required for TTS. Install extra 'tts'"
-            raise ImportError(msg) from e
-
-        from pydantic_ai import PartDeltaEvent, PartStartEvent
-        from pydantic_ai.messages import TextPart, TextPartDelta
+        from openai import AsyncOpenAI
+        import sounddevice as sd  # type: ignore[import-untyped]
 
         from llmling_agent.agent.events import StreamCompleteEvent
 
-        client = AsyncOpenAI(api_key=self.api_key)
-
+        key = self.api_key.get_secret_value() if self.api_key else None
+        client = AsyncOpenAI(api_key=key)
         # Shared state for handler closure
         audio_queue: asyncio.Queue[bytes | None] = asyncio.Queue()
         playback_task: asyncio.Task[None] | None = None
@@ -183,11 +159,7 @@ class TTSEventHandlerConfig(BaseEventHandlerConfig):
         async def play_audio() -> None:
             """Async audio playback using sounddevice."""
             try:
-                stream = sd.RawOutputStream(
-                    samplerate=self.sample_rate,
-                    channels=1,
-                    dtype="int16",
-                )
+                stream = sd.RawOutputStream(samplerate=self.sample_rate, channels=1, dtype="int16")
                 stream.start()
 
                 while True:
