@@ -6,7 +6,6 @@ from fnmatch import fnmatch
 import mimetypes
 import os
 from pathlib import Path
-import re
 import time
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urlparse
@@ -23,6 +22,7 @@ from llmling_agent_toolsets.fsspec_toolset.helpers import (
     get_changed_line_numbers,
     is_binary_content,
     is_definitely_binary_mime,
+    truncate_lines,
 )
 
 
@@ -48,6 +48,9 @@ class FSSpecTools(ResourceProvider):
         cwd: str | None = None,
         edit_model: ModelType | None = None,
         converter: ConversionManager | None = None,
+        max_file_size_kb: int = 64,
+        max_grep_output_kb: int = 64,
+        use_subprocess_grep: bool = True,
     ) -> None:
         """Initialize with an fsspec filesystem or execution environment.
 
@@ -58,6 +61,9 @@ class FSSpecTools(ResourceProvider):
             cwd: Optional cwd to resolve relative paths against
             edit_model: Optional edit model for text editing
             converter: Optional conversion manager for markdown conversion
+            max_file_size_kb: Maximum file size in KB for read/write operations (default: 64KB)
+            max_grep_output_kb: Maximum grep output size in KB (default: 64KB)
+            use_subprocess_grep: Use ripgrep/grep subprocess if available (default: True)
         """
         from fsspec.asyn import AsyncFileSystem
         from fsspec.implementations.asyn_wrapper import (
@@ -80,6 +86,9 @@ class FSSpecTools(ResourceProvider):
         self.edit_model = edit_model
         self.cwd = cwd
         self.converter = converter
+        self.max_file_size = max_file_size_kb * 1024  # Convert KB to bytes
+        self.max_grep_output = max_grep_output_kb * 1024  # Convert KB to bytes
+        self.use_subprocess_grep = use_subprocess_grep
         self._tools: list[Tool] | None = None
 
     def get_fs(self, agent_ctx: AgentContext) -> AsyncFileSystem:
@@ -257,12 +266,13 @@ class FSSpecTools(ResourceProvider):
             limit: Optional maximum number of lines to read (text files only)
 
         Returns:
-            Text content for text files, BinaryContent for binary files
+            Text content for text files, BinaryContent for binary files, or dict with error
         """
         if self.cwd:
             path = self._resolve_path(path)
         msg = f"Reading file: {path}"
         await agent_ctx.events.tool_call_start(title=msg, kind="read", locations=[path])
+
         try:
             mime_type = mimetypes.guess_type(path)[0]
 
@@ -272,7 +282,8 @@ class FSSpecTools(ResourceProvider):
                 await agent_ctx.events.file_operation(
                     "read", path=path, success=True, size=len(data)
                 )
-                return BinaryContent(data=data, media_type=mime_type, identifier=path)
+                mime = mime_type or "application/octet-stream"
+                return BinaryContent(data=data, media_type=mime, identifier=path)
 
             # Read content and probe for binary (git-style null byte detection)
             data = await self.get_fs(agent_ctx)._cat_file(path)
@@ -288,16 +299,20 @@ class FSSpecTools(ResourceProvider):
             # Text file - decode and return as string
             content = data.decode(encoding)
 
-            # Apply line filtering if specified
-            if line is not None or limit is not None:
-                lines = content.splitlines()
-                start_idx = max(0, (line - 1) if line else 0)
-                end_idx = start_idx + limit if limit is not None else len(lines)
-                content = "\n".join(lines[start_idx:end_idx])
+            # Apply line filtering and size limits
+            lines = content.splitlines()
+            offset = (line - 1) if line else 0
+            result_lines, was_truncated = truncate_lines(lines, offset, limit, self.max_file_size)
+            content = "\n".join(result_lines)
 
             await agent_ctx.events.file_operation(
                 "read", path=path, success=True, size=len(content)
             )
+
+            if was_truncated:
+                content += f"\n\n[Content truncated at {self.max_file_size} bytes]"
+
+            return content
         except Exception as e:  # noqa: BLE001
             await agent_ctx.events.file_operation("read", path=path, success=False, error=str(e))
             return {"error": f"Failed to read file {path}: {e}"}
@@ -337,6 +352,7 @@ class FSSpecTools(ResourceProvider):
         path: str,
         content: str,
         mode: str = "w",
+        overwrite: bool = False,
     ) -> dict[str, Any]:
         """Write content to a file.
 
@@ -345,6 +361,7 @@ class FSSpecTools(ResourceProvider):
             path: File path to write
             content: Content to write
             mode: Write mode ('w' for overwrite, 'a' for append)
+            overwrite: Must be True to overwrite existing files (safety check)
 
         Returns:
             Dictionary with success info or error details
@@ -353,19 +370,51 @@ class FSSpecTools(ResourceProvider):
             path = self._resolve_path(path)
         msg = f"Writing file: {path}"
         await agent_ctx.events.tool_call_start(title=msg, kind="edit", locations=[path])
+
+        content_bytes = len(content.encode("utf-8"))
+
         try:
-            if mode not in ("w", "a"):  # Validate mode
+            if mode not in ("w", "a"):
                 msg = f"Invalid mode '{mode}'. Use 'w' (write) or 'a' (append)"
                 await agent_ctx.events.file_operation("write", path=path, success=False, error=msg)
                 return {"error": msg}
 
+            # Check size limit
+            if content_bytes > self.max_file_size:
+                msg = (
+                    f"Content size ({content_bytes} bytes) exceeds maximum "
+                    f"({self.max_file_size} bytes)"
+                )
+                await agent_ctx.events.file_operation("write", path=path, success=False, error=msg)
+                return {"error": msg}
+
+            # Check if file exists and overwrite protection
+            fs = self.get_fs(agent_ctx)
+            file_exists = await fs._exists(path)
+
+            if file_exists and mode == "w" and not overwrite:
+                msg = (
+                    f"File '{path}' already exists. To overwrite it, you must set overwrite=True. "
+                    f"This is a safety measure to prevent accidental data loss."
+                )
+                await agent_ctx.events.file_operation("write", path=path, success=False, error=msg)
+                return {"error": msg}
+
             await self._write(agent_ctx, path, content)
-            try:  # Try to get file size after writing
-                info = await self.get_fs(agent_ctx)._info(path)
-                size = info.get("size", len(content))
+
+            try:
+                info = await fs._info(path)
+                size = info.get("size", content_bytes)
             except (OSError, KeyError):
-                size = len(content)
-            result = {"path": path, "size": size, "mode": mode}
+                size = content_bytes
+
+            result = {
+                "path": path,
+                "size": size,
+                "mode": mode,
+                "file_existed": file_exists,
+                "bytes_written": content_bytes,
+            }
             await agent_ctx.events.file_operation("write", path=path, success=True, size=size)
         except Exception as e:  # noqa: BLE001
             await agent_ctx.events.file_operation("write", path=path, success=False, error=str(e))
@@ -544,79 +593,67 @@ class FSSpecTools(ResourceProvider):
             context_lines: Number of context lines before/after match
 
         Returns:
-            Dictionary with matches grouped by file
+            Dictionary with matches, match_count, and was_truncated flag
         """
+        from llmling_agent_toolsets.fsspec_toolset.grep import (
+            DEFAULT_EXCLUDE_PATTERNS,
+            GrepBackend,
+            detect_grep_backend,
+            grep_with_fsspec,
+            grep_with_subprocess,
+        )
+
         resolved_path = self._resolve_path(path)
         msg = f"Searching for {pattern!r} in {resolved_path}"
         await agent_ctx.events.tool_call_start(title=msg, kind="search", locations=[resolved_path])
 
         try:
-            flags = 0 if case_sensitive else re.IGNORECASE
-            regex = re.compile(pattern, flags)
-        except re.error as e:
-            return {"error": f"Invalid regex pattern: {e}"}
+            # Try subprocess grep if configured and available
+            if self.use_subprocess_grep:
+                backend = detect_grep_backend()
+                if backend != GrepBackend.PYTHON:
+                    # Get execution environment for running grep command
+                    env = self.execution_env or agent_ctx.agent.env
+                    if env is None:
+                        # Fallback to fsspec grep if no execution environment
+                        pass
+                    else:
+                        result = await grep_with_subprocess(
+                            env=env,
+                            pattern=pattern,
+                            path=resolved_path,
+                            backend=backend,
+                            case_sensitive=case_sensitive,
+                            max_matches=max_matches,
+                            max_output_bytes=self.max_grep_output,
+                            exclude_patterns=DEFAULT_EXCLUDE_PATTERNS,
+                            use_gitignore=True,
+                        )
 
-        try:
+                        if "error" not in result:
+                            return result
+
+            # Fallback to fsspec grep
             fs = self.get_fs(agent_ctx)
-            glob_path = f"{resolved_path.rstrip('/')}/{file_pattern}"
-            file_paths = await fs._glob(glob_path)
+            result = await grep_with_fsspec(
+                fs=fs,
+                pattern=pattern,
+                path=resolved_path,
+                file_pattern=file_pattern,
+                case_sensitive=case_sensitive,
+                max_matches=max_matches,
+                max_output_bytes=self.max_grep_output,
+                context_lines=context_lines,
+            )
 
-            matches: dict[str, list[dict[str, Any]]] = {}
-            total_matches = 0
+            if "error" in result:
+                return result
 
-            for file_path in file_paths:
-                if total_matches >= max_matches:
-                    break
-
-                # Skip directories
-                if await fs._isdir(file_path):
-                    continue
-
-                try:
-                    content = await fs._cat_file(file_path)
-                    text = content.decode("utf-8", errors="replace")
-                    lines = text.splitlines()
-
-                    file_matches: list[dict[str, Any]] = []
-                    for line_num, line in enumerate(lines, 1):
-                        if total_matches >= max_matches:
-                            break
-
-                        if regex.search(line):
-                            match_info: dict[str, Any] = {
-                                "line_number": line_num,
-                                "content": line.rstrip(),
-                            }
-
-                            if context_lines > 0:
-                                start = max(0, line_num - 1 - context_lines)
-                                end = min(len(lines), line_num + context_lines)
-                                match_info["context_before"] = lines[start : line_num - 1]
-                                match_info["context_after"] = lines[line_num:end]
-
-                            file_matches.append(match_info)
-                            total_matches += 1
-
-                    if file_matches:
-                        rel_path = str(file_path)
-                        if self.cwd and rel_path.startswith(self.cwd):
-                            rel_path = rel_path[len(self.cwd) :].lstrip("/\\")
-                        matches[rel_path] = file_matches
-
-                except (UnicodeDecodeError, OSError):
-                    continue
+            return result
 
         except Exception as e:  # noqa: BLE001
-            return {"error": f"Search failed: {e}"}
-        else:
-            return {
-                "pattern": pattern,
-                "path": resolved_path,
-                "file_pattern": file_pattern,
-                "matches": matches,
-                "total_matches": total_matches,
-                "truncated": total_matches >= max_matches,
-            }
+            error_msg = f"Grep failed: {e}"
+            return {"error": error_msg}
 
     async def _read(self, agent_ctx: AgentContext, path: str, encoding: str = "utf-8") -> str:
         # with self.fs.open(path, "r", encoding="utf-8") as f:

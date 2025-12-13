@@ -546,6 +546,28 @@ class FSSpecToolsetConfig(BaseToolsetConfig):
     conversion: ConversionConfig | None = Field(default=None, title="Conversion config")
     """Optional conversion configuration for markdown conversion."""
 
+    max_file_size_kb: int = Field(
+        default=64,
+        ge=1,
+        le=10240,
+        title="Maximum file size",
+    )
+    """Maximum file size in kilobytes for read/write operations (default: 64KB)."""
+
+    max_grep_output_kb: int = Field(
+        default=64,
+        ge=1,
+        le=10240,
+        title="Maximum grep output size",
+    )
+    """Maximum grep output size in kilobytes (default: 64KB)."""
+
+    use_subprocess_grep: bool = Field(
+        default=True,
+        title="Use subprocess grep",
+    )
+    """Use ripgrep/grep subprocess if available (faster than Python regex)."""
+
     def get_provider(self) -> ResourceProvider:
         """Create FSSpec filesystem tools provider."""
         import fsspec
@@ -564,7 +586,14 @@ class FSSpecToolsetConfig(BaseToolsetConfig):
         else:
             fs = None
         converter = ConversionManager(self.conversion) if self.conversion else None
-        return FSSpecTools(fs, converter=converter, edit_model=model)
+        return FSSpecTools(
+            fs,
+            converter=converter,
+            edit_model=model,
+            max_file_size_kb=self.max_file_size_kb,
+            max_grep_output_kb=self.max_grep_output_kb,
+            use_subprocess_grep=self.use_subprocess_grep,
+        )
 
 
 class VFSToolsetConfig(BaseToolsetConfig):

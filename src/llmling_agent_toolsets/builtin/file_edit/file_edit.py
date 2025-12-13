@@ -9,7 +9,7 @@ from __future__ import annotations
 import difflib
 from pathlib import Path
 import re
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, NamedTuple
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -20,6 +20,15 @@ if TYPE_CHECKING:
     from collections.abc import Generator
 
     from llmling_agent.agent import AgentContext
+
+
+class FuzzyMatch(NamedTuple):
+    """Result of fuzzy text matching."""
+
+    similarity: float
+    start_line: int
+    end_line: int
+    text: str
 
 
 class EditParams(BaseModel):
@@ -472,7 +481,7 @@ def _trim_diff(diff_text: str) -> str:
 def replace_content(
     content: str, old_string: str, new_string: str, replace_all: bool = False
 ) -> str:
-    """Replace content using multiple fallback strategies."""
+    """Replace content using multiple fallback strategies with detailed error messages."""
     if old_string == new_string:
         msg = "old_string and new_string must be different"
         raise ValueError(msg)
@@ -515,14 +524,140 @@ def replace_content(
             return content[:index] + new_string + content[index + len(search_text) :]
 
     if not found_matches:
-        msg = "old_string not found in content"
-        raise ValueError(msg)
+        # Provide helpful error with fuzzy match context
+        error_msg = _build_not_found_error(content, old_string)
+        raise ValueError(error_msg)
 
     msg = (
         "old_string found multiple times and requires more code context "
         "to uniquely identify the intended match"
     )
     raise ValueError(msg)
+
+
+def _find_best_fuzzy_match(
+    content: str, search_text: str, threshold: float = 0.8
+) -> FuzzyMatch | None:
+    """Find the best fuzzy match for search text in content."""
+    content_lines = content.split("\n")
+    search_lines = search_text.split("\n")
+    window_size = len(search_lines)
+
+    if window_size == 0:
+        return None
+
+    # Find non-empty lines as anchors
+    non_empty_search = [line for line in search_lines if line.strip()]
+    if not non_empty_search:
+        return None
+
+    first_anchor = non_empty_search[0]
+
+    # Find candidate starting positions
+    candidate_starts = set()
+    spread = 5
+
+    for i, line in enumerate(content_lines):
+        if first_anchor in line:
+            start_min = max(0, i - spread)
+            start_max = min(len(content_lines) - window_size + 1, i + spread + 1)
+            for s in range(start_min, start_max):
+                candidate_starts.add(s)
+
+    if not candidate_starts:
+        # Sample first 100 positions
+        max_positions = min(len(content_lines) - window_size + 1, 100)
+        candidate_starts = set(range(max_positions))
+
+    best_match = None
+    best_similarity = 0.0
+
+    for start in candidate_starts:
+        end = start + window_size
+        window_text = "\n".join(content_lines[start:end])
+
+        matcher = difflib.SequenceMatcher(None, search_text, window_text)
+        similarity = matcher.ratio()
+
+        if similarity >= threshold and similarity > best_similarity:
+            best_similarity = similarity
+            best_match = FuzzyMatch(
+                similarity=similarity,
+                start_line=start + 1,  # 1-based
+                end_line=end,
+                text=window_text,
+            )
+
+    return best_match
+
+
+def _create_unified_diff(text1: str, text2: str) -> str:
+    """Create a unified diff between two texts."""
+    lines1 = text1.splitlines(keepends=True)
+    lines2 = text2.splitlines(keepends=True)
+
+    # Ensure lines end with newline
+    lines1 = [line if line.endswith("\n") else line + "\n" for line in lines1]
+    lines2 = [line if line.endswith("\n") else line + "\n" for line in lines2]
+
+    diff = difflib.unified_diff(
+        lines1, lines2, fromfile="SEARCH", tofile="CLOSEST MATCH", lineterm="", n=3
+    )
+
+    result = "".join(diff)
+
+    # Truncate if too long
+    max_chars = 2000
+    if len(result) > max_chars:
+        result = result[:max_chars] + "\n...(diff truncated)"
+
+    return result.rstrip()
+
+
+def _build_not_found_error(content: str, old_string: str) -> str:
+    """Build a helpful error message when old_string is not found."""
+    lines = content.split("\n")
+    search_lines = old_string.split("\n")
+
+    error_parts = ["Search text not found in file."]
+
+    # Add first line context
+    if search_lines and search_lines[0].strip():
+        first_search_line = search_lines[0].strip()
+        matches = [i for i, line in enumerate(lines) if first_search_line in line]
+
+        if matches:
+            error_parts.append(
+                f"\nFirst search line '{first_search_line}' appears at line(s): "
+                f"{', '.join(str(i + 1) for i in matches[:3])}"
+            )
+        else:
+            error_parts.append(
+                f"\nFirst search line '{first_search_line}' not found anywhere in file"
+            )
+
+    # Try fuzzy matching
+    fuzzy_match = _find_best_fuzzy_match(content, old_string, threshold=0.8)
+    if fuzzy_match:
+        similarity_pct = fuzzy_match.similarity * 100
+        error_parts.append(
+            f"\nClosest fuzzy match (similarity {similarity_pct:.1f}%) "
+            f"at lines {fuzzy_match.start_line}–{fuzzy_match.end_line}:"
+        )
+        diff = _create_unified_diff(old_string, fuzzy_match.text)
+        if diff:
+            error_parts.append(f"\n{diff}")
+
+    # Add debugging tips
+    error_parts.append(
+        "\n\nDebugging tips:"
+        "\n1. Check for exact whitespace/indentation match"
+        "\n2. Verify line endings match the file (\\r\\n vs \\n)"
+        "\n3. Ensure the search text hasn't been modified"
+        "\n4. Try reading the file section first to get exact text"
+    )
+
+    return "".join(error_parts)
 
 
 async def edit_file_tool(

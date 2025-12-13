@@ -29,6 +29,9 @@ BINARY_MIME_PREFIXES = (
 # How many bytes to probe for binary detection
 BINARY_PROBE_SIZE = 8192
 
+# Default maximum size for file operations (64KB)
+DEFAULT_MAX_SIZE = 64_000
+
 
 async def apply_structured_edits(original_content: str, edits_response: str) -> str:
     """Apply structured edits from the agent response."""
@@ -151,3 +154,70 @@ def is_binary_content(data: bytes) -> bool:
     """
     probe = data[:BINARY_PROBE_SIZE]
     return b"\x00" in probe
+
+
+def truncate_content(content: str, max_size: int = DEFAULT_MAX_SIZE) -> tuple[str, bool]:
+    """Truncate text content to a maximum size in bytes.
+
+    Args:
+        content: Text content to truncate
+        max_size: Maximum size in bytes (default: 64KB)
+
+    Returns:
+        Tuple of (truncated_content, was_truncated)
+    """
+    content_bytes = content.encode("utf-8")
+    if len(content_bytes) <= max_size:
+        return content, False
+
+    # Truncate at byte boundary and decode safely
+    truncated_bytes = content_bytes[:max_size]
+    # Avoid breaking UTF-8 sequences by decoding with error handling
+    truncated = truncated_bytes.decode("utf-8", errors="ignore")
+    return truncated, True
+
+
+def truncate_lines(
+    lines: list[str], offset: int = 0, limit: int | None = None, max_bytes: int = DEFAULT_MAX_SIZE
+) -> tuple[list[str], bool]:
+    """Truncate lines with offset/limit and byte size constraints.
+
+    Args:
+        lines: List of text lines
+        offset: Starting line index (0-based)
+        limit: Maximum number of lines to include (None = no limit)
+        max_bytes: Maximum total bytes (default: 64KB)
+
+    Returns:
+        Tuple of (truncated_lines, was_truncated)
+    """
+    # Apply offset
+    start_idx = max(0, offset)
+    if start_idx >= len(lines):
+        return [], False
+
+    # Apply line limit
+    if limit is not None:
+        end_idx = min(len(lines), start_idx + limit)
+    else:
+        end_idx = len(lines)
+
+    selected_lines = lines[start_idx:end_idx]
+
+    # Apply byte limit
+    result_lines: list[str] = []
+    total_bytes = 0
+
+    for line in selected_lines:
+        line_bytes = len(line.encode("utf-8"))
+        if total_bytes + line_bytes > max_bytes:
+            # Would exceed limit
+            return result_lines, True
+
+        result_lines.append(line)
+        total_bytes += line_bytes
+
+    # Check if we hit the line limit or end of file
+    was_truncated = end_idx < len(lines) or (limit is not None and len(selected_lines) >= limit)
+
+    return result_lines, was_truncated
