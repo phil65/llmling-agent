@@ -424,20 +424,32 @@ class ACPSession:
             case PartDeltaEvent(delta=ToolCallPartDelta() as delta):
                 if delta_part := delta.as_part():
                     tool_call_id = delta_part.tool_call_id
-                    tool_input = delta_part.args_as_dict()
-                    self._current_tool_inputs[tool_call_id] = tool_input
-                    # Create state and send initial notification
-                    state = self._get_or_create_tool_state(
-                        tool_call_id=tool_call_id,
-                        tool_name=delta_part.tool_name,
-                        tool_input=tool_input,
-                    )
-                    await state.start()
+                    try:
+                        tool_input = delta_part.args_as_dict()
+                    except ValueError:
+                        # Args still streaming, not valid JSON yet - skip this delta
+                        pass
+                    else:
+                        self._current_tool_inputs[tool_call_id] = tool_input
+                        # Create state and send initial notification
+                        state = self._get_or_create_tool_state(
+                            tool_call_id=tool_call_id,
+                            tool_name=delta_part.tool_name,
+                            tool_input=tool_input,
+                        )
+                        await state.start()
 
             # Tool call started - create/update state and start notification
             case FunctionToolCallEvent(part=part):
                 tool_call_id = part.tool_call_id
-                tool_input = part.args_as_dict()
+                try:
+                    tool_input = part.args_as_dict()
+                except ValueError as e:
+                    # Args might be malformed - use empty dict and log
+                    self.log.warning(
+                        "Failed to parse tool args", tool_name=part.tool_name, error=str(e)
+                    )
+                    tool_input = {}
                 self._current_tool_inputs[tool_call_id] = tool_input
                 # Create state and send initial notification
                 state = self._get_or_create_tool_state(
