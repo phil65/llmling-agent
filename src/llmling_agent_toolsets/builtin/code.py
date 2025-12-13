@@ -94,9 +94,7 @@ class CodeTools(ResourceProvider):
             cwd: Optional cwd to resolve relative paths against
         """
         from fsspec.asyn import AsyncFileSystem
-        from fsspec.implementations.asyn_wrapper import (
-            AsyncFileSystemWrapper,
-        )
+        from fsspec.implementations.asyn_wrapper import AsyncFileSystemWrapper
         from morefs.asyn_local import AsyncLocalFileSystem
 
         super().__init__(name=name)

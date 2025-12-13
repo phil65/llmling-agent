@@ -32,6 +32,8 @@ class MarkdownSyncParser:
     extensions: tuple[str, ...] = (".md", ".mdx")
 
     def parse(self, content: str) -> SyncMetadata | None:
+        import yamling
+
         from llmling_agent_sync.models import SyncMetadata
 
         match = FRONTMATTER_PATTERN.match(content)
@@ -39,8 +41,8 @@ class MarkdownSyncParser:
             return None
 
         try:
-            frontmatter = yaml.safe_load(match.group(1))
-        except yaml.YAMLError:
+            frontmatter = yamling.load_yaml(match.group(1))
+        except yamling.YAMLError:
             return None
 
         if not frontmatter or "sync" not in frontmatter:

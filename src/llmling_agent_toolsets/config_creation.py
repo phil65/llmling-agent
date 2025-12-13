@@ -7,16 +7,15 @@ import tomllib
 from typing import TYPE_CHECKING, Any, Literal
 
 import anyenv
-import jsonschema
 from schemez.helpers import json_schema_to_pydantic_code
 from upathtools import to_upath
 from upathtools.filesystems.file_filesystems.jsonschema_fs import JsonSchemaFileSystem
-import yamling
 
 from llmling_agent.resource_providers import StaticResourceProvider
 
 
 if TYPE_CHECKING:
+    import jsonschema
     from upathtools import JoinablePathLike
 
 
@@ -25,6 +24,8 @@ MarkupType = Literal["yaml", "json", "toml"]
 
 def _parse_content(content: str, markup: MarkupType) -> dict[str, Any]:
     """Parse content based on markup type."""
+    import yamling
+
     match markup:
         case "yaml":
             return yamling.load_yaml(content, verify_type=dict)
@@ -137,6 +138,8 @@ class ConfigCreationTools(StaticResourceProvider):
         Returns:
             Validation result message
         """
+        import jsonschema
+
         schema = self._load_schema()
         try:
             data = _parse_content(content, self._markup)
