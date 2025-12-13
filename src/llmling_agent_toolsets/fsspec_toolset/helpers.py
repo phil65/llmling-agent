@@ -197,10 +197,7 @@ def truncate_lines(
         return [], False
 
     # Apply line limit
-    if limit is not None:
-        end_idx = min(len(lines), start_idx + limit)
-    else:
-        end_idx = len(lines)
+    end_idx = min(len(lines), start_idx + limit) if limit is not None else len(lines)
 
     selected_lines = lines[start_idx:end_idx]
 

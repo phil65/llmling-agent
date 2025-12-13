@@ -642,7 +642,7 @@ def _build_not_found_error(content: str, old_string: str) -> str:
         similarity_pct = fuzzy_match.similarity * 100
         error_parts.append(
             f"\nClosest fuzzy match (similarity {similarity_pct:.1f}%) "
-            f"at lines {fuzzy_match.start_line}–{fuzzy_match.end_line}:"
+            f"at lines {fuzzy_match.start_line}–{fuzzy_match.end_line}:"  # noqa: RUF001
         )
         diff = _create_unified_diff(old_string, fuzzy_match.text)
         if diff:

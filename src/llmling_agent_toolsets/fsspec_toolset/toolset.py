@@ -648,12 +648,11 @@ class FSSpecTools(ResourceProvider):
 
             if "error" in result:
                 return result
-
-            return result
-
         except Exception as e:  # noqa: BLE001
             error_msg = f"Grep failed: {e}"
             return {"error": error_msg}
+        else:
+            return result
 
     async def _read(self, agent_ctx: AgentContext, path: str, encoding: str = "utf-8") -> str:
         # with self.fs.open(path, "r", encoding="utf-8") as f:

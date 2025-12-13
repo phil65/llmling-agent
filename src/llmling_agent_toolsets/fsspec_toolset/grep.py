@@ -306,18 +306,17 @@ async def grep_with_fsspec(
                 if file_matches:
                     matches[file_path] = file_matches
 
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 logger.debug("Error reading file during grep", file=file_path, error=str(e))
                 continue
 
         was_truncated = total_matches >= max_matches or total_bytes >= max_output_bytes
-
+    except Exception as e:
+        logger.exception("Error in fsspec grep")
+        return {"error": f"Grep failed: {e}"}
+    else:
         return {
             "matches": matches,
             "match_count": total_matches,
             "was_truncated": was_truncated,
         }
-
-    except Exception as e:
-        logger.exception("Error in fsspec grep")
-        return {"error": f"Grep failed: {e}"}
