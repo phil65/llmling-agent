@@ -120,9 +120,9 @@ class TestCodeExecution:
         assert tools._env
 
         async def mock_stream_command(command):
-            yield ProcessStartedEvent(command=command)
-            yield OutputEvent(data="hello world\n", stream="stdout")
-            yield ProcessCompletedEvent(exit_code=0, duration=0.2)
+            yield ProcessStartedEvent(command=command, process_id="test_proc_123")
+            yield OutputEvent(data="hello world\n", stream="stdout", process_id="test_proc_123")
+            yield ProcessCompletedEvent(exit_code=0, duration=0.2, process_id="test_proc_123")
 
         tools._env.stream_command = mock_stream_command
         result = await tools.execute_command(agent_ctx, "echo hello world")
@@ -140,9 +140,9 @@ class TestCodeExecution:
         long_output = "x" * 1000
 
         async def mock_stream_command(command):
-            yield ProcessStartedEvent(command=command)
-            yield OutputEvent(data=long_output, stream="stdout")
-            yield ProcessCompletedEvent(exit_code=0, duration=0.1)
+            yield ProcessStartedEvent(command=command, process_id="test_proc_456")
+            yield OutputEvent(data=long_output, stream="stdout", process_id="test_proc_456")
+            yield ProcessCompletedEvent(exit_code=0, duration=0.1, process_id="test_proc_456")
 
         tools._env.stream_command = mock_stream_command
         result = await tools.execute_command(agent_ctx, "echo", output_limit=100)
