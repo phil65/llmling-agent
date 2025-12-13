@@ -6,6 +6,7 @@ import asyncio
 import uuid
 
 from pydantic_ai import UserPromptPart
+from schemez import jsonschema_to_code, openapi_to_code
 from slashed import CommandContext  # noqa: TC002
 
 from llmling_agent.log import get_logger
@@ -13,7 +14,7 @@ from llmling_agent.messaging.context import NodeContext  # noqa: TC001
 from llmling_agent_commands.base import NodeCommand
 from llmling_agent_server.acp_server.session import ACPSession  # noqa: TC001
 
-from .helpers import SCHEMA_EXTRACTION_SCRIPT, generate_from_schema, generate_from_url
+from .helpers import SCHEMA_EXTRACTION_SCRIPT
 
 
 logger = get_logger(__name__)
@@ -82,7 +83,7 @@ class GetSchemaCommand(NodeCommand):
                 # Direct URL approach - use OpenAPIParser directly
                 try:
                     generated_code = await asyncio.to_thread(
-                        generate_from_url, input_path=input_path, class_name=class_name
+                        openapi_to_code, input_path=input_path, class_name=class_name
                     )
                 except Exception as e:  # noqa: BLE001
                     await session.notifications.tool_call_progress(
@@ -128,7 +129,7 @@ class GetSchemaCommand(NodeCommand):
 
                 try:
                     generated_code = await asyncio.to_thread(
-                        generate_from_schema,
+                        jsonschema_to_code,
                         schema_json=schema_json,
                         class_name=class_name,
                         input_path=input_path,

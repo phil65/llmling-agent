@@ -242,7 +242,7 @@ wheels = [
 
 [[package]]
 name = "anyenv"
-version = "1.11.6"
+version = "2.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aioitertools" },
@@ -250,9 +250,9 @@ dependencies = [
     { name = "appdirs" },
     { name = "universal-pathlib" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/5b/7f/4fda8f4bdc880f534cd9e8391bde8c6fa84183121ed9e956fece8766c5e1/anyenv-1.11.6.tar.gz", hash = "sha256:ae0aa7e635404de471314434f531fe3d642e371aa0de78cda927789615d1591c", size = 149847, upload-time = "2025-12-11T01:40:53.479Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/7f/d6/4eacd488caa560b711babb064455f9291e084f4bbb2e6f1d292f473d88c8/anyenv-2.0.0.tar.gz", hash = "sha256:4cf029bd9211491a64120aebcbd060318a08b57a9fa61a1f64268e842556534e", size = 88112, upload-time = "2025-12-13T15:43:18.067Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c5/ad/189b9da8b558472aeb1c7bba793cf64454878229ca60e0860045505bb395/anyenv-1.11.6-py3-none-any.whl", hash = "sha256:7d450a9ed8dacc02fbcf99f143d51abaa967707a1df275782a397df374963fea", size = 232336, upload-time = "2025-12-11T01:40:51.257Z" },
+    { url = "https://files.pythonhosted.org/packages/4a/61/59cea048b985d493c63be48b0a953d9bc355f19d85372c924d6702ae8620/anyenv-2.0.0-py3-none-any.whl", hash = "sha256:2707a617c2f1e79cf47f9181b0f05b61be7f753a7335f04c689a47a6dc859fb6", size = 141652, upload-time = "2025-12-13T15:43:16.225Z" },
 ]
 
 [package.optional-dependencies]
@@ -555,6 +555,20 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/d4/66/af520dfc7d770277adc6fef1309a10602ae4ca6b146d4c9ba9332b2a5002/braintrust-0.3.13.tar.gz", hash = "sha256:b9686f5cd394ce68c07edc14d0eeee3d84899793b340835380f88e66da7cbc73", size = 248298, upload-time = "2025-12-10T22:43:31.942Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/36/7f/6cd9ea59969aaf321e5b39f55849876e5c98c1575b59c2f55a889214c19e/braintrust-0.3.13-py3-none-any.whl", hash = "sha256:25acf1bddbcfd474975ce97cde7ef64dd4c14c92621e93c160b225c8fd22dbc3", size = 293692, upload-time = "2025-12-10T22:43:30.163Z" },
+]
+
+[[package]]
+name = "brave-search-python-client"
+version = "0.4.27"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pydantic-settings" },
+    { name = "tenacity" },
+    { name = "typer" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/1d/56/bbd47494ebf93742a4ccb40d758a93d0cc1bc0a9513f9106ac9b6f0fa7a2/brave_search_python_client-0.4.27.tar.gz", hash = "sha256:3b8803dd8d4bac8110de2c5ba3014610e6bb36da7ea19ad9ce62b5f1deb38d5a", size = 124413, upload-time = "2025-04-27T17:04:17.641Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/98/d3/ae16180d52456d8fedcb288e4e4927dd806ce0a43d8ec9b9388ea6c6b072/brave_search_python_client-0.4.27-py3-none-any.whl", hash = "sha256:5b7b7a93f46a825517f81b42dc6c0c6ddcabee4a0fe44ce92b9ceae6a37699ec", size = 128788, upload-time = "2025-04-27T17:04:15.772Z" },
 ]
 
 [[package]]
@@ -1201,6 +1215,20 @@ all = [
     { name = "croniter" },
     { name = "fastapi" },
     { name = "watchfiles" },
+]
+
+[[package]]
+name = "exa-py"
+version = "2.0.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "openai" },
+    { name = "requests" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/72/7f/38cda469587b2c69645d3ccc2dda47a5c1213cc98e9090271b462704496e/exa_py-2.0.1.tar.gz", hash = "sha256:aaae32b6356ed855b4decee3fcb8e71272439c4614a20419612c1674c8c1f648", size = 43553, upload-time = "2025-11-21T15:54:51.306Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a4/da/70ff6161914988ec756e6b2a57e23d28247cc825bfdbdcddf0bb967e87d0/exa_py-2.0.1-py3-none-any.whl", hash = "sha256:e2773f16dc2d70baad284139d58a292ac911307c6898ecd1dbb413035db0c950", size = 56043, upload-time = "2025-11-21T15:54:50.2Z" },
 ]
 
 [[package]]
@@ -2254,9 +2282,7 @@ name = "llmling-agent"
 version = "1.15.14"
 source = { editable = "." }
 dependencies = [
-    { name = "aioitertools" },
     { name = "anyenv", extra = ["httpx"] },
-    { name = "datamodel-code-generator" },
     { name = "docler" },
     { name = "docstring-parser" },
     { name = "epregistry" },
@@ -2278,8 +2304,8 @@ dependencies = [
     { name = "pydantic-ai-slim" },
     { name = "python-dotenv" },
     { name = "rich" },
-    { name = "schemez" },
-    { name = "searchly" },
+    { name = "schemez", extra = ["codegen"] },
+    { name = "searchly", extra = ["all"] },
     { name = "slashed" },
     { name = "sqlalchemy", extra = ["aiosqlite"] },
     { name = "sqlmodel" },
@@ -2397,7 +2423,6 @@ lint = [
 [package.metadata]
 requires-dist = [
     { name = "ag-ui-protocol", marker = "extra == 'ag-ui'", specifier = ">=0.1.10" },
-    { name = "aioitertools", specifier = ">=0.12.0" },
     { name = "anyenv", extras = ["httpx"], specifier = ">=0.3.0" },
     { name = "apprise", marker = "extra == 'notifications'", specifier = ">=1.9.5" },
     { name = "ast-grep-py", marker = "extra == 'coding'", specifier = ">=0.40.0" },
@@ -2405,7 +2430,6 @@ requires-dist = [
     { name = "braintrust", marker = "extra == 'braintrust'" },
     { name = "clipman", marker = "extra == 'clipboard'" },
     { name = "composio", marker = "extra == 'composio'" },
-    { name = "datamodel-code-generator", specifier = ">=0.35.0" },
     { name = "docler", specifier = ">=1.0.3" },
     { name = "docstring-parser", specifier = ">=0.17.0" },
     { name = "epregistry" },
@@ -2440,8 +2464,8 @@ requires-dist = [
     { name = "pydantic-ai-slim", extras = ["openai", "google", "anthropic", "mistral", "retries"], marker = "extra == 'default'", specifier = ">=1.0.0" },
     { name = "python-dotenv", specifier = ">=1.0.1" },
     { name = "rich" },
-    { name = "schemez" },
-    { name = "searchly", specifier = ">=2.0.1" },
+    { name = "schemez", extras = ["codegen"] },
+    { name = "searchly", extras = ["all"], specifier = ">=2.0.1" },
     { name = "slashed", specifier = ">=0.1.0" },
     { name = "sounddevice", marker = "extra == 'tts'", specifier = ">=0.5.0" },
     { name = "sqlalchemy", extras = ["aiosqlite"] },
@@ -2588,7 +2612,7 @@ name = "macholib"
 version = "1.16.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "altgraph", marker = "sys_platform != 'win32'" },
+    { name = "altgraph" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/10/2f/97589876ea967487978071c9042518d28b958d87b17dceb7cdc1d881f963/macholib-1.16.4.tar.gz", hash = "sha256:f408c93ab2e995cd2c46e34fe328b130404be143469e41bc366c807448979362", size = 59427, upload-time = "2025-11-22T08:28:38.373Z" }
 wheels = [
@@ -5080,7 +5104,7 @@ wheels = [
 
 [[package]]
 name = "schemez"
-version = "2.2.24"
+version = "2.2.25"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "docstring-parser" },
@@ -5088,14 +5112,19 @@ dependencies = [
     { name = "pydantic" },
     { name = "universal-pathlib" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/66/74/c63369f0460ab232af5a0ecefaf5d4db7fe6445a2d78628fb4abc7fe2afc/schemez-2.2.24.tar.gz", hash = "sha256:d0d3a29e89150a6a223462f5779c483f933c8a1f00273eba4e76a0ee0eabba0b", size = 75617, upload-time = "2025-12-12T00:22:59.328Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/42/cf/55dfd0c3e6cf164cf6df1c3981c82f2c36498490ab7e021fe4bbd1bb79f3/schemez-2.2.25.tar.gz", hash = "sha256:74c712597d5ab4d99f9c4664faa273a695e9ca17623e4ef92bcbec5305fd0458", size = 75826, upload-time = "2025-12-13T16:22:53.199Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/03/5e/900ef47af0bcb7a3f535f1056568e64dfd1349494982823aaa52c1d5ba44/schemez-2.2.24-py3-none-any.whl", hash = "sha256:623048bce5aea8c7732e89462d638c38b618077cfb4b12a61efc91781e93f0c3", size = 93714, upload-time = "2025-12-12T00:22:57.798Z" },
+    { url = "https://files.pythonhosted.org/packages/bc/33/29734d9e5b3c0e06889d6da91ab179948657cc250ff76120f242b03ec783/schemez-2.2.25-py3-none-any.whl", hash = "sha256:f666f70a79afed0d87f31b70aac5466d03c9be0d78fe571ad6d35b9cebac0f67", size = 93944, upload-time = "2025-12-13T16:22:51.537Z" },
+]
+
+[package.optional-dependencies]
+codegen = [
+    { name = "datamodel-code-generator" },
 ]
 
 [[package]]
 name = "searchly"
-version = "2.0.4"
+version = "2.0.5"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyenv", extra = ["httpx"] },
@@ -5103,9 +5132,16 @@ dependencies = [
     { name = "schemez" },
     { name = "universal-pathlib" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/73/fc/df5ca328133cbb0f23ce53d131f9dd7539c8c689639ea423fd8b9a503b07/searchly-2.0.4.tar.gz", hash = "sha256:2191449821bbb86807549a3a7187a9d0700225e73fbe870b6a3dce2a14b38114", size = 16915, upload-time = "2025-12-13T14:58:07.112Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/f7/51/b6bfa258bf7428abf047938bb39ef7f1edd4870e278b97c4bc77bf472a66/searchly-2.0.5.tar.gz", hash = "sha256:8c7a8339c6d97ef89a9da02e67bc9655fb4c47b5a9681fe10613ca61d83a0330", size = 16943, upload-time = "2025-12-13T15:32:24.513Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a2/f2/1c3889b653efc8d1854a560dae34a37b261884998020f148992cb184b326/searchly-2.0.4-py3-none-any.whl", hash = "sha256:3e1f407730faec8e2c66bbc78e953b89aeb9bdbf161de2126ab5f5ca6b88252a", size = 32001, upload-time = "2025-12-13T14:58:05.707Z" },
+    { url = "https://files.pythonhosted.org/packages/fc/a7/cfaf4ecffc8a40324410d833d9646337662eb7057b2bd8d13c40d3726ac3/searchly-2.0.5-py3-none-any.whl", hash = "sha256:ac9d611c521d01bfe7285742809f39263db982ce5f6aee6b583c3283268dcd5b", size = 32018, upload-time = "2025-12-13T15:32:23.06Z" },
+]
+
+[package.optional-dependencies]
+all = [
+    { name = "brave-search-python-client" },
+    { name = "exa-py" },
+    { name = "psutil" },
 ]
 
 [[package]]
@@ -5113,8 +5149,8 @@ name = "secretstorage"
 version = "3.5.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "cryptography", marker = "sys_platform != 'win32'" },
-    { name = "jeepney", marker = "sys_platform != 'win32'" },
+    { name = "cryptography" },
+    { name = "jeepney" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/1c/03/e834bcd866f2f8a49a85eaff47340affa3bfa391ee9912a952a1faa68c7b/secretstorage-3.5.0.tar.gz", hash = "sha256:f04b8e4689cbce351744d5537bf6b1329c6fc68f91fa666f60a380edddcd11be", size = 19884, upload-time = "2025-11-23T19:02:53.191Z" }
 wheels = [
