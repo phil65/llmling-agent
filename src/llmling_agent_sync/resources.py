@@ -128,13 +128,9 @@ class ResourceRegistry:
             return True  # Unknown = assume changed
         return state.last_checked > since
 
-    def _url_to_cache_key(self, url: str) -> str:
-        """Convert URL to a safe filename for caching."""
-        return hashlib.sha256(url.encode()).hexdigest()
-
     def _get_cache_path(self, url: str) -> Path:
         """Get cache file path for a URL."""
-        return self.cache_dir / self._url_to_cache_key(url)
+        return self.cache_dir / _url_to_cache_key(url)
 
     def _cache_content(self, url: str, content: str) -> None:
         """Cache content for a URL."""
@@ -177,7 +173,7 @@ class ResourceRegistry:
             List of ResourceChange for URLs whose content changed
         """
         if fetcher is None:
-            fetcher = self._default_fetcher
+            fetcher = _default_fetcher
 
         changes: list[ResourceChange] = []
         now = datetime.now(UTC)
@@ -219,15 +215,6 @@ class ResourceRegistry:
             result = await result
         return str(result)
 
-    @staticmethod
-    def _default_fetcher(url: str) -> str:
-        """Default sync fetcher using httpx."""
-        import httpx
-
-        response = httpx.get(url, follow_redirects=True, timeout=30)
-        response.raise_for_status()
-        return response.text
-
     def tracked_urls(self) -> list[str]:
         """Get all tracked URLs."""
         return list(self.resources.keys())
@@ -254,3 +241,17 @@ class ResourceRegistry:
         if self.cache_dir.exists():
             shutil.rmtree(self.cache_dir)
         self.save()
+
+
+def _url_to_cache_key(url: str) -> str:
+    """Convert URL to a safe filename for caching."""
+    return hashlib.sha256(url.encode()).hexdigest()
+
+
+def _default_fetcher(url: str) -> str:
+    """Default sync fetcher using httpx."""
+    import httpx
+
+    response = httpx.get(url, follow_redirects=True, timeout=30)
+    response.raise_for_status()
+    return response.text
