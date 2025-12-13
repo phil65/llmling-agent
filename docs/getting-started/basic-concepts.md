@@ -103,6 +103,32 @@ It is possible to:
 - Load previous conversations and even describe the Queries in the yaml file using simple syntax
 - Assign agents to other agents for agent-as-a-tool-usage
 
+
+LLMling-Agent is built around the idea that AI agents should be:
+
+- Easily configurable through YAML
+- Fully reproducible
+- Version controllable
+- Human readable and verifiable
+- Shareable across teams and projects
+
+This means you can define complete agents, their capabilities, and their environments in pure YAML without writing any code.
+
+Define complete agents in YAML without writing code:
+
+```yaml
+# agents.yml
+agents:
+  web_assistant:
+    model: openai:gpt-5
+    tools:
+      - type: import
+        name: open_url
+        import_path: webbrowser.open
+    system_prompts:
+      - "You are a helpful web assistant."
+```
+
 ### Agent Pools
 
 A Pool is a collection of agents that can:
