@@ -39,6 +39,7 @@ from acp.schema import (
     AvailableCommand,
     ClientCapabilities,
     PlanEntry,
+    TerminalToolCallContent,
     ToolCallLocation,
 )
 from acp.tool_call_state import ToolCallState
@@ -596,6 +597,7 @@ class ACPSession:
                 )
 
             # Process started - update state with terminal and better title
+            # process_id is the ACP terminal_id when using ACPExecutionEnvironment
             case ProcessStartEvent(
                 process_id=process_id,
                 command=command,
@@ -604,9 +606,14 @@ class ACPSession:
                 tool_call_id=str() as tool_call_id,
             ):
                 if state := self._tool_call_states.get(tool_call_id):
-                    await state.add_terminal(
-                        terminal_id=process_id,
-                        title=f"Running: {command}",
+                    # Truncate long commands for title
+                    cmd_display = command[:60] + "..." if len(command) > 60 else command
+                    # process_id is the terminal_id from ACP
+                    terminal_content = TerminalToolCallContent(terminal_id=process_id)
+                    await state.update(
+                        title=f"Running: {cmd_display}",
+                        status="in_progress",
+                        add_content=terminal_content,
                     )
 
             # Process start failed - update state with error
@@ -627,7 +634,7 @@ class ACPSession:
             case ProcessOutputEvent(process_id=process_id, tool_call_id=str() as tool_call_id):
                 pass  # Terminal content streams through terminal protocol
 
-            # Process exited - update state title
+            # Process exited - update state title (keep command context, add exit code)
             case ProcessExitEvent(
                 process_id=process_id,
                 exit_code=exit_code,
@@ -636,8 +643,10 @@ class ACPSession:
                 tool_call_id=str() as tool_call_id,
             ):
                 if state := self._tool_call_states.get(tool_call_id):
+                    # Append exit status to existing title
+                    status_icon = "✓" if success else "✗"
                     await state.update(
-                        title=f"Exited with code {exit_code}",
+                        title=f"{state.title} [{status_icon} exit {exit_code}]",
                         status="in_progress",  # Don't mark complete yet, wait for FunctionToolResultEvent
                     )
 

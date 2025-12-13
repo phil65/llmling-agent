@@ -162,7 +162,8 @@ class ExecutionEnvironmentTools(ResourceProvider):
             command: Shell command to execute
             output_limit: Maximum bytes of output to return
         """
-        process_id = f"cmd_{uuid.uuid4().hex[:8]}"
+        # process_id comes from exxec events (is terminal_id when using ACP)
+        process_id: str | None = None
         stdout_parts: list[str] = []
         stderr_parts: list[str] = []
         exit_code: int | None = None
@@ -171,33 +172,34 @@ class ExecutionEnvironmentTools(ResourceProvider):
         try:
             async for event in self.get_env(agent_ctx).stream_command(command):
                 match event:
-                    case ProcessStartedEvent(command=cmd):
+                    case ProcessStartedEvent(process_id=pid, command=cmd):
+                        process_id = pid
                         await agent_ctx.events.process_started(
-                            process_id=process_id,
+                            process_id=pid,
                             command=cmd,
                             success=True,
                         )
-                    case OutputEvent(data=data, stream=stream):
+                    case OutputEvent(process_id=pid, data=data, stream=stream):
                         if stream == "stderr":
                             stderr_parts.append(data)
                         else:
                             stdout_parts.append(data)
                         await agent_ctx.events.process_output(
-                            process_id=process_id,
+                            process_id=pid,
                             output=data,
                             stdout=data if stream != "stderr" else None,
                             stderr=data if stream == "stderr" else None,
                         )
-                    case ProcessCompletedEvent(exit_code=code_, duration=dur):
+                    case ProcessCompletedEvent(process_id=pid, exit_code=code_, duration=dur):
                         exit_code = code_
                         duration = dur
                         combined = "".join(stdout_parts) + "".join(stderr_parts)
                         await agent_ctx.events.process_exit(
-                            process_id=process_id,
+                            process_id=pid,
                             exit_code=exit_code,
                             final_output=combined,
                         )
-                    case ProcessErrorEvent(error=err, exit_code=code_):
+                    case ProcessErrorEvent(process_id=pid, error=err, exit_code=code_):
                         error_msg = err
                         exit_code = code_
 
@@ -227,8 +229,10 @@ class ExecutionEnvironmentTools(ResourceProvider):
                     "exit_code": exit_code,
                 }
         except Exception as e:  # noqa: BLE001
+            # Use process_id from events if available, otherwise generate fallback
+            error_id = process_id or f"cmd_{uuid.uuid4().hex[:8]}"
             await agent_ctx.events.process_started(
-                process_id=process_id,
+                process_id=error_id,
                 command=command,
                 success=False,
                 error=str(e),
