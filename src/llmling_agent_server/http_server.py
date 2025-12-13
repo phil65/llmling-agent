@@ -17,7 +17,7 @@ from llmling_agent_server.base import BaseServer
 if TYPE_CHECKING:
     from starlette.applications import Starlette
     from starlette.routing import Route
-    from upath.types import JoinablePathLike
+    from upathtools import JoinablePathLike
 
     from llmling_agent import AgentPool
 

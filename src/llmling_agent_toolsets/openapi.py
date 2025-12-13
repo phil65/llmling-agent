@@ -14,7 +14,7 @@ from llmling_agent.resource_providers import ResourceProvider
 
 if TYPE_CHECKING:
     import httpx
-    from upath.types import JoinablePathLike
+    from upathtools import JoinablePathLike
 
     from llmling_agent.tools.base import Tool
 

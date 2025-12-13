@@ -28,7 +28,7 @@ from pydantic_ai import AgentStreamEvent, RunContext
 from pydantic_ai.models import Model
 from tokonomics import ModelName
 from toprompt.to_prompt import AnyPromptType
-from upath.types import JoinablePathLike
+from upathtools import JoinablePathLike
 
 
 # Define what we consider JSON-serializable

@@ -9,7 +9,7 @@ from llmling_agent.running.executor import discover_functions, execute_functions
 
 
 if TYPE_CHECKING:
-    from upath.types import JoinablePathLike
+    from upathtools import JoinablePathLike
 
     from llmling_agent.models.manifest import AgentsManifest
 

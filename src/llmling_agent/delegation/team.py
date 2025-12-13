@@ -7,7 +7,7 @@ from time import perf_counter
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
-from aioitertools.asyncio import as_generated
+from anyenv.async_run import as_generated
 from toprompt import to_prompt
 
 from llmling_agent.common_types import SupportsRunStream

@@ -62,7 +62,7 @@ if TYPE_CHECKING:
     from pydantic_ai import UsageLimits
     from pydantic_ai.output import OutputSpec
     from toprompt import AnyPromptType
-    from upath.types import JoinablePathLike
+    from upathtools import JoinablePathLike
 
     from llmling_agent.agent import AgentContext
     from llmling_agent.common_types import (

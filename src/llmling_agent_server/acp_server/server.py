@@ -25,7 +25,7 @@ from llmling_agent_server.acp_server.acp_agent import LLMlingACPAgent
 if TYPE_CHECKING:
     from tokonomics.model_discovery import ProviderType
     from tokonomics.model_discovery.model_info import ModelInfo
-    from upath.types import JoinablePathLike
+    from upathtools import JoinablePathLike
 
 
 logger = get_logger(__name__)

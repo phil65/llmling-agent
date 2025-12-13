@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 
     from jinja2 import Template
     from upath import UPath
-    from upath.types import JoinablePathLike
+    from upathtools import JoinablePathLike
 
     from llmling_agent.common_types import JsonValue
     from llmling_agent_config.storage import LogFormat, TextLogConfig

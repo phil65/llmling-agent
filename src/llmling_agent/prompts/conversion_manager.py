@@ -10,7 +10,7 @@ from llmling_agent_config.converters import ConversionConfig
 
 if TYPE_CHECKING:
     from docler.converters.base import DocumentConverter
-    from upath.types import JoinablePathLike
+    from upathtools import JoinablePathLike
 
 
 class ConversionManager:

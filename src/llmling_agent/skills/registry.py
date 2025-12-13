@@ -22,7 +22,7 @@ from llmling_agent.utils.baseregistry import BaseRegistry
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from upath.types import JoinablePathLike
+    from upathtools import JoinablePathLike
 
 
 SKILL_NAME_LIMIT = 64

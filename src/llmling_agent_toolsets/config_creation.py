@@ -17,7 +17,7 @@ from llmling_agent.resource_providers import StaticResourceProvider
 
 
 if TYPE_CHECKING:
-    from upath.types import JoinablePathLike
+    from upathtools import JoinablePathLike
 
 
 MarkupType = Literal["yaml", "json", "toml"]

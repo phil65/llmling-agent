@@ -37,7 +37,7 @@ if TYPE_CHECKING:
 
     from pydantic_ai.output import OutputSpec
     from tokonomics import ModelName
-    from upath.types import JoinablePathLike
+    from upathtools import JoinablePathLike
 
     from llmling_agent.agent.acp_agent import ACPAgent
     from llmling_agent.agent.agent import AgentKwargs

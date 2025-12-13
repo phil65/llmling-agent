@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 
     from pydantic_ai import UserContent
     from toprompt import AnyPromptType
-    from upath.types import JoinablePathLike
+    from upathtools import JoinablePathLike
 
     from llmling_agent.agent.agent import Agent
     from llmling_agent.common_types import MessageRole, SessionIdType

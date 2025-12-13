@@ -34,7 +34,7 @@ from llmling_agent_config.workers import (
 
 
 if TYPE_CHECKING:
-    from upath.types import JoinablePathLike
+    from upathtools import JoinablePathLike
 
     from llmling_agent.prompts.manager import PromptManager
     from llmling_agent.vfs_registry import VFSRegistry

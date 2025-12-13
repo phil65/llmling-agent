@@ -56,7 +56,7 @@ class InputProvider(ABC):
         output_type: type[BaseModel],
         message_history: list[ChatMessage[Any]] | None = None,
     ) -> BaseModel:
-        """Get structured input, with promptantic and fallback handling."""
+        """Get structured input."""
         raise NotImplementedError
 
     @abstractmethod

@@ -11,7 +11,7 @@ from llmling_agent.skills.registry import SkillsRegistry
 
 
 if TYPE_CHECKING:
-    from upath.types import JoinablePathLike
+    from upathtools import JoinablePathLike
 
     from llmling_agent.skills.skill import Skill
 

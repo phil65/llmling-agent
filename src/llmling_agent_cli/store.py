@@ -14,7 +14,7 @@ from llmling_agent.log import get_logger
 
 
 if TYPE_CHECKING:
-    from upath.types import JoinablePathLike
+    from upathtools import JoinablePathLike
 
 
 logger = get_logger(__name__)
