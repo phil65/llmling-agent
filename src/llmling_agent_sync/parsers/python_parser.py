@@ -87,13 +87,13 @@ def _inject_at_top(content: str, block: str) -> str:
 
 def _parse_toml_like(text: str) -> SyncMetadata:
     """Simple TOML-like parser for the metadata block."""
-    import tomllib
+    import anyenv
 
     from llmling_agent_sync.models import SyncMetadata
 
     try:
-        data = tomllib.loads(text)
-    except tomllib.TOMLDecodeError:
+        data = anyenv.load_toml(text)
+    except anyenv.TomlLoadError:
         return SyncMetadata()
 
     return SyncMetadata(
