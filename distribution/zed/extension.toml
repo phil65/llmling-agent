@@ -11,31 +11,31 @@ name = "LLMling Agent"
 icon = "./icons/llmling_agent.svg"
 
 [agent_servers.llmling-agent.targets.darwin-aarch64]
-archive = "https://github.com/phil65/llmling-agent/releases/download/v1.15.13/llmling-agent-darwin-aarch64-1.15.12.zip"
+archive = "https://github.com/phil65/llmling-agent/releases/download/v1.15.14/llmling-agent-darwin-aarch64-1.15.12.zip"
 cmd = "./llmling-agent"
 args = ["serve-acp"]
 
 [agent_servers.llmling-agent.targets.darwin-x86_64]
-archive = "https://github.com/phil65/llmling-agent/releases/download/v1.15.13/llmling-agent-darwin-x86_64-1.15.12.zip"
+archive = "https://github.com/phil65/llmling-agent/releases/download/v1.15.14/llmling-agent-darwin-x86_64-1.15.12.zip"
 cmd = "./llmling-agent"
 args = ["serve-acp"]
 
 # [agent_servers.llmling-agent.targets.linux-aarch64]
-# archive = "https://github.com/phil65/llmling-agent/releases/download/v1.15.13/llmling-agent-linux-aarch64-1.15.12.zip"
+# archive = "https://github.com/phil65/llmling-agent/releases/download/v1.15.14/llmling-agent-linux-aarch64-1.15.12.zip"
 # cmd = "./llmling-agent"
 # args = ["serve-acp"]
 
 [agent_servers.llmling-agent.targets.linux-x86_64]
-archive = "https://github.com/phil65/llmling-agent/releases/download/v1.15.13/llmling-agent-linux-x86_64-1.15.12.zip"
+archive = "https://github.com/phil65/llmling-agent/releases/download/v1.15.14/llmling-agent-linux-x86_64-1.15.12.zip"
 cmd = "./llmling-agent"
 args = ["serve-acp"]
 
 # [agent_servers.llmling-agent.targets.windows-aarch64]
-# archive = "https://github.com/phil65/llmling-agent/releases/download/v1.15.13/llmling-agent-windows-aarch64-1.15.12.zip"
+# archive = "https://github.com/phil65/llmling-agent/releases/download/v1.15.14/llmling-agent-windows-aarch64-1.15.12.zip"
 # cmd = "./llmling-agent.exe"
 # args = ["serve-acp"]
 
 [agent_servers.llmling-agent.targets.windows-x86_64]
-archive = "https://github.com/phil65/llmling-agent/releases/download/v1.15.13/llmling-agent-windows-x86_64-1.15.12.zip"
+archive = "https://github.com/phil65/llmling-agent/releases/download/v1.15.14/llmling-agent-windows-x86_64-1.15.12.zip"
 cmd = "./llmling-agent.exe"
 args = ["serve-acp"]
