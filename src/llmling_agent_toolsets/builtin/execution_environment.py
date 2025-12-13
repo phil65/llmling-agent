@@ -2,22 +2,17 @@
 
 from __future__ import annotations
 
-import logging
 from typing import TYPE_CHECKING, Any
 import uuid
 
-from exxec.events import (
-    OutputEvent,
-    ProcessCompletedEvent,
-    ProcessErrorEvent,
-    ProcessStartedEvent,
-)
+from exxec.events import OutputEvent, ProcessCompletedEvent, ProcessErrorEvent, ProcessStartedEvent
 
+from llmling_agent import log
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.resource_providers import ResourceProvider
 
 
-logger = logging.getLogger(__name__)
+logger = log.get_logger(__name__)
 
 
 if TYPE_CHECKING:
@@ -36,11 +31,7 @@ class ExecutionEnvironmentTools(ResourceProvider):
     the toolset should deal with the ToolCall events for UI display purposes.
     """
 
-    def __init__(
-        self,
-        env: ExecutionEnvironment | None = None,
-        name: str = "execution",
-    ) -> None:
+    def __init__(self, env: ExecutionEnvironment | None = None, name: str = "execution") -> None:
         """Initialize execution environment toolset.
 
         Args:
@@ -80,11 +71,7 @@ class ExecutionEnvironmentTools(ResourceProvider):
             ),
         ]
 
-    async def execute_code(
-        self,
-        agent_ctx: AgentContext,
-        code: str,
-    ) -> dict[str, Any]:
+    async def execute_code(self, agent_ctx: AgentContext, code: str) -> dict[str, Any]:
         """Execute Python code and return the result.
 
         Args:
@@ -100,25 +87,15 @@ class ExecutionEnvironmentTools(ResourceProvider):
             async for event in self.get_env(agent_ctx).stream_code(code):
                 match event:
                     case ProcessStartedEvent(command=cmd):
-                        await agent_ctx.events.process_started(
-                            process_id=process_id,
-                            command=cmd,
-                            success=True,
-                        )
+                        await agent_ctx.events.process_started(process_id, cmd, success=True)
                     case OutputEvent(data=data):
                         output_parts.append(data)
-                        await agent_ctx.events.process_output(
-                            process_id=process_id,
-                            output=data,
-                        )
+                        await agent_ctx.events.process_output(process_id, output=data)
                     case ProcessCompletedEvent(exit_code=code_, duration=dur):
                         exit_code = code_
                         duration = dur
-                        await agent_ctx.events.process_exit(
-                            process_id=process_id,
-                            exit_code=exit_code,
-                            final_output="".join(output_parts),
-                        )
+                        out = "".join(output_parts)
+                        await agent_ctx.events.process_exit(process_id, exit_code, final_output=out)
                     case ProcessErrorEvent(error=err, exit_code=code_):
                         error_msg = err
                         exit_code = code_
@@ -153,7 +130,7 @@ class ExecutionEnvironmentTools(ResourceProvider):
                 "duration": duration,
             }
 
-    async def execute_command(
+    async def execute_command(  # noqa: PLR0915
         self,
         agent_ctx: AgentContext,
         command: str,
@@ -178,22 +155,16 @@ class ExecutionEnvironmentTools(ResourceProvider):
                 match event:
                     case ProcessStartedEvent(process_id=pid, command=cmd):
                         process_id = pid
-                        if pid is not None:
-                            await agent_ctx.events.process_started(
-                                process_id=pid,
-                                command=cmd,
-                                success=True,
-                            )
+                        if pid:
+                            await agent_ctx.events.process_started(pid, command=cmd, success=True)
                         else:
-                            logger.warning(
-                                "ProcessStartedEvent missing process_id for command: %s", cmd
-                            )
+                            logger.warning("ProcessStartedEvent missing process_id", command=cmd)
                     case OutputEvent(process_id=pid, data=data, stream=stream):
                         if stream == "stderr":
                             stderr_parts.append(data)
                         else:
                             stdout_parts.append(data)
-                        if pid is not None:
+                        if pid:
                             await agent_ctx.events.process_output(
                                 process_id=pid,
                                 output=data,
@@ -201,42 +172,37 @@ class ExecutionEnvironmentTools(ResourceProvider):
                                 stderr=data if stream == "stderr" else None,
                             )
                         else:
-                            logger.warning("OutputEvent missing process_id for %s stream", stream)
+                            logger.warning("OutputEvent missing process_id", stream=stream)
                     case ProcessCompletedEvent(process_id=pid, exit_code=code_, duration=dur):
                         exit_code = code_
                         duration = dur
                         combined = "".join(stdout_parts) + "".join(stderr_parts)
-                        if pid is not None:
+                        if pid:
                             await agent_ctx.events.process_exit(
                                 process_id=pid,
                                 exit_code=exit_code,
                                 final_output=combined,
                             )
                         else:
-                            logger.warning(
-                                "ProcessCompletedEvent missing process_id, exit_code: %s", code_
-                            )
+                            msg = "ProcessCompletedEvent missing process_id,"
+                            logger.warning(msg, exit_code=code_)
                     case ProcessErrorEvent(process_id=pid, error=err, exit_code=code_):
                         error_msg = err
                         exit_code = code_
 
             stdout = "".join(stdout_parts)
             stderr = "".join(stderr_parts)
-
             # Apply output limit if specified
             truncated = False
             if output_limit:
                 if len(stdout.encode()) > output_limit:
-                    stdout = "...[truncated]\n" + stdout.encode()[-output_limit:].decode(
-                        errors="ignore"
-                    )
+                    out = stdout.encode()[-output_limit:].decode(errors="ignore")
+                    stdout = "...[truncated]\n" + out
                     truncated = True
                 if len(stderr.encode()) > output_limit:
-                    stderr = "...[truncated]\n" + stderr.encode()[-output_limit:].decode(
-                        errors="ignore"
-                    )
+                    out = stderr.encode()[-output_limit:].decode(errors="ignore")
+                    stderr = "...[truncated]\n" + out
                     truncated = True
-
             if error_msg:
                 return {
                     "success": False,
@@ -284,8 +250,9 @@ class ExecutionEnvironmentTools(ResourceProvider):
             env: Environment variables (added to current env)
             output_limit: Maximum bytes of output to retain
         """
+        manager = self.get_env(agent_ctx).process_manager
         try:
-            process_id = await self.get_env(agent_ctx).process_manager.start_process(
+            process_id = await manager.start_process(
                 command=command,
                 args=args,
                 cwd=cwd,
@@ -323,19 +290,16 @@ class ExecutionEnvironmentTools(ResourceProvider):
                 "status": "started",
             }
 
-    async def get_process_output(
-        self,
-        agent_ctx: AgentContext,
-        process_id: str,
-    ) -> dict[str, Any]:
+    async def get_process_output(self, agent_ctx: AgentContext, process_id: str) -> dict[str, Any]:
         """Get current output from a background process.
 
         Args:
             agent_ctx: Agent execution context
             process_id: Process identifier from start_process
         """
+        manager = self.get_env(agent_ctx).process_manager
         try:
-            output = await self.get_env(agent_ctx).process_manager.get_output(process_id)
+            output = await manager.get_output(process_id)
             await agent_ctx.events.process_output(
                 process_id=process_id,
                 output=output.combined or "",
@@ -362,21 +326,17 @@ class ExecutionEnvironmentTools(ResourceProvider):
         else:
             return result
 
-    async def wait_for_process(
-        self,
-        agent_ctx: AgentContext,
-        process_id: str,
-    ) -> dict[str, Any]:
+    async def wait_for_process(self, agent_ctx: AgentContext, process_id: str) -> dict[str, Any]:
         """Wait for background process to complete and return final output.
 
         Args:
             agent_ctx: Agent execution context
             process_id: Process identifier from start_process
         """
+        manager = self.get_env(agent_ctx).process_manager
         try:
-            env = self.get_env(agent_ctx)
-            exit_code = await env.process_manager.wait_for_exit(process_id)
-            output = await env.process_manager.get_output(process_id)
+            exit_code = await manager.wait_for_exit(process_id)
+            output = await manager.get_output(process_id)
             await agent_ctx.events.process_exit(
                 process_id=process_id,
                 exit_code=exit_code,
@@ -399,11 +359,7 @@ class ExecutionEnvironmentTools(ResourceProvider):
                 "truncated": output.truncated,
             }
 
-    async def kill_process(
-        self,
-        agent_ctx: AgentContext,
-        process_id: str,
-    ) -> dict[str, Any]:
+    async def kill_process(self, agent_ctx: AgentContext, process_id: str) -> dict[str, Any]:
         """Terminate a background process.
 
         Args:
@@ -426,11 +382,7 @@ class ExecutionEnvironmentTools(ResourceProvider):
                 "message": f"Process {process_id} has been terminated",
             }
 
-    async def release_process(
-        self,
-        agent_ctx: AgentContext,
-        process_id: str,
-    ) -> dict[str, Any]:
+    async def release_process(self, agent_ctx: AgentContext, process_id: str) -> dict[str, Any]:
         """Release resources for a background process.
 
         Args:
@@ -460,8 +412,8 @@ class ExecutionEnvironmentTools(ResourceProvider):
         Args:
             agent_ctx: Agent execution context
         """
+        env = self.get_env(agent_ctx)
         try:
-            env = self.get_env(agent_ctx)
             process_ids = await env.process_manager.list_processes()
             if not process_ids:
                 return {"processes": [], "count": 0, "message": "No active processes"}
