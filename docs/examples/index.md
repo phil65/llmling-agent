@@ -2,6 +2,7 @@
 title: Examples
 description: Example configurations and usage patterns for LLMling-Agent
 icon: material/code-braces-box
+order: 5
 ---
 
 # Examples

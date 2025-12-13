@@ -2,7 +2,7 @@
 title: Agent Manifest
 description: Complete manifest structure and organization
 icon: material/file-code
-order: 3
+order: 2
 ---
 
 The agent manifest is a YAML file that defines your complete agent setup at the top level.

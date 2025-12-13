@@ -2,7 +2,9 @@
 title: Advanced
 description: Advanced usage patterns
 icon: material/file-code
-order: 10
+order: 6
+hide:
+  - toc
 ---
 
 ````python exec="true"
