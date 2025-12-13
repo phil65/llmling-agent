@@ -10,6 +10,7 @@ from platformdirs import user_data_dir
 from pydantic import ConfigDict, Field
 from schemez import Schema
 from tokonomics import ModelName
+from yamling import FormatType
 
 
 if TYPE_CHECKING:
@@ -20,15 +21,13 @@ if TYPE_CHECKING:
 
 LogFormat = Literal["chronological", "conversations"]
 FilterMode = Literal["and", "override"]
-SupportedFormats = Literal["yaml", "toml", "json", "ini"]
-FormatType = SupportedFormats | Literal["auto"]
 
 APP_NAME: Final = "llmling-agent"
 APP_AUTHOR: Final = "llmling"
 DATA_DIR: Final = Path(user_data_dir(APP_NAME, APP_AUTHOR))
 DEFAULT_DB_NAME: Final = "history.db"
 DEFAULT_TITLE_PROMPT: Final = """\
-Generate a short, descriptive title (3-7 words) for this conversation. \
+Generate a short, descriptive title (3-7 words) for this request. \
 Only respond with the title, nothing else."""
 
 
@@ -233,8 +232,8 @@ class StorageConfig(Schema):
     """Whether to log additions to the context."""
 
     title_generation_model: ModelName | str | None = Field(
-        default="openai:gpt-4o-mini",
-        examples=["openai:gpt-4o-mini", "anthropic:claude-3-haiku-20240307", None],
+        default="google-gla:gemini-2.5-flash-lite",
+        examples=["google-gla:gemini-2.5-flash-lite", None],
         title="Title generation model",
     )
     """Model to use for generating conversation titles.
@@ -242,7 +241,7 @@ class StorageConfig(Schema):
 
     title_generation_prompt: str = Field(
         default=DEFAULT_TITLE_PROMPT,
-        examples=[DEFAULT_TITLE_PROMPT, "Summarize this conversation in 5 words"],
+        examples=[DEFAULT_TITLE_PROMPT, "Summarize this given request in 5 words"],
         title="Title generation prompt",
     )
     """Prompt template for generating conversation titles."""
