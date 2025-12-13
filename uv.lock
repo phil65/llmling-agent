@@ -2588,7 +2588,7 @@ name = "macholib"
 version = "1.16.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "altgraph", marker = "sys_platform != 'win32'" },
+    { name = "altgraph" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/10/2f/97589876ea967487978071c9042518d28b958d87b17dceb7cdc1d881f963/macholib-1.16.4.tar.gz", hash = "sha256:f408c93ab2e995cd2c46e34fe328b130404be143469e41bc366c807448979362", size = 59427, upload-time = "2025-11-22T08:28:38.373Z" }
 wheels = [
@@ -5095,7 +5095,7 @@ wheels = [
 
 [[package]]
 name = "searchly"
-version = "2.0.2"
+version = "2.0.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyenv", extra = ["httpx"] },
@@ -5103,9 +5103,9 @@ dependencies = [
     { name = "schemez" },
     { name = "universal-pathlib" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/1e/ac/9214b07f22f2a80c85bd5b5b0d743389a98820ae2f31f7915a8e012d9e8e/searchly-2.0.2.tar.gz", hash = "sha256:532091ae14f6ce16f92284ddc8f7aa8dc8da410c8e465a166de8ad5c23487942", size = 16960, upload-time = "2025-11-26T21:28:33.863Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/73/fc/df5ca328133cbb0f23ce53d131f9dd7539c8c689639ea423fd8b9a503b07/searchly-2.0.4.tar.gz", hash = "sha256:2191449821bbb86807549a3a7187a9d0700225e73fbe870b6a3dce2a14b38114", size = 16915, upload-time = "2025-12-13T14:58:07.112Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/75/4b/e1c67caf71c3427e6a3f4c5c8ea90ea47e45378cf55a804173c0b5547c01/searchly-2.0.2-py3-none-any.whl", hash = "sha256:bf1df40f65e0fb15e53f129227a0887bd59234317f70e5cd38713c25c88e65ce", size = 32132, upload-time = "2025-11-26T21:28:32.654Z" },
+    { url = "https://files.pythonhosted.org/packages/a2/f2/1c3889b653efc8d1854a560dae34a37b261884998020f148992cb184b326/searchly-2.0.4-py3-none-any.whl", hash = "sha256:3e1f407730faec8e2c66bbc78e953b89aeb9bdbf161de2126ab5f5ca6b88252a", size = 32001, upload-time = "2025-12-13T14:58:05.707Z" },
 ]
 
 [[package]]
@@ -5113,8 +5113,8 @@ name = "secretstorage"
 version = "3.5.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "cryptography", marker = "sys_platform != 'win32'" },
-    { name = "jeepney", marker = "sys_platform != 'win32'" },
+    { name = "cryptography" },
+    { name = "jeepney" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/1c/03/e834bcd866f2f8a49a85eaff47340affa3bfa391ee9912a952a1faa68c7b/secretstorage-3.5.0.tar.gz", hash = "sha256:f04b8e4689cbce351744d5537bf6b1329c6fc68f91fa666f60a380edddcd11be", size = 19884, upload-time = "2025-11-23T19:02:53.191Z" }
 wheels = [
@@ -5681,7 +5681,7 @@ wheels = [
 
 [[package]]
 name = "upathtools"
-version = "1.15.2"
+version = "1.16.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "fsspec" },
@@ -5689,9 +5689,9 @@ dependencies = [
     { name = "python-dotenv" },
     { name = "universal-pathlib" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/cd/25/3763f0e92d84f65dfdee1f08b0906d6d964237715c317680f0d68908eee8/upathtools-1.15.2.tar.gz", hash = "sha256:75f1fc7a5f21464610b03ce9ef57cf4a237a3c5d7c79123f5b203a554aee2cb2", size = 161116, upload-time = "2025-12-11T05:30:22.105Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/95/43/9059cee4b18eed3d6d2007f29b08819fc3ba8609ef447cce1219714c04d8/upathtools-1.16.1.tar.gz", hash = "sha256:ad04a19d870b1d59a7acc6f1ce668b5ec00a905a55f7e7ed35940ec05cc7dc55", size = 152337, upload-time = "2025-12-13T14:12:18.532Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/bd/f2/c83220e4b998d9041e7636f9e9e2a5bcbfd0d358a51f0f34a515ce8dce78/upathtools-1.15.2-py3-none-any.whl", hash = "sha256:664dbbbe9d60699d768527e61924eef029b6960c7c1cd8f0aaf98d323e8046e2", size = 216529, upload-time = "2025-12-11T05:30:20.715Z" },
+    { url = "https://files.pythonhosted.org/packages/e5/eb/de0f1ec820aec2869c8e36f6d0c508768d47a66828ddabe965c551076290/upathtools-1.16.1-py3-none-any.whl", hash = "sha256:b60dabd546f08157048a9abafcfec12ac687dacb4c23515da0097ea6a847f8f4", size = 205267, upload-time = "2025-12-13T14:12:17.135Z" },
 ]
 
 [package.optional-dependencies]

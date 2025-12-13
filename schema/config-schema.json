@@ -3876,20 +3876,6 @@
             "null"
           ]
         },
-        "cwd": {
-          "default": null,
-          "description": "Working directory for relative path operations (uses fs.chdir).",
-          "examples": [
-            "/workspace",
-            "/tmp",
-            "data/"
-          ],
-          "title": "Working Directory",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
@@ -4099,20 +4085,6 @@
             "null"
           ]
         },
-        "cwd": {
-          "default": null,
-          "description": "Working directory for relative path operations (uses fs.chdir).",
-          "examples": [
-            "/workspace",
-            "/tmp",
-            "data/"
-          ],
-          "title": "Working Directory",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
@@ -4143,20 +4115,6 @@
             "C:\\Documents"
           ],
           "title": "Root Path",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "cwd": {
-          "default": null,
-          "description": "Working directory for relative path operations (uses fs.chdir).",
-          "examples": [
-            "/workspace",
-            "/tmp",
-            "data/"
-          ],
-          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -6156,20 +6114,6 @@
             "null"
           ]
         },
-        "cwd": {
-          "default": null,
-          "description": "Working directory for relative path operations (uses fs.chdir).",
-          "examples": [
-            "/workspace",
-            "/tmp",
-            "data/"
-          ],
-          "title": "Working Directory",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
@@ -6395,20 +6339,6 @@
             "null"
           ]
         },
-        "cwd": {
-          "default": null,
-          "description": "Working directory for relative path operations (uses fs.chdir).",
-          "examples": [
-            "/workspace",
-            "/tmp",
-            "data/"
-          ],
-          "title": "Working Directory",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
@@ -6453,20 +6383,6 @@
             "C:\\Documents"
           ],
           "title": "Root Path",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "cwd": {
-          "default": null,
-          "description": "Working directory for relative path operations (uses fs.chdir).",
-          "examples": [
-            "/workspace",
-            "/tmp",
-            "data/"
-          ],
-          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -6672,20 +6588,6 @@
             "null"
           ]
         },
-        "cwd": {
-          "default": null,
-          "description": "Working directory for relative path operations (uses fs.chdir).",
-          "examples": [
-            "/workspace",
-            "/tmp",
-            "data/"
-          ],
-          "title": "Working Directory",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
@@ -6840,6 +6742,7 @@
         "type": {
           "const": "brave",
           "default": "brave",
+          "description": "Brave Search provider.",
           "title": "Type",
           "type": "string"
         },
@@ -8422,20 +8325,6 @@
             "C:\\Documents"
           ],
           "title": "Root Path",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "cwd": {
-          "default": null,
-          "description": "Working directory for relative path operations (uses fs.chdir).",
-          "examples": [
-            "/workspace",
-            "/tmp",
-            "data/"
-          ],
-          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -10054,20 +9943,6 @@
             "null"
           ]
         },
-        "cwd": {
-          "default": null,
-          "description": "Working directory for relative path operations (uses fs.chdir).",
-          "examples": [
-            "/workspace",
-            "/tmp",
-            "data/"
-          ],
-          "title": "Working Directory",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
@@ -10149,20 +10024,6 @@
             "null"
           ]
         },
-        "cwd": {
-          "default": null,
-          "description": "Working directory for relative path operations (uses fs.chdir).",
-          "examples": [
-            "/workspace",
-            "/tmp",
-            "data/"
-          ],
-          "title": "Working Directory",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
@@ -10180,6 +10041,7 @@
         "type": {
           "const": "dataforseo",
           "default": "dataforseo",
+          "description": "DataForSEO provider.",
           "title": "Type",
           "type": "string"
         },
@@ -10429,20 +10291,6 @@
             "C:\\Documents"
           ],
           "title": "Root Path",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "cwd": {
-          "default": null,
-          "description": "Working directory for relative path operations (uses fs.chdir).",
-          "examples": [
-            "/workspace",
-            "/tmp",
-            "data/"
-          ],
-          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -13234,20 +13082,6 @@
             "null"
           ]
         },
-        "cwd": {
-          "default": null,
-          "description": "Working directory for relative path operations (uses fs.chdir).",
-          "examples": [
-            "/workspace",
-            "/tmp",
-            "data/"
-          ],
-          "title": "Working Directory",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
@@ -13636,20 +13470,6 @@
             "null"
           ]
         },
-        "cwd": {
-          "default": null,
-          "description": "Working directory for relative path operations (uses fs.chdir).",
-          "examples": [
-            "/workspace",
-            "/tmp",
-            "data/"
-          ],
-          "title": "Working Directory",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
@@ -14019,6 +13839,7 @@
         "type": {
           "const": "exa",
           "default": "exa",
+          "description": "Exa provider.",
           "title": "Type",
           "type": "string"
         },
@@ -15630,6 +15451,28 @@
           "default": null,
           "description": "Optional conversion configuration for markdown conversion.",
           "title": "Conversion config"
+        },
+        "max_file_size_kb": {
+          "default": 64,
+          "description": "Maximum file size in kilobytes for read/write operations (default: 64KB).",
+          "maximum": 10240,
+          "minimum": 1,
+          "title": "Maximum file size",
+          "type": "integer"
+        },
+        "max_grep_output_kb": {
+          "default": 64,
+          "description": "Maximum grep output size in kilobytes (default: 64KB).",
+          "maximum": 10240,
+          "minimum": 1,
+          "title": "Maximum grep output size",
+          "type": "integer"
+        },
+        "use_subprocess_grep": {
+          "default": true,
+          "description": "Use ripgrep/grep subprocess if available (faster than Python regex).",
+          "title": "Use subprocess grep",
+          "type": "boolean"
         }
       },
       "title": "FSSpecToolsetConfig",
@@ -15657,20 +15500,6 @@
             "C:\\Documents"
           ],
           "title": "Root Path",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "cwd": {
-          "default": null,
-          "description": "Working directory for relative path operations (uses fs.chdir).",
-          "examples": [
-            "/workspace",
-            "/tmp",
-            "data/"
-          ],
-          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -18366,20 +18195,6 @@
             "null"
           ]
         },
-        "cwd": {
-          "default": null,
-          "description": "Working directory for relative path operations (uses fs.chdir).",
-          "examples": [
-            "/workspace",
-            "/tmp",
-            "data/"
-          ],
-          "title": "Working Directory",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
@@ -18513,20 +18328,6 @@
             "C:\\Documents"
           ],
           "title": "Root Path",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "cwd": {
-          "default": null,
-          "description": "Working directory for relative path operations (uses fs.chdir).",
-          "examples": [
-            "/workspace",
-            "/tmp",
-            "data/"
-          ],
-          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -19540,20 +19341,6 @@
             "null"
           ]
         },
-        "cwd": {
-          "default": null,
-          "description": "Working directory for relative path operations (uses fs.chdir).",
-          "examples": [
-            "/workspace",
-            "/tmp",
-            "data/"
-          ],
-          "title": "Working Directory",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
@@ -19676,20 +19463,6 @@
             "null"
           ]
         },
-        "cwd": {
-          "default": null,
-          "description": "Working directory for relative path operations (uses fs.chdir).",
-          "examples": [
-            "/workspace",
-            "/tmp",
-            "data/"
-          ],
-          "title": "Working Directory",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
@@ -19797,20 +19570,6 @@
             "null"
           ]
         },
-        "cwd": {
-          "default": null,
-          "description": "Working directory for relative path operations (uses fs.chdir).",
-          "examples": [
-            "/workspace",
-            "/tmp",
-            "data/"
-          ],
-          "title": "Working Directory",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
@@ -19899,20 +19658,6 @@
             "C:\\Documents"
           ],
           "title": "Root Path",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "cwd": {
-          "default": null,
-          "description": "Working directory for relative path operations (uses fs.chdir).",
-          "examples": [
-            "/workspace",
-            "/tmp",
-            "data/"
-          ],
-          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -20391,20 +20136,6 @@
             "null"
           ]
         },
-        "cwd": {
-          "default": null,
-          "description": "Working directory for relative path operations (uses fs.chdir).",
-          "examples": [
-            "/workspace",
-            "/tmp",
-            "data/"
-          ],
-          "title": "Working Directory",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
@@ -20575,20 +20306,6 @@
             "null"
           ]
         },
-        "cwd": {
-          "default": null,
-          "description": "Working directory for relative path operations (uses fs.chdir).",
-          "examples": [
-            "/workspace",
-            "/tmp",
-            "data/"
-          ],
-          "title": "Working Directory",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
@@ -20679,20 +20396,6 @@
             "C:\\Documents"
           ],
           "title": "Root Path",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "cwd": {
-          "default": null,
-          "description": "Working directory for relative path operations (uses fs.chdir).",
-          "examples": [
-            "/workspace",
-            "/tmp",
-            "data/"
-          ],
-          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -20807,20 +20510,6 @@
             "C:\\Documents"
           ],
           "title": "Root Path",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "cwd": {
-          "default": null,
-          "description": "Working directory for relative path operations (uses fs.chdir).",
-          "examples": [
-            "/workspace",
-            "/tmp",
-            "data/"
-          ],
-          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -21226,6 +20915,7 @@
         "type": {
           "const": "jigsawstack",
           "default": "jigsawstack",
+          "description": "JigsawStack provider.",
           "title": "Type",
           "type": "string"
         },
@@ -21465,25 +21155,39 @@
             "null"
           ]
         },
-        "cwd": {
-          "default": null,
-          "description": "Working directory for relative path operations (uses fs.chdir).",
-          "examples": [
-            "/workspace",
-            "/tmp",
-            "data/"
-          ],
-          "title": "Working Directory",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
           "title": "Enable Caching",
           "type": "boolean"
+        },
+        "target_protocol": {
+          "default": null,
+          "description": "Protocol for source file",
+          "examples": [
+            "file",
+            "s3",
+            "http"
+          ],
+          "title": "Target Protocol",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "target_options": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Options for target protocol",
+          "title": "Target Protocol Options"
         },
         "fo": {
           "anyOf": [
@@ -21545,6 +21249,12 @@
             }
           ],
           "title": "HTTP Headers"
+        },
+        "resolve_refs": {
+          "default": false,
+          "description": "If True, transparently resolve $ref when navigating",
+          "title": "Resolve References",
+          "type": "boolean"
         }
       },
       "required": [
@@ -21573,20 +21283,6 @@
             "C:\\Documents"
           ],
           "title": "Root Path",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "cwd": {
-          "default": null,
-          "description": "Working directory for relative path operations (uses fs.chdir).",
-          "examples": [
-            "/workspace",
-            "/tmp",
-            "data/"
-          ],
-          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -21638,6 +21334,7 @@
         "type": {
           "const": "kagi",
           "default": "kagi",
+          "description": "Kagi provider.",
           "title": "Type",
           "type": "string"
         },
@@ -22585,20 +22282,6 @@
             "null"
           ]
         },
-        "cwd": {
-          "default": null,
-          "description": "Working directory for relative path operations (uses fs.chdir).",
-          "examples": [
-            "/workspace",
-            "/tmp",
-            "data/"
-          ],
-          "title": "Working Directory",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
@@ -22749,20 +22432,6 @@
             "null"
           ]
         },
-        "cwd": {
-          "default": null,
-          "description": "Working directory for relative path operations (uses fs.chdir).",
-          "examples": [
-            "/workspace",
-            "/tmp",
-            "data/"
-          ],
-          "title": "Working Directory",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
@@ -22829,6 +22498,7 @@
         "type": {
           "const": "linkup",
           "default": "linkup",
+          "description": "LinkUp provider.",
           "title": "Type",
           "type": "string"
         },
@@ -23031,6 +22701,19 @@
           "description": "Whether to run code in a subprocess.",
           "title": "Isolated Execution",
           "type": "boolean"
+        },
+        "root_path": {
+          "default": null,
+          "description": "Path to become the root of the filesystem.",
+          "examples": [
+            "/app",
+            "/home/user"
+          ],
+          "title": "Root path",
+          "type": [
+            "string",
+            "null"
+          ]
         }
       },
       "title": "LocalExecutionEnvironmentConfig",
@@ -23057,20 +22740,6 @@
             "C:\\Documents"
           ],
           "title": "Root Path",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "cwd": {
-          "default": null,
-          "description": "Working directory for relative path operations (uses fs.chdir).",
-          "examples": [
-            "/workspace",
-            "/tmp",
-            "data/"
-          ],
-          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -23468,25 +23137,39 @@
             "null"
           ]
         },
-        "cwd": {
-          "default": null,
-          "description": "Working directory for relative path operations (uses fs.chdir).",
-          "examples": [
-            "/workspace",
-            "/tmp",
-            "data/"
-          ],
-          "title": "Working Directory",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
           "title": "Enable Caching",
           "type": "boolean"
+        },
+        "target_protocol": {
+          "default": null,
+          "description": "Protocol for source file",
+          "examples": [
+            "file",
+            "s3",
+            "http"
+          ],
+          "title": "Target Protocol",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "target_options": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Options for target protocol",
+          "title": "Target Protocol Options"
         },
         "fo": {
           "anyOf": [
@@ -23525,34 +23208,6 @@
             "/path/to/file.md"
           ],
           "title": "Markdown File Path"
-        },
-        "target_protocol": {
-          "default": null,
-          "description": "Protocol for source file",
-          "examples": [
-            "file",
-            "s3",
-            "http"
-          ],
-          "title": "Target Protocol",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "target_options": {
-          "anyOf": [
-            {
-              "additionalProperties": true,
-              "type": "object"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Options for target protocol",
-          "title": "Target Protocol Options"
         }
       },
       "required": [
@@ -23636,20 +23291,6 @@
             "null"
           ]
         },
-        "cwd": {
-          "default": null,
-          "description": "Working directory for relative path operations (uses fs.chdir).",
-          "examples": [
-            "/workspace",
-            "/tmp",
-            "data/"
-          ],
-          "title": "Working Directory",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
@@ -23717,20 +23358,6 @@
             "C:\\Documents"
           ],
           "title": "Root Path",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "cwd": {
-          "default": null,
-          "description": "Working directory for relative path operations (uses fs.chdir).",
-          "examples": [
-            "/workspace",
-            "/tmp",
-            "data/"
-          ],
-          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -23875,20 +23502,6 @@
             "C:\\Documents"
           ],
           "title": "Root Path",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "cwd": {
-          "default": null,
-          "description": "Working directory for relative path operations (uses fs.chdir).",
-          "examples": [
-            "/workspace",
-            "/tmp",
-            "data/"
-          ],
-          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -24198,20 +23811,6 @@
             "null"
           ]
         },
-        "cwd": {
-          "default": null,
-          "description": "Working directory for relative path operations (uses fs.chdir).",
-          "examples": [
-            "/workspace",
-            "/tmp",
-            "data/"
-          ],
-          "title": "Working Directory",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
@@ -24323,7 +23922,7 @@
       "title": "Microsandbox Configuration",
       "type": "object"
     },
-    "MistralAgentConfig": {
+    "MistralACPAgentConfig": {
       "additionalProperties": false,
       "description": "Configuration for Mistral Agent via ACP.\n\nExample:\n    ```yaml\n    acp_agents:\n      coder:\n        type: mistral\n        cwd: /path/to/project\n    ```",
       "properties": {
@@ -24854,20 +24453,6 @@
             "null"
           ]
         },
-        "cwd": {
-          "default": null,
-          "description": "Working directory for relative path operations (uses fs.chdir).",
-          "examples": [
-            "/workspace",
-            "/tmp",
-            "data/"
-          ],
-          "title": "Working Directory",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
@@ -24933,124 +24518,6 @@
         "app_name"
       ],
       "title": "Modal Configuration",
-      "type": "object"
-    },
-    "ModuleFilesystemConfig": {
-      "additionalProperties": true,
-      "description": "Configuration for Module filesystem.",
-      "properties": {
-        "type": {
-          "const": "mod",
-          "default": "mod",
-          "description": "Module filesystem type",
-          "title": "Type",
-          "type": "string"
-        },
-        "root_path": {
-          "default": null,
-          "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
-          "examples": [
-            "/data",
-            "/app/uploads",
-            "C:\\Documents"
-          ],
-          "title": "Root Path",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "cwd": {
-          "default": null,
-          "description": "Working directory for relative path operations (uses fs.chdir).",
-          "examples": [
-            "/workspace",
-            "/tmp",
-            "data/"
-          ],
-          "title": "Working Directory",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "cached": {
-          "default": false,
-          "description": "Whether to wrap in CachingFileSystem.",
-          "title": "Enable Caching",
-          "type": "boolean"
-        },
-        "fo": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "additionalProperties": false,
-              "properties": {
-                "path": {
-                  "title": "Path",
-                  "type": "string"
-                },
-                "protocol": {
-                  "default": null,
-                  "title": "Protocol",
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                },
-                "storage_options": {
-                  "additionalProperties": true,
-                  "title": "Storage Options",
-                  "type": "object"
-                }
-              },
-              "required": [
-                "path"
-              ],
-              "type": "object"
-            }
-          ],
-          "description": "Path to Python file",
-          "examples": [
-            "/path/to/module.py"
-          ],
-          "title": "Python File Path"
-        },
-        "target_protocol": {
-          "default": null,
-          "description": "Protocol for source file",
-          "examples": [
-            "file",
-            "s3",
-            "http"
-          ],
-          "title": "Target Protocol",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "target_options": {
-          "anyOf": [
-            {
-              "additionalProperties": true,
-              "type": "object"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Options for target protocol",
-          "title": "Target Protocol Options"
-        }
-      },
-      "required": [
-        "fo"
-      ],
-      "title": "Module Configuration",
       "type": "object"
     },
     "NodeConnectionConfig": {
@@ -25426,20 +24893,6 @@
             "C:\\Documents"
           ],
           "title": "Root Path",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "cwd": {
-          "default": null,
-          "description": "Working directory for relative path operations (uses fs.chdir).",
-          "examples": [
-            "/workspace",
-            "/tmp",
-            "data/"
-          ],
-          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -25980,25 +25433,39 @@
             "null"
           ]
         },
-        "cwd": {
-          "default": null,
-          "description": "Working directory for relative path operations (uses fs.chdir).",
-          "examples": [
-            "/workspace",
-            "/tmp",
-            "data/"
-          ],
-          "title": "Working Directory",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
           "title": "Enable Caching",
           "type": "boolean"
+        },
+        "target_protocol": {
+          "default": null,
+          "description": "Protocol for source file",
+          "examples": [
+            "file",
+            "s3",
+            "http"
+          ],
+          "title": "Target Protocol",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "target_options": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Options for target protocol",
+          "title": "Target Protocol Options"
         },
         "fo": {
           "anyOf": [
@@ -26038,34 +25505,6 @@
             "/path/to/spec.json"
           ],
           "title": "OpenAPI Spec Path"
-        },
-        "target_protocol": {
-          "default": null,
-          "description": "Protocol for source file",
-          "examples": [
-            "file",
-            "http",
-            "s3"
-          ],
-          "title": "Target Protocol",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "target_options": {
-          "anyOf": [
-            {
-              "additionalProperties": true,
-              "type": "object"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Options for target protocol",
-          "title": "Target Protocol Options"
         }
       },
       "required": [
@@ -26824,20 +26263,6 @@
             "null"
           ]
         },
-        "cwd": {
-          "default": null,
-          "description": "Working directory for relative path operations (uses fs.chdir).",
-          "examples": [
-            "/workspace",
-            "/tmp",
-            "data/"
-          ],
-          "title": "Working Directory",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
@@ -26886,20 +26311,6 @@
             "C:\\Documents"
           ],
           "title": "Root Path",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "cwd": {
-          "default": null,
-          "description": "Working directory for relative path operations (uses fs.chdir).",
-          "examples": [
-            "/workspace",
-            "/tmp",
-            "data/"
-          ],
-          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -28624,124 +28035,6 @@
       "type": "object",
       "x-doc-title": "Pyodide Execution Environment"
     },
-    "PythonAstFilesystemConfig": {
-      "additionalProperties": true,
-      "description": "Configuration for Python AST filesystem.",
-      "properties": {
-        "type": {
-          "const": "ast",
-          "default": "ast",
-          "description": "Python AST filesystem type",
-          "title": "Type",
-          "type": "string"
-        },
-        "root_path": {
-          "default": null,
-          "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
-          "examples": [
-            "/data",
-            "/app/uploads",
-            "C:\\Documents"
-          ],
-          "title": "Root Path",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "cwd": {
-          "default": null,
-          "description": "Working directory for relative path operations (uses fs.chdir).",
-          "examples": [
-            "/workspace",
-            "/tmp",
-            "data/"
-          ],
-          "title": "Working Directory",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "cached": {
-          "default": false,
-          "description": "Whether to wrap in CachingFileSystem.",
-          "title": "Enable Caching",
-          "type": "boolean"
-        },
-        "fo": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "additionalProperties": false,
-              "properties": {
-                "path": {
-                  "title": "Path",
-                  "type": "string"
-                },
-                "protocol": {
-                  "default": null,
-                  "title": "Protocol",
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                },
-                "storage_options": {
-                  "additionalProperties": true,
-                  "title": "Storage Options",
-                  "type": "object"
-                }
-              },
-              "required": [
-                "path"
-              ],
-              "type": "object"
-            }
-          ],
-          "description": "Path to Python file",
-          "examples": [
-            "/path/to/script.py"
-          ],
-          "title": "Python File Path"
-        },
-        "target_protocol": {
-          "default": null,
-          "description": "Protocol for source file",
-          "examples": [
-            "file",
-            "s3",
-            "http"
-          ],
-          "title": "Target Protocol",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "target_options": {
-          "anyOf": [
-            {
-              "additionalProperties": true,
-              "type": "object"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Options for target protocol",
-          "title": "Target Protocol Options"
-        }
-      },
-      "required": [
-        "fo"
-      ],
-      "title": "Python AST Configuration",
-      "type": "object"
-    },
     "RemoteCodeModeToolsetConfig": {
       "additionalProperties": false,
       "description": "Configuration for code mode tools.",
@@ -29044,20 +28337,6 @@
             "null"
           ]
         },
-        "cwd": {
-          "default": null,
-          "description": "Working directory for relative path operations (uses fs.chdir).",
-          "examples": [
-            "/workspace",
-            "/tmp",
-            "data/"
-          ],
-          "title": "Working Directory",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
@@ -29199,20 +28478,6 @@
             "null"
           ]
         },
-        "cwd": {
-          "default": null,
-          "description": "Working directory for relative path operations (uses fs.chdir).",
-          "examples": [
-            "/workspace",
-            "/tmp",
-            "data/"
-          ],
-          "title": "Working Directory",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
@@ -29324,20 +28589,6 @@
             "C:\\Documents"
           ],
           "title": "Root Path",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "cwd": {
-          "default": null,
-          "description": "Working directory for relative path operations (uses fs.chdir).",
-          "examples": [
-            "/workspace",
-            "/tmp",
-            "data/"
-          ],
-          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -29626,20 +28877,6 @@
             "C:\\Documents"
           ],
           "title": "Root Path",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "cwd": {
-          "default": null,
-          "description": "Working directory for relative path operations (uses fs.chdir).",
-          "examples": [
-            "/workspace",
-            "/tmp",
-            "data/"
-          ],
-          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -30395,6 +29632,7 @@
         "type": {
           "const": "search1",
           "default": "search1",
+          "description": "Search1API provider.",
           "title": "Type",
           "type": "string"
         },
@@ -30503,6 +29741,22 @@
               ]
             },
             {
+              "enum": [
+                "brave",
+                "dataforseo",
+                "exa",
+                "jigsawstack",
+                "kagi",
+                "linkup",
+                "search1",
+                "serpapi",
+                "serper",
+                "tavily",
+                "you"
+              ],
+              "type": "string"
+            },
+            {
               "type": "null"
             }
           ],
@@ -30544,6 +29798,17 @@
                   "$ref": "#/$defs/YouConfig"
                 }
               ]
+            },
+            {
+              "enum": [
+                "brave",
+                "dataforseo",
+                "serpapi",
+                "serper",
+                "tavily",
+                "you"
+              ],
+              "type": "string"
             },
             {
               "type": "null"
@@ -32008,6 +31273,7 @@
         "type": {
           "const": "serpapi",
           "default": "serpapi",
+          "description": "SerpAPI provider.",
           "title": "Type",
           "type": "string"
         },
@@ -32037,6 +31303,7 @@
         "type": {
           "const": "serper",
           "default": "serper",
+          "description": "Serper provider.",
           "title": "Type",
           "type": "string"
         },
@@ -32212,20 +31479,6 @@
             "null"
           ]
         },
-        "cwd": {
-          "default": null,
-          "description": "Working directory for relative path operations (uses fs.chdir).",
-          "examples": [
-            "/workspace",
-            "/tmp",
-            "data/"
-          ],
-          "title": "Working Directory",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
@@ -32356,37 +31609,15 @@
             "null"
           ]
         },
-        "cwd": {
-          "default": null,
-          "description": "Working directory for relative path operations (uses fs.chdir).",
-          "examples": [
-            "/workspace",
-            "/tmp",
-            "data/"
-          ],
-          "title": "Working Directory",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
           "title": "Enable Caching",
           "type": "boolean"
         },
-        "db_path": {
-          "description": "Path to SQLite database file",
-          "examples": [
-            "/path/to/database.db"
-          ],
-          "title": "Database Path",
-          "type": "string"
-        },
         "target_protocol": {
           "default": null,
-          "description": "Protocol for source database file",
+          "description": "Protocol for source file",
           "examples": [
             "file",
             "s3",
@@ -32411,6 +31642,14 @@
           "default": null,
           "description": "Options for target protocol",
           "title": "Target Protocol Options"
+        },
+        "db_path": {
+          "description": "Path to SQLite database file",
+          "examples": [
+            "/path/to/database.db"
+          ],
+          "title": "Database Path",
+          "type": "string"
         }
       },
       "required": [
@@ -36624,16 +35863,22 @@
           "type": "boolean"
         },
         "api_key": {
+          "anyOf": [
+            {
+              "format": "password",
+              "type": "string",
+              "writeOnly": true
+            },
+            {
+              "type": "null"
+            }
+          ],
           "default": null,
           "description": "OpenAI API key. If not provided, uses OPENAI_API_KEY env var.",
           "examples": [
             "sk-..."
           ],
-          "title": "Api Key",
-          "type": [
-            "string",
-            "null"
-          ]
+          "title": "OpenAI API Key"
         },
         "model": {
           "default": "tts-1",
@@ -36646,7 +35891,7 @@
             "tts-1",
             "tts-1-hd"
           ],
-          "title": "Model",
+          "title": "TTS Model",
           "type": "string"
         },
         "voice": {
@@ -36668,7 +35913,7 @@
             "nova",
             "shimmer"
           ],
-          "title": "Voice",
+          "title": "Voice type",
           "type": "string"
         },
         "speed": {
@@ -36682,7 +35927,7 @@
           ],
           "maximum": 4.0,
           "minimum": 0.25,
-          "title": "Speed",
+          "title": "Speed of speech",
           "type": "number"
         },
         "chunk_size": {
@@ -36702,7 +35947,6 @@
           "description": "Audio sample rate in Hz (for PCM format).",
           "examples": [
             16000,
-            22050,
             24000,
             44100
           ],
@@ -36718,7 +35962,7 @@
             50
           ],
           "minimum": 5,
-          "title": "Min Text Length",
+          "title": "Minimum Text Length",
           "type": "integer"
         }
       },
@@ -36745,20 +35989,6 @@
             "C:\\Documents"
           ],
           "title": "Root Path",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "cwd": {
-          "default": null,
-          "description": "Working directory for relative path operations (uses fs.chdir).",
-          "examples": [
-            "/workspace",
-            "/tmp",
-            "data/"
-          ],
-          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -36880,6 +36110,7 @@
         "type": {
           "const": "tavily",
           "default": "tavily",
+          "description": "Tavily provider.",
           "title": "Type",
           "type": "string"
         },
@@ -37707,47 +36938,11 @@
             "null"
           ]
         },
-        "cwd": {
-          "default": null,
-          "description": "Working directory for relative path operations (uses fs.chdir).",
-          "examples": [
-            "/workspace",
-            "/tmp",
-            "data/"
-          ],
-          "title": "Working Directory",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
           "title": "Enable Caching",
           "type": "boolean"
-        },
-        "source_file": {
-          "description": "Path to source code file",
-          "examples": [
-            "/path/to/code.py"
-          ],
-          "title": "Source File Path",
-          "type": "string"
-        },
-        "language": {
-          "default": null,
-          "description": "Programming language (auto-detected from extension if not specified)",
-          "examples": [
-            "python",
-            "javascript",
-            "rust"
-          ],
-          "title": "Language",
-          "type": [
-            "string",
-            "null"
-          ]
         },
         "target_protocol": {
           "default": null,
@@ -37776,75 +36971,34 @@
           "default": null,
           "description": "Options for target protocol",
           "title": "Target Protocol Options"
+        },
+        "source_file": {
+          "description": "Path to source code file",
+          "examples": [
+            "/path/to/code.py"
+          ],
+          "title": "Source File Path",
+          "type": "string"
+        },
+        "language": {
+          "default": null,
+          "description": "Programming language (auto-detected from extension if not specified)",
+          "examples": [
+            "python",
+            "javascript",
+            "rust"
+          ],
+          "title": "Language",
+          "type": [
+            "string",
+            "null"
+          ]
         }
       },
       "required": [
         "source_file"
       ],
       "title": "TreeSitter Configuration",
-      "type": "object"
-    },
-    "TypeAdapterFilesystemConfig": {
-      "additionalProperties": true,
-      "description": "Configuration for TypeAdapter filesystem.",
-      "properties": {
-        "type": {
-          "const": "typeadapter",
-          "default": "typeadapter",
-          "description": "TypeAdapter filesystem type",
-          "title": "Type",
-          "type": "string"
-        },
-        "root_path": {
-          "default": null,
-          "description": "Root directory to restrict filesystem access to (wraps in DirFileSystem).",
-          "examples": [
-            "/data",
-            "/app/uploads",
-            "C:\\Documents"
-          ],
-          "title": "Root Path",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "cwd": {
-          "default": null,
-          "description": "Working directory for relative path operations (uses fs.chdir).",
-          "examples": [
-            "/workspace",
-            "/tmp",
-            "data/"
-          ],
-          "title": "Working Directory",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "cached": {
-          "default": false,
-          "description": "Whether to wrap in CachingFileSystem.",
-          "title": "Enable Caching",
-          "type": "boolean"
-        },
-        "type_adapter": {
-          "description": "TypeAdapter class import path",
-          "examples": [
-            "mypackage.MyTypeAdapter",
-            "pydantic.TypeAdapter"
-          ],
-          "minLength": 1,
-          "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*(\\.[a-zA-Z_][a-zA-Z0-9_]*)*$",
-          "title": "TypeAdapter Import Path",
-          "type": "string"
-        }
-      },
-      "required": [
-        "type_adapter"
-      ],
-      "title": "TypeAdapter Configuration",
       "type": "object"
     },
     "URIFileSystemConfig": {
@@ -37867,20 +37021,6 @@
             "C:\\Documents"
           ],
           "title": "Root Path",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "cwd": {
-          "default": null,
-          "description": "Working directory for relative path operations (uses fs.chdir).",
-          "examples": [
-            "/workspace",
-            "/tmp",
-            "data/"
-          ],
-          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -37944,20 +37084,6 @@
             "C:\\Documents"
           ],
           "title": "Root Path",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "cwd": {
-          "default": null,
-          "description": "Working directory for relative path operations (uses fs.chdir).",
-          "examples": [
-            "/workspace",
-            "/tmp",
-            "data/"
-          ],
-          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -40252,20 +39378,6 @@
             "null"
           ]
         },
-        "cwd": {
-          "default": null,
-          "description": "Working directory for relative path operations (uses fs.chdir).",
-          "examples": [
-            "/workspace",
-            "/tmp",
-            "data/"
-          ],
-          "title": "Working Directory",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
@@ -40352,20 +39464,6 @@
             "C:\\Documents"
           ],
           "title": "Root Path",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "cwd": {
-          "default": null,
-          "description": "Working directory for relative path operations (uses fs.chdir).",
-          "examples": [
-            "/workspace",
-            "/tmp",
-            "data/"
-          ],
-          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -40488,20 +39586,6 @@
             "C:\\Documents"
           ],
           "title": "Root Path",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "cwd": {
-          "default": null,
-          "description": "Working directory for relative path operations (uses fs.chdir).",
-          "examples": [
-            "/workspace",
-            "/tmp",
-            "data/"
-          ],
-          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -40744,20 +39828,6 @@
             "null"
           ]
         },
-        "cwd": {
-          "default": null,
-          "description": "Working directory for relative path operations (uses fs.chdir).",
-          "examples": [
-            "/workspace",
-            "/tmp",
-            "data/"
-          ],
-          "title": "Working Directory",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "cached": {
           "default": false,
           "description": "Whether to wrap in CachingFileSystem.",
@@ -40973,6 +40043,7 @@
         "type": {
           "const": "you",
           "default": "you",
+          "description": "You.com provider.",
           "title": "Type",
           "type": "string"
         },
@@ -41021,20 +40092,6 @@
             "C:\\Documents"
           ],
           "title": "Root Path",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "cwd": {
-          "default": null,
-          "description": "Working directory for relative path operations (uses fs.chdir).",
-          "examples": [
-            "/workspace",
-            "/tmp",
-            "data/"
-          ],
-          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -41196,7 +40253,6 @@
                 "abfs": "#/$defs/AzureBlobFilesystemConfig",
                 "appwrite": "#/$defs/AppwriteFilesystemConfig",
                 "arrow": "#/$defs/ArrowFilesystemConfig",
-                "ast": "#/$defs/PythonAstFilesystemConfig",
                 "asynclocal": "#/$defs/AsyncLocalFilesystemConfig",
                 "basemodel": "#/$defs/BaseModelFilesystemConfig",
                 "basemodel_instance": "#/$defs/BaseModelInstanceFilesystemConfig",
@@ -41228,7 +40284,6 @@
                 "md": "#/$defs/MarkdownFilesystemConfig",
                 "memory": "#/$defs/MemoryFilesystemConfig",
                 "microsandbox": "#/$defs/MicrosandboxFilesystemConfig",
-                "mod": "#/$defs/ModuleFilesystemConfig",
                 "modal": "#/$defs/ModalFilesystemConfig",
                 "notion": "#/$defs/NotionFilesystemConfig",
                 "openapi": "#/$defs/OpenApiFilesystemConfig",
@@ -41242,7 +40297,6 @@
                 "srt": "#/$defs/SRTFilesystemConfig",
                 "tar": "#/$defs/TarFilesystemConfig",
                 "treesitter": "#/$defs/TreeSitterFilesystemConfig",
-                "typeadapter": "#/$defs/TypeAdapterFilesystemConfig",
                 "union": "#/$defs/UnionFilesystemConfig",
                 "uri": "#/$defs/URIFileSystemConfig",
                 "vercel": "#/$defs/VercelFilesystemConfig",
@@ -41286,9 +40340,6 @@
               },
               {
                 "$ref": "#/$defs/SkillsFilesystemConfig"
-              },
-              {
-                "$ref": "#/$defs/TypeAdapterFilesystemConfig"
               },
               {
                 "$ref": "#/$defs/UnionFilesystemConfig"
@@ -41411,13 +40462,7 @@
                 "$ref": "#/$defs/MarkdownFilesystemConfig"
               },
               {
-                "$ref": "#/$defs/ModuleFilesystemConfig"
-              },
-              {
                 "$ref": "#/$defs/OpenApiFilesystemConfig"
-              },
-              {
-                "$ref": "#/$defs/PythonAstFilesystemConfig"
               },
               {
                 "$ref": "#/$defs/SqliteFilesystemConfig"
@@ -41496,7 +40541,7 @@
             "gemini": "#/$defs/GeminiACPAgentConfig",
             "goose": "#/$defs/GooseACPAgentConfig",
             "kimi": "#/$defs/KimiACPAgentConfig",
-            "mistral": "#/$defs/MistralAgentConfig",
+            "mistral": "#/$defs/MistralACPAgentConfig",
             "opencode": "#/$defs/OpenCodeACPAgentConfig",
             "openhands": "#/$defs/OpenHandsACPAgentConfig",
             "stakpak": "#/$defs/StakpakACPAgentConfig",
@@ -41545,7 +40590,7 @@
             "$ref": "#/$defs/StakpakACPAgentConfig"
           },
           {
-            "$ref": "#/$defs/MistralAgentConfig"
+            "$ref": "#/$defs/MistralACPAgentConfig"
           },
           {
             "$ref": "#/$defs/VTCodeACPAgentConfig"

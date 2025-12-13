@@ -9,7 +9,13 @@ from exxec.configs import ExecutionEnvironmentConfig
 from llmling_models.configs.model_configs import AnyModelConfig
 from pydantic import ConfigDict, EmailStr, Field, HttpUrl, SecretStr
 from schemez import Schema
-from searchly.config import NewsSearchProviderConfig, WebSearchProviderConfig
+from searchly.config import (
+    NewsSearchProviderConfig,
+    NewsSearchProviderName,
+    WebSearchProviderConfig,
+    WebSearchProviderName,
+    get_config_class,
+)
 from tokonomics import ModelName
 from upath import UPath
 
@@ -17,8 +23,12 @@ from llmling_agent_config.converters import ConversionConfig
 from llmling_agent_config.workers import WorkerConfig
 
 
-MarkupType = Literal["yaml", "json", "toml"]
+if TYPE_CHECKING:
+    from llmling_agent.resource_providers import ResourceProvider
+    from llmling_agent_toolsets.search_toolset import SearchTools
 
+
+MarkupType = Literal["yaml", "json", "toml"]
 # Tool name literals for statically-defined toolsets
 AgentManagementToolName = Literal[
     "create_worker_agent",
@@ -26,13 +36,11 @@ AgentManagementToolName = Literal[
     "add_team",
     "connect_nodes",
 ]
-
 SubagentToolName = Literal[
     "list_available_nodes",
     "delegate_to",
     "ask_agent",
 ]
-
 ExecutionEnvironmentToolName = Literal[
     "execute_code",
     "execute_command",
@@ -44,36 +52,12 @@ ExecutionEnvironmentToolName = Literal[
     "list_processes",
 ]
 
-ToolManagementToolName = Literal[
-    "register_tool",
-    "register_code_tool",
-]
-
+ToolManagementToolName = Literal["register_tool", "register_code_tool"]
 UserInteractionToolName = Literal["ask_user",]
-
-HistoryToolName = Literal[
-    "search_history",
-    "show_statistics",
-]
-
-SkillsToolName = Literal[
-    "load_skill",
-    "list_skills",
-]
-
-IntegrationToolName = Literal[
-    "add_local_mcp_server",
-    "add_remote_mcp_server",
-]
-
-CodeToolName = Literal[
-    "format_code",
-    "ast_grep",
-]
-
-
-if TYPE_CHECKING:
-    from llmling_agent.resource_providers import ResourceProvider
+HistoryToolName = Literal["search_history", "show_statistics"]
+SkillsToolName = Literal["load_skill", "list_skills"]
+IntegrationToolName = Literal["add_local_mcp_server", "add_remote_mcp_server"]
+CodeToolName = Literal["format_code", "ast_grep"]
 
 
 class BaseToolsetConfig(Schema):
@@ -629,18 +613,40 @@ class SearchToolsetConfig(BaseToolsetConfig):
     type: Literal["search"] = Field("search", init=False)
     """Search toolset."""
 
-    web_search: WebSearchProviderConfig | None = Field(default=None, title="Web search")
+    web_search: WebSearchProviderConfig | WebSearchProviderName | None = Field(
+        default=None, title="Web search"
+    )
     """Web search provider configuration."""
 
-    news_search: NewsSearchProviderConfig | None = Field(default=None, title="News search")
+    news_search: NewsSearchProviderConfig | NewsSearchProviderName | None = Field(
+        default=None, title="News search"
+    )
     """News search provider configuration."""
 
-    def get_provider(self) -> ResourceProvider:
+    def get_provider(self) -> SearchTools:
         """Create search tools provider."""
+        from searchly import BaseSearchProviderConfig, NewsSearchProvider, WebSearchProvider
+
         from llmling_agent_toolsets.search_toolset import SearchTools
 
-        web = self.web_search.get_provider() if self.web_search else None
-        news = self.news_search.get_provider() if self.news_search else None
+        match self.web_search:
+            case str():
+                kls = get_config_class(self.web_search)
+                web: WebSearchProvider | NewsSearchProvider | None = kls().get_provider()  # type: ignore[call-arg]
+            case BaseSearchProviderConfig():
+                web = self.web_search.get_provider()
+            case None:
+                web = None
+        match self.news_search:
+            case str():
+                kls = get_config_class(self.news_search)
+                news: WebSearchProvider | NewsSearchProvider | None = kls().get_provider()  # type: ignore[call-arg]
+            case BaseSearchProviderConfig():
+                news = self.news_search.get_provider()
+            case None:
+                news = None
+        assert isinstance(web, WebSearchProvider) or web is None
+        assert isinstance(news, NewsSearchProvider) or news is None
         return SearchTools(web_search=web, news_search=news)
 
 
@@ -708,11 +714,7 @@ class SemanticMemoryToolsetConfig(BaseToolsetConfig):
         """Create semantic memory tools provider."""
         from llmling_agent_toolsets.semantic_memory_toolset import SemanticMemoryTools
 
-        model = (
-            self.model
-            if isinstance(self.model, str) or self.model is None
-            else self.model.get_model()
-        )
+        model = m if isinstance(m := self.model, str) or m is None else m.get_model()
         return SemanticMemoryTools(model=model, dbname=self.dbname)
 
 
@@ -826,11 +828,8 @@ class ConfigCreationToolsetConfig(BaseToolsetConfig):
         """Create config creation toolset."""
         from llmling_agent_toolsets.config_creation import ConfigCreationTools
 
-        return ConfigCreationTools(
-            schema_path=self.schema_path,
-            markup=self.markup,
-            name=self.namespace or "config_creation",
-        )
+        name = self.namespace or "config_creation"
+        return ConfigCreationTools(schema_path=self.schema_path, markup=self.markup, name=name)
 
 
 ToolsetConfig = Annotated[
