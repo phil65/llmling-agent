@@ -1338,6 +1338,109 @@ class VTCodeACPAgentConfig(BaseACPAgentConfig):
         return ["openai", "anthropic", "gemini"]
 
 
+class CursorACPAgentConfig(BaseACPAgentConfig):
+    """Configuration for Cursor via ACP.
+
+    Cursor CLI agent with filesystem and terminal capabilities.
+
+    Example:
+        ```yaml
+        acp_agents:
+          coder:
+            type: cursor
+            cwd: /path/to/project
+            session_dir: ~/.cursor-sessions
+            timeout: 30000
+        ```
+    """
+
+    model_config = ConfigDict(json_schema_extra={"title": "Cursor ACP Agent Configuration"})
+
+    type: Literal["cursor"] = Field("cursor", init=False)
+    """Discriminator for Cursor ACP agent."""
+
+    config: str | None = Field(default=None)
+    """Path to configuration file."""
+
+    log_level: Literal["error", "warn", "info", "debug"] | None = Field(default=None)
+    """Logging level."""
+
+    log_file: str | None = Field(default=None)
+    """Log file path (logs to stderr by default)."""
+
+    session_dir: str | None = Field(default=None)
+    """Session storage directory (default: ~/.cursor-sessions)."""
+
+    timeout: int | None = Field(default=None)
+    """Cursor-agent timeout in milliseconds (default: 30000)."""
+
+    retries: int | None = Field(default=None)
+    """Number of retries for cursor-agent commands (default: 3)."""
+
+    max_sessions: int | None = Field(default=None)
+    """Maximum number of concurrent sessions (default: 100)."""
+
+    session_timeout: int | None = Field(default=None)
+    """Session timeout in milliseconds (default: 3600000)."""
+
+    no_filesystem: bool = Field(default=False)
+    """Disable filesystem tools."""
+
+    no_terminal: bool = Field(default=False)
+    """Disable terminal tools."""
+
+    max_processes: int | None = Field(default=None)
+    """Maximum number of terminal processes (default: 5)."""
+
+    verbose: bool = Field(default=False)
+    """Enable verbose logging."""
+
+    quiet: bool = Field(default=False)
+    """Suppress all output except errors."""
+
+    def get_command(self) -> str:
+        """Get the command to spawn the ACP server."""
+        return "cursor-agent-acp"
+
+    def get_args(self) -> list[str]:
+        """Build command arguments from settings."""
+        args: list[str] = []
+
+        if self.config:
+            args.extend(["--config", self.config])
+        if self.log_level:
+            args.extend(["--log-level", self.log_level])
+        if self.log_file:
+            args.extend(["--log-file", self.log_file])
+        if self.session_dir:
+            args.extend(["--session-dir", self.session_dir])
+        if self.timeout is not None:
+            args.extend(["--timeout", str(self.timeout)])
+        if self.retries is not None:
+            args.extend(["--retries", str(self.retries)])
+        if self.max_sessions is not None:
+            args.extend(["--max-sessions", str(self.max_sessions)])
+        if self.session_timeout is not None:
+            args.extend(["--session-timeout", str(self.session_timeout)])
+        if self.no_filesystem:
+            args.append("--no-filesystem")
+        if self.no_terminal:
+            args.append("--no-terminal")
+        if self.max_processes is not None:
+            args.extend(["--max-processes", str(self.max_processes)])
+        if self.verbose:
+            args.append("--verbose")
+        if self.quiet:
+            args.append("--quiet")
+
+        return args
+
+    @property
+    def model_providers(self) -> list[ProviderType]:
+        """Cursor supports multiple providers."""
+        return ["openai", "anthropic", "gemini", "openrouter"]
+
+
 # Union of all ACP agent config types
 ACPAgentConfigTypes = Annotated[
     ACPAgentConfig
@@ -1354,6 +1457,7 @@ ACPAgentConfigTypes = Annotated[
     | KimiACPAgentConfig
     | StakpakACPAgentConfig
     | MistralAgentConfig
-    | VTCodeACPAgentConfig,
+    | VTCodeACPAgentConfig
+    | CursorACPAgentConfig,
     Field(discriminator="type"),
 ]
