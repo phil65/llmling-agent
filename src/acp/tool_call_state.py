@@ -29,8 +29,8 @@ class ToolCallState:
 
     Example flow:
         1. Tool call starts → state created with generated title
-        2. ProcessStartEvent → state.update(title="Running: ...", add_content=terminal)
-        3. FileEditProgressEvent → state.update(add_content=diff, add_locations=path)
+        2. ToolCallProgressEvent → state.update(title="Running: ...", add_content=terminal)
+        3. ToolCallProgressEvent → state.update(add_content=diff, add_locations=path)
         4. Tool completes → state.complete(raw_output=result)
 
     All accumulated content and locations are preserved in each notification.

@@ -90,13 +90,11 @@ async def test_start_process(
 
     assert isinstance(result, dict)
     assert result["process_id"].startswith("mock_")
-    assert result["command"] == "echo"
     assert result["args"] == ["hello", "world"]
     assert result["status"] == "started"
 
     mock_ctx.events.process_started.assert_called_once()  # type: ignore[attr-defined]
     call_args = mock_ctx.events.process_started.call_args[1]  # type: ignore[attr-defined]
-    assert call_args["command"] == "echo"
     assert call_args["success"] is True
 
 
@@ -241,7 +239,6 @@ async def test_execute_command(
     )
 
     assert isinstance(result, dict)
-    assert result["success"] is True
     assert result["stdout"] == "hello world\n"
     assert result["exit_code"] == 0
 

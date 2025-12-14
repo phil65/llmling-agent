@@ -38,10 +38,8 @@ from acp.schema import (
 )
 from llmling_agent.agent.events import (
     DiffContentItem,
-    FileEditProgressEvent,
     LocationContentItem,
     PlanUpdateEvent,
-    ProcessStartEvent,
     TerminalContentItem,
     ToolCallProgressEvent,
     ToolCallStartEvent,
@@ -230,33 +228,8 @@ def acp_to_native_event(update: SessionUpdate) -> RichAgentStreamEvent[Any] | No
 
         # Tool call progress -> ToolCallProgressEvent
         case ToolCallProgress() as tc:
-            # Check for special content types
             items = convert_acp_content(list(tc.content) if tc.content else None)
 
-            # Check if this is a file edit progress (has diff content)
-            for item in items:
-                if isinstance(item, DiffContentItem):
-                    return FileEditProgressEvent(
-                        path=item.path,
-                        old_text=item.old_text or "",
-                        new_text=item.new_text,
-                        status=tc.status or "in_progress",  # type: ignore[arg-type]
-                        tool_call_id=tc.tool_call_id,
-                    )
-
-            # Check if this is a process/terminal event
-            for item in items:
-                if isinstance(item, TerminalContentItem):
-                    # This is a process-related update
-                    return ProcessStartEvent(
-                        process_id=item.terminal_id,
-                        command=tc.title or "",
-                        success=tc.status != "failed",
-                        error=str(tc.raw_output) if tc.status == "failed" else None,
-                        tool_call_id=tc.tool_call_id,
-                    )
-
-            # Generic tool call progress
             return ToolCallProgressEvent(
                 tool_call_id=tc.tool_call_id,
                 status=tc.status or "in_progress",

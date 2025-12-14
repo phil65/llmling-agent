@@ -90,7 +90,7 @@ class ExecutionEnvironmentTools(ResourceProvider):
                         await agent_ctx.events.process_started(process_id, cmd, success=True)
                     case OutputEvent(data=data):
                         output_parts.append(data)
-                        await agent_ctx.events.process_output(process_id, output=data)
+                        await agent_ctx.events.process_output(process_id, data)
                     case ProcessCompletedEvent(exit_code=code_, duration=dur):
                         exit_code = code_
                         duration = dur
@@ -100,35 +100,20 @@ class ExecutionEnvironmentTools(ResourceProvider):
                         error_msg = err
                         exit_code = code_
                         await agent_ctx.events.process_exit(
-                            process_id=process_id,
-                            exit_code=exit_code or 1,
-                            final_output=err,
+                            process_id, exit_code or 1, final_output=err
                         )
 
             combined_output = "".join(output_parts)
             if error_msg:
-                return {
-                    "success": False,
-                    "error": error_msg,
-                    "output": combined_output,
-                    "exit_code": exit_code,
-                }
+                return {"error": error_msg, "output": combined_output, "exit_code": exit_code}
 
         except Exception as e:  # noqa: BLE001
             await agent_ctx.events.process_started(
-                process_id=process_id,
-                command="execute_code",
-                success=False,
-                error=str(e),
+                process_id, "execute_code", success=False, error=str(e)
             )
-            return {"success": False, "error": f"Error executing code: {e}"}
+            return {"error": f"Error executing code: {e}"}
         else:
-            return {
-                "success": exit_code == 0 if exit_code is not None else True,
-                "output": combined_output,
-                "exit_code": exit_code,
-                "duration": duration,
-            }
+            return {"output": combined_output, "exit_code": exit_code, "duration": duration}
 
     async def execute_command(  # noqa: PLR0915
         self,
@@ -156,7 +141,7 @@ class ExecutionEnvironmentTools(ResourceProvider):
                     case ProcessStartedEvent(process_id=pid, command=cmd):
                         process_id = pid
                         if pid:
-                            await agent_ctx.events.process_started(pid, command=cmd, success=True)
+                            await agent_ctx.events.process_started(pid, cmd, success=True)
                         else:
                             logger.warning("ProcessStartedEvent missing process_id", command=cmd)
                     case OutputEvent(process_id=pid, data=data, stream=stream):
@@ -165,12 +150,7 @@ class ExecutionEnvironmentTools(ResourceProvider):
                         else:
                             stdout_parts.append(data)
                         if pid:
-                            await agent_ctx.events.process_output(
-                                process_id=pid,
-                                output=data,
-                                stdout=data if stream != "stderr" else None,
-                                stderr=data if stream == "stderr" else None,
-                            )
+                            await agent_ctx.events.process_output(pid, data)
                         else:
                             logger.warning("OutputEvent missing process_id", stream=stream)
                     case ProcessCompletedEvent(process_id=pid, exit_code=code_, duration=dur):
@@ -179,9 +159,7 @@ class ExecutionEnvironmentTools(ResourceProvider):
                         combined = "".join(stdout_parts) + "".join(stderr_parts)
                         if pid:
                             await agent_ctx.events.process_exit(
-                                process_id=pid,
-                                exit_code=exit_code,
-                                final_output=combined,
+                                pid, exit_code, final_output=combined
                             )
                         else:
                             msg = "ProcessCompletedEvent missing process_id,"
@@ -205,7 +183,6 @@ class ExecutionEnvironmentTools(ResourceProvider):
                     truncated = True
             if error_msg:
                 return {
-                    "success": False,
                     "error": error_msg,
                     "stdout": stdout,
                     "stderr": stderr,
@@ -214,16 +191,10 @@ class ExecutionEnvironmentTools(ResourceProvider):
         except Exception as e:  # noqa: BLE001
             # Use process_id from events if available, otherwise generate fallback
             error_id = process_id or f"cmd_{uuid.uuid4().hex[:8]}"
-            await agent_ctx.events.process_started(
-                process_id=error_id,
-                command=command,
-                success=False,
-                error=str(e),
-            )
+            await agent_ctx.events.process_started(error_id, command, success=False, error=str(e))
             return {"success": False, "error": f"Error executing command: {e}"}
         else:
             return {
-                "success": exit_code == 0 if exit_code is not None else True,
                 "stdout": stdout,
                 "stderr": stderr,
                 "exit_code": exit_code,
@@ -259,27 +230,10 @@ class ExecutionEnvironmentTools(ResourceProvider):
                 env=env,
                 output_limit=output_limit,
             )
-            await agent_ctx.events.process_started(
-                process_id=process_id,
-                command=command,
-                args=args or [],
-                cwd=cwd,
-                env=env or {},
-                output_limit=output_limit,
-                success=True,
-            )
+            await agent_ctx.events.process_started(process_id, command, success=True)
 
         except Exception as e:  # noqa: BLE001
-            await agent_ctx.events.process_started(
-                process_id="",
-                command=command,
-                args=args or [],
-                cwd=cwd,
-                env=env or {},
-                output_limit=output_limit,
-                success=False,
-                error=str(e),
-            )
+            await agent_ctx.events.process_started("", command, success=False, error=str(e))
             return {"error": f"Failed to start process: {e}"}
         else:
             return {
@@ -300,13 +254,7 @@ class ExecutionEnvironmentTools(ResourceProvider):
         manager = self.get_env(agent_ctx).process_manager
         try:
             output = await manager.get_output(process_id)
-            await agent_ctx.events.process_output(
-                process_id=process_id,
-                output=output.combined or "",
-                stdout=output.stdout,
-                stderr=output.stderr,
-                truncated=output.truncated,
-            )
+            await agent_ctx.events.process_output(process_id, output.combined or "")
             result: dict[str, Any] = {
                 "process_id": process_id,
                 "stdout": output.stdout or "",
@@ -337,12 +285,7 @@ class ExecutionEnvironmentTools(ResourceProvider):
         try:
             exit_code = await manager.wait_for_exit(process_id)
             output = await manager.get_output(process_id)
-            await agent_ctx.events.process_exit(
-                process_id=process_id,
-                exit_code=exit_code,
-                final_output=output.combined,
-                truncated=output.truncated,
-            )
+            await agent_ctx.events.process_exit(process_id, exit_code, final_output=output.combined)
 
         except ValueError as e:
             return {"error": str(e)}

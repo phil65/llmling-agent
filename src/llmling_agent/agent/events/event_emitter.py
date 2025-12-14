@@ -6,15 +6,8 @@ from typing import TYPE_CHECKING, Any, Literal
 
 from llmling_agent.agent.events import (
     CustomEvent,
-    FileEditProgressEvent,
-    FileOperationEvent,
     LocationContentItem,
     PlanUpdateEvent,
-    ProcessExitEvent,
-    ProcessKillEvent,
-    ProcessOutputEvent,
-    ProcessReleaseEvent,
-    ProcessStartEvent,
     ToolCallProgressEvent,
     ToolCallStartEvent,
 )
@@ -30,7 +23,7 @@ if TYPE_CHECKING:
 class StreamEventEmitter:
     """Event emitter delegate that automatically injects context.
 
-    Provides a fluent, developer-friendly API for emitting domain events
+    Provides a fluent, developer-friendly API for emitting progress events
     with context (tool_call_id, etc.) automatically injected.
     """
 
@@ -42,43 +35,51 @@ class StreamEventEmitter:
         """
         self._context = context
 
+    async def tool_call_progress(
+        self,
+        title: str,
+        *,
+        status: Literal["pending", "in_progress", "completed", "failed"] = "in_progress",
+        items: list[ToolCallContentItem] | None = None,
+    ) -> None:
+        """Emit a progress event.
+
+        Args:
+            title: Human-readable title describing the operation
+            status: Execution status
+            items: Rich content items (terminals, diffs, locations, text)
+        """
+        event = ToolCallProgressEvent(
+            tool_call_id=self._context.tool_call_id or "",
+            tool_name=self._context.tool_name,
+            status=status,
+            title=title,
+            items=items or [],
+        )
+        await self._context.agent._event_queue.put(event)
+
     async def file_operation(
         self,
         operation: Literal["read", "write", "delete", "list", "edit"],
         path: str,
         success: bool,
         error: str | None = None,
-        size: int | None = None,
-        title: str | None = None,
-        kind: str | None = None,
-        locations: list[str] | None = None,
-        raw_output: Any | None = None,
     ) -> None:
-        """Emit file operation event with rich metadata.
+        """Emit file operation event.
 
         Args:
             operation: The filesystem operation performed
             path: The file/directory path that was operated on
             success: Whether the operation completed successfully
             error: Error message if operation failed
-            size: Size of file in bytes (for successful operations)
-            title: Display title for the operation
-            kind: Tool operation kind (edit, read, write, etc.)
-            locations: File paths affected by the operation
-            raw_output: Tool result data for failed operations
         """
-        event = FileOperationEvent(
+        event = ToolCallProgressEvent.file_operation(
+            tool_call_id=self._context.tool_call_id or "",
+            tool_name=self._context.tool_name,
             operation=operation,
             path=path,
             success=success,
             error=error,
-            size=size,
-            tool_call_id=self._context.tool_call_id,
-            title=title,
-            kind=kind or operation,  # Default kind to operation
-            locations=locations or [path],  # Default to main path
-            raw_input=self._context.tool_input.copy(),  # Auto-inject from context
-            raw_output=raw_output,
         )
         await self._context.agent._event_queue.put(event)
 
@@ -88,7 +89,6 @@ class StreamEventEmitter:
         old_text: str,
         new_text: str,
         status: Literal["in_progress", "completed", "failed"],
-        changed_lines: list[int] | None = None,
     ) -> None:
         """Emit file edit progress event with diff information.
 
@@ -97,15 +97,14 @@ class StreamEventEmitter:
             old_text: Original file content
             new_text: New file content
             status: Current status of the edit operation
-            changed_lines: Line numbers that were changed
         """
-        event = FileEditProgressEvent(
+        event = ToolCallProgressEvent.file_edit(
+            tool_call_id=self._context.tool_call_id or "",
+            tool_name=self._context.tool_name,
             path=path,
             old_text=old_text,
             new_text=new_text,
             status=status,
-            changed_lines=changed_lines or [],
-            tool_call_id=self._context.tool_call_id,
         )
         await self._context.agent._event_queue.put(event)
 
@@ -149,35 +148,24 @@ class StreamEventEmitter:
         self,
         process_id: str,
         command: str,
-        args: list[str] | None = None,
-        cwd: str | None = None,
-        env: dict[str, str] | None = None,
-        output_limit: int | None = None,
         success: bool = True,
         error: str | None = None,
     ) -> None:
         """Emit process start event.
 
         Args:
-            process_id: Unique process identifier
+            process_id: Unique process identifier (terminal_id for ACP)
             command: Command being executed
-            args: Command arguments
-            cwd: Working directory
-            env: Environment variables
-            output_limit: Maximum bytes of output to retain
             success: Whether the process started successfully
             error: Error message if start failed
         """
-        event = ProcessStartEvent(
+        event = ToolCallProgressEvent.process_started(
+            tool_call_id=self._context.tool_call_id or "",
+            tool_name=self._context.tool_name,
             process_id=process_id,
             command=command,
-            args=args or [],
-            cwd=cwd,
-            env=env or {},
-            output_limit=output_limit,
             success=success,
             error=error,
-            tool_call_id=self._context.tool_call_id,
         )
         await self._context.agent._event_queue.put(event)
 
@@ -185,26 +173,18 @@ class StreamEventEmitter:
         self,
         process_id: str,
         output: str,
-        stdout: str | None = None,
-        stderr: str | None = None,
-        truncated: bool = False,
     ) -> None:
         """Emit process output event.
 
         Args:
             process_id: Process identifier
-            output: Process output (stdout/stderr combined)
-            stdout: Standard output (if separated)
-            stderr: Standard error (if separated)
-            truncated: Whether output was truncated due to limits
+            output: Process output
         """
-        event = ProcessOutputEvent(
+        event = ToolCallProgressEvent.process_output(
+            tool_call_id=self._context.tool_call_id or "",
+            tool_name=self._context.tool_name,
             process_id=process_id,
             output=output,
-            stdout=stdout,
-            stderr=stderr,
-            truncated=truncated,
-            tool_call_id=self._context.tool_call_id,
         )
         await self._context.agent._event_queue.put(event)
 
@@ -213,7 +193,6 @@ class StreamEventEmitter:
         process_id: str,
         exit_code: int,
         final_output: str | None = None,
-        truncated: bool = False,
     ) -> None:
         """Emit process exit event.
 
@@ -221,15 +200,13 @@ class StreamEventEmitter:
             process_id: Process identifier
             exit_code: Process exit code
             final_output: Final process output
-            truncated: Whether output was truncated due to limits
         """
-        event = ProcessExitEvent(
+        event = ToolCallProgressEvent.process_exit(
+            tool_call_id=self._context.tool_call_id or "",
+            tool_name=self._context.tool_name,
             process_id=process_id,
             exit_code=exit_code,
-            success=exit_code == 0,
             final_output=final_output,
-            truncated=truncated,
-            tool_call_id=self._context.tool_call_id,
         )
         await self._context.agent._event_queue.put(event)
 
@@ -246,11 +223,12 @@ class StreamEventEmitter:
             success: Whether the process was successfully killed
             error: Error message if kill failed
         """
-        event = ProcessKillEvent(
+        event = ToolCallProgressEvent.process_killed(
+            tool_call_id=self._context.tool_call_id or "",
+            tool_name=self._context.tool_name,
             process_id=process_id,
             success=success,
             error=error,
-            tool_call_id=self._context.tool_call_id,
         )
         await self._context.agent._event_queue.put(event)
 
@@ -267,11 +245,12 @@ class StreamEventEmitter:
             success: Whether resources were successfully released
             error: Error message if release failed
         """
-        event = ProcessReleaseEvent(
+        event = ToolCallProgressEvent.process_released(
+            tool_call_id=self._context.tool_call_id or "",
+            tool_name=self._context.tool_name,
             process_id=process_id,
             success=success,
             error=error,
-            tool_call_id=self._context.tool_call_id,
         )
         await self._context.agent._event_queue.put(event)
 
@@ -290,7 +269,6 @@ class StreamEventEmitter:
             content: Content produced by the tool call (terminals, diffs, text)
             locations: File paths or LocationContentItem objects affected by this tool call
         """
-        # Convert string paths to LocationContentItem objects
         location_items = [
             LocationContentItem(path=loc) if isinstance(loc, str) else loc
             for loc in (locations or [])
@@ -310,15 +288,6 @@ class StreamEventEmitter:
         """Emit a typed event into the agent's event stream.
 
         Args:
-            event: The event instance (PlanUpdateEvent, FileOperationEvent, etc.)
+            event: The event instance (PlanUpdateEvent, ToolCallProgressEvent, etc.)
         """
-        await self._context.agent._event_queue.put(event)
-
-    async def tool_call_progress(self, message: str) -> None:
-        event = ToolCallProgressEvent(
-            tool_call_id=self._context.tool_call_id or "",
-            status="in_progress",
-            message=message,
-            tool_name=self._context.tool_name,
-        )
         await self._context.agent._event_queue.put(event)

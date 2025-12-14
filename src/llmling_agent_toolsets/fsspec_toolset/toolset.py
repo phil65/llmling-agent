@@ -283,9 +283,7 @@ class FSSpecTools(ResourceProvider):
             # Fast path: known binary MIME types (images, audio, video, etc.)
             if is_definitely_binary_mime(mime_type):
                 data = await self.get_fs(agent_ctx)._cat_file(path)
-                await agent_ctx.events.file_operation(
-                    "read", path=path, success=True, size=len(data)
-                )
+                await agent_ctx.events.file_operation("read", path=path, success=True)
                 mime = mime_type or "application/octet-stream"
                 return BinaryContent(data=data, media_type=mime, identifier=path)
 
@@ -294,9 +292,7 @@ class FSSpecTools(ResourceProvider):
 
             if is_binary_content(data):
                 # Binary file - return as BinaryContent for native model handling
-                await agent_ctx.events.file_operation(
-                    "read", path=path, success=True, size=len(data)
-                )
+                await agent_ctx.events.file_operation("read", path=path, success=True)
                 mime = mime_type or "application/octet-stream"
                 return BinaryContent(data=data, media_type=mime, identifier=path)
 
@@ -309,9 +305,7 @@ class FSSpecTools(ResourceProvider):
             result_lines, was_truncated = truncate_lines(lines, offset, limit, self.max_file_size)
             content = "\n".join(result_lines)
 
-            await agent_ctx.events.file_operation(
-                "read", path=path, success=True, size=len(content)
-            )
+            await agent_ctx.events.file_operation("read", path=path, success=True)
 
             if was_truncated:
                 content += f"\n\n[Content truncated at {self.max_file_size} bytes]"
@@ -341,9 +335,7 @@ class FSSpecTools(ResourceProvider):
         await agent_ctx.events.tool_call_start(title=msg, kind="read", locations=[path])
         try:
             content = await self.converter.convert_file(path)
-            await agent_ctx.events.file_operation(
-                "read", path=path, success=True, size=len(content)
-            )
+            await agent_ctx.events.file_operation("read", path=path, success=True)
         except Exception as e:  # noqa: BLE001
             await agent_ctx.events.file_operation("read", path=path, success=False, error=str(e))
             return {"error": f"Failed to convert file {path}: {e}"}
@@ -419,7 +411,7 @@ class FSSpecTools(ResourceProvider):
                 "file_existed": file_exists,
                 "bytes_written": content_bytes,
             }
-            await agent_ctx.events.file_operation("write", path=path, success=True, size=size)
+            await agent_ctx.events.file_operation("write", path=path, success=True)
         except Exception as e:  # noqa: BLE001
             await agent_ctx.events.file_operation("write", path=path, success=False, error=str(e))
             return {"error": f"Failed to write file {path}: {e}"}
@@ -521,14 +513,7 @@ class FSSpecTools(ResourceProvider):
             return "Error: old_string and new_string must be different"
 
         # Send initial pending notification
-        await agent_ctx.events.file_operation(
-            "edit",
-            path=path,
-            success=True,  # Initial state
-            title=f"Editing file: {path}",
-            kind="edit",
-            locations=[path],
-        )
+        await agent_ctx.events.file_operation("edit", path=path, success=True)
 
         try:  # Read current file content
             original_content = await self._read(agent_ctx, path)
@@ -540,11 +525,7 @@ class FSSpecTools(ResourceProvider):
             except ValueError as e:
                 error_msg = f"Edit failed: {e}"
                 await agent_ctx.events.file_operation(
-                    "edit",
-                    path=path,
-                    success=False,
-                    error=error_msg,
-                    raw_output=error_msg,
+                    "edit", path=path, success=False, error=error_msg
                 )
                 return error_msg
 
@@ -559,17 +540,10 @@ class FSSpecTools(ResourceProvider):
                 old_text=original_content,
                 new_text=new_content,
                 status="completed",
-                changed_lines=changed_line_numbers,
             )
         except Exception as e:  # noqa: BLE001
             error_msg = f"Error editing file: {e}"
-            await agent_ctx.events.file_operation(
-                "edit",
-                path=path,
-                success=False,
-                error=error_msg,
-                raw_output=error_msg,
-            )
+            await agent_ctx.events.file_operation("edit", path=path, success=False, error=error_msg)
             return error_msg
         else:
             return success_msg
@@ -739,9 +713,7 @@ class FSSpecTools(ResourceProvider):
             duration = time.time() - start_time
             size_mb = len(data) / 1_048_576
 
-            await agent_ctx.events.file_operation(
-                "read", path=full_path, success=True, size=len(data)
-            )
+            await agent_ctx.events.file_operation("read", path=full_path, success=True)
 
             return {
                 "path": full_path,
@@ -798,14 +770,7 @@ class FSSpecTools(ResourceProvider):
         title = f"AI editing file: {path}"
         await agent_ctx.events.tool_call_start(title=title, kind="edit", locations=[path])
         # Send initial pending notification
-        await agent_ctx.events.file_operation(
-            "edit",
-            path=path,
-            success=True,
-            title=f"Editing file: {path}",
-            kind="edit",
-            locations=[path],
-        )
+        await agent_ctx.events.file_operation("edit", path=path, success=True)
 
         try:
             if mode == "create":  # For create mode, don't read existing file
@@ -854,15 +819,12 @@ class FSSpecTools(ResourceProvider):
                         try:  # Send progress update with current diff
                             if len(partial_content.strip()) > 0:
                                 # Get line numbers for streaming progress
-                                progress_line_numbers = get_changed_line_numbers(
-                                    original_content, partial_content
-                                )
+                                get_changed_line_numbers(original_content, partial_content)
                                 await agent_ctx.events.file_edit_progress(
                                     path=path,
                                     old_text=original_content,
                                     new_text=partial_content,
                                     status="in_progress",
-                                    changed_lines=progress_line_numbers,
                                 )
                         except Exception:  # noqa: BLE001
                             pass  # Continue on progress update errors
@@ -872,11 +834,7 @@ class FSSpecTools(ResourceProvider):
             if not new_content:
                 error_msg = "AI agent produced no output"
                 await agent_ctx.events.file_operation(
-                    "edit",
-                    path=path,
-                    success=False,
-                    error=error_msg,
-                    raw_output=error_msg,
+                    "edit", path=path, success=False, error=error_msg
                 )
                 return error_msg
 
@@ -893,25 +851,18 @@ class FSSpecTools(ResourceProvider):
                 success_msg += f" ({original_lines} → {new_lines} lines)"
 
             # Get changed line numbers for precise UI highlighting
-            changed_line_numbers = get_changed_line_numbers(original_content, new_content)
+            get_changed_line_numbers(original_content, new_content)
             # Send final completion update with complete diff and line numbers
             await agent_ctx.events.file_edit_progress(
                 path=path,
                 old_text=original_content,
                 new_text=new_content,
                 status="completed",
-                changed_lines=changed_line_numbers,
             )
 
         except Exception as e:  # noqa: BLE001
             error_msg = f"Error during agentic edit: {e}"
-            await agent_ctx.events.file_operation(
-                "edit",
-                path=path,
-                success=False,
-                error=error_msg,
-                raw_output=error_msg,
-            )
+            await agent_ctx.events.file_operation("edit", path=path, success=False, error=error_msg)
             return error_msg
         else:
             return success_msg

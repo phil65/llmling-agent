@@ -48,14 +48,7 @@ from llmling_agent import Agent, AgentContext  # noqa: TC001
 from llmling_agent.agent import SlashedAgent
 from llmling_agent.agent.acp_agent import ACPAgent
 from llmling_agent.agent.events import (
-    FileEditProgressEvent,
-    FileOperationEvent,
     PlanUpdateEvent,
-    ProcessExitEvent,
-    ProcessKillEvent,
-    ProcessOutputEvent,
-    ProcessReleaseEvent,
-    ProcessStartEvent,
     StreamCompleteEvent,
     ToolCallProgressEvent,
     ToolCallStartEvent,
@@ -497,8 +490,7 @@ class ACPSession:
                 tool_name=tool_name,
                 title=title,
                 kind=kind,
-                content=content,
-                locations=locations,
+                locations=loc_items,
                 raw_input=raw_input,
             ):
                 self.log.debug(
@@ -511,7 +503,9 @@ class ACPSession:
                     tool_input=raw_input or {},
                 )
                 # Convert LocationContentItem objects to ACP format
-                acp_locations = [ToolCallLocation(path=i.path, line=i.line) for i in locations]
+                acp_locations = [
+                    ToolCallLocation(path=loc.path, line=loc.line) for loc in loc_items
+                ]
                 # Update state with tool-provided details (better title, content, locations)
                 await state.update(
                     title=title,
@@ -519,28 +513,54 @@ class ACPSession:
                     add_locations=acp_locations if acp_locations else None,
                 )
 
-            # Tool progress event - update state
+            # Tool progress event - update state with title and content
             case ToolCallProgressEvent(
-                progress=progress,
-                total=total,
-                message=message,
-                tool_name=tool_name,
                 tool_call_id=tool_call_id,
-                tool_input=tool_input,
-            ):
-                self.log.debug("Progress event", tool_name=tool_name, tool_call_id=tool_call_id)
-                output = message if message else f"Progress: {progress}"
-                if total:
-                    output += f"/{total}"
-                if progress_state := self._tool_call_states.get(tool_call_id):
-                    await progress_state.update(
-                        title=message, status="in_progress", raw_output=output
-                    )
+                title=title,
+                status=status,
+                items=items,
+            ) if tool_call_id and tool_call_id in self._tool_call_states:
+                progress_state = self._tool_call_states[tool_call_id]
+                self.log.debug("Progress event", tool_call_id=tool_call_id, title=title)
+
+                # Convert items to ACP content
+                from llmling_agent.agent.events import (
+                    DiffContentItem,
+                    LocationContentItem,
+                    TerminalContentItem,
+                )
+
+                acp_content: list[Any] = []
+                location_paths: list[str] = []
+
+                for item in items:
+                    match item:
+                        case TerminalContentItem(terminal_id=tid):
+                            acp_content.append(TerminalToolCallContent(terminal_id=tid))
+                        case DiffContentItem(path=diff_path, old_text=old, new_text=new):
+                            # Send diff via direct notification
+                            await self.notifications.file_edit_progress(
+                                tool_call_id=tool_call_id,
+                                path=diff_path,
+                                old_text=old or "",
+                                new_text=new,
+                                status=status,
+                                changed_lines=[],
+                            )
+                        case LocationContentItem(path=loc_path):
+                            location_paths.append(loc_path)
+
+                await progress_state.update(
+                    title=title,
+                    status="in_progress",
+                    add_content=acp_content if acp_content else None,
+                    add_locations=location_paths if location_paths else None,
+                )
 
             case FinalResultEvent():
                 self.log.debug("Final result received")
 
-            case StreamCompleteEvent(message=message):
+            case StreamCompleteEvent():
                 pass
 
             case PlanUpdateEvent(entries=entries, tool_call_id=tool_call_id):
@@ -549,153 +569,6 @@ class ACPSession:
                     for e in entries
                 ]
                 await self.notifications.update_plan(acp_entries)
-
-            # File operation completed - update state with location
-            case FileOperationEvent(
-                operation=operation,
-                path=path,
-                success=True,
-                error=error,
-                tool_call_id=str() as tool_call_id,
-            ):
-                if file_state := self._tool_call_states.get(tool_call_id):
-                    await file_state.update(add_location=path)
-
-            # File operation failed - update state with error
-            case FileOperationEvent(
-                operation=operation,
-                path=path,
-                success=False,
-                error=error,
-                tool_call_id=str() as tool_call_id,
-            ):
-                if file_error_state := self._tool_call_states.get(tool_call_id):
-                    await file_error_state.update(
-                        add_location=path,
-                        raw_output=f"File operation {operation!r} failed: {error}",
-                    )
-
-            # File edit progress - update state with diff content
-            case FileEditProgressEvent(
-                path=path,
-                old_text=old_text,
-                new_text=new_text,
-                status=status,
-                changed_lines=changed_lines,
-                tool_call_id=str() as tool_call_id,
-            ):
-                # Still use direct notification for diff content (special format)
-                await self.notifications.file_edit_progress(
-                    tool_call_id=tool_call_id,
-                    path=path,
-                    old_text=old_text,
-                    new_text=new_text,
-                    status=status,
-                    changed_lines=changed_lines,
-                )
-
-            # Process started - update state with terminal and better title
-            # process_id is the ACP terminal_id when using ACPExecutionEnvironment
-            case ProcessStartEvent(
-                process_id=process_id,
-                command=command,
-                success=True,
-                error=error,
-                tool_call_id=str() as tool_call_id,
-            ):
-                if proc_start_state := self._tool_call_states.get(tool_call_id):
-                    # Truncate long commands for title
-                    cmd_display = (
-                        command[:MAX_CMD_OUTPUT_LENGTH] + "..."
-                        if len(command) > MAX_CMD_OUTPUT_LENGTH
-                        else command
-                    )
-                    # process_id is the terminal_id from ACP
-                    terminal_content = TerminalToolCallContent(terminal_id=process_id)
-                    await proc_start_state.update(
-                        title=f"Running: {cmd_display}",
-                        status="in_progress",
-                        add_content=terminal_content,
-                    )
-
-            # Process start failed - update state with error
-            case ProcessStartEvent(
-                process_id=process_id,
-                command=command,
-                success=False,
-                error=error,
-                tool_call_id=str() as tool_call_id,
-            ):
-                if proc_fail_state := self._tool_call_states.get(tool_call_id):
-                    await proc_fail_state.update(
-                        title=f"Failed to start: {command}",
-                        raw_output=f"Process start failed: {error}",
-                    )
-
-            # Process output - just log, terminal content streams separately
-            case ProcessOutputEvent(process_id=process_id, tool_call_id=str() as tool_call_id):
-                pass  # Terminal content streams through terminal protocol
-
-            # Process exited - update state title (keep command context, add exit code)
-            case ProcessExitEvent(
-                process_id=process_id,
-                exit_code=exit_code,
-                success=success,
-                final_output=final_output,
-                tool_call_id=str() as tool_call_id,
-            ):
-                if proc_exit_state := self._tool_call_states.get(tool_call_id):
-                    # Append exit status to existing title
-                    status_icon = "✓" if success else "✗"
-                    title = f"{proc_exit_state.title} [{status_icon} exit {exit_code}]"
-                    # Don't mark complete yet, wait for FunctionToolResultEvent
-                    await proc_exit_state.update(
-                        title=title, status="in_progress", raw_output=final_output
-                    )
-
-            # Process killed
-            case ProcessKillEvent(
-                process_id=process_id,
-                success=True,
-                error=error,
-                tool_call_id=str() as tool_call_id,
-            ):
-                if kill_state := self._tool_call_states.get(tool_call_id):
-                    await kill_state.update(title=f"Killed process {process_id}")
-
-            case ProcessKillEvent(
-                process_id=process_id,
-                success=False,
-                error=error,
-                tool_call_id=str() as tool_call_id,
-            ):
-                if kill_fail_state := self._tool_call_states.get(tool_call_id):
-                    await kill_fail_state.update(
-                        title=f"Failed to kill process {process_id}",
-                        raw_output=f"Process kill failed: {error}",
-                    )
-
-            # Process released
-            case ProcessReleaseEvent(
-                process_id=process_id,
-                success=True,
-                error=error,
-                tool_call_id=str() as tool_call_id,
-            ):
-                if release_state := self._tool_call_states.get(tool_call_id):
-                    await release_state.update(title=f"Released process {process_id}")
-
-            case ProcessReleaseEvent(
-                process_id=process_id,
-                success=False,
-                error=error,
-                tool_call_id=str() as tool_call_id,
-            ):
-                if release_fail_state := self._tool_call_states.get(tool_call_id):
-                    await release_fail_state.update(
-                        title=f"Failed to release process {process_id}",
-                        raw_output=f"Process release failed: {error}",
-                    )
 
             case _:
                 self.log.debug("Unhandled event", event_type=type(event).__name__)

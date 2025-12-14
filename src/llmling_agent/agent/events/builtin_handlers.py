@@ -21,11 +21,9 @@ from pydantic_ai.messages import (
 )
 
 from llmling_agent.agent.events import (
-    FileEditProgressEvent,
-    ProcessExitEvent,
-    ProcessStartEvent,
     RunErrorEvent,
     StreamCompleteEvent,
+    ToolCallProgressEvent,
     ToolCallStartEvent,
 )
 
@@ -78,8 +76,7 @@ async def detailed_print_handler(ctx: RunContext, event: RichAgentStreamEvent[An
     - Thinking content
     - Tool calls with inputs
     - Tool results
-    - Process execution
-    - File operations
+    - Tool progress with title
     - Errors
     """
     match event:
@@ -111,19 +108,10 @@ async def detailed_print_handler(ctx: RunContext, event: RichAgentStreamEvent[An
                 result_str = result_str[:147] + "..."
             print(f"  ✅ {tool_name}: {result_str}", flush=True, file=sys.stderr)
 
-        case ProcessStartEvent(process_id=pid, command=command, success=success):
-            if success:
-                print(f"  🖥️  Started process: {command} (PID: {pid})", flush=True, file=sys.stderr)
-            else:
-                print(f"  ❌ Failed to start: {command}", flush=True, file=sys.stderr)
-
-        case ProcessExitEvent(process_id=pid, exit_code=code, success=success):
-            status = "✅" if success else "❌"
-            print(f"  {status} Process {pid} exited: code {code}", flush=True, file=sys.stderr)
-
-        case FileEditProgressEvent(path=path, status=status):
-            emoji = {"in_progress": "✏️", "completed": "✅", "failed": "❌"}.get(status, "📝")
-            print(f"  {emoji} {status}: {path}", flush=True, file=sys.stderr)
+        case ToolCallProgressEvent(title=title, status=status):
+            if title:
+                emoji = {"completed": "✅", "failed": "❌"}.get(status, "⏳")
+                print(f"  {emoji} {title}", flush=True, file=sys.stderr)
 
         case RunErrorEvent(message=message, code=code):
             error_info = f" [{code}]" if code else ""

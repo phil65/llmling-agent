@@ -78,7 +78,6 @@ class TestCodeExecution:
 
         tools._env.stream_code = mock_stream_code
         result = await tools.execute_code(agent_ctx, "print(42)")
-        assert result["success"] is True
         assert "42" in result["output"]
         assert result["exit_code"] == 0
         agent_ctx.events.process_started.assert_called()
@@ -98,7 +97,6 @@ class TestCodeExecution:
 
         tools._env.stream_code = mock_stream_code
         result = await tools.execute_code(agent_ctx, "print(x)")
-        assert result["success"] is False
         assert "NameError" in result["error"]
         agent_ctx.events.process_exit.assert_called()
 
@@ -112,7 +110,6 @@ class TestCodeExecution:
 
         tools._env.stream_code = mock_stream_code
         result = await tools.execute_code(agent_ctx, "bad code")
-        assert result["success"] is False
         assert "Execution failed" in result["error"]
 
     async def test_execute_command_success(self, tools: ExecutionEnvironmentTools, agent_ctx):
@@ -126,7 +123,6 @@ class TestCodeExecution:
 
         tools._env.stream_command = mock_stream_command
         result = await tools.execute_command(agent_ctx, "echo hello world")
-        assert result["success"] is True
         assert result["stdout"] == "hello world\n"
         assert result["exit_code"] == 0
         agent_ctx.events.process_started.assert_called()
@@ -146,7 +142,6 @@ class TestCodeExecution:
 
         tools._env.stream_command = mock_stream_command
         result = await tools.execute_command(agent_ctx, "echo", output_limit=100)
-        assert result["success"] is True
         assert "[truncated]" in result["stdout"]
         assert result["truncated"] is True
 

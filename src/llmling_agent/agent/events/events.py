@@ -1,11 +1,7 @@
 """Event stream events.
 
-TODO: The specialized process and file events (ProcessStartEvent, ProcessExitEvent,
-FileOperationEvent, etc.) are essentially domain-specific versions of
-ToolCallProgressEvent. These could potentially be merged into a single, more flexible
-ToolCallProgressEvent that carries rich content (terminals, diffs, locations) and
-domain metadata. This would align better with the ACP protocol's tool call structure
-and reduce event type proliferation.
+Unified event system using ToolCallProgressEvent for all tool-related progress updates.
+Rich content (terminals, diffs, locations) is conveyed through the items field.
 """
 
 from __future__ import annotations
@@ -144,11 +140,19 @@ class ToolCallStartEvent:
 
 @dataclass(kw_only=True)
 class ToolCallProgressEvent:
-    """Enhanced tool call progress event with rich content support.
+    """Unified tool call progress event with rich content support.
 
-    This event can carry various types of rich content (terminals, diffs, locations, text)
-    and maps directly to ACP tool call notifications. It serves as a unified replacement
-    for specialized events like ProcessStartEvent, FileOperationEvent, etc.
+    This event carries a title and rich content items (terminals, diffs, locations, text)
+    that map directly to ACP tool call notifications.
+
+    Use the classmethod constructors for common patterns:
+    - process_started() - Process start with terminal
+    - process_output() - Process output update
+    - process_exit() - Process completion
+    - process_killed() - Process termination
+    - process_released() - Process cleanup
+    - file_operation() - File read/write/delete
+    - file_edit() - File edit with diff
     """
 
     tool_call_id: str
@@ -158,7 +162,7 @@ class ToolCallProgressEvent:
     title: str | None = None
     """Human-readable title describing the operation."""
 
-    # Rich content items (unified content + locations)
+    # Rich content items
     items: list[ToolCallContentItem] = field(default_factory=list)
     """Rich content items (terminals, diffs, locations, text)."""
 
@@ -168,7 +172,7 @@ class ToolCallProgressEvent:
     total: int | None = None
     """The total progress of the tool call."""
     message: str | None = None
-    """Progress message (falls back to TextContentItem)."""
+    """Progress message."""
     tool_name: str | None = None
     """The name of the tool being called."""
     tool_input: dict[str, Any] | None = None
@@ -176,6 +180,253 @@ class ToolCallProgressEvent:
 
     event_kind: Literal["tool_call_progress"] = "tool_call_progress"
     """Event type identifier."""
+
+    @classmethod
+    def process_started(
+        cls,
+        *,
+        tool_call_id: str,
+        process_id: str,
+        command: str,
+        success: bool = True,
+        error: str | None = None,
+        tool_name: str | None = None,
+    ) -> ToolCallProgressEvent:
+        """Create event for process start.
+
+        Args:
+            tool_call_id: Tool call identifier
+            process_id: Process/terminal identifier
+            command: Command being executed
+            success: Whether process started successfully
+            error: Error message if failed
+            tool_name: Optional tool name
+        """
+        status: Literal["in_progress", "failed"] = "in_progress" if success else "failed"
+        title = f"Running: {command}" if success else f"Failed to start: {command}"
+        if error:
+            title = f"{title} - {error}"
+
+        items: list[ToolCallContentItem] = [TerminalContentItem(terminal_id=process_id)]
+        if error:
+            items.append(TextContentItem(text=f"Error: {error}"))
+
+        return cls(
+            tool_call_id=tool_call_id,
+            tool_name=tool_name,
+            status=status,
+            title=title,
+            items=items,
+        )
+
+    @classmethod
+    def process_output(
+        cls,
+        *,
+        tool_call_id: str,
+        process_id: str,
+        output: str,
+        tool_name: str | None = None,
+    ) -> ToolCallProgressEvent:
+        """Create event for process output.
+
+        Args:
+            tool_call_id: Tool call identifier
+            process_id: Process/terminal identifier
+            output: Process output
+            tool_name: Optional tool name
+        """
+        items: list[ToolCallContentItem] = [TerminalContentItem(terminal_id=process_id)]
+        title = f"Output: {output[:50]}..." if len(output) > 50 else output  # noqa: PLR2004
+
+        return cls(
+            tool_call_id=tool_call_id,
+            tool_name=tool_name,
+            status="in_progress",
+            title=title,
+            items=items,
+        )
+
+    @classmethod
+    def process_exit(
+        cls,
+        *,
+        tool_call_id: str,
+        process_id: str,
+        exit_code: int,
+        final_output: str | None = None,
+        tool_name: str | None = None,
+    ) -> ToolCallProgressEvent:
+        """Create event for process exit.
+
+        Args:
+            tool_call_id: Tool call identifier
+            process_id: Process/terminal identifier
+            exit_code: Process exit code
+            final_output: Final process output
+            tool_name: Optional tool name
+        """
+        success = exit_code == 0
+        status_icon = "✓" if success else "✗"
+        title = f"Process exited [{status_icon} exit {exit_code}]"
+
+        items: list[ToolCallContentItem] = [TerminalContentItem(terminal_id=process_id)]
+        if final_output:
+            items.append(TextContentItem(text=final_output))
+
+        return cls(
+            tool_call_id=tool_call_id,
+            tool_name=tool_name,
+            status="in_progress",
+            title=title,
+            items=items,
+        )
+
+    @classmethod
+    def process_killed(
+        cls,
+        *,
+        tool_call_id: str,
+        process_id: str,
+        success: bool = True,
+        error: str | None = None,
+        tool_name: str | None = None,
+    ) -> ToolCallProgressEvent:
+        """Create event for process kill.
+
+        Args:
+            tool_call_id: Tool call identifier
+            process_id: Process/terminal identifier
+            success: Whether kill succeeded
+            error: Error message if failed
+            tool_name: Optional tool name
+        """
+        title = (
+            f"Killed process {process_id}" if success else f"Failed to kill process {process_id}"
+        )
+        if error:
+            title = f"{title} - {error}"
+
+        status: Literal["in_progress", "failed"] = "in_progress" if success else "failed"
+        items: list[ToolCallContentItem] = [TerminalContentItem(terminal_id=process_id)]
+
+        return cls(
+            tool_call_id=tool_call_id,
+            tool_name=tool_name,
+            status=status,
+            title=title,
+            items=items,
+        )
+
+    @classmethod
+    def process_released(
+        cls,
+        *,
+        tool_call_id: str,
+        process_id: str,
+        success: bool = True,
+        error: str | None = None,
+        tool_name: str | None = None,
+    ) -> ToolCallProgressEvent:
+        """Create event for process resource release.
+
+        Args:
+            tool_call_id: Tool call identifier
+            process_id: Process/terminal identifier
+            success: Whether release succeeded
+            error: Error message if failed
+            tool_name: Optional tool name
+        """
+        title = (
+            f"Released process {process_id}"
+            if success
+            else f"Failed to release process {process_id}"
+        )
+        if error:
+            title = f"{title} - {error}"
+
+        status: Literal["in_progress", "failed"] = "in_progress" if success else "failed"
+        items: list[ToolCallContentItem] = [TerminalContentItem(terminal_id=process_id)]
+
+        return cls(
+            tool_call_id=tool_call_id,
+            tool_name=tool_name,
+            status=status,
+            title=title,
+            items=items,
+        )
+
+    @classmethod
+    def file_operation(
+        cls,
+        *,
+        tool_call_id: str,
+        operation: Literal["read", "write", "delete", "list", "edit"],
+        path: str,
+        success: bool,
+        error: str | None = None,
+        tool_name: str | None = None,
+    ) -> ToolCallProgressEvent:
+        """Create event for file operation.
+
+        Args:
+            tool_call_id: Tool call identifier
+            operation: File operation type
+            path: File path
+            success: Whether operation succeeded
+            error: Error message if failed
+            tool_name: Optional tool name
+        """
+        status: Literal["completed", "failed"] = "completed" if success else "failed"
+        title = f"{operation.capitalize()}: {path}"
+        if error:
+            title = f"{title} - {error}"
+
+        items: list[ToolCallContentItem] = [LocationContentItem(path=path)]
+        if error:
+            items.append(TextContentItem(text=f"Error: {error}"))
+
+        return cls(
+            tool_call_id=tool_call_id,
+            tool_name=tool_name,
+            status=status,
+            title=title,
+            items=items,
+        )
+
+    @classmethod
+    def file_edit(
+        cls,
+        *,
+        tool_call_id: str,
+        path: str,
+        old_text: str,
+        new_text: str,
+        status: Literal["in_progress", "completed", "failed"],
+        tool_name: str | None = None,
+    ) -> ToolCallProgressEvent:
+        """Create event for file edit with diff.
+
+        Args:
+            tool_call_id: Tool call identifier
+            path: File path being edited
+            old_text: Original file content
+            new_text: New file content
+            status: Edit status
+            tool_name: Optional tool name
+        """
+        items: list[ToolCallContentItem] = [
+            DiffContentItem(path=path, old_text=old_text, new_text=new_text),
+            LocationContentItem(path=path),
+        ]
+
+        return cls(
+            tool_call_id=tool_call_id,
+            tool_name=tool_name,
+            status=status,
+            title=f"Editing: {path}",
+            items=items,
+        )
 
 
 @dataclass(kw_only=True)
@@ -248,162 +499,6 @@ class PlanUpdateEvent:
     """Event type identifier."""
 
 
-@dataclass(kw_only=True)
-class FileOperationEvent:
-    """Event for filesystem operations."""
-
-    operation: Literal["read", "write", "delete", "list", "edit"]
-    """The filesystem operation performed."""
-    path: str
-    """The file/directory path that was operated on."""
-    success: bool
-    """Whether the operation completed successfully."""
-    error: str | None = None
-    """Error message if operation failed."""
-    size: int | None = None
-    """Size of file in bytes (for successful operations)."""
-    tool_call_id: str | None = None
-    """Tool call ID for ACP notifications."""
-
-    # Rich ACP metadata
-    title: str | None = None
-    """Display title for the operation."""
-    kind: str | None = None
-    """Tool operation kind (edit, read, write, etc.)."""
-    locations: list[str] = field(default_factory=list)
-    """File paths affected by the operation."""
-    raw_input: dict[str, Any] = field(default_factory=dict)
-    """Original tool input arguments."""
-    raw_output: Any = None
-    """Tool result data for failed operations."""
-
-    event_kind: Literal["file_operation"] = "file_operation"
-    """Event type identifier."""
-
-
-@dataclass(kw_only=True)
-class FileEditProgressEvent:
-    """Event for file edit progress with diff information."""
-
-    path: str
-    """The file path being edited."""
-    old_text: str
-    """Original file content."""
-    new_text: str
-    """New file content."""
-    status: Literal["in_progress", "completed", "failed"]
-    """Current status of the edit operation."""
-    changed_lines: list[int] = field(default_factory=list)
-    """Line numbers that were changed."""
-    tool_call_id: str | None = None
-    """Tool call ID for ACP notifications."""
-    event_kind: Literal["file_edit_progress"] = "file_edit_progress"
-    """Event type identifier."""
-
-
-@dataclass(kw_only=True)
-class ProcessStartEvent:
-    """Event for process start operations."""
-
-    process_id: str
-    """Unique process identifier."""
-    command: str
-    """Command being executed."""
-    args: list[str] = field(default_factory=list)
-    """Command arguments."""
-    cwd: str | None = None
-    """Working directory."""
-    env: dict[str, str] = field(default_factory=dict)
-    """Environment variables."""
-    output_limit: int | None = None
-    """Maximum bytes of output to retain."""
-    success: bool = True
-    """Whether the process started successfully."""
-    error: str | None = None
-    """Error message if start failed."""
-    tool_call_id: str | None = None
-    """Tool call ID for notifications."""
-
-    event_kind: Literal["process_start"] = "process_start"
-    """Event type identifier."""
-
-
-@dataclass(kw_only=True)
-class ProcessOutputEvent:
-    """Event for process output updates."""
-
-    process_id: str
-    """Process identifier."""
-    output: str
-    """Process output (stdout/stderr combined)."""
-    stdout: str | None = None
-    """Standard output (if separated)."""
-    stderr: str | None = None
-    """Standard error (if separated)."""
-    truncated: bool = False
-    """Whether output was truncated due to limits."""
-    tool_call_id: str | None = None
-    """Tool call ID for notifications."""
-
-    event_kind: Literal["process_output"] = "process_output"
-    """Event type identifier."""
-
-
-@dataclass(kw_only=True)
-class ProcessExitEvent:
-    """Event for process completion."""
-
-    process_id: str
-    """Process identifier."""
-    exit_code: int
-    """Process exit code."""
-    success: bool
-    """Whether the process completed successfully (exit_code == 0)."""
-    final_output: str | None = None
-    """Final process output."""
-    truncated: bool = False
-    """Whether output was truncated due to limits."""
-    tool_call_id: str | None = None
-    """Tool call ID for notifications."""
-
-    event_kind: Literal["process_exit"] = "process_exit"
-    """Event type identifier."""
-
-
-@dataclass(kw_only=True)
-class ProcessKillEvent:
-    """Event for process termination."""
-
-    process_id: str
-    """Process identifier."""
-    success: bool
-    """Whether the process was successfully killed."""
-    error: str | None = None
-    """Error message if kill failed."""
-    tool_call_id: str | None = None
-    """Tool call ID for notifications."""
-
-    event_kind: Literal["process_kill"] = "process_kill"
-    """Event type identifier."""
-
-
-@dataclass(kw_only=True)
-class ProcessReleaseEvent:
-    """Event for process resource cleanup."""
-
-    process_id: str
-    """Process identifier."""
-    success: bool
-    """Whether resources were successfully released."""
-    error: str | None = None
-    """Error message if release failed."""
-    tool_call_id: str | None = None
-    """Tool call ID for notifications."""
-
-    event_kind: Literal["process_release"] = "process_release"
-    """Event type identifier."""
-
-
 type RichAgentStreamEvent[OutputDataT] = (
     AgentStreamEvent
     | StreamCompleteEvent[OutputDataT]
@@ -413,13 +508,6 @@ type RichAgentStreamEvent[OutputDataT] = (
     | ToolCallProgressEvent
     | ToolCallCompleteEvent
     | PlanUpdateEvent
-    | FileOperationEvent
-    | FileEditProgressEvent
-    | ProcessStartEvent
-    | ProcessOutputEvent
-    | ProcessExitEvent
-    | ProcessKillEvent
-    | ProcessReleaseEvent
     | CustomEvent[Any]
 )
 
