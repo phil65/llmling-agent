@@ -124,65 +124,48 @@ async def list_available_nodes(  # noqa: D417
     ctx: AgentContext,
     node_type: Literal["all", "agent", "team"] = "all",
     only_idle: bool = False,
-    detailed: bool = False,
 ) -> str:
     """List available agents and/or teams in the current pool.
 
     Args:
         node_type: Filter by node type - "all", "agent", or "team"
         only_idle: If True, only returns nodes that aren't currently busy
-        detailed: If True, additional info for each node is provided (e.g. description)
 
     Returns:
         List of node names that you can use with delegate_to or ask_agent
     """
-    from llmling_agent import TeamRun
-
     if not ctx.pool:
         msg = "No agent pool available"
         raise ToolError(msg)
 
     lines: list[str] = []
-
     # List all agents (regular and ACP)
     if node_type in ("all", "agent"):
         from llmling_agent import Agent
 
         agents = dict(ctx.pool.all_agents)
         if only_idle:
-            agents = {
-                name: agent
-                for name, agent in agents.items()
-                if not (isinstance(agent, Agent) and agent.is_busy())
-            }
-        if not detailed:
-            lines.extend(agents.keys())
-        else:
-            for name, agent in agents.items():
-                lines.extend([
-                    f"name: {name}",
-                    "type: agent",
-                    f"description: {agent.description or 'No description'}",
-                    f"model: {agent.model_name}",
-                    "---",
-                ])
+            agents = {n: a for n, a in agents.items() if not (isinstance(a, Agent) and a.is_busy())}
+        for name, agent in agents.items():
+            lines.extend([
+                f"name: {name}",
+                "type: agent",
+                f"description: {agent.description or 'No description'}",
+                "---",
+            ])
 
     # List teams
     if node_type in ("all", "team"):
         teams = ctx.pool.teams
         if only_idle:
             teams = {name: team for name, team in teams.items() if not team.is_running}
-        if not detailed:
-            lines.extend(teams.keys())
-        else:
-            for name, team in teams.items():
-                lines.extend([
-                    f"name: {name}",
-                    f"type: {'sequential' if isinstance(team, TeamRun) else 'parallel'} team",
-                    f"description: {team.description or 'No description'}",
-                    f"members: {', '.join(a.name for a in team.nodes)}",
-                    "---",
-                ])
+
+        for name, team in teams.items():
+            lines.extend([
+                f"name: {name}",
+                f"description: {team.description or 'No description'}",
+                "---",
+            ])
 
     return "\n".join(lines) if lines else "No nodes available"
 

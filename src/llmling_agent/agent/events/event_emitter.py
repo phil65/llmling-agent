@@ -290,29 +290,16 @@ class StreamEventEmitter:
             locations: File paths or LocationContentItem objects affected by this tool call
         """
         # Convert string paths to LocationContentItem objects
-        location_items: list[LocationContentItem] = []
-        if locations:
-            for loc in locations:
-                if isinstance(loc, str):
-                    location_items.append(LocationContentItem(path=loc))
-                else:
-                    location_items.append(loc)
-
+        location_items = [
+            LocationContentItem(path=loc) if isinstance(loc, str) else loc
+            for loc in (locations or [])
+        ]
         event = ToolCallStartEvent(
             tool_call_id=self._context.tool_call_id or "",
             tool_name=self._context.tool_name or "",
             title=title,
             kind=kind,
             content=content or [],
-            locations=location_items,
-            raw_input=self._context.tool_input.copy(),
-        )
-
-        event = ToolCallStartEvent(
-            tool_call_id=self._context.tool_call_id or "",
-            tool_name=self._context.tool_name or "",
-            title=title,
-            kind=kind,
             locations=location_items,
             raw_input=self._context.tool_input.copy(),
         )
