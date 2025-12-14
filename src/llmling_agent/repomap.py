@@ -130,7 +130,7 @@ class RepoMap:
     def __init__(
         self,
         fs: AbstractFileSystem,
-        root_path: str,
+        root_path: str | None = None,
         *,
         max_tokens: int = 1024,
         max_line_length: int = 250,
@@ -148,7 +148,7 @@ class RepoMap:
         from fsspec.implementations.asyn_wrapper import AsyncFileSystemWrapper
 
         self.fs = fs if isinstance(fs, AsyncFileSystem) else AsyncFileSystemWrapper(fs)
-        self.root_path = root_path.rstrip("/")
+        self.root_path = root_path.rstrip("/") if root_path else self.fs.root_marker
         self.max_tokens = max_tokens
         self.max_line_length = max_line_length
         self._token_counter = token_counter
@@ -874,51 +874,24 @@ if __name__ == "__main__":
     async def main() -> None:
         from fsspec.implementations.github import GithubFileSystem
 
-        print("=" * 80)
-        print("Async GitHub fsspec Test - epregistry repository")
-        print("=" * 80)
-
         gh_token = os.environ.get("GH_TOKEN")
-        if not gh_token:
-            print("Warning: GH_TOKEN not set, may hit rate limits")
-
         fs = GithubFileSystem(
             org="phil65", repo="epregistry", sha="main", username="phil65", token=gh_token
         )
         root_path = "src/epregistry"
-
-        print(f"Repository: github://phil65/epregistry@main/{root_path}")
-
-        try:
-            all_py_files = [f for f in await find_src_files(fs, root_path) if f.endswith(".py")]
-            print(f"Found {len(all_py_files)} Python files")
-
-            rm = RepoMap(fs=fs, root_path=root_path, max_tokens=4000)
-            result = await rm.get_map_with_metadata(all_py_files)
-
+        all_py_files = [f for f in await find_src_files(fs, root_path) if f.endswith(".py")]
+        rm = RepoMap(fs=fs, root_path=root_path, max_tokens=4000)
+        result = await rm.get_map_with_metadata(all_py_files)
+        print("\n" + "=" * 80)
+        print("REPOSITORY MAP METADATA")
+        print("=" * 80)
+        print(result)
+        if result.content:
             print("\n" + "=" * 80)
-            print("REPOSITORY MAP METADATA")
+            print("REPOSITORY MAP")
             print("=" * 80)
-            print(f"Total files processed: {result.total_files_processed}")
-            print(f"Total tags found: {result.total_tags_found}")
-            print(f"Files with tags: {result.total_files_with_tags}")
-            print(f"Included files: {result.included_files}")
-            print(f"Included tags: {result.included_tags}")
-            print(f"Truncated: {result.truncated}")
-            print(f"Coverage ratio: {result.coverage_ratio:.2%}")
-
-            if result.content:
-                print("\n" + "=" * 80)
-                print("REPOSITORY MAP")
-                print("=" * 80)
-                print(result.content)
-            else:
-                print("No repository map generated")
-
-        except Exception as e:  # noqa: BLE001
-            print(f"Error: {type(e).__name__}: {e}")
-            import traceback
-
-            traceback.print_exc()
+            print(result.content)
+        else:
+            print("No repository map generated")
 
     asyncio.run(main())
