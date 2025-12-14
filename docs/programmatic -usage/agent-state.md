@@ -61,10 +61,8 @@ Control message history size and persistence:
 ```python
 # No message history
 agent = Agent(session=False)
-
 # Keep max 1000 tokens in context window
 agent = Agent(session=1000)
-
 # Complex memory configuration
 agent = Agent(session=MemoryConfig(
     max_messages=5,  # Keep last 5 messages
