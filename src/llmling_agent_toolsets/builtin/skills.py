@@ -28,28 +28,19 @@ async def load_skill(ctx: AgentContext, skill_name: str) -> str:
     if not ctx.pool:
         return "No agent pool available - skills require pool context"
 
-    skills_manager = ctx.pool.skills
-    skills = skills_manager.list_skills()
-
+    skills = ctx.pool.skills.list_skills()
     if not skills:
-        return "No skills available in the pool"
-
+        return "No skills available."
     skill = next((s for s in skills if s.name == skill_name), None)
     if not skill:
         available = ", ".join(s.name for s in skills)
         return f"Skill {skill_name!r} not found. Available skills: {available}"
 
     try:
-        instructions = skills_manager.get_skill_instructions(skill_name)
+        instructions = ctx.pool.skills.get_skill_instructions(skill_name)
     except Exception as e:  # noqa: BLE001
         return f"Failed to load skill {skill_name!r}: {e}"
-    return f"""# {skill.name}
-
-{instructions}
-
----
-Skill directory: {skill.skill_path}
-"""
+    return f"# {skill.name}\n{instructions}\nSkill directory: {skill.skill_path}"
 
 
 async def list_skills(ctx: AgentContext) -> str:
@@ -60,12 +51,9 @@ async def list_skills(ctx: AgentContext) -> str:
     """
     if not ctx.pool:
         return "No agent pool available - skills require pool context"
-
     skills = ctx.pool.skills.list_skills()
-
     if not skills:
         return "No skills available"
-
     lines = ["Available skills:", ""]
     lines.extend(f"- **{skill.name}**: {skill.description}" for skill in skills)
     return "\n".join(lines)
@@ -84,16 +72,6 @@ class SkillsTools(StaticResourceProvider):
     def __init__(self, name: str = "skills") -> None:
         super().__init__(name=name)
         self._tools = [
-            self.create_tool(
-                load_skill,
-                category="read",
-                read_only=True,
-                idempotent=True,
-            ),
-            self.create_tool(
-                list_skills,
-                category="read",
-                read_only=True,
-                idempotent=True,
-            ),
+            self.create_tool(load_skill, category="read", read_only=True, idempotent=True),
+            self.create_tool(list_skills, category="read", read_only=True, idempotent=True),
         ]

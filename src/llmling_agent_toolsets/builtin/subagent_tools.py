@@ -95,15 +95,13 @@ async def list_available_nodes(  # noqa: D417
     Returns:
         List of node names that you can use with delegate_to or ask_agent
     """
+    from llmling_agent import Agent
+
     if not ctx.pool:
         msg = "No agent pool available"
         raise ToolError(msg)
-
     lines: list[str] = []
-    # List all agents (regular and ACP)
     if node_type in ("all", "agent"):
-        from llmling_agent import Agent
-
         agents = dict(ctx.pool.all_agents)
         if only_idle:
             agents = {n: a for n, a in agents.items() if not (isinstance(a, Agent) and a.is_busy())}
@@ -115,12 +113,10 @@ async def list_available_nodes(  # noqa: D417
                 "---",
             ])
 
-    # List teams
-    if node_type in ("all", "team"):
+    if node_type in ("all", "team"):  # List teams
         teams = ctx.pool.teams
         if only_idle:
             teams = {name: team for name, team in teams.items() if not team.is_running}
-
         for name, team in teams.items():
             lines.extend([
                 f"name: {name}",
@@ -147,7 +143,6 @@ async def delegate_to(ctx: AgentContext, agent_or_team_name: str, prompt: str) -
     if not ctx.pool:
         msg = "Agent needs to be in a pool to delegate tasks"
         raise ToolError(msg)
-
     if agent_or_team_name not in ctx.pool.nodes:
         msg = (
             f"No agent or team found with name: {agent_or_team_name}. "
@@ -159,7 +154,6 @@ async def delegate_to(ctx: AgentContext, agent_or_team_name: str, prompt: str) -
     if agent_or_team_name in ctx.pool.teams:
         result = await ctx.pool.teams[agent_or_team_name].run(prompt)
         return result.format(style="detailed", show_costs=True)
-
     # For agents (regular or ACP), stream with progress events
     agent = ctx.pool.all_agents[agent_or_team_name]
     return await _stream_agent_with_progress(ctx, agent.run_stream(prompt))
@@ -181,11 +175,10 @@ async def ask_agent(ctx: AgentContext, agent_name: str, message: str) -> str:  #
 
     if agent_name not in ctx.pool.all_agents:
         available = list(ctx.pool.all_agents.keys())
-        msg = f"Agent not found: {agent_name}. Available agents: {', '.join(available)}"
-        raise ModelRetry(msg)
+        names = ", ".join(available)
+        raise ModelRetry(f"Agent not found: {agent_name}. Available agents: {names}")
 
     agent = ctx.pool.all_agents[agent_name]
-
     try:
         stream = agent.run_stream(message)
         return await _stream_agent_with_progress(ctx, stream)
