@@ -10,6 +10,7 @@ from fsspec.asyn import AsyncFileSystem
 from fsspec.implementations.asyn_wrapper import (
     AsyncFileSystemWrapper,
 )
+from upathtools import is_directory
 from upathtools.helpers import to_upath, upath_to_fs
 
 from llmling_agent.log import get_logger
@@ -77,7 +78,11 @@ class SkillsRegistry(BaseRegistry[str, Skill]):
             logger.warning("Skills directory not found", path=skills_dir)
             return
         # Filter for directories that might contain skills
-        skill_dirs = [entry for entry in entries if await fs._isdir(entry["name"])]
+        skill_dirs = [
+            entry
+            for entry in entries
+            if await is_directory(fs, entry["name"], entry_type=entry.get("type"))
+        ]
         if not skill_dirs:
             logger.info("No skills found", skills_dir=skills_dir)
             return

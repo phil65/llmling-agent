@@ -8,8 +8,8 @@ from typing import TYPE_CHECKING, Any, Literal
 
 import anyenv
 from schemez.helpers import json_schema_to_pydantic_code
-from upathtools import to_upath
-from upathtools.filesystems.file_filesystems.jsonschema_fs import JsonSchemaFileSystem
+from upathtools import is_directory_sync, to_upath
+from upathtools.filesystems.file_filesystems import JsonSchemaFileSystem
 
 from llmling_agent.resource_providers import StaticResourceProvider
 
@@ -155,7 +155,8 @@ class ConfigCreationTools(StaticResourceProvider):
         for item in items:
             name = item["name"]
             fs = self._get_schema_fs()
-            is_dir = fs.isdir(f"{path.rstrip('/')}/{name}" if path != "/" else f"/{name}")
+            full_path = f"{path.rstrip('/')}/{name}" if path != "/" else f"/{name}"
+            is_dir = is_directory_sync(fs, full_path, entry_type=item.get("type"))
             icon = "📁" if is_dir else "📄"
             parts = [f"{icon} {name}"]
             if schema_type := item.get("schema_type"):

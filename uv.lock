@@ -6003,7 +6003,7 @@ wheels = [
 
 [[package]]
 name = "upathtools"
-version = "1.16.2"
+version = "1.16.8"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "fsspec" },
@@ -6011,9 +6011,9 @@ dependencies = [
     { name = "python-dotenv" },
     { name = "universal-pathlib" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/5a/41/bacfb7ee00e5ed39b7d06096d29070e51b61118fc0529e7749cd76dffe4b/upathtools-1.16.2.tar.gz", hash = "sha256:b30e5b197a920c40ffd9a5bf23f5efd4958530ffc13b9b92eb56b634bdc21340", size = 152457, upload-time = "2025-12-13T16:38:02.746Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/94/7e/97134578794ba40a7b94507515c2df7177287c6f9dd574ea37a6607e9ef0/upathtools-1.16.8.tar.gz", hash = "sha256:0750bbd043c3adeafe71976b3a9977628b7ce3877db003ec106d1413ec7e6760", size = 156496, upload-time = "2025-12-14T13:44:53.427Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b1/a5/9b52aa2d3468555a327ae011f1d8e18e2f537d0fc88a3553a0ace4ef50ff/upathtools-1.16.2-py3-none-any.whl", hash = "sha256:ea1db94eefb5f729ce32338bb029d77b8482233612620b6ae38ad12e4739eb12", size = 205405, upload-time = "2025-12-13T16:38:01.209Z" },
+    { url = "https://files.pythonhosted.org/packages/ca/26/cd7fd73941753d5a025f162404b706995bf9036b70c147bf76f847821e58/upathtools-1.16.8-py3-none-any.whl", hash = "sha256:57af6410a9907766aa0f8ed1c698c23a62a0f67e89d7f36445906d07206a24e2", size = 211479, upload-time = "2025-12-14T13:44:56.81Z" },
 ]
 
 [package.optional-dependencies]

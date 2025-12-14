@@ -213,17 +213,16 @@ class RepoMap:
             entries = await self._ls(current_path, detail=True)
             for entry in entries:
                 entry_path = entry.get("name", "")
-                entry_type = entry.get("type", "file")
+                entry_type = entry.get("type", "")
 
-                if entry_type == "directory":
+                if await is_directory(self.fs, entry_path, entry_type=entry_type):
                     await _recurse(entry_path)
-                elif entry_type == "file":
-                    # Simple pattern matching for *.py
-                    if pattern == "**/*.py":
-                        if entry_path.endswith(".py"):
-                            results.append(entry_path)
-                    else:
+                # It's a file - process it
+                elif pattern == "**/*.py":
+                    if entry_path.endswith(".py"):
                         results.append(entry_path)
+                else:
+                    results.append(entry_path)
 
         await _recurse(path)
         return results
@@ -857,11 +856,11 @@ async def find_src_files(fs: AsyncFileSystem, directory: str) -> list[str]:
 
         for entry in entries:
             entry_path = entry.get("name", "")
-            entry_type = entry.get("type", "file")
+            entry_type = entry.get("type", "")
 
-            if entry_type == "directory":
+            if await is_directory(fs, entry_path, entry_type=entry_type):
                 await _recurse(entry_path)
-            elif entry_type == "file":
+            else:
                 results.append(entry_path)
 
     await _recurse(directory)
