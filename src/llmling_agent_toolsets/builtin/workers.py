@@ -41,11 +41,7 @@ class WorkersTools(ResourceProvider):
 
     async def get_tools(self) -> list[Tool]:
         """Get tools for all configured workers."""
-        tools: list[Tool] = []
-        for worker_config in self.workers:
-            tool = self._create_worker_tool(worker_config)
-            tools.append(tool)
-        return tools
+        return [self._create_worker_tool(i) for i in self.workers]
 
     def _create_worker_tool(self, worker_config: WorkerConfig) -> Tool:
         """Create a tool for a single worker configuration."""
