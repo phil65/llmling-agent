@@ -2549,7 +2549,7 @@ lint = [
 
 [[package]]
 name = "llmling-models"
-version = "1.3.3"
+version = "1.3.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyenv", extra = ["httpx"] },
@@ -2558,9 +2558,9 @@ dependencies = [
     { name = "schemez" },
     { name = "tokonomics" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/58/7c/82a1de3cee2d34186fd42ff0931e7128161026caa948b42c1f181bc66471/llmling_models-1.3.3.tar.gz", hash = "sha256:913a8d921b66b41186b58cf6943e20b4fd81b4e30cb70c84cc58bf8313b6b81f", size = 52962, upload-time = "2025-12-08T11:31:25.328Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/48/13/8f98d6e949be519064246058695d9c323d8b180464700251a60c05830f8a/llmling_models-1.3.4.tar.gz", hash = "sha256:71e05093a0573eac2f2bd1f948022910c6d415eb2aa5fe9425e404b90b9ab2b2", size = 53321, upload-time = "2025-12-14T06:25:39.458Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/2d/5f/2fa972e612c5123178246274dd0d22e7a1249a5ddfa06e38747413d88c8f/llmling_models-1.3.3-py3-none-any.whl", hash = "sha256:0bb17dc131cd26850488ab82e6344835cd6fba6b5a6e2f5288254b45863db8b1", size = 76234, upload-time = "2025-12-08T11:31:24.009Z" },
+    { url = "https://files.pythonhosted.org/packages/34/f8/cd67ad605484cdeb41ebf64a7149b0abb08f83def48364cafea79dc66dae/llmling_models-1.3.4-py3-none-any.whl", hash = "sha256:2d02d0bb1cf931d90cf23ef47c550c9afa335aeb20f1871b3914cffc538e5634", size = 76655, upload-time = "2025-12-14T06:25:37.859Z" },
 ]
 
 [[package]]

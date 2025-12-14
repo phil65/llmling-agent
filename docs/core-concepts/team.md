@@ -65,7 +65,7 @@ Agents execute one after another:
 
 ```python
 # Run agents in sequence
-results = await team.run_sequential(prompt="Review this PR")
+results = await team.run(prompt="Review this PR")
 
 # Access ordered results
 for response in results:
