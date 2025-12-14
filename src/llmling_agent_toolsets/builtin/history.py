@@ -2,12 +2,8 @@
 
 from __future__ import annotations
 
-from datetime import timedelta
-from typing import Literal
-
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.resource_providers import StaticResourceProvider
-from llmling_agent.utils.now import get_now
 
 
 async def search_history(
@@ -30,41 +26,6 @@ async def search_history(
     return format_output(results)
 
 
-async def show_statistics(
-    ctx: AgentContext,
-    group_by: Literal["agent", "model", "hour", "day"] = "model",
-    hours: int = 24,
-) -> str:
-    """Show usage statistics for conversations."""
-    from llmling_agent_storage.formatters import format_output
-    from llmling_agent_storage.models import StatsFilters
-
-    cutoff = get_now() - timedelta(hours=hours)
-    filters = StatsFilters(cutoff=cutoff, group_by=group_by)
-
-    if not ctx.pool:
-        return "No agent pool available for statistics"
-    provider = ctx.pool.storage.get_history_provider()
-    stats = await provider.get_conversation_stats(filters)
-
-    return format_output(
-        {
-            "period": f"{hours}h",
-            "group_by": group_by,
-            "entries": [
-                {
-                    "name": key,
-                    "messages": data["messages"],
-                    "total_tokens": data["total_tokens"],
-                    "models": sorted(data["models"]),
-                }
-                for key, data in stats.items()
-            ],
-        },
-        output_format="text",
-    )
-
-
 class HistoryTools(StaticResourceProvider):
     """Provider for history tools."""
 
@@ -72,5 +33,4 @@ class HistoryTools(StaticResourceProvider):
         super().__init__(name=name)
         self._tools = [
             self.create_tool(search_history, category="search", read_only=True, idempotent=True),
-            self.create_tool(show_statistics, category="read", read_only=True, idempotent=True),
         ]

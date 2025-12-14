@@ -189,10 +189,6 @@ class StorageProvider:
             role=role,
             name=name,
             model=model,
-            provider_name=None,
-            provider_response_id=None,
-            messages=None,
-            finish_reason=None,
         )
 
     async def get_conversations(
