@@ -6,7 +6,7 @@ icon: material/code-braces
 
 # Callables as First-Class Citizens
 
-In LLMling, regular Python functions (callables) are treated as first-class citizens and can be used interchangeably with agents in most contexts. This enables seamless integration of custom processing functions into agent workflows.
+Regular Python functions (callables) are treated as first-class citizens and can be used interchangeably with agents in most contexts. This enables seamless integration of custom processing functions into agent workflows.
 
 ## Direct Agent Creation
 
@@ -20,6 +20,11 @@ def process(message: str) -> str:
 agent = Agent.from_callback(process)
 
 # Typed function becomes Agent[None, ResultType]
+
+class AnalysisResult(BaseModel):
+    sentiment: float
+    topics: list[str]
+
 def analyze(message: str) -> AnalysisResult:
     return AnalysisResult(sentiment=0.8, topics=["AI"])
 
@@ -57,27 +62,9 @@ pipeline = agent | analyze | summarize
 agent >> analyze
 ```
 
-## Type Preservation
+## Context injection
 
-The return type of typed callables is preserved when converting to agents:
-
-```python
-class AnalysisResult(BaseModel):
-    sentiment: float
-    topics: list[str]
-
-def analyze(text: str) -> AnalysisResult:
-    return AnalysisResult(sentiment=0.5, topics=["tech"])
-
-agent1 = Agent(analyze, output_type=AnalysisResult)
-
-# Type is preserved in teams/pipelines
-team = base_agent & analyze  # analyze becomes Agent[None, AnalysisResult]
-```
-
-## Context Awareness
-
-Functions can optionally accept agent context:
+Functions can optionally accept agentContext:
 
 ```python
 def process(ctx: AgentContext, message: str) -> str:
@@ -106,10 +93,7 @@ def my_system_prompt(ctx: AgentContext) -> str:  # context optional
     return "You are an AI assistant."
 
 agent = Agent(system_prompts=[my_system_prompt])
-
 agent.run("Hello, how are you?")
-
 # or:
-
 agent.run(my_user_prompt)
 ```

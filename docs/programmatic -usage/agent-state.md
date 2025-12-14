@@ -6,15 +6,14 @@ icon: material/database
 
 # Managing Agent State in LLMling
 
-An agent maintains several types of state that influence its behavior. While some state is configured during initialization through YAML or constructor arguments, LLMling provides powerful ways to inspect and modify it during runtime.
+An agent maintains several types of state that influence its behavior. While some state is configured during initialization through YAML or constructor arguments, it is also possible to inspect and modify it during runtime.
 
 ## Core State Components
 
 - **System Prompts**: Define the agent's role and behavior guidelines
 - **Tools**: Available functions and capabilities
 - **Memory/History**: Past conversation context
-- **Provider**: The underlying provider and its language model
-- **Context**: Custom data and dependencies
+- **Model**: The used LLM model
 - **Connections**: Active connections, to whom the own results get forwarded to.
 
 ## Runtime State Management
@@ -23,16 +22,12 @@ An agent maintains several types of state that influence its behavior. While som
 async with Agent(...) as agent:
     # Modify system prompts by reference
     agent.sys_prompts.add("technical_style")
-
     # Register tools
     agent.tools.register_tool(my_tool)
-
     # Change model
     agent.set_model("openai:gpt-5-nano")
-
     # Clear conversation history
     agent.conversation.clear()
-
     # Add context messages
     agent.conversation.add_context_message(
         "Important background information",

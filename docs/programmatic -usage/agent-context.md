@@ -1,17 +1,13 @@
 ---
 title: Agent Context
-description: Agent context and state management
+description: Agent context for tool cools
 icon: material/folder-cog
 ---
 
 ## Overview
 
-AgentContext provides a powerful way to access agent capabilities and dependencies in your tools:
+AgentContext provides an easy way to access the agent as well as the pool in tool calls. It can get requested separately from Pydantic-AIs `RunContext`, which focuses on the Context of the actual agent run.
 
-1. Type-safe dependency injection
-2. Access to shared resources and other agents
-3. Capability validation and control
-4. Storage and runtime integration
 
 ## Basic Usage
 
@@ -21,47 +17,14 @@ Tools can request context injection by adding an `AgentContext` parameter:
 async def my_tool(ctx: AgentContext[TDeps], arg: str) -> str:
     """Tool with access to context and dependencies."""
     # Access pool functionality
-    if ctx.pool:
-        helper = ctx.pool.get_agent("helper")
-        await helper.run(arg)
-
-    # Access typed dependencies
-    config = ctx.data  # Type: TDeps
-    return f"Processed {arg} with {config}"
+    sub_agent = ctx.pool.get_agent("helper")
+    result = await sub_agent.run(arg)
+    return do_something_with_result(result)
 ```
 
-## Type-Safe Dependencies
-
-AgentContext enables type-safe dependency injection through its generic parameter:
+It is also possible to request both contexts, in this case the Pydantic-AI `RunContext` needs to appear first in the signature.
 
 ```python
-# Define dependencies
-class AppConfig:
-    api_key: str
-    endpoint: str
-
-# Create agent with typed context
-agent = Agent[AppConfig](
-    name="my_agent",
-    deps=AppConfig(api_key="123", endpoint="api.example.com")
-)
+async def my_tool(run_ctx: RunContext, agent_ctx: AgentContext, arg: str) -> str:
+    """Tool which requires both contexts."""
 ```
-
-## Capabilities and Validation
-
-Context enables tool validation through capabilities:
-
-```python
-async def execute_code(ctx: AgentContext, code: str) -> str:
-    """Tool that requires specific capability."""
-    if not ctx.capabilities.can_execute_code:
-        raise ToolError("Missing required capability")
-
-    # Execute code...
-    return "Code executed"
-```
-
-!!! note "Provider Compatibility"
-    When using the pydantic-ai provider, tools can alternatively request `RunContext[AgentContext]`
-    for compatibility with pydantic-ai's context system. Both context types provide access to the
-    same functionality.
