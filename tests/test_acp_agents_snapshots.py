@@ -13,19 +13,21 @@ from typing import get_args
 
 import pytest
 
-from llmling_agent.models.acp_agents import (
-    ACPAgentConfig,
-    AmpACPAgentConfig,
+from llmling_agent.models.acp_agents.base import ACPAgentConfig, BaseACPAgentConfig
+from llmling_agent.models.acp_agents.mcp_capable import (
     AuggieACPAgentConfig,
-    BaseACPAgentConfig,
-    CagentACPAgentConfig,
     ClaudeACPAgentConfig,
-    CodexACPAgentConfig,
-    CursorACPAgentConfig,
     FastAgentACPAgentConfig,
     GeminiACPAgentConfig,
-    GooseACPAgentConfig,
     KimiACPAgentConfig,
+    MCPCapableACPAgentConfig,
+)
+from llmling_agent.models.acp_agents.non_mcp import (
+    AmpACPAgentConfig,
+    CagentACPAgentConfig,
+    CodexACPAgentConfig,
+    CursorACPAgentConfig,
+    GooseACPAgentConfig,
     MistralACPAgentConfig,
     OpenCodeACPAgentConfig,
     OpenHandsACPAgentConfig,
@@ -169,7 +171,7 @@ def test_all_agent_classes_covered():
     import llmling_agent.models.acp_agents as acp_module
 
     # Exclude abstract base classes
-    abstract_classes = {BaseACPAgentConfig, acp_module.MCPCapableACPAgentConfig}
+    abstract_classes = {BaseACPAgentConfig, MCPCapableACPAgentConfig}
 
     found_classes = []
     for name, obj in inspect.getmembers(acp_module, inspect.isclass):
