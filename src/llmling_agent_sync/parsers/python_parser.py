@@ -92,14 +92,7 @@ def _parse_toml_like(text: str) -> SyncMetadata:
     from llmling_agent_sync.models import SyncMetadata
 
     try:
-        data = anyenv.load_toml(text)
+        # TODO: need to check whether this needs to be BaseModel with extra fields allowed
+        return anyenv.load_toml(text, return_type=SyncMetadata)
     except anyenv.TomlLoadError:
         return SyncMetadata()
-
-    return SyncMetadata(
-        agent=data.get("agent"),
-        dependencies=data.get("dependencies", []),
-        urls=data.get("urls", []),
-        context=data.get("context", {}),
-        last_checked=data.get("last_checked"),
-    )
