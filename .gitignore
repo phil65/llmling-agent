@@ -10,6 +10,7 @@ coverage.xml
 .hatch
 build/
 .pytest_cache/
+cache.db
 junit.xml
 # Jupyter Notebook
 .ipynb_checkpoints
