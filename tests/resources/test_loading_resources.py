@@ -38,21 +38,21 @@ async def test_vfs_registry():
     # Test root listing shows protocols
     root_listing = await fs._ls("/", detail=False)
     assert len(root_listing) == 2  # noqa: PLR2004
-    assert {"docs://", "data://"} == set(root_listing)
+    assert {"docs", "data"} == set(root_listing)
 
     # Test write and read operations
     test_content = b"docs content"
-    await fs._pipe_file("docs://test.txt", test_content)
-    assert await fs._cat_file("docs://test.txt") == test_content
+    await fs._pipe_file("docs/test.txt", test_content)
+    assert await fs._cat_file("docs/test.txt") == test_content
 
     # Test directory listing
-    docs_listing = await fs._ls("docs://", detail=False)
-    assert "docs://test.txt" in docs_listing
+    docs_listing = await fs._ls("docs/", detail=False)
+    assert "docs/test.txt" in docs_listing
 
     # Test file info
-    info = await fs._info("docs://test.txt")
+    info = await fs._info("docs/test.txt")
     assert info["type"] == "file"
-    assert info["name"] == "docs://test.txt"
+    assert info["name"] == "docs/test.txt"
     assert info.get("size") == len(test_content)
 
 

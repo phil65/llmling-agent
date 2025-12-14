@@ -2,13 +2,15 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Literal, assert_never, overload
 
-from upathtools import UnionFileSystem, list_files, read_folder, read_path
+from upathtools import AsyncUPath, UnionFileSystem, list_files, read_folder, read_path
 
 from llmling_agent.log import get_logger
 from llmling_agent.utils.baseregistry import LLMLingError
 
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
+
     from fsspec import AbstractFileSystem
     from upathtools import AsyncUPath, UPath
 
@@ -34,7 +36,7 @@ class VFSRegistry:
         """Get number of registered resources."""
         return len(self._union_fs.filesystems)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[str]:
         """Iterate over registered resource names."""
         return iter(self._union_fs.filesystems)
 
@@ -105,21 +107,9 @@ class VFSRegistry:
         """List all registered resource names."""
         return self._union_fs.list_mount_points()
 
-    def get_filesystem(self, name: str | None = None) -> UnionFileSystem | AbstractFileSystem:
-        """Get filesystem instance.
-
-        Args:
-            name: Specific resource name, or None for unified view
-
-        Returns:
-            UnionFileSystem for unified view, or specific filesystem
-        """
-        if name is None:
-            return self._union_fs
-        if name not in self._union_fs.filesystems:
-            msg = f"Resource not found: {name}"
-            raise LLMLingError(msg)
-        return self._union_fs.filesystems[name]
+    def get_fs(self) -> UnionFileSystem:
+        """Get unified filesystem view of all resources."""
+        return self._union_fs
 
     @overload
     def get_upath(
@@ -258,5 +248,5 @@ if __name__ == "__main__":
     registry = VFSRegistry()
     fs1 = MemoryFileSystem()
     registry.register("test", fs1)
-    union = registry.get_filesystem()
+    union = registry.get_fs()
     print(union.ls(""))

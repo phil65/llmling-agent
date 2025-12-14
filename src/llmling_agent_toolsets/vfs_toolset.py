@@ -38,7 +38,7 @@ async def vfs_list(  # noqa: D417
 
     # If no path given, list all resources
     if not path:
-        resources = list(registry.keys())
+        resources = list(registry)
         return "Available resources:\n" + "\n".join(f"- {name}" for name in resources)
 
     try:
@@ -103,13 +103,7 @@ async def vfs_info(ctx: AgentContext) -> str:
 
     sections = ["## Configured Resources\n"]
 
-    for name in registry:
-        try:
-            fs = registry[name]
-            fs_type = fs.__class__.__name__
-            sections.append(f"- **{name}**: {fs_type}")
-        except (OSError, AttributeError) as e:
-            sections.append(f"- **{name}**: Error - {e}")
+    sections.extend(f"- **{name}**: VFS Resource" for name in registry)
 
     # Add union filesystem info
     try:
