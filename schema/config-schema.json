@@ -240,9 +240,10 @@
           "description": "Working directory for the session.",
           "examples": [
             "/path/to/project",
-            "."
+            ".",
+            "/home/user/myproject"
           ],
-          "title": "Cwd",
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -253,7 +254,13 @@
             "type": "string"
           },
           "description": "Environment variables to set.",
-          "title": "Env",
+          "examples": [
+            {
+              "DEBUG": "1",
+              "PATH": "/usr/local/bin:/usr/bin"
+            }
+          ],
+          "title": "Environment Variables",
           "type": "object"
         },
         "execution_environment": {
@@ -305,7 +312,7 @@
         "auto_grant_permissions": {
           "default": true,
           "description": "Whether to automatically grant all permission requests.",
-          "title": "Auto Grant Permissions",
+          "title": "Auto-Grant Permissions",
           "type": "boolean"
         },
         "type": {
@@ -327,14 +334,33 @@
         },
         "args": {
           "description": "Arguments to pass to the command.",
+          "examples": [
+            [
+              "--mode",
+              "coding"
+            ],
+            [
+              "--debug",
+              "--verbose"
+            ]
+          ],
           "items": {
             "type": "string"
           },
-          "title": "Args",
+          "title": "Arguments",
           "type": "array"
         },
         "providers": {
           "description": "Model providers this agent can use.",
+          "examples": [
+            [
+              "openai",
+              "anthropic"
+            ],
+            [
+              "gemini"
+            ]
+          ],
           "items": {
             "enum": [
               "anthropic",
@@ -3402,9 +3428,10 @@
           "description": "Working directory for the session.",
           "examples": [
             "/path/to/project",
-            "."
+            ".",
+            "/home/user/myproject"
           ],
-          "title": "Cwd",
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -3415,7 +3442,13 @@
             "type": "string"
           },
           "description": "Environment variables to set.",
-          "title": "Env",
+          "examples": [
+            {
+              "DEBUG": "1",
+              "PATH": "/usr/local/bin:/usr/bin"
+            }
+          ],
+          "title": "Environment Variables",
           "type": "object"
         },
         "execution_environment": {
@@ -3467,7 +3500,7 @@
         "auto_grant_permissions": {
           "default": true,
           "description": "Whether to automatically grant all permission requests.",
-          "title": "Auto Grant Permissions",
+          "title": "Auto-Grant Permissions",
           "type": "boolean"
         },
         "type": {
@@ -4376,9 +4409,10 @@
           "description": "Working directory for the session.",
           "examples": [
             "/path/to/project",
-            "."
+            ".",
+            "/home/user/myproject"
           ],
-          "title": "Cwd",
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -4389,7 +4423,13 @@
             "type": "string"
           },
           "description": "Environment variables to set.",
-          "title": "Env",
+          "examples": [
+            {
+              "DEBUG": "1",
+              "PATH": "/usr/local/bin:/usr/bin"
+            }
+          ],
+          "title": "Environment Variables",
           "type": "object"
         },
         "execution_environment": {
@@ -4441,7 +4481,7 @@
         "auto_grant_permissions": {
           "default": true,
           "description": "Whether to automatically grant all permission requests.",
-          "title": "Auto Grant Permissions",
+          "title": "Auto-Grant Permissions",
           "type": "boolean"
         },
         "toolsets": {
@@ -4566,6 +4606,10 @@
         "model": {
           "default": null,
           "description": "Model to use.",
+          "examples": [
+            "auggie-sonnet",
+            "auggie-haiku"
+          ],
           "title": "Model",
           "type": [
             "string",
@@ -4575,6 +4619,10 @@
         "workspace_root": {
           "default": null,
           "description": "Workspace root (auto-detects git root if absent).",
+          "examples": [
+            "/path/to/workspace",
+            "/home/user/project"
+          ],
           "title": "Workspace Root",
           "type": [
             "string",
@@ -4595,11 +4643,24 @@
           ],
           "default": null,
           "description": "Additional rules files.",
+          "examples": [
+            [
+              "rules.md",
+              "coding-standards.md"
+            ],
+            [
+              "./custom-rules.txt"
+            ]
+          ],
           "title": "Rules"
         },
         "augment_cache_dir": {
           "default": null,
           "description": "Cache directory (default: ~/.augment).",
+          "examples": [
+            "~/.augment",
+            "/tmp/augment-cache"
+          ],
           "title": "Augment Cache Dir",
           "type": [
             "string",
@@ -4609,6 +4670,10 @@
         "retry_timeout": {
           "default": null,
           "description": "Timeout for rate-limit retries (seconds).",
+          "examples": [
+            30,
+            60
+          ],
           "title": "Retry Timeout",
           "type": [
             "integer",
@@ -4624,6 +4689,10 @@
         "augment_token_file": {
           "default": null,
           "description": "Path to file containing authentication token.",
+          "examples": [
+            "~/.augment/token",
+            "/etc/augment/auth.token"
+          ],
           "title": "Augment Token File",
           "type": [
             "string",
@@ -4633,7 +4702,11 @@
         "github_api_token": {
           "default": null,
           "description": "Path to file containing GitHub API token.",
-          "title": "Github Api Token",
+          "examples": [
+            "~/.github/token",
+            "/secrets/github.token"
+          ],
+          "title": "GitHub API Token",
           "type": [
             "string",
             "null"
@@ -4653,6 +4726,16 @@
           ],
           "default": null,
           "description": "Tool permissions with 'tool-name:policy' format.",
+          "examples": [
+            [
+              "bash:allow",
+              "edit:confirm"
+            ],
+            [
+              "read:allow",
+              "write:deny"
+            ]
+          ],
           "title": "Permission"
         },
         "remove_tool": {
@@ -4669,6 +4752,15 @@
           ],
           "default": null,
           "description": "Remove specific tools by name.",
+          "examples": [
+            [
+              "deprecated-tool",
+              "legacy-search"
+            ],
+            [
+              "old-formatter"
+            ]
+          ],
           "title": "Remove Tool"
         },
         "shell": {
@@ -4688,11 +4780,19 @@
           ],
           "default": null,
           "description": "Select shell.",
+          "examples": [
+            "bash",
+            "zsh"
+          ],
           "title": "Shell"
         },
         "startup_script": {
           "default": null,
           "description": "Inline startup script to run before each command.",
+          "examples": [
+            "export PATH=$PATH:/usr/local/bin",
+            "source ~/.bashrc"
+          ],
           "title": "Startup Script",
           "type": [
             "string",
@@ -4702,6 +4802,10 @@
         "startup_script_file": {
           "default": null,
           "description": "Load startup script from file.",
+          "examples": [
+            "~/.augment_startup.sh",
+            "/etc/augment/init.sh"
+          ],
           "title": "Startup Script File",
           "type": [
             "string",
@@ -7029,9 +7133,10 @@
           "description": "Working directory for the session.",
           "examples": [
             "/path/to/project",
-            "."
+            ".",
+            "/home/user/myproject"
           ],
-          "title": "Cwd",
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -7042,7 +7147,13 @@
             "type": "string"
           },
           "description": "Environment variables to set.",
-          "title": "Env",
+          "examples": [
+            {
+              "DEBUG": "1",
+              "PATH": "/usr/local/bin:/usr/bin"
+            }
+          ],
+          "title": "Environment Variables",
           "type": "object"
         },
         "execution_environment": {
@@ -7094,7 +7205,7 @@
         "auto_grant_permissions": {
           "default": true,
           "description": "Whether to automatically grant all permission requests.",
-          "title": "Auto Grant Permissions",
+          "title": "Auto-Grant Permissions",
           "type": "boolean"
         },
         "type": {
@@ -7107,6 +7218,10 @@
         "agent_file": {
           "default": null,
           "description": "Agent configuration file or registry reference.",
+          "examples": [
+            "./agent.yaml",
+            "registry.docker.io/my-agent:latest"
+          ],
           "title": "Agent File",
           "type": [
             "string",
@@ -7133,11 +7248,24 @@
           ],
           "default": null,
           "description": "Set environment variables from file.",
+          "examples": [
+            [
+              ".env",
+              ".env.production"
+            ],
+            [
+              "config/.env.local"
+            ]
+          ],
           "title": "Env From File"
         },
         "models_gateway": {
           "default": null,
           "description": "Set the models gateway address.",
+          "examples": [
+            "http://localhost:8000",
+            "https://api.example.com/models"
+          ],
           "title": "Models Gateway",
           "type": [
             "string",
@@ -7147,6 +7275,10 @@
         "working_dir": {
           "default": null,
           "description": "Set the working directory for the session.",
+          "examples": [
+            "/path/to/project",
+            "/home/user/workspace"
+          ],
           "title": "Working Dir",
           "type": [
             "string",
@@ -7162,12 +7294,16 @@
         "otel": {
           "default": false,
           "description": "Enable OpenTelemetry tracing.",
-          "title": "Otel",
+          "title": "OTEL",
           "type": "boolean"
         },
         "log_file": {
           "default": null,
           "description": "Path to debug log file.",
+          "examples": [
+            "/var/log/cagent.log",
+            "./debug.log"
+          ],
           "title": "Log File",
           "type": [
             "string",
@@ -7838,9 +7974,10 @@
           "description": "Working directory for the session.",
           "examples": [
             "/path/to/project",
-            "."
+            ".",
+            "/home/user/myproject"
           ],
-          "title": "Cwd",
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -7851,7 +7988,13 @@
             "type": "string"
           },
           "description": "Environment variables to set.",
-          "title": "Env",
+          "examples": [
+            {
+              "DEBUG": "1",
+              "PATH": "/usr/local/bin:/usr/bin"
+            }
+          ],
+          "title": "Environment Variables",
           "type": "object"
         },
         "execution_environment": {
@@ -7903,7 +8046,7 @@
         "auto_grant_permissions": {
           "default": true,
           "description": "Whether to automatically grant all permission requests.",
-          "title": "Auto Grant Permissions",
+          "title": "Auto-Grant Permissions",
           "type": "boolean"
         },
         "toolsets": {
@@ -8028,6 +8171,10 @@
         "system_prompt": {
           "default": null,
           "description": "Custom system prompt (replaces default Claude Code prompt).",
+          "examples": [
+            "You are a helpful coding assistant.",
+            "Follow best practices for Python."
+          ],
           "title": "System Prompt",
           "type": [
             "string",
@@ -8037,6 +8184,10 @@
         "append_system_prompt": {
           "default": null,
           "description": "Text to append to the default system prompt.",
+          "examples": [
+            "Always write tests.",
+            "Prefer functional programming."
+          ],
           "title": "Append System Prompt",
           "type": [
             "string",
@@ -8087,6 +8238,11 @@
           ],
           "default": null,
           "description": "Permission handling mode for tool execution.",
+          "examples": [
+            "acceptEdits",
+            "bypassPermissions",
+            "plan"
+          ],
           "title": "Permission Mode"
         },
         "allowed_tools": {
@@ -8129,6 +8285,17 @@
           ],
           "default": null,
           "description": "Whitelist of allowed tools (e.g., ['Read', 'Write', 'Bash(git:*)']).",
+          "examples": [
+            [
+              "Read",
+              "Write",
+              "Bash(git:*)"
+            ],
+            [
+              "Edit",
+              "Glob"
+            ]
+          ],
           "title": "Allowed Tools"
         },
         "disallowed_tools": {
@@ -8171,12 +8338,21 @@
           ],
           "default": null,
           "description": "Blacklist of disallowed tools.",
+          "examples": [
+            [
+              "WebSearch",
+              "WebFetch"
+            ],
+            [
+              "KillShell"
+            ]
+          ],
           "title": "Disallowed Tools"
         },
         "strict_mcp_config": {
           "default": false,
           "description": "Only use MCP servers from mcp_config, ignoring all other configs.",
-          "title": "Strict Mcp Config",
+          "title": "Strict MCP Config",
           "type": "boolean"
         },
         "add_dir": {
@@ -8193,7 +8369,16 @@
           ],
           "default": null,
           "description": "Additional directories to allow tool access to.",
-          "title": "Add Dir"
+          "examples": [
+            [
+              "/tmp",
+              "/var/log"
+            ],
+            [
+              "/home/user/data"
+            ]
+          ],
+          "title": "Additional Directories"
         },
         "tools": {
           "anyOf": [
@@ -8783,9 +8968,10 @@
           "description": "Working directory for the session.",
           "examples": [
             "/path/to/project",
-            "."
+            ".",
+            "/home/user/myproject"
           ],
-          "title": "Cwd",
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -8796,7 +8982,13 @@
             "type": "string"
           },
           "description": "Environment variables to set.",
-          "title": "Env",
+          "examples": [
+            {
+              "DEBUG": "1",
+              "PATH": "/usr/local/bin:/usr/bin"
+            }
+          ],
+          "title": "Environment Variables",
           "type": "object"
         },
         "execution_environment": {
@@ -8848,7 +9040,7 @@
         "auto_grant_permissions": {
           "default": true,
           "description": "Whether to automatically grant all permission requests.",
-          "title": "Auto Grant Permissions",
+          "title": "Auto-Grant Permissions",
           "type": "boolean"
         },
         "type": {
@@ -8888,6 +9080,10 @@
           "examples": [
             [
               "disk-full-read-access"
+            ],
+            [
+              "network-access",
+              "disk-write-access"
             ]
           ],
           "title": "Sandbox Permissions"
@@ -8907,6 +9103,10 @@
           ],
           "default": null,
           "description": "Shell environment inheritance policy.",
+          "examples": [
+            "all",
+            "none"
+          ],
           "title": "Shell Environment Policy Inherit"
         }
       },
@@ -9362,7 +9562,7 @@
     },
     "CursorACPAgentConfig": {
       "additionalProperties": false,
-      "description": "Configuration for Cursor via ACP.\n\nCursor CLI agent with filesystem and terminal capabilities.\n\nExample:\n    ```yaml\n    acp_agents:\n      coder:\n        type: cursor\n        cwd: /path/to/project\n        session_dir: ~/.cursor-sessions\n        timeout: 30000\n    ```",
+      "description": "Configuration for Cursor via ACP.\n\nCursor CLI agent with filesystem and terminal capabilities.\nSee https://github.com/blowmage/cursor-agent-acp-npm\n\nExample:\n    ```yaml\n    acp_agents:\n      coder:\n        type: cursor\n        cwd: /path/to/project\n        session_dir: ~/.cursor-sessions\n        timeout: 30000\n    ```",
       "properties": {
         "name": {
           "default": null,
@@ -9600,9 +9800,10 @@
           "description": "Working directory for the session.",
           "examples": [
             "/path/to/project",
-            "."
+            ".",
+            "/home/user/myproject"
           ],
-          "title": "Cwd",
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -9613,7 +9814,13 @@
             "type": "string"
           },
           "description": "Environment variables to set.",
-          "title": "Env",
+          "examples": [
+            {
+              "DEBUG": "1",
+              "PATH": "/usr/local/bin:/usr/bin"
+            }
+          ],
+          "title": "Environment Variables",
           "type": "object"
         },
         "execution_environment": {
@@ -9665,7 +9872,7 @@
         "auto_grant_permissions": {
           "default": true,
           "description": "Whether to automatically grant all permission requests.",
-          "title": "Auto Grant Permissions",
+          "title": "Auto-Grant Permissions",
           "type": "boolean"
         },
         "type": {
@@ -9678,6 +9885,10 @@
         "config": {
           "default": null,
           "description": "Path to configuration file.",
+          "examples": [
+            "config.json",
+            "/etc/cursor/config.json"
+          ],
           "title": "Config",
           "type": [
             "string",
@@ -9701,11 +9912,19 @@
           ],
           "default": null,
           "description": "Logging level.",
+          "examples": [
+            "info",
+            "debug"
+          ],
           "title": "Log Level"
         },
         "log_file": {
           "default": null,
           "description": "Log file path (logs to stderr by default).",
+          "examples": [
+            "/var/log/cursor.log",
+            "./cursor-debug.log"
+          ],
           "title": "Log File",
           "type": [
             "string",
@@ -9715,6 +9934,10 @@
         "session_dir": {
           "default": null,
           "description": "Session storage directory (default: ~/.cursor-sessions).",
+          "examples": [
+            "~/.cursor-sessions",
+            "/tmp/cursor-sessions"
+          ],
           "title": "Session Dir",
           "type": [
             "string",
@@ -9724,6 +9947,10 @@
         "timeout": {
           "default": null,
           "description": "Cursor-agent timeout in milliseconds (default: 30000).",
+          "examples": [
+            30000,
+            60000
+          ],
           "title": "Timeout",
           "type": [
             "integer",
@@ -9733,6 +9960,10 @@
         "retries": {
           "default": null,
           "description": "Number of retries for cursor-agent commands (default: 3).",
+          "examples": [
+            3,
+            5
+          ],
           "title": "Retries",
           "type": [
             "integer",
@@ -9742,6 +9973,10 @@
         "max_sessions": {
           "default": null,
           "description": "Maximum number of concurrent sessions (default: 100).",
+          "examples": [
+            100,
+            200
+          ],
           "title": "Max Sessions",
           "type": [
             "integer",
@@ -9751,6 +9986,10 @@
         "session_timeout": {
           "default": null,
           "description": "Session timeout in milliseconds (default: 3600000).",
+          "examples": [
+            3600000,
+            7200000
+          ],
           "title": "Session Timeout",
           "type": [
             "integer",
@@ -9772,23 +10011,15 @@
         "max_processes": {
           "default": null,
           "description": "Maximum number of terminal processes (default: 5).",
+          "examples": [
+            5,
+            10
+          ],
           "title": "Max Processes",
           "type": [
             "integer",
             "null"
           ]
-        },
-        "verbose": {
-          "default": false,
-          "description": "Enable verbose logging.",
-          "title": "Verbose",
-          "type": "boolean"
-        },
-        "quiet": {
-          "default": false,
-          "description": "Suppress all output except errors.",
-          "title": "Quiet",
-          "type": "boolean"
         }
       },
       "title": "Cursor ACP Agent Configuration",
@@ -17020,7 +17251,7 @@
     },
     "FastAgentACPAgentConfig": {
       "additionalProperties": false,
-      "description": "Configuration for fast-agent via ACP.\n\nRobust LLM agent with comprehensive MCP support.\n\nExample:\n    ```yaml\n    acp_agents:\n      coder:\n        type: fast-agent\n        cwd: /path/to/project\n        model: claude-3.5-sonnet-20241022\n    ```",
+      "description": "Configuration for fast-agent via ACP.\n\nRobust LLM agent with comprehensive MCP support.\n\nSupports MCP server integration via:\n- Internal bridge: Use `toolsets` field to expose llmling-agent toolsets\n- External servers: Use `url` field to connect to external MCP servers\n- Skills: Use `skills_dir` to specify custom skills directory\n\nExample:\n    ```yaml\n    acp_agents:\n      coder:\n        type: fast-agent\n        cwd: /path/to/project\n        model: claude-3.5-sonnet-20241022\n        toolsets:\n          - type: subagent\n          - type: agent_management\n        skills_dir: ./my-skills\n    ```",
       "properties": {
         "name": {
           "default": null,
@@ -17258,9 +17489,10 @@
           "description": "Working directory for the session.",
           "examples": [
             "/path/to/project",
-            "."
+            ".",
+            "/home/user/myproject"
           ],
-          "title": "Cwd",
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -17271,7 +17503,13 @@
             "type": "string"
           },
           "description": "Environment variables to set.",
-          "title": "Env",
+          "examples": [
+            {
+              "DEBUG": "1",
+              "PATH": "/usr/local/bin:/usr/bin"
+            }
+          ],
+          "title": "Environment Variables",
           "type": "object"
         },
         "execution_environment": {
@@ -17323,8 +17561,120 @@
         "auto_grant_permissions": {
           "default": true,
           "description": "Whether to automatically grant all permission requests.",
-          "title": "Auto Grant Permissions",
+          "title": "Auto-Grant Permissions",
           "type": "boolean"
+        },
+        "toolsets": {
+          "description": "Toolsets to expose to this ACP agent via MCP bridge.\n\nThese toolsets will be started as an in-process MCP server and made\navailable to the external ACP agent. This allows ACP agents to use\ninternal llmling-agent toolsets like subagent delegation.",
+          "examples": [
+            [
+              {
+                "type": "subagent"
+              },
+              {
+                "type": "agent_management"
+              }
+            ]
+          ],
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "agent_management": "#/$defs/AgentManagementToolsetConfig",
+                "code": "#/$defs/CodeToolsetConfig",
+                "code_mode": "#/$defs/CodeModeToolsetConfig",
+                "composio": "#/$defs/ComposioToolSetConfig",
+                "config_creation": "#/$defs/ConfigCreationToolsetConfig",
+                "custom": "#/$defs/CustomToolsetConfig",
+                "entry_points": "#/$defs/EntryPointToolsetConfig",
+                "execution": "#/$defs/ExecutionEnvironmentToolsetConfig",
+                "file_access": "#/$defs/FSSpecToolsetConfig",
+                "history": "#/$defs/HistoryToolsetConfig",
+                "integrations": "#/$defs/IntegrationToolsetConfig",
+                "notifications": "#/$defs/NotificationsToolsetConfig",
+                "openapi": "#/$defs/OpenAPIToolsetConfig",
+                "remote_code_mode": "#/$defs/RemoteCodeModeToolsetConfig",
+                "search": "#/$defs/SearchToolsetConfig",
+                "semantic_memory": "#/$defs/SemanticMemoryToolsetConfig",
+                "skills": "#/$defs/SkillsToolsetConfig",
+                "subagent": "#/$defs/SubagentToolsetConfig",
+                "tool_management": "#/$defs/ToolManagementToolsetConfig",
+                "user_interaction": "#/$defs/UserInteractionToolsetConfig",
+                "vfs": "#/$defs/VFSToolsetConfig",
+                "workers": "#/$defs/WorkersToolsetConfig"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/OpenAPIToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/EntryPointToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/ComposioToolSetConfig"
+              },
+              {
+                "$ref": "#/$defs/AgentManagementToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/ExecutionEnvironmentToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/ToolManagementToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/UserInteractionToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/HistoryToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/SkillsToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/IntegrationToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/CodeToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/FSSpecToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/VFSToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/SubagentToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/WorkersToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/CodeModeToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/RemoteCodeModeToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/SearchToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/NotificationsToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/SemanticMemoryToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/ConfigCreationToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/CustomToolsetConfig"
+              }
+            ]
+          },
+          "title": "Toolsets",
+          "type": "array"
         },
         "type": {
           "const": "fast-agent",
@@ -17349,13 +17699,28 @@
           "title": "Shell Access",
           "type": "boolean"
         },
+        "skills_dir": {
+          "default": null,
+          "description": "Override the default skills directory for custom agent skills.",
+          "examples": [
+            "./skills",
+            "/path/to/custom-skills",
+            "~/.fast-agent/skills"
+          ],
+          "title": "Skills Directory",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "url": {
           "default": null,
-          "description": "MCP server URL to connect to.",
+          "description": "MCP server URL to connect to. Can also be used with internal toolsets bridge.",
           "examples": [
-            "https://huggingface.co/mcp"
+            "https://huggingface.co/mcp",
+            "http://localhost:8080"
           ],
-          "title": "Url",
+          "title": "URL",
           "type": [
             "string",
             "null"
@@ -17364,6 +17729,10 @@
         "auth": {
           "default": null,
           "description": "Authentication token for MCP server.",
+          "examples": [
+            "bearer-token-123",
+            "api-key-xyz"
+          ],
           "title": "Auth",
           "type": [
             "string",
@@ -18660,9 +19029,10 @@
           "description": "Working directory for the session.",
           "examples": [
             "/path/to/project",
-            "."
+            ".",
+            "/home/user/myproject"
           ],
-          "title": "Cwd",
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -18673,7 +19043,13 @@
             "type": "string"
           },
           "description": "Environment variables to set.",
-          "title": "Env",
+          "examples": [
+            {
+              "DEBUG": "1",
+              "PATH": "/usr/local/bin:/usr/bin"
+            }
+          ],
+          "title": "Environment Variables",
           "type": "object"
         },
         "execution_environment": {
@@ -18725,7 +19101,7 @@
         "auto_grant_permissions": {
           "default": true,
           "description": "Whether to automatically grant all permission requests.",
-          "title": "Auto Grant Permissions",
+          "title": "Auto-Grant Permissions",
           "type": "boolean"
         },
         "toolsets": {
@@ -18876,6 +19252,10 @@
           ],
           "default": null,
           "description": "Approval mode for tool execution.",
+          "examples": [
+            "auto_edit",
+            "yolo"
+          ],
           "title": "Approval Mode"
         },
         "sandbox": {
@@ -18887,7 +19267,7 @@
         "yolo": {
           "default": false,
           "description": "Automatically accept all actions.",
-          "title": "Yolo",
+          "title": "YOLO",
           "type": "boolean"
         },
         "allowed_tools": {
@@ -18904,6 +19284,16 @@
           ],
           "default": null,
           "description": "Tools allowed to run without confirmation.",
+          "examples": [
+            [
+              "read_file",
+              "write_file",
+              "terminal"
+            ],
+            [
+              "search"
+            ]
+          ],
           "title": "Allowed Tools"
         },
         "allowed_mcp_server_names": {
@@ -18920,7 +19310,16 @@
           ],
           "default": null,
           "description": "Allowed MCP server names.",
-          "title": "Allowed Mcp Server Names"
+          "examples": [
+            [
+              "filesystem",
+              "github"
+            ],
+            [
+              "slack"
+            ]
+          ],
+          "title": "Allowed MCP Server Names"
         },
         "extensions": {
           "anyOf": [
@@ -18936,6 +19335,16 @@
           ],
           "default": null,
           "description": "List of extensions to use. If not provided, all are used.",
+          "examples": [
+            [
+              "python",
+              "typescript"
+            ],
+            [
+              "rust",
+              "go"
+            ]
+          ],
           "title": "Extensions"
         },
         "include_directories": {
@@ -18952,6 +19361,15 @@
           ],
           "default": null,
           "description": "Additional directories to include in the workspace.",
+          "examples": [
+            [
+              "/path/to/lib",
+              "/path/to/shared"
+            ],
+            [
+              "./vendor"
+            ]
+          ],
           "title": "Include Directories"
         },
         "output_format": {
@@ -18970,6 +19388,10 @@
           ],
           "default": null,
           "description": "Output format.",
+          "examples": [
+            "json",
+            "stream-json"
+          ],
           "title": "Output Format"
         }
       },
@@ -20032,9 +20454,10 @@
           "description": "Working directory for the session.",
           "examples": [
             "/path/to/project",
-            "."
+            ".",
+            "/home/user/myproject"
           ],
-          "title": "Cwd",
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -20045,7 +20468,13 @@
             "type": "string"
           },
           "description": "Environment variables to set.",
-          "title": "Env",
+          "examples": [
+            {
+              "DEBUG": "1",
+              "PATH": "/usr/local/bin:/usr/bin"
+            }
+          ],
+          "title": "Environment Variables",
           "type": "object"
         },
         "execution_environment": {
@@ -20097,7 +20526,7 @@
         "auto_grant_permissions": {
           "default": true,
           "description": "Whether to automatically grant all permission requests.",
-          "title": "Auto Grant Permissions",
+          "title": "Auto-Grant Permissions",
           "type": "boolean"
         },
         "type": {
@@ -21252,7 +21681,7 @@
         },
         "resolve_refs": {
           "default": false,
-          "description": "If True, transparently resolve $ref when navigating",
+          "description": "Whether to automatically resolve $ref references in the schema",
           "title": "Resolve References",
           "type": "boolean"
         }
@@ -21603,9 +22032,10 @@
           "description": "Working directory for the session.",
           "examples": [
             "/path/to/project",
-            "."
+            ".",
+            "/home/user/myproject"
           ],
-          "title": "Cwd",
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -21616,7 +22046,13 @@
             "type": "string"
           },
           "description": "Environment variables to set.",
-          "title": "Env",
+          "examples": [
+            {
+              "DEBUG": "1",
+              "PATH": "/usr/local/bin:/usr/bin"
+            }
+          ],
+          "title": "Environment Variables",
           "type": "object"
         },
         "execution_environment": {
@@ -21668,7 +22104,7 @@
         "auto_grant_permissions": {
           "default": true,
           "description": "Whether to automatically grant all permission requests.",
-          "title": "Auto Grant Permissions",
+          "title": "Auto-Grant Permissions",
           "type": "boolean"
         },
         "toolsets": {
@@ -21805,6 +22241,10 @@
         "agent_file": {
           "default": null,
           "description": "Custom agent specification file.",
+          "examples": [
+            "./my-agent.yaml",
+            "/etc/kimi/agent.json"
+          ],
           "title": "Agent File",
           "type": [
             "string",
@@ -21814,6 +22254,10 @@
         "model": {
           "default": null,
           "description": "LLM model to use.",
+          "examples": [
+            "kimi-v1",
+            "kimi-v2"
+          ],
           "title": "Model",
           "type": [
             "string",
@@ -21823,6 +22267,10 @@
         "work_dir": {
           "default": null,
           "description": "Working directory for the agent.",
+          "examples": [
+            "/path/to/work",
+            "/tmp/kimi-workspace"
+          ],
           "title": "Work Dir",
           "type": [
             "string",
@@ -21832,7 +22280,7 @@
         "yolo": {
           "default": false,
           "description": "Automatically approve all actions.",
-          "title": "Yolo",
+          "title": "YOLO",
           "type": "boolean"
         },
         "thinking": {
@@ -24162,9 +24610,10 @@
           "description": "Working directory for the session.",
           "examples": [
             "/path/to/project",
-            "."
+            ".",
+            "/home/user/myproject"
           ],
-          "title": "Cwd",
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -24175,7 +24624,13 @@
             "type": "string"
           },
           "description": "Environment variables to set.",
-          "title": "Env",
+          "examples": [
+            {
+              "DEBUG": "1",
+              "PATH": "/usr/local/bin:/usr/bin"
+            }
+          ],
+          "title": "Environment Variables",
           "type": "object"
         },
         "execution_environment": {
@@ -24227,7 +24682,7 @@
         "auto_grant_permissions": {
           "default": true,
           "description": "Whether to automatically grant all permission requests.",
-          "title": "Auto Grant Permissions",
+          "title": "Auto-Grant Permissions",
           "type": "boolean"
         },
         "type": {
@@ -25753,9 +26208,10 @@
           "description": "Working directory for the session.",
           "examples": [
             "/path/to/project",
-            "."
+            ".",
+            "/home/user/myproject"
           ],
-          "title": "Cwd",
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -25766,7 +26222,13 @@
             "type": "string"
           },
           "description": "Environment variables to set.",
-          "title": "Env",
+          "examples": [
+            {
+              "DEBUG": "1",
+              "PATH": "/usr/local/bin:/usr/bin"
+            }
+          ],
+          "title": "Environment Variables",
           "type": "object"
         },
         "execution_environment": {
@@ -25818,7 +26280,7 @@
         "auto_grant_permissions": {
           "default": true,
           "description": "Whether to automatically grant all permission requests.",
-          "title": "Auto Grant Permissions",
+          "title": "Auto-Grant Permissions",
           "type": "boolean"
         },
         "type": {
@@ -25827,53 +26289,6 @@
           "description": "Discriminator for OpenCode ACP agent.",
           "title": "Type",
           "type": "string"
-        },
-        "log_level": {
-          "anyOf": [
-            {
-              "enum": [
-                "DEBUG",
-                "INFO",
-                "WARN",
-                "ERROR"
-              ],
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Log level.",
-          "title": "Log Level"
-        },
-        "print_logs": {
-          "default": false,
-          "description": "Print logs to stderr.",
-          "title": "Print Logs",
-          "type": "boolean"
-        },
-        "port": {
-          "default": null,
-          "description": "Port to listen on.",
-          "title": "Port",
-          "type": [
-            "integer",
-            "null"
-          ]
-        },
-        "hostname": {
-          "default": null,
-          "description": "Hostname to listen on.",
-          "examples": [
-            "127.0.0.1",
-            "0.0.0.0"
-          ],
-          "title": "Hostname",
-          "type": [
-            "string",
-            "null"
-          ]
         }
       },
       "title": "OpenCode ACP Agent Configuration",
@@ -26119,9 +26534,10 @@
           "description": "Working directory for the session.",
           "examples": [
             "/path/to/project",
-            "."
+            ".",
+            "/home/user/myproject"
           ],
-          "title": "Cwd",
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -26132,7 +26548,13 @@
             "type": "string"
           },
           "description": "Environment variables to set.",
-          "title": "Env",
+          "examples": [
+            {
+              "DEBUG": "1",
+              "PATH": "/usr/local/bin:/usr/bin"
+            }
+          ],
+          "title": "Environment Variables",
           "type": "object"
         },
         "execution_environment": {
@@ -26184,7 +26606,7 @@
         "auto_grant_permissions": {
           "default": true,
           "description": "Whether to automatically grant all permission requests.",
-          "title": "Auto Grant Permissions",
+          "title": "Auto-Grant Permissions",
           "type": "boolean"
         },
         "type": {
@@ -32031,9 +32453,10 @@
           "description": "Working directory for the session.",
           "examples": [
             "/path/to/project",
-            "."
+            ".",
+            "/home/user/myproject"
           ],
-          "title": "Cwd",
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -32044,7 +32467,13 @@
             "type": "string"
           },
           "description": "Environment variables to set.",
-          "title": "Env",
+          "examples": [
+            {
+              "DEBUG": "1",
+              "PATH": "/usr/local/bin:/usr/bin"
+            }
+          ],
+          "title": "Environment Variables",
           "type": "object"
         },
         "execution_environment": {
@@ -32096,7 +32525,7 @@
         "auto_grant_permissions": {
           "default": true,
           "description": "Whether to automatically grant all permission requests.",
-          "title": "Auto Grant Permissions",
+          "title": "Auto-Grant Permissions",
           "type": "boolean"
         },
         "type": {
@@ -32109,6 +32538,10 @@
         "workdir": {
           "default": null,
           "description": "Run the agent in a specific directory.",
+          "examples": [
+            "/path/to/workdir",
+            "/home/user/projects"
+          ],
           "title": "Workdir",
           "type": [
             "string",
@@ -32160,7 +32593,7 @@
         "disable_mcp_mtls": {
           "default": false,
           "description": "Disable mTLS (WARNING: uses unencrypted HTTP communication).",
-          "title": "Disable Mcp Mtls",
+          "title": "Disable MCP mTLS",
           "type": "boolean"
         },
         "enable_subagents": {
@@ -32172,6 +32605,10 @@
         "subagent_config": {
           "default": null,
           "description": "Subagent configuration file subagents.toml.",
+          "examples": [
+            "subagents.toml",
+            "/etc/stakpak/subagents.toml"
+          ],
           "title": "Subagent Config",
           "type": [
             "string",
@@ -32192,11 +32629,26 @@
           ],
           "default": null,
           "description": "Allow only the specified tools in the agent's context.",
+          "examples": [
+            [
+              "bash",
+              "edit",
+              "read"
+            ],
+            [
+              "search",
+              "browse"
+            ]
+          ],
           "title": "Allowed Tools"
         },
         "system_prompt_file": {
           "default": null,
           "description": "Read system prompt from file.",
+          "examples": [
+            "prompt.txt",
+            "/etc/stakpak/system.txt"
+          ],
           "title": "System Prompt File",
           "type": [
             "string",
@@ -32206,6 +32658,11 @@
         "profile": {
           "default": null,
           "description": "Configuration profile to use.",
+          "examples": [
+            "default",
+            "production",
+            "development"
+          ],
           "title": "Profile",
           "type": [
             "string",
@@ -32227,11 +32684,19 @@
           ],
           "default": null,
           "description": "Choose agent model on startup.",
+          "examples": [
+            "smart",
+            "eco"
+          ],
           "title": "Model"
         },
         "config": {
           "default": null,
           "description": "Custom path to config file.",
+          "examples": [
+            "config.toml",
+            "/etc/stakpak/config.toml"
+          ],
           "title": "Config",
           "type": [
             "string",
@@ -38946,9 +39411,10 @@
           "description": "Working directory for the session.",
           "examples": [
             "/path/to/project",
-            "."
+            ".",
+            "/home/user/myproject"
           ],
-          "title": "Cwd",
+          "title": "Working Directory",
           "type": [
             "string",
             "null"
@@ -38959,7 +39425,13 @@
             "type": "string"
           },
           "description": "Environment variables to set.",
-          "title": "Env",
+          "examples": [
+            {
+              "DEBUG": "1",
+              "PATH": "/usr/local/bin:/usr/bin"
+            }
+          ],
+          "title": "Environment Variables",
           "type": "object"
         },
         "execution_environment": {
@@ -39011,7 +39483,7 @@
         "auto_grant_permissions": {
           "default": true,
           "description": "Whether to automatically grant all permission requests.",
-          "title": "Auto Grant Permissions",
+          "title": "Auto-Grant Permissions",
           "type": "boolean"
         },
         "type": {
@@ -39024,6 +39496,11 @@
         "model": {
           "default": null,
           "description": "LLM Model ID.",
+          "examples": [
+            "gemini-2.5-flash-preview-05-20",
+            "gpt-4o",
+            "claude-3-5-sonnet"
+          ],
           "title": "Model",
           "type": [
             "string",
@@ -39049,12 +39526,20 @@
           ],
           "default": null,
           "description": "LLM Provider.",
+          "examples": [
+            "gemini",
+            "openai"
+          ],
           "title": "Provider"
         },
         "api_key_env": {
           "default": null,
           "description": "API key environment variable.",
-          "title": "Api Key Env",
+          "examples": [
+            "GEMINI_API_KEY",
+            "OPENAI_API_KEY"
+          ],
+          "title": "API Key Env",
           "type": [
             "string",
             "null"
@@ -39063,6 +39548,10 @@
         "workspace": {
           "default": null,
           "description": "Workspace root directory for file operations.",
+          "examples": [
+            "/path/to/workspace",
+            "/home/user/projects"
+          ],
           "title": "Workspace",
           "type": [
             "string",
@@ -39072,7 +39561,7 @@
         "enable_tree_sitter": {
           "default": false,
           "description": "Enable tree-sitter code analysis.",
-          "title": "Enable Tree Sitter",
+          "title": "Enable Tree-Sitter",
           "type": "boolean"
         },
         "performance_monitoring": {
@@ -39103,6 +39592,10 @@
           ],
           "default": null,
           "description": "Security level for tool execution.",
+          "examples": [
+            "strict",
+            "moderate"
+          ],
           "title": "Security Level"
         },
         "show_file_diffs": {
@@ -39114,6 +39607,10 @@
         "max_concurrent_ops": {
           "default": null,
           "description": "Maximum concurrent async operations.",
+          "examples": [
+            5,
+            10
+          ],
           "title": "Max Concurrent Ops",
           "type": [
             "integer",
@@ -39123,7 +39620,11 @@
         "api_rate_limit": {
           "default": null,
           "description": "Maximum API requests per minute.",
-          "title": "Api Rate Limit",
+          "examples": [
+            60,
+            100
+          ],
+          "title": "API Rate Limit",
           "type": [
             "integer",
             "null"
@@ -39132,57 +39633,24 @@
         "max_tool_calls": {
           "default": null,
           "description": "Maximum tool calls per session.",
+          "examples": [
+            100,
+            500
+          ],
           "title": "Max Tool Calls",
           "type": [
             "integer",
             "null"
           ]
         },
-        "debug": {
-          "default": false,
-          "description": "Enable debug output for troubleshooting.",
-          "title": "Debug",
-          "type": "boolean"
-        },
-        "verbose": {
-          "default": false,
-          "description": "Enable verbose logging.",
-          "title": "Verbose",
-          "type": "boolean"
-        },
         "config": {
           "default": null,
           "description": "Configuration file path.",
-          "title": "Config",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "log_level": {
-          "anyOf": [
-            {
-              "enum": [
-                "error",
-                "warn",
-                "info",
-                "debug",
-                "trace"
-              ],
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
+          "examples": [
+            "config.toml",
+            "/etc/vtcode/config.toml"
           ],
-          "default": null,
-          "description": "Log level.",
-          "title": "Log Level"
-        },
-        "theme": {
-          "default": null,
-          "description": "Select UI theme for ANSI styling.",
-          "title": "Theme",
+          "title": "Config",
           "type": [
             "string",
             "null"

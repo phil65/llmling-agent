@@ -56,16 +56,25 @@ class BaseACPAgentConfig(NodeConfig):
         }
     )
 
-    cwd: str | None = Field(default=None, examples=["/path/to/project", "."])
+    cwd: str | None = Field(
+        default=None,
+        title="Working Directory",
+        examples=["/path/to/project", ".", "/home/user/myproject"],
+    )
     """Working directory for the session."""
 
-    env: dict[str, str] = Field(default_factory=dict)
+    env: dict[str, str] = Field(
+        default_factory=dict,
+        title="Environment Variables",
+        examples=[{"PATH": "/usr/local/bin:/usr/bin", "DEBUG": "1"}],
+    )
     """Environment variables to set."""
 
     execution_environment: Annotated[
         Literal["local", "docker", "e2b", "beam", "daytona", "srt"] | dict[str, Any],
         Field(
             default="local",
+            title="Execution Environment",
             examples=[
                 "local",
                 "docker",
@@ -76,13 +85,13 @@ class BaseACPAgentConfig(NodeConfig):
     ] = "local"
     """Execution environment config for ACP client operations (filesystem, terminals)."""
 
-    allow_file_operations: bool = Field(default=True)
+    allow_file_operations: bool = Field(default=True, title="Allow File Operations")
     """Whether to allow file read/write operations."""
 
-    allow_terminal: bool = Field(default=True)
+    allow_terminal: bool = Field(default=True, title="Allow Terminal")
     """Whether to allow terminal operations."""
 
-    auto_grant_permissions: bool = Field(default=True)
+    auto_grant_permissions: bool = Field(default=True, title="Auto-Grant Permissions")
     """Whether to automatically grant all permission requests."""
 
     def get_command(self) -> str:
@@ -132,6 +141,7 @@ class MCPCapableACPAgentConfig(BaseACPAgentConfig):
 
     toolsets: list[ToolsetConfig] = Field(
         default_factory=list,
+        title="Toolsets",
         examples=[
             [
                 {"type": "subagent"},
@@ -227,13 +237,25 @@ class ACPAgentConfig(BaseACPAgentConfig):
     type: Literal["acp"] = Field("acp", init=False)
     """Discriminator for custom ACP agent."""
 
-    command: str = Field(..., examples=["claude-code-acp", "aider", "my-custom-acp"])
+    command: str = Field(
+        ...,
+        title="Command",
+        examples=["claude-code-acp", "aider", "my-custom-acp"],
+    )
     """Command to spawn the ACP server."""
 
-    args: list[str] = Field(default_factory=list)
+    args: list[str] = Field(
+        default_factory=list,
+        title="Arguments",
+        examples=[["--mode", "coding"], ["--debug", "--verbose"]],
+    )
     """Arguments to pass to the command."""
 
-    providers: list[ProviderType] = Field(default_factory=list)
+    providers: list[ProviderType] = Field(
+        default_factory=list,
+        title="Providers",
+        examples=[["openai", "anthropic"], ["gemini"]],
+    )
     """Model providers this agent can use."""
 
     @property
@@ -275,47 +297,81 @@ class ClaudeACPAgentConfig(MCPCapableACPAgentConfig):
     type: Literal["claude"] = Field("claude", init=False)
     """Discriminator for Claude ACP agent."""
 
-    system_prompt: str | None = Field(default=None)
+    system_prompt: str | None = Field(
+        default=None,
+        title="System Prompt",
+        examples=["You are a helpful coding assistant.", "Follow best practices for Python."],
+    )
     """Custom system prompt (replaces default Claude Code prompt)."""
 
-    append_system_prompt: str | None = Field(default=None)
+    append_system_prompt: str | None = Field(
+        default=None,
+        title="Append System Prompt",
+        examples=["Always write tests.", "Prefer functional programming."],
+    )
     """Text to append to the default system prompt."""
 
     model: ClaudeCodeModelName | None = Field(
         default=None,
+        title="Model",
         examples=["sonnet", "opus", "claude-sonnet-4-20250514"],
     )
     """Model override. Use alias ('sonnet', 'opus') or full name."""
 
-    permission_mode: ClaudeCodePermissionmode | None = Field(default=None)
+    permission_mode: ClaudeCodePermissionmode | None = Field(
+        default=None,
+        title="Permission Mode",
+        examples=["acceptEdits", "bypassPermissions", "plan"],
+    )
     """Permission handling mode for tool execution."""
 
-    allowed_tools: list[ClaudeCodeToolName | str] | None = Field(default=None)
+    allowed_tools: list[ClaudeCodeToolName | str] | None = Field(
+        default=None,
+        title="Allowed Tools",
+        examples=[["Read", "Write", "Bash(git:*)"], ["Edit", "Glob"]],
+    )
     """Whitelist of allowed tools (e.g., ['Read', 'Write', 'Bash(git:*)'])."""
 
-    disallowed_tools: list[ClaudeCodeToolName | str] | None = Field(default=None)
+    disallowed_tools: list[ClaudeCodeToolName | str] | None = Field(
+        default=None,
+        title="Disallowed Tools",
+        examples=[["WebSearch", "WebFetch"], ["KillShell"]],
+    )
     """Blacklist of disallowed tools."""
 
-    strict_mcp_config: bool = Field(default=False)
+    strict_mcp_config: bool = Field(default=False, title="Strict MCP Config")
     """Only use MCP servers from mcp_config, ignoring all other configs."""
 
-    add_dir: list[str] | None = Field(default=None)
+    add_dir: list[str] | None = Field(
+        default=None,
+        title="Additional Directories",
+        examples=[["/tmp", "/var/log"], ["/home/user/data"]],
+    )
     """Additional directories to allow tool access to."""
 
     tools: list[ClaudeCodeToolName | str] | None = Field(
         default=None,
+        title="Tools",
         examples=[["Bash", "Edit", "Read"], []],
     )
     """Available tools from built-in set. Empty list disables all tools."""
 
-    fallback_model: ClaudeCodeModelName | None = Field(default=None, examples=["sonnet", "haiku"])
+    fallback_model: ClaudeCodeModelName | None = Field(
+        default=None,
+        title="Fallback Model",
+        examples=["sonnet", "haiku"],
+    )
     """Fallback model when default is overloaded."""
 
-    dangerously_skip_permissions: bool = Field(default=False)
+    dangerously_skip_permissions: bool = Field(
+        default=False,
+        title="Dangerously Skip Permissions",
+    )
     """Bypass all permission checks. Only for sandboxed environments."""
 
     output_type: str | StructuredResponseConfig | None = Field(
         default=None,
+        title="Output Type",
         examples=[
             "json_response",
             {"response_schema": {"type": "import", "import_path": "mymodule:MyModel"}},
@@ -414,32 +470,57 @@ class GeminiACPAgentConfig(MCPCapableACPAgentConfig):
 
     model: str | None = Field(
         default=None,
+        title="Model",
         examples=["gemini-2.5-pro", "gemini-2.5-flash"],
     )
     """Model override."""
 
-    approval_mode: Literal["default", "auto_edit", "yolo"] | None = Field(default=None)
+    approval_mode: Literal["default", "auto_edit", "yolo"] | None = Field(
+        default=None,
+        title="Approval Mode",
+        examples=["auto_edit", "yolo"],
+    )
     """Approval mode for tool execution."""
 
-    sandbox: bool = Field(default=False)
+    sandbox: bool = Field(default=False, title="Sandbox")
     """Run in sandbox mode."""
 
-    yolo: bool = Field(default=False)
+    yolo: bool = Field(default=False, title="YOLO")
     """Automatically accept all actions."""
 
-    allowed_tools: list[str] | None = Field(default=None)
+    allowed_tools: list[str] | None = Field(
+        default=None,
+        title="Allowed Tools",
+        examples=[["read_file", "write_file", "terminal"], ["search"]],
+    )
     """Tools allowed to run without confirmation."""
 
-    allowed_mcp_server_names: list[str] | None = Field(default=None)
+    allowed_mcp_server_names: list[str] | None = Field(
+        default=None,
+        title="Allowed MCP Server Names",
+        examples=[["filesystem", "github"], ["slack"]],
+    )
     """Allowed MCP server names."""
 
-    extensions: list[str] | None = Field(default=None)
+    extensions: list[str] | None = Field(
+        default=None,
+        title="Extensions",
+        examples=[["python", "typescript"], ["rust", "go"]],
+    )
     """List of extensions to use. If not provided, all are used."""
 
-    include_directories: list[str] | None = Field(default=None)
+    include_directories: list[str] | None = Field(
+        default=None,
+        title="Include Directories",
+        examples=[["/path/to/lib", "/path/to/shared"], ["./vendor"]],
+    )
     """Additional directories to include in the workspace."""
 
-    output_format: Literal["text", "json", "stream-json"] | None = Field(default=None)
+    output_format: Literal["text", "json", "stream-json"] | None = Field(
+        default=None,
+        title="Output Format",
+        examples=["json", "stream-json"],
+    )
     """Output format."""
 
     def get_command(self) -> str:
@@ -499,16 +580,25 @@ class CodexACPAgentConfig(BaseACPAgentConfig):
     type: Literal["codex"] = Field("codex", init=False)
     """Discriminator for Codex ACP agent."""
 
-    model: str | None = Field(default=None, examples=["o3", "o4-mini"])
+    model: str | None = Field(
+        default=None,
+        title="Model",
+        examples=["o3", "o4-mini"],
+    )
     """Model override."""
 
     sandbox_permissions: list[str] | None = Field(
         default=None,
-        examples=[["disk-full-read-access"]],
+        title="Sandbox Permissions",
+        examples=[["disk-full-read-access"], ["network-access", "disk-write-access"]],
     )
     """Sandbox permissions."""
 
-    shell_environment_policy_inherit: Literal["all", "none"] | None = Field(default=None)
+    shell_environment_policy_inherit: Literal["all", "none"] | None = Field(
+        default=None,
+        title="Shell Environment Policy Inherit",
+        examples=["all", "none"],
+    )
     """Shell environment inheritance policy."""
 
     def get_command(self) -> str:
@@ -559,18 +649,6 @@ class OpenCodeACPAgentConfig(BaseACPAgentConfig):
     type: Literal["opencode"] = Field("opencode", init=False)
     """Discriminator for OpenCode ACP agent."""
 
-    log_level: Literal["DEBUG", "INFO", "WARN", "ERROR"] | None = Field(default=None)
-    """Log level."""
-
-    print_logs: bool = Field(default=False)
-    """Print logs to stderr."""
-
-    port: int | None = Field(default=None)
-    """Port to listen on."""
-
-    hostname: str | None = Field(default=None, examples=["127.0.0.1", "0.0.0.0"])
-    """Hostname to listen on."""
-
     def get_command(self) -> str:
         """Get the command to spawn the ACP server."""
         return "opencode"
@@ -581,15 +659,6 @@ class OpenCodeACPAgentConfig(BaseACPAgentConfig):
 
         if self.cwd:
             args.extend(["--cwd", self.cwd])
-        if self.log_level:
-            args.extend(["--log-level", self.log_level])
-        if self.print_logs:
-            args.append("--print-logs")
-        if self.port is not None:
-            args.extend(["--port", str(self.port)])
-        if self.hostname:
-            args.extend(["--hostname", self.hostname])
-
         return args
 
     @property
@@ -695,10 +764,15 @@ class OpenHandsACPAgentConfig(BaseACPAgentConfig):
         return ["openai", "anthropic", "gemini", "openrouter"]
 
 
-class FastAgentACPAgentConfig(BaseACPAgentConfig):
+class FastAgentACPAgentConfig(MCPCapableACPAgentConfig):
     """Configuration for fast-agent via ACP.
 
     Robust LLM agent with comprehensive MCP support.
+
+    Supports MCP server integration via:
+    - Internal bridge: Use `toolsets` field to expose llmling-agent toolsets
+    - External servers: Use `url` field to connect to external MCP servers
+    - Skills: Use `skills_dir` to specify custom skills directory
 
     Example:
         ```yaml
@@ -707,6 +781,10 @@ class FastAgentACPAgentConfig(BaseACPAgentConfig):
             type: fast-agent
             cwd: /path/to/project
             model: claude-3.5-sonnet-20241022
+            toolsets:
+              - type: subagent
+              - type: agent_management
+            skills_dir: ./my-skills
         ```
     """
 
@@ -717,6 +795,7 @@ class FastAgentACPAgentConfig(BaseACPAgentConfig):
 
     model: str = Field(
         ...,
+        title="Model",
         examples=[
             "anthropic.claude-3-7-sonnet-latest",
             "openai.o3-mini.high",
@@ -725,13 +804,28 @@ class FastAgentACPAgentConfig(BaseACPAgentConfig):
     )
     """Model to use."""
 
-    shell_access: bool = Field(default=False)
+    shell_access: bool = Field(default=False, title="Shell Access")
     """Enable shell and file access (-x flag)."""
 
-    url: str | None = Field(default=None, examples=["https://huggingface.co/mcp"])
-    """MCP server URL to connect to."""
+    skills_dir: str | None = Field(
+        default=None,
+        title="Skills Directory",
+        examples=["./skills", "/path/to/custom-skills", "~/.fast-agent/skills"],
+    )
+    """Override the default skills directory for custom agent skills."""
 
-    auth: str | None = Field(default=None)
+    url: str | None = Field(
+        default=None,
+        title="URL",
+        examples=["https://huggingface.co/mcp", "http://localhost:8080"],
+    )
+    """MCP server URL to connect to. Can also be used with internal toolsets bridge."""
+
+    auth: str | None = Field(
+        default=None,
+        title="Auth",
+        examples=["bearer-token-123", "api-key-xyz"],
+    )
     """Authentication token for MCP server."""
 
     def get_command(self) -> str:
@@ -746,8 +840,27 @@ class FastAgentACPAgentConfig(BaseACPAgentConfig):
             args.extend(["--model", self.model])
         if self.shell_access:
             args.append("-x")
+        if self.skills_dir:
+            args.extend(["--skills-dir", self.skills_dir])
+
+        # Collect URLs from toolsets bridge + user-specified URL
+        urls: list[str] = []
         if self.url:
-            args.extend(["--url", self.url])
+            urls.append(self.url)
+
+        # Extract URLs from MCP config JSON (from toolsets)
+        mcp_json = self.build_mcp_config_json()
+        if mcp_json:
+            mcp_config = json.loads(mcp_json)
+            urls.extend(
+                server_config["url"]
+                for server_config in mcp_config.get("mcpServers", {}).values()
+                if "url" in server_config
+            )
+
+        if urls:
+            args.extend(["--url", ",".join(urls)])
+
         if self.auth:
             args.extend(["--auth", self.auth])
 
@@ -831,43 +944,91 @@ class AuggieACPAgentConfig(MCPCapableACPAgentConfig):
     type: Literal["auggie"] = Field("auggie", init=False)
     """Discriminator for Auggie ACP agent."""
 
-    model: str | None = Field(default=None)
+    model: str | None = Field(
+        default=None,
+        title="Model",
+        examples=["auggie-sonnet", "auggie-haiku"],
+    )
     """Model to use."""
 
-    workspace_root: str | None = Field(default=None)
+    workspace_root: str | None = Field(
+        default=None,
+        title="Workspace Root",
+        examples=["/path/to/workspace", "/home/user/project"],
+    )
     """Workspace root (auto-detects git root if absent)."""
 
-    rules: list[str] | None = Field(default=None)
+    rules: list[str] | None = Field(
+        default=None,
+        title="Rules",
+        examples=[["rules.md", "coding-standards.md"], ["./custom-rules.txt"]],
+    )
     """Additional rules files."""
 
-    augment_cache_dir: str | None = Field(default=None)
+    augment_cache_dir: str | None = Field(
+        default=None,
+        title="Augment Cache Dir",
+        examples=["~/.augment", "/tmp/augment-cache"],
+    )
     """Cache directory (default: ~/.augment)."""
 
-    retry_timeout: int | None = Field(default=None)
+    retry_timeout: int | None = Field(
+        default=None,
+        title="Retry Timeout",
+        examples=[30, 60],
+    )
     """Timeout for rate-limit retries (seconds)."""
 
-    allow_indexing: bool = Field(default=False)
+    allow_indexing: bool = Field(default=False, title="Allow Indexing")
     """Skip the indexing confirmation screen in interactive mode."""
 
-    augment_token_file: str | None = Field(default=None)
+    augment_token_file: str | None = Field(
+        default=None,
+        title="Augment Token File",
+        examples=["~/.augment/token", "/etc/augment/auth.token"],
+    )
     """Path to file containing authentication token."""
 
-    github_api_token: str | None = Field(default=None)
+    github_api_token: str | None = Field(
+        default=None,
+        title="GitHub API Token",
+        examples=["~/.github/token", "/secrets/github.token"],
+    )
     """Path to file containing GitHub API token."""
 
-    permission: list[str] | None = Field(default=None)
+    permission: list[str] | None = Field(
+        default=None,
+        title="Permission",
+        examples=[["bash:allow", "edit:confirm"], ["read:allow", "write:deny"]],
+    )
     """Tool permissions with 'tool-name:policy' format."""
 
-    remove_tool: list[str] | None = Field(default=None)
+    remove_tool: list[str] | None = Field(
+        default=None,
+        title="Remove Tool",
+        examples=[["deprecated-tool", "legacy-search"], ["old-formatter"]],
+    )
     """Remove specific tools by name."""
 
-    shell: Literal["bash", "zsh", "fish", "powershell"] | None = Field(default=None)
+    shell: Literal["bash", "zsh", "fish", "powershell"] | None = Field(
+        default=None,
+        title="Shell",
+        examples=["bash", "zsh"],
+    )
     """Select shell."""
 
-    startup_script: str | None = Field(default=None)
+    startup_script: str | None = Field(
+        default=None,
+        title="Startup Script",
+        examples=["export PATH=$PATH:/usr/local/bin", "source ~/.bashrc"],
+    )
     """Inline startup script to run before each command."""
 
-    startup_script_file: str | None = Field(default=None)
+    startup_script_file: str | None = Field(
+        default=None,
+        title="Startup Script File",
+        examples=["~/.augment_startup.sh", "/etc/augment/init.sh"],
+    )
     """Load startup script from file."""
 
     def get_command(self) -> str:
@@ -944,28 +1105,48 @@ class CagentACPAgentConfig(BaseACPAgentConfig):
     type: Literal["cagent"] = Field("cagent", init=False)
     """Discriminator for Docker cagent ACP agent."""
 
-    agent_file: str | None = Field(default=None)
+    agent_file: str | None = Field(
+        default=None,
+        title="Agent File",
+        examples=["./agent.yaml", "registry.docker.io/my-agent:latest"],
+    )
     """Agent configuration file or registry reference."""
 
-    code_mode_tools: bool = Field(default=False)
+    code_mode_tools: bool = Field(default=False, title="Code Mode Tools")
     """Provide a single tool to call other tools via Javascript."""
 
-    env_from_file: list[str] | None = Field(default=None)
+    env_from_file: list[str] | None = Field(
+        default=None,
+        title="Env From File",
+        examples=[[".env", ".env.production"], ["config/.env.local"]],
+    )
     """Set environment variables from file."""
 
-    models_gateway: str | None = Field(default=None)
+    models_gateway: str | None = Field(
+        default=None,
+        title="Models Gateway",
+        examples=["http://localhost:8000", "https://api.example.com/models"],
+    )
     """Set the models gateway address."""
 
-    working_dir: str | None = Field(default=None)
+    working_dir: str | None = Field(
+        default=None,
+        title="Working Dir",
+        examples=["/path/to/project", "/home/user/workspace"],
+    )
     """Set the working directory for the session."""
 
-    debug: bool = Field(default=False)
+    debug: bool = Field(default=False, title="Debug")
     """Enable debug logging."""
 
-    otel: bool = Field(default=False)
+    otel: bool = Field(default=False, title="OTEL")
     """Enable OpenTelemetry tracing."""
 
-    log_file: str | None = Field(default=None)
+    log_file: str | None = Field(
+        default=None,
+        title="Log File",
+        examples=["/var/log/cagent.log", "./debug.log"],
+    )
     """Path to debug log file."""
 
     def get_command(self) -> str:
@@ -1024,25 +1205,37 @@ class KimiACPAgentConfig(MCPCapableACPAgentConfig):
     type: Literal["kimi"] = Field("kimi", init=False)
     """Discriminator for Kimi CLI ACP agent."""
 
-    verbose: bool = Field(default=False)
+    verbose: bool = Field(default=False, title="Verbose")
     """Print verbose information."""
 
-    debug: bool = Field(default=False)
+    debug: bool = Field(default=False, title="Debug")
     """Log debug information."""
 
-    agent_file: str | None = Field(default=None)
+    agent_file: str | None = Field(
+        default=None,
+        title="Agent File",
+        examples=["./my-agent.yaml", "/etc/kimi/agent.json"],
+    )
     """Custom agent specification file."""
 
-    model: str | None = Field(default=None)
+    model: str | None = Field(
+        default=None,
+        title="Model",
+        examples=["kimi-v1", "kimi-v2"],
+    )
     """LLM model to use."""
 
-    work_dir: str | None = Field(default=None)
+    work_dir: str | None = Field(
+        default=None,
+        title="Work Dir",
+        examples=["/path/to/work", "/tmp/kimi-workspace"],
+    )
     """Working directory for the agent."""
 
-    yolo: bool = Field(default=False)
+    yolo: bool = Field(default=False, title="YOLO")
     """Automatically approve all actions."""
 
-    thinking: bool | None = Field(default=None)
+    thinking: bool | None = Field(default=None, title="Thinking")
     """Enable thinking mode if supported."""
 
     def get_command(self) -> str:
@@ -1104,52 +1297,80 @@ class StakpakACPAgentConfig(BaseACPAgentConfig):
     type: Literal["stakpak"] = Field("stakpak", init=False)
     """Discriminator for Stakpak ACP agent."""
 
-    workdir: str | None = Field(default=None)
+    workdir: str | None = Field(
+        default=None,
+        title="Workdir",
+        examples=["/path/to/workdir", "/home/user/projects"],
+    )
     """Run the agent in a specific directory."""
 
-    verbose: bool = Field(default=False)
+    verbose: bool = Field(default=False, title="Verbose")
     """Enable verbose output."""
 
-    debug: bool = Field(default=False)
+    debug: bool = Field(default=False, title="Debug")
     """Enable debug output."""
 
-    disable_secret_redaction: bool = Field(default=False)
+    disable_secret_redaction: bool = Field(default=False, title="Disable Secret Redaction")
     """Disable secret redaction (WARNING: prints secrets to console)."""
 
-    privacy_mode: bool = Field(default=False)
+    privacy_mode: bool = Field(default=False, title="Privacy Mode")
     """Enable privacy mode to redact private data."""
 
-    study_mode: bool = Field(default=False)
+    study_mode: bool = Field(default=False, title="Study Mode")
     """Enable study mode to use the agent as a study assistant."""
 
-    index_big_project: bool = Field(default=False)
+    index_big_project: bool = Field(default=False, title="Index Big Project")
     """Allow indexing of large projects (more than 500 supported files)."""
 
-    enable_slack_tools: bool = Field(default=False)
+    enable_slack_tools: bool = Field(default=False, title="Enable Slack Tools")
     """Enable Slack tools (experimental)."""
 
-    disable_mcp_mtls: bool = Field(default=False)
+    disable_mcp_mtls: bool = Field(default=False, title="Disable MCP mTLS")
     """Disable mTLS (WARNING: uses unencrypted HTTP communication)."""
 
-    enable_subagents: bool = Field(default=False)
+    enable_subagents: bool = Field(default=False, title="Enable Subagents")
     """Enable subagents."""
 
-    subagent_config: str | None = Field(default=None)
+    subagent_config: str | None = Field(
+        default=None,
+        title="Subagent Config",
+        examples=["subagents.toml", "/etc/stakpak/subagents.toml"],
+    )
     """Subagent configuration file subagents.toml."""
 
-    allowed_tools: list[str] | None = Field(default=None)
+    allowed_tools: list[str] | None = Field(
+        default=None,
+        title="Allowed Tools",
+        examples=[["bash", "edit", "read"], ["search", "browse"]],
+    )
     """Allow only the specified tools in the agent's context."""
 
-    system_prompt_file: str | None = Field(default=None)
+    system_prompt_file: str | None = Field(
+        default=None,
+        title="System Prompt File",
+        examples=["prompt.txt", "/etc/stakpak/system.txt"],
+    )
     """Read system prompt from file."""
 
-    profile: str | None = Field(default=None)
+    profile: str | None = Field(
+        default=None,
+        title="Profile",
+        examples=["default", "production", "development"],
+    )
     """Configuration profile to use."""
 
-    model: Literal["smart", "eco"] | None = Field(default=None)
+    model: Literal["smart", "eco"] | None = Field(
+        default=None,
+        title="Model",
+        examples=["smart", "eco"],
+    )
     """Choose agent model on startup."""
 
-    config: str | None = Field(default=None)
+    config: str | None = Field(
+        default=None,
+        title="Config",
+        examples=["config.toml", "/etc/stakpak/config.toml"],
+    )
     """Custom path to config file."""
 
     def get_command(self) -> str:
@@ -1224,63 +1445,87 @@ class VTCodeACPAgentConfig(BaseACPAgentConfig):
     type: Literal["vtcode"] = Field("vtcode", init=False)
     """Discriminator for VT Code ACP agent."""
 
-    model: str | None = Field(default=None)
+    model: str | None = Field(
+        default=None,
+        title="Model",
+        examples=["gemini-2.5-flash-preview-05-20", "gpt-4o", "claude-3-5-sonnet"],
+    )
     """LLM Model ID."""
 
     provider: Literal["gemini", "openai", "anthropic", "deepseek", "openrouter", "xai"] | None = (
-        Field(default=None)
+        Field(
+            default=None,
+            title="Provider",
+            examples=["gemini", "openai"],
+        )
     )
     """LLM Provider."""
 
-    api_key_env: str | None = Field(default=None)
+    api_key_env: str | None = Field(
+        default=None,
+        title="API Key Env",
+        examples=["GEMINI_API_KEY", "OPENAI_API_KEY"],
+    )
     """API key environment variable."""
 
-    workspace: str | None = Field(default=None)
+    workspace: str | None = Field(
+        default=None,
+        title="Workspace",
+        examples=["/path/to/workspace", "/home/user/projects"],
+    )
     """Workspace root directory for file operations."""
 
-    enable_tree_sitter: bool = Field(default=False)
+    enable_tree_sitter: bool = Field(default=False, title="Enable Tree-Sitter")
     """Enable tree-sitter code analysis."""
 
-    performance_monitoring: bool = Field(default=False)
+    performance_monitoring: bool = Field(default=False, title="Performance Monitoring")
     """Enable performance monitoring."""
 
-    research_preview: bool = Field(default=False)
+    research_preview: bool = Field(default=False, title="Research Preview")
     """Enable research-preview features."""
 
-    security_level: Literal["strict", "moderate", "permissive"] | None = Field(default=None)
+    security_level: Literal["strict", "moderate", "permissive"] | None = Field(
+        default=None,
+        title="Security Level",
+        examples=["strict", "moderate"],
+    )
     """Security level for tool execution."""
 
-    show_file_diffs: bool = Field(default=False)
+    show_file_diffs: bool = Field(default=False, title="Show File Diffs")
     """Show diffs for file changes in chat interface."""
 
-    max_concurrent_ops: int | None = Field(default=None)
+    max_concurrent_ops: int | None = Field(
+        default=None,
+        title="Max Concurrent Ops",
+        examples=[5, 10],
+    )
     """Maximum concurrent async operations."""
 
-    api_rate_limit: int | None = Field(default=None)
+    api_rate_limit: int | None = Field(
+        default=None,
+        title="API Rate Limit",
+        examples=[60, 100],
+    )
     """Maximum API requests per minute."""
 
-    max_tool_calls: int | None = Field(default=None)
+    max_tool_calls: int | None = Field(
+        default=None,
+        title="Max Tool Calls",
+        examples=[100, 500],
+    )
     """Maximum tool calls per session."""
 
-    debug: bool = Field(default=False)
-    """Enable debug output for troubleshooting."""
-
-    verbose: bool = Field(default=False)
-    """Enable verbose logging."""
-
-    config: str | None = Field(default=None)
+    config: str | None = Field(
+        default=None,
+        title="Config",
+        examples=["config.toml", "/etc/vtcode/config.toml"],
+    )
     """Configuration file path."""
 
-    log_level: Literal["error", "warn", "info", "debug", "trace"] | None = Field(default=None)
-    """Log level."""
-
-    theme: str | None = Field(default=None)
-    """Select UI theme for ANSI styling."""
-
-    skip_confirmations: bool = Field(default=False)
+    skip_confirmations: bool = Field(default=False, title="Skip Confirmations")
     """Skip safety confirmations."""
 
-    full_auto: bool = Field(default=False)
+    full_auto: bool = Field(default=False, title="Full Auto")
     """Enable full-auto mode (no interaction)."""
 
     def get_command(self) -> str:
@@ -1315,16 +1560,8 @@ class VTCodeACPAgentConfig(BaseACPAgentConfig):
             args.extend(["--api-rate-limit", str(self.api_rate_limit)])
         if self.max_tool_calls is not None:
             args.extend(["--max-tool-calls", str(self.max_tool_calls)])
-        if self.debug:
-            args.append("--debug")
-        if self.verbose:
-            args.append("--verbose")
         if self.config:
             args.extend(["--config", self.config])
-        if self.log_level:
-            args.extend(["--log-level", self.log_level])
-        if self.theme:
-            args.extend(["--theme", self.theme])
         if self.skip_confirmations:
             args.append("--skip-confirmations")
         if self.full_auto:
@@ -1360,44 +1597,74 @@ class CursorACPAgentConfig(BaseACPAgentConfig):
     type: Literal["cursor"] = Field("cursor", init=False)
     """Discriminator for Cursor ACP agent."""
 
-    config: str | None = Field(default=None)
+    config: str | None = Field(
+        default=None,
+        title="Config",
+        examples=["config.json", "/etc/cursor/config.json"],
+    )
     """Path to configuration file."""
 
-    log_level: Literal["error", "warn", "info", "debug"] | None = Field(default=None)
+    log_level: Literal["error", "warn", "info", "debug"] | None = Field(
+        default=None,
+        title="Log Level",
+        examples=["info", "debug"],
+    )
     """Logging level."""
 
-    log_file: str | None = Field(default=None)
+    log_file: str | None = Field(
+        default=None,
+        title="Log File",
+        examples=["/var/log/cursor.log", "./cursor-debug.log"],
+    )
     """Log file path (logs to stderr by default)."""
 
-    session_dir: str | None = Field(default=None)
+    session_dir: str | None = Field(
+        default=None,
+        title="Session Dir",
+        examples=["~/.cursor-sessions", "/tmp/cursor-sessions"],
+    )
     """Session storage directory (default: ~/.cursor-sessions)."""
 
-    timeout: int | None = Field(default=None)
+    timeout: int | None = Field(
+        default=None,
+        title="Timeout",
+        examples=[30000, 60000],
+    )
     """Cursor-agent timeout in milliseconds (default: 30000)."""
 
-    retries: int | None = Field(default=None)
+    retries: int | None = Field(
+        default=None,
+        title="Retries",
+        examples=[3, 5],
+    )
     """Number of retries for cursor-agent commands (default: 3)."""
 
-    max_sessions: int | None = Field(default=None)
+    max_sessions: int | None = Field(
+        default=None,
+        title="Max Sessions",
+        examples=[100, 200],
+    )
     """Maximum number of concurrent sessions (default: 100)."""
 
-    session_timeout: int | None = Field(default=None)
+    session_timeout: int | None = Field(
+        default=None,
+        title="Session Timeout",
+        examples=[3600000, 7200000],
+    )
     """Session timeout in milliseconds (default: 3600000)."""
 
-    no_filesystem: bool = Field(default=False)
+    no_filesystem: bool = Field(default=False, title="No Filesystem")
     """Disable filesystem tools."""
 
-    no_terminal: bool = Field(default=False)
+    no_terminal: bool = Field(default=False, title="No Terminal")
     """Disable terminal tools."""
 
-    max_processes: int | None = Field(default=None)
+    max_processes: int | None = Field(
+        default=None,
+        title="Max Processes",
+        examples=[5, 10],
+    )
     """Maximum number of terminal processes (default: 5)."""
-
-    verbose: bool = Field(default=False)
-    """Enable verbose logging."""
-
-    quiet: bool = Field(default=False)
-    """Suppress all output except errors."""
 
     def get_command(self) -> str:
         """Get the command to spawn the ACP server."""
@@ -1429,11 +1696,6 @@ class CursorACPAgentConfig(BaseACPAgentConfig):
             args.append("--no-terminal")
         if self.max_processes is not None:
             args.extend(["--max-processes", str(self.max_processes)])
-        if self.verbose:
-            args.append("--verbose")
-        if self.quiet:
-            args.append("--quiet")
-
         return args
 
     @property
