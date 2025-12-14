@@ -1,5 +1,5 @@
 ---
-title: Task Configuration
+title: Tasks
 description: Task definition and configuration
 icon: material/format-list-checks
 ---

@@ -3,7 +3,7 @@ sync:
   agent: doc_sync_agent
   dependencies:
     - src/llmling_agent_config/toolsets.py
-title: Toolset Configuration
+title: Toolsets
 description: Toolset setup and management
 icon: material/package
 ---

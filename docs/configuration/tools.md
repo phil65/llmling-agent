@@ -3,7 +3,7 @@ sync:
   agent: doc_sync_agent
   dependencies:
     - src/llmling_agent_config/tools.py
-title: Tool Configuration
+title: Tools
 description: Tool registration and configuration
 icon: material/tools
 ---

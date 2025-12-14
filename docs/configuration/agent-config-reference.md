@@ -1,5 +1,5 @@
 ---
-title: Agent Configuration
+title: Agent
 description: Complete agent configuration reference
 icon: material/file-document
 ---

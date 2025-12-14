@@ -3,7 +3,7 @@ sync:
   agent: doc_sync_agent
   dependencies:
     - src/llmling_agent/models/agui_agents.py
-title: AG-UI Agents Configuration
+title: AG-UI Agents
 description: AG-UI protocol agent integration
 icon: material/api
 ---

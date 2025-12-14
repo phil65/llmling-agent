@@ -3,7 +3,7 @@ sync:
   agent: doc_sync_agent
   dependencies:
     - src/llmling_agent_config/event_handlers.py
-title: Event Handler Configuration
+title: Event Handlers
 description: Event handler setup and configuration
 icon: material/bell-ring
 ---

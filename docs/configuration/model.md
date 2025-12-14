@@ -1,5 +1,5 @@
 ---
-title: Model Configuration
+title: AI Models
 description: Language model setup and configuration
 icon: material/cpu-64-bit
 ---

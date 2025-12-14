@@ -3,7 +3,7 @@ sync:
   agent: doc_sync_agent
   dependencies:
     - src/llmling_agent_config/events.py
-title: Event Sources Configuration
+title: Event Sources
 description: Event source configuration for triggering agent actions
 icon: material/bell-alert
 ---

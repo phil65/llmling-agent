@@ -3,7 +3,7 @@ sync:
   agent: doc_sync_agent
   dependencies:
     - src/llmling_agent_config/mcp_server.py
-title: MCP Server Setup
+title: MCP Servers
 description: MCP server configuration and integration
 icon: material/server
 ---

@@ -3,7 +3,7 @@ sync:
   agent: doc_sync_agent
   dependencies:
     - src/llmling_agent_config/storage.py
-title: Storage Configuration
+title: Storage 
 description: Database and storage setup
 icon: material/database
 ---

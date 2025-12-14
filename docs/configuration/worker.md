@@ -3,7 +3,7 @@ sync:
   agent: doc_sync_agent
   dependencies:
     - src/llmling_agent_config/workers.py
-title: Worker Configuration
+title: Workers
 description: Worker agent configuration
 icon: material/account-hard-hat
 ---

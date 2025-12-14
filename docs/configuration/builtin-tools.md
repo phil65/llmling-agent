@@ -3,7 +3,7 @@ sync:
   agent: doc_sync_agent
   dependencies:
     - src/llmling_agent_config/builtin_tools.py
-title: Built-in Tools Configuration
+title: Built-in Tools
 description: PydanticAI built-in tool configuration
 icon: material/wrench
 ---

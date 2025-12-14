@@ -3,7 +3,7 @@ sync:
   agent: doc_sync_agent
   dependencies:
     - src/llmling_agent_config/session.py
-title: Session Configuration
+title: Sessions
 description: Session management and configuration
 icon: material/history
 ---

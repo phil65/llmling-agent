@@ -3,7 +3,7 @@ sync:
   agent: doc_sync_agent
   dependencies:
     - src/llmling_agent_config/nodes.py
-title: Agent Configuration
+title: Agent
 description: Agent configuration options
 icon: material/robot
 ---

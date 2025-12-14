@@ -3,7 +3,7 @@ sync:
   agent: doc_sync_agent
   dependencies:
     - src/llmling_agent_config/system_prompts.py
-title: System Prompts Configuration
+title: System Prompts
 description: System prompt configuration and library
 icon: material/text-box
 ---

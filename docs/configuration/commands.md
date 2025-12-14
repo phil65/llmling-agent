@@ -3,7 +3,7 @@ sync:
   agent: doc_sync_agent
   dependencies:
     - src/llmling_agent_config/commands.py
-title: Command Configuration
+title: Commands
 description: Slash command configuration
 icon: material/slash-forward
 ---

@@ -3,7 +3,7 @@ sync:
   agent: doc_sync_agent
   dependencies:
     - src/llmling_agent_config/loaders.py
-title: Resource Configuration
+title: Resources
 description: Resource loader configuration
 icon: material/file-document
 ---

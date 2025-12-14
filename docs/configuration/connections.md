@@ -3,7 +3,7 @@ sync:
   agent: doc_sync_agent
   dependencies:
     - src/llmling_agent_config/forward_targets.py
-title: Connections Configuration
+title: Connections 
 description: Message routing and forwarding configuration
 icon: material/arrow-right
 ---

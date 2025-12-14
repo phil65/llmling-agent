@@ -3,7 +3,7 @@ sync:
   agent: doc_sync_agent
   dependencies:
     - src/llmling_agent_config/teams.py
-title: Team Configuration
+title: Teams
 description: Team configuration and setup
 icon: lucide/users
 ---

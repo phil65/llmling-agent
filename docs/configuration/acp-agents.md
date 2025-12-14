@@ -3,7 +3,7 @@ sync:
   agent: doc_sync_agent
   dependencies:
     - src/llmling_agent/models/acp_agents.py
-title: ACP Agents Configuration
+title: ACP Agents
 description: External ACP agent integration
 icon: material/connection
 ---

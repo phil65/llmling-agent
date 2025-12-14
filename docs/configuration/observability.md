@@ -3,7 +3,7 @@ sync:
   agent: doc_sync_agent
   dependencies:
     - src/llmling_agent_config/observability.py
-title: Observability Configuration
+title: Observability
 description: Monitoring and tracing configuration
 icon: material/monitor-eye
 ---

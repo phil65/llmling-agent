@@ -3,7 +3,7 @@ sync:
   agent: doc_sync_agent
   dependencies:
     - src/llmling_agent_config/conditions.py
-title: Conditions Configuration
+title: Conditions
 description: Conditional logic for message flow and lifecycle control
 icon: material/source-branch
 ---

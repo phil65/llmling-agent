@@ -3,7 +3,7 @@ sync:
   agent: doc_sync_agent
   dependencies:
     - src/llmling_agent_config/prompt_hubs.py
-title: Prompt Hub Configuration
+title: Prompt Hubs
 description: External prompt hub integration
 icon: material/hub
 ---
