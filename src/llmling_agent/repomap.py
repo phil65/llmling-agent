@@ -10,6 +10,7 @@ from collections.abc import Callable
 import colorsys
 from importlib import resources
 import math
+import os
 import random
 import shutil
 from typing import TYPE_CHECKING, Any, ClassVar, NamedTuple, cast
@@ -358,11 +359,13 @@ class RepoMap:
         """Rank tags using PageRank algorithm."""
         import rustworkx as rx
 
-        defines: defaultdict[str, set[UPath]] = defaultdict(set)
-        references: defaultdict[str, list[UPath]] = defaultdict(list)
-        definitions: defaultdict[tuple[UPath, str], set[Tag]] = defaultdict(set)
-        personalization: dict[UPath, float] = {}
-        exclude_rel_fnames: set[UPath] = set()
+        defines: defaultdict[str, set[str]] = defaultdict(set)
+        references: defaultdict[str, list[str]] = defaultdict(list)
+        definitions: defaultdict[tuple[str, str], set[Tag]] = defaultdict(set)
+        personalization: dict[str, float] = {}
+        exclude_rel_fnames: set[str] = set()
+        # Map string keys back to original UPath objects (preserves auth, protocol, etc.)
+        str_to_rel_path: dict[str, UPath] = {}
         sorted_fnames = sorted(files, key=str)
         # Default personalization for unspecified files
         personalize = 100 / len(sorted_fnames) if sorted_fnames else 0
@@ -377,10 +380,12 @@ class RepoMap:
                     self.warned_files.add(fname)
                 continue
             rel_fname = self.get_rel_fname(fname)
+            rel_fname_str = str(rel_fname)
+            str_to_rel_path[rel_fname_str] = rel_fname
             current_pers = 0.0
             if fname in exclude:
                 current_pers += personalize
-                exclude_rel_fnames.add(rel_fname)
+                exclude_rel_fnames.add(rel_fname_str)
             if rel_fname in boost_files:
                 current_pers = max(current_pers, personalize)
             # Check path components against boost_idents
@@ -394,15 +399,15 @@ class RepoMap:
                 current_pers += personalize
 
             if current_pers > 0:
-                personalization[rel_fname] = current_pers
+                personalization[rel_fname_str] = current_pers
             tags = list(self._get_tags(fname, rel_fname))
             for tag in tags:
                 if tag.kind == "def":
-                    defines[tag.name].add(rel_fname)
-                    key = (rel_fname, tag.name)
+                    defines[tag.name].add(rel_fname_str)
+                    key = (rel_fname_str, tag.name)
                     definitions[key].add(tag)
                 elif tag.kind == "ref":
-                    references[tag.name].append(rel_fname)
+                    references[tag.name].append(rel_fname_str)
 
         if not references:
             references = defaultdict(list, {k: list(v) for k, v in defines.items()})
@@ -426,7 +431,7 @@ class RepoMap:
             if ident in references:
                 continue
             for definer in defines[ident]:
-                idx = get_or_add_node(str(definer))
+                idx = get_or_add_node(definer)
                 graph.add_edge(idx, idx, {"weight": 0.1, "ident": ident})
 
         for ident in idents:
@@ -451,8 +456,8 @@ class RepoMap:
                         use_mul *= 50
                     # Scale down high frequency mentions
                     scaled_refs = math.sqrt(num_refs)
-                    src_idx = get_or_add_node(str(referencer))
-                    dst_idx = get_or_add_node(str(definer))
+                    src_idx = get_or_add_node(referencer)
+                    dst_idx = get_or_add_node(definer)
                     graph.add_edge(
                         src_idx, dst_idx, {"weight": use_mul * scaled_refs, "ident": ident}
                     )
@@ -464,9 +469,9 @@ class RepoMap:
         pers_idx: dict[int, float] | None = None
         if personalization:
             pers_idx = {
-                node_to_idx[str(name)]: val
+                node_to_idx[name]: val
                 for name, val in personalization.items()
-                if str(name) in node_to_idx
+                if name in node_to_idx
             }
 
         try:
@@ -506,28 +511,31 @@ class RepoMap:
         )
 
         for (fname, ident), _rank in sorted_definitions:
-            fname_path = UPath(fname)
-            if fname_path in exclude_rel_fnames:
+            if fname in exclude_rel_fnames:
                 continue
-            ranked_tags += list(definitions.get((fname_path, ident), []))
+            ranked_tags += list(definitions.get((fname, ident), []))
 
-        rel_fnames_without_tags = {self.get_rel_fname(fname) for fname in files}
+        rel_fnames_without_tags = {str(self.get_rel_fname(fname)) for fname in files}
         for fname in exclude:
-            rel = self.get_rel_fname(fname)
+            rel = str(self.get_rel_fname(fname))
             rel_fnames_without_tags.discard(rel)
 
-        fnames_already_included = {rt[0] for rt in ranked_tags}
+        fnames_already_included = {str(rt[0]) for rt in ranked_tags}
 
         top_rank = sorted([(rank, node) for (node, rank) in ranked.items()], reverse=True)
-        for _rank, fname in top_rank:
-            fname_path = UPath(fname)
-            if fname_path in rel_fnames_without_tags:
-                rel_fnames_without_tags.remove(fname_path)
-            if fname_path not in fnames_already_included:
-                ranked_tags.append((fname_path,))
+        for _rank, fname_str in top_rank:
+            if fname_str in rel_fnames_without_tags:
+                rel_fnames_without_tags.remove(fname_str)
+            if fname_str not in fnames_already_included:
+                # Use original UPath from mapping, preserving auth/protocol info
+                original_path = str_to_rel_path.get(fname_str)
+                if original_path is not None:
+                    ranked_tags.append((original_path,))
 
-        for fname in rel_fnames_without_tags:
-            ranked_tags.append((fname,))
+        for fname_str in rel_fnames_without_tags:
+            original_path = str_to_rel_path.get(fname_str)
+            if original_path is not None:
+                ranked_tags.append((original_path,))
 
         return ranked_tags
 
@@ -561,7 +569,7 @@ class RepoMap:
         upper_bound = num_tags
         best_tree: str | None = None
         best_tree_tokens: float = 0
-        exclude_rel_fnames = {self.get_rel_fname(fname) for fname in exclude}
+        exclude_rel_fnames = {str(self.get_rel_fname(fname)) for fname in exclude}
         self.tree_cache = {}
         middle = min(int(max_tokens // 25), num_tags)
         while lower_bound <= upper_bound:
@@ -689,7 +697,7 @@ class RepoMap:
         self.tree_cache[key] = res
         return res
 
-    def _to_tree(self, tags: list[RankedTag], exclude_rel_fnames: set[UPath]) -> str:
+    def _to_tree(self, tags: list[RankedTag], exclude_rel_fnames: set[str]) -> str:
         """Convert ranked tags to a tree representation."""
         if not tags:
             return ""
@@ -704,7 +712,7 @@ class RepoMap:
         dummy_tag: tuple[None] = (None,)
         for tag in [*sorted(tags, key=lambda t: str(t[0]) if t[0] else ""), dummy_tag]:
             this_rel_fname = tag[0]
-            if this_rel_fname in exclude_rel_fnames:
+            if str(this_rel_fname) in exclude_rel_fnames:
                 continue
 
             if this_rel_fname != cur_fname:
@@ -790,63 +798,45 @@ def get_supported_languages_md() -> str:
 
 
 if __name__ == "__main__":
-    # Test 1: Local files (llmling-agent itself)
+    # Test with GitHub UPath using GH_TOKEN for authentication
     print("=" * 80)
-    print("TEST 1: Local UPath - llmling-agent repository")
+    print("GitHub UPath Test - epregistry repository")
     print("=" * 80)
 
-    project_root = UPath(__file__).parent.parent.parent
-    src_dir = project_root / "src" / "llmling_agent"
+    gh_token = os.environ.get("GH_TOKEN")
+    if not gh_token:
+        print("Warning: GH_TOKEN not set, may hit rate limits")
+
+    github_repo = UPath(
+        "github://phil65:epregistry@main/src/epregistry",
+        username=gh_token,
+        token=gh_token,
+    )
+    repo_root = UPath(
+        "github://phil65:epregistry@main",
+        username=gh_token,
+        token=gh_token,
+    )
+
+    print(f"Repository: {github_repo}")
 
     try:
-        all_py_files = [f for f in find_src_files(src_dir) if f.suffix == ".py"]
-        print(f"Found {len(all_py_files)} Python files in {src_dir}")
+        all_py_files = [f for f in find_src_files(github_repo) if f.suffix == ".py"]
+        print(f"Found {len(all_py_files)} Python files")
 
-        rm = RepoMap(root=project_root, max_tokens=3000)
-        repo_map = rm.get_map(all_py_files[:10])  # First 10 files for testing
+        rm = RepoMap(root=repo_root, max_tokens=4000)
+        repo_map = rm.get_map(all_py_files)
 
         if repo_map:
-            print("\nREPOSITORY MAP (first 1000 chars):")
-            print(repo_map[:1000])
+            print("\n" + "=" * 80)
+            print("REPOSITORY MAP")
+            print("=" * 80)
+            print(repo_map)
         else:
             print("No repository map generated")
+
     except Exception as e:
         print(f"Error: {type(e).__name__}: {e}")
         import traceback
 
         traceback.print_exc()
-
-    # Test 2: GitHub UPath (commented out to avoid rate limiting)
-    # Uncomment to test with remote repositories
-    # print("\n" + "=" * 80)
-    # print("TEST 2: GitHub UPath - epregistry repository")
-    # print("=" * 80)
-    #
-    # github_repo = UPath("github://phil65:epregistry@main/src/epregistry")
-    #
-    # try:
-    #     all_py_files = [f for f in find_src_files(github_repo) if f.suffix == ".py"]
-    #     print(f"Found {len(all_py_files)} Python files")
-    #
-    #     repo_root = UPath("github://phil65:epregistry@main")
-    #     rm = RepoMap(root=repo_root, max_tokens=4000)
-    #     repo_map = rm.get_map(all_py_files)
-    #
-    #     if repo_map:
-    #         print("\nREPOSITORY MAP:")
-    #         print(repo_map)
-    #     else:
-    #         print("No repository map generated")
-    #
-    # except Exception as e:
-    #     print(f"Error: {type(e).__name__}: {e}")
-    #     import traceback
-    #
-    #     traceback.print_exc()
-
-    print("\n" + "=" * 80)
-    print("✅ UPath-native refactoring successful!")
-    print("   - Works with local files (PosixUPath)")
-    print("   - Works with remote files (GitHubPath)")
-    print("   - No more read_file injection needed")
-    print("=" * 80)
