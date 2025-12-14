@@ -1,311 +1,235 @@
 # serializer version: 1
-# name: test_acp_agent_help_output[ACPAgentConfig]
-  '''
-  Error creating instance: 1 validation error for ACPAgentConfig
-  command
-    Field required [type=missing, input_value={}, input_type=dict]
-      For further information visit https://errors.pydantic.dev/2.12/v/missing
-  '''
-# ---
 # name: test_acp_agent_help_output[AmpACPAgentConfig]
   '''
   === AmpACPAgentConfig ===
   
-  Command:
-    npx
+  Command: npx
   
-  Arguments:
-    -y
-    amp-acp
+  CLI Help Output:
+  ----------------------------------------------------------------------
+  Run a command from a local or remote npm package
   
-  Fields:
-    name: str | None = None - Identifier for the node. Set from dict key, not from YAML.
-    config_file_path: str | None = None - Config file path for resolving relative paths.
-    display_name: str | None = None - Human-readable display name for the node.
-    description: str | None = None - Optional description of the agent / team.
-    triggers: list = PydanticUndefined - Event sources that activate this agent / team
-    connections: list = PydanticUndefined - Targets to forward results to.
-    mcp_servers: list = PydanticUndefined - List of MCP server configurations:
-  - str entries are converted to StdioMCPServerConfig
-  - MCPServerConfig for full server configuration
-    input_provider: Optional = None - Provider for human-input-handling.
-    event_handlers: list = PydanticUndefined - Event handlers for processing agent stream events.
+  Usage:
+  npm exec -- <pkg>[@<version>] [args...]
+  npm exec --package=<pkg>[@<version>] -- <cmd> [args...]
+  npm exec -c '<cmd> [args...]'
+  npm exec --package=foo -c '<cmd> [args...]'
   
-  Supports:
-  - builtin: Simple/detailed console output
-  - tts: Text-to-speech synthesis
-  - callback: Custom handler via import path
-    cwd: str | None = None - Working directory for the session.
-    env: dict = PydanticUndefined - Environment variables to set.
-    execution_environment: Union = 'local' - Execution environment config for ACP client operations (filesystem, terminals).
-    allow_file_operations: bool = True - Whether to allow file read/write operations.
-    allow_terminal: bool = True - Whether to allow terminal operations.
-    auto_grant_permissions: bool = True - Whether to automatically grant all permission requests.
-    type: Literal = 'amp' - Discriminator for Amp ACP agent.
+  Options:
+  [--package <package-spec> [--package <package-spec> ...]] [-c|--call <call>]
+  [-w|--workspace <workspace-name> [-w|--workspace <workspace-name> ...]]
+  [--workspaces] [--include-workspace-root]
   
-  Model Providers:
-    - openai
-    - anthropic
-    - gemini
+  alias: x
+  
+  Run "npm help exec" for more info
   '''
 # ---
 # name: test_acp_agent_help_output[AuggieACPAgentConfig]
   '''
   === AuggieACPAgentConfig ===
   
-  Command:
-    auggie
+  Command: auggie
   
-  Arguments:
-    --acp
+  CLI Help Output:
+  ----------------------------------------------------------------------
+  Usage: auggie [instruction] [options]
   
-  Fields:
-    name: str | None = None - Identifier for the node. Set from dict key, not from YAML.
-    config_file_path: str | None = None - Config file path for resolving relative paths.
-    display_name: str | None = None - Human-readable display name for the node.
-    description: str | None = None - Optional description of the agent / team.
-    triggers: list = PydanticUndefined - Event sources that activate this agent / team
-    connections: list = PydanticUndefined - Targets to forward results to.
-    mcp_servers: list = PydanticUndefined - List of MCP server configurations:
-  - str entries are converted to StdioMCPServerConfig
-  - MCPServerConfig for full server configuration
-    input_provider: Optional = None - Provider for human-input-handling.
-    event_handlers: list = PydanticUndefined - Event handlers for processing agent stream events.
+  Auggie — Augment CLI Agent. Run interactive or automated tasks in your terminal.
   
-  Supports:
-  - builtin: Simple/detailed console output
-  - tts: Text-to-speech synthesis
-  - callback: Custom handler via import path
-    cwd: str | None = None - Working directory for the session.
-    env: dict = PydanticUndefined - Environment variables to set.
-    execution_environment: Union = 'local' - Execution environment config for ACP client operations (filesystem, terminals).
-    allow_file_operations: bool = True - Whether to allow file read/write operations.
-    allow_terminal: bool = True - Whether to allow terminal operations.
-    auto_grant_permissions: bool = True - Whether to automatically grant all permission requests.
-    toolsets: list = PydanticUndefined - Toolsets to expose to this ACP agent via MCP bridge.
+  Input
+    [instruction]                Positional instruction
+    -i, --instruction <text>     Instruction (mutually exclusive with --instruction-file)
+    -if, --instruction-file <p>  Instruction file (mutually exclusive with --instruction)
+    --image <path...>            Image file(s) to attach (PNG, JPEG, GIF, WEBP)
   
-  These toolsets will be started as an in-process MCP server and made
-  available to the external ACP agent. This allows ACP agents to use
-  internal llmling-agent toolsets like subagent delegation.
-    type: Literal = 'auggie' - Discriminator for Auggie ACP agent.
-    model: str | None = None - Model to use.
-    workspace_root: str | None = None - Workspace root (auto-detects git root if absent).
-    rules: list[str] | None = None - Additional rules files.
-    augment_cache_dir: str | None = None - Cache directory (default: ~/.augment).
-    retry_timeout: int | None = None - Timeout for rate-limit retries (seconds).
-    allow_indexing: bool = False - Skip the indexing confirmation screen in interactive mode.
-    augment_token_file: str | None = None - Path to file containing authentication token.
-    github_api_token: str | None = None - Path to file containing GitHub API token.
-    permission: list[str] | None = None - Tool permissions with 'tool-name:policy' format.
-    remove_tool: list[str] | None = None - Remove specific tools by name.
-    shell: Optional = None - Select shell.
-    startup_script: str | None = None - Inline startup script to run before each command.
-    startup_script_file: str | None = None - Load startup script from file.
+  Output & Interaction
+    -p, --print                  Print mode (one-shot). Note that the indexing confirmation
+                                 prompt is skipped in print mode. Only use --print from a
+                                 workspace root that you want to index.
+    -q, --quiet                  Only show final assistant message
+    --output-format <format>     Output format (only works with --print): "text" (default) or "json"
+    -a, --ask                    Enable ask mode for retrieval and non-editing tools only
+    --acp                        Enable ACP mode
   
-  Model Providers:
-    (none)
+  Configuration Options
+    -m, --model <id>             Select model to use
+    -w, --workspace-root <path>  Workspace root (auto-detects git root if absent)
+    --rules <path>               Additional rules file (repeatable)
+    --augment-cache-dir <path>   Cache directory (default: ~/.augment)
+    --retry-timeout <sec>        Timeout for rate-limit retries (seconds)
+    --max-turns <n>              Limit the number of agentic turns (only works with --print)
+    --allow-indexing             Skip the indexing confirmation screen in interactive mode
+  
+  Session Options
+    -c, --continue               Continue from the most recent session
+    -r, --resume [sessionId]     Resume a specific session by ID or prefix (omit to pick interactively)
+    --dont-save-session          Do not save conversation history
+  
+  Authentication Options
+    --augment-token-file <path>  Path to file containing authentication token
+    --github-api-token <path>    Path to file containing GitHub API token
+  
+  Tools & Integrations
+    --mcp-config <cfg>           MCP server configuration (repeatable)
+    --permission <rule>          Set tool permissions with 'tool-name:policy' format (repeatable)
+                                 Command-line permissions take precedence over settings permissions
+                                 Possible policies: allow, deny, ask-user, webhook-policy(url), script-policy(path)
+    --remove-tool <tool-name>    Remove a specific tool by name (repeatable)
+                                 Command-line removed tools take precedence over settings
+    --shell <name>               Select shell: bash | zsh | fish | powershell
+    --startup-script <script>    Inline startup script to run before each command
+    --startup-script-file <path> Load startup script from file
+  
+  Environment Variables
+    AUGMENT_SESSION_AUTH  OAuth session data (same format as ~/.augment/session.json)
+    GITHUB_API_TOKEN      GitHub API token
+  
+  For more information, visit: https://docs.augmentcode.com
+  
+  Commands
+    login                        Authenticate with Augment using OAuth
+    logout                       Log out of Augment and remove stored OAuth session
+    token                        Manage authentication tokens
+    session                      Manage CLI sessions
+    model                        Model-related operations
+    account                      View account and billing information
+    upgrade                      Upgrade auggie to the latest version
+    command                      Run, list, or get help for custom commands
+    mcp                          Manage MCP servers
+    tools                        Manage tool settings (list/enable/disable tools)
+  
+    For more help on a command: auggie <command> --help
   '''
 # ---
 # name: test_acp_agent_help_output[CagentACPAgentConfig]
   '''
   === CagentACPAgentConfig ===
   
-  Command:
-    cagent
+  Command: cagent
   
-  Arguments:
-    acp
+  CLI Help Output:
+  ----------------------------------------------------------------------
+  cagent is a command-line tool for running AI agents
   
-  Fields:
-    name: str | None = None - Identifier for the node. Set from dict key, not from YAML.
-    config_file_path: str | None = None - Config file path for resolving relative paths.
-    display_name: str | None = None - Human-readable display name for the node.
-    description: str | None = None - Optional description of the agent / team.
-    triggers: list = PydanticUndefined - Event sources that activate this agent / team
-    connections: list = PydanticUndefined - Targets to forward results to.
-    mcp_servers: list = PydanticUndefined - List of MCP server configurations:
-  - str entries are converted to StdioMCPServerConfig
-  - MCPServerConfig for full server configuration
-    input_provider: Optional = None - Provider for human-input-handling.
-    event_handlers: list = PydanticUndefined - Event handlers for processing agent stream events.
+  Usage:
+    cagent [flags]
+    cagent [command]
   
-  Supports:
-  - builtin: Simple/detailed console output
-  - tts: Text-to-speech synthesis
-  - callback: Custom handler via import path
-    cwd: str | None = None - Working directory for the session.
-    env: dict = PydanticUndefined - Environment variables to set.
-    execution_environment: Union = 'local' - Execution environment config for ACP client operations (filesystem, terminals).
-    allow_file_operations: bool = True - Whether to allow file read/write operations.
-    allow_terminal: bool = True - Whether to allow terminal operations.
-    auto_grant_permissions: bool = True - Whether to automatically grant all permission requests.
-    type: Literal = 'cagent' - Discriminator for Docker cagent ACP agent.
-    agent_file: str | None = None - Agent configuration file or registry reference.
-    code_mode_tools: bool = False - Provide a single tool to call other tools via Javascript.
-    env_from_file: list[str] | None = None - Set environment variables from file.
-    models_gateway: str | None = None - Set the models gateway address.
-    working_dir: str | None = None - Set the working directory for the session.
-    debug: bool = False - Enable debug logging.
-    otel: bool = False - Enable OpenTelemetry tracing.
-    log_file: str | None = None - Path to debug log file.
+  Examples:
+    cagent run ./agent.yaml
+    cagent run agentcatalog/pirate
   
-  Model Providers:
-    - openai
-    - anthropic
-    - gemini
+  Core Commands:
+    exec        Execute an agent
+    new         Create a new agent configuration
+    pull        Pull an agent from an OCI registry
+    push        Push an agent to an OCI registry
+    run         Run an agent
+  
+  Advanced Commands:
+    alias       Manage aliases
+    build       Build a Docker image for the agent
+    catalog     Manage the agent catalog
+    debug       Debug tools
+    eval        Run evaluations for an agent
+  
+  Server Commands:
+    a2a         Start an agent as an A2A (Agent-to-Agent) server
+    acp         Start an agent as an ACP (Agent Client Protocol) server
+    api         Start the cagent API server
+    mcp         Start an agent as an MCP (Model Context Protocol) server
+  
+  Additional Commands:
+    completion  Generate the autocompletion script for the specified shell
+    feedback    Send feedback about cagent
+    help        Help about any command
+    version     Print the version information
+  
+  Flags:
+    -d, --debug             Enable debug logging
+    -h, --help              help for cagent
+        --log-file string   Path to debug log file (default: ~/.cagent/cagent.debug.log; only used with --debug)
+    -o, --otel              Enable OpenTelemetry tracing
+  
+  Use "cagent [command] --help" for more information about a command.
   '''
 # ---
 # name: test_acp_agent_help_output[ClaudeACPAgentConfig]
   '''
   === ClaudeACPAgentConfig ===
   
-  Command:
-    claude-code-acp
+  Command: claude-code-acp
   
-  Arguments:
-    (no arguments)
-  
-  Fields:
-    name: str | None = None - Identifier for the node. Set from dict key, not from YAML.
-    config_file_path: str | None = None - Config file path for resolving relative paths.
-    display_name: str | None = None - Human-readable display name for the node.
-    description: str | None = None - Optional description of the agent / team.
-    triggers: list = PydanticUndefined - Event sources that activate this agent / team
-    connections: list = PydanticUndefined - Targets to forward results to.
-    mcp_servers: list = PydanticUndefined - List of MCP server configurations:
-  - str entries are converted to StdioMCPServerConfig
-  - MCPServerConfig for full server configuration
-    input_provider: Optional = None - Provider for human-input-handling.
-    event_handlers: list = PydanticUndefined - Event handlers for processing agent stream events.
-  
-  Supports:
-  - builtin: Simple/detailed console output
-  - tts: Text-to-speech synthesis
-  - callback: Custom handler via import path
-    cwd: str | None = None - Working directory for the session.
-    env: dict = PydanticUndefined - Environment variables to set.
-    execution_environment: Union = 'local' - Execution environment config for ACP client operations (filesystem, terminals).
-    allow_file_operations: bool = True - Whether to allow file read/write operations.
-    allow_terminal: bool = True - Whether to allow terminal operations.
-    auto_grant_permissions: bool = True - Whether to automatically grant all permission requests.
-    toolsets: list = PydanticUndefined - Toolsets to expose to this ACP agent via MCP bridge.
-  
-  These toolsets will be started as an in-process MCP server and made
-  available to the external ACP agent. This allows ACP agents to use
-  internal llmling-agent toolsets like subagent delegation.
-    type: Literal = 'claude' - Discriminator for Claude ACP agent.
-    system_prompt: str | None = None - Custom system prompt (replaces default Claude Code prompt).
-    append_system_prompt: str | None = None - Text to append to the default system prompt.
-    model: Optional = None - Model override. Use alias ('sonnet', 'opus') or full name.
-    permission_mode: Optional = None - Permission handling mode for tool execution.
-    allowed_tools: list[typing.Union[typing.Literal['AskUserQuestion', 'Bash', 'BashOutput', 'Edit', 'ExitPlanMode', 'Glob', 'Grep', 'KillShell', 'NotebookEdit', 'Read', 'Skill', 'SlashCommand', 'Task', 'TodoWrite', 'WebFetch', 'WebSearch', 'Write'], str]] | None = None - Whitelist of allowed tools (e.g., ['Read', 'Write', 'Bash(git:*)']).
-    disallowed_tools: list[typing.Union[typing.Literal['AskUserQuestion', 'Bash', 'BashOutput', 'Edit', 'ExitPlanMode', 'Glob', 'Grep', 'KillShell', 'NotebookEdit', 'Read', 'Skill', 'SlashCommand', 'Task', 'TodoWrite', 'WebFetch', 'WebSearch', 'Write'], str]] | None = None - Blacklist of disallowed tools.
-    strict_mcp_config: bool = False - Only use MCP servers from mcp_config, ignoring all other configs.
-    add_dir: list[str] | None = None - Additional directories to allow tool access to.
-    tools: list[typing.Union[typing.Literal['AskUserQuestion', 'Bash', 'BashOutput', 'Edit', 'ExitPlanMode', 'Glob', 'Grep', 'KillShell', 'NotebookEdit', 'Read', 'Skill', 'SlashCommand', 'Task', 'TodoWrite', 'WebFetch', 'WebSearch', 'Write'], str]] | None = None - Available tools from built-in set. Empty list disables all tools.
-    fallback_model: Optional = None - Fallback model when default is overloaded.
-    dangerously_skip_permissions: bool = False - Bypass all permission checks. Only for sandboxed environments.
-    output_type: str | llmling_agent_config.output_types.StructuredResponseConfig | None = None - Structured output configuration. Generates --output-format and --json-schema.
-  
-  Model Providers:
-    - anthropic
+  CLI Help Output:
+  ----------------------------------------------------------------------
+  (Unable to capture help - command 'claude-code-acp' not found or doesn't support --help)
   '''
 # ---
 # name: test_acp_agent_help_output[CodexACPAgentConfig]
   '''
   === CodexACPAgentConfig ===
   
-  Command:
-    npx
+  Command: npx
   
-  Arguments:
-    @zed-industries/codex-acp
+  CLI Help Output:
+  ----------------------------------------------------------------------
+  Run a command from a local or remote npm package
   
-  Fields:
-    name: str | None = None - Identifier for the node. Set from dict key, not from YAML.
-    config_file_path: str | None = None - Config file path for resolving relative paths.
-    display_name: str | None = None - Human-readable display name for the node.
-    description: str | None = None - Optional description of the agent / team.
-    triggers: list = PydanticUndefined - Event sources that activate this agent / team
-    connections: list = PydanticUndefined - Targets to forward results to.
-    mcp_servers: list = PydanticUndefined - List of MCP server configurations:
-  - str entries are converted to StdioMCPServerConfig
-  - MCPServerConfig for full server configuration
-    input_provider: Optional = None - Provider for human-input-handling.
-    event_handlers: list = PydanticUndefined - Event handlers for processing agent stream events.
+  Usage:
+  npm exec -- <pkg>[@<version>] [args...]
+  npm exec --package=<pkg>[@<version>] -- <cmd> [args...]
+  npm exec -c '<cmd> [args...]'
+  npm exec --package=foo -c '<cmd> [args...]'
   
-  Supports:
-  - builtin: Simple/detailed console output
-  - tts: Text-to-speech synthesis
-  - callback: Custom handler via import path
-    cwd: str | None = None - Working directory for the session.
-    env: dict = PydanticUndefined - Environment variables to set.
-    execution_environment: Union = 'local' - Execution environment config for ACP client operations (filesystem, terminals).
-    allow_file_operations: bool = True - Whether to allow file read/write operations.
-    allow_terminal: bool = True - Whether to allow terminal operations.
-    auto_grant_permissions: bool = True - Whether to automatically grant all permission requests.
-    type: Literal = 'codex' - Discriminator for Codex ACP agent.
-    model: str | None = None - Model override.
-    sandbox_permissions: list[str] | None = None - Sandbox permissions.
-    shell_environment_policy_inherit: Optional = None - Shell environment inheritance policy.
+  Options:
+  [--package <package-spec> [--package <package-spec> ...]] [-c|--call <call>]
+  [-w|--workspace <workspace-name> [-w|--workspace <workspace-name> ...]]
+  [--workspaces] [--include-workspace-root]
   
-  Model Providers:
-    - openai
+  alias: x
+  
+  Run "npm help exec" for more info
   '''
 # ---
 # name: test_acp_agent_help_output[CursorACPAgentConfig]
   '''
   === CursorACPAgentConfig ===
   
-  Command:
-    cursor-agent-acp
+  Command: cursor-agent-acp
   
-  Arguments:
-    (no arguments)
+  CLI Help Output:
+  ----------------------------------------------------------------------
+  Usage: cursor-agent-acp [options] [command]
   
-  Fields:
-    name: str | None = None - Identifier for the node. Set from dict key, not from YAML.
-    config_file_path: str | None = None - Config file path for resolving relative paths.
-    display_name: str | None = None - Human-readable display name for the node.
-    description: str | None = None - Optional description of the agent / team.
-    triggers: list = PydanticUndefined - Event sources that activate this agent / team
-    connections: list = PydanticUndefined - Targets to forward results to.
-    mcp_servers: list = PydanticUndefined - List of MCP server configurations:
-  - str entries are converted to StdioMCPServerConfig
-  - MCPServerConfig for full server configuration
-    input_provider: Optional = None - Provider for human-input-handling.
-    event_handlers: list = PydanticUndefined - Event handlers for processing agent stream events.
+  Agent Client Protocol adapter for Cursor CLI
   
-  Supports:
-  - builtin: Simple/detailed console output
-  - tts: Text-to-speech synthesis
-  - callback: Custom handler via import path
-    cwd: str | None = None - Working directory for the session.
-    env: dict = PydanticUndefined - Environment variables to set.
-    execution_environment: Union = 'local' - Execution environment config for ACP client operations (filesystem, terminals).
-    allow_file_operations: bool = True - Whether to allow file read/write operations.
-    allow_terminal: bool = True - Whether to allow terminal operations.
-    auto_grant_permissions: bool = True - Whether to automatically grant all permission requests.
-    type: Literal = 'cursor' - Discriminator for Cursor ACP agent.
-    config: str | None = None - Path to configuration file.
-    log_level: Optional = None - Logging level.
-    log_file: str | None = None - Log file path (logs to stderr by default).
-    session_dir: str | None = None - Session storage directory (default: ~/.cursor-sessions).
-    timeout: int | None = None - Cursor-agent timeout in milliseconds (default: 30000).
-    retries: int | None = None - Number of retries for cursor-agent commands (default: 3).
-    max_sessions: int | None = None - Maximum number of concurrent sessions (default: 100).
-    session_timeout: int | None = None - Session timeout in milliseconds (default: 3600000).
-    no_filesystem: bool = False - Disable filesystem tools.
-    no_terminal: bool = False - Disable terminal tools.
-    max_processes: int | None = None - Maximum number of terminal processes (default: 5).
-    verbose: bool = False - Enable verbose logging.
-    quiet: bool = False - Suppress all output except errors.
+  Options:
+    -V, --version             output the version number
+    -c, --config <path>       path to configuration file
+    -l, --log-level <level>   logging level (error, warn, info, debug) (default:
+                              "info")
+    --log-file <path>         log file path (logs to stderr by default)
+    -s, --session-dir <path>  session storage directory (default:
+                              "~/.cursor-sessions")
+    -t, --timeout <ms>        cursor-agent timeout in milliseconds (default:
+                              "30000")
+    -r, --retries <count>     number of retries for cursor-agent commands
+                              (default: "3")
+    --max-sessions <count>    maximum number of concurrent sessions (default:
+                              "100")
+    --session-timeout <ms>    session timeout in milliseconds (default: "3600000")
+    --no-filesystem           disable filesystem tools
+    --no-terminal             disable terminal tools
+    --max-processes <count>   maximum number of terminal processes (default: "5")
+    -v, --verbose             enable verbose logging
+    -q, --quiet               suppress all output except errors
+    --validate                validate configuration and exit
+    --test-cursor             test cursor-agent connectivity and exit
+    -h, --help                display help for command
   
-  Model Providers:
-    - openai
-    - anthropic
-    - gemini
-    - openrouter
+  Commands:
+    auth                      Authentication commands
   '''
 # ---
 # name: test_acp_agent_help_output[FastAgentACPAgentConfig]
@@ -320,389 +244,482 @@
   '''
   === GeminiACPAgentConfig ===
   
-  Command:
-    gemini
+  Command: gemini
   
-  Arguments:
-    --experimental-acp
+  CLI Help Output:
+  ----------------------------------------------------------------------
+  Usage: gemini [options] [command]
   
-  Fields:
-    name: str | None = None - Identifier for the node. Set from dict key, not from YAML.
-    config_file_path: str | None = None - Config file path for resolving relative paths.
-    display_name: str | None = None - Human-readable display name for the node.
-    description: str | None = None - Optional description of the agent / team.
-    triggers: list = PydanticUndefined - Event sources that activate this agent / team
-    connections: list = PydanticUndefined - Targets to forward results to.
-    mcp_servers: list = PydanticUndefined - List of MCP server configurations:
-  - str entries are converted to StdioMCPServerConfig
-  - MCPServerConfig for full server configuration
-    input_provider: Optional = None - Provider for human-input-handling.
-    event_handlers: list = PydanticUndefined - Event handlers for processing agent stream events.
+  Gemini CLI - Launch an interactive CLI, use -p/--prompt for non-interactive mode
   
-  Supports:
-  - builtin: Simple/detailed console output
-  - tts: Text-to-speech synthesis
-  - callback: Custom handler via import path
-    cwd: str | None = None - Working directory for the session.
-    env: dict = PydanticUndefined - Environment variables to set.
-    execution_environment: Union = 'local' - Execution environment config for ACP client operations (filesystem, terminals).
-    allow_file_operations: bool = True - Whether to allow file read/write operations.
-    allow_terminal: bool = True - Whether to allow terminal operations.
-    auto_grant_permissions: bool = True - Whether to automatically grant all permission requests.
-    toolsets: list = PydanticUndefined - Toolsets to expose to this ACP agent via MCP bridge.
+  Commands:
+    gemini [query..]             Launch Gemini CLI  [default]
+    gemini mcp                   Manage MCP servers
+    gemini extensions <command>  Manage Gemini CLI extensions.  [aliases: extension]
   
-  These toolsets will be started as an in-process MCP server and made
-  available to the external ACP agent. This allows ACP agents to use
-  internal llmling-agent toolsets like subagent delegation.
-    type: Literal = 'gemini' - Discriminator for Gemini ACP agent.
-    model: str | None = None - Model override.
-    approval_mode: Optional = None - Approval mode for tool execution.
-    sandbox: bool = False - Run in sandbox mode.
-    yolo: bool = False - Automatically accept all actions.
-    allowed_tools: list[str] | None = None - Tools allowed to run without confirmation.
-    allowed_mcp_server_names: list[str] | None = None - Allowed MCP server names.
-    extensions: list[str] | None = None - List of extensions to use. If not provided, all are used.
-    include_directories: list[str] | None = None - Additional directories to include in the workspace.
-    output_format: Optional = None - Output format.
+  Positionals:
+    query  Positional prompt. Defaults to one-shot; use -i/--prompt-interactive for interactive.
   
-  Model Providers:
-    - gemini
+  Options:
+    -d, --debug                     Run in debug mode?  [boolean] [default: false]
+    -m, --model                     Model  [string]
+    -p, --prompt                    Prompt. Appended to input on stdin (if any).  [deprecated: Use the positional prompt instead. This flag will be removed in a future version.] [string]
+    -i, --prompt-interactive        Execute the provided prompt and continue in interactive mode  [string]
+    -s, --sandbox                   Run in sandbox?  [boolean]
+    -y, --yolo                      Automatically accept all actions (aka YOLO mode, see https://www.youtube.com/watch?v=xvFZjo5PgG0 for more details)?  [boolean] [default: false]
+        --approval-mode             Set the approval mode: default (prompt for approval), auto_edit (auto-approve edit tools), yolo (auto-approve all tools)  [string] [choices: "default", "auto_edit", "yolo"]
+        --experimental-acp          Starts the agent in ACP mode  [boolean]
+        --allowed-mcp-server-names  Allowed MCP server names  [array]
+        --allowed-tools             Tools that are allowed to run without confirmation  [array]
+    -e, --extensions                A list of extensions to use. If not provided, all extensions are used.  [array]
+    -l, --list-extensions           List all available extensions and exit.  [boolean]
+    -r, --resume                    Resume a previous session. Use "latest" for most recent or index number (e.g. --resume 5)  [string]
+        --list-sessions             List available sessions for the current project and exit.  [boolean]
+        --delete-session            Delete a session by index number (use --list-sessions to see available sessions).  [string]
+        --include-directories       Additional directories to include in the workspace (comma-separated or multiple --include-directories)  [array]
+        --screen-reader             Enable screen reader mode for accessibility.  [boolean]
+    -o, --output-format             The format of the CLI output.  [string] [choices: "text", "json", "stream-json"]
+    -v, --version                   Show version number  [boolean]
+    -h, --help                      Show help  [boolean]
   '''
 # ---
 # name: test_acp_agent_help_output[GooseACPAgentConfig]
   '''
   === GooseACPAgentConfig ===
   
-  Command:
-    goose
+  Command: goose
   
-  Arguments:
-    acp
+  CLI Help Output:
+  ----------------------------------------------------------------------
+  An AI agent
   
-  Fields:
-    name: str | None = None - Identifier for the node. Set from dict key, not from YAML.
-    config_file_path: str | None = None - Config file path for resolving relative paths.
-    display_name: str | None = None - Human-readable display name for the node.
-    description: str | None = None - Optional description of the agent / team.
-    triggers: list = PydanticUndefined - Event sources that activate this agent / team
-    connections: list = PydanticUndefined - Targets to forward results to.
-    mcp_servers: list = PydanticUndefined - List of MCP server configurations:
-  - str entries are converted to StdioMCPServerConfig
-  - MCPServerConfig for full server configuration
-    input_provider: Optional = None - Provider for human-input-handling.
-    event_handlers: list = PydanticUndefined - Event handlers for processing agent stream events.
+  Usage: goose [COMMAND]
   
-  Supports:
-  - builtin: Simple/detailed console output
-  - tts: Text-to-speech synthesis
-  - callback: Custom handler via import path
-    cwd: str | None = None - Working directory for the session.
-    env: dict = PydanticUndefined - Environment variables to set.
-    execution_environment: Union = 'local' - Execution environment config for ACP client operations (filesystem, terminals).
-    allow_file_operations: bool = True - Whether to allow file read/write operations.
-    allow_terminal: bool = True - Whether to allow terminal operations.
-    auto_grant_permissions: bool = True - Whether to automatically grant all permission requests.
-    type: Literal = 'goose' - Discriminator for Goose ACP agent.
+  Commands:
+    configure  Configure goose settings
+    info       Display goose information
+    mcp        Run one of the mcp servers bundled with goose
+    acp        Run goose as an ACP agent server on stdio
+    session    Start or resume interactive chat sessions [aliases: s]
+    project    Open the last project directory [aliases: p]
+    projects   List recent project directories [aliases: ps]
+    run        Execute commands from an instruction file or stdin
+    recipe     Recipe utilities for validation and deeplinking
+    schedule   Manage scheduled jobs [aliases: sched]
+    update     Update the goose CLI version
+    bench      Evaluate system configuration across a range of practical tasks
+    web        Experimental: Start a web server with a chat interface
+    help       Print this message or the help of the given subcommand(s)
   
-  Model Providers:
-    - openai
-    - anthropic
-    - gemini
-    - openrouter
+  Options:
+    -h, --help     Print help
+    -V, --version  Print version
   '''
 # ---
 # name: test_acp_agent_help_output[KimiACPAgentConfig]
   '''
   === KimiACPAgentConfig ===
   
-  Command:
-    kimi
+  Command: kimi
   
-  Arguments:
-    --acp
-  
-  Fields:
-    name: str | None = None - Identifier for the node. Set from dict key, not from YAML.
-    config_file_path: str | None = None - Config file path for resolving relative paths.
-    display_name: str | None = None - Human-readable display name for the node.
-    description: str | None = None - Optional description of the agent / team.
-    triggers: list = PydanticUndefined - Event sources that activate this agent / team
-    connections: list = PydanticUndefined - Targets to forward results to.
-    mcp_servers: list = PydanticUndefined - List of MCP server configurations:
-  - str entries are converted to StdioMCPServerConfig
-  - MCPServerConfig for full server configuration
-    input_provider: Optional = None - Provider for human-input-handling.
-    event_handlers: list = PydanticUndefined - Event handlers for processing agent stream events.
-  
-  Supports:
-  - builtin: Simple/detailed console output
-  - tts: Text-to-speech synthesis
-  - callback: Custom handler via import path
-    cwd: str | None = None - Working directory for the session.
-    env: dict = PydanticUndefined - Environment variables to set.
-    execution_environment: Union = 'local' - Execution environment config for ACP client operations (filesystem, terminals).
-    allow_file_operations: bool = True - Whether to allow file read/write operations.
-    allow_terminal: bool = True - Whether to allow terminal operations.
-    auto_grant_permissions: bool = True - Whether to automatically grant all permission requests.
-    toolsets: list = PydanticUndefined - Toolsets to expose to this ACP agent via MCP bridge.
-  
-  These toolsets will be started as an in-process MCP server and made
-  available to the external ACP agent. This allows ACP agents to use
-  internal llmling-agent toolsets like subagent delegation.
-    type: Literal = 'kimi' - Discriminator for Kimi CLI ACP agent.
-    verbose: bool = False - Print verbose information.
-    debug: bool = False - Log debug information.
-    agent_file: str | None = None - Custom agent specification file.
-    model: str | None = None - LLM model to use.
-    work_dir: str | None = None - Working directory for the agent.
-    yolo: bool = False - Automatically approve all actions.
-    thinking: bool | None = None - Enable thinking mode if supported.
-  
-  Model Providers:
-    (none)
+  CLI Help Output:
+  ----------------------------------------------------------------------
+  Usage: kimi [OPTIONS]                                                          
+                                                                                  
+   Kimi, your next CLI agent.                                                     
+                                                                                  
+  ╭─ Options ────────────────────────────────────────────────────────────────────╮
+  │ --version              -V                             Show version and exit. │
+  │ --verbose                                             Print verbose          │
+  │                                                       information. Default:  │
+  │                                                       no.                    │
+  │ --debug                                               Log debug information. │
+  │                                                       Default: no.           │
+  │ --agent-file                      FILE                Custom agent           │
+  │                                                       specification file.    │
+  │                                                       Default: builtin       │
+  │                                                       default agent.         │
+  │ --model                -m         TEXT                LLM model to use.      │
+  │                                                       Default: default model │
+  │                                                       set in config file.    │
+  │ --work-dir             -w         DIRECTORY           Working directory for  │
+  │                                                       the agent. Default:    │
+  │                                                       current directory.     │
+  │ --continue             -C                             Continue the previous  │
+  │                                                       session for the        │
+  │                                                       working directory.     │
+  │                                                       Default: no.           │
+  │ --command,--query      -c,-q      TEXT                User query to the      │
+  │                                                       agent. Default: prompt │
+  │                                                       interactively.         │
+  │ --print                                               Run in print mode      │
+  │                                                       (non-interactive).     │
+  │                                                       Note: print mode       │
+  │                                                       implicitly adds        │
+  │                                                       `--yolo`.              │
+  │ --acp                                                 Run as ACP server.     │
+  │ --wire                                                Run as Wire server     │
+  │                                                       (experimental).        │
+  │ --input-format                    [text|stream-json]  Input format to use.   │
+  │                                                       Must be used with      │
+  │                                                       `--print` and the      │
+  │                                                       input must be piped in │
+  │                                                       via stdin. Default:    │
+  │                                                       text.                  │
+  │ --output-format                   [text|stream-json]  Output format to use.  │
+  │                                                       Must be used with      │
+  │                                                       `--print`. Default:    │
+  │                                                       text.                  │
+  │ --mcp-config-file                 FILE                MCP config file to     │
+  │                                                       load. Add this option  │
+  │                                                       multiple times to      │
+  │                                                       specify multiple MCP   │
+  │                                                       configs. Default:      │
+  │                                                       none.                  │
+  │ --mcp-config                      TEXT                MCP config JSON to     │
+  │                                                       load. Add this option  │
+  │                                                       multiple times to      │
+  │                                                       specify multiple MCP   │
+  │                                                       configs. Default:      │
+  │                                                       none.                  │
+  │ --yolo,--yes,--auto-…  -y                             Automatically approve  │
+  │                                                       all actions. Default:  │
+  │                                                       no.                    │
+  │ --thinking                                            Enable thinking mode   │
+  │                                                       if supported. Default: │
+  │                                                       same as last time.     │
+  │ --help                 -h                             Show this message and  │
+  │                                                       exit.                  │
+  ╰──────────────────────────────────────────────────────────────────────────────╯
   '''
 # ---
 # name: test_acp_agent_help_output[MistralACPAgentConfig]
   '''
   === MistralACPAgentConfig ===
   
-  Command:
-    vibe-acp
+  Command: vibe-acp
   
-  Arguments:
-    (no arguments)
+  CLI Help Output:
+  ----------------------------------------------------------------------
+  usage: vibe-acp [-h] [--setup]
   
-  Fields:
-    name: str | None = None - Identifier for the node. Set from dict key, not from YAML.
-    config_file_path: str | None = None - Config file path for resolving relative paths.
-    display_name: str | None = None - Human-readable display name for the node.
-    description: str | None = None - Optional description of the agent / team.
-    triggers: list = PydanticUndefined - Event sources that activate this agent / team
-    connections: list = PydanticUndefined - Targets to forward results to.
-    mcp_servers: list = PydanticUndefined - List of MCP server configurations:
-  - str entries are converted to StdioMCPServerConfig
-  - MCPServerConfig for full server configuration
-    input_provider: Optional = None - Provider for human-input-handling.
-    event_handlers: list = PydanticUndefined - Event handlers for processing agent stream events.
+  Run Mistral Vibe in ACP mode
   
-  Supports:
-  - builtin: Simple/detailed console output
-  - tts: Text-to-speech synthesis
-  - callback: Custom handler via import path
-    cwd: str | None = None - Working directory for the session.
-    env: dict = PydanticUndefined - Environment variables to set.
-    execution_environment: Union = 'local' - Execution environment config for ACP client operations (filesystem, terminals).
-    allow_file_operations: bool = True - Whether to allow file read/write operations.
-    allow_terminal: bool = True - Whether to allow terminal operations.
-    auto_grant_permissions: bool = True - Whether to automatically grant all permission requests.
-    type: Literal = 'mistral' - Discriminator for Mistral ACP agent.
-  
-  Model Providers:
-    - mistral
+  options:
+    -h, --help  show this help message and exit
+    --setup     Setup API key and exit
   '''
 # ---
 # name: test_acp_agent_help_output[OpenCodeACPAgentConfig]
   '''
   === OpenCodeACPAgentConfig ===
   
-  Command:
-    opencode
+  Command: opencode
   
-  Arguments:
-    acp
+  CLI Help Output:
+  ----------------------------------------------------------------------
+  [38;2;128;128;128m                    [0m             ▄
+  [38;2;128;128;128m█▀▀█ █▀▀█ █▀▀█ █▀▀▄ [0m█▀▀▀ █▀▀█ █▀▀█ █▀▀█
+  [38;2;128;128;128m█░░█ █░░█ █▀▀▀ █░░█ [0m█░░░ █░░█ █░░█ █▀▀▀
+  [38;2;128;128;128m▀▀▀▀ █▀▀▀ ▀▀▀▀ ▀  ▀ [0m▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀
   
-  Fields:
-    name: str | None = None - Identifier for the node. Set from dict key, not from YAML.
-    config_file_path: str | None = None - Config file path for resolving relative paths.
-    display_name: str | None = None - Human-readable display name for the node.
-    description: str | None = None - Optional description of the agent / team.
-    triggers: list = PydanticUndefined - Event sources that activate this agent / team
-    connections: list = PydanticUndefined - Targets to forward results to.
-    mcp_servers: list = PydanticUndefined - List of MCP server configurations:
-  - str entries are converted to StdioMCPServerConfig
-  - MCPServerConfig for full server configuration
-    input_provider: Optional = None - Provider for human-input-handling.
-    event_handlers: list = PydanticUndefined - Event handlers for processing agent stream events.
+  Commands:
+    opencode acp                 start ACP (Agent Client Protocol) server
+    opencode [project]           start opencode tui                                          [default]
+    opencode attach <url>        attach to a running opencode server
+    opencode run [message..]     run opencode with a message
+    opencode auth                manage credentials
+    opencode agent               manage agents
+    opencode upgrade [target]    upgrade opencode to the latest or a specific version
+    opencode uninstall           uninstall opencode and remove all related files
+    opencode serve               starts a headless opencode server
+    opencode web                 starts a headless opencode server
+    opencode models [provider]   list all available models
+    opencode stats               show token usage and cost statistics
+    opencode export [sessionID]  export session data as JSON
+    opencode import <file>       import session data from JSON file or URL
+    opencode github              manage GitHub agent
+    opencode pr <number>         fetch and checkout a GitHub PR branch, then run opencode
+    opencode session             manage sessions
   
-  Supports:
-  - builtin: Simple/detailed console output
-  - tts: Text-to-speech synthesis
-  - callback: Custom handler via import path
-    cwd: str | None = None - Working directory for the session.
-    env: dict = PydanticUndefined - Environment variables to set.
-    execution_environment: Union = 'local' - Execution environment config for ACP client operations (filesystem, terminals).
-    allow_file_operations: bool = True - Whether to allow file read/write operations.
-    allow_terminal: bool = True - Whether to allow terminal operations.
-    auto_grant_permissions: bool = True - Whether to automatically grant all permission requests.
-    type: Literal = 'opencode' - Discriminator for OpenCode ACP agent.
-    log_level: Optional = None - Log level.
-    print_logs: bool = False - Print logs to stderr.
-    port: int | None = None - Port to listen on.
-    hostname: str | None = None - Hostname to listen on.
+  Positionals:
+    project  path to start opencode in                                                        [string]
   
-  Model Providers:
-    - openai
-    - anthropic
-    - gemini
-    - openrouter
+  Options:
+    -h, --help        show help                                                              [boolean]
+    -v, --version     show version number                                                    [boolean]
+        --print-logs  print logs to stderr                                                   [boolean]
+        --log-level   log level                   [string] [choices: "DEBUG", "INFO", "WARN", "ERROR"]
+    -m, --model       model to use in the format of provider/model                            [string]
+    -c, --continue    continue the last session                                              [boolean]
+    -s, --session     session id to continue                                                  [string]
+    -p, --prompt      prompt to use                                                           [string]
+        --agent       agent to use                                                            [string]
+        --port        port to listen on                                          [number] [default: 0]
+        --hostname    hostname to listen on                            [string] [default: "127.0.0.1"]
   '''
 # ---
 # name: test_acp_agent_help_output[OpenHandsACPAgentConfig]
   '''
   === OpenHandsACPAgentConfig ===
   
-  Command:
-    openhands
+  Command: openhands
   
-  Arguments:
-    acp
-  
-  Fields:
-    name: str | None = None - Identifier for the node. Set from dict key, not from YAML.
-    config_file_path: str | None = None - Config file path for resolving relative paths.
-    display_name: str | None = None - Human-readable display name for the node.
-    description: str | None = None - Optional description of the agent / team.
-    triggers: list = PydanticUndefined - Event sources that activate this agent / team
-    connections: list = PydanticUndefined - Targets to forward results to.
-    mcp_servers: list = PydanticUndefined - List of MCP server configurations:
-  - str entries are converted to StdioMCPServerConfig
-  - MCPServerConfig for full server configuration
-    input_provider: Optional = None - Provider for human-input-handling.
-    event_handlers: list = PydanticUndefined - Event handlers for processing agent stream events.
-  
-  Supports:
-  - builtin: Simple/detailed console output
-  - tts: Text-to-speech synthesis
-  - callback: Custom handler via import path
-    cwd: str | None = None - Working directory for the session.
-    env: dict = PydanticUndefined - Environment variables to set.
-    execution_environment: Union = 'local' - Execution environment config for ACP client operations (filesystem, terminals).
-    allow_file_operations: bool = True - Whether to allow file read/write operations.
-    allow_terminal: bool = True - Whether to allow terminal operations.
-    auto_grant_permissions: bool = True - Whether to automatically grant all permission requests.
-    type: Literal = 'openhands' - Discriminator for OpenHands ACP agent.
-  
-  Model Providers:
-    - openai
-    - anthropic
-    - gemini
-    - openrouter
+  CLI Help Output:
+  ----------------------------------------------------------------------
+  (Unable to capture help - command 'openhands' not found or doesn't support --help)
   '''
 # ---
 # name: test_acp_agent_help_output[StakpakACPAgentConfig]
   '''
   === StakpakACPAgentConfig ===
   
-  Command:
-    stakpak
+  Command: stakpak
+  
+  CLI Help Output:
+  ----------------------------------------------------------------------
+  Stakpak CLI tool
+  
+  Usage: stakpak [OPTIONS] [PROMPT] [COMMAND]
+  
+  Commands:
+    version    Get CLI Version
+    login      Login to Stakpak
+    logout     Logout from Stakpak
+    acp        Start Agent Client Protocol server (for editor integration)
+    set        Set configuration values
+    config     Configuration management commands
+    rulebooks  Rulebook management commands
+    account    Get current account
+    mcp        MCP commands
+    warden     Stakpak Warden wraps coding agents to apply security policies and limit their capabilities
+    update     Update Stakpak Agent to the latest version
+    help       Print this message or the help of the given subcommand(s)
   
   Arguments:
-    acp
+    [PROMPT]  Prompt to run the agent
   
-  Fields:
-    name: str | None = None - Identifier for the node. Set from dict key, not from YAML.
-    config_file_path: str | None = None - Config file path for resolving relative paths.
-    display_name: str | None = None - Human-readable display name for the node.
-    description: str | None = None - Optional description of the agent / team.
-    triggers: list = PydanticUndefined - Event sources that activate this agent / team
-    connections: list = PydanticUndefined - Targets to forward results to.
-    mcp_servers: list = PydanticUndefined - List of MCP server configurations:
-  - str entries are converted to StdioMCPServerConfig
-  - MCPServerConfig for full server configuration
-    input_provider: Optional = None - Provider for human-input-handling.
-    event_handlers: list = PydanticUndefined - Event handlers for processing agent stream events.
-  
-  Supports:
-  - builtin: Simple/detailed console output
-  - tts: Text-to-speech synthesis
-  - callback: Custom handler via import path
-    cwd: str | None = None - Working directory for the session.
-    env: dict = PydanticUndefined - Environment variables to set.
-    execution_environment: Union = 'local' - Execution environment config for ACP client operations (filesystem, terminals).
-    allow_file_operations: bool = True - Whether to allow file read/write operations.
-    allow_terminal: bool = True - Whether to allow terminal operations.
-    auto_grant_permissions: bool = True - Whether to automatically grant all permission requests.
-    type: Literal = 'stakpak' - Discriminator for Stakpak ACP agent.
-    workdir: str | None = None - Run the agent in a specific directory.
-    verbose: bool = False - Enable verbose output.
-    debug: bool = False - Enable debug output.
-    disable_secret_redaction: bool = False - Disable secret redaction (WARNING: prints secrets to console).
-    privacy_mode: bool = False - Enable privacy mode to redact private data.
-    study_mode: bool = False - Enable study mode to use the agent as a study assistant.
-    index_big_project: bool = False - Allow indexing of large projects (more than 500 supported files).
-    enable_slack_tools: bool = False - Enable Slack tools (experimental).
-    disable_mcp_mtls: bool = False - Disable mTLS (WARNING: uses unencrypted HTTP communication).
-    enable_subagents: bool = False - Enable subagents.
-    subagent_config: str | None = None - Subagent configuration file subagents.toml.
-    allowed_tools: list[str] | None = None - Allow only the specified tools in the agent's context.
-    system_prompt_file: str | None = None - Read system prompt from file.
-    profile: str | None = None - Configuration profile to use.
-    model: Optional = None - Choose agent model on startup.
-    config: str | None = None - Custom path to config file.
-  
-  Model Providers:
-    - openai
-    - anthropic
-    - gemini
+  Options:
+    -p, --print
+            Run the agent for a single step and print the response
+    -a, --async
+            Run the agent in async mode (multiple steps until completion)
+    -m, --max-steps <MAX_STEPS>
+            Maximum number of steps the agent can take (default: 50 for --async, 1 for --print/--approve)
+    -c, --checkpoint <CHECKPOINT_ID>
+            Resume agent session at a specific checkpoint
+    -w, --workdir <WORKDIR>
+            Run the agent in a specific directory
+        --verbose
+            Enable verbose output
+    -o, --output <OUTPUT_FORMAT>
+            Output format: json or text [default: text]
+        --debug
+            Enable debug output
+        --disable-secret-redaction
+            Disable secret redaction (WARNING: this will print secrets to the console)
+        --privacy-mode
+            Enable privacy mode to redact private data like IP addresses and AWS account IDs
+        --study-mode
+            Enable study mode to use the agent as a study assistant
+        --index-big-project
+            Allow indexing of large projects (more than 500 supported files)
+        --enable-slack-tools
+            Enable Slack tools (experimental)
+        --disable-mcp-mtls
+            Disable mTLS (WARNING: this will use unencrypted HTTP communication)
+        --enable-subagents
+            Enable subagents
+        --subagent-config <SUBAGENT_CONFIG_PATH>
+            Subagent configuration file subagents.toml
+    -t, --tool <ALLOWED_TOOLS>
+            Allow only the specified tool in the agent's context
+        --system-prompt-file <SYSTEM_PROMPT_FILE>
+            Read system prompt from file
+        --prompt-file <PROMPT_FILE>
+            Read prompt from file (runs in async mode only)
+        --profile <PROFILE>
+            Configuration profile to use (can also be set with STAKPAK_PROFILE env var)
+        --model <MODEL>
+            Choose agent model on startup (smart or eco)
+        --config <CONFIG_PATH>
+            Custom path to config file (overrides default ~/.stakpak/config.toml)
+    -h, --help
+            Print help
   '''
 # ---
 # name: test_acp_agent_help_output[VTCodeACPAgentConfig]
   '''
   === VTCodeACPAgentConfig ===
   
-  Command:
-    vtcode
+  Command: vtcode
+  
+  CLI Help Output:
+  ----------------------------------------------------------------------
+  Advanced coding agent with Decision Ledger
+  
+  Features:
+  • Single-agent architecture with Decision Ledger for reliable task execution
+  • Tree-sitter powered code analysis (Rust, Python, JavaScript, TypeScript, Go, Java)
+  • Multi-provider LLM support (Gemini, OpenAI, Anthropic, DeepSeek)
+  • Real-time performance monitoring and benchmarking
+  • Enhanced security with tool policies and sandboxing
+  • Research-preview context management and conversation compression
+  
+  Quick Start:
+    export GEMINI_API_KEY="your_key"
+    vtcode chat
+  
+  Usage: vtcode [OPTIONS] [WORKSPACE] [COMMAND]
+  
+  Commands:
+    chat               **Interactive AI coding assistant** with advanced capabilities
+    ask                **Single prompt mode** - prints model reply without tools
+    chat-verbose       **Verbose interactive chat** with enhanced transparency
+    analyze            **Analyze workspace** with tree-sitter integration
+    performance        **Display performance metrics** and system status\n\n**Shows:**\n• Token usage and API costs\n• Response times and latency\n• Tool execution statistics\n• Memory usage patterns\n\n**Usage:** vtcode performance
+    trajectory         Pretty-print trajectory logs and show basic analytics
+    benchmark          **Benchmark against SWE-bench evaluation framework**
+    create-project     **Create complete Rust project with advanced features**
+    compress-context   **Compress conversation context** for long-running sessions
+    revert             **Revert agent to a previous snapshot
+    snapshots          **List all available snapshots**
+    cleanup-snapshots  **Clean up old snapshots**
+    init               **Initialize project** with enhanced dot-folder structure
+    init-project       **Initialize project with dot-folder structure** - sets up ~/.vtcode/projects/<project-name> structure
+    config             **Generate configuration file - creates a vtcode.toml configuration file
+    tool-policy        **Manage tool execution policies** - control which tools the agent can use
+    models             **Manage models and providers** - configure and switch between LLM providers\n\n**Features:**\n• Support for latest models (DeepSeek, etc.)\n• Provider configuration and testing\n• Model performance comparison\n• API key management\n\n**Examples:**\n  vtcode models list\n  vtcode models set-provider deepseek\n  vtcode models set-model deepseek-reasoner
+    security           **Security and safety management**\n\n**Features:**\n• Security scanning and vulnerability detection\n• Audit logging and monitoring\n• Access control management\n• Privacy protection settings\n\n**Usage:** vtcode security
+    tree-sitter        **Tree-sitter code analysis tools**\n\n**Features:**\n• AST-based code parsing\n• Symbol extraction and navigation\n• Code complexity analysis\n• Multi-language refactoring\n\n**Usage:** vtcode tree-sitter
+    man                **Generate or display man pages** for VTCode commands\n\n**Features:**\n• Generate Unix man pages for all commands\n• Display detailed command documentation\n• Save man pages to files\n• Comprehensive help for all VTCode features\n\n**Examples:**\n  vtcode man\n  vtcode man chat\n  vtcode man chat --output chat.1
+    help               Print this message or the help of the given subcommand(s)
   
   Arguments:
-    acp
+    [WORKSPACE]
+            Optional positional path to run vtcode against a different workspace
   
-  Fields:
-    name: str | None = None - Identifier for the node. Set from dict key, not from YAML.
-    config_file_path: str | None = None - Config file path for resolving relative paths.
-    display_name: str | None = None - Human-readable display name for the node.
-    description: str | None = None - Optional description of the agent / team.
-    triggers: list = PydanticUndefined - Event sources that activate this agent / team
-    connections: list = PydanticUndefined - Targets to forward results to.
-    mcp_servers: list = PydanticUndefined - List of MCP server configurations:
-  - str entries are converted to StdioMCPServerConfig
-  - MCPServerConfig for full server configuration
-    input_provider: Optional = None - Provider for human-input-handling.
-    event_handlers: list = PydanticUndefined - Event handlers for processing agent stream events.
+  Options:
+        --color <WHEN>
+            Controls when to use color
+            
+            [default: auto]
+            [possible values: auto, always, never]
   
-  Supports:
-  - builtin: Simple/detailed console output
-  - tts: Text-to-speech synthesis
-  - callback: Custom handler via import path
-    cwd: str | None = None - Working directory for the session.
-    env: dict = PydanticUndefined - Environment variables to set.
-    execution_environment: Union = 'local' - Execution environment config for ACP client operations (filesystem, terminals).
-    allow_file_operations: bool = True - Whether to allow file read/write operations.
-    allow_terminal: bool = True - Whether to allow terminal operations.
-    auto_grant_permissions: bool = True - Whether to automatically grant all permission requests.
-    type: Literal = 'vtcode' - Discriminator for VT Code ACP agent.
-    model: str | None = None - LLM Model ID.
-    provider: Optional = None - LLM Provider.
-    api_key_env: str | None = None - API key environment variable.
-    workspace: str | None = None - Workspace root directory for file operations.
-    enable_tree_sitter: bool = False - Enable tree-sitter code analysis.
-    performance_monitoring: bool = False - Enable performance monitoring.
-    research_preview: bool = False - Enable research-preview features.
-    security_level: Optional = None - Security level for tool execution.
-    show_file_diffs: bool = False - Show diffs for file changes in chat interface.
-    max_concurrent_ops: int | None = None - Maximum concurrent async operations.
-    api_rate_limit: int | None = None - Maximum API requests per minute.
-    max_tool_calls: int | None = None - Maximum tool calls per session.
-    debug: bool = False - Enable debug output for troubleshooting.
-    verbose: bool = False - Enable verbose logging.
-    config: str | None = None - Configuration file path.
-    log_level: Optional = None - Log level.
-    theme: str | None = None - Select UI theme for ANSI styling.
-    skip_confirmations: bool = False - Skip safety confirmations.
-    full_auto: bool = False - Enable full-auto mode (no interaction).
+        --model <MODEL>
+            LLM Model ID with latest model support
+            
+            Available providers & models: • gemini-2.5-flash-preview-05-20 - Latest fast Gemini model (default) • gemini-2.5-flash - Fast, cost-effective • gemini-2.5-pro - Latest, most capable • gpt-5 - OpenAI's latest • claude-sonnet-4-5 - Anthropic's latest • qwen/qwen3-4b-2507 - Qwen3 local model • deepseek-reasoner - DeepSeek reasoning model • x-ai/grok-code-fast-1 - OpenRouter Grok fast coding model • qwen/qwen3-coder - OpenRouter Qwen3 Coder optimized for IDE usage • grok-2-latest - xAI Grok flagship model
   
-  Model Providers:
-    - openai
-    - anthropic
-    - gemini
+        --provider <PROVIDER>
+            **LLM Provider** with expanded support
+            
+            Available providers: • gemini - Google Gemini (default) • openai - OpenAI GPT models • anthropic - Anthropic Claude models • deepseek - DeepSeek models • openrouter - OpenRouter marketplace models • xai - xAI Grok models
+            
+            Example: --provider deepseek
+  
+        --api-key-env <API_KEY_ENV>
+            **API key environment variable**\n\n**Auto-detects based on provider:**\n• Gemini: `GEMINI_API_KEY`\n• OpenAI: `OPENAI_API_KEY`\n• Anthropic: `ANTHROPIC_API_KEY`\n• DeepSeek: `DEEPSEEK_API_KEY`\n• OpenRouter: `OPENROUTER_API_KEY`\n• xAI: `XAI_API_KEY`\n\n**Override:** --api-key-env CUSTOM_KEY
+            
+            [default: GEMINI_API_KEY]
+  
+        --workspace <PATH>
+            **Workspace root directory for file operations**
+            
+            Security: All file operations restricted to this path Default: Current directory
+  
+        --enable-tree-sitter
+            **Enable tree-sitter code analysis**
+            
+            Features: • AST-based code parsing • Symbol extraction and navigation • Intelligent refactoring suggestions • Multi-language support (Rust, Python, JS, TS, Go, Java)
+  
+        --performance-monitoring
+            **Enable performance monitoring**
+            
+            Tracks: • Token usage and API costs • Response times and latency • Tool execution metrics • Memory usage patterns
+  
+        --research-preview
+            **Enable research-preview features**
+            
+            Includes: • Advanced context compression • Conversation summarization • Enhanced error recovery • Decision transparency tracking
+  
+        --security-level <SECURITY_LEVEL>
+            **Security level** for tool execution
+            
+            Options: • strict - Maximum security, prompt for all tools • moderate - Balance security and usability • permissive - Minimal restrictions (not recommended)
+            
+            [default: moderate]
+  
+        --show-file-diffs
+            **Show diffs for file changes in chat interface**
+            
+            Features: • Real-time diff rendering • Syntax highlighting • Line-by-line changes • Before/after comparison
+  
+        --max-concurrent-ops <MAX_CONCURRENT_OPS>
+            **Maximum concurrent async operations**
+            
+            Default: 5 Higher values: Better performance but more resource usage
+            
+            [default: 5]
+  
+        --api-rate-limit <API_RATE_LIMIT>
+            **Maximum API requests per minute**
+            
+            Default: 30 Purpose: Prevents rate limiting
+            
+            [default: 30]
+  
+        --max-tool-calls <MAX_TOOL_CALLS>
+            **Maximum tool calls per session**
+            
+            Default: 10 Purpose: Prevents runaway execution
+            
+            [default: 10]
+  
+        --debug
+            **Enable debug output for troubleshooting**
+            
+            Shows: • Tool call details • API request/response • Internal agent state • Performance metrics
+  
+        --verbose
+            **Enable verbose logging**
+            
+            Includes: • Detailed operation logs • Context management info • Agent coordination details
+  
+        --config <CONFIG>
+            **Configuration file path**
+            
+            Supported formats: TOML Default locations: ./vtcode.toml, ~/.vtcode/vtcode.toml
+  
+        --log-level <LOG_LEVEL>
+            Log level (error, warn, info, debug, trace)
+            
+            Default: info
+            
+            [default: info]
+  
+        --no-color
+            Disable color output
+            
+            Useful for: Log files, CI/CD pipelines
+  
+        --theme <THEME>
+            Select UI theme for ANSI styling (e.g., ciapre-dark, ciapre-blue)
+  
+        --skip-confirmations
+            **Skip safety confirmations**
+            
+            Warning: Reduces security, use with caution
+  
+        --full-auto
+            **Enable full-auto mode (no interaction)**
+            
+            Runs the agent without pausing for approvals. Requires enabling in configuration.
+  
+    -h, --help
+            Print help (see a summary with '-h')
+  
+    -V, --version
+            Print version
   '''
 # ---
