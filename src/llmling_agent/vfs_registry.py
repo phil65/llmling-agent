@@ -1,43 +1,97 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Literal, assert_never, overload
+from typing import TYPE_CHECKING, Literal, assert_never, overload
 
 from fsspec import AbstractFileSystem
 from upathtools import AsyncUPath, UnionFileSystem, list_files, read_folder, read_path, to_upath
-from upathtools.configs.base import FileSystemConfig, URIFileSystemConfig
 
 from llmling_agent.log import get_logger
-from llmling_agent.utils.baseregistry import BaseRegistry
+from llmling_agent.models.manifest import ResourceConfig
+from llmling_agent.utils.baseregistry import LLMLingError
 
 
 if TYPE_CHECKING:
     from upathtools import UPath
 
-    from llmling_agent.models.manifest import ResourceConfig
 
 logger = get_logger(__name__)
 
 
-class VFSRegistry(BaseRegistry[str, AbstractFileSystem]):
-    """Registry for virtual filesystems."""
+class VFSRegistry:
+    """Registry for virtual filesystems built on UnionFileSystem."""
 
-    def register(self, name: str, item: Any, replace: bool = False) -> None:
-        """Register a new resource."""
-        logger.debug("registering resource.", name=name, type=item.__class__.__name__)
-        # fsspec.register_implementation(name, item.__class__, clobber=True)
-        super().register(name, item, replace=replace)
+    def __init__(self) -> None:
+        """Initialize empty VFS registry."""
+        self._union_fs = UnionFileSystem({})
+        logger.debug("Initialized VFS registry")
 
-    def _validate_item(self, item: Any) -> AbstractFileSystem:
-        if not isinstance(item, AbstractFileSystem):
-            msg = f"Expected AbstractFileSystem, got {type(item)}"
-            raise self._error_class(msg)
-        return item
+    def __contains__(self, name: str) -> bool:
+        """Check if a resource is registered."""
+        return name in self._union_fs.filesystems
+
+    def __len__(self) -> int:
+        """Get number of registered resources."""
+        return len(self._union_fs.filesystems)
+
+    def __iter__(self):
+        """Iterate over registered resource names."""
+        return iter(self._union_fs.filesystems)
+
+    @property
+    def is_empty(self) -> bool:
+        """Check if registry has any resources."""
+        return len(self._union_fs.filesystems) == 0
+
+    def register(
+        self, name: str, filesystem: AbstractFileSystem | str, *, replace: bool = False
+    ) -> None:
+        """Register a filesystem resource.
+
+        Args:
+            name: Resource name to use as mount point
+            filesystem: Filesystem instance or URI string
+            replace: Whether to replace existing resource
+
+        Raises:
+            ValueError: If resource exists and replace=False
+        """
+        logger.debug("Registering resource", name=name, type=type(filesystem).__name__)
+        try:
+            self._union_fs.register(name, filesystem, replace=replace)
+        except ValueError as e:
+            raise LLMLingError(str(e)) from e
+
+    def unregister(self, name: str) -> None:
+        """Unregister a filesystem resource.
+
+        Args:
+            name: Resource name to remove
+
+        Raises:
+            LLMLingError: If resource doesn't exist
+        """
+        logger.debug("Unregistering resource", name=name)
+        try:
+            self._union_fs.unregister(name)
+        except ValueError as e:
+            raise LLMLingError(str(e)) from e
 
     def register_from_config(self, name: str, config: ResourceConfig) -> AbstractFileSystem:
-        """Register a new resource from config."""
+        """Register a resource from configuration.
+
+        Args:
+            name: Resource name
+            config: Resource configuration
+
+        Returns:
+            The registered filesystem instance
+        """
+        from upathtools.configs.base import FileSystemConfig, URIFileSystemConfig
+
         match config:
             case str() as uri:
-                fs = URIFileSystemConfig(uri=uri).create_fs()
+                fs_config = URIFileSystemConfig(uri=uri)
+                fs = fs_config.create_fs()
             case FileSystemConfig():
                 fs = config.create_fs()
             case _ as unreachable:
@@ -46,10 +100,25 @@ class VFSRegistry(BaseRegistry[str, AbstractFileSystem]):
         self.register(name, fs)
         return fs
 
-    def get_fs(self) -> UnionFileSystem:
-        """Get unified filesystem view of all resources."""
-        filesystems: dict[str, AbstractFileSystem] = dict(self.items())
-        return UnionFileSystem(filesystems)  # pyright: ignore[reportArgumentType]
+    def list_resources(self) -> list[str]:
+        """List all registered resource names."""
+        return self._union_fs.list_mount_points()
+
+    def get_filesystem(self, name: str | None = None) -> UnionFileSystem | AbstractFileSystem:
+        """Get filesystem instance.
+
+        Args:
+            name: Specific resource name, or None for unified view
+
+        Returns:
+            UnionFileSystem for unified view, or specific filesystem
+        """
+        if name is None:
+            return self._union_fs
+        if name not in self._union_fs.filesystems:
+            msg = f"Resource not found: {name}"
+            raise LLMLingError(msg)
+        return self._union_fs.filesystems[name]
 
     @overload
     def get_upath(
@@ -69,9 +138,27 @@ class VFSRegistry(BaseRegistry[str, AbstractFileSystem]):
     def get_upath(
         self, resource_name: str | None = None, *, as_async: bool = False
     ) -> UPath | AsyncUPath:
-        """Get a UPath object for accessing a resource."""
-        path = to_upath(resource_name or "")
-        path._fs_cached = self.get_fs()  # pyright: ignore[reportAttributeAccessIssue]
+        """Get a UPath object for accessing resources.
+
+        Args:
+            resource_name: Specific resource or None for unified view
+            as_async: Whether to return AsyncUPath
+
+        Returns:
+            UPath or AsyncUPath instance
+        """
+        if resource_name is None:
+            # Unified view - use UnionFileSystem
+            path = to_upath("union://")
+            path._fs_cached = self._union_fs  # pyright: ignore[reportAttributeAccessIssue]
+        else:
+            # Specific resource
+            if resource_name not in self._union_fs.filesystems:
+                msg = f"Resource not found: {resource_name}"
+                raise LLMLingError(msg)
+            path = to_upath(f"union://{resource_name}")
+            path._fs_cached = self._union_fs  # pyright: ignore[reportAttributeAccessIssue]
+
         return AsyncUPath(path) if as_async else path
 
     async def get_content(
@@ -87,9 +174,8 @@ class VFSRegistry(BaseRegistry[str, AbstractFileSystem]):
         Args:
             path: Path to read, either:
                 - resource (whole resource)
-                - resource:// (whole resource)
-                - resource://file.txt (single file)
-                - resource://folder (directory)
+                - resource/file.txt (single file)
+                - resource/folder (directory)
             encoding: Text encoding for binary content
             recursive: For directories, whether to read recursively
             exclude: For directories, patterns to exclude
@@ -99,11 +185,11 @@ class VFSRegistry(BaseRegistry[str, AbstractFileSystem]):
             For files: file content
             For directories: concatenated content of all files
         """
+        # Normalize path - ensure it has resource prefix
         if "/" not in path:
-            path = f"{path}://"
-        _resource, _ = path.split("://", 1)
-        fs = self.get_fs()
-        if await fs._isdir(path):
+            path = f"{path}/"
+
+        if await self._union_fs._isdir(path):
             content_dict = await read_folder(
                 path,
                 mode="rt",
@@ -111,13 +197,15 @@ class VFSRegistry(BaseRegistry[str, AbstractFileSystem]):
                 recursive=recursive,
                 exclude=exclude,
                 max_depth=max_depth,
+                filesystem=self._union_fs,
             )
             # Combine all files with headers
             sections = []
             for rel_path, content in sorted(content_dict.items()):
                 sections.extend([f"--- {rel_path} ---", content, ""])
             return "\n".join(sections)
-        return await read_path(path, encoding=encoding)
+
+        return await read_path(path, encoding=encoding, filesystem=self._union_fs)
 
     async def query(
         self,
@@ -134,8 +222,7 @@ class VFSRegistry(BaseRegistry[str, AbstractFileSystem]):
         Args:
             path: Path to query, either:
                 - resource (queries whole resource)
-                - resource:// (queries whole resource)
-                - resource://subfolder (queries specific folder)
+                - resource/subfolder (queries specific folder)
             pattern: Glob pattern to match files against
             recursive: Whether to search subdirectories
             include_dirs: Whether to include directories in results
@@ -143,20 +230,20 @@ class VFSRegistry(BaseRegistry[str, AbstractFileSystem]):
             max_depth: Maximum directory depth for recursive search
 
         Example:
-            # Query whole resource (all equivalent)
+            # Query whole resource
             files = await registry.query("docs")
-            files = await registry.query("docs://")
 
             # Query specific subfolder
-            files = await registry.query("docs://guides", pattern="*.md")
+            files = await registry.query("docs/guides", pattern="*.md")
         """
+        # Normalize path - ensure it has resource prefix
         if "/" not in path:
-            # Simple resource name - add protocol
-            path = f"{path}://"
-        resource, _ = path.split("://", 1)
+            path = f"{path}/"
+
+        resource = path.split("/")[0]
         if resource not in self:
             msg = f"Resource not found: {resource}"
-            raise ValueError(msg)
+            raise LLMLingError(msg)
 
         files = await list_files(
             path,
@@ -165,8 +252,14 @@ class VFSRegistry(BaseRegistry[str, AbstractFileSystem]):
             include_dirs=include_dirs,
             exclude=exclude,
             max_depth=max_depth,
+            filesystem=self._union_fs,
         )
         return [str(p) for p in files]
+
+    def reset(self) -> None:
+        """Reset registry to empty state."""
+        logger.debug("Resetting VFS registry")
+        self._union_fs = UnionFileSystem({})
 
 
 if __name__ == "__main__":
