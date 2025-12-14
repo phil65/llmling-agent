@@ -15,6 +15,7 @@ from llmling_agent.agent.events import (
     ProcessOutputEvent,
     ProcessReleaseEvent,
     ProcessStartEvent,
+    ToolCallProgressEvent,
     ToolCallStartEvent,
 )
 
@@ -311,4 +312,13 @@ class StreamEventEmitter:
         Args:
             event: The event instance (PlanUpdateEvent, FileOperationEvent, etc.)
         """
+        await self._context.agent._event_queue.put(event)
+
+    async def tool_call_progress(self, message: str) -> None:
+        event = ToolCallProgressEvent(
+            tool_call_id=self._context.tool_call_id or "",
+            status="in_progress",
+            message=message,
+            tool_name=self._context.tool_name,
+        )
         await self._context.agent._event_queue.put(event)

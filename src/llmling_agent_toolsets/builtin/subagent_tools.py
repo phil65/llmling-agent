@@ -19,7 +19,6 @@ from pydantic_ai import (
 )
 
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
-from llmling_agent.agent.events import ToolCallProgressEvent
 from llmling_agent.log import get_logger
 from llmling_agent.resource_providers import StaticResourceProvider
 from llmling_agent.tools.exceptions import ToolError
@@ -48,8 +47,6 @@ async def _stream_agent_with_progress(
         Aggregated content from the stream
     """
     aggregated: list[str] = []
-    tool_call_id = ctx.tool_call_id or ""
-
     async for event in stream:
         match event:
             case (
@@ -57,63 +54,27 @@ async def _stream_agent_with_progress(
                 | PartDeltaEvent(delta=TextPartDelta(content_delta=delta))
             ):
                 aggregated.append(delta)
-                progress = ToolCallProgressEvent(
-                    tool_call_id=tool_call_id,
-                    status="in_progress",
-                    message="".join(aggregated),
-                    tool_name=ctx.tool_name,
-                )
-                await ctx.events.emit_event(progress)
-
+                await ctx.events.tool_call_progress("".join(aggregated))
             case (
                 PartStartEvent(part=ThinkingPart(content=delta))
                 | PartDeltaEvent(delta=ThinkingPartDelta(content_delta=delta))
             ):
                 if delta:
                     aggregated.append(f"💭 {delta}")
-                    progress = ToolCallProgressEvent(
-                        tool_call_id=tool_call_id,
-                        status="in_progress",
-                        message="".join(aggregated),
-                        tool_name=ctx.tool_name,
-                    )
-                    await ctx.events.emit_event(progress)
-
+                    await ctx.events.tool_call_progress("".join(aggregated))
             case FunctionToolCallEvent(part=part):
                 aggregated.append(f"\n🔧 Using tool: {part.tool_name}\n")
-                progress = ToolCallProgressEvent(
-                    tool_call_id=tool_call_id,
-                    status="in_progress",
-                    message="".join(aggregated),
-                    tool_name=ctx.tool_name,
-                )
-                await ctx.events.emit_event(progress)
-
+                await ctx.events.tool_call_progress("".join(aggregated))
             case FunctionToolResultEvent(
                 result=ToolReturnPart(content=content, tool_name=tool_name),
             ):
                 aggregated.append(f"✅ {tool_name}: {content}\n")
-                progress = ToolCallProgressEvent(
-                    tool_call_id=tool_call_id,
-                    status="in_progress",
-                    message="".join(aggregated),
-                    tool_name=ctx.tool_name,
-                )
-                await ctx.events.emit_event(progress)
+                await ctx.events.tool_call_progress("".join(aggregated))
 
-            case FunctionToolResultEvent(
-                result=RetryPromptPart(tool_name=tool_name) as result,
-            ):
+            case FunctionToolResultEvent(result=RetryPromptPart(tool_name=tool_name) as result):
                 error_message = result.model_response()
                 aggregated.append(f"❌ {tool_name or 'unknown'}: {error_message}\n")
-                progress = ToolCallProgressEvent(
-                    tool_call_id=tool_call_id,
-                    status="in_progress",
-                    message="".join(aggregated),
-                    tool_name=ctx.tool_name,
-                )
-                await ctx.events.emit_event(progress)
-
+                await ctx.events.tool_call_progress("".join(aggregated))
             case _:
                 pass
 
@@ -170,11 +131,7 @@ async def list_available_nodes(  # noqa: D417
     return "\n".join(lines) if lines else "No nodes available"
 
 
-async def delegate_to(  # noqa: D417
-    ctx: AgentContext,
-    agent_or_team_name: str,
-    prompt: str,
-) -> str:
+async def delegate_to(ctx: AgentContext, agent_or_team_name: str, prompt: str) -> str:  # noqa: D417
     """Delegate a task to an agent or team.
 
     If an action requires you to delegate a task, this tool can be used to assign and
@@ -208,11 +165,7 @@ async def delegate_to(  # noqa: D417
     return await _stream_agent_with_progress(ctx, agent.run_stream(prompt))
 
 
-async def ask_agent(  # noqa: D417
-    ctx: AgentContext,
-    agent_name: str,
-    message: str,
-) -> str:
+async def ask_agent(ctx: AgentContext, agent_name: str, message: str) -> str:  # noqa: D417
     """Send a message to a specific agent and get their response.
 
     Args:
