@@ -22,33 +22,7 @@ System prompts define agent behavior, personality, and methodology. You can conf
 ## Basic Structure
 
 ```yaml
-prompts:
-  # Define reusable system prompts
-  system_prompts:
-    expert_analyst:
-      content: |
-        You are an expert data analyst.
-        Focus on finding patterns and insights.
-      category: role
-
-    step_by_step:
-      content: |
-        Break tasks into sequential steps.
-        Explain each step thoroughly.
-      category: methodology
-
-# Using prompts in agents
-agents:
-  analyst:
-    system_prompts:
-      # Direct string prompts
-      - "You help with analysis."
-
-      # Reference library prompts
-      - type: library
-        reference: expert_analyst
-      - type: library
-        reference: step_by_step
+--8<-- "docs/configuration/prompts_example.yml"
 ```
 
 ## Prompt Categories
@@ -148,12 +122,3 @@ agents:
       - type: library
         reference: professional
 ```
-
-### Naming Conventions
-
-Use clear, descriptive names:
-
-- **Roles**: `expert_analyst`, `code_reviewer`, `technical_writer`
-- **Methodologies**: `step_by_step`, `analytical`, `iterative`
-- **Tones**: `professional`, `friendly`, `formal`, `casual`
-- **Formats**: `markdown`, `structured`, `bullet_points`

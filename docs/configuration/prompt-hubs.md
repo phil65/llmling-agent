@@ -19,36 +19,13 @@ LLMling-Agent supports integration with leading prompt hub platforms:
 - **Fabric**: Community-driven prompt patterns and templates
 - **Braintrust**: Enterprise prompt management with evaluation and testing
 
-These integrations allow you to:
-
-- Access curated prompt libraries
-- Version and manage prompts centrally
-- A/B test different prompt variations
-- Collaborate on prompt development
-- Track prompt performance and effectiveness
+These integrations allow you to fetch prompts from these services by identifiers.
 
 ## Configuration Reference
 
 /// mknodes
 {{ "llmling_agent_config.prompt_hubs.PromptHubConfig" | union_to_markdown(display_mode="yaml", header_style="pymdownx") }}
 ///
-
-## Benefits
-
-- **Centralized management**: Store and manage prompts in a single location
-- **Version control**: Track changes and rollback to previous versions
-- **Collaboration**: Share prompts across teams and projects
-- **Testing**: A/B test prompts and measure effectiveness
-- **Analytics**: Track prompt usage and performance metrics
-- **Reusability**: Access community-curated prompt libraries
-
-## Use Cases
-
-- **Prompt engineering**: Iterate on prompts with version control
-- **Team collaboration**: Share and review prompts with colleagues
-- **Production stability**: Deploy tested, versioned prompts
-- **Performance optimization**: Track and optimize prompt effectiveness
-- **Best practices**: Leverage community-tested prompt patterns
 
 ## Configuration Notes
 

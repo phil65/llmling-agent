@@ -18,5 +18,5 @@ Models can be specified simply as strings (e.g., `"openai:gpt-4"`), or with deta
 ## Configuration Reference
 
 /// mknodes
-{{ "llmling_models.models.AnyModelConfig" | union_to_markdown(display_mode="yaml", header_style="pymdownx") }}
+{{ "llmling_models.configs.AnyModelConfig" | union_to_markdown(display_mode="yaml", header_style="pymdownx") }}
 ///
