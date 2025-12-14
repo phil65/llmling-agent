@@ -1,6 +1,7 @@
 """Repository map generation using tree-sitter for code analysis.
 
 Adapted from aider's repomap module with full type annotations.
+Uses async fsspec filesystem for non-blocking IO operations.
 """
 
 from __future__ import annotations
@@ -12,17 +13,17 @@ from dataclasses import dataclass
 from importlib import resources
 import math
 import os
+from pathlib import Path, PurePosixPath
 import random
-import shutil
 from typing import TYPE_CHECKING, Any, ClassVar, NamedTuple, cast
 
-from upath import UPath
+from fsspec.asyn import AsyncFileSystem
 
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Iterator, Sequence
+    from collections.abc import AsyncIterator, Sequence
 
-    from diskcache import Cache  # type: ignore[import-untyped]
+    from fsspec import AbstractFileSystem
     import rustworkx as rx
 
 
@@ -48,7 +49,7 @@ ROOT_IMPORTANT_FILES: list[str] = [
     "README",
 ]
 
-NORMALIZED_ROOT_IMPORTANT_FILES: set[str] = {str(UPath(path)) for path in ROOT_IMPORTANT_FILES}
+NORMALIZED_ROOT_IMPORTANT_FILES: set[str] = set(ROOT_IMPORTANT_FILES)
 
 # Type aliases
 type TokenCounter = Callable[[str], int]
@@ -57,16 +58,16 @@ type TokenCounter = Callable[[str], int]
 class Tag(NamedTuple):
     """Represents a code tag (definition or reference)."""
 
-    rel_fname: UPath
-    fname: UPath
+    rel_fname: str
+    fname: str
     line: int
     name: str
     kind: str
-    end_line: int = -1  # End line for definitions (-1 if unknown)
-    signature_end_line: int = -1  # End line for signature (-1 if unknown)
+    end_line: int = -1
+    signature_end_line: int = -1
 
 
-type RankedTag = Tag | tuple[UPath]  # Either full Tag or just (filename,)
+type RankedTag = Tag | tuple[str]
 
 
 @dataclass
@@ -81,46 +82,55 @@ class RepoMapResult:
     included_tags: int
     truncated: bool
     coverage_ratio: float
-    io_budget_used: int = 0
-    strategy_used: str = "default"
 
 
-CACHE_VERSION = 4
+@dataclass
+class FileInfo:
+    """Information about a file from fsspec."""
+
+    path: str
+    size: int
+    mtime: float | None = None
+    type: str = "file"
+
+
+CACHE_VERSION = 5
 
 # Thresholds
 MIN_TOKEN_SAMPLE_SIZE: int = 256
-LARGE_CACHE_DIFF_THRESHOLD: int = 25
 MIN_IDENT_LENGTH: int = 4
 MAX_DEFINERS_THRESHOLD: int = 5
 
 
-def _get_mtime(path: UPath) -> float | None:
-    """Get file modification time."""
-    try:
-        return path.stat().st_mtime
-    except FileNotFoundError:
-        return None
-
-
-def is_important(fname: UPath) -> bool:
+def is_important(fname: str) -> bool:
     """Check if a file is considered important (like config files)."""
-    normalized = str(fname)
-    if normalized in NORMALIZED_ROOT_IMPORTANT_FILES:
+    if fname in NORMALIZED_ROOT_IMPORTANT_FILES:
         return True
-    # Check basename
-    return fname.name in NORMALIZED_ROOT_IMPORTANT_FILES
+    basename = PurePosixPath(fname).name
+    return basename in NORMALIZED_ROOT_IMPORTANT_FILES
+
+
+def get_rel_path(path: str, root: str) -> str:
+    """Get relative path from root."""
+    if path.startswith(root):
+        rel = path[len(root) :]
+        return rel.lstrip("/")
+    return path
 
 
 class RepoMap:
-    """Generates a map of a repository's code structure using tree-sitter."""
+    """Generates a map of a repository's code structure using tree-sitter.
+
+    Uses async fsspec filesystem for non-blocking IO operations.
+    """
 
     TAGS_CACHE_DIR: ClassVar[str] = f".llmling-agent.tags.cache.v{CACHE_VERSION}"
-
-    warned_files: ClassVar[set[UPath]] = set()
+    warned_files: ClassVar[set[str]] = set()
 
     def __init__(
         self,
-        root: str | UPath,
+        fs: AbstractFileSystem,
+        root_path: str,
         *,
         max_tokens: int = 1024,
         max_line_length: int = 250,
@@ -129,24 +139,23 @@ class RepoMap:
         """Initialize RepoMap.
 
         Args:
-            root: Root directory of the repository.
+            fs: Async fsspec filesystem instance.
+            root_path: Root directory path in the filesystem.
             max_tokens: Maximum tokens for the generated map.
             max_line_length: Maximum character length for output lines.
             token_counter: Callable to count tokens. Defaults to len(text) / 4.
         """
-        self.root = UPath(root) if not isinstance(root, UPath) else root
+        from fsspec.implementations.asyn_wrapper import AsyncFileSystemWrapper
+
+        self.fs = fs if isinstance(fs, AsyncFileSystem) else AsyncFileSystemWrapper(fs)
+        self.root_path = root_path.rstrip("/")
         self.max_tokens = max_tokens
         self.max_line_length = max_line_length
         self._token_counter = token_counter
 
-        self._load_tags_cache()
-
         self.tree_cache: dict[tuple[str, tuple[int, ...], float | None], str] = {}
         self.tree_context_cache: dict[str, dict[str, Any]] = {}
-        self.map_cache: dict[tuple[Any, ...], str | None] = {}
-        self.map_processing_time: float = 0
-        self.last_map: str | None = None
-        self.TAGS_CACHE: Cache | dict[str, Any] = {}
+        self.TAGS_CACHE: dict[str, Any] = {}
 
     def token_count(self, text: str) -> float:
         """Estimate token count for text."""
@@ -155,7 +164,6 @@ class RepoMap:
             if len_text < MIN_TOKEN_SAMPLE_SIZE:
                 return self._token_counter(text)
 
-            # Sample for large texts
             lines = text.splitlines(keepends=True)
             num_lines = len(lines)
             step = num_lines // 100 or 1
@@ -164,27 +172,77 @@ class RepoMap:
             sample_tokens = self._token_counter(sample_text)
             return sample_tokens / len(sample_text) * len_text
 
-        # Rough estimate: ~4 chars per token
         return len(text) / 4
 
-    def get_map(
+    async def _cat_file(self, path: str) -> str | None:
+        """Read file content as text."""
+        try:
+            content = await self.fs._cat_file(path)
+            if isinstance(content, bytes):
+                return content.decode("utf-8")
+        except (OSError, UnicodeDecodeError):
+            return None
+        else:
+            return content  # type: ignore[no-any-return]
+
+    async def _info(self, path: str) -> FileInfo | None:
+        """Get file info."""
+        try:
+            info = await self.fs._info(path)
+            return FileInfo(
+                path=info.get("name", path),
+                size=info.get("size", 0),
+                mtime=info.get("mtime"),
+                type=info.get("type", "file"),
+            )
+        except (OSError, FileNotFoundError):
+            return None
+
+    async def _ls(self, path: str, detail: bool = True) -> list[dict[str, Any]]:
+        """List directory contents."""
+        try:
+            return await self.fs._ls(path, detail=detail)  # type: ignore[no-any-return]
+        except (OSError, FileNotFoundError):
+            return []
+
+    async def find_files(self, path: str, pattern: str = "**/*.py") -> list[str]:
+        """Find files matching pattern recursively."""
+        results: list[str] = []
+
+        async def _recurse(current_path: str) -> None:
+            entries = await self._ls(current_path, detail=True)
+            for entry in entries:
+                entry_path = entry.get("name", "")
+                entry_type = entry.get("type", "file")
+
+                if entry_type == "directory":
+                    await _recurse(entry_path)
+                elif entry_type == "file":
+                    # Simple pattern matching for *.py
+                    if pattern == "**/*.py":
+                        if entry_path.endswith(".py"):
+                            results.append(entry_path)
+                    else:
+                        results.append(entry_path)
+
+        await _recurse(path)
+        return results
+
+    async def get_map(
         self,
-        files: Sequence[UPath],
+        files: Sequence[str],
         *,
-        exclude: set[UPath] | None = None,
-        boost_files: set[UPath] | None = None,
+        exclude: set[str] | None = None,
+        boost_files: set[str] | None = None,
         boost_idents: set[str] | None = None,
     ) -> str | None:
         """Generate a repository map for the given files.
 
         Args:
-            files: Files to include in the map.
+            files: File paths to include in the map.
             exclude: Files to exclude from the map output (but still used for ranking).
             boost_files: Files to boost in ranking.
             boost_idents: Identifiers to boost in ranking.
-
-        Returns:
-            The generated repository map as a string, or None if no map could be generated.
         """
         if not files:
             return None
@@ -193,31 +251,28 @@ class RepoMap:
         boost_files = boost_files or set()
         boost_idents = boost_idents or set()
 
-        return self._get_ranked_tags_map(
+        return await self._get_ranked_tags_map(
             files=files,
             exclude=exclude,
             boost_files=boost_files,
             boost_idents=boost_idents,
         )
 
-    def get_map_with_metadata(
+    async def get_map_with_metadata(
         self,
-        files: Sequence[UPath],
+        files: Sequence[str],
         *,
-        exclude: set[UPath] | None = None,
-        boost_files: set[UPath] | None = None,
+        exclude: set[str] | None = None,
+        boost_files: set[str] | None = None,
         boost_idents: set[str] | None = None,
     ) -> RepoMapResult:
-        """Generate a repository map with detailed metadata about what was included/excluded.
+        """Generate a repository map with detailed metadata.
 
         Args:
-            files: Files to include in the map.
+            files: File paths to include in the map.
             exclude: Files to exclude from the map output (but still used for ranking).
             boost_files: Files to boost in ranking.
             boost_idents: Identifiers to boost in ranking.
-
-        Returns:
-            RepoMapResult with the map content and metadata about truncation.
         """
         import re
 
@@ -237,8 +292,7 @@ class RepoMap:
         boost_files = boost_files or set()
         boost_idents = boost_idents or set()
 
-        # Get all ranked tags to calculate totals
-        ranked_tags = self._get_ranked_tags(
+        ranked_tags = await self._get_ranked_tags(
             files=files,
             exclude=exclude,
             boost_files=boost_files,
@@ -249,19 +303,15 @@ class RepoMap:
         all_files_with_tags = {tag.fname if isinstance(tag, Tag) else tag[0] for tag in ranked_tags}
         total_files_with_tags = len(all_files_with_tags)
 
-        # Generate the actual map content
-        content = self._get_ranked_tags_map(
+        content = await self._get_ranked_tags_map(
             files=files,
             exclude=exclude,
             boost_files=boost_files,
             boost_idents=boost_idents,
         )
 
-        # Count what made it into final output
         if content:
-            # Count files that have content (lines ending with :)
             included_files = len(set(re.findall(r"^([^:\s]+):", content, re.MULTILINE)))
-            # Count function/class definitions
             included_tags = content.count(" def ") + content.count("class ")
         else:
             included_files = included_tags = 0
@@ -282,88 +332,25 @@ class RepoMap:
             coverage_ratio=coverage_ratio,
         )
 
-    def get_rel_fname(self, fname: UPath) -> UPath:
-        """Get relative filename from root."""
-        try:
-            return fname.relative_to(self.root)
-        except ValueError:
-            # ValueError: path is on mount 'C:', start on mount 'D:'
-            return fname
-
-    def _tags_cache_error(self, original_error: Exception | None = None) -> None:
-        """Handle SQLite errors by trying to recreate cache, falling back to dict."""
-        import sqlite3
-
-        from diskcache import Cache
-
-        if isinstance(self.TAGS_CACHE, dict):
-            return
-
-        path = self.root / self.TAGS_CACHE_DIR
-
-        try:
-            if path.exists():
-                shutil.rmtree(str(path))
-
-            new_cache = Cache(path)
-
-            # Test that it works
-            test_key = "test"
-            new_cache[test_key] = "test"
-            _ = new_cache[test_key]
-            del new_cache[test_key]
-
-            self.TAGS_CACHE = new_cache
-        except (sqlite3.OperationalError, sqlite3.DatabaseError, OSError):
-            self.TAGS_CACHE = {}
-
-    def _load_tags_cache(self) -> None:
-        """Load the tags cache from disk."""
-        import sqlite3
-
-        from diskcache import Cache
-
-        path = self.root / self.TAGS_CACHE_DIR
-        try:
-            self.TAGS_CACHE = Cache(str(path))
-        except (sqlite3.OperationalError, sqlite3.DatabaseError, OSError) as e:
-            self._tags_cache_error(e)
-
-    def _get_tags(self, fname: UPath, rel_fname: UPath) -> list[Tag]:
+    async def _get_tags(self, fname: str, rel_fname: str) -> list[Tag]:
         """Get tags for a file, using cache when possible."""
-        import sqlite3
-
-        file_mtime = _get_mtime(fname)
-        if file_mtime is None:
+        info = await self._info(fname)
+        if info is None:
             return []
 
-        cache_key = str(fname)
-        val: dict[str, Any] | None = None
-        try:
-            val = self.TAGS_CACHE.get(cache_key)
-        except (sqlite3.OperationalError, sqlite3.DatabaseError, OSError) as e:
-            self._tags_cache_error(e)
-            val = self.TAGS_CACHE.get(cache_key)
+        file_mtime = info.mtime
+        cache_key = fname
 
-        if val is not None and val.get("mtime") == file_mtime:
-            try:
-                return cast(list[Tag], self.TAGS_CACHE[cache_key]["data"])
-            except (sqlite3.OperationalError, sqlite3.DatabaseError, OSError) as e:
-                self._tags_cache_error(e)
-                return cast(list[Tag], self.TAGS_CACHE[cache_key]["data"])
+        cached = self.TAGS_CACHE.get(cache_key)
+        if cached is not None and cached.get("mtime") == file_mtime:
+            return cast(list[Tag], cached["data"])
 
-        # Cache miss
-        data = list(self._get_tags_raw(fname, rel_fname))
+        data = [tag async for tag in self._get_tags_raw(fname, rel_fname)]
 
-        try:
-            self.TAGS_CACHE[cache_key] = {"mtime": file_mtime, "data": data}
-        except (sqlite3.OperationalError, sqlite3.DatabaseError, OSError) as e:
-            self._tags_cache_error(e)
-            self.TAGS_CACHE[cache_key] = {"mtime": file_mtime, "data": data}
-
+        self.TAGS_CACHE[cache_key] = {"mtime": file_mtime, "data": data}
         return data
 
-    def _get_tags_raw(self, fname: UPath, rel_fname: UPath) -> Iterator[Tag]:  # noqa: PLR0911
+    async def _get_tags_raw(self, fname: str, rel_fname: str) -> AsyncIterator[Tag]:
         """Extract tags from a file using tree-sitter."""
         from grep_ast import filename_to_lang  # type: ignore[import-untyped]
         from grep_ast.tsl import get_language, get_parser  # type: ignore[import-untyped]
@@ -371,13 +358,13 @@ class RepoMap:
         from pygments.token import Token
         from tree_sitter import Query, QueryCursor
 
-        lang = filename_to_lang(str(fname))
+        lang = filename_to_lang(fname)
         if not lang:
             return
 
         try:
-            language = get_language(lang)  # pyright: ignore[reportArgumentType]
-            parser = get_parser(lang)  # pyright: ignore[reportArgumentType]
+            language = get_language(lang)
+            parser = get_parser(lang)
         except Exception:  # noqa: BLE001
             return
 
@@ -386,17 +373,17 @@ class RepoMap:
             return
         query_scm_text = query_scm.read_text("utf-8")
 
-        try:
-            code = fname.read_text("utf-8")
-        except (OSError, UnicodeDecodeError):
-            return
+        code = await self._cat_file(fname)
         if not code:
             return
+
         tree = parser.parse(bytes(code, "utf-8"))
         query = Query(language, query_scm_text)
         cursor = QueryCursor(query)
+
         saw: set[str] = set()
         all_nodes: list[tuple[Any, str]] = []
+
         for _pattern_index, captures_dict in cursor.matches(tree.root_node):
             for tag, nodes in captures_dict.items():
                 all_nodes.extend((node, tag) for node in nodes)
@@ -412,19 +399,17 @@ class RepoMap:
             saw.add(kind)
             name = node.text.decode("utf-8")
             line = node.start_point[0]
-            # For definitions, get the end line from the parent node (the full definition)
+
             end_line = -1
             signature_end_line = -1
             if kind == "def" and node.parent is not None:
                 end_line = node.parent.end_point[0]
-                # Find signature end by looking for block/body child
                 for child in node.parent.children:
                     if child.type in ("block", "body", "compound_statement"):
-                        # Signature ends on line before block starts
                         signature_end_line = child.start_point[0] - 1
                         break
-                # Fallback: use parent's start line if no block found
                 signature_end_line = max(signature_end_line, line)
+
             yield Tag(
                 rel_fname=rel_fname,
                 fname=fname,
@@ -438,21 +423,22 @@ class RepoMap:
         if "ref" in saw or "def" in saw:
             return
 
-        try:  # We saw defs without refs - use pygments to backfill refs
-            lexer = guess_lexer_for_filename(str(fname), code)
+        try:
+            lexer = guess_lexer_for_filename(fname, code)
         except Exception:  # noqa: BLE001
             return
 
         tokens = list(lexer.get_tokens(code))
         name_tokens = [token[1] for token in tokens if token[0] in Token.Name]  # type: ignore[comparison-overlap]
+
         for token in name_tokens:
             yield Tag(rel_fname=rel_fname, fname=fname, name=token, kind="ref", line=-1)
 
-    def _get_ranked_tags(  # noqa: PLR0915
+    async def _get_ranked_tags(  # noqa: PLR0915
         self,
-        files: Sequence[UPath],
-        exclude: set[UPath],
-        boost_files: set[UPath],
+        files: Sequence[str],
+        exclude: set[str],
+        boost_files: set[str],
         boost_idents: set[str],
     ) -> list[RankedTag]:
         """Rank tags using PageRank algorithm."""
@@ -463,57 +449,53 @@ class RepoMap:
         definitions: defaultdict[tuple[str, str], set[Tag]] = defaultdict(set)
         personalization: dict[str, float] = {}
         exclude_rel_fnames: set[str] = set()
-        # Map string keys back to original UPath objects (preserves auth, protocol, etc.)
-        str_to_rel_path: dict[str, UPath] = {}
-        sorted_fnames = sorted(files, key=str)
-        # Default personalization for unspecified files
+
+        sorted_fnames = sorted(files)
         personalize = 100 / len(sorted_fnames) if sorted_fnames else 0
-        fnames_iter: Iterable[UPath] = sorted_fnames
-        for fname in fnames_iter:
-            try:
-                file_ok = fname.is_file()
-            except OSError:
-                file_ok = False
-            if not file_ok:
+
+        for fname in sorted_fnames:
+            info = await self._info(fname)
+            if info is None or info.type != "file":
                 if fname not in self.warned_files:
                     self.warned_files.add(fname)
                 continue
-            rel_fname = self.get_rel_fname(fname)
-            rel_fname_str = str(rel_fname)
-            str_to_rel_path[rel_fname_str] = rel_fname
+
+            rel_fname = get_rel_path(fname, self.root_path)
             current_pers = 0.0
+
             if fname in exclude:
                 current_pers += personalize
-                exclude_rel_fnames.add(rel_fname_str)
-            if rel_fname in boost_files:
+                exclude_rel_fnames.add(rel_fname)
+
+            if fname in boost_files or rel_fname in boost_files:
                 current_pers = max(current_pers, personalize)
-            # Check path components against boost_idents
-            path_components = set(rel_fname.parts)
-            basename_with_ext = rel_fname.name
-            basename_without_ext = rel_fname.stem
+
+            path_obj = PurePosixPath(rel_fname)
+            path_components = set(path_obj.parts)
+            basename_with_ext = path_obj.name
+            basename_without_ext = path_obj.stem
             components_to_check = path_components.union({basename_with_ext, basename_without_ext})
 
-            matched_idents = components_to_check.intersection(boost_idents)
-            if matched_idents:
+            if components_to_check.intersection(boost_idents):
                 current_pers += personalize
 
             if current_pers > 0:
-                personalization[rel_fname_str] = current_pers
-            tags = list(self._get_tags(fname, rel_fname))
+                personalization[rel_fname] = current_pers
+
+            tags = await self._get_tags(fname, rel_fname)
             for tag in tags:
                 if tag.kind == "def":
-                    defines[tag.name].add(rel_fname_str)
-                    key = (rel_fname_str, tag.name)
+                    defines[tag.name].add(rel_fname)
+                    key = (rel_fname, tag.name)
                     definitions[key].add(tag)
                 elif tag.kind == "ref":
-                    references[tag.name].append(rel_fname_str)
+                    references[tag.name].append(rel_fname)
 
         if not references:
             references = defaultdict(list, {k: list(v) for k, v in defines.items()})
 
         idents = set(defines.keys()).intersection(set(references.keys()))
 
-        # Build graph using rustworkx - map string node names to indices
         graph: rx.PyDiGraph[str, dict[str, Any]] = rx.PyDiGraph(multigraph=True)
         node_to_idx: dict[str, int] = {}
         idx_to_node: dict[int, str] = {}
@@ -525,7 +507,6 @@ class RepoMap:
                 idx_to_node[idx] = name
             return node_to_idx[name]
 
-        # Add self-edges for definitions without references
         for ident in defines:
             if ident in references:
                 continue
@@ -536,9 +517,11 @@ class RepoMap:
         for ident in idents:
             definers = defines[ident]
             mul = 1.0
+
             is_snake = ("_" in ident) and any(c.isalpha() for c in ident)
             is_kebab = ("-" in ident) and any(c.isalpha() for c in ident)
             is_camel = any(c.isupper() for c in ident) and any(c.islower() for c in ident)
+
             if ident in boost_idents:
                 mul *= 10
             if (is_snake or is_kebab or is_camel) and len(ident) >= MIN_IDENT_LENGTH:
@@ -553,7 +536,6 @@ class RepoMap:
                     use_mul = mul
                     if referencer in exclude_rel_fnames:
                         use_mul *= 50
-                    # Scale down high frequency mentions
                     scaled_refs = math.sqrt(num_refs)
                     src_idx = get_or_add_node(referencer)
                     dst_idx = get_or_add_node(definer)
@@ -564,7 +546,6 @@ class RepoMap:
         if not graph.num_nodes():
             return []
 
-        # Build personalization dict with node indices
         pers_idx: dict[int, float] | None = None
         if personalization:
             pers_idx = {
@@ -586,15 +567,13 @@ class RepoMap:
             except ZeroDivisionError:
                 return []
 
-        # Convert back to string keys
         ranked: dict[str, float] = {idx_to_node[idx]: rank for idx, rank in ranked_idx.items()}
 
-        # Distribute rank across out edges
         ranked_definitions: defaultdict[tuple[str, str], float] = defaultdict(float)
         for src_idx in graph.node_indices():
             src_name = idx_to_node[src_idx]
             src_rank = ranked[src_name]
-            out_edges = graph.out_edges(src_idx)  # WeightedEdgeList: list of (src, dst, data)
+            out_edges = graph.out_edges(src_idx)
             total_weight = sum(edge_data["weight"] for _, _, edge_data in out_edges)
             if total_weight == 0:
                 continue
@@ -614,68 +593,64 @@ class RepoMap:
                 continue
             ranked_tags += list(definitions.get((fname, ident), []))
 
-        rel_fnames_without_tags = {str(self.get_rel_fname(fname)) for fname in files}
+        rel_fnames_without_tags = {get_rel_path(fname, self.root_path) for fname in files}
         for fname in exclude:
-            rel = str(self.get_rel_fname(fname))
+            rel = get_rel_path(fname, self.root_path)
             rel_fnames_without_tags.discard(rel)
 
-        fnames_already_included = {str(rt[0]) for rt in ranked_tags}
+        fnames_already_included = {
+            tag.rel_fname if isinstance(tag, Tag) else tag[0] for tag in ranked_tags
+        }
 
         top_rank = sorted([(rank, node) for (node, rank) in ranked.items()], reverse=True)
-        for _rank, fname_str in top_rank:
-            if fname_str in rel_fnames_without_tags:
-                rel_fnames_without_tags.remove(fname_str)
-            if fname_str not in fnames_already_included:
-                # Use original UPath from mapping, preserving auth/protocol info
-                original_path = str_to_rel_path.get(fname_str)
-                if original_path is not None:
-                    ranked_tags.append((original_path,))
+        for _rank, fname in top_rank:
+            if fname in rel_fnames_without_tags:
+                rel_fnames_without_tags.remove(fname)
+            if fname not in fnames_already_included:
+                ranked_tags.append((fname,))
 
-        for fname_str in rel_fnames_without_tags:
-            original_path = str_to_rel_path.get(fname_str)
-            if original_path is not None:
-                ranked_tags.append((original_path,))
+        for fname in rel_fnames_without_tags:
+            ranked_tags.append((fname,))
 
         return ranked_tags
 
-    def _get_ranked_tags_map(
+    async def _get_ranked_tags_map(
         self,
-        files: Sequence[UPath],
-        exclude: set[UPath],
-        boost_files: set[UPath],
+        files: Sequence[str],
+        exclude: set[str],
+        boost_files: set[str],
         boost_idents: set[str],
         max_tokens: int | None = None,
     ) -> str | None:
-        """Generate a ranked tags map."""
-        if not max_tokens:
-            max_tokens = self.max_tokens
+        """Generate ranked tags map within token budget."""
+        max_tokens = max_tokens or self.max_tokens
 
-        ranked_tags = self._get_ranked_tags(
+        ranked_tags = await self._get_ranked_tags(
             files=files,
             exclude=exclude,
             boost_files=boost_files,
             boost_idents=boost_idents,
         )
 
-        rel_fnames = sorted({self.get_rel_fname(fname) for fname in files})
-        special_fnames = [fname for fname in rel_fnames if is_important(fname)]
-        ranked_tags_fnames = {tag[0] for tag in ranked_tags}
-        special_fnames = [fn for fn in special_fnames if fn not in ranked_tags_fnames]
-        special_tags: list[RankedTag] = [(fn,) for fn in special_fnames]
-        ranked_tags = special_tags + ranked_tags
+        if not ranked_tags:
+            return None
+
         num_tags = len(ranked_tags)
         lower_bound = 0
         upper_bound = num_tags
         best_tree: str | None = None
         best_tree_tokens: float = 0
-        exclude_rel_fnames = {str(self.get_rel_fname(fname)) for fname in exclude}
+        exclude_rel_fnames = {get_rel_path(fname, self.root_path) for fname in exclude}
         self.tree_cache = {}
+
         middle = min(int(max_tokens // 25), num_tags)
+
         while lower_bound <= upper_bound:
-            tree = self._to_tree(ranked_tags[:middle], exclude_rel_fnames)
+            tree = await self._to_tree(ranked_tags[:middle], exclude_rel_fnames)
             num_tokens = self.token_count(tree)
             pct_err = abs(num_tokens - max_tokens) / max_tokens if max_tokens else 0
             ok_err = 0.15
+
             if (num_tokens <= max_tokens and num_tokens > best_tree_tokens) or pct_err < ok_err:
                 best_tree = tree
                 best_tree_tokens = num_tokens
@@ -691,23 +666,14 @@ class RepoMap:
 
         return best_tree
 
-    def _render_tree(  # noqa: PLR0915
+    async def _render_tree(
         self,
-        abs_fname: UPath,
-        rel_fname: UPath,
+        abs_fname: str,
+        rel_fname: str,
         lois: list[int],
         line_ranges: dict[int, int] | None = None,
     ) -> str:
-        """Render a tree representation of a file with lines of interest.
-
-        The output includes 1-based line number ranges for definitions.
-
-        Args:
-            abs_fname: Absolute path to the file.
-            rel_fname: Relative path to the file.
-            lois: List of lines of interest (0-indexed).
-            line_ranges: Optional dict mapping start line to end line (0-indexed).
-        """
+        """Render a tree representation of a file with lines of interest."""
         import re
 
         from grep_ast import TreeContext
@@ -715,21 +681,21 @@ class RepoMap:
         if line_ranges is None:
             line_ranges = {}
 
-        mtime = _get_mtime(abs_fname)
-        key = (str(rel_fname), tuple(sorted(lois)), mtime)
+        info = await self._info(abs_fname)
+        mtime = info.mtime if info else None
+
+        key = (rel_fname, tuple(sorted(lois)), mtime)
         if key in self.tree_cache:
             return self.tree_cache[key]
-        cached = self.tree_context_cache.get(str(rel_fname))
+
+        cached = self.tree_context_cache.get(rel_fname)
         if cached is None or cached["mtime"] != mtime:
-            try:
-                code = abs_fname.read_text("utf-8")
-            except (OSError, UnicodeDecodeError):
-                code = ""
+            code = await self._cat_file(abs_fname) or ""
             if not code.endswith("\n"):
                 code += "\n"
 
             context = TreeContext(
-                str(rel_fname),
+                rel_fname,
                 code,
                 child_context=False,
                 last_line=False,
@@ -738,54 +704,41 @@ class RepoMap:
                 loi_pad=0,
                 show_top_of_file_parent_scope=False,
             )
-            self.tree_context_cache[str(rel_fname)] = {"context": context, "mtime": mtime}
+            self.tree_context_cache[rel_fname] = {"context": context, "mtime": mtime}
 
-        context = self.tree_context_cache[str(rel_fname)]["context"]
+        context = self.tree_context_cache[rel_fname]["context"]
         context.lines_of_interest = set()
         context.add_lines_of_interest(lois)
         context.add_context()
         res: str = context.format()
 
-        # Add line numbers/ranges to class/function/method definitions
-        try:
-            code = abs_fname.read_text("utf-8")
-        except (OSError, UnicodeDecodeError):
-            code = ""
+        code = await self._cat_file(abs_fname) or ""
         code_lines = code.splitlines()
         lois_set = set(lois)
 
-        # Pattern to match class/function definitions
         def_pattern = re.compile(r"^(.*?)(class\s+\w+|def\s+\w+|async\s+def\s+\w+)")
 
         result_lines = []
         for output_line in res.splitlines():
             modified_line = output_line
-            # Check if this line contains a class or function definition
             match = def_pattern.search(output_line)
             if match:
-                # Find matching line number from lois
-                # Strip leading markers (│, etc.) to get the actual code
                 stripped = output_line.lstrip("│ \t")
                 for line_num in lois_set:
                     if line_num < len(code_lines):
                         orig_line = code_lines[line_num].strip()
                         if orig_line and stripped.startswith(orig_line.split("(")[0].split(":")[0]):
-                            # Find the name part and add line range at end of line
                             name_match = re.search(
                                 r"(class\s+\w+|def\s+\w+|async\s+def\s+\w+)", output_line
                             )
                             if name_match:
-                                # line_num is 0-indexed, display as 1-indexed
                                 start_line_display = line_num + 1
                                 end_line = line_ranges.get(line_num, -1)
                                 if end_line >= 0 and end_line != line_num:
-                                    # Display as range
                                     end_line_display = end_line + 1
                                     line_info = f"  # [{start_line_display}-{end_line_display}]"
                                 else:
-                                    # Single line or unknown end
                                     line_info = f"  # [{start_line_display}]"
-                                # Append line info at the end of the line
                                 modified_line = f"{output_line}{line_info}"
                             break
             result_lines.append(modified_line)
@@ -793,36 +746,45 @@ class RepoMap:
         res = "\n".join(result_lines)
         if result_lines:
             res += "\n"
+
         self.tree_cache[key] = res
         return res
 
-    def _to_tree(self, tags: list[RankedTag], exclude_rel_fnames: set[str]) -> str:
+    async def _to_tree(self, tags: list[RankedTag], exclude_rel_fnames: set[str]) -> str:
         """Convert ranked tags to a tree representation."""
         if not tags:
             return ""
 
-        cur_fname: UPath | None = None
-        cur_abs_fname: UPath | None = None
+        cur_fname: str | None = None
+        cur_abs_fname: str | None = None
         lois: list[int] | None = None
         line_ranges: dict[int, int] | None = None
         output = ""
 
-        # Add bogus tag to trigger final output
         dummy_tag: tuple[None] = (None,)
         for tag in [*sorted(tags, key=lambda t: str(t[0]) if t[0] else ""), dummy_tag]:
-            this_rel_fname = tag[0]
-            if str(this_rel_fname) in exclude_rel_fnames:
+            this_rel_fname = tag[0] if isinstance(tag, Tag) else (tag[0] if tag[0] else None)
+
+            if isinstance(tag, Tag):
+                this_rel_fname = tag.rel_fname
+            elif tag[0] is not None:
+                this_rel_fname = tag[0]
+            else:
+                this_rel_fname = None
+
+            if this_rel_fname and this_rel_fname in exclude_rel_fnames:
                 continue
 
             if this_rel_fname != cur_fname:
                 if lois is not None and cur_fname and cur_abs_fname:
                     output += "\n"
-                    output += str(cur_fname) + ":\n"
-                    output += self._render_tree(cur_abs_fname, cur_fname, lois, line_ranges)
+                    output += cur_fname + ":\n"
+                    output += await self._render_tree(cur_abs_fname, cur_fname, lois, line_ranges)
                     lois = None
                     line_ranges = None
                 elif cur_fname:
-                    output += "\n" + str(cur_fname) + "\n"
+                    output += "\n" + cur_fname + "\n"
+
                 if isinstance(tag, Tag):
                     lois = []
                     line_ranges = {}
@@ -830,7 +792,6 @@ class RepoMap:
                 cur_fname = this_rel_fname
 
             if lois is not None and line_ranges is not None and isinstance(tag, Tag):
-                # Add all lines from start to signature end as lines of interest
                 if tag.signature_end_line >= tag.line:
                     lois.extend(range(tag.line, tag.signature_end_line + 1))
                 else:
@@ -838,42 +799,31 @@ class RepoMap:
                 if tag.end_line >= 0:
                     line_ranges[tag.line] = tag.end_line
 
-        # Truncate long lines
         return "\n".join([line[: self.max_line_length] for line in output.splitlines()]) + "\n"
 
 
-def find_src_files(directory: str | UPath) -> list[UPath]:
-    """Find all source files in a directory."""
-    directory_path = UPath(directory)
-    if not directory_path.is_dir():
-        return [directory_path]
-
-    return [file_path for file_path in directory_path.rglob("*") if file_path.is_file()]
-
-
 def get_random_color() -> str:
-    """Generate a random color in hex format."""
+    """Generate a random pastel color."""
     hue = random.random()
     r, g, b = (int(x * 255) for x in colorsys.hsv_to_rgb(hue, 1, 0.75))
     return f"#{r:02x}{g:02x}{b:02x}"
 
 
-def get_scm_fname(lang: str) -> UPath | None:
+def get_scm_fname(lang: str) -> Path | None:
     """Get the path to the SCM query file for a language."""
     package = __package__ or "llmling_agent"
     subdir = "tree-sitter-language-pack"
     try:
         path = resources.files(package).joinpath("queries", subdir, f"{lang}-tags.scm")
         if path.is_file():
-            return UPath(str(path))
+            return Path(str(path))
     except KeyError:
         pass
 
-    # Fall back to tree-sitter-languages
     subdir = "tree-sitter-languages"
     try:
         path = resources.files(package).joinpath("queries", subdir, f"{lang}-tags.scm")
-        return UPath(str(path))
+        return Path(str(path))
     except KeyError:
         return None
 
@@ -882,10 +832,9 @@ def get_supported_languages_md() -> str:
     """Generate markdown table of supported languages."""
     from grep_ast.parsers import PARSERS  # type: ignore[import-untyped]
 
-    res = """
-| Language | File extension | Repo map |
-|:--------:|:--------------:|:--------:|
-"""
+    res = "| Language | Extension | Repo Map |\n"
+    res += "|----------|-----------|----------|\n"
+
     data = sorted((lang, ext) for ext, lang in PARSERS.items())
     for lang, ext in data:
         fn = get_scm_fname(lang)
@@ -896,57 +845,80 @@ def get_supported_languages_md() -> str:
     return res
 
 
+async def find_src_files(fs: AsyncFileSystem, directory: str) -> list[str]:
+    """Find all source files in a directory using async fsspec."""
+    results: list[str] = []
+
+    async def _recurse(path: str) -> None:
+        try:
+            entries = await fs._ls(path, detail=True)
+        except (OSError, FileNotFoundError):
+            return
+
+        for entry in entries:
+            entry_path = entry.get("name", "")
+            entry_type = entry.get("type", "file")
+
+            if entry_type == "directory":
+                await _recurse(entry_path)
+            elif entry_type == "file":
+                results.append(entry_path)
+
+    await _recurse(directory)
+    return results
+
+
 if __name__ == "__main__":
-    # Test with GitHub UPath using GH_TOKEN for authentication
-    print("=" * 80)
-    print("GitHub UPath Test - epregistry repository")
-    print("=" * 80)
+    import asyncio
 
-    gh_token = os.environ.get("GH_TOKEN")
-    if not gh_token:
-        print("Warning: GH_TOKEN not set, may hit rate limits")
+    async def main() -> None:
+        from fsspec.implementations.github import GithubFileSystem
 
-    github_repo = UPath(
-        "github://phil65:epregistry@main/src/epregistry",
-        username=gh_token,
-        token=gh_token,
-    )
-    repo_root = UPath(
-        "github://phil65:epregistry@main",
-        username=gh_token,
-        token=gh_token,
-    )
-
-    print(f"Repository: {github_repo}")
-
-    try:
-        all_py_files = [f for f in find_src_files(github_repo) if f.suffix == ".py"]
-        print(f"Found {len(all_py_files)} Python files")
-
-        rm = RepoMap(root=repo_root, max_tokens=4000)
-        result = rm.get_map_with_metadata(all_py_files)
-
-        print("\n" + "=" * 80)
-        print("REPOSITORY MAP METADATA")
         print("=" * 80)
-        print(f"Total files processed: {result.total_files_processed}")
-        print(f"Total tags found: {result.total_tags_found}")
-        print(f"Files with tags: {result.total_files_with_tags}")
-        print(f"Included files: {result.included_files}")
-        print(f"Included tags: {result.included_tags}")
-        print(f"Truncated: {result.truncated}")
-        print(f"Coverage ratio: {result.coverage_ratio:.2%}")
+        print("Async GitHub fsspec Test - epregistry repository")
+        print("=" * 80)
 
-        if result.content:
+        gh_token = os.environ.get("GH_TOKEN")
+        if not gh_token:
+            print("Warning: GH_TOKEN not set, may hit rate limits")
+
+        fs = GithubFileSystem(
+            org="phil65", repo="epregistry", sha="main", username="phil65", token=gh_token
+        )
+        root_path = "src/epregistry"
+
+        print(f"Repository: github://phil65/epregistry@main/{root_path}")
+
+        try:
+            all_py_files = [f for f in await find_src_files(fs, root_path) if f.endswith(".py")]
+            print(f"Found {len(all_py_files)} Python files")
+
+            rm = RepoMap(fs=fs, root_path=root_path, max_tokens=4000)
+            result = await rm.get_map_with_metadata(all_py_files)
+
             print("\n" + "=" * 80)
-            print("REPOSITORY MAP")
+            print("REPOSITORY MAP METADATA")
             print("=" * 80)
-            print(result.content)
-        else:
-            print("No repository map generated")
+            print(f"Total files processed: {result.total_files_processed}")
+            print(f"Total tags found: {result.total_tags_found}")
+            print(f"Files with tags: {result.total_files_with_tags}")
+            print(f"Included files: {result.included_files}")
+            print(f"Included tags: {result.included_tags}")
+            print(f"Truncated: {result.truncated}")
+            print(f"Coverage ratio: {result.coverage_ratio:.2%}")
 
-    except Exception as e:
-        print(f"Error: {type(e).__name__}: {e}")
-        import traceback
+            if result.content:
+                print("\n" + "=" * 80)
+                print("REPOSITORY MAP")
+                print("=" * 80)
+                print(result.content)
+            else:
+                print("No repository map generated")
 
-        traceback.print_exc()
+        except Exception as e:  # noqa: BLE001
+            print(f"Error: {type(e).__name__}: {e}")
+            import traceback
+
+            traceback.print_exc()
+
+    asyncio.run(main())
