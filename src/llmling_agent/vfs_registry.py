@@ -2,16 +2,17 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Literal, assert_never, overload
 
-from fsspec import AbstractFileSystem
-from upathtools import AsyncUPath, UnionFileSystem, list_files, read_folder, read_path, to_upath
+from upathtools import UnionFileSystem, list_files, read_folder, read_path
 
 from llmling_agent.log import get_logger
-from llmling_agent.models.manifest import ResourceConfig
 from llmling_agent.utils.baseregistry import LLMLingError
 
 
 if TYPE_CHECKING:
-    from upathtools import UPath
+    from fsspec import AbstractFileSystem
+    from upathtools import AsyncUPath, UPath
+
+    from llmling_agent.models.manifest import ResourceConfig
 
 
 logger = get_logger(__name__)
@@ -147,19 +148,11 @@ class VFSRegistry:
         Returns:
             UPath or AsyncUPath instance
         """
-        if resource_name is None:
-            # Unified view - use UnionFileSystem
-            path = to_upath("union://")
-            path._fs_cached = self._union_fs  # pyright: ignore[reportAttributeAccessIssue]
-        else:
-            # Specific resource
-            if resource_name not in self._union_fs.filesystems:
-                msg = f"Resource not found: {resource_name}"
-                raise LLMLingError(msg)
-            path = to_upath(f"union://{resource_name}")
-            path._fs_cached = self._union_fs  # pyright: ignore[reportAttributeAccessIssue]
+        if resource_name is not None and resource_name not in self._union_fs.filesystems:
+            msg = f"Resource not found: {resource_name}"
+            raise LLMLingError(msg)
 
-        return AsyncUPath(path) if as_async else path
+        return self._union_fs.get_upath(resource_name, as_async=as_async)
 
     async def get_content(
         self,
@@ -191,13 +184,11 @@ class VFSRegistry:
 
         if await self._union_fs._isdir(path):
             content_dict = await read_folder(
-                path,
-                mode="rt",
+                self._union_fs.get_upath(path),
                 encoding=encoding,
                 recursive=recursive,
                 exclude=exclude,
                 max_depth=max_depth,
-                filesystem=self._union_fs,
             )
             # Combine all files with headers
             sections = []
@@ -205,7 +196,7 @@ class VFSRegistry:
                 sections.extend([f"--- {rel_path} ---", content, ""])
             return "\n".join(sections)
 
-        return await read_path(path, encoding=encoding, filesystem=self._union_fs)
+        return await read_path(self._union_fs.get_upath(path), encoding=encoding)
 
     async def query(
         self,
@@ -246,13 +237,12 @@ class VFSRegistry:
             raise LLMLingError(msg)
 
         files = await list_files(
-            path,
+            self._union_fs.get_upath(path),
             pattern=pattern,
             recursive=recursive,
             include_dirs=include_dirs,
             exclude=exclude,
             max_depth=max_depth,
-            filesystem=self._union_fs,
         )
         return [str(p) for p in files]
 
@@ -263,6 +253,10 @@ class VFSRegistry:
 
 
 if __name__ == "__main__":
+    from fsspec.implementations.memory import MemoryFileSystem
+
     registry = VFSRegistry()
-    p = registry.get_upath()
-    print(p, type(p))
+    fs1 = MemoryFileSystem()
+    registry.register("test", fs1)
+    union = registry.get_filesystem()
+    print(union.ls(""))
