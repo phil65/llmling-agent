@@ -8,6 +8,7 @@ from __future__ import annotations
 from collections import Counter, defaultdict
 from collections.abc import Callable
 import colorsys
+from dataclasses import dataclass
 from importlib import resources
 import math
 import os
@@ -66,6 +67,22 @@ class Tag(NamedTuple):
 
 
 type RankedTag = Tag | tuple[UPath]  # Either full Tag or just (filename,)
+
+
+@dataclass
+class RepoMapResult:
+    """Result of repository map generation with metadata."""
+
+    content: str
+    total_files_processed: int
+    total_tags_found: int
+    total_files_with_tags: int
+    included_files: int
+    included_tags: int
+    truncated: bool
+    coverage_ratio: float
+    io_budget_used: int = 0
+    strategy_used: str = "default"
 
 
 CACHE_VERSION = 4
@@ -181,6 +198,88 @@ class RepoMap:
             exclude=exclude,
             boost_files=boost_files,
             boost_idents=boost_idents,
+        )
+
+    def get_map_with_metadata(
+        self,
+        files: Sequence[UPath],
+        *,
+        exclude: set[UPath] | None = None,
+        boost_files: set[UPath] | None = None,
+        boost_idents: set[str] | None = None,
+    ) -> RepoMapResult:
+        """Generate a repository map with detailed metadata about what was included/excluded.
+
+        Args:
+            files: Files to include in the map.
+            exclude: Files to exclude from the map output (but still used for ranking).
+            boost_files: Files to boost in ranking.
+            boost_idents: Identifiers to boost in ranking.
+
+        Returns:
+            RepoMapResult with the map content and metadata about truncation.
+        """
+        import re
+
+        if not files:
+            return RepoMapResult(
+                content="",
+                total_files_processed=0,
+                total_tags_found=0,
+                total_files_with_tags=0,
+                included_files=0,
+                included_tags=0,
+                truncated=False,
+                coverage_ratio=0.0,
+            )
+
+        exclude = exclude or set()
+        boost_files = boost_files or set()
+        boost_idents = boost_idents or set()
+
+        # Get all ranked tags to calculate totals
+        ranked_tags = self._get_ranked_tags(
+            files=files,
+            exclude=exclude,
+            boost_files=boost_files,
+            boost_idents=boost_idents,
+        )
+
+        total_tags = len([tag for tag in ranked_tags if isinstance(tag, Tag)])
+        all_files_with_tags = {tag.fname if isinstance(tag, Tag) else tag[0] for tag in ranked_tags}
+        total_files_with_tags = len(all_files_with_tags)
+
+        # Generate the actual map content
+        content = self._get_ranked_tags_map(
+            files=files,
+            exclude=exclude,
+            boost_files=boost_files,
+            boost_idents=boost_idents,
+        )
+
+        # Count what made it into final output
+        if content:
+            # Count files that have content (lines ending with :)
+            included_files = len(set(re.findall(r"^([^:\s]+):", content, re.MULTILINE)))
+            # Count function/class definitions
+            included_tags = content.count(" def ") + content.count("class ")
+        else:
+            included_files = included_tags = 0
+
+        coverage_ratio = (
+            included_files / total_files_with_tags if total_files_with_tags > 0 else 0.0
+        )
+        truncated = included_files < total_files_with_tags or included_tags < total_tags
+
+        return RepoMapResult(
+            content=content or "",
+            total_files_processed=len(files),
+            total_tags_found=total_tags,
+            total_files_with_tags=total_files_with_tags,
+            included_files=included_files,
+            included_tags=included_tags,
+            truncated=truncated,
+            coverage_ratio=coverage_ratio,
         )
 
     def get_rel_fname(self, fname: UPath) -> UPath:
@@ -825,13 +924,24 @@ if __name__ == "__main__":
         print(f"Found {len(all_py_files)} Python files")
 
         rm = RepoMap(root=repo_root, max_tokens=4000)
-        repo_map = rm.get_map(all_py_files)
+        result = rm.get_map_with_metadata(all_py_files)
 
-        if repo_map:
+        print("\n" + "=" * 80)
+        print("REPOSITORY MAP METADATA")
+        print("=" * 80)
+        print(f"Total files processed: {result.total_files_processed}")
+        print(f"Total tags found: {result.total_tags_found}")
+        print(f"Files with tags: {result.total_files_with_tags}")
+        print(f"Included files: {result.included_files}")
+        print(f"Included tags: {result.included_tags}")
+        print(f"Truncated: {result.truncated}")
+        print(f"Coverage ratio: {result.coverage_ratio:.2%}")
+
+        if result.content:
             print("\n" + "=" * 80)
             print("REPOSITORY MAP")
             print("=" * 80)
-            print(repo_map)
+            print(result.content)
         else:
             print("No repository map generated")
 
