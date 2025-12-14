@@ -16,6 +16,8 @@ import random
 import shutil
 from typing import TYPE_CHECKING, Any, ClassVar, NamedTuple, cast
 
+from upathtools import to_upath
+
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Iterator, Sequence
@@ -97,12 +99,15 @@ def is_important(fname: str) -> bool:
     return base in NORMALIZED_ROOT_IMPORTANT_FILES
 
 
-def filter_important_files(fnames: list[str]) -> list[str]:
-    """Filter and return only important files from a list."""
-    return [fname for fname in fnames if is_important(fname)]
+def _default_read_file(fname: str) -> str | None:
+    """Default file reader using Path.read_text."""
+    try:
+        return to_upath(fname).read_text("utf-8")
+    except (OSError, UnicodeDecodeError):
+        return None
 
 
-class AiderRepoMap:
+class RepoMap:
     """Generates a map of a repository's code structure using tree-sitter."""
 
     TAGS_CACHE_DIR: ClassVar[str] = f".llmling-agent.tags.cache.v{CACHE_VERSION}"
@@ -118,7 +123,7 @@ class AiderRepoMap:
         read_file: FileReader | None = None,
         token_counter: TokenCounter | None = None,
     ) -> None:
-        """Initialize AiderRepoMap.
+        """Initialize RepoMap.
 
         Args:
             root: Root directory of the repository.
@@ -130,7 +135,7 @@ class AiderRepoMap:
         self.root = str(root)
         self.max_tokens = max_tokens
         self.max_line_length = max_line_length
-        self._read_file = read_file or self._default_read_file
+        self._read_file = read_file or _default_read_file
         self._token_counter = token_counter
 
         self._load_tags_cache()
@@ -141,14 +146,6 @@ class AiderRepoMap:
         self.map_processing_time: float = 0
         self.last_map: str | None = None
         self.TAGS_CACHE: Cache | dict[str, Any] = {}
-
-    @staticmethod
-    def _default_read_file(fname: str) -> str | None:
-        """Default file reader using Path.read_text."""
-        try:
-            return Path(fname).read_text("utf-8")
-        except (OSError, UnicodeDecodeError):
-            return None
 
     def token_count(self, text: str) -> float:
         """Estimate token count for text."""
@@ -243,7 +240,7 @@ class AiderRepoMap:
 
         from diskcache import Cache
 
-        path = Path(self.root) / self.TAGS_CACHE_DIR
+        path = to_upath(self.root) / self.TAGS_CACHE_DIR
         try:
             self.TAGS_CACHE = Cache(path)
         except (sqlite3.OperationalError, sqlite3.DatabaseError, OSError) as e:
@@ -283,7 +280,7 @@ class AiderRepoMap:
 
         return data
 
-    def _get_tags_raw(self, fname: str, rel_fname: str) -> Iterator[Tag]:  # noqa: PLR0911
+    def _get_tags_raw(self, fname: str, rel_fname: str) -> Iterator[Tag]:
         """Extract tags from a file using tree-sitter."""
         from grep_ast import filename_to_lang  # type: ignore[import-untyped]
         from grep_ast.tsl import get_language, get_parser  # type: ignore[import-untyped]
@@ -305,15 +302,12 @@ class AiderRepoMap:
         if not query_scm or not query_scm.exists():
             return
         query_scm_text = query_scm.read_text("utf-8")
-
         code = self._read_file(fname)
         if not code:
             return
         tree = parser.parse(bytes(code, "utf-8"))
-
         query = Query(language, query_scm_text)
         cursor = QueryCursor(query)
-
         saw: set[str] = set()
         all_nodes: list[tuple[Any, str]] = []
         for _pattern_index, captures_dict in cursor.matches(tree.root_node):
@@ -354,19 +348,16 @@ class AiderRepoMap:
                 signature_end_line=signature_end_line,
             )
 
-        if "ref" in saw:
-            return
-        if "def" not in saw:
+        if "ref" in saw or "def" in saw:
             return
 
-        # We saw defs without refs - use pygments to backfill refs
-        try:
+        try:  # We saw defs without refs - use pygments to backfill refs
             lexer = guess_lexer_for_filename(fname, code)
         except Exception:  # noqa: BLE001
             return
 
         tokens = list(lexer.get_tokens(code))
-        name_tokens = [token[1] for token in tokens if token[0] in Token.Name]
+        name_tokens = [token[1] for token in tokens if token[0] in Token.Name]  # type: ignore[comparison-overlap]
         for token in name_tokens:
             yield Tag(rel_fname=rel_fname, fname=fname, name=token, kind="ref", line=-1)
 
@@ -406,7 +397,7 @@ class AiderRepoMap:
             if rel_fname in boost_files:
                 current_pers = max(current_pers, personalize)
             # Check path components against boost_idents
-            path_obj = Path(rel_fname)
+            path_obj = to_upath(rel_fname)
             path_components = set(path_obj.parts)
             basename_with_ext = path_obj.name
             basename_without_ext = path_obj.stem
@@ -572,7 +563,7 @@ class AiderRepoMap:
         )
 
         rel_fnames = sorted({self.get_rel_fname(fname) for fname in files})
-        special_fnames = filter_important_files(rel_fnames)
+        special_fnames = [fname for fname in rel_fnames if is_important(fname)]
         ranked_tags_fnames = {tag[0] for tag in ranked_tags}
         special_fnames = [fn for fn in special_fnames if fn not in ranked_tags_fnames]
         special_tags: list[RankedTag] = [(fn,) for fn in special_fnames]
@@ -816,7 +807,7 @@ if __name__ == "__main__":
 
     def get_map(folder: Path) -> str | None:
         all_py_files = [f for f in find_src_files(src_dir) if f.endswith(".py")]
-        rm = AiderRepoMap(root=project_root, max_tokens=1000000)
+        rm = RepoMap(root=project_root, max_tokens=1000)
         return rm.get_map(all_py_files)
 
     repo_map = get_map(src_dir)

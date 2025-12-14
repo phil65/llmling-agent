@@ -1342,6 +1342,7 @@ class CursorACPAgentConfig(BaseACPAgentConfig):
     """Configuration for Cursor via ACP.
 
     Cursor CLI agent with filesystem and terminal capabilities.
+    See https://github.com/blowmage/cursor-agent-acp-npm
 
     Example:
         ```yaml
