@@ -319,11 +319,7 @@ class ACPSession:
         return self._staged_parts.copy()
 
     def add_staged_parts(self, parts: list[SystemPromptPart | UserPromptPart]) -> None:
-        """Add prompt parts to staging area.
-
-        Args:
-            parts: List of SystemPromptPart or UserPromptPart to stage
-        """
+        """Add prompt parts to staging area."""
         self._staged_parts.extend(parts)
 
     def clear_staged_parts(self) -> None:

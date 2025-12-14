@@ -61,15 +61,13 @@ class ConfigCreationTools(StaticResourceProvider):
         self._schema_path = to_upath(schema_path)
         self._markup: MarkupType = markup
         self._schema: dict[str, Any] | None = None
-        self._schema_fs: JsonSchemaFileSystem | None = None
 
         self.add_tool(
             self.create_tool(
-                self._create_config,
+                self.create_config,
                 category="edit",
                 read_only=False,
                 idempotent=True,
-                name_override="create_config",
                 description_override=(
                     f"Create and validate a {markup.upper()} configuration. "
                     "Returns validation result and any errors."
@@ -78,41 +76,15 @@ class ConfigCreationTools(StaticResourceProvider):
         )
         self.add_tool(
             self.create_tool(
-                self._show_schema_as_code,
-                category="read",
-                read_only=True,
-                idempotent=True,
-                name_override="show_schema_as_code",
-                description_override=(
-                    "Show the JSON schema as Python Pydantic code for easier understanding."
-                ),
+                self.show_schema_as_code, category="read", read_only=True, idempotent=True
             )
         )
         self.add_tool(
-            self.create_tool(
-                self._list_schema,
-                category="read",
-                read_only=True,
-                idempotent=True,
-                name_override="list_schema",
-                description_override=(
-                    "List contents at a path in the JSON schema. "
-                    "Use '/' for root, '/$defs' for definitions, "
-                    "'/$defs/{TypeName}/properties' for type properties."
-                ),
-            )
+            self.create_tool(self.list_schema, category="read", read_only=True, idempotent=True)
         )
         self.add_tool(
             self.create_tool(
-                self._read_schema_node,
-                category="read",
-                read_only=True,
-                idempotent=True,
-                name_override="read_schema_node",
-                description_override=(
-                    "Read the JSON schema at a specific path. "
-                    "E.g. '/$defs/AgentConfig/properties/model' to see the model field schema."
-                ),
+                self.read_schema_node, category="read", read_only=True, idempotent=True
             )
         )
 
@@ -125,11 +97,9 @@ class ConfigCreationTools(StaticResourceProvider):
 
     def _get_schema_fs(self) -> JsonSchemaFileSystem:
         """Get or create the JSON schema filesystem."""
-        if self._schema_fs is None:
-            self._schema_fs = JsonSchemaFileSystem(schema_url=str(self._schema_path))
-        return self._schema_fs
+        return JsonSchemaFileSystem(schema_url=str(self._schema_path))
 
-    async def _create_config(self, content: str) -> str:
+    async def create_config(self, content: str) -> str:
         """Create and validate a configuration.
 
         Args:
@@ -154,20 +124,16 @@ class ConfigCreationTools(StaticResourceProvider):
 
         return "Configuration is valid! Successfully validated against schema."
 
-    async def _show_schema_as_code(self) -> str:
+    async def show_schema_as_code(self) -> str:
         """Show the JSON schema as Python Pydantic code.
 
         Returns:
             Python code representation of the schema
         """
         schema = self._load_schema()
-        return json_schema_to_pydantic_code(
-            schema,
-            class_name="Config",
-            base_class="pydantic.BaseModel",
-        )
+        return json_schema_to_pydantic_code(schema, class_name="Config")
 
-    async def _list_schema(self, path: str = "/") -> str:
+    async def list_schema(self, path: str = "/") -> str:
         """List contents at a path in the JSON schema.
 
         Args:
@@ -191,25 +157,20 @@ class ConfigCreationTools(StaticResourceProvider):
             fs = self._get_schema_fs()
             is_dir = fs.isdir(f"{path.rstrip('/')}/{name}" if path != "/" else f"/{name}")
             icon = "📁" if is_dir else "📄"
-
             parts = [f"{icon} {name}"]
-
             if schema_type := item.get("schema_type"):
                 parts.append(f"[{schema_type}]")
-
             if item.get("required"):
                 parts.append("(required)")
-
             if desc := item.get("description"):
                 # Truncate long descriptions
                 desc_short = desc[:60] + "..." if len(desc) > 60 else desc  # noqa: PLR2004
                 parts.append(f"- {desc_short}")
-
             lines.append("  " + " ".join(parts))
 
         return "\n".join(lines)
 
-    async def _read_schema_node(self, path: str) -> str:
+    async def read_schema_node(self, path: str) -> str:
         """Read the JSON schema at a specific path.
 
         Args:
