@@ -10,7 +10,7 @@ import pytest
 from llmling_agent import AgentPool
 from llmling_agent.agent.acp_agent import ACPAgent
 from llmling_agent.mcp_server.tool_bridge import BridgeConfig, ToolManagerBridge, create_tool_bridge
-from llmling_agent.models.acp_agents import ClaudeACPAgentConfig
+from llmling_agent.models.acp_agents.mcp_capable import ClaudeACPAgentConfig
 from llmling_agent.tools import ToolManager
 from llmling_agent_config.toolsets import AgentManagementToolsetConfig, SubagentToolsetConfig
 
