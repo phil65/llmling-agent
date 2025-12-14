@@ -6,14 +6,24 @@ icon: material/cpu-64-bit
 
 ## Overview
 
-LLMling-Agent supports a wide range of model types through [LLMling-models](https://github.com/phil65/LLMling-models):
+LLMling-Agent supports a wide range of model types thanks to `Pydantic-AI`. In the simplest form, models are defined by their "identifier", which is defined as `PROVIDER_NAME:MODEL_NAME` (example: `"openai:gpt-5-nano"`).
 
-- **Standard LLM Providers**: OpenAI, Anthropic, Google, Groq, Mistral, and more
-- **Human-Interaction Models**: Console input, remote input, user selection
-- **Multi-Models**: Fallback chains, cost-optimization, token-optimization, delegation
-- **Wrapper Models**: Custom implementations, monitoring, and specialized behaviors
+For more advanced scenarios, it is also possible to assign a more detailed model config including model settings like `temperature` etc.
 
-Models can be specified simply as strings (e.g., `"openai:gpt-4"`), or with detailed configuration for advanced use cases.
+In addition, some more experimental (meta-)Models are supported using [LLMling-models](https://github.com/phil65/LLMling-models).
+
+These include models which let the user get into the role of an Agent, as well as fallback models and lot more.
+
+```yaml
+agents:
+  my_agent:
+    model: openai:gpt-5-nano  # simple model identifier
+  my_agent2:
+    model:  # extended model config
+      provider: openai
+      model: gpt-5-nano
+      temperature: 0.5
+```
 
 ## Configuration Reference
 
