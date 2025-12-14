@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 
 class McpRunTools(ResourceProvider):
-    """Provider for composio tools."""
+    """Provider for MCP.run tools."""
 
     def __init__(self, entity_id: str, session_id: str | None = None) -> None:
         from mcp_run import Client, ClientConfig  # type: ignore[import-untyped]
@@ -27,7 +27,7 @@ class McpRunTools(ResourceProvider):
         self._tools: list[Tool] | None = None
 
     async def get_tools(self) -> list[Tool]:
-        """Get tools from entry points."""
+        """Get tools from MCP.run."""
         # Return cached tools if available
         if self._tools is not None:
             return self._tools
