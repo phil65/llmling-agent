@@ -18,6 +18,7 @@ import random
 from typing import TYPE_CHECKING, Any, ClassVar, NamedTuple, cast
 
 from fsspec.asyn import AsyncFileSystem
+from upathtools import is_directory
 
 
 if TYPE_CHECKING:
