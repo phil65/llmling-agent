@@ -12,6 +12,7 @@ from urllib.parse import urlparse
 
 from exxec.base import ExecutionEnvironment
 from pydantic_ai import Agent as PydanticAgent, BinaryContent
+from upathtools import is_directory
 
 from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.log import get_logger
@@ -218,7 +219,8 @@ class FSSpecTools(ResourceProvider):
                 if exclude and any(fnmatch(rel_path, pat) for pat in exclude):
                     continue
 
-                is_dir = await fs._isdir(file_path)
+                # Use type from glob detail info, falling back to isdir only if needed
+                is_dir = await is_directory(fs, file_path, entry_type=file_info.get("type"))  # pyright: ignore[reportArgumentType]
 
                 item_info = {
                     "name": Path(file_path).name,  # pyright: ignore[reportArgumentType]
