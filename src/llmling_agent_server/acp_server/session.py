@@ -38,6 +38,7 @@ from acp.notifications import ACPNotifications
 from acp.schema import (
     AvailableCommand,
     ClientCapabilities,
+    ContentToolCallContent,
     PlanEntry,
     TerminalToolCallContent,
     ToolCallLocation,
@@ -471,7 +472,14 @@ class ACPSession:
                 # Complete tool call through state (preserves accumulated content/locations)
                 if complete_state := self._tool_call_states.get(tool_call_id):
                     converted_blocks = to_acp_content_blocks(final_output)
-                    await complete_state.complete(raw_output=converted_blocks)
+                    # Wrap raw content blocks in ContentToolCallContent for proper display
+                    content_items = [
+                        ContentToolCallContent(content=block) for block in converted_blocks
+                    ]
+                    await complete_state.complete(
+                        raw_output=final_output,
+                        add_content=content_items,
+                    )
                 self._cleanup_tool_state(tool_call_id)
 
             # Tool failed with retry - update state with error
