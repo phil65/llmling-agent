@@ -5,6 +5,8 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any, assert_never
 
+from pydantic_ai import ModelRequest, ModelResponse, ToolReturnPart, UserPromptPart
+
 from acp.schema import (
     AgentMessageChunk,
     AgentPlanUpdate,
@@ -37,8 +39,6 @@ from llmling_agent.log import get_logger
 if TYPE_CHECKING:
     from collections.abc import Sequence
     from datetime import datetime
-
-    from pydantic_ai import ModelRequest, ModelResponse
 
     from acp import (
         AvailableCommand,
@@ -262,10 +262,7 @@ class ACPNotifications:
             kind=kind,
             locations=locations,
             content=[
-                ContentToolCallContent(content=TextContentBlock(text=i))
-                if isinstance(i, str)
-                else i
-                for i in content or []
+                ContentToolCallContent.text(i) if isinstance(i, str) else i for i in content or []
             ],
         )
         notification = SessionNotification(session_id=self.id, update=progress)
@@ -537,8 +534,6 @@ class ACPNotifications:
         Args:
             messages: Sequence of ModelRequest and ModelResponse objects to replay
         """
-        from pydantic_ai import ModelRequest, ModelResponse
-
         for message in messages:
             try:
                 match message:
@@ -546,16 +541,13 @@ class ACPNotifications:
                         await self._replay_request(message)
                     case ModelResponse():
                         await self._replay_response(message)
-                    case _:
-                        typ = type(message).__name__
-                        self.log.debug("Unhandled message type", message_type=typ)
+                    case _ as unreachable:
+                        assert_never(unreachable)
             except Exception as e:
                 self.log.exception("Failed to replay message", error=str(e))
 
     async def _replay_request(self, request: ModelRequest) -> None:
         """Replay a ModelRequest by converting it to appropriate ACP notifications."""
-        from pydantic_ai import ToolReturnPart, UserPromptPart
-
         for part in request.parts:
             match part:
                 case UserPromptPart(content=content):
