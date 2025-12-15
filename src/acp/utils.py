@@ -38,7 +38,7 @@ DEFAULT_PERMISSION_OPTIONS = [
 ]
 
 
-def to_acp_content_blocks(  # noqa: PLR0911
+def to_acp_content_blocks(
     tool_output: (ToolReturn | list[ToolReturn] | UserContent | Sequence[UserContent] | None),
 ) -> list[ContentBlock]:
     """Convert pydantic-ai tool output to raw ACP content blocks.
@@ -52,50 +52,35 @@ def to_acp_content_blocks(  # noqa: PLR0911
     Returns:
         List of ContentBlock objects
     """
-    if tool_output is None:
-        return []
-
-    # Handle ToolReturn objects with separate content field
-    if isinstance(tool_output, ToolReturn):
-        result_blocks: list[ContentBlock] = []
-
-        # Add the return value as text
-        if tool_output.return_value is not None:
-            result_blocks.append(TextContentBlock(text=str(tool_output.return_value)))
-
-        # Add any multimodal content
-        if tool_output.content:
-            content_list = (
-                tool_output.content
-                if isinstance(tool_output.content, list)
-                else [tool_output.content]
-            )
-            for content_item in content_list:
-                result_blocks.extend(to_acp_content_blocks(content_item))
-
-        return result_blocks
-
-    # Handle lists of content
-    if isinstance(tool_output, list):
-        list_blocks: list[ContentBlock] = []
-        for item in tool_output:
-            list_blocks.extend(to_acp_content_blocks(item))
-        return list_blocks
-
-    # Handle multimodal content types
     match tool_output:
+        case None:
+            return []
+
+        case ToolReturn(return_value=return_value, content=content):
+            result_blocks: list[ContentBlock] = []
+            if return_value is not None:
+                result_blocks.append(TextContentBlock(text=str(return_value)))
+            if content:
+                content_list = content if isinstance(content, list) else [content]
+                for content_item in content_list:
+                    result_blocks.extend(to_acp_content_blocks(content_item))
+            return result_blocks
+
+        case list() as items:
+            list_blocks: list[ContentBlock] = []
+            for item in items:
+                list_blocks.extend(to_acp_content_blocks(item))
+            return list_blocks
+
         case BinaryContent(data=data, media_type=media_type) if media_type.startswith("image/"):
-            # Image content - convert binary data to base64
             image_data = base64.b64encode(data).decode("utf-8")
             return [ImageContentBlock(data=image_data, mime_type=media_type)]
 
         case BinaryContent(data=data, media_type=media_type) if media_type.startswith("audio/"):
-            # Audio content - convert binary data to base64
             audio_data = base64.b64encode(data).decode("utf-8")
             return [AudioContentBlock(data=audio_data, mime_type=media_type)]
 
         case BinaryContent(data=data, media_type=media_type):
-            # Other binary content - embed as blob resource
             blob_data = base64.b64encode(data).decode("utf-8")
             blob_resource = BlobResourceContents(
                 blob=blob_data,
@@ -105,19 +90,13 @@ def to_acp_content_blocks(  # noqa: PLR0911
             return [EmbeddedResourceContentBlock(resource=blob_resource)]
 
         case FileUrl(url=url, kind=kind, media_type=media_type):
-            # Handle all URL types with unified logic using FileUrl base class
             from urllib.parse import urlparse
 
             parsed = urlparse(str(url))
-
-            # Extract resource type from kind (e.g., "image-url" -> "image")
             resource_type = kind.replace("-url", "")
-
-            # Generate name from URL path or use type as fallback
             name = parsed.path.split("/")[-1] if parsed.path else resource_type
             if not name or name == "/":
                 name = f"{resource_type}_{parsed.netloc}" if parsed.netloc else resource_type
-
             return [
                 ResourceContentBlock(
                     uri=str(url),
@@ -128,7 +107,6 @@ def to_acp_content_blocks(  # noqa: PLR0911
             ]
 
         case _:
-            # Everything else - convert to string
             return [TextContentBlock(text=str(tool_output))]
 
 
