@@ -45,7 +45,6 @@ dependencies = [
   "llmling-models>=0.2.0",
   "logfire",
   "mcp>=1.2.0",
-  "mcp-interviewer>=0.0.12",
   "platformdirs",
   "promptantic>=0.4.5",
   "psygnal>=0.11.1",

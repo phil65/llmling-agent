@@ -10,7 +10,6 @@ from schemez import Schema
 
 
 if TYPE_CHECKING:
-    from mcp_interviewer import ServerScoreCard  # type: ignore[import-untyped]
     from pydantic_ai.mcp import MCPServer, MCPServerSSE, MCPServerStdio, MCPServerStreamableHTTP
 
 
@@ -153,16 +152,6 @@ class StdioMCPServerConfig(BaseMCPServerConfig):
             timeout=self.timeout,
         )
 
-    async def check(self) -> ServerScoreCard:
-        from mcp_interviewer import MCPInterviewer
-        from mcp_interviewer.models import (  # type: ignore[import-untyped]
-            StdioServerParameters,
-        )
-
-        params = StdioServerParameters(command=self.command, args=self.args)
-        interviewer = MCPInterviewer(None, None)
-        return await interviewer.interview_server(params)
-
 
 class SSEMCPServerConfig(BaseMCPServerConfig):
     """MCP server using Server-Sent Events transport.
@@ -199,15 +188,6 @@ class SSEMCPServerConfig(BaseMCPServerConfig):
 
         url = str(self.url)
         return MCPServerSSE(url=url, headers=self.headers, id=self.name, timeout=self.timeout)
-
-    async def check(self) -> ServerScoreCard:
-        from mcp_interviewer import MCPInterviewer
-        from mcp_interviewer.models import SseServerParameters
-
-        url = str(self.url)
-        params = SseServerParameters(url=url, timeout=self.timeout, headers=self.headers)
-        interviewer = MCPInterviewer(None, None)
-        return await interviewer.interview_server(params)
 
 
 class StreamableHTTPMCPServerConfig(BaseMCPServerConfig):
@@ -249,18 +229,6 @@ class StreamableHTTPMCPServerConfig(BaseMCPServerConfig):
             id=self.name,
             timeout=self.timeout,
         )
-
-    async def check(self) -> ServerScoreCard:
-        from mcp_interviewer import MCPInterviewer
-        from mcp_interviewer.models import StreamableHttpServerParameters
-
-        params = StreamableHttpServerParameters(
-            url=str(self.url),
-            timeout=self.timeout,
-            headers=self.headers,
-        )
-        interviewer = MCPInterviewer(None, None)
-        return await interviewer.interview_server(params)
 
 
 MCPServerConfig = Annotated[
