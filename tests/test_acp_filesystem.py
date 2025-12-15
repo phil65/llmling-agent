@@ -62,11 +62,18 @@ class MockClient:
         terminal_id = request.terminal_id
         command = self._terminal_commands.get(terminal_id, "")
         if "ls" in command:
-            output = (
-                "total 8\n"
-                "-rw-r--r-- 1 user user 12 2024-01-01-12:00:00 test.txt\n"
-                "drwxr-xr-x 2 user user 4096 2024-01-01-12:00:00 subdir"
-            )
+            # Handle file-specific ls -lad commands
+            if "test.txt" in command and "-lad" in command:
+                output = "-rw-r--r-- 1 user user 12 2024-01-01-12:00:00 test.txt"
+            elif "subdir" in command and "-lad" in command:
+                output = "drwxr-xr-x 2 user user 4096 2024-01-01-12:00:00 subdir"
+            else:
+                # Directory listing
+                output = (
+                    "total 8\n"
+                    "-rw-r--r-- 1 user user 12 2024-01-01-12:00:00 test.txt\n"
+                    "drwxr-xr-x 2 user user 4096 2024-01-01-12:00:00 subdir"
+                )
         elif "stat" in command:
             output = "test.txt|12|1704110400|-rw-r--r--|regular file"
         else:

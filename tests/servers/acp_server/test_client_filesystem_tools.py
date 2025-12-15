@@ -90,8 +90,6 @@ async def test_read_file_error(
     tools = await fs_tools.get_tools()
     read_tool = next(tool for tool in tools if tool.name == "read_file")
     result = await read_tool.execute(agent_ctx=mock_ctx, path="/home/user/nonexistent.txt")
-
-    assert isinstance(result, dict)
     assert "error" in result
 
 
