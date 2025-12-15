@@ -239,7 +239,7 @@ wheels = [
 
 [[package]]
 name = "anyenv"
-version = "2.0.1"
+version = "2.0.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aioitertools" },
@@ -247,9 +247,9 @@ dependencies = [
     { name = "appdirs" },
     { name = "universal-pathlib" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/d2/0f/e952faae1117a083973ab52b5bdab72a7757489e47d1d94f47700af20cb9/anyenv-2.0.1.tar.gz", hash = "sha256:f04c9c6a2456e742787bdeb3b9b6a7747b40bc961458149d71079b8d2c4e1ec4", size = 88869, upload-time = "2025-12-15T12:21:52.354Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/38/3e/68298062ed2f2aa08219de19911e3245b608c118f5625349102e867d842a/anyenv-2.0.2.tar.gz", hash = "sha256:4cbb3109e3915d395955c78bf35e7a131623f4f6a7096d1735689c99811dc700", size = 89059, upload-time = "2025-12-15T13:21:23.918Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/02/aa/2211c4fdf99f7552baa65426770c33ddb78fbcea605db9b89642ee37a448/anyenv-2.0.1-py3-none-any.whl", hash = "sha256:d85d512ec294bcdc6e1b099c9d64f49584b70fa4a9983e373ca307a913792739", size = 141949, upload-time = "2025-12-15T12:21:50.255Z" },
+    { url = "https://files.pythonhosted.org/packages/b0/83/2f9cff014bfecf6b098c0138091b1c05eefad760e766f315e6d495a0e43b/anyenv-2.0.2-py3-none-any.whl", hash = "sha256:a19868c93d4dbf61946e95d9ef08efada9b859db3d8d448e7ce4ee53d54fc066", size = 142292, upload-time = "2025-12-15T13:21:22.128Z" },
 ]
 
 [package.optional-dependencies]
@@ -1194,16 +1194,16 @@ wheels = [
 
 [[package]]
 name = "evented"
-version = "1.0.8"
+version = "1.0.9"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyenv" },
     { name = "pydantic" },
     { name = "schemez" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/22/ec/fb35a73e5b3ba425fe0b626b394081b4296bbcb2324b0b5acbc8f3409c54/evented-1.0.8.tar.gz", hash = "sha256:c3f940db75344b111ba3547fe094014fb063284e45eb60463cbdccb76b9dc8e2", size = 15146, upload-time = "2025-11-27T10:30:42.423Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/93/83/a2b0329be9c2c3c049147d323ccc45eb8c13265510f181e56defa36529fc/evented-1.0.9.tar.gz", hash = "sha256:4bb03c6f354342a7327645b035cbd717656f1e34e294cc9da33a573ded403f59", size = 15370, upload-time = "2025-12-15T13:39:55.292Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/23/09/5cd113f8a9f75048b22d6eb78c3999a147bfe991a568cd29704c87e08c68/evented-1.0.8-py3-none-any.whl", hash = "sha256:58aaf55e0092a72ad73b84e2bd7df1f885fa57ffa46776ab2b86f5b4b237636e", size = 18726, upload-time = "2025-11-27T10:30:41.266Z" },
+    { url = "https://files.pythonhosted.org/packages/e2/d4/01896b0004c437c387d42e297baed1b2cbe14004629830591f0519b80fdf/evented-1.0.9-py3-none-any.whl", hash = "sha256:5a0df99d701960bac80eb44a9ad292d1662591c3c51572235851c69f8097d9a7", size = 18823, upload-time = "2025-12-15T13:39:53.95Z" },
 ]
 
 [package.optional-dependencies]

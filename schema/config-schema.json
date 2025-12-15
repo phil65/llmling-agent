@@ -1029,6 +1029,7 @@
                 "mapping": {
                   "anthropic": "#/$defs/AnthropicModelConfig",
                   "augmented": "#/$defs/AugmentedModelConfig",
+                  "claude_code": "#/$defs/ClaudeCodeModelConfig",
                   "delegation": "#/$defs/DelegationModelConfig",
                   "fallback": "#/$defs/FallbackModelConfig",
                   "function": "#/$defs/FunctionModelConfig",
@@ -1047,6 +1048,9 @@
               "oneOf": [
                 {
                   "$ref": "#/$defs/AugmentedModelConfig"
+                },
+                {
+                  "$ref": "#/$defs/ClaudeCodeModelConfig"
                 },
                 {
                   "$ref": "#/$defs/DelegationModelConfig"
@@ -3882,7 +3886,8 @@
         "identifier"
       ],
       "title": "AnthropicModelConfig",
-      "type": "object"
+      "type": "object",
+      "x-doc-title": "Anthropic model"
     },
     "AppwriteFilesystemConfig": {
       "additionalProperties": true,
@@ -6191,7 +6196,8 @@
         "main_model"
       ],
       "title": "AugmentedModelConfig",
-      "type": "object"
+      "type": "object",
+      "x-doc-title": "Augmented model"
     },
     "AzureBlobFilesystemConfig": {
       "additionalProperties": true,
@@ -6416,7 +6422,8 @@
         "type"
       ],
       "title": "BaseModelConfig",
-      "type": "object"
+      "type": "object",
+      "x-doc-title": "Base model"
     },
     "BaseModelFilesystemConfig": {
       "additionalProperties": true,
@@ -6596,6 +6603,19 @@
           "exclusiveMinimum": 0.0,
           "title": "Execution Timeout",
           "type": "number"
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for the environment (None means use default/auto).",
+          "examples": [
+            "/home/user/project",
+            "/tmp/workspace"
+          ],
+          "title": "Working Directory",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "cpu": {
           "anyOf": [
@@ -8489,6 +8509,130 @@
       },
       "title": "Claude ACP Agent Configuration",
       "type": "object"
+    },
+    "ClaudeCodeModelConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for Claude Code model.\n\nThis model uses the Claude Agent SDK to communicate with the Claude Code CLI,\nproviding access to Claude with filesystem access, code execution,\nand other agentic capabilities.\n\nExample:\n    ```yaml\n    model:\n      type: claude_code\n      model: sonnet\n      permission_mode: bypassPermissions\n      cwd: /path/to/project\n    ```",
+      "properties": {
+        "type": {
+          "const": "claude_code",
+          "default": "claude_code",
+          "description": "Type identifier for Claude Code model.",
+          "title": "Type",
+          "type": "string"
+        },
+        "model": {
+          "anyOf": [
+            {
+              "enum": [
+                "sonnet",
+                "opus",
+                "haiku"
+              ],
+              "type": "string"
+            },
+            {
+              "enum": [
+                "claude-sonnet-4-5-20250929",
+                "claude-opus-4-5-20251101",
+                "claude-haiku-4-5-20251001"
+              ],
+              "type": "string"
+            }
+          ],
+          "default": "sonnet",
+          "description": "The Claude model to use. Supports aliases (sonnet, opus, haiku) or full names.",
+          "examples": [
+            "sonnet",
+            "opus",
+            "haiku",
+            "claude-sonnet-4-5-20250929"
+          ],
+          "title": "Model name"
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for Claude Code operations.",
+          "examples": [
+            "/path/to/project",
+            "."
+          ],
+          "title": "Working directory",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "permission_mode": {
+          "default": "bypassPermissions",
+          "description": "Permission mode for tool execution.\n\n- 'default': CLI prompts for dangerous tools\n- 'acceptEdits': Auto-accept file edits\n- 'plan': Plan mode (no execution)\n- 'bypassPermissions': Allow all tools (use with caution)",
+          "enum": [
+            "default",
+            "acceptEdits",
+            "plan",
+            "bypassPermissions"
+          ],
+          "examples": [
+            "default",
+            "acceptEdits",
+            "bypassPermissions"
+          ],
+          "title": "Permission mode",
+          "type": "string"
+        },
+        "system_prompt": {
+          "default": null,
+          "description": "Custom system prompt to use.",
+          "examples": [
+            "You are a helpful coding assistant."
+          ],
+          "title": "System prompt",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "max_turns": {
+          "anyOf": [
+            {
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Maximum number of conversation turns (1-100).",
+          "examples": [
+            10,
+            50
+          ],
+          "title": "Maximum turns"
+        },
+        "max_thinking_tokens": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Maximum tokens for extended thinking.",
+          "examples": [
+            1024,
+            4096
+          ],
+          "title": "Maximum thinking tokens"
+        }
+      },
+      "title": "ClaudeCodeModelConfig",
+      "type": "object",
+      "x-doc-title": "Claude Code model"
     },
     "CliFilesystemConfig": {
       "additionalProperties": true,
@@ -10437,6 +10581,19 @@
           "exclusiveMinimum": 0.0,
           "title": "Execution Timeout",
           "type": "number"
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for the environment (None means use default/auto).",
+          "examples": [
+            "/home/user/project",
+            "/tmp/workspace"
+          ],
+          "title": "Working Directory",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "api_url": {
           "default": null,
@@ -13286,7 +13443,8 @@
         "selection_prompt"
       ],
       "title": "DelegationModelConfig",
-      "type": "object"
+      "type": "object",
+      "x-doc-title": "Delegation model"
     },
     "DistributionFilesystemConfig": {
       "additionalProperties": true,
@@ -13363,6 +13521,19 @@
           "exclusiveMinimum": 0.0,
           "title": "Execution Timeout",
           "type": "number"
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for the environment (None means use default/auto).",
+          "examples": [
+            "/home/user/project",
+            "/tmp/workspace"
+          ],
+          "title": "Working Directory",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "image": {
           "default": "python:3.13-slim",
@@ -13803,6 +13974,19 @@
           "title": "Execution Timeout",
           "type": "number"
         },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for the environment (None means use default/auto).",
+          "examples": [
+            "/home/user/project",
+            "/tmp/workspace"
+          ],
+          "title": "Working Directory",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "template": {
           "default": null,
           "description": "E2B template to use.",
@@ -14019,7 +14203,8 @@
         "password"
       ],
       "title": "EmailConfig",
-      "type": "object"
+      "type": "object",
+      "x-doc-title": "Email"
     },
     "EntryPointToolsetConfig": {
       "additionalProperties": false,
@@ -15578,6 +15763,7 @@
                 "mapping": {
                   "anthropic": "#/$defs/AnthropicModelConfig",
                   "augmented": "#/$defs/AugmentedModelConfig",
+                  "claude_code": "#/$defs/ClaudeCodeModelConfig",
                   "delegation": "#/$defs/DelegationModelConfig",
                   "fallback": "#/$defs/FallbackModelConfig",
                   "function": "#/$defs/FunctionModelConfig",
@@ -15596,6 +15782,9 @@
               "oneOf": [
                 {
                   "$ref": "#/$defs/AugmentedModelConfig"
+                },
+                {
+                  "$ref": "#/$defs/ClaudeCodeModelConfig"
                 },
                 {
                   "$ref": "#/$defs/DelegationModelConfig"
@@ -17247,7 +17436,8 @@
         "models"
       ],
       "title": "FallbackModelConfig",
-      "type": "object"
+      "type": "object",
+      "x-doc-title": "Fallback model"
     },
     "FastAgentACPAgentConfig": {
       "additionalProperties": false,
@@ -18537,7 +18727,8 @@
         "paths"
       ],
       "title": "FileWatchConfig",
-      "type": "object"
+      "type": "object",
+      "x-doc-title": "File watching"
     },
     "FlatUnionFilesystemConfig": {
       "additionalProperties": true,
@@ -18614,7 +18805,8 @@
         "function"
       ],
       "title": "FunctionModelConfig",
-      "type": "object"
+      "type": "object",
+      "x-doc-title": "Function model"
     },
     "FunctionPromptConfig": {
       "additionalProperties": false,
@@ -19736,7 +19928,8 @@
         "identifier"
       ],
       "title": "GeminiModelConfig",
-      "type": "object"
+      "type": "object",
+      "x-doc-title": "Gemini model"
     },
     "GistFilesystemConfig": {
       "additionalProperties": true,
@@ -21032,7 +21225,8 @@
         "model"
       ],
       "title": "ImportModelConfig",
-      "type": "object"
+      "type": "object",
+      "x-doc-title": "Import model"
     },
     "ImportToolConfig": {
       "additionalProperties": false,
@@ -21283,7 +21477,8 @@
         }
       },
       "title": "InputModelConfig",
-      "type": "object"
+      "type": "object",
+      "x-doc-title": "Input model"
     },
     "IntegrationToolsetConfig": {
       "additionalProperties": false,
@@ -23114,6 +23309,19 @@
           "title": "Execution Timeout",
           "type": "number"
         },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for the environment (None means use default/auto).",
+          "examples": [
+            "/home/user/project",
+            "/tmp/workspace"
+          ],
+          "title": "Working Directory",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "executable": {
           "default": null,
           "description": "Python executable to use (if None, auto-detect based on language).",
@@ -24153,6 +24361,19 @@
           "title": "Execution Timeout",
           "type": "number"
         },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for the environment (None means use default/auto).",
+          "examples": [
+            "/home/user/project",
+            "/tmp/workspace"
+          ],
+          "title": "Working Directory",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "server_url": {
           "default": null,
           "description": "Microsandbox server URL (uses MSB_SERVER_URL env var if None).",
@@ -24791,6 +25012,19 @@
           "exclusiveMinimum": 0.0,
           "title": "Execution Timeout",
           "type": "number"
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for the environment (None means use default/auto).",
+          "examples": [
+            "/home/user/project",
+            "/tmp/workspace"
+          ],
+          "title": "Working Directory",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "app_name": {
           "default": null,
@@ -25763,13 +25997,30 @@
           "default": null,
           "description": "The service tier to use for the model request.",
           "title": "Service tier"
+        },
+        "prompt_cache_key": {
+          "description": "Used by OpenAI to cache responses for similar requests to optimize your cache hit rates.\n\nSee the [OpenAI Prompt Caching documentation](https://platform.openai.com/docs/guides/prompt-caching#how-it-works) for more information.",
+          "title": "Prompt Cache Key",
+          "type": "string"
+        },
+        "prompt_cache_retention": {
+          "description": "The retention policy for the prompt cache. Set to 24h to enable extended prompt caching, which keeps cached prefixes active for longer, up to a maximum of 24 hours.\n\nSee the [OpenAI Prompt Caching documentation](https://platform.openai.com/docs/guides/prompt-caching#how-it-works) for more information.",
+          "enum": [
+            "in-memory",
+            "24h"
+          ],
+          "title": "Prompt Cache Retention",
+          "type": "string"
         }
       },
       "required": [
-        "identifier"
+        "identifier",
+        "prompt_cache_key",
+        "prompt_cache_retention"
       ],
       "title": "OpenAIModelConfig",
-      "type": "object"
+      "type": "object",
+      "x-doc-title": "OpenAI model"
     },
     "OpenAPIToolsetConfig": {
       "additionalProperties": false,
@@ -28115,7 +28366,8 @@
         "model"
       ],
       "title": "PrePostPromptConfig",
-      "type": "object"
+      "type": "object",
+      "x-doc-title": "Pre/post prompt"
     },
     "PromptLayerConfig": {
       "additionalProperties": false,
@@ -28335,6 +28587,19 @@
           "exclusiveMinimum": 0.0,
           "title": "Execution Timeout",
           "type": "number"
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for the environment (None means use default/auto).",
+          "examples": [
+            "/home/user/project",
+            "/tmp/workspace"
+          ],
+          "title": "Working Directory",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "startup_timeout": {
           "default": 60.0,
@@ -28689,7 +28954,8 @@
         }
       },
       "title": "RemoteInputConfig",
-      "type": "object"
+      "type": "object",
+      "x-doc-title": "Remote input model"
     },
     "RemoteProxyConfig": {
       "additionalProperties": false,
@@ -28732,7 +28998,8 @@
         }
       },
       "title": "RemoteProxyConfig",
-      "type": "object"
+      "type": "object",
+      "x-doc-title": "Remote proxy model"
     },
     "S3FilesystemConfig": {
       "additionalProperties": true,
@@ -29240,6 +29507,19 @@
           "exclusiveMinimum": 0.0,
           "title": "Execution Timeout",
           "type": "number"
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for the environment (None means use default/auto).",
+          "examples": [
+            "/home/user/project",
+            "/tmp/workspace"
+          ],
+          "title": "Working Directory",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "language": {
           "default": "python",
@@ -31597,6 +31877,7 @@
                 "mapping": {
                   "anthropic": "#/$defs/AnthropicModelConfig",
                   "augmented": "#/$defs/AugmentedModelConfig",
+                  "claude_code": "#/$defs/ClaudeCodeModelConfig",
                   "delegation": "#/$defs/DelegationModelConfig",
                   "fallback": "#/$defs/FallbackModelConfig",
                   "function": "#/$defs/FunctionModelConfig",
@@ -31615,6 +31896,9 @@
               "oneOf": [
                 {
                   "$ref": "#/$defs/AugmentedModelConfig"
+                },
+                {
+                  "$ref": "#/$defs/ClaudeCodeModelConfig"
                 },
                 {
                   "$ref": "#/$defs/DelegationModelConfig"
@@ -32121,6 +32405,19 @@
           "title": "Execution Timeout",
           "type": "number"
         },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for the environment (None means use default/auto).",
+          "examples": [
+            "/home/user/project",
+            "/tmp/workspace"
+          ],
+          "title": "Working Directory",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "host": {
           "description": "Remote host to connect to.",
           "examples": [
@@ -32190,19 +32487,6 @@
           ],
           "title": "Programming Language",
           "type": "string"
-        },
-        "cwd": {
-          "default": null,
-          "description": "Remote working directory (auto-generated if None).",
-          "examples": [
-            "/tmp",
-            "~/workspace"
-          ],
-          "title": "Working Directory",
-          "type": [
-            "string",
-            "null"
-          ]
         }
       },
       "required": [
@@ -36154,7 +36438,8 @@
         "identifier"
       ],
       "title": "StringModelConfig",
-      "type": "object"
+      "type": "object",
+      "x-doc-title": "String model"
     },
     "StructuredResponseConfig": {
       "additionalProperties": false,
@@ -36966,7 +37251,8 @@
         }
       },
       "title": "TestModelConfig",
-      "type": "object"
+      "type": "object",
+      "x-doc-title": "Test model"
     },
     "TextLogConfig": {
       "additionalProperties": false,
@@ -37221,7 +37507,8 @@
         "prompt"
       ],
       "title": "TimeEventConfig",
-      "type": "object"
+      "type": "object",
+      "x-doc-title": "Time event"
     },
     "TokenThresholdCondition": {
       "additionalProperties": false,
@@ -39139,7 +39426,8 @@
         "models"
       ],
       "title": "UserSelectModelConfig",
-      "type": "object"
+      "type": "object",
+      "x-doc-title": "User select model"
     },
     "VFSToolsetConfig": {
       "additionalProperties": false,
@@ -39713,6 +40001,19 @@
           "title": "Execution Timeout",
           "type": "number"
         },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for the environment (None means use default/auto).",
+          "examples": [
+            "/home/user/project",
+            "/tmp/workspace"
+          ],
+          "title": "Working Directory",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "runtime": {
           "anyOf": [
             {
@@ -40269,7 +40570,8 @@
         "path"
       ],
       "title": "WebhookConfig",
-      "type": "object"
+      "type": "object",
+      "x-doc-title": "Webhook"
     },
     "WikiFilesystemConfig": {
       "additionalProperties": true,
@@ -41022,12 +41324,6 @@
             "$ref": "#/$defs/ACPAgentConfig"
           },
           {
-            "$ref": "#/$defs/ClaudeACPAgentConfig"
-          },
-          {
-            "$ref": "#/$defs/GeminiACPAgentConfig"
-          },
-          {
             "$ref": "#/$defs/CodexACPAgentConfig"
           },
           {
@@ -41040,19 +41336,10 @@
             "$ref": "#/$defs/OpenHandsACPAgentConfig"
           },
           {
-            "$ref": "#/$defs/FastAgentACPAgentConfig"
-          },
-          {
             "$ref": "#/$defs/AmpACPAgentConfig"
           },
           {
-            "$ref": "#/$defs/AuggieACPAgentConfig"
-          },
-          {
             "$ref": "#/$defs/CagentACPAgentConfig"
-          },
-          {
-            "$ref": "#/$defs/KimiACPAgentConfig"
           },
           {
             "$ref": "#/$defs/StakpakACPAgentConfig"
@@ -41065,6 +41352,21 @@
           },
           {
             "$ref": "#/$defs/CursorACPAgentConfig"
+          },
+          {
+            "$ref": "#/$defs/ClaudeACPAgentConfig"
+          },
+          {
+            "$ref": "#/$defs/GeminiACPAgentConfig"
+          },
+          {
+            "$ref": "#/$defs/FastAgentACPAgentConfig"
+          },
+          {
+            "$ref": "#/$defs/AuggieACPAgentConfig"
+          },
+          {
+            "$ref": "#/$defs/KimiACPAgentConfig"
           }
         ]
       },
