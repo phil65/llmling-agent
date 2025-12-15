@@ -29,8 +29,8 @@ class ToolCallState:
 
     Example flow:
         1. Tool call starts → state created with generated title
-        2. ToolCallProgressEvent → state.update(title="Running: ...", add_content=terminal)
-        3. ToolCallProgressEvent → state.update(add_content=diff, add_locations=path)
+        2. ToolCallProgressEvent → state.update(title="Running: ...", content=terminal)
+        3. ToolCallProgressEvent → state.update(content=diff, locations=path)
         4. Tool completes → state.complete(raw_output=result)
 
     All accumulated content and locations are preserved in each notification.
@@ -92,25 +92,20 @@ class ToolCallState:
         title: str | None = None,
         status: ToolCallStatus | None = None,
         kind: ToolCallKind | None = None,
-        add_content: ToolCallContent | Sequence[ToolCallContent] | None = None,
-        replace_content: bool = False,
-        add_location: ToolCallLocation | str | None = None,
-        add_locations: Sequence[ToolCallLocation | str] | None = None,
+        content: ToolCallContent | Sequence[ToolCallContent] | None = None,
+        locations: Sequence[ToolCallLocation | str] | None = None,
+        replace: bool = False,
         raw_output: Any = None,
     ) -> None:
         """Update state and send notification with ALL accumulated data.
-
-        Unlike direct notification calls, this method preserves all previously
-        accumulated content and locations, only adding new data.
 
         Args:
             title: Override the human-readable title
             status: Update execution status
             kind: Update tool kind
-            add_content: Content to append or replace (terminals, diffs, text)
-            replace_content: If True, replace all content instead of appending
-            add_location: Single location to append
-            add_locations: Multiple locations to append
+            content: Content items (terminals, diffs, text) to add or replace
+            locations: File locations to add or replace
+            replace: If True, replace all content and locations; if False, append
             raw_output: Update raw output data
         """
         if not self._started:
@@ -127,41 +122,49 @@ class ToolCallState:
             self.raw_output = raw_output
 
         # Handle content: replace or accumulate
-        if add_content is not None:
-            if replace_content:
-                # Replace all existing content
-                if isinstance(add_content, Sequence):
-                    self.content = list(add_content)
+        if content is not None:
+            if replace:
+                if isinstance(content, Sequence):
+                    self.content = list(content)
                 else:
-                    self.content = [add_content]
-            # Accumulate (default behavior)
-            elif isinstance(add_content, Sequence):
-                self.content.extend(add_content)
+                    self.content = [content]
+            elif isinstance(content, Sequence):
+                self.content.extend(content)
             else:
-                self.content.append(add_content)
+                self.content.append(content)
 
-        # Accumulate locations (never replace)
-        # TODO: perhaps both should be possible?
-        if add_location is not None:
-            if isinstance(add_location, str):
-                add_location = ToolCallLocation(path=add_location)
-            self.locations.append(add_location)
-
-        if add_locations is not None:
-            for loc in add_locations:
-                location = ToolCallLocation(path=loc) if isinstance(loc, str) else loc
-                self.locations.append(location)
+        # Handle locations: replace or accumulate (tied to replace)
+        if locations is not None:
+            new_locations: list[ToolCallLocation] = [
+                ToolCallLocation(path=loc) if isinstance(loc, str) else loc for loc in locations
+            ]
+            if replace:
+                self.locations = new_locations
+            else:
+                self.locations.extend(new_locations)
 
         # Send update with ALL accumulated data
-        await self._notifications.tool_call_progress(
-            tool_call_id=self.tool_call_id,
-            status=self.status,
-            title=self.title,
-            kind=self.kind,
-            locations=self.locations or None,
-            content=self.content or None,
-            raw_output=self.raw_output,
-        )
+        # Use tool_call_start (session_update: "tool_call") when locations are present
+        # to enable clickable file paths in clients (matches Claude Code behavior)
+        if self.locations:
+            await self._notifications.tool_call_start(
+                tool_call_id=self.tool_call_id,
+                title=self.title,
+                kind=self.kind,
+                locations=self.locations,
+                content=self.content or None,
+                raw_input=self.raw_input,
+            )
+        else:
+            await self._notifications.tool_call_progress(
+                tool_call_id=self.tool_call_id,
+                status=self.status,
+                title=self.title,
+                kind=self.kind,
+                locations=None,
+                content=self.content or None,
+                raw_output=self.raw_output,
+            )
 
     async def add_terminal(self, terminal_id: str, *, title: str | None = None) -> None:
         """Add terminal content to the tool call.
@@ -170,8 +173,8 @@ class ToolCallState:
             terminal_id: ID of the terminal to embed
             title: Optional title update
         """
-        content = TerminalToolCallContent(terminal_id=terminal_id)
-        await self.update(add_content=content, title=title, status="in_progress")
+        terminal_content = TerminalToolCallContent(terminal_id=terminal_id)
+        await self.update(content=terminal_content, title=title, status="in_progress")
 
     async def add_text(self, text: str) -> None:
         """Add text content to the tool call.
@@ -179,22 +182,22 @@ class ToolCallState:
         Args:
             text: Text to add
         """
-        content = ContentToolCallContent.text(text=text)
-        await self.update(add_content=content)
+        text_content = ContentToolCallContent.text(text=text)
+        await self.update(content=text_content)
 
     async def complete(
         self,
         raw_output: Any = None,
         *,
-        add_content: ToolCallContent | Sequence[ToolCallContent] | None = None,
+        content: ToolCallContent | Sequence[ToolCallContent] | None = None,
     ) -> None:
         """Mark tool call as completed.
 
         Args:
             raw_output: Final output data
-            add_content: Optional final content to add
+            content: Optional final content to add
         """
-        await self.update(status="completed", raw_output=raw_output, add_content=add_content)
+        await self.update(status="completed", raw_output=raw_output, content=content)
 
     async def fail(
         self,
@@ -208,7 +211,7 @@ class ToolCallState:
             error: Error message to display
             raw_output: Optional error details
         """
-        add_content = None
+        error_content = None
         if error:
-            add_content = ContentToolCallContent.text(text=f"Error: {error}")
-        await self.update(status="failed", add_content=add_content, raw_output=raw_output)
+            error_content = ContentToolCallContent.text(text=f"Error: {error}")
+        await self.update(status="failed", content=error_content, raw_output=raw_output)

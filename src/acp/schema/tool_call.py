@@ -303,8 +303,8 @@ class ToolCallLocation(AnnotatedObject):
     See protocol docs: [Following the Agent](https://agentclientprotocol.com/protocol/tool-calls#following-the-agent)
     """
 
-    line: int | None = Field(default=None, ge=0)
-    """Optional line number within the file."""
+    line: int = Field(default=0, ge=0)
+    """Line number within the file (0 = beginning/unspecified)."""
 
     path: str
     """The file path being accessed or modified."""

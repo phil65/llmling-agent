@@ -23,41 +23,12 @@ if TYPE_CHECKING:
 class StreamEventEmitter:
     """Event emitter delegate that automatically injects context.
 
-    Provides a fluent, developer-friendly API for emitting progress events
-    with context (tool_call_id, etc.) automatically injected.
+    Provides a fluent API for emitting progress events with context
+    (tool_call_id, etc.) automatically injected.
 
-    ## UI Content Pattern
-
-    To control what the UI displays (separate from the tool's return value),
-    emit a `tool_call_progress` with content items before returning:
-
-        # Emit formatted content for UI
-        await ctx.events.tool_call_progress(
-            title="Read: /path/to/file.py",
-            items=[TextContentItem.from_file_content(content, path)],
-            replace_content=True,
-        )
-        # Return raw content for agent
-        return content
-
-    The session layer will use the emitted content for UI display and put
-    the return value in `raw_output`. If no content is emitted, the return
-    value is automatically converted to UI content (fallback behavior).
-
-    See `events.py` module docstring for full documentation.
-
-    Core methods:
-        - tool_call_start: Announce tool invocation with metadata
-        - tool_call_progress: Update tool status with content
-        - progress: Numeric progress for long operations
-        - emit_event: Raw escape hatch for any event type
-
-    Convenience methods for common patterns:
-        - file_operation: File read/write/delete operations
-        - file_edit_progress: File edits with diff
-        - process_*: Process lifecycle events
-        - plan_updated: Plan state changes
-        - custom: Custom event data
+    UI content vs agent return values: Emit `tool_call_progress` with content
+    items for UI display, return raw data for the agent. See `events.py` for
+    the full pattern (aligned with ACP protocol).
     """
 
     def __init__(self, context: AgentContext) -> None:

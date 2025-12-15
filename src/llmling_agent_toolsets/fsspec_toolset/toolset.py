@@ -247,10 +247,11 @@ class FSSpecTools(ResourceProvider):
                 items=[TextContentItem(text=result)],
                 replace_content=True,
             )
-            return result
         except (OSError, ValueError, FileNotFoundError) as e:
             await agent_ctx.events.file_operation("list", path=path, success=False, error=str(e))
             return f"Error: Could not list directory: {path}. Ensure path is absolute and exists."
+        else:
+            return result
 
     async def read_file(
         self,
@@ -274,7 +275,12 @@ class FSSpecTools(ResourceProvider):
         """
         path = self._resolve_path(path, agent_ctx)
         msg = f"Reading file: {path}"
-        await agent_ctx.events.tool_call_start(title=msg, kind="read", locations=[path])
+        from llmling_agent.agent.events import LocationContentItem
+
+        await agent_ctx.events.tool_call_progress(
+            title=msg,
+            items=[LocationContentItem(path=path)],
+        )
         try:
             mime_type = mimetypes.guess_type(path)[0]
             # Fast path: known binary MIME types (images, audio, video, etc.)
@@ -303,12 +309,12 @@ class FSSpecTools(ResourceProvider):
         else:
             if was_truncated:
                 content += f"\n\n[Content truncated at {self.max_file_size} bytes]"
-            # Emit formatted content for UI display
-            from llmling_agent.agent.events import TextContentItem
+            # Emit file content for UI display (formatted at ACP layer)
+            from llmling_agent.agent.events import FileContentItem
 
             await agent_ctx.events.tool_call_progress(
                 title=f"Read: {path}",
-                items=[TextContentItem.from_file_content(content, path)],
+                items=[FileContentItem(content=content, path=path)],
                 replace_content=True,
             )
             # Return raw content for agent
@@ -647,10 +653,10 @@ class FSSpecTools(ResourceProvider):
                 items=[TextContentItem(text=output)],
                 replace_content=True,
             )
-            return output
-
         except Exception as e:  # noqa: BLE001
             return f"Error: Grep failed: {e}"
+        else:
+            return output
 
     async def _read(self, agent_ctx: AgentContext, path: str, encoding: str = "utf-8") -> str:
         # with self.fs.open(path, "r", encoding="utf-8") as f:

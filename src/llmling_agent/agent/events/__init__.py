@@ -5,6 +5,7 @@ from .events import (
     CommandOutputEvent,
     CustomEvent,
     DiffContentItem,
+    FileContentItem,
     LocationContentItem,
     PlanUpdateEvent,
     RichAgentStreamEvent,
@@ -18,7 +19,6 @@ from .events import (
     ToolCallContentItem,
     ToolCallProgressEvent,
     ToolCallStartEvent,
-    format_file_content,
 )
 from .event_emitter import StreamEventEmitter
 from .builtin_handlers import (
@@ -32,6 +32,7 @@ __all__ = [
     "CommandOutputEvent",
     "CustomEvent",
     "DiffContentItem",
+    "FileContentItem",
     "LocationContentItem",
     "PlanUpdateEvent",
     "RichAgentStreamEvent",
@@ -47,7 +48,6 @@ __all__ = [
     "ToolCallProgressEvent",
     "ToolCallStartEvent",
     "detailed_print_handler",
-    "format_file_content",
     "resolve_event_handlers",
     "simple_print_handler",
 ]

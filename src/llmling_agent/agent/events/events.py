@@ -92,14 +92,18 @@ class DiffContentItem:
 
 @dataclass(kw_only=True)
 class LocationContentItem:
-    """A file location being accessed or modified."""
+    """A file location being accessed or modified.
+
+    Note: line defaults to 0 (not None) to ensure ACP clients render clickable paths.
+    The ACP spec allows None, but some clients (e.g., Claude Code) require the field present.
+    """
 
     type: Literal["location"] = "location"
     """Content type identifier."""
     path: str
     """The file path being accessed or modified."""
-    line: int | None = None
-    """Optional line number within the file."""
+    line: int = 0
+    """Line number within the file (0 = beginning/unspecified)."""
 
 
 @dataclass(kw_only=True)
@@ -111,119 +115,33 @@ class TextContentItem:
     text: str
     """The text content."""
 
-    @classmethod
-    def from_file_content(cls, content: str, path: str) -> TextContentItem:
-        """Create text content item with syntax-highlighted markdown code block.
 
-        Args:
-            content: The file content
-            path: File path (used to determine language for syntax highlighting)
+@dataclass(kw_only=True)
+class FileContentItem:
+    """File content with metadata for rich display.
 
-        Returns:
-            TextContentItem with content wrapped in markdown code block
-        """
-        return cls(text=format_file_content(content, path))
-
-
-def format_file_content(content: str, path: str) -> str:
-    """Format file content as a syntax-highlighted markdown code block.
-
-    Args:
-        content: The file content
-        path: File path (used to determine language for syntax highlighting)
-
-    Returns:
-        Content wrapped in markdown code block with language identifier
+    Carries structured data about file content. Formatting (e.g., Zed-style
+    code blocks) happens at the ACP layer based on client capabilities.
     """
-    language = _get_language_from_path(path)
-    return f"```{language}\n{content}\n```"
 
-
-def _get_language_from_path(path: str) -> str:
-    """Get syntax highlighting language identifier from file path.
-
-    Args:
-        path: File path to analyze
-
-    Returns:
-        Language identifier for syntax highlighting, or empty string if unknown
-    """
-    import os
-
-    path_lower = path.lower()
-    _, ext = os.path.splitext(path_lower)
-    filename = os.path.basename(path_lower)
-
-    # Special filenames
-    special_files = {
-        "dockerfile": "dockerfile",
-        "makefile": "makefile",
-        "rakefile": "makefile",
-        "justfile": "makefile",
-        ".bashrc": "bash",
-        ".zshrc": "bash",
-        ".gitignore": "gitignore",
-        ".editorconfig": "editorconfig",
-    }
-    if filename in special_files:
-        return special_files[filename]
-
-    # Extension mapping
-    ext_map = {
-        ".py": "python",
-        ".pyi": "python",
-        ".js": "javascript",
-        ".mjs": "javascript",
-        ".jsx": "javascript",
-        ".ts": "typescript",
-        ".tsx": "typescript",
-        ".java": "java",
-        ".kt": "kotlin",
-        ".scala": "scala",
-        ".c": "c",
-        ".h": "c",
-        ".cpp": "cpp",
-        ".hpp": "cpp",
-        ".rs": "rust",
-        ".go": "go",
-        ".rb": "ruby",
-        ".php": "php",
-        ".swift": "swift",
-        ".dart": "dart",
-        ".lua": "lua",
-        ".r": "r",
-        ".sql": "sql",
-        ".html": "html",
-        ".htm": "html",
-        ".xml": "xml",
-        ".css": "css",
-        ".scss": "scss",
-        ".sass": "sass",
-        ".less": "less",
-        ".json": "json",
-        ".yaml": "yaml",
-        ".yml": "yaml",
-        ".toml": "toml",
-        ".ini": "ini",
-        ".cfg": "ini",
-        ".sh": "bash",
-        ".bash": "bash",
-        ".zsh": "bash",
-        ".fish": "fish",
-        ".ps1": "powershell",
-        ".bat": "batch",
-        ".cmd": "batch",
-        ".md": "markdown",
-        ".markdown": "markdown",
-        ".rst": "rst",
-        ".tex": "latex",
-        ".vim": "vim",
-    }
-    return ext_map.get(ext, "")
+    type: Literal["file"] = "file"
+    """Content type identifier."""
+    content: str
+    """The file content."""
+    path: str
+    """The file path."""
+    language: str | None = None
+    """Language for syntax highlighting (inferred from path if not provided)."""
+    start_line: int | None = None
+    """Starting line number (1-based) if showing a range."""
+    end_line: int | None = None
+    """Ending line number (1-based) if showing a range."""
 
 
 # Union type for all tool call content items
-ToolCallContentItem = TerminalContentItem | DiffContentItem | LocationContentItem | TextContentItem
+ToolCallContentItem = (
+    TerminalContentItem | DiffContentItem | LocationContentItem | TextContentItem | FileContentItem
+)
 
 
 @dataclass(kw_only=True)

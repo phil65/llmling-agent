@@ -483,7 +483,7 @@ class ACPSession:
                         ]
                         await complete_state.complete(
                             raw_output=final_output,
-                            add_content=content_items,
+                            content=content_items,
                         )
                 self._cleanup_tool_state(tool_call_id)
 
@@ -523,7 +523,7 @@ class ACPSession:
                 await state.update(
                     title=title,
                     kind=kind,
-                    add_locations=acp_locations if acp_locations else None,
+                    locations=acp_locations if acp_locations else None,
                 )
 
             # Tool progress event - update state with title and content
@@ -540,9 +540,13 @@ class ACPSession:
                 # Convert items to ACP content
                 from llmling_agent.agent.events import (
                     DiffContentItem,
+                    FileContentItem,
                     LocationContentItem,
                     TerminalContentItem,
                     TextContentItem,
+                )
+                from llmling_agent_server.acp_server.syntax_detection import (
+                    format_zed_code_block,
                 )
 
                 acp_content: list[Any] = []
@@ -554,6 +558,19 @@ class ACPSession:
                             acp_content.append(TerminalToolCallContent(terminal_id=tid))
                         case TextContentItem(text=text):
                             acp_content.append(ContentToolCallContent.text(text=text))
+                        case FileContentItem(
+                            content=file_content,
+                            path=file_path,
+                            start_line=start_line,
+                            end_line=end_line,
+                        ):
+                            # Format as Zed-compatible code block with clickable path
+                            formatted = format_zed_code_block(
+                                file_content, file_path, start_line, end_line
+                            )
+                            acp_content.append(ContentToolCallContent.text(text=formatted))
+                            # Also add path to locations for "follow along" feature
+                            location_paths.append(file_path)
                         case DiffContentItem(path=diff_path, old_text=old, new_text=new):
                             # Send diff via direct notification
                             await self.notifications.file_edit_progress(
@@ -570,9 +587,9 @@ class ACPSession:
                 await progress_state.update(
                     title=title,
                     status="in_progress",
-                    add_content=acp_content if acp_content else None,
-                    replace_content=replace_content,
-                    add_locations=location_paths if location_paths else None,
+                    content=acp_content if acp_content else None,
+                    locations=location_paths if location_paths else None,
+                    replace=replace_content,
                 )
 
             case FinalResultEvent():

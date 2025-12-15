@@ -103,10 +103,9 @@ class ToolCallReporter:
         kind: ToolCallKind | None = None,
         message: str | None = None,
         raw_output: Any | None = None,
-        locations: Sequence[ToolCallLocation] | None = None,
-        content: Sequence[ToolCallContent] | None = None,
-        add_location: ToolCallLocation | str | None = None,
-        add_content: ToolCallContent | str | None = None,
+        locations: Sequence[ToolCallLocation | str] | None = None,
+        content: Sequence[ToolCallContent | str] | None = None,
+        replace: bool = False,
     ) -> None:
         """Update one or more fields and send the updated state.
 
@@ -116,10 +115,9 @@ class ToolCallReporter:
             kind: Update the tool kind
             message: Convenience for adding a text content block
             raw_output: Update the raw output
-            locations: Replace the entire locations list
-            content: Replace the entire content list
-            add_location: Append a single location (path string or ToolCallLocation)
-            add_content: Append a single content block (or string) to the list
+            locations: Locations to add or replace (path strings or ToolCallLocation)
+            content: Content blocks to add or replace
+            replace: If True, replace all content/locations; if False, append
         """
         if not self._started:
             await self.start()
@@ -133,22 +131,25 @@ class ToolCallReporter:
             self.kind = kind
         if raw_output is not None:
             self.raw_output = raw_output
-        if locations is not None:
-            self.locations = list(locations)
-        if content is not None:
-            self.content = list(content)
 
-        # Handle appending single items
-        if add_location is not None:
-            if isinstance(add_location, str):
-                add_location = ToolCallLocation(path=add_location)
-            self.locations.append(add_location)
-        if add_content is not None:
-            # String content will be converted by tool_call_progress
-            if isinstance(add_content, str):
-                self.content.append(add_content)  # type: ignore[arg-type]
+        # Handle locations
+        if locations is not None:
+            normalized = [
+                ToolCallLocation(path=loc) if isinstance(loc, str) else loc for loc in locations
+            ]
+            if replace:
+                self.locations = normalized
             else:
-                self.content.append(add_content)
+                self.locations.extend(normalized)
+
+        # Handle content (strings will be converted by tool_call_progress)
+        if content is not None:
+            content_list: list[ToolCallContent | str] = list(content)
+            if replace:
+                self.content = content_list  # type: ignore[assignment]
+            else:
+                self.content.extend(content_list)  # type: ignore[arg-type]
+
         if message is not None:
             self.content.append(message)  # type: ignore[arg-type]
 
