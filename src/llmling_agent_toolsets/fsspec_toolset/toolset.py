@@ -249,9 +249,12 @@ class FSSpecTools(ResourceProvider):
                 "total_items": len(dirs) + len(files),
             }
             await agent_ctx.events.file_operation("list", path=path, success=True)
-        except (OSError, ValueError) as e:
+        except (OSError, ValueError, FileNotFoundError) as e:
             await agent_ctx.events.file_operation("list", path=path, success=False, error=str(e))
-            return {"error": f"Failed to list directory {path}: {e}"}
+            return {
+                "error": f"Could not list directory: {path}",
+                "hint": "Ensure the path is an absolute path to an existing directory.",
+            }
         else:
             return result
 
