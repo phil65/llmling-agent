@@ -44,7 +44,7 @@ if TYPE_CHECKING:
     from fastmcp.client.elicitation import ElicitationHandler
     from fastmcp.client.logging import LogMessage
     from fastmcp.client.messages import MessageHandler, MessageHandlerT
-    from fastmcp.client.sampling import ClientSamplingHandler
+    from fastmcp.client.sampling import SamplingHandler
     from mcp.shared.context import RequestContext
     from mcp.types import (
         BlobResourceContents,
@@ -73,7 +73,7 @@ class MCPClient:
     def __init__(
         self,
         config: MCPServerConfig,
-        sampling_callback: ClientSamplingHandler[Any] | None = None,
+        sampling_callback: SamplingHandler[Any, Any] | None = None,
         message_handler: MessageHandlerT | MessageHandler | None = None,
         accessible_roots: list[str] | None = None,
         tool_change_callback: Callable[[], Awaitable[None]] | None = None,

@@ -15,7 +15,7 @@ from llmling_agent_config.resources import ResourceInfo
 if TYPE_CHECKING:
     from typing import Literal
 
-    from fastmcp.client.sampling import ClientSamplingHandler
+    from fastmcp.client.sampling import SamplingHandler
 
     from llmling_agent.prompts.prompts import MCPClientPrompt
     from llmling_agent.tools.base import Tool
@@ -34,7 +34,7 @@ class MCPResourceProvider(ResourceProvider):
         name: str = "mcp",
         owner: str | None = None,
         source: Literal["pool", "node"] = "node",
-        sampling_callback: ClientSamplingHandler[Any] | None = None,
+        sampling_callback: SamplingHandler[Any, Any] | None = None,
         accessible_roots: list[str] | None = None,
     ) -> None:
         from llmling_agent.mcp_server import MCPClient
