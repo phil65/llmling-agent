@@ -120,6 +120,9 @@ class LLMlingACPAgent(ACPAgent):
     default_agent: str | None = None
     """Optional specific agent name to use as default."""
 
+    load_skills: bool = True
+    """Whether to load client-side skills from .claude/skills directory."""
+
     def __post_init__(self) -> None:
         """Initialize derived attributes and setup after field assignment."""
         self.client: Client = self.connection
@@ -203,11 +206,12 @@ class LLMlingACPAgent(ACPAgent):
                 coro = session.send_available_commands_update()
                 coro_2 = session.init_project_context()
                 coro_3 = session._register_prompt_hub_commands()
-                coro_4 = session.init_client_skills()
                 self.tasks.create_task(coro, name=f"send_commands_update_{session_id}")
                 self.tasks.create_task(coro_2, name=f"init_project_context_{session_id}")
                 self.tasks.create_task(coro_3, name=f"init_prompthub_cmds_{session_id}")
-                self.tasks.create_task(coro_4, name=f"init_client_skills_{session_id}")
+                if self.load_skills:
+                    coro_4 = session.init_client_skills()
+                    self.tasks.create_task(coro_4, name=f"init_client_skills_{session_id}")
             logger.info("Created session", session_id=session_id, agent_count=len(modes))
             return NewSessionResponse(session_id=session_id, modes=state, models=models)
 

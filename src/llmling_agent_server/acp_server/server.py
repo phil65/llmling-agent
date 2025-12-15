@@ -53,6 +53,7 @@ class ACPServer(BaseServer):
         debug_file: str | None = None,
         debug_commands: bool = False,
         agent: str | None = None,
+        load_skills: bool = True,
     ) -> None:
         """Initialize ACP server with configuration.
 
@@ -66,6 +67,7 @@ class ACPServer(BaseServer):
             debug_file: File path for debug message logging
             debug_commands: Whether to enable debug slash commands for testing
             agent: Optional specific agent name to use (defaults to first agent)
+            load_skills: Whether to load client-side skills from .claude/skills
         """
         super().__init__(pool, name=name, raise_exceptions=True)
         self.file_access = file_access
@@ -75,6 +77,7 @@ class ACPServer(BaseServer):
         self.debug_file = debug_file
         self.debug_commands = debug_commands
         self.agent = agent
+        self.load_skills = load_skills
 
         self._available_models: list[ModelInfo] = []
         self._models_initialized = False
@@ -91,6 +94,7 @@ class ACPServer(BaseServer):
         debug_file: str | None = None,
         debug_commands: bool = False,
         agent: str | None = None,
+        load_skills: bool = True,
     ) -> Self:
         """Create ACP server from existing llmling-agent configuration.
 
@@ -103,6 +107,7 @@ class ACPServer(BaseServer):
             debug_file: Path to debug file
             debug_commands: Enable debug slash commands for testing
             agent: Optional specific agent name to use (defaults to first agent)
+            load_skills: Whether to load client-side skills from .claude/skills
 
         Returns:
             Configured ACP server instance with agent pool from config
@@ -118,6 +123,7 @@ class ACPServer(BaseServer):
             debug_file=debug_file or "acp-debug.jsonl" if debug_messages else None,
             debug_commands=debug_commands,
             agent=agent,
+            load_skills=load_skills,
         )
         agent_names = list(server.pool.agents.keys())
 
@@ -144,6 +150,7 @@ class ACPServer(BaseServer):
             terminal_access=self.terminal_access,
             debug_commands=self.debug_commands,
             default_agent=self.agent,
+            load_skills=self.load_skills,
         )
         reader, writer = await stdio_streams()
         file = self.debug_file if self.debug_messages else None

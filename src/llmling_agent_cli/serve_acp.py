@@ -55,6 +55,11 @@ def acp_command(
         "--agent",
         help="Name of specific agent to use (defaults to first agent in config)",
     ),
+    load_skills: bool = t.Option(
+        True,
+        "--skills/--no-skills",
+        help="Load client-side skills from .claude/skills directory",
+    ),
 ) -> None:
     r"""Run agents as an ACP (Agent Client Protocol) server.
 
@@ -105,6 +110,7 @@ def acp_command(
             debug_file=debug_file or "acp-debug.jsonl" if debug_messages else None,
             debug_commands=debug_commands,
             agent=agent,
+            load_skills=load_skills,
         )
     else:
         # Use default ACP assistant config
@@ -120,6 +126,7 @@ def acp_command(
             debug_file=debug_file or "acp-debug.jsonl" if debug_messages else None,
             debug_commands=debug_commands,
             agent=agent,
+            load_skills=load_skills,
         )
     # Configure agent capabilities
     agent_count = len(acp_server.pool.all_agents)
