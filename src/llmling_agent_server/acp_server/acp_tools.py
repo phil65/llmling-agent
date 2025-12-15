@@ -27,7 +27,9 @@ def get_acp_provider(session: ACPSession) -> AggregatingResourceProvider:
     """
     from llmling_agent.resource_providers.aggregating import AggregatingResourceProvider
 
-    execution_env = ACPExecutionEnvironment(fs=session.fs, requests=session.requests)
+    execution_env = ACPExecutionEnvironment(
+        fs=session.fs, requests=session.requests, cwd=session.cwd
+    )
 
     providers = [
         PlanProvider(),

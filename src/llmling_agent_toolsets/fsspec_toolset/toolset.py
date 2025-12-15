@@ -109,20 +109,24 @@ class FSSpecTools(ResourceProvider):
         fs = agent_ctx.agent.env.get_fs()
         return fs if isinstance(fs, AsyncFileSystem) else AsyncFileSystemWrapper(fs)
 
-    def _resolve_path(self, path: str) -> str:
+    def _resolve_path(self, path: str, agent_ctx: AgentContext) -> str:
         """Resolve a potentially relative path to an absolute path.
 
+        Gets cwd from self.cwd, execution_env.cwd, or agent.env.cwd.
         If cwd is set and path is relative, resolves relative to cwd.
         Otherwise returns the path as-is.
-
-        Args:
-            path: Path that may be relative or absolute
-
-        Returns:
-            Absolute path string
         """
-        if self.cwd and not (path.startswith("/") or (len(path) > 1 and path[1] == ":")):
-            return str(Path(self.cwd) / path)
+        # Get cwd: explicit toolset cwd > execution_env.cwd > agent.env.cwd
+        cwd: str | None = None
+        if self.cwd:
+            cwd = self.cwd
+        elif self.execution_env and self.execution_env.cwd:
+            cwd = self.execution_env.cwd
+        elif agent_ctx.agent.env and agent_ctx.agent.env.cwd:
+            cwd = agent_ctx.agent.env.cwd
+
+        if cwd and not (path.startswith("/") or (len(path) > 1 and path[1] == ":")):
+            return str(Path(cwd) / path)
         return path
 
     async def get_tools(self) -> list[Tool]:
@@ -171,8 +175,7 @@ class FSSpecTools(ResourceProvider):
         Returns:
             Dictionary with matching files and directories
         """
-        if self.cwd:
-            path = self._resolve_path(path)
+        path = self._resolve_path(path, agent_ctx)
         msg = f"Listing directory: {path}"
         await agent_ctx.events.tool_call_start(title=msg, kind="read", locations=[path])
 
@@ -272,8 +275,7 @@ class FSSpecTools(ResourceProvider):
         Returns:
             Text content for text files, BinaryContent for binary files, or dict with error
         """
-        if self.cwd:
-            path = self._resolve_path(path)
+        path = self._resolve_path(path, agent_ctx)
         msg = f"Reading file: {path}"
         await agent_ctx.events.tool_call_start(title=msg, kind="read", locations=[path])
 
@@ -329,8 +331,7 @@ class FSSpecTools(ResourceProvider):
         """
         assert self.converter is not None, "Converter required for read_as_markdown"
 
-        if self.cwd:
-            path = self._resolve_path(path)
+        path = self._resolve_path(path, agent_ctx)
         msg = f"Reading file as markdown: {path}"
         await agent_ctx.events.tool_call_start(title=msg, kind="read", locations=[path])
         try:
@@ -362,8 +363,7 @@ class FSSpecTools(ResourceProvider):
         Returns:
             Dictionary with success info or error details
         """
-        if self.cwd:
-            path = self._resolve_path(path)
+        path = self._resolve_path(path, agent_ctx)
         msg = f"Writing file: {path}"
         await agent_ctx.events.tool_call_start(title=msg, kind="edit", locations=[path])
 
@@ -431,8 +431,7 @@ class FSSpecTools(ResourceProvider):
         Returns:
             Dictionary with operation result
         """
-        if self.cwd:
-            path = self._resolve_path(path)
+        path = self._resolve_path(path, agent_ctx)
         msg = f"Deleting path: {path}"
         await agent_ctx.events.tool_call_start(title=msg, kind="delete", locations=[path])
         try:
@@ -505,8 +504,7 @@ class FSSpecTools(ResourceProvider):
         Returns:
             Success message with edit summary
         """
-        if self.cwd:
-            path = self._resolve_path(path)
+        path = self._resolve_path(path, agent_ctx)
         msg = f"Editing file: {path}"
         await agent_ctx.events.tool_call_start(title=msg, kind="edit", locations=[path])
         if old_string == new_string:
@@ -581,7 +579,7 @@ class FSSpecTools(ResourceProvider):
             grep_with_subprocess,
         )
 
-        resolved_path = self._resolve_path(path)
+        resolved_path = self._resolve_path(path, agent_ctx)
         msg = f"Searching for {pattern!r} in {resolved_path}"
         await agent_ctx.events.tool_call_start(title=msg, kind="search", locations=[resolved_path])
 
@@ -667,8 +665,7 @@ class FSSpecTools(ResourceProvider):
         start_time = time.time()
 
         # Resolve target directory
-        if self.cwd:
-            target_dir = self._resolve_path(target_dir)
+        target_dir = self._resolve_path(target_dir, agent_ctx)
 
         msg = f"Downloading: {url}"
         await agent_ctx.events.tool_call_start(title=msg, kind="read", locations=[url])
@@ -765,8 +762,7 @@ class FSSpecTools(ResourceProvider):
             agentic_edit('src/main.py', 'Add error handling to the main function') ->
             'Successfully edited main.py using AI agent'
         """
-        if self.cwd:
-            path = self._resolve_path(path)
+        path = self._resolve_path(path, agent_ctx)
         title = f"AI editing file: {path}"
         await agent_ctx.events.tool_call_start(title=title, kind="edit", locations=[path])
         # Send initial pending notification

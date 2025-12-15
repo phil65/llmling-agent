@@ -173,7 +173,7 @@ class ACPSession:
         self.notifications = ACPNotifications(client=self.client, session_id=self.session_id)
         self.requests = ACPRequests(client=self.client, session_id=self.session_id)
         self.input_provider = ACPInputProvider(self)
-        self.acp_env = ACPExecutionEnvironment(fs=self.fs, requests=self.requests)
+        self.acp_env = ACPExecutionEnvironment(fs=self.fs, requests=self.requests, cwd=self.cwd)
         for agent in self.agent_pool.all_agents.values():
             if isinstance(agent, Agent | ACPAgent):
                 agent.env = self.acp_env
