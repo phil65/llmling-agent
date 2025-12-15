@@ -39,7 +39,7 @@ async def add_local_mcp_server(  # noqa: D417
     config = StdioMCPServerConfig(name=name, command=command, args=args or [], env=env)
     await ctx.agent.mcp.setup_server_runtime(config)
     # New provider automatically available via aggregating provider
-    return f"Added local MCP server {name!r} with command: {command}"
+    return f"Added local MCP server **{name}** with command: **{command}**"
 
 
 async def add_remote_mcp_server(  # noqa: D417
@@ -68,7 +68,7 @@ async def add_remote_mcp_server(  # noqa: D417
 
     await ctx.agent.mcp.setup_server_runtime(config)
     # New provider automatically available via aggregating provider
-    return f"Added remote MCP server {name!r} at {url} using {transport} transport"
+    return f"Added remote MCP server **{name}** at *{url}* using {transport} transport"
 
 
 class IntegrationTools(ResourceProvider):

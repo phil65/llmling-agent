@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any
 
 from fsspec import AbstractFileSystem
 
+from llmling_agent.agent.context import AgentContext  # noqa: TC001
 from llmling_agent.log import get_logger
 from llmling_agent.resource_providers import ResourceProvider
 
@@ -101,11 +102,12 @@ class CodeTools(ResourceProvider):
 
         if isinstance(source, ExecutionEnvironment):
             self.execution_env: ExecutionEnvironment | None = source
+            self.cwd = cwd or self.execution_env.cwd
             fs = source.get_fs()
         else:
             self.execution_env = None
             fs = source
-
+            self.cwd = cwd
         match fs:
             case AsyncFileSystem():
                 self.fs = fs
@@ -113,13 +115,26 @@ class CodeTools(ResourceProvider):
                 self.fs = AsyncFileSystemWrapper(fs)
             case None:
                 self.fs = AsyncLocalFileSystem()
-        self.cwd = cwd
         self._tools: list[Tool] | None = None
 
-    def _resolve_path(self, path: str) -> str:
-        """Resolve a potentially relative path to an absolute path."""
-        if self.cwd and not (path.startswith("/") or (len(path) > 1 and path[1] == ":")):
-            return str(Path(self.cwd) / path)
+    def _resolve_path(self, path: str, agent_ctx: AgentContext) -> str:
+        """Resolve a potentially relative path to an absolute path.
+
+        Gets cwd from self.cwd, execution_env.cwd, or agent.env.cwd.
+        If cwd is set and path is relative, resolves relative to cwd.
+        Otherwise returns the path as-is.
+        """
+        # Get cwd: explicit toolset cwd > execution_env.cwd > agent.env.cwd
+        cwd: str | None = None
+        if self.cwd:
+            cwd = self.cwd
+        elif self.execution_env and self.execution_env.cwd:
+            cwd = self.execution_env.cwd
+        elif agent_ctx.agent.env and agent_ctx.agent.env.cwd:
+            cwd = agent_ctx.agent.env.cwd
+
+        if cwd and not (path.startswith("/") or (len(path) > 1 and path[1] == ":")):
+            return str(Path(cwd) / path)
         return path
 
     async def get_tools(self) -> list[Tool]:
@@ -132,10 +147,13 @@ class CodeTools(ResourceProvider):
             self._tools.append(self.create_tool(self.ast_grep, category="search", idempotent=True))
         return self._tools
 
-    async def format_code(self, path: str, language: str | None = None) -> str:
+    async def format_code(
+        self, agent_ctx: AgentContext, path: str, language: str | None = None
+    ) -> str:
         """Format and lint a code file, returning a concise summary.
 
         Args:
+            agent_ctx: Agent context for path resolution.
             path: Path to the file to format
             language: Programming language (auto-detected from extension if not provided)
 
@@ -144,7 +162,7 @@ class CodeTools(ResourceProvider):
         """
         from anyenv.language_formatters import FormatterRegistry
 
-        resolved = self._resolve_path(path)
+        resolved = self._resolve_path(path, agent_ctx)
         try:
             content = await self.fs._cat_file(resolved)
             code = content.decode("utf-8") if isinstance(content, bytes) else content
@@ -194,6 +212,7 @@ class CodeTools(ResourceProvider):
 
     async def ast_grep(
         self,
+        agent_ctx: AgentContext,
         path: str,
         rule: dict[str, Any],
         fix: str | None = None,
@@ -205,6 +224,7 @@ class CodeTools(ResourceProvider):
         syntax trees. More precise than regex - understands code structure.
 
         Args:
+            agent_ctx: Agent context for path resolution.
             path: Path to the file to analyze
             rule: AST matching rule dict (see examples below)
             fix: Optional replacement pattern using $METAVARS from the rule
@@ -254,7 +274,7 @@ class CodeTools(ResourceProvider):
         """
         from ast_grep_py import SgRoot
 
-        resolved = self._resolve_path(path)
+        resolved = self._resolve_path(path, agent_ctx)
 
         # Detect language from extension
         language = _detect_language(path)

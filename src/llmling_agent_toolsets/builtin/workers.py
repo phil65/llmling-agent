@@ -25,11 +25,7 @@ class WorkersTools(ResourceProvider):
     the pool at call time.
     """
 
-    def __init__(
-        self,
-        workers: list[WorkerConfig],
-        name: str = "workers",
-    ) -> None:
+    def __init__(self, workers: list[WorkerConfig], name: str = "workers") -> None:
         """Initialize workers toolset.
 
         Args:
@@ -48,7 +44,6 @@ class WorkersTools(ResourceProvider):
         from llmling_agent_config.workers import AgentWorkerConfig
 
         worker_name = worker_config.name
-
         # Regular agents get history management
         if isinstance(worker_config, AgentWorkerConfig):
             return self._create_agent_tool(
@@ -56,7 +51,6 @@ class WorkersTools(ResourceProvider):
                 reset_history_on_run=worker_config.reset_history_on_run,
                 pass_message_history=worker_config.pass_message_history,
             )
-
         # Teams, ACP agents, AGUI agents - all handled uniformly
         return self._create_node_tool(worker_name)
 

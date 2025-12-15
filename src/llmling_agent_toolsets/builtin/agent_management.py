@@ -79,7 +79,7 @@ async def add_agent(  # noqa: D417
         )
     except ValueError as e:  # for wrong tool imports
         raise ModelRetry(message=f"Error creating agent: {e}") from None
-    return f"Created agent {agent.name} using model {agent.model_name}"
+    return f"Created agent **{agent.name}** using model **{agent.model_name}**"
 
 
 async def add_team(  # noqa: D417
@@ -114,7 +114,7 @@ async def add_team(  # noqa: D417
     else:
         ctx.pool.create_team(nodes, name=name)
     mode_str = "pipeline" if mode == "sequential" else "parallel"
-    return f"Created {mode_str} team with nodes: {', '.join(nodes)}"
+    return f"Created **{mode_str}** team with nodes: **{', '.join(nodes)}**"
 
 
 async def connect_nodes(  # noqa: D417
@@ -189,9 +189,9 @@ async def connect_nodes(  # noqa: D417
     source_node.connections.set_wait_state(target_node, wait=wait_for_completion)
 
     return (
-        f"Created connection from {source} to {target} "
-        f"(type={connection_type}, queued={queued}, "
-        f"strategy={queue_strategy if queued else 'n/a'})"
+        f"Created connection from **{source}** to **{target}** "
+        f"*(type={connection_type}, queued={queued}, "
+        f"strategy={queue_strategy if queued else 'n/a'})*"
     )
 
 
@@ -201,10 +201,10 @@ class AgentManagementTools(StaticResourceProvider):
     def __init__(self, name: str = "agent_management") -> None:
         super().__init__(name=name)
         for tool in [
-            self.create_tool(create_worker_agent, category="other"),
-            self.create_tool(add_agent, category="other"),
-            self.create_tool(add_team, category="other"),
-            self.create_tool(connect_nodes, category="other"),
+            self.create_tool(create_worker_agent, category="other", destructive=False),
+            self.create_tool(add_agent, category="other", destructive=False),
+            self.create_tool(add_team, category="other", destructive=False),
+            self.create_tool(connect_nodes, category="other", destructive=False),
         ]:
             self.add_tool(tool)
 
