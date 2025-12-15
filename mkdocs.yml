@@ -55,7 +55,7 @@ theme:
     - search.suggest
   # - search.share
 
-extra_javascript:
+extra_javascript: # for code blocks with { .interactive }
   - js/run_code_config.js
   - "https://phil65.github.io/mkdocs-run-code/run_code.js"
 
