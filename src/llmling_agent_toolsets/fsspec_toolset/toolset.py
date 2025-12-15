@@ -248,7 +248,7 @@ class FSSpecTools(ResourceProvider):
         encoding: str = "utf-8",
         line: int | None = None,
         limit: int | None = None,
-    ) -> str | BinaryContent | dict[str, Any]:
+    ) -> str | BinaryContent:
         """Read the context of a text file, or use vision capabilites to read images or documents.
 
         Args:
@@ -264,45 +264,34 @@ class FSSpecTools(ResourceProvider):
         path = self._resolve_path(path, agent_ctx)
         msg = f"Reading file: {path}"
         await agent_ctx.events.tool_call_start(title=msg, kind="read", locations=[path])
-
         try:
             mime_type = mimetypes.guess_type(path)[0]
-
             # Fast path: known binary MIME types (images, audio, video, etc.)
             if is_definitely_binary_mime(mime_type):
                 data = await self.get_fs(agent_ctx)._cat_file(path)
                 await agent_ctx.events.file_operation("read", path=path, success=True)
                 mime = mime_type or "application/octet-stream"
                 return BinaryContent(data=data, media_type=mime, identifier=path)
-
             # Read content and probe for binary (git-style null byte detection)
             data = await self.get_fs(agent_ctx)._cat_file(path)
-
             if is_binary_content(data):
                 # Binary file - return as BinaryContent for native model handling
                 await agent_ctx.events.file_operation("read", path=path, success=True)
                 mime = mime_type or "application/octet-stream"
                 return BinaryContent(data=data, media_type=mime, identifier=path)
-
-            # Text file - decode and return as string
             content = data.decode(encoding)
-
-            # Apply line filtering and size limits
             lines = content.splitlines()
             offset = (line - 1) if line else 0
             result_lines, was_truncated = truncate_lines(lines, offset, limit, self.max_file_size)
             content = "\n".join(result_lines)
-
             await agent_ctx.events.file_operation("read", path=path, success=True)
 
-            if was_truncated:
-                content += f"\n\n[Content truncated at {self.max_file_size} bytes]"
-
-            return content
         except Exception as e:  # noqa: BLE001
             await agent_ctx.events.file_operation("read", path=path, success=False, error=str(e))
-            return {"error": f"Failed to read file {path}: {e}"}
+            return f"error: Failed to read file {path}: {e}"
         else:
+            if was_truncated:
+                content += f"\n\n[Content truncated at {self.max_file_size} bytes]"
             return content
 
     async def read_as_markdown(self, agent_ctx: AgentContext, path: str) -> str | dict[str, Any]:
