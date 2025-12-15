@@ -100,6 +100,116 @@ class TextContentItem:
     text: str
     """The text content."""
 
+    @classmethod
+    def from_file_content(cls, content: str, path: str) -> TextContentItem:
+        """Create text content item with syntax-highlighted markdown code block.
+
+        Args:
+            content: The file content
+            path: File path (used to determine language for syntax highlighting)
+
+        Returns:
+            TextContentItem with content wrapped in markdown code block
+        """
+        return cls(text=format_file_content(content, path))
+
+
+def format_file_content(content: str, path: str) -> str:
+    """Format file content as a syntax-highlighted markdown code block.
+
+    Args:
+        content: The file content
+        path: File path (used to determine language for syntax highlighting)
+
+    Returns:
+        Content wrapped in markdown code block with language identifier
+    """
+    language = _get_language_from_path(path)
+    return f"```{language}\n{content}\n```"
+
+
+def _get_language_from_path(path: str) -> str:
+    """Get syntax highlighting language identifier from file path.
+
+    Args:
+        path: File path to analyze
+
+    Returns:
+        Language identifier for syntax highlighting, or empty string if unknown
+    """
+    import os
+
+    path_lower = path.lower()
+    _, ext = os.path.splitext(path_lower)
+    filename = os.path.basename(path_lower)
+
+    # Special filenames
+    special_files = {
+        "dockerfile": "dockerfile",
+        "makefile": "makefile",
+        "rakefile": "makefile",
+        "justfile": "makefile",
+        ".bashrc": "bash",
+        ".zshrc": "bash",
+        ".gitignore": "gitignore",
+        ".editorconfig": "editorconfig",
+    }
+    if filename in special_files:
+        return special_files[filename]
+
+    # Extension mapping
+    ext_map = {
+        ".py": "python",
+        ".pyi": "python",
+        ".js": "javascript",
+        ".mjs": "javascript",
+        ".jsx": "javascript",
+        ".ts": "typescript",
+        ".tsx": "typescript",
+        ".java": "java",
+        ".kt": "kotlin",
+        ".scala": "scala",
+        ".c": "c",
+        ".h": "c",
+        ".cpp": "cpp",
+        ".hpp": "cpp",
+        ".rs": "rust",
+        ".go": "go",
+        ".rb": "ruby",
+        ".php": "php",
+        ".swift": "swift",
+        ".dart": "dart",
+        ".lua": "lua",
+        ".r": "r",
+        ".sql": "sql",
+        ".html": "html",
+        ".htm": "html",
+        ".xml": "xml",
+        ".css": "css",
+        ".scss": "scss",
+        ".sass": "sass",
+        ".less": "less",
+        ".json": "json",
+        ".yaml": "yaml",
+        ".yml": "yaml",
+        ".toml": "toml",
+        ".ini": "ini",
+        ".cfg": "ini",
+        ".sh": "bash",
+        ".bash": "bash",
+        ".zsh": "bash",
+        ".fish": "fish",
+        ".ps1": "powershell",
+        ".bat": "batch",
+        ".cmd": "batch",
+        ".md": "markdown",
+        ".markdown": "markdown",
+        ".rst": "rst",
+        ".tex": "latex",
+        ".vim": "vim",
+    }
+    return ext_map.get(ext, "")
+
 
 # Union type for all tool call content items
 ToolCallContentItem = TerminalContentItem | DiffContentItem | LocationContentItem | TextContentItem
@@ -165,6 +275,8 @@ class ToolCallProgressEvent:
     # Rich content items
     items: list[ToolCallContentItem] = field(default_factory=list)
     """Rich content items (terminals, diffs, locations, text)."""
+    replace_content: bool = False
+    """If True, items replace existing content instead of appending."""
 
     # Legacy fields for backwards compatibility
     progress: int | None = None
@@ -426,6 +538,7 @@ class ToolCallProgressEvent:
             status=status,
             title=f"Editing: {path}",
             items=items,
+            replace_content=True,  # Streaming diffs should replace, not accumulate
         )
 
 

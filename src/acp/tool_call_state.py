@@ -93,6 +93,7 @@ class ToolCallState:
         status: ToolCallStatus | None = None,
         kind: ToolCallKind | None = None,
         add_content: ToolCallContent | Sequence[ToolCallContent] | None = None,
+        replace_content: bool = False,
         add_location: ToolCallLocation | str | None = None,
         add_locations: Sequence[ToolCallLocation | str] | None = None,
         raw_output: Any = None,
@@ -106,7 +107,8 @@ class ToolCallState:
             title: Override the human-readable title
             status: Update execution status
             kind: Update tool kind
-            add_content: Content to append (terminals, diffs, text)
+            add_content: Content to append or replace (terminals, diffs, text)
+            replace_content: If True, replace all content instead of appending
             add_location: Single location to append
             add_locations: Multiple locations to append
             raw_output: Update raw output data
@@ -124,9 +126,16 @@ class ToolCallState:
         if raw_output is not None:
             self.raw_output = raw_output
 
-        # Accumulate content (never replace)
+        # Handle content: replace or accumulate
         if add_content is not None:
-            if isinstance(add_content, Sequence):
+            if replace_content:
+                # Replace all existing content
+                if isinstance(add_content, Sequence):
+                    self.content = list(add_content)
+                else:
+                    self.content = [add_content]
+            # Accumulate (default behavior)
+            elif isinstance(add_content, Sequence):
                 self.content.extend(add_content)
             else:
                 self.content.append(add_content)

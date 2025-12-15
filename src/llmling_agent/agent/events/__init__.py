@@ -1,23 +1,24 @@
 """Agent events."""
 
 from .events import (
-    RunErrorEvent,
-    StreamCompleteEvent,
-    ToolCallStartEvent,
-    RichAgentStreamEvent,
-    ToolCallProgressEvent,
-    PlanUpdateEvent,
-    RunStartedEvent,
-    TextContentItem,
-    ToolCallContentItem,
-    TerminalContentItem,
+    CommandCompleteEvent,
+    CommandOutputEvent,
+    CustomEvent,
     DiffContentItem,
     LocationContentItem,
-    CustomEvent,
+    PlanUpdateEvent,
+    RichAgentStreamEvent,
+    RunErrorEvent,
+    RunStartedEvent,
     SlashedAgentStreamEvent,
+    StreamCompleteEvent,
+    TerminalContentItem,
+    TextContentItem,
     ToolCallCompleteEvent,
-    CommandOutputEvent,
-    CommandCompleteEvent,
+    ToolCallContentItem,
+    ToolCallProgressEvent,
+    ToolCallStartEvent,
+    format_file_content,
 )
 from .event_emitter import StreamEventEmitter
 from .builtin_handlers import (
@@ -46,6 +47,7 @@ __all__ = [
     "ToolCallProgressEvent",
     "ToolCallStartEvent",
     "detailed_print_handler",
+    "format_file_content",
     "resolve_event_handlers",
     "simple_print_handler",
 ]

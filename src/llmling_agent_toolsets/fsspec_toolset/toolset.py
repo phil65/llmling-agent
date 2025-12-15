@@ -238,7 +238,16 @@ class FSSpecTools(ResourceProvider):
                     files.append(item_info)
 
             await agent_ctx.events.file_operation("list", path=path, success=True)
-            return format_directory_listing(path, dirs, files, pattern)
+            result = format_directory_listing(path, dirs, files, pattern)
+            # Emit formatted content for UI display
+            from llmling_agent.agent.events import TextContentItem
+
+            await agent_ctx.events.tool_call_progress(
+                title=f"Listed: {path}",
+                items=[TextContentItem(text=result)],
+                replace_content=True,
+            )
+            return result
         except (OSError, ValueError, FileNotFoundError) as e:
             await agent_ctx.events.file_operation("list", path=path, success=False, error=str(e))
             return f"Error: Could not list directory: {path}. Ensure path is absolute and exists."
@@ -294,6 +303,15 @@ class FSSpecTools(ResourceProvider):
         else:
             if was_truncated:
                 content += f"\n\n[Content truncated at {self.max_file_size} bytes]"
+            # Emit formatted content for UI display
+            from llmling_agent.agent.events import TextContentItem
+
+            await agent_ctx.events.tool_call_progress(
+                title=f"Read: {path}",
+                items=[TextContentItem.from_file_content(content, path)],
+                replace_content=True,
+            )
+            # Return raw content for agent
             return content
 
     async def read_as_markdown(self, agent_ctx: AgentContext, path: str) -> str | dict[str, Any]:

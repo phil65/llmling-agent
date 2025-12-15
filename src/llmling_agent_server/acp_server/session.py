@@ -471,15 +471,20 @@ class ACPSession:
 
                 # Complete tool call through state (preserves accumulated content/locations)
                 if complete_state := self._tool_call_states.get(tool_call_id):
-                    converted_blocks = to_acp_content_blocks(final_output)
-                    # Wrap raw content blocks in ContentToolCallContent for proper display
-                    content_items = [
-                        ContentToolCallContent(content=block) for block in converted_blocks
-                    ]
-                    await complete_state.complete(
-                        raw_output=final_output,
-                        add_content=content_items,
-                    )
+                    # Only add return value as content if no content was emitted during execution
+                    if complete_state.content:
+                        # Content already provided via progress events - just set raw_output
+                        await complete_state.complete(raw_output=final_output)
+                    else:
+                        # No content yet - convert return value for display
+                        converted_blocks = to_acp_content_blocks(final_output)
+                        content_items = [
+                            ContentToolCallContent(content=block) for block in converted_blocks
+                        ]
+                        await complete_state.complete(
+                            raw_output=final_output,
+                            add_content=content_items,
+                        )
                 self._cleanup_tool_state(tool_call_id)
 
             # Tool failed with retry - update state with error
@@ -527,6 +532,7 @@ class ACPSession:
                 title=title,
                 status=status,
                 items=items,
+                replace_content=replace_content,
             ) if tool_call_id and tool_call_id in self._tool_call_states:
                 progress_state = self._tool_call_states[tool_call_id]
                 self.log.debug("Progress event", tool_call_id=tool_call_id, title=title)
@@ -536,6 +542,7 @@ class ACPSession:
                     DiffContentItem,
                     LocationContentItem,
                     TerminalContentItem,
+                    TextContentItem,
                 )
 
                 acp_content: list[Any] = []
@@ -545,6 +552,8 @@ class ACPSession:
                     match item:
                         case TerminalContentItem(terminal_id=tid):
                             acp_content.append(TerminalToolCallContent(terminal_id=tid))
+                        case TextContentItem(text=text):
+                            acp_content.append(ContentToolCallContent.text(text=text))
                         case DiffContentItem(path=diff_path, old_text=old, new_text=new):
                             # Send diff via direct notification
                             await self.notifications.file_edit_progress(
@@ -562,6 +571,7 @@ class ACPSession:
                     title=title,
                     status="in_progress",
                     add_content=acp_content if acp_content else None,
+                    replace_content=replace_content,
                     add_locations=location_paths if location_paths else None,
                 )
 
