@@ -520,11 +520,7 @@ class ACPSession:
                     ToolCallLocation(path=loc.path, line=loc.line) for loc in loc_items
                 ]
                 # Update state with tool-provided details (better title, content, locations)
-                await state.update(
-                    title=title,
-                    kind=kind,
-                    locations=acp_locations if acp_locations else None,
-                )
+                await state.update(title=title, kind=kind, locations=acp_locations or None)
 
             # Tool progress event - update state with title and content
             case ToolCallProgressEvent(

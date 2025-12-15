@@ -499,8 +499,11 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
 
     @property
     def model_name(self) -> str | None:
-        """Get the model name in a consistent format."""
-        return self._model.model_name if isinstance(self._model, Model) else self._model
+        """Get the model name in a consistent format (provider:model_name)."""
+        if isinstance(self._model, Model):
+            # Construct full model ID with provider prefix (e.g., "anthropic:claude-haiku-4-5")
+            return f"{self._model.system}:{self._model.model_name}"
+        return self._model
 
     def to_tool(
         self,
