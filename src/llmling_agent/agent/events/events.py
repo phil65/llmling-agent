@@ -2,6 +2,17 @@
 
 Unified event system using ToolCallProgressEvent for all tool-related progress updates.
 Rich content (terminals, diffs, locations) is conveyed through the items field.
+
+## UI Content vs Agent Return Values (ACP Protocol)
+
+Tools can control what the UI displays separately from what the agent receives:
+
+- Emit `tool_call_progress` with content items for UI display
+- Return raw/structured data for the agent
+- Session layer populates `content` (for UI) and `raw_output` (for agent) separately
+
+Use `replace_content=True` for streaming/final content that should replace previous state.
+If no content is emitted, the return value is automatically converted for UI (fallback).
 """
 
 from __future__ import annotations

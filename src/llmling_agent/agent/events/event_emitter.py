@@ -26,6 +26,26 @@ class StreamEventEmitter:
     Provides a fluent, developer-friendly API for emitting progress events
     with context (tool_call_id, etc.) automatically injected.
 
+    ## UI Content Pattern
+
+    To control what the UI displays (separate from the tool's return value),
+    emit a `tool_call_progress` with content items before returning:
+
+        # Emit formatted content for UI
+        await ctx.events.tool_call_progress(
+            title="Read: /path/to/file.py",
+            items=[TextContentItem.from_file_content(content, path)],
+            replace_content=True,
+        )
+        # Return raw content for agent
+        return content
+
+    The session layer will use the emitted content for UI display and put
+    the return value in `raw_output`. If no content is emitted, the return
+    value is automatically converted to UI content (fallback behavior).
+
+    See `events.py` module docstring for full documentation.
+
     Core methods:
         - tool_call_start: Announce tool invocation with metadata
         - tool_call_progress: Update tool status with content

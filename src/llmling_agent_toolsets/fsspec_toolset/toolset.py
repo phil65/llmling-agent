@@ -332,9 +332,17 @@ class FSSpecTools(ResourceProvider):
         try:
             content = await self.converter.convert_file(path)
             await agent_ctx.events.file_operation("read", path=path, success=True)
+            # Emit formatted content for UI display
+            from llmling_agent.agent.events import TextContentItem
+
+            await agent_ctx.events.tool_call_progress(
+                title=f"Read as markdown: {path}",
+                items=[TextContentItem(text=content)],
+                replace_content=True,
+            )
         except Exception as e:  # noqa: BLE001
             await agent_ctx.events.file_operation("read", path=path, success=False, error=str(e))
-            return {"error": f"Failed to convert file {path}: {e}"}
+            return f"Error: Failed to convert file {path}: {e}"
         else:
             return content
 
@@ -551,7 +559,7 @@ class FSSpecTools(ResourceProvider):
         case_sensitive: bool = False,
         max_matches: int = 100,
         context_lines: int = 0,
-    ) -> dict[str, Any]:
+    ) -> str:
         """Search file contents for a pattern.
 
         Args:
@@ -564,7 +572,7 @@ class FSSpecTools(ResourceProvider):
             context_lines: Number of context lines before/after match
 
         Returns:
-            Dictionary with matches, match_count, and was_truncated flag
+            Grep results as formatted text
         """
         from llmling_agent_toolsets.fsspec_toolset.grep import (
             DEFAULT_EXCLUDE_PATTERNS,
@@ -578,6 +586,7 @@ class FSSpecTools(ResourceProvider):
         msg = f"Searching for {pattern!r} in {resolved_path}"
         await agent_ctx.events.tool_call_start(title=msg, kind="search", locations=[resolved_path])
 
+        result: dict[str, Any] | None = None
         try:
             # Try subprocess grep if configured and available
             if self.use_subprocess_grep:
@@ -601,29 +610,47 @@ class FSSpecTools(ResourceProvider):
                             use_gitignore=True,
                         )
 
-                        if "error" not in result:
-                            return result
-
-            # Fallback to fsspec grep
-            fs = self.get_fs(agent_ctx)
-            result = await grep_with_fsspec(
-                fs=fs,
-                pattern=pattern,
-                path=resolved_path,
-                file_pattern=file_pattern,
-                case_sensitive=case_sensitive,
-                max_matches=max_matches,
-                max_output_bytes=self.max_grep_output,
-                context_lines=context_lines,
-            )
+            # Fallback to fsspec grep if subprocess didn't work
+            if result is None or "error" in result:
+                fs = self.get_fs(agent_ctx)
+                result = await grep_with_fsspec(
+                    fs=fs,
+                    pattern=pattern,
+                    path=resolved_path,
+                    file_pattern=file_pattern,
+                    case_sensitive=case_sensitive,
+                    max_matches=max_matches,
+                    max_output_bytes=self.max_grep_output,
+                    context_lines=context_lines,
+                )
 
             if "error" in result:
-                return result
+                return f"Error: {result['error']}"
+
+            # Format output
+            matches = result.get("matches", "")
+            match_count = result.get("match_count", 0)
+            was_truncated = result.get("was_truncated", False)
+
+            if not matches:
+                output = f"No matches found for pattern '{pattern}'"
+            else:
+                output = f"Found {match_count} matches:\n\n{matches}"
+                if was_truncated:
+                    output += "\n\n[Results truncated]"
+
+            # Emit formatted content for UI display
+            from llmling_agent.agent.events import TextContentItem
+
+            await agent_ctx.events.tool_call_progress(
+                title=f"Found {match_count} matches",
+                items=[TextContentItem(text=output)],
+                replace_content=True,
+            )
+            return output
+
         except Exception as e:  # noqa: BLE001
-            error_msg = f"Grep failed: {e}"
-            return {"error": error_msg}
-        else:
-            return result
+            return f"Error: Grep failed: {e}"
 
     async def _read(self, agent_ctx: AgentContext, path: str, encoding: str = "utf-8") -> str:
         # with self.fs.open(path, "r", encoding="utf-8") as f:
