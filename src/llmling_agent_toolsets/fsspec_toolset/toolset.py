@@ -19,6 +19,7 @@ from llmling_agent.resource_providers import ResourceProvider
 from llmling_agent_toolsets.builtin.file_edit import replace_content
 from llmling_agent_toolsets.fsspec_toolset.helpers import (
     apply_structured_edits,
+    format_directory_listing,
     get_changed_line_numbers,
     is_binary_content,
     is_definitely_binary_mime,
@@ -162,7 +163,7 @@ class FSSpecTools(ResourceProvider):
         pattern: str = "*",
         exclude: list[str] | None = None,
         max_depth: int = 1,
-    ) -> dict[str, Any]:
+    ) -> str:
         """List files in a directory with filtering support.
 
         Args:
@@ -173,7 +174,7 @@ class FSSpecTools(ResourceProvider):
             max_depth: Maximum directory depth to search (default: 1 = current dir only)
 
         Returns:
-            Dictionary with matching files and directories
+            Markdown-formatted directory listing
         """
         path = self._resolve_path(path, agent_ctx)
         msg = f"Listing directory: {path}"
@@ -187,7 +188,7 @@ class FSSpecTools(ResourceProvider):
                 await agent_ctx.events.file_operation(
                     "list", path=path, success=False, error=error_msg
                 )
-                return {"error": error_msg}
+                return f"Error: {error_msg}"
 
             # Build glob path
             glob_pattern = f"{path.rstrip('/')}/{pattern}"
@@ -207,15 +208,8 @@ class FSSpecTools(ResourceProvider):
                 if not exclude:
                     suggestions.append("Use exclude parameter to filter out unwanted directories.")
 
-                suggestion_text = " Try: " + " ".join(suggestions) if suggestions else ""
-
-                return {
-                    "error": f"Too many items found ({total_found:,}). Limited to 500 for performance.{suggestion_text}",  # noqa: E501
-                    "total_found": total_found,
-                    "path": path,
-                    "pattern": pattern,
-                    "max_depth": max_depth,
-                }
+                suggestion_text = " ".join(suggestions) if suggestions else ""
+                return f"Error: Too many items ({total_found:,}). {suggestion_text}"
 
             for file_path, file_info in paths.items():  # pyright: ignore[reportAttributeAccessIssue]
                 rel_path = os.path.relpath(str(file_path), path)
@@ -241,22 +235,11 @@ class FSSpecTools(ResourceProvider):
                 else:
                     files.append(item_info)
 
-            result = {
-                "path": path,
-                "pattern": pattern,
-                "directories": dirs,
-                "files": files,
-                "total_items": len(dirs) + len(files),
-            }
             await agent_ctx.events.file_operation("list", path=path, success=True)
+            return format_directory_listing(path, dirs, files, pattern)
         except (OSError, ValueError, FileNotFoundError) as e:
             await agent_ctx.events.file_operation("list", path=path, success=False, error=str(e))
-            return {
-                "error": f"Could not list directory: {path}",
-                "hint": "Ensure the path is an absolute path to an existing directory.",
-            }
-        else:
-            return result
+            return f"Error: Could not list directory: {path}. Ensure path is absolute and exists."
 
     async def read_file(
         self,

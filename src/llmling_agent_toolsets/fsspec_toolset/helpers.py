@@ -217,3 +217,56 @@ def truncate_lines(
     # Successfully returned all requested content - not truncated
     # (byte truncation already handled above with early return)
     return result_lines, False
+
+
+def _format_size(size: int) -> str:
+    """Format byte size as human-readable string."""
+    if size < 1024:
+        return f"{size} B"
+    if size < 1024 * 1024:
+        return f"{size / 1024:.1f} KB"
+    return f"{size / (1024 * 1024):.1f} MB"
+
+
+def format_directory_listing(
+    path: str,
+    directories: list[dict],
+    files: list[dict],
+    pattern: str = "*",
+) -> str:
+    """Format directory listing as markdown table.
+
+    Args:
+        path: Base directory path
+        directories: List of directory info dicts
+        files: List of file info dicts
+        pattern: Glob pattern used
+
+    Returns:
+        Formatted markdown string
+    """
+    lines = [f"## {path}"]
+    if pattern != "*":
+        lines.append(f"Pattern: `{pattern}`")
+    lines.append("")
+
+    if not directories and not files:
+        lines.append("*Empty directory*")
+        return "\n".join(lines)
+
+    lines.append("| Name | Type | Size |")
+    lines.append("|------|------|------|")
+
+    # Directories first (sorted)
+    for d in sorted(directories, key=lambda x: x["name"]):
+        lines.append(f"| {d['name']}/ | dir | - |")
+
+    # Then files (sorted)
+    for f in sorted(files, key=lambda x: x["name"]):
+        size_str = _format_size(f.get("size", 0))
+        lines.append(f"| {f['name']} | file | {size_str} |")
+
+    lines.append("")
+    lines.append(f"*{len(directories)} directories, {len(files)} files*")
+
+    return "\n".join(lines)
