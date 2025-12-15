@@ -7,6 +7,7 @@ agents:
     display_name: "AI Assistant"
     description: "General-purpose assistant with file system and code execution access"
     model: anthropic:claude-haiku-4-5
+    auto_cache: "5m"
     system_prompts:
       - |
         You are a helpful AI assistant with access to the file system and can execute code.
