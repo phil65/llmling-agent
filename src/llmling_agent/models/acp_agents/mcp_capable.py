@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from typing import Any, Literal, cast
+from typing import Any, Literal, assert_never, cast
 
 from pydantic import BaseModel, ConfigDict, Field
 from tokonomics.model_discovery import ProviderType  # noqa: TC002
@@ -82,22 +82,18 @@ class MCPCapableACPAgentConfig(BaseACPAgentConfig):
 
         mcp_servers: dict[str, dict[str, Any]] = {}
         for idx, server in enumerate(servers):
-            # Determine server name: explicit > derived > fallback
-            name: str
-            if server.name:
-                name = server.name
-            elif isinstance(server, StdioMCPServerConfig):
-                # Extract from command/args, e.g. "uvx mcp-server-fetch" -> "mcp-server-fetch"
-                if server.args:
-                    name = server.args[-1].split("/")[-1].split("@")[0]
-                else:
-                    name = server.command
-            elif isinstance(server, SSEMCPServerConfig | StreamableHTTPMCPServerConfig):
-                # Extract from URL hostname
-                parsed = urlparse(str(server.url))
-                name = parsed.hostname or f"server_{idx}"
-            else:
-                name = f"server_{idx}"
+            # Determine server name: explicit > derived
+            match server:
+                case _ if server.name:
+                    name = server.name
+                case StdioMCPServerConfig(args=[*_, last]):
+                    name = last.split("/")[-1].split("@")[0]
+                case StdioMCPServerConfig(command=cmd):
+                    name = cmd
+                case SSEMCPServerConfig(url=url) | StreamableHTTPMCPServerConfig(url=url):
+                    name = urlparse(str(url)).hostname or f"server_{idx}"
+                case _ as unreachable:
+                    assert_never(unreachable)
 
             config: dict[str, Any]
             match server:
@@ -109,8 +105,8 @@ class MCPCapableACPAgentConfig(BaseACPAgentConfig):
                     config = {"url": str(url), "transport": "sse"}
                 case StreamableHTTPMCPServerConfig(url=url):
                     config = {"url": str(url), "transport": "http"}
-                case _:
-                    continue
+                case _ as unreachable:
+                    assert_never(unreachable)
             mcp_servers[name] = config
 
         if not mcp_servers:
