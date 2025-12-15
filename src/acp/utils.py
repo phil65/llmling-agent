@@ -38,7 +38,7 @@ DEFAULT_PERMISSION_OPTIONS = [
 ]
 
 
-def to_acp_content_blocks(
+def to_acp_content_blocks(  # noqa: PLR0911
     tool_output: (ToolReturn | list[ToolReturn] | UserContent | Sequence[UserContent] | None),
 ) -> list[ContentBlock]:
     """Convert pydantic-ai tool output to raw ACP content blocks.

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import difflib
 import re
+from typing import Any
 
 from pydantic_ai import ModelRetry
 
@@ -230,8 +231,8 @@ def _format_size(size: int) -> str:
 
 def format_directory_listing(
     path: str,
-    directories: list[dict],
-    files: list[dict],
+    directories: list[dict[str, Any]],
+    files: list[dict[str, Any]],
     pattern: str = "*",
 ) -> str:
     """Format directory listing as markdown table.
