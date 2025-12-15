@@ -203,12 +203,9 @@ class LLMlingACPAgent(ACPAgent):
             # Schedule available commands update after session response is returned
             if session := self.session_manager.get_session(session_id):
                 # Schedule task to run after response is sent
-                coro = session.send_available_commands_update()
-                coro_2 = session.init_project_context()
-                coro_3 = session._register_prompt_hub_commands()
-                self.tasks.create_task(coro, name=f"send_commands_update_{session_id}")
-                self.tasks.create_task(coro_2, name=f"init_project_context_{session_id}")
-                self.tasks.create_task(coro_3, name=f"init_prompthub_cmds_{session_id}")
+                self.tasks.create_task(session.send_available_commands_update())
+                self.tasks.create_task(session.init_project_context())
+                self.tasks.create_task(session._register_prompt_hub_commands())
                 if self.load_skills:
                     coro_4 = session.init_client_skills()
                     self.tasks.create_task(coro_4, name=f"init_client_skills_{session_id}")
@@ -234,10 +231,8 @@ class LLMlingACPAgent(ACPAgent):
 
             if not session:
                 # Try to resume from storage
-                logger.info(
-                    "Attempting to resume session from storage",
-                    session_id=params.session_id,
-                )
+                msg = "Attempting to resume session from storage"
+                logger.info(msg, session_id=params.session_id)
                 session = await self.session_manager.resume_session(
                     session_id=params.session_id,
                     client=self.client,
@@ -246,10 +241,7 @@ class LLMlingACPAgent(ACPAgent):
                 )
 
             if not session:
-                logger.warning(
-                    "Session not found in storage",
-                    session_id=params.session_id,
-                )
+                logger.warning("Session not found in storage", session_id=params.session_id)
                 return LoadSessionResponse()
 
             # Update session with new request parameters if provided
@@ -273,26 +265,12 @@ class LLMlingACPAgent(ACPAgent):
             models = create_session_model_state(self.available_models, current_model)
 
             # Schedule post-load initialization tasks
-            self.tasks.create_task(
-                session.send_available_commands_update(),
-                name=f"load_send_commands_{params.session_id}",
-            )
-            self.tasks.create_task(
-                session.init_project_context(),
-                name=f"load_init_context_{params.session_id}",
-            )
+            self.tasks.create_task(session.send_available_commands_update())
+            self.tasks.create_task(session.init_project_context())
 
             # Replay conversation history via ACP notifications
-            self.tasks.create_task(
-                self._replay_conversation_history(session),
-                name=f"load_replay_history_{params.session_id}",
-            )
-
-            logger.info(
-                "Session loaded successfully",
-                session_id=params.session_id,
-                agent=session.current_agent_name,
-            )
+            self.tasks.create_task(self._replay_conversation_history(session))
+            logger.info("Session loaded successfully", agent=session.current_agent_name)
             return LoadSessionResponse(models=models, modes=mode_state)
 
         except Exception:
@@ -334,12 +312,7 @@ class LLMlingACPAgent(ACPAgent):
             logger.debug("No messages to replay", session_id=session.session_id)
             return
 
-        logger.info(
-            "Replaying conversation history",
-            session_id=session.session_id,
-            message_count=len(chat_messages),
-        )
-
+        logger.info("Replaying conversation history", message_count=len(chat_messages))
         # Extract ModelRequest/ModelResponse from ChatMessage.messages field
         model_messages: list[ModelRequest | ModelResponse] = []
         for chat_msg in chat_messages:
@@ -353,17 +326,9 @@ class LLMlingACPAgent(ACPAgent):
         # Use ACPNotifications.replay() which handles all content types properly
         try:
             await session.notifications.replay(model_messages)
-            logger.info(
-                "Conversation replay complete",
-                session_id=session.session_id,
-                replayed_count=len(model_messages),
-            )
+            logger.info("Conversation replay complete", replayed_count=len(model_messages))
         except Exception as e:  # noqa: BLE001
-            logger.warning(
-                "Failed to replay conversation history",
-                error=str(e),
-                session_id=session.session_id,
-            )
+            logger.warning("Failed to replay conversation history", error=str(e))
 
     async def list_sessions(self, params: ListSessionsRequest) -> ListSessionsResponse:
         """List available sessions.
@@ -377,7 +342,6 @@ class LLMlingACPAgent(ACPAgent):
         try:
             # Get session IDs from storage (includes both active and persisted)
             session_ids = await self.session_manager.list_sessions(active_only=False)
-
             # Build SessionInfo objects
             sessions: list[SessionInfo] = []
             for session_id in session_ids:
