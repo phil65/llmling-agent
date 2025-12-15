@@ -72,7 +72,7 @@ class ACPServer(BaseServer):
         super().__init__(pool, name=name, raise_exceptions=True)
         self.file_access = file_access
         self.terminal_access = terminal_access
-        self.providers = providers or ["openrouter"]
+        self.providers = providers or ["openai", "anthropic", "gemini"]
         self.debug_messages = debug_messages
         self.debug_file = debug_file
         self.debug_commands = debug_commands
