@@ -353,6 +353,7 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
             if response.models:  # Store full model info from session response
                 self._state.models = response.models
                 self._state.current_model_id = response.models.current_model_id
+            self._state.modes = response.modes
         model = self._state.current_model_id if self._state else None
         self.log.info(
             "ACP session created",

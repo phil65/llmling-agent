@@ -50,6 +50,9 @@ class ACPSessionState:
     modes: SessionModeState | None = None
     """Full mode state including available modes from nested ACP agent."""
 
+    current_mode_id: str | None = None
+    """Current mode ID."""
+
     def clear(self) -> None:
         self.text_chunks.clear()
         self.thought_chunks.clear()
