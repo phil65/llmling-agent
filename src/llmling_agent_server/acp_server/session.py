@@ -32,6 +32,7 @@ from pydantic_ai import (
 )
 from slashed import Command, CommandStore
 
+from acp import RequestPermissionRequest
 from acp.acp_requests import ACPRequests
 from acp.filesystem import ACPFileSystem
 from acp.notifications import ACPNotifications
@@ -71,7 +72,7 @@ if TYPE_CHECKING:
     from pydantic_ai.messages import SystemPromptPart
     from slashed import CommandContext
 
-    from acp import Client
+    from acp import Client, RequestPermissionResponse
     from acp.schema import ContentBlock, McpServer, StopReason
     from llmling_agent import AgentPool
     from llmling_agent.agents import AGUIAgent
@@ -181,7 +182,39 @@ class ACPSession:
             if isinstance(agent, Agent):
                 # TODO: need to inject this info for ACP agents, too.
                 agent.sys_prompts.prompts.append(self.get_cwd_context)  # pyright: ignore[reportArgumentType]
+            if isinstance(agent, ACPAgent):
 
+                async def permission_callback(
+                    params: RequestPermissionRequest,
+                ) -> RequestPermissionResponse:
+                    # Reconstruct request with our session_id (not nested agent's session_id)
+                    self.log.debug(
+                        "Forwarding permission request",
+                        original_session_id=params.session_id,
+                        our_session_id=self.session_id,
+                        tool_call_id=params.tool_call.tool_call_id,
+                        tool_call_title=params.tool_call.title,
+                        options=[o.option_id for o in (params.options or [])],
+                    )
+                    forwarded_request = RequestPermissionRequest(
+                        session_id=self.session_id,  # Use llmling-agent ↔ Zed session_id
+                        options=params.options,
+                        tool_call=params.tool_call,
+                    )
+                    try:
+                        response = await self.requests.client.request_permission(forwarded_request)
+                        self.log.debug(
+                            "Permission response received",
+                            outcome_type=type(response.outcome).__name__,
+                            outcome=response.outcome.outcome,
+                            option_id=getattr(response.outcome, "option_id", None),
+                        )
+                        return response
+                    except Exception as exc:
+                        self.log.exception("Permission forwarding failed", error=str(exc))
+                        raise
+
+                agent.acp_permission_callback = permission_callback
         self.log.info("Created ACP session", current_agent=self.current_agent_name)
 
     def _get_or_create_tool_state(

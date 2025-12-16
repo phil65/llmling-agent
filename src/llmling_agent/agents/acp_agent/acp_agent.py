@@ -51,7 +51,7 @@ from llmling_agent.talk.stats import MessageStats
 
 if TYPE_CHECKING:
     from asyncio.subprocess import Process
-    from collections.abc import AsyncIterator, Sequence
+    from collections.abc import AsyncIterator, Awaitable, Callable, Sequence
     from types import TracebackType
 
     from evented.configs import EventConfig
@@ -60,7 +60,7 @@ if TYPE_CHECKING:
 
     from acp.agent.protocol import Agent as ACPAgentProtocol
     from acp.client.protocol import Client
-    from acp.schema import InitializeResponse
+    from acp.schema import InitializeResponse, RequestPermissionRequest, RequestPermissionResponse
     from acp.schema.mcp import McpServer
     from llmling_agent.agents.events import RichAgentStreamEvent
     from llmling_agent.common_types import BuiltinEventHandlerType, PromptCompatible
@@ -69,7 +69,6 @@ if TYPE_CHECKING:
     from llmling_agent.messaging.context import NodeContext
     from llmling_agent.models.acp_agents import BaseACPAgentConfig
     from llmling_agent.ui.base import InputProvider
-
 
 logger = get_logger(__name__)
 
@@ -193,6 +192,9 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
             enable_logging=enable_logging,
             event_configs=event_configs or list(config.triggers),
         )
+        self.acp_permission_callback: (
+            Callable[[RequestPermissionRequest], Awaitable[RequestPermissionResponse]] | None
+        ) = None
         self.config = config
         self.env = env or config.get_execution_environment()
         self._input_provider = input_provider

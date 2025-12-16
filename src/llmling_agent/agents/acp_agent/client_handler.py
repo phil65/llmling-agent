@@ -136,12 +136,29 @@ class ACPClientHandler(Client):
                 logger.debug("Unhandled session update", update_type=type(update).__name__)
         self._update_event.set()
 
-    async def request_permission(
+    async def request_permission(  # noqa: PLR0911
         self, params: RequestPermissionRequest
     ) -> RequestPermissionResponse:
         """Handle permission requests via InputProvider."""
         name = params.tool_call.title or "operation"
         logger.info("Permission requested", tool_name=name)
+        # Try callback first (forwards to parent session for nested ACP agents)
+        # # TODO: perhaps an alternative would be to always return yes here?
+        # # or to add acp_agent.requires_tool_confirmation?
+        if self._agent.acp_permission_callback:
+            # return RequestPermissionResponse.allowed(option_id=params.options[0].option_id) # "acceptEdits"  # noqa: E501
+            try:
+                logger.debug("Forwarding permission via callback", tool_name=name)
+                response = await self._agent.acp_permission_callback(params)
+                logger.debug(
+                    "Permission response received", tool_name=name, outcome=response.outcome.outcome
+                )
+            except Exception:
+                logger.exception("Failed to forward permission via callback")
+                # Fall through to old logic
+            else:
+                return response
+
         if self.auto_grant_permissions and params.options:
             option_id = params.options[0].option_id
             logger.debug("Auto-granting permission", tool_name=name)
