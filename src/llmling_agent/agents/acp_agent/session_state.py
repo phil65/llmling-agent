@@ -9,7 +9,7 @@ from llmling_agent.log import get_logger
 
 
 if TYPE_CHECKING:
-    from acp.schema import SessionModelState
+    from acp.schema import SessionModelState, SessionModeState
 
 logger = get_logger(__name__)
 
@@ -46,6 +46,9 @@ class ACPSessionState:
 
     models: SessionModelState | None = None
     """Full model state including available models from nested ACP agent."""
+
+    modes: SessionModeState | None = None
+    """Full mode state including available modes from nested ACP agent."""
 
     def clear(self) -> None:
         self.text_chunks.clear()
