@@ -27,6 +27,9 @@ AgentMethod = Literal[
     "session/prompt",
     "session/set_mode",
     "session/set_model",
+    "session/list",
+    "session/fork",
+    "session/resume",
 ]
 
 ClientMethod = Literal[

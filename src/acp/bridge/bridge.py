@@ -43,6 +43,8 @@ if TYPE_CHECKING:
 
     from starlette.requests import Request
 
+    from acp.schema import AgentMethod
+
 
 logger = logging.getLogger(__name__)
 
@@ -121,7 +123,7 @@ class ACPBridge:
 
     async def _dispatch_to_agent(  # noqa: PLR0911
         self,
-        method: str,
+        method: AgentMethod,
         params: dict[str, Any] | None,
         is_notification: bool,
     ) -> Any:
@@ -193,11 +195,8 @@ class ACPBridge:
 
     async def _handle_status(self, request: Request) -> Response:
         """Health check endpoint."""
-        return JSONResponse({
-            "status": "connected" if self._connection else "disconnected",
-            "command": self.command,
-            "args": self.args,
-        })
+        status = "connected" if self._connection else "disconnected"
+        return JSONResponse({"status": status, "command": self.command, "args": self.args})
 
     def _create_app(self) -> Starlette:
         """Create the Starlette application."""
