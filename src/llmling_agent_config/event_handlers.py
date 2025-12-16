@@ -93,6 +93,142 @@ class CallbackEventHandlerConfig(BaseEventHandlerConfig):
         return import_callable(self.import_path)
 
 
+class TTSEventHandler:
+    """Text-to-Speech event handler with optional non-blocking synthesis.
+
+    When blocking=False (default), uses fire-and-forget tasks for TTS API calls
+    to avoid blocking the event stream. Audio chunks are queued and played back
+    asynchronously.
+
+    When blocking=True, awaits each TTS synthesis call before processing the next
+    event (original behavior, useful for testing).
+    """
+
+    def __init__(
+        self,
+        *,
+        api_key: str | None = None,
+        model: TTSModel = "tts-1",
+        voice: TTSVoice = "alloy",
+        speed: float = 1.0,
+        chunk_size: int = 1024,
+        sample_rate: int = 24000,
+        min_text_length: int = 20,
+        blocking: bool = False,
+    ) -> None:
+        from openai import AsyncOpenAI
+
+        self._client = AsyncOpenAI(api_key=api_key)
+        self._model = model
+        self._voice = voice
+        self._speed = speed
+        self._chunk_size = chunk_size
+        self._sample_rate = sample_rate
+        self._min_text_length = min_text_length
+        self._blocking = blocking
+
+        # State
+        self._audio_queue: asyncio.Queue[bytes | None] = asyncio.Queue()
+        self._playback_task: asyncio.Task[None] | None = None
+        self._synthesis_tasks: set[asyncio.Task[None]] = set()
+        self._text_buffer = ""
+        self._sentence_terminators = frozenset({".", "!", "?", "\n"})
+
+    async def _play_audio(self) -> None:
+        """Async audio playback using sounddevice."""
+        import sounddevice as sd  # type: ignore[import-untyped]
+
+        try:
+            stream = sd.RawOutputStream(samplerate=self._sample_rate, channels=1, dtype="int16")
+            stream.start()
+
+            while True:
+                chunk = await self._audio_queue.get()
+                if chunk is None:
+                    break
+                if chunk:
+                    stream.write(chunk)
+
+            stream.stop()
+            stream.close()
+        except Exception as e:  # noqa: BLE001
+            print(f"\n❌ Audio playback error: {e}", file=sys.stderr)
+
+    async def _synthesize_text(self, text: str) -> None:
+        """Synthesize text and queue audio chunks."""
+        if not text.strip():
+            return
+
+        # Ensure playback task is running
+        if self._playback_task is None or self._playback_task.done():
+            self._playback_task = asyncio.create_task(self._play_audio())
+
+        try:
+            async with self._client.audio.speech.with_streaming_response.create(
+                model=self._model,
+                voice=self._voice,
+                input=text,
+                response_format="pcm",
+                speed=self._speed,
+            ) as response:
+                async for chunk in response.iter_bytes(chunk_size=self._chunk_size):
+                    await self._audio_queue.put(chunk)
+        except Exception as e:  # noqa: BLE001
+            print(f"\n❌ TTS error: {e}", file=sys.stderr)
+
+    def _schedule_synthesis(self, text: str) -> None:
+        """Schedule text synthesis without blocking (fire-and-forget)."""
+        task = asyncio.create_task(self._synthesize_text(text))
+        self._synthesis_tasks.add(task)
+        task.add_done_callback(self._synthesis_tasks.discard)
+
+    async def __call__(self, ctx: RunContext[Any], event: RichAgentStreamEvent[Any]) -> None:
+        """Handle stream events and trigger TTS synthesis."""
+        from llmling_agent.agent.events import StreamCompleteEvent
+
+        match event:
+            case (
+                PartStartEvent(part=TextPart(content=delta))
+                | PartDeltaEvent(delta=TextPartDelta(content_delta=delta))
+            ):
+                self._text_buffer += delta
+
+                # Check for sentence boundaries
+                if any(term in self._text_buffer for term in self._sentence_terminators):
+                    last_term = max(
+                        (self._text_buffer.rfind(term) for term in self._sentence_terminators),
+                        default=-1,
+                    )
+
+                    if last_term > 0 and last_term >= self._min_text_length:
+                        sentence = self._text_buffer[: last_term + 1].strip()
+                        self._text_buffer = self._text_buffer[last_term + 1 :]
+
+                        if sentence:
+                            if self._blocking:
+                                await self._synthesize_text(sentence)
+                            else:
+                                self._schedule_synthesis(sentence)
+
+            case StreamCompleteEvent():
+                # Process remaining text
+                if self._text_buffer.strip():
+                    if self._blocking:
+                        await self._synthesize_text(self._text_buffer.strip())
+                    else:
+                        self._schedule_synthesis(self._text_buffer.strip())
+                    self._text_buffer = ""
+
+                # Wait for all synthesis tasks to complete (only needed in non-blocking mode)
+                if self._synthesis_tasks:
+                    await asyncio.gather(*self._synthesis_tasks, return_exceptions=True)
+
+                # Signal playback to stop and wait for it
+                await self._audio_queue.put(None)
+                if self._playback_task and not self._playback_task.done():
+                    await self._playback_task
+
+
 class TTSEventHandlerConfig(BaseEventHandlerConfig):
     """Configuration for Text-to-Speech event handler with OpenAI streaming."""
 
@@ -141,99 +277,26 @@ class TTSEventHandlerConfig(BaseEventHandlerConfig):
     )
     """Minimum text length before synthesizing (in characters)."""
 
-    def get_handler(self) -> IndividualEventHandler:  # noqa: PLR0915
+    blocking: bool = Field(default=False, title="Blocking Mode")
+    """If True, wait for each TTS synthesis to complete before processing next event.
+
+    Default (False) uses non-blocking fire-and-forget synthesis for better streaming
+    performance. Set to True for testing or when you need sequential processing.
+    """
+
+    def get_handler(self) -> IndividualEventHandler:
         """Get the TTS event handler."""
-        from openai import AsyncOpenAI
-        import sounddevice as sd  # type: ignore[import-untyped]
-
-        from llmling_agent.agent.events import StreamCompleteEvent
-
         key = self.api_key.get_secret_value() if self.api_key else None
-        client = AsyncOpenAI(api_key=key)
-        # Shared state for handler closure
-        audio_queue: asyncio.Queue[bytes | None] = asyncio.Queue()
-        playback_task: asyncio.Task[None] | None = None
-        text_buffer = ""
-        sentence_terminators = {".", "!", "?", "\n"}
-
-        async def play_audio() -> None:
-            """Async audio playback using sounddevice."""
-            try:
-                stream = sd.RawOutputStream(samplerate=self.sample_rate, channels=1, dtype="int16")
-                stream.start()
-
-                while True:
-                    chunk = await audio_queue.get()
-                    if chunk is None:
-                        break
-                    if chunk:
-                        stream.write(chunk)
-
-                stream.stop()
-                stream.close()
-            except Exception as e:  # noqa: BLE001
-                print(f"\n❌ Audio playback error: {e}", file=sys.stderr)
-
-        async def synthesize_text(text: str) -> None:
-            """Synthesize text and queue audio chunks."""
-            nonlocal playback_task
-
-            if not text.strip():
-                return
-
-            # Start playback task if not running
-            if playback_task is None or playback_task.done():
-                playback_task = asyncio.create_task(play_audio())
-
-            try:
-                async with client.audio.speech.with_streaming_response.create(
-                    model=self.model,
-                    voice=self.voice,
-                    input=text,
-                    response_format="pcm",
-                    speed=self.speed,
-                ) as response:
-                    async for chunk in response.iter_bytes(chunk_size=self.chunk_size):
-                        await audio_queue.put(chunk)
-            except Exception as e:  # noqa: BLE001
-                print(f"\n❌ TTS error: {e}", file=sys.stderr)
-
-        async def handler(ctx: RunContext, event: RichAgentStreamEvent[Any]) -> None:
-            nonlocal text_buffer, playback_task
-
-            match event:
-                case (
-                    PartStartEvent(part=TextPart(content=delta))
-                    | PartDeltaEvent(delta=TextPartDelta(content_delta=delta))
-                ):
-                    text_buffer += delta
-
-                    # Check for sentence boundaries
-                    if any(term in text_buffer for term in sentence_terminators):
-                        last_term = max(
-                            (text_buffer.rfind(term) for term in sentence_terminators),
-                            default=-1,
-                        )
-
-                        if last_term > 0 and last_term >= self.min_text_length:
-                            sentence = text_buffer[: last_term + 1].strip()
-                            text_buffer = text_buffer[last_term + 1 :]
-
-                            if sentence:
-                                await synthesize_text(sentence)
-
-                case StreamCompleteEvent():
-                    # Process remaining text
-                    if text_buffer.strip():
-                        await synthesize_text(text_buffer.strip())
-                        text_buffer = ""
-
-                    # Signal playback to stop
-                    await audio_queue.put(None)
-                    if playback_task and not playback_task.done():
-                        await playback_task
-
-        return handler
+        return TTSEventHandler(
+            api_key=key,
+            model=self.model,
+            voice=self.voice,
+            speed=self.speed,
+            chunk_size=self.chunk_size,
+            sample_rate=self.sample_rate,
+            blocking=self.blocking,
+            min_text_length=self.min_text_length,
+        )
 
 
 EventHandlerConfig = Annotated[
