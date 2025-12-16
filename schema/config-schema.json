@@ -2924,6 +2924,19 @@
           ],
           "title": "Automatic caching",
           "type": "string"
+        },
+        "hooks": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HooksConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Hooks for intercepting and customizing agent behavior at key lifecycle points.\n\nAllows adding context, blocking operations, modifying inputs, or triggering\nside effects during session start/end, run execution, tool usage, and delegation.",
+          "title": "Lifecycle hooks"
         }
       },
       "title": "AgentConfig",
@@ -7740,6 +7753,80 @@
       "title": "Callable Connection Configuration",
       "type": "object"
     },
+    "CallableHookConfig": {
+      "additionalProperties": false,
+      "description": "Hook that executes a Python callable.\n\nThe callable receives hook input as a dictionary and should return\na HookResult dictionary or None.",
+      "properties": {
+        "type": {
+          "const": "callable",
+          "default": "callable",
+          "description": "Callable hook type.",
+          "title": "Type",
+          "type": "string"
+        },
+        "matcher": {
+          "default": null,
+          "description": "Regex pattern to match tool names. None or '*' matches all.",
+          "examples": [
+            "Write|Edit",
+            "Bash.*",
+            "*"
+          ],
+          "title": "Pattern matcher",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "timeout": {
+          "default": 60.0,
+          "description": "Maximum execution time in seconds.",
+          "examples": [
+            30.0,
+            60.0,
+            120.0
+          ],
+          "exclusiveMinimum": 0,
+          "title": "Timeout seconds",
+          "type": "number"
+        },
+        "enabled": {
+          "default": true,
+          "description": "Whether this hook is active.",
+          "title": "Hook enabled",
+          "type": "boolean"
+        },
+        "import_path": {
+          "description": "Dotted import path to the callable.",
+          "examples": [
+            "myproject.hooks.validate_tool",
+            "myapp.security.audit_command"
+          ],
+          "title": "Import path",
+          "type": "string"
+        },
+        "arguments": {
+          "additionalProperties": true,
+          "description": "Additional keyword arguments passed to the callable.",
+          "examples": [
+            {
+              "allowed_paths": [
+                "/tmp"
+              ],
+              "strict": true
+            }
+          ],
+          "title": "Arguments",
+          "type": "object"
+        }
+      },
+      "required": [
+        "import_path"
+      ],
+      "title": "CallableHookConfig",
+      "type": "object",
+      "x-doc-title": "Callable Hook"
+    },
     "CallbackEventHandlerConfig": {
       "additionalProperties": false,
       "description": "Configuration for custom callback event handlers via import path.",
@@ -9292,6 +9379,89 @@
       "title": "Codex ACP Agent Configuration",
       "type": "object"
     },
+    "CommandHookConfig": {
+      "additionalProperties": false,
+      "description": "Hook that executes a shell command.\n\nThe command receives hook input as JSON via stdin and should return\nJSON output via stdout. Exit code 0 = success, exit code 2 = block.",
+      "properties": {
+        "type": {
+          "const": "command",
+          "default": "command",
+          "description": "Command hook type.",
+          "title": "Type",
+          "type": "string"
+        },
+        "matcher": {
+          "default": null,
+          "description": "Regex pattern to match tool names. None or '*' matches all.",
+          "examples": [
+            "Write|Edit",
+            "Bash.*",
+            "*"
+          ],
+          "title": "Pattern matcher",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "timeout": {
+          "default": 60.0,
+          "description": "Maximum execution time in seconds.",
+          "examples": [
+            30.0,
+            60.0,
+            120.0
+          ],
+          "exclusiveMinimum": 0,
+          "title": "Timeout seconds",
+          "type": "number"
+        },
+        "enabled": {
+          "default": true,
+          "description": "Whether this hook is active.",
+          "title": "Hook enabled",
+          "type": "boolean"
+        },
+        "command": {
+          "description": "Shell command to execute. Supports $PROJECT_DIR variable.",
+          "examples": [
+            "/path/to/script.sh",
+            "$PROJECT_DIR/hooks/validate.py",
+            "python -m myproject.hooks.check"
+          ],
+          "title": "Shell command",
+          "type": "string"
+        },
+        "env": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Additional environment variables for the command.",
+          "examples": [
+            {
+              "DEBUG": "1",
+              "LOG_LEVEL": "info"
+            }
+          ],
+          "title": "Environment variables"
+        }
+      },
+      "required": [
+        "command"
+      ],
+      "title": "CommandHookConfig",
+      "type": "object",
+      "x-doc-title": "Command Hook"
+    },
     "ComposioToolSetConfig": {
       "additionalProperties": false,
       "description": "Configuration for Composio toolsets.",
@@ -9583,7 +9753,7 @@
     },
     "CostLimitCondition": {
       "additionalProperties": false,
-      "description": "Disconnect when cost limit is reached.",
+      "description": "Triggers when cost limit is reached.",
       "properties": {
         "type": {
           "const": "cost_limit",
@@ -21203,6 +21373,118 @@
       "x-doc-title": "History Toolset",
       "x-icon": "octicon:history-16"
     },
+    "HooksConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for agent lifecycle hooks.\n\nHooks allow intercepting and customizing agent behavior at key points\nin the execution lifecycle. They can add context, block operations,\nmodify inputs, or trigger side effects.\n\nCurrently supported events:\n- pre_run / post_run: Before/after agent.run() processes a prompt\n- pre_tool_use / post_tool_use: Before/after a tool is called",
+      "properties": {
+        "pre_run": {
+          "description": "Hooks executed before agent.run() processes a prompt.",
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "callable": "#/$defs/CallableHookConfig",
+                "command": "#/$defs/CommandHookConfig",
+                "prompt": "#/$defs/PromptHookConfig"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/CommandHookConfig"
+              },
+              {
+                "$ref": "#/$defs/CallableHookConfig"
+              },
+              {
+                "$ref": "#/$defs/PromptHookConfig"
+              }
+            ]
+          },
+          "title": "Pre-run hooks",
+          "type": "array"
+        },
+        "post_run": {
+          "description": "Hooks executed after agent.run() completes.",
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "callable": "#/$defs/CallableHookConfig",
+                "command": "#/$defs/CommandHookConfig",
+                "prompt": "#/$defs/PromptHookConfig"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/CommandHookConfig"
+              },
+              {
+                "$ref": "#/$defs/CallableHookConfig"
+              },
+              {
+                "$ref": "#/$defs/PromptHookConfig"
+              }
+            ]
+          },
+          "title": "Post-run hooks",
+          "type": "array"
+        },
+        "pre_tool_use": {
+          "description": "Hooks executed before a tool is called. Can block or modify the call.",
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "callable": "#/$defs/CallableHookConfig",
+                "command": "#/$defs/CommandHookConfig",
+                "prompt": "#/$defs/PromptHookConfig"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/CommandHookConfig"
+              },
+              {
+                "$ref": "#/$defs/CallableHookConfig"
+              },
+              {
+                "$ref": "#/$defs/PromptHookConfig"
+              }
+            ]
+          },
+          "title": "Pre-tool-use hooks",
+          "type": "array"
+        },
+        "post_tool_use": {
+          "description": "Hooks executed after a tool completes.",
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "callable": "#/$defs/CallableHookConfig",
+                "command": "#/$defs/CommandHookConfig",
+                "prompt": "#/$defs/PromptHookConfig"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/CommandHookConfig"
+              },
+              {
+                "$ref": "#/$defs/CallableHookConfig"
+              },
+              {
+                "$ref": "#/$defs/PromptHookConfig"
+              }
+            ]
+          },
+          "title": "Post-tool-use hooks",
+          "type": "array"
+        }
+      },
+      "title": "HooksConfig",
+      "type": "object"
+    },
     "HttpFilesystemConfig": {
       "additionalProperties": true,
       "description": "Configuration for HTTP filesystem.",
@@ -21923,7 +22205,7 @@
     },
     "Jinja2Condition": {
       "additionalProperties": false,
-      "description": "Evaluate condition using Jinja2 template.",
+      "description": "Triggers based on Jinja2 template.",
       "properties": {
         "type": {
           "const": "jinja2",
@@ -22025,7 +22307,7 @@
           "default": null,
           "description": "Dependencies or context data needed for task execution",
           "examples": [
-            "llmling_agent.agent.context:AgentContext"
+            "llmling_agent.agents.context:AgentContext"
           ],
           "title": "Required dependencies",
           "type": [
@@ -24515,7 +24797,7 @@
     },
     "MessageCountCondition": {
       "additionalProperties": false,
-      "description": "Disconnect after N messages.",
+      "description": "Triggers after N messages.",
       "properties": {
         "type": {
           "const": "message_count",
@@ -28630,6 +28912,79 @@
       "title": "PrePostPromptConfig",
       "type": "object",
       "x-doc-title": "Pre/post prompt"
+    },
+    "PromptHookConfig": {
+      "additionalProperties": false,
+      "description": "Hook that uses an LLM to evaluate the action.\n\nThe prompt is sent to a fast LLM which returns a structured decision.\nUse $TOOL_NAME, $TOOL_INPUT, $INPUT placeholders in the prompt.",
+      "properties": {
+        "type": {
+          "const": "prompt",
+          "default": "prompt",
+          "description": "Prompt-based hook type.",
+          "title": "Type",
+          "type": "string"
+        },
+        "matcher": {
+          "default": null,
+          "description": "Regex pattern to match tool names. None or '*' matches all.",
+          "examples": [
+            "Write|Edit",
+            "Bash.*",
+            "*"
+          ],
+          "title": "Pattern matcher",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "timeout": {
+          "default": 60.0,
+          "description": "Maximum execution time in seconds.",
+          "examples": [
+            30.0,
+            60.0,
+            120.0
+          ],
+          "exclusiveMinimum": 0,
+          "title": "Timeout seconds",
+          "type": "number"
+        },
+        "enabled": {
+          "default": true,
+          "description": "Whether this hook is active.",
+          "title": "Hook enabled",
+          "type": "boolean"
+        },
+        "prompt": {
+          "description": "Prompt template for LLM evaluation. Supports placeholders.",
+          "examples": [
+            "Evaluate if this tool call is safe: $INPUT",
+            "Check if $TOOL_NAME with input $TOOL_INPUT follows security policies."
+          ],
+          "title": "Evaluation prompt",
+          "type": "string"
+        },
+        "model": {
+          "default": null,
+          "description": "Model to use for evaluation. Defaults to a fast model if not specified.",
+          "examples": [
+            "openai:gpt-4o-mini",
+            "google-gla:gemini-2.0-flash"
+          ],
+          "title": "Model",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "prompt"
+      ],
+      "title": "PromptHookConfig",
+      "type": "object",
+      "x-doc-title": "Prompt Hook"
     },
     "PromptLayerConfig": {
       "additionalProperties": false,
@@ -37678,7 +38033,7 @@
     },
     "TimeCondition": {
       "additionalProperties": false,
-      "description": "Disconnect after time period.",
+      "description": "Triggers after time period.",
       "properties": {
         "type": {
           "const": "time",
@@ -37817,7 +38172,7 @@
     },
     "TokenThresholdCondition": {
       "additionalProperties": false,
-      "description": "Disconnect after token threshold is reached.",
+      "description": "Triggers after token threshold is reached.",
       "properties": {
         "type": {
           "const": "token_threshold",
@@ -40983,7 +41338,7 @@
     },
     "WordMatchCondition": {
       "additionalProperties": false,
-      "description": "Disconnect when word/phrase is found in message.",
+      "description": "Triggers when word/phrase is found in message.",
       "properties": {
         "type": {
           "const": "word_match",
