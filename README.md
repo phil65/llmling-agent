@@ -35,8 +35,7 @@ LLMling Agent is a framework for creating and managing LLM-powered agents. It in
 - 🔌 Extensive MCP support including elicitation, sampling, progress reporting, multi-modality, including bridging to ACP / AG-UI protocols.
 - 💾 Storage providers to allow writing to local files, databases, etc. with many customizable backends. Log to SQL databases and pretty-print to a file according to your own wishes.
 - 🛜 Comletely UPath backed. All file operations (& Code execution) by agents are abstrated in a way that agents can operate directly on remote sources.
-- 📕 Integrated prompt management system.
-- 🔧 Tasks, tools, and what else you can expect from an Agent framework.
+- Composable virtual filesystems for agents
 - 👥 Easy human-in-the-loop interactions
 
 

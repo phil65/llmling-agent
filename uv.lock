@@ -847,7 +847,7 @@ wheels = [
 
 [[package]]
 name = "composio"
-version = "0.10.0"
+version = "0.10.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "composio-client" },
@@ -856,9 +856,9 @@ dependencies = [
     { name = "pysher" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/42/91/6ee2b81a84eb76658fe30c51a02103688875f1eeb2193c57acf6b757864a/composio-0.10.0.tar.gz", hash = "sha256:7c504c7357ef6e5cbc18054d56dd0870ce3865a82bea5e35d4f09cb96705be78", size = 100720, upload-time = "2025-12-15T08:31:01.675Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/60/7a/90c023d0dc6546cb34d6e4c622c70d347b95b8bff8c56a93eafbb4716aaa/composio-0.10.1.tar.gz", hash = "sha256:363913ba8f0aa4d371c1a32e77271ae5510fcca3ad468feb187e64acd2ccc204", size = 100722, upload-time = "2025-12-16T10:18:57.007Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/5c/31/b684cbc8d09b016f442f8ab283e6e411c54cee832aa0aa91f76c2773bf9b/composio-0.10.0-py3-none-any.whl", hash = "sha256:50f84bc3ddd5991099f4bb609ec8e7331c57e580e2381fca126d7dda94f39451", size = 80715, upload-time = "2025-12-15T08:30:46.983Z" },
+    { url = "https://files.pythonhosted.org/packages/83/61/aa64f9c7fbc0b6765e605229eb88af4581b3317979fb13a63320b0d7377a/composio-0.10.1-py3-none-any.whl", hash = "sha256:07bf5e81db0bced6cef1404c7ba0ceda738adaf8406c00504012dc82c90f16ff", size = 80715, upload-time = "2025-12-16T10:18:43.882Z" },
 ]
 
 [[package]]
@@ -5490,7 +5490,7 @@ wheels = [
 
 [[package]]
 name = "textual"
-version = "6.9.0"
+version = "6.10.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "markdown-it-py", extra = ["linkify"] },
@@ -5500,9 +5500,9 @@ dependencies = [
     { name = "rich" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/97/8c/774b53a1256fe2649e708b634334d5ce68568d178e55cf3099265c639051/textual-6.9.0.tar.gz", hash = "sha256:49201129a21f65cc16003ce3855cd941a4de7d58eac9489d0e390ba501d712b6", size = 1582278, upload-time = "2025-12-14T17:15:43.03Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/68/f6/58a542fe3f5a31a827eb91b41d3f17ddfa6271bee92c3b0ff3264778dee3/textual-6.10.0.tar.gz", hash = "sha256:87f52a21fe7527e472c1f1cf01faff95673c8378690b0e1b755ec93a0484dae9", size = 1584205, upload-time = "2025-12-16T09:50:11.868Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/9d/3c/76b607e07d5d63d32d4c4e2803f392913e8e07d5a489fa46f5c25e554ea9/textual-6.9.0-py3-none-any.whl", hash = "sha256:5ded2824fcfc7311b09ac440abb6fe248b3c1431d0403dc0d096795c4f18303c", size = 714791, upload-time = "2025-12-14T17:15:41.287Z" },
+    { url = "https://files.pythonhosted.org/packages/5f/2b/7cdfdfd79bae4e2555d3ba79976417d675fbc52951190fdfc3ed0d0148ea/textual-6.10.0-py3-none-any.whl", hash = "sha256:b33ffe37bc5f33e76cbe5a2018b4e9e5704f89bb3db0dbf04319261e0369bd3b", size = 714829, upload-time = "2025-12-16T09:50:09.515Z" },
 ]
 
 [[package]]
