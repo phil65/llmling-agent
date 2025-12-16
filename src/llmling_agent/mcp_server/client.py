@@ -22,7 +22,7 @@ from typing import TYPE_CHECKING, Any, Self, assert_never
 from pydantic_ai import RunContext, ToolReturn
 from schemez import FunctionSchema
 
-from llmling_agent.agent.context import AgentContext
+from llmling_agent.agents.context import AgentContext
 from llmling_agent.log import get_logger
 from llmling_agent.mcp_server.constants import MCP_TO_LOGGING
 from llmling_agent.mcp_server.helpers import extract_text_content, mcp_tool_to_fn_schema

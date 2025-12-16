@@ -306,7 +306,7 @@ class ConnectionManager:
 
 
 if __name__ == "__main__":
-    from llmling_agent.agent import Agent
+    from llmling_agent.agents import Agent
 
     agent = Agent("test_agent")
     agent_2 = Agent("test_agent_2")

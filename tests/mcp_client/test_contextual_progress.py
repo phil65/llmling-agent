@@ -10,12 +10,12 @@ from pydantic_ai.models.test import TestModel
 import pytest
 
 from llmling_agent import AgentPool
-from llmling_agent.agent.events import ToolCallProgressEvent
+from llmling_agent.agents.events import ToolCallProgressEvent
 from llmling_agent_config.mcp_server import StdioMCPServerConfig
 
 
 if TYPE_CHECKING:
-    from llmling_agent.agent.events import RichAgentStreamEvent
+    from llmling_agent.agents.events import RichAgentStreamEvent
 
 
 # Constants for test expectations

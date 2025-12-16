@@ -11,7 +11,7 @@ from slashed.events import (
     CommandOutputEvent as SlashedCommandOutputEvent,
 )
 
-from llmling_agent.agent.events import CommandCompleteEvent, CommandOutputEvent
+from llmling_agent.agents.events import CommandCompleteEvent, CommandOutputEvent
 from llmling_agent.log import get_logger
 
 
@@ -21,9 +21,9 @@ if TYPE_CHECKING:
     from slashed import CommandContext, CommandStore
     from slashed.events import CommandStoreEvent
 
-    from llmling_agent.agent import Agent, AGUIAgent
-    from llmling_agent.agent.acp_agent import ACPAgent
-    from llmling_agent.agent.events import SlashedAgentStreamEvent
+    from llmling_agent.agents import Agent, AGUIAgent
+    from llmling_agent.agents.acp_agent import ACPAgent
+    from llmling_agent.agents.events import SlashedAgentStreamEvent
     from llmling_agent.common_types import PromptCompatible
 
 

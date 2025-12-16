@@ -8,7 +8,7 @@ import uuid
 from exxec.events import OutputEvent, ProcessCompletedEvent, ProcessErrorEvent, ProcessStartedEvent
 
 from llmling_agent import log
-from llmling_agent.agent.context import AgentContext  # noqa: TC001
+from llmling_agent.agents.context import AgentContext  # noqa: TC001
 from llmling_agent.resource_providers import ResourceProvider
 
 

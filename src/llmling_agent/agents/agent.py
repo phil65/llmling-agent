@@ -28,7 +28,7 @@ from pydantic_ai import (
 )
 from pydantic_ai.models import Model
 
-from llmling_agent.agent.events import (
+from llmling_agent.agents.events import (
     RichAgentStreamEvent,
     RunStartedEvent,
     StreamCompleteEvent,
@@ -64,7 +64,7 @@ if TYPE_CHECKING:
     from toprompt import AnyPromptType
     from upathtools import JoinablePathLike
 
-    from llmling_agent.agent import AgentContext
+    from llmling_agent.agents import AgentContext
     from llmling_agent.common_types import (
         AgentName,
         BuiltinEventHandlerType,
@@ -207,9 +207,9 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             auto_cache: Automatic caching configuration ("off", "5m", or "1h")
             hooks: AgentHooks instance for intercepting agent behavior at run and tool events
         """
-        from llmling_agent.agent import AgentContext
-        from llmling_agent.agent.interactions import Interactions
-        from llmling_agent.agent.sys_prompts import SystemPrompts
+        from llmling_agent.agents import AgentContext
+        from llmling_agent.agents.interactions import Interactions
+        from llmling_agent.agents.sys_prompts import SystemPrompts
         from llmling_agent.models.agents import AgentConfig
         from llmling_agent.models.manifest import AgentsManifest
         from llmling_agent.prompts.conversion_manager import ConversionManager
@@ -248,7 +248,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         )
 
         # Initialize tool manager
-        from llmling_agent.agent.events import resolve_event_handlers
+        from llmling_agent.agents.events import resolve_event_handlers
 
         resolved_handlers = resolve_event_handlers(event_handlers)
         self.event_handler = MultiEventHandler[IndividualEventHandler](resolved_handlers)
@@ -579,7 +579,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         """Create pydantic-ai agent from current state."""
         # Monkey patch pydantic-ai to recognize AgentContext
 
-        from llmling_agent.agent.tool_wrapping import wrap_tool
+        from llmling_agent.agents.tool_wrapping import wrap_tool
 
         tools = await self.tools.get_tools(state="enabled", names=tool_choice)
         final_type = to_type(output_type) if output_type not in [None, str] else self._output_type

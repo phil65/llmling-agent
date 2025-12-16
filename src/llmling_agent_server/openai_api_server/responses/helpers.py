@@ -15,8 +15,8 @@ from llmling_agent_server.openai_api_server.responses.models import (
 
 
 if TYPE_CHECKING:
-    from llmling_agent.agent import Agent
-    from llmling_agent.agent.acp_agent import ACPAgent
+    from llmling_agent.agents import Agent
+    from llmling_agent.agents.acp_agent import ACPAgent
     from llmling_agent_server.openai_api_server.responses.models import ResponseRequest
 
 

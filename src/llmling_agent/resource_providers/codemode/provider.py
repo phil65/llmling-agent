@@ -6,7 +6,7 @@ from functools import partial
 import inspect
 from typing import TYPE_CHECKING, Any
 
-from llmling_agent.agent.context import AgentContext  # noqa: TC001
+from llmling_agent.agents.context import AgentContext  # noqa: TC001
 from llmling_agent.resource_providers import AggregatingResourceProvider
 from llmling_agent.resource_providers.codemode.default_prompt import USAGE
 from llmling_agent.resource_providers.codemode.helpers import (

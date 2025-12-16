@@ -6,7 +6,7 @@ import sys
 
 import pytest
 
-from llmling_agent.agent.agui_agent import AGUIAgent
+from llmling_agent.agents.agui_agent import AGUIAgent
 
 
 pytestmark = pytest.mark.asyncio

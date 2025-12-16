@@ -11,13 +11,13 @@ import httpx
 from pydantic_ai import PartDeltaEvent
 import pytest
 
-from llmling_agent.agent.agui_agent import AGUIAgent, AGUISessionState
-from llmling_agent.agent.agui_converters import (
+from llmling_agent.agents.agui_agent import AGUIAgent, AGUISessionState
+from llmling_agent.agents.agui_agent.agui_converters import (
     agui_to_native_event,
     extract_text_from_event,
     is_text_event,
 )
-from llmling_agent.agent.events import ToolCallStartEvent as NativeToolCallStart
+from llmling_agent.agents.events import ToolCallStartEvent as NativeToolCallStart
 from llmling_agent.messaging import ChatMessage
 from llmling_agent.talk.stats import MessageStats
 
@@ -82,7 +82,7 @@ async def test_agui_agent_run_stream(mock_sse_response):
 
     mock_response = mock_sse_response(events)
 
-    with patch("llmling_agent.agent.agui_agent.httpx.AsyncClient") as mock_client_class:
+    with patch("llmling_agent.agents.agui_agent.agui_agent.httpx.AsyncClient") as mock_client_class:
         mock_client = AsyncMock()
         mock_client_class.return_value = mock_client
         # stream() should return an async context manager
@@ -107,7 +107,7 @@ async def test_agui_agent_run(mock_sse_response):
     ]
 
     mock_response = mock_sse_response(events)
-    with patch("llmling_agent.agent.agui_agent.httpx.AsyncClient") as mock_client_class:
+    with patch("llmling_agent.agents.agui_agent.agui_agent.httpx.AsyncClient") as mock_client_class:
         mock_client = AsyncMock()
         mock_client_class.return_value = mock_client
         # stream() should return an async context manager
@@ -170,7 +170,7 @@ async def test_agui_agent_to_tool():
         'data: {"type":"TEXT_MESSAGE_CONTENT","messageId":"msg1","delta":"Answer"}\n\n',
     ]
 
-    with patch("llmling_agent.agent.agui_agent.httpx.AsyncClient") as mock_client_class:
+    with patch("llmling_agent.agents.agui_agent.agui_agent.httpx.AsyncClient") as mock_client_class:
         mock_client = AsyncMock()
         mock_client_class.return_value = mock_client
 
@@ -213,7 +213,7 @@ async def test_agui_agent_get_stats():
 @pytest.mark.skipif(sys.platform == "win32", reason="Hangs on Windows CI")
 async def test_agui_agent_error_handling(mock_sse_response):
     """Test error handling in AGUIAgent."""
-    with patch("llmling_agent.agent.agui_agent.httpx.AsyncClient") as mock_client_class:
+    with patch("llmling_agent.agents.agui_agent.agui_agent.httpx.AsyncClient") as mock_client_class:
         mock_client = AsyncMock()
         mock_client_class.return_value = mock_client
 
@@ -264,7 +264,7 @@ async def test_agui_agent_with_tools(mock_sse_response):
         'data: {"type":"TEXT_MESSAGE_END","messageId":"msg2"}\n\n',
     ]
 
-    with patch("llmling_agent.agent.agui_agent.httpx.AsyncClient") as mock_client_class:
+    with patch("llmling_agent.agents.agui_agent.agui_agent.httpx.AsyncClient") as mock_client_class:
         mock_client = AsyncMock()
         mock_client_class.return_value = mock_client
 
@@ -341,7 +341,7 @@ async def test_agui_tool_execution_error(mock_sse_response):
         'data: {"type":"TEXT_MESSAGE_CONTENT","messageId":"msg1","delta":"Tool failed"}\n\n',
     ]
 
-    with patch("llmling_agent.agent.agui_agent.httpx.AsyncClient") as mock_client_class:
+    with patch("llmling_agent.agents.agui_agent.agui_agent.httpx.AsyncClient") as mock_client_class:
         mock_client = AsyncMock()
         mock_client_class.return_value = mock_client
 
@@ -375,7 +375,7 @@ async def test_agui_tool_execution_error(mock_sse_response):
 
 def test_tool_call_accumulator():
     """Test ToolCallAccumulator for streaming tool arguments."""
-    from llmling_agent.agent.agui_converters import ToolCallAccumulator
+    from llmling_agent.agents.agui_agent.agui_converters import ToolCallAccumulator
 
     accumulator = ToolCallAccumulator()
 
@@ -400,7 +400,7 @@ def test_tool_call_accumulator():
 
 def test_tool_call_accumulator_invalid_json():
     """Test ToolCallAccumulator with invalid JSON."""
-    from llmling_agent.agent.agui_converters import ToolCallAccumulator
+    from llmling_agent.agents.agui_agent.agui_converters import ToolCallAccumulator
 
     accumulator = ToolCallAccumulator()
     accumulator.start("call1", "test_tool")
@@ -416,7 +416,7 @@ def test_tool_call_accumulator_invalid_json():
 
 def test_tool_call_accumulator_multiple_calls():
     """Test ToolCallAccumulator with multiple concurrent tool calls."""
-    from llmling_agent.agent.agui_converters import ToolCallAccumulator
+    from llmling_agent.agents.agui_agent.agui_converters import ToolCallAccumulator
 
     accumulator = ToolCallAccumulator()
 
@@ -452,7 +452,7 @@ def test_tool_call_accumulator_multiple_calls():
 
 def test_to_agui_tool():
     """Test converting llmling Tool to AG-UI Tool format."""
-    from llmling_agent.agent.agui_converters import to_agui_tool
+    from llmling_agent.agents.agui_agent.agui_converters import to_agui_tool
     from llmling_agent.tools import Tool
 
     def example_tool(name: str, count: int = 1) -> str:
@@ -470,3 +470,7 @@ def test_to_agui_tool():
     # Should have parameters for name and count
     assert "name" in agui_tool.parameters["properties"]
     assert "count" in agui_tool.parameters["properties"]
+
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])

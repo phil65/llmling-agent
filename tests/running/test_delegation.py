@@ -6,7 +6,7 @@ from typing import Any
 
 import pytest
 
-from llmling_agent.agent import Agent
+from llmling_agent.agents import Agent
 from llmling_agent.running import NodeInjectionError, with_nodes
 
 

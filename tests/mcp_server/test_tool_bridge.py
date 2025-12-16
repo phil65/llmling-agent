@@ -8,7 +8,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from llmling_agent import AgentPool
-from llmling_agent.agent.acp_agent import ACPAgent
+from llmling_agent.agents.acp_agent import ACPAgent
 from llmling_agent.mcp_server.tool_bridge import BridgeConfig, ToolManagerBridge, create_tool_bridge
 from llmling_agent.models.acp_agents.mcp_capable import ClaudeACPAgentConfig
 from llmling_agent.tools import ToolManager
@@ -16,7 +16,7 @@ from llmling_agent_config.toolsets import AgentManagementToolsetConfig, Subagent
 
 
 if TYPE_CHECKING:
-    from llmling_agent.agent.context import AgentContext
+    from llmling_agent.agents.context import AgentContext
 
 
 # Simple tool without context

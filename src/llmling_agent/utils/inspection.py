@@ -24,7 +24,7 @@ from typing import (
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
 
-    from llmling_agent.agent import AgentContext
+    from llmling_agent.agents import AgentContext
 
 
 PACKAGE_NAME = "llmling-agent"
@@ -255,7 +255,7 @@ def call_with_context[T](
     - Functions expecting AgentContext
     - Functions expecting context data
     """
-    from llmling_agent.agent import AgentContext
+    from llmling_agent.agents import AgentContext
 
     if inspect.ismethod(func):
         if get_argument_key(func, AgentContext):

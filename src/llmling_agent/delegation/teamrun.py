@@ -26,7 +26,7 @@ if TYPE_CHECKING:
     from datetime import datetime
 
     from llmling_agent import MessageNode
-    from llmling_agent.agent.events import RichAgentStreamEvent
+    from llmling_agent.agents.events import RichAgentStreamEvent
     from llmling_agent.common_types import PromptCompatible, SupportsStructuredOutput
     from llmling_agent.delegation import AgentPool
 
@@ -286,7 +286,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
             Tuples of (agent, event) where agent is the Agent instance
             and event is the streaming event.
         """
-        from llmling_agent.agent.events import StreamCompleteEvent
+        from llmling_agent.agents.events import StreamCompleteEvent
 
         current_message = prompts
         collected_content = []

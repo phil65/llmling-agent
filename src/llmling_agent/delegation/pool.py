@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Any, Self, Unpack, overload
 from anyenv import ProcessManager
 from upathtools import UPath
 
-from llmling_agent.agent import Agent
+from llmling_agent.agents import Agent
 from llmling_agent.common_types import NodeName
 from llmling_agent.delegation.message_flow_tracker import MessageFlowTracker
 from llmling_agent.delegation.team import Team
@@ -39,9 +39,9 @@ if TYPE_CHECKING:
     from tokonomics import ModelName
     from upathtools import JoinablePathLike
 
-    from llmling_agent.agent.acp_agent import ACPAgent
-    from llmling_agent.agent.agent import AgentKwargs
-    from llmling_agent.agent.agui_agent import AGUIAgent
+    from llmling_agent.agents.acp_agent import ACPAgent
+    from llmling_agent.agents.agent import AgentKwargs
+    from llmling_agent.agents.agui_agent import AGUIAgent
     from llmling_agent.common_types import (
         AgentName,
         BuiltinEventHandlerType,
@@ -504,22 +504,22 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
     @property
     def acp_agents(self) -> dict[str, ACPAgent]:
         """Get ACP agents dict."""
-        from llmling_agent.agent.acp_agent import ACPAgent
+        from llmling_agent.agents.acp_agent import ACPAgent
 
         return {i.name: i for i in self._items.values() if isinstance(i, ACPAgent)}
 
     @property
     def agui_agents(self) -> dict[str, AGUIAgent]:
         """Get AG-UI agents dict."""
-        from llmling_agent.agent.agui_agent import AGUIAgent
+        from llmling_agent.agents.agui_agent import AGUIAgent
 
         return {i.name: i for i in self._items.values() if isinstance(i, AGUIAgent)}
 
     @property
     def all_agents(self) -> dict[str, Agent[Any, Any] | ACPAgent | AGUIAgent]:
         """Get all agents (regular, ACP, and AG-UI)."""
-        from llmling_agent.agent.acp_agent import ACPAgent
-        from llmling_agent.agent.agui_agent import AGUIAgent
+        from llmling_agent.agents.acp_agent import ACPAgent
+        from llmling_agent.agents.agui_agent import AGUIAgent
 
         return {
             i.name: i for i in self._items.values() if isinstance(i, Agent | ACPAgent | AGUIAgent)
@@ -686,7 +686,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
             KeyError: If agent name not found
             ValueError: If configuration is invalid
         """
-        from llmling_agent.agent import Agent
+        from llmling_agent.agents import Agent
 
         base = agent if isinstance(agent, Agent) else self.agents[agent]
         # Use custom deps if provided, otherwise use shared deps
@@ -725,7 +725,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         Returns:
             An agent instance
         """
-        from llmling_agent.agent import Agent
+        from llmling_agent.agents import Agent
 
         if not kwargs.get("event_handlers"):
             kwargs["event_handlers"] = self.event_handlers
@@ -896,7 +896,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         Returns:
             Configured ACPAgent instance
         """
-        from llmling_agent.agent.acp_agent import ACPAgent
+        from llmling_agent.agents.acp_agent import ACPAgent
 
         config = self.manifest.acp_agents[name]
         # Ensure name is set on config
@@ -924,7 +924,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         Returns:
             Configured AGUIAgent instance
         """
-        from llmling_agent.agent.agui_agent import AGUIAgent
+        from llmling_agent.agents.agui_agent import AGUIAgent
 
         config = self.manifest.agui_agents[name]
         # Ensure name is set on config

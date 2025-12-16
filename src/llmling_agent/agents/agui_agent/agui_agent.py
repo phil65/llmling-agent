@@ -11,7 +11,6 @@ locally and results sent back.
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Self
 from uuid import uuid4
 
@@ -20,7 +19,8 @@ from anyenv.processes import hard_kill
 import httpx
 from pydantic import TypeAdapter
 
-from llmling_agent.agent.events import RunStartedEvent, StreamCompleteEvent, resolve_event_handlers
+from llmling_agent.agents.agui_agent.session_state import AGUISessionState
+from llmling_agent.agents.events import RunStartedEvent, StreamCompleteEvent, resolve_event_handlers
 from llmling_agent.common_types import IndividualEventHandler
 from llmling_agent.log import get_logger
 from llmling_agent.messaging import ChatMessage, MessageHistory
@@ -38,7 +38,7 @@ if TYPE_CHECKING:
     from ag_ui.core import Event, Message, ToolMessage
     from evented.configs import EventConfig
 
-    from llmling_agent.agent.events import RichAgentStreamEvent
+    from llmling_agent.agents.events import RichAgentStreamEvent
     from llmling_agent.common_types import BuiltinEventHandlerType, PromptCompatible, ToolType
     from llmling_agent.delegation import AgentPool
     from llmling_agent.messaging.context import NodeContext
@@ -58,35 +58,6 @@ def get_client(headers: dict[str, str], timeout: float) -> httpx.AsyncClient:
             "Content-Type": "application/json",
         },
     )
-
-
-@dataclass
-class AGUISessionState:
-    """Track state for an active AG-UI session."""
-
-    thread_id: str
-    """Thread ID for this session."""
-    run_id: str | None = None
-    """Current run ID."""
-    text_chunks: list[str] = field(default_factory=list)
-    """Accumulated text chunks."""
-    thought_chunks: list[str] = field(default_factory=list)
-    """Accumulated thought chunks."""
-    tool_calls: dict[str, dict[str, Any]] = field(default_factory=dict)
-    """Active tool calls by ID."""
-    is_complete: bool = False
-    """Whether the current run is complete."""
-    error: str | None = None
-    """Error message if run failed."""
-
-    def clear(self) -> None:
-        """Clear session state."""
-        self.text_chunks.clear()
-        self.thought_chunks.clear()
-        self.tool_calls.clear()
-        self.is_complete = False
-        self.error = None
-        self.run_id = str(uuid4())
 
 
 class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
@@ -404,7 +375,7 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
             UserMessage,
         )
 
-        from llmling_agent.agent.agui_converters import (
+        from llmling_agent.agents.agui_agent.agui_converters import (
             ToolCallAccumulator,
             agui_to_native_event,
             extract_text_from_event,

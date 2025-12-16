@@ -14,7 +14,7 @@ from exxec.base import ExecutionEnvironment
 from pydantic_ai import Agent as PydanticAgent, BinaryContent
 from upathtools import is_directory
 
-from llmling_agent.agent.context import AgentContext  # noqa: TC001
+from llmling_agent.agents.context import AgentContext  # noqa: TC001
 from llmling_agent.log import get_logger
 from llmling_agent.resource_providers import ResourceProvider
 from llmling_agent_toolsets.builtin.file_edit import replace_content
@@ -240,7 +240,7 @@ class FSSpecTools(ResourceProvider):
             await agent_ctx.events.file_operation("list", path=path, success=True)
             result = format_directory_listing(path, dirs, files, pattern)
             # Emit formatted content for UI display
-            from llmling_agent.agent.events import TextContentItem
+            from llmling_agent.agents.events import TextContentItem
 
             await agent_ctx.events.tool_call_progress(
                 title=f"Listed: {path}",
@@ -275,7 +275,7 @@ class FSSpecTools(ResourceProvider):
         """
         path = self._resolve_path(path, agent_ctx)
         msg = f"Reading file: {path}"
-        from llmling_agent.agent.events import LocationContentItem
+        from llmling_agent.agents.events import LocationContentItem
 
         await agent_ctx.events.tool_call_progress(
             title=msg,
@@ -310,7 +310,7 @@ class FSSpecTools(ResourceProvider):
             if was_truncated:
                 content += f"\n\n[Content truncated at {self.max_file_size} bytes]"
             # Emit file content for UI display (formatted at ACP layer)
-            from llmling_agent.agent.events import FileContentItem
+            from llmling_agent.agents.events import FileContentItem
 
             await agent_ctx.events.tool_call_progress(
                 title=f"Read: {path}",
@@ -339,7 +339,7 @@ class FSSpecTools(ResourceProvider):
             content = await self.converter.convert_file(path)
             await agent_ctx.events.file_operation("read", path=path, success=True)
             # Emit formatted content for UI display
-            from llmling_agent.agent.events import TextContentItem
+            from llmling_agent.agents.events import TextContentItem
 
             await agent_ctx.events.tool_call_progress(
                 title=f"Read as markdown: {path}",
@@ -646,7 +646,7 @@ class FSSpecTools(ResourceProvider):
                     output += "\n\n[Results truncated]"
 
             # Emit formatted content for UI display
-            from llmling_agent.agent.events import TextContentItem
+            from llmling_agent.agents.events import TextContentItem
 
             await agent_ctx.events.tool_call_progress(
                 title=f"Found {match_count} matches",

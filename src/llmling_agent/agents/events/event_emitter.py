@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Literal
 
-from llmling_agent.agent.events import (
+from llmling_agent.agents.events import (
     CustomEvent,
     LocationContentItem,
     PlanUpdateEvent,
@@ -14,8 +14,8 @@ from llmling_agent.agent.events import (
 
 
 if TYPE_CHECKING:
-    from llmling_agent.agent.context import AgentContext
-    from llmling_agent.agent.events import RichAgentStreamEvent, ToolCallContentItem
+    from llmling_agent.agents.context import AgentContext
+    from llmling_agent.agents.events import RichAgentStreamEvent, ToolCallContentItem
     from llmling_agent.resource_providers.plan_provider import PlanEntry
     from llmling_agent.tools.base import ToolKind
 

@@ -5,7 +5,7 @@ from typing import TypeVar
 
 import pytest
 
-from llmling_agent.agent.context import AgentContext
+from llmling_agent.agents.context import AgentContext
 from llmling_agent.utils.signatures import create_bound_callable
 
 

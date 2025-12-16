@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any
 
 from pydantic_ai import RunContext
 
-from llmling_agent.agent.context import AgentContext
+from llmling_agent.agents.context import AgentContext
 from llmling_agent.tasks import ChainAbortedError, RunAbortedError, ToolSkippedError
 from llmling_agent.utils.inspection import execute, get_argument_key
 from llmling_agent.utils.signatures import create_modified_signature, update_signature

@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from toprompt import AnyPromptType
 
     from llmling_agent import AgentPool, MessageNode
-    from llmling_agent.agent import Agent
+    from llmling_agent.agents import Agent
     from llmling_agent.common_types import SupportsStructuredOutput
     from llmling_agent.delegation.base_team import BaseTeam
 

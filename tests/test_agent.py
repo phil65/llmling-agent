@@ -10,7 +10,7 @@ from pydantic_ai.models.test import TestModel
 import pytest
 
 from llmling_agent import Agent, AgentPool, ChatMessage
-from llmling_agent.agent.events import StreamCompleteEvent
+from llmling_agent.agents.events import StreamCompleteEvent
 
 
 SIMPLE_PROMPT = "Hello, how are you?"

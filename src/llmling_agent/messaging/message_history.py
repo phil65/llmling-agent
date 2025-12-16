@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     from toprompt import AnyPromptType
     from upathtools import JoinablePathLike
 
-    from llmling_agent.agent.agent import Agent
+    from llmling_agent.agents.agent import Agent
     from llmling_agent.common_types import MessageRole, SessionIdType
     from llmling_agent.messaging import ChatMessage
     from llmling_agent.prompts.conversion_manager import ConversionManager

@@ -26,7 +26,7 @@ if TYPE_CHECKING:
     from toprompt import AnyPromptType
 
     from llmling_agent import MessageNode
-    from llmling_agent.agent.events import RichAgentStreamEvent
+    from llmling_agent.agents.events import RichAgentStreamEvent
     from llmling_agent.common_types import PromptCompatible
     from llmling_agent.talk import Talk
     from llmling_agent_config.task import Job

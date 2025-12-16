@@ -21,7 +21,7 @@ import os
 from typing import TYPE_CHECKING, Any
 
 from llmling_agent import AgentPool, AgentsManifest
-from llmling_agent.agent.events import RichAgentStreamEvent
+from llmling_agent.agents.events import RichAgentStreamEvent
 from llmling_agent.docs.utils import get_config_path, is_pyodide, run
 
 
@@ -69,7 +69,7 @@ async def run_example() -> None:
     manifest = AgentsManifest.from_file(config_path)
 
     async def event_handler(ctx: RunContext, event: RichAgentStreamEvent[Any]) -> None:
-        from llmling_agent.agent.events import ToolCallProgressEvent
+        from llmling_agent.agents.events import ToolCallProgressEvent
 
         if isinstance(event, ToolCallProgressEvent):
             print(f"Progress: {event.progress}/{event.total} - {event.message}")

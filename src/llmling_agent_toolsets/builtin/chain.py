@@ -11,7 +11,7 @@ from pydantic import Field
 from pydantic_ai import ModelRetry
 from schemez import Schema
 
-from llmling_agent.agent.context import AgentContext  # noqa: TC001
+from llmling_agent.agents.context import AgentContext  # noqa: TC001
 
 
 class ErrorStrategy(StrEnum):

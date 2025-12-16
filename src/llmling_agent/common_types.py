@@ -19,7 +19,7 @@ from uuid import UUID
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
-    from llmling_agent.agent.events import RichAgentStreamEvent
+    from llmling_agent.agents.events import RichAgentStreamEvent
     from llmling_agent.messaging import ChatMessage
     from llmling_agent.messaging.messagenode import MessageNode
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 from slashed import CommandContext, CommandError  # noqa: TC002
 from slashed.completers import CallbackCompleter
 
-from llmling_agent.agent.context import AgentContext  # noqa: TC001
+from llmling_agent.agents.context import AgentContext  # noqa: TC001
 from llmling_agent.log import get_logger
 from llmling_agent_commands.base import AgentCommand
 from llmling_agent_commands.completers import get_available_agents

@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 
     from pydantic_ai import RunContext
 
-    from llmling_agent.agent.events import RichAgentStreamEvent
+    from llmling_agent.agents.events import RichAgentStreamEvent
     from llmling_agent.common_types import IndividualEventHandler
 
 
@@ -73,7 +73,7 @@ class StdoutEventHandlerConfig(BaseEventHandlerConfig):
 
     def get_handler(self) -> IndividualEventHandler:
         """Get the builtin event handler."""
-        from llmling_agent.agent.events import detailed_print_handler, simple_print_handler
+        from llmling_agent.agents.events import detailed_print_handler, simple_print_handler
 
         handlers = {"simple": simple_print_handler, "detailed": detailed_print_handler}
         return handlers[self.handler]
@@ -236,7 +236,7 @@ class TTSEventHandler:
 
     async def __call__(self, ctx: RunContext[Any], event: RichAgentStreamEvent[Any]) -> None:
         """Handle stream events and trigger TTS synthesis."""
-        from llmling_agent.agent.events import RunStartedEvent, StreamCompleteEvent
+        from llmling_agent.agents.events import RunStartedEvent, StreamCompleteEvent
 
         match event:
             case RunStartedEvent():
@@ -441,7 +441,7 @@ class EdgeTTSEventHandler:
 
     async def __call__(self, ctx: RunContext[Any], event: RichAgentStreamEvent[Any]) -> None:
         """Handle stream events and trigger TTS synthesis."""
-        from llmling_agent.agent.events import RunStartedEvent, StreamCompleteEvent
+        from llmling_agent.agents.events import RunStartedEvent, StreamCompleteEvent
 
         match event:
             case RunStartedEvent():

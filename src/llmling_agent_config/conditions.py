@@ -64,7 +64,7 @@ class Jinja2Condition(ConnectionCondition):
 
 
 class WordMatchCondition(ConnectionCondition):
-    """Disconnect when word/phrase is found in message."""
+    """Triggers when word/phrase is found in message."""
 
     model_config = ConfigDict(json_schema_extra={"title": "Word Match Condition"})
 

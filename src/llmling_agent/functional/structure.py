@@ -5,7 +5,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import TYPE_CHECKING, Literal, get_args
 
-from llmling_agent.agent.agent import Agent
+from llmling_agent.agents.agent import Agent
 from llmling_agent.log import get_logger
 
 

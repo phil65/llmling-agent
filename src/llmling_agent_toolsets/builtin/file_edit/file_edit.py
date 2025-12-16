@@ -19,7 +19,7 @@ from llmling_agent.tools.base import Tool
 if TYPE_CHECKING:
     from collections.abc import Generator
 
-    from llmling_agent.agent import AgentContext
+    from llmling_agent.agents import AgentContext
 
 
 class FuzzyMatch(NamedTuple):

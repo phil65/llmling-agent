@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any
 
 from fsspec import AbstractFileSystem
 
-from llmling_agent.agent.context import AgentContext  # noqa: TC001
+from llmling_agent.agents.context import AgentContext  # noqa: TC001
 from llmling_agent.log import get_logger
 from llmling_agent.resource_providers import ResourceProvider
 

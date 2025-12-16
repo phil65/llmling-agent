@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any, Self
 
 from exxec.configs import LocalExecutionEnvironmentConfig
 
-from llmling_agent.agent.context import AgentContext  # noqa: TC001
+from llmling_agent.agents.context import AgentContext  # noqa: TC001
 from llmling_agent.log import get_logger
 from llmling_agent.resource_providers.codemode.code_executor import (
     RemoteCodeExecutor,

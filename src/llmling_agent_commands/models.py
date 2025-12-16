@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 from slashed import CommandContext  # noqa: TC002
 from slashed.completers import CallbackCompleter
 
-from llmling_agent.agent.context import AgentContext  # noqa: TC001
+from llmling_agent.agents.context import AgentContext  # noqa: TC001
 from llmling_agent_commands.base import NodeCommand
 from llmling_agent_commands.completers import get_model_names
 

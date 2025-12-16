@@ -27,12 +27,6 @@ def allow_hook(**kwargs) -> dict:
     return {"decision": "allow"}
 
 
-def allow_hook(**kwargs) -> dict:
-    """Hook that allows the action."""
-    hook_state["calls"].append(("allow", kwargs.get("event")))
-    return {"decision": "allow"}
-
-
 def deny_hook(**kwargs) -> dict:
     """Hook that denies the action."""
     hook_state["calls"].append(("deny", kwargs.get("event")))

@@ -8,7 +8,7 @@ from llmling_agent.resource_providers import StaticResourceProvider
 
 
 if TYPE_CHECKING:
-    from llmling_agent.agent.context import AgentContext
+    from llmling_agent.agents.context import AgentContext
 
 
 async def vfs_list(  # noqa: D417

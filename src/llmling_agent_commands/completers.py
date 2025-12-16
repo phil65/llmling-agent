@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any, Literal, get_args
 
 from slashed import CompletionItem, CompletionProvider
 
-from llmling_agent.agent.context import AgentContext  # noqa: TC001
+from llmling_agent.agents.context import AgentContext  # noqa: TC001
 from llmling_agent.messaging.context import NodeContext  # noqa: TC001
 
 

@@ -21,7 +21,7 @@ from pydantic_ai import (
 )
 from slashed import CommandContext, CommandError  # noqa: TC002
 
-from llmling_agent.agent.events import StreamCompleteEvent, ToolCallProgressEvent
+from llmling_agent.agents.events import StreamCompleteEvent, ToolCallProgressEvent
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.context import NodeContext  # noqa: TC001
 from llmling_agent_commands.base import NodeCommand
@@ -29,7 +29,7 @@ from llmling_agent_server.acp_server.session import ACPSession  # noqa: TC001
 
 
 if TYPE_CHECKING:
-    from llmling_agent.agent.events import RichAgentStreamEvent
+    from llmling_agent.agents.events import RichAgentStreamEvent
 
 
 logger = get_logger(__name__)

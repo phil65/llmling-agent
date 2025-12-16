@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
     from toprompt import AnyPromptType
 
-    from llmling_agent.agent import Agent
+    from llmling_agent.agents import Agent
     from llmling_agent.prompts.manager import PromptManager
 
 

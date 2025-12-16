@@ -34,7 +34,7 @@ if TYPE_CHECKING:
 
     from acp.schema.mcp import HttpMcpServer, SseMcpServer
     from llmling_agent import AgentPool
-    from llmling_agent.agent.context import AgentContext
+    from llmling_agent.agents.context import AgentContext
     from llmling_agent.models.agents import AgentConfig
     from llmling_agent.models.manifest import AgentsManifest
     from llmling_agent.tools.base import Tool
@@ -185,7 +185,7 @@ class ToolManagerBridge:
         This context provides pool access for delegation tools while
         bridging progress reporting to MCP.
         """
-        from llmling_agent.agent.context import AgentContext
+        from llmling_agent.agents.context import AgentContext
         from llmling_agent.models.agents import AgentConfig
         from llmling_agent.models.manifest import AgentsManifest
 
@@ -243,7 +243,7 @@ class ToolManagerBridge:
 
         Handles tools that expect AgentContext, RunContext, or neither.
         """
-        from llmling_agent.agent.context import AgentContext as AgentContextType
+        from llmling_agent.agents.context import AgentContext as AgentContextType
 
         fn = tool.callable
         sig = inspect.signature(fn)

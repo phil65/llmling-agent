@@ -36,7 +36,7 @@ from acp.schema import (
     ToolCallStart,
     UserMessageChunk,
 )
-from llmling_agent.agent.events import (
+from llmling_agent.agents.events import (
     DiffContentItem,
     LocationContentItem,
     PlanUpdateEvent,
@@ -54,7 +54,7 @@ if TYPE_CHECKING:
     from acp.schema import ContentBlock, SessionUpdate
     from acp.schema.mcp import HttpMcpServer, McpServer, SseMcpServer, StdioMcpServer
     from acp.schema.tool_call import ToolCallContent, ToolCallLocation
-    from llmling_agent.agent.events import RichAgentStreamEvent, ToolCallContentItem
+    from llmling_agent.agents.events import RichAgentStreamEvent, ToolCallContentItem
     from llmling_agent_config.mcp_server import (
         MCPServerConfig,
         SSEMCPServerConfig,
@@ -97,7 +97,7 @@ def convert_acp_content(
             case "content":
                 # ContentToolCallContent - extract text if present
                 if hasattr(item, "content") and isinstance(item.content, TextContentBlock):
-                    from llmling_agent.agent.events import TextContentItem
+                    from llmling_agent.agents.events import TextContentItem
 
                     result.append(TextContentItem(text=item.content.text))
     return result

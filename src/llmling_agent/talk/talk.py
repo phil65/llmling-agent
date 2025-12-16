@@ -306,7 +306,7 @@ class Talk[TTransmittedData = Any]:
         prompt: PromptCompatible | None = None,
     ) -> ChatMessage[Any] | None:
         """Process message for a single target."""
-        from llmling_agent.agent import Agent
+        from llmling_agent.agents import Agent
         from llmling_agent.delegation.base_team import BaseTeam
 
         match self.connection_type:

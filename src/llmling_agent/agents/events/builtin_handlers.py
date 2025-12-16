@@ -20,7 +20,7 @@ from pydantic_ai.messages import (
     ToolReturnPart,
 )
 
-from llmling_agent.agent.events import (
+from llmling_agent.agents.events import (
     RunErrorEvent,
     StreamCompleteEvent,
     ToolCallProgressEvent,
@@ -33,7 +33,7 @@ if TYPE_CHECKING:
 
     from pydantic_ai import RunContext
 
-    from llmling_agent.agent.events import RichAgentStreamEvent
+    from llmling_agent.agents.events import RichAgentStreamEvent
     from llmling_agent.common_types import BuiltinEventHandlerType, IndividualEventHandler
 
 

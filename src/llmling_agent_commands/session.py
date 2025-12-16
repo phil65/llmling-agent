@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from slashed import CommandContext  # noqa: TC002
 
-from llmling_agent.agent.context import AgentContext  # noqa: TC001
+from llmling_agent.agents.context import AgentContext  # noqa: TC001
 from llmling_agent_commands.base import AgentCommand
 
 

@@ -15,7 +15,7 @@ from llmling_agent_config.tools import ImportToolConfig
 
 
 if TYPE_CHECKING:
-    from llmling_agent.agent import Agent
+    from llmling_agent.agents import Agent
 
 
 class Job[TDeps, TResult = str](Schema):
@@ -65,7 +65,7 @@ class Job[TDeps, TResult = str](Schema):
     required_dependency: ImportString[type[TDeps]] | None = Field(
         default=None,
         validate_default=True,
-        examples=["llmling_agent.agent.context:AgentContext"],
+        examples=["llmling_agent.agents.context:AgentContext"],
         title="Required dependencies",
     )
     """Dependencies or context data needed for task execution"""

@@ -50,7 +50,7 @@ from pydantic_ai import (
 )
 from pydantic_ai.messages import CachePoint, TextPartDelta, ThinkingPartDelta
 
-from llmling_agent.agent.events import (
+from llmling_agent.agents.events import (
     CustomEvent,
     PlanUpdateEvent,
     RunErrorEvent,
@@ -67,7 +67,7 @@ if TYPE_CHECKING:
     from ag_ui.core import Event, InputContent, Tool as AGUITool
     from pydantic_ai import UserContent
 
-    from llmling_agent.agent.events import RichAgentStreamEvent
+    from llmling_agent.agents.events import RichAgentStreamEvent
     from llmling_agent.tools.base import Tool
 
 

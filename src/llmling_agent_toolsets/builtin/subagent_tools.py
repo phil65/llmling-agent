@@ -19,7 +19,7 @@ from pydantic_ai import (
     ToolReturnPart,
 )
 
-from llmling_agent.agent.context import AgentContext  # noqa: TC001
+from llmling_agent.agents.context import AgentContext  # noqa: TC001
 from llmling_agent.log import get_logger
 from llmling_agent.resource_providers import StaticResourceProvider
 from llmling_agent.tools.exceptions import ToolError
@@ -28,7 +28,7 @@ from llmling_agent.tools.exceptions import ToolError
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
-    from llmling_agent.agent.events import RichAgentStreamEvent
+    from llmling_agent.agents.events import RichAgentStreamEvent
 
 
 logger = get_logger(__name__)

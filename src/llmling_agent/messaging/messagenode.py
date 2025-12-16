@@ -291,7 +291,7 @@ class MessageNode[TDeps, TResult](ABC):
     ) -> Talk[Any] | TeamTalk:
         """Create connection(s) to target(s)."""
         # Handle callable case
-        from llmling_agent.agent import Agent
+        from llmling_agent.agents import Agent
         from llmling_agent.delegation.base_team import BaseTeam
 
         if callable(target):

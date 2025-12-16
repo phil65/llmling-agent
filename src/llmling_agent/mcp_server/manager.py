@@ -89,7 +89,7 @@ class MCPManager:
         """Handle MCP sampling by creating a new agent with specified preferences."""
         from mcp import types
 
-        from llmling_agent.agent import Agent
+        from llmling_agent.agents import Agent
 
         # Convert messages to prompts for the agent
         prompts: list[UserContent] = []

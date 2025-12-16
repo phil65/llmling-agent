@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import asyncio
 
-from llmling_agent.agent import AGUIAgent
+from llmling_agent.agents import AGUIAgent
 
 
 async def basic_usage():

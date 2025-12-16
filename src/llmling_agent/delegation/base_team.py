@@ -101,7 +101,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
 
     async def pick_agents(self, task: str) -> Sequence[MessageNode[Any, Any]]:
         """Pick agents to run."""
-        from llmling_agent.agent.interactions import Interactions
+        from llmling_agent.agents.interactions import Interactions
 
         if self.picker:
             interactions = Interactions(self.picker)
@@ -127,7 +127,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
 
     def _on_node_added(self, index: int, node: MessageNode[Any, Any]) -> None:
         """Handler for adding new nodes to the team."""
-        from llmling_agent.agent import Agent
+        from llmling_agent.agents import Agent
 
         if isinstance(node, Agent):
             # Add MCP aggregating provider from manager
@@ -136,7 +136,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
 
     def _on_node_removed(self, index: int, node: MessageNode[Any, Any]) -> None:
         """Handler for removing nodes from the team."""
-        from llmling_agent.agent import Agent
+        from llmling_agent.agents import Agent
 
         if isinstance(node, Agent):
             # Remove MCP aggregating provider
@@ -168,7 +168,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
         other: Agent[Any, Any] | ProcessorCallback[Any] | BaseTeam[Any, Any],
     ) -> TeamRun[Any, Any]:
         """Create a sequential pipeline."""
-        from llmling_agent.agent import Agent
+        from llmling_agent.agents import Agent
         from llmling_agent.delegation.teamrun import TeamRun
 
         # Handle conversion of callables first
@@ -203,7 +203,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
 
     def __and__(self, other: Team[Any] | Agent[Any, Any] | ProcessorCallback[Any]) -> Team[Any]:
         """Combine teams, preserving type safety for same types."""
-        from llmling_agent.agent import Agent
+        from llmling_agent.agents import Agent
         from llmling_agent.delegation.team import Team
 
         if callable(other):
@@ -339,7 +339,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
 
     def iter_agents(self) -> Iterator[Agent[Any, Any]]:
         """Recursively iterate over all child agents."""
-        from llmling_agent.agent import Agent
+        from llmling_agent.agents import Agent
 
         for node in self.nodes:
             match node:

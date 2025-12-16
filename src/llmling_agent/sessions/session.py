@@ -12,7 +12,7 @@ from llmling_agent.messaging.message_history import MessageHistory
 if TYPE_CHECKING:
     from types import TracebackType
 
-    from llmling_agent.agent.agent import Agent
+    from llmling_agent.agents.agent import Agent
     from llmling_agent.delegation.pool import AgentPool
     from llmling_agent.messaging import ChatMessage
     from llmling_agent.sessions.manager import SessionManager

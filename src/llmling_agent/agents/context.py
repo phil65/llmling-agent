@@ -12,8 +12,8 @@ from llmling_agent.messaging.context import NodeContext
 if TYPE_CHECKING:
     from mcp import types
 
-    from llmling_agent.agent import Agent
-    from llmling_agent.agent.events import StreamEventEmitter
+    from llmling_agent.agents import Agent
+    from llmling_agent.agents.events import StreamEventEmitter
     from llmling_agent.models.agents import AgentConfig
     from llmling_agent.tools.base import Tool
 
@@ -73,7 +73,7 @@ class AgentContext[TDeps = Any](NodeContext[TDeps]):
 
     async def report_progress(self, progress: float, total: float | None, message: str) -> None:
         """Report progress by emitting event into the agent's stream."""
-        from llmling_agent.agent.events import ToolCallProgressEvent
+        from llmling_agent.agents.events import ToolCallProgressEvent
 
         logger.info("Reporting tool call progress", progress=progress, total=total, message=message)
         progress_event = ToolCallProgressEvent(
@@ -89,6 +89,6 @@ class AgentContext[TDeps = Any](NodeContext[TDeps]):
     @property
     def events(self) -> StreamEventEmitter:
         """Get event emitter with context automatically injected."""
-        from llmling_agent.agent.events import StreamEventEmitter
+        from llmling_agent.agents.events import StreamEventEmitter
 
         return StreamEventEmitter(self)

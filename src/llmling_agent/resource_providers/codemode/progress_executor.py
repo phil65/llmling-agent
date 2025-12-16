@@ -177,7 +177,7 @@ if __name__ == "__main__":
     from pydantic_ai import RunContext  # noqa: TC002
 
     from llmling_agent import log
-    from llmling_agent.agent import AgentContext  # noqa: TC001
+    from llmling_agent.agents import AgentContext  # noqa: TC001
 
     log.configure_logging()
     code = """

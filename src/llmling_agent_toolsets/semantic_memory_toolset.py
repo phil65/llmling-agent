@@ -23,8 +23,8 @@ if TYPE_CHECKING:
     from typeagent.storage.memory.semrefindex import TermToSemanticRefIndex
     import typechat
 
-    from llmling_agent.agent import Agent
-    from llmling_agent.agent.acp_agent import ACPAgent
+    from llmling_agent.agents import Agent
+    from llmling_agent.agents.acp_agent import ACPAgent
     from llmling_agent.common_types import ModelType
     from llmling_agent.tools.base import Tool
 

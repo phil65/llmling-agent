@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from llmling_agent.agent.context import AgentContext  # noqa: TC001
+from llmling_agent.agents.context import AgentContext  # noqa: TC001
 from llmling_agent.resource_providers import StaticResourceProvider
 
 

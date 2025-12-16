@@ -13,7 +13,7 @@ from llmling_agent.models.manifest import AgentsManifest
 
 # Builtin toolsets imports removed to avoid circular dependency
 # Import them directly from llmling_agent_toolsets.builtin when needed
-from llmling_agent.agent import Agent, AgentContext
+from llmling_agent.agents import Agent, AgentContext
 from llmling_agent.delegation import AgentPool, Team, TeamRun, BaseTeam
 from dotenv import load_dotenv
 from llmling_agent.messaging.messages import ChatMessage

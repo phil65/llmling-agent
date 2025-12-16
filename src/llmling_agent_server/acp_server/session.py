@@ -46,9 +46,9 @@ from acp.schema import (
 from acp.tool_call_state import ToolCallState
 from acp.utils import generate_tool_title, infer_tool_kind, to_acp_content_blocks
 from llmling_agent import Agent, AgentContext  # noqa: TC001
-from llmling_agent.agent import SlashedAgent
-from llmling_agent.agent.acp_agent import ACPAgent
-from llmling_agent.agent.events import (
+from llmling_agent.agents import SlashedAgent
+from llmling_agent.agents.acp_agent import ACPAgent
+from llmling_agent.agents.events import (
     PlanUpdateEvent,
     StreamCompleteEvent,
     ToolCallProgressEvent,
@@ -74,8 +74,8 @@ if TYPE_CHECKING:
     from acp import Client
     from acp.schema import ContentBlock, McpServer, StopReason
     from llmling_agent import AgentPool
-    from llmling_agent.agent import AGUIAgent
-    from llmling_agent.agent.events import RichAgentStreamEvent
+    from llmling_agent.agents import AGUIAgent
+    from llmling_agent.agents.events import RichAgentStreamEvent
     from llmling_agent.prompts.manager import PromptManager
     from llmling_agent.prompts.prompts import MCPClientPrompt
     from llmling_agent_server.acp_server.acp_agent import LLMlingACPAgent
@@ -534,7 +534,7 @@ class ACPSession:
                 self.log.debug("Progress event", tool_call_id=tool_call_id, title=title)
 
                 # Convert items to ACP content
-                from llmling_agent.agent.events import (
+                from llmling_agent.agents.events import (
                     DiffContentItem,
                     FileContentItem,
                     LocationContentItem,

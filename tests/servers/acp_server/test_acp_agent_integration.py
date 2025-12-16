@@ -16,12 +16,12 @@ from typing import TYPE_CHECKING, Any
 from exxec import LocalExecutionEnvironment
 import pytest
 
-from llmling_agent.agent.acp_agent import ACPAgent
+from llmling_agent.agents.acp_agent import ACPAgent
 from llmling_agent.models.acp_agents import ACPAgentConfig
 
 
 if TYPE_CHECKING:
-    from llmling_agent.agent.events import RichAgentStreamEvent
+    from llmling_agent.agents.events import RichAgentStreamEvent
 
 
 # Mark all tests in this module as slow/integration

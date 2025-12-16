@@ -47,7 +47,7 @@ The `ag-ui` Python package is a dependency and provides the protocol types.
 ### Connecting to an AG-UI Agent
 
 ```python
-from llmling_agent.agent import AGUIAgent
+from llmling_agent.agents import AGUIAgent
 
 async def main():
     # Connect to a remote AG-UI agent
@@ -131,7 +131,7 @@ sequenceDiagram
 #### In Code
 
 ```python
-from llmling_agent.agent import AGUIAgent
+from llmling_agent.agents import AGUIAgent
 
 def user_confirmation(action: str, importance: str = "medium") -> bool:
     """Ask user to confirm an action."""
@@ -386,7 +386,7 @@ agui_agents:
 AG-UI agents emit the same events as native agents:
 
 ```python
-from llmling_agent.agent.events import ToolCallStartEvent
+from llmling_agent.agents.events import ToolCallStartEvent
 
 async def tool_call_handler(ctx, event):
     if isinstance(event, ToolCallStartEvent):

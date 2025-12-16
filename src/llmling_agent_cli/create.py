@@ -27,6 +27,7 @@ def create(
     ),
 ) -> None:
     """Interactive config generator for agents and teams."""
+    from llmling_agent.agents.architect import create_architect_agent
     from schemez import YAMLCode
     from textual.app import App
     from textual.binding import Binding
@@ -34,7 +35,6 @@ def create(
     from textual.widgets import Header, Input, Static
 
     from llmling_agent import Agent, AgentsManifest
-    from llmling_agent.agent.architect import create_architect_agent
     from llmling_agent.utils.count_tokens import count_tokens
     from llmling_agent_cli import agent_store
 

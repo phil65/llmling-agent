@@ -18,7 +18,7 @@ if TYPE_CHECKING:
         WebSearchResponse,
     )
 
-    from llmling_agent.agent.context import AgentContext
+    from llmling_agent.agents.context import AgentContext
     from llmling_agent.tools.base import Tool
 
 
@@ -100,7 +100,7 @@ class SearchTools(ResourceProvider):
         Returns:
             Formatted markdown search results.
         """
-        from llmling_agent.agent.events import TextContentItem
+        from llmling_agent.agents.events import TextContentItem
 
         assert self._web_provider is not None
 
@@ -150,7 +150,7 @@ class SearchTools(ResourceProvider):
         Returns:
             Formatted markdown news results.
         """
-        from llmling_agent.agent.events import TextContentItem
+        from llmling_agent.agents.events import TextContentItem
 
         assert self._news_provider is not None
 

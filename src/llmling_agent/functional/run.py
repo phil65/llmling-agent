@@ -11,7 +11,7 @@ from llmling_agent import Agent
 
 
 if TYPE_CHECKING:
-    from llmling_agent.agent.agent import AgentKwargs
+    from llmling_agent.agents.agent import AgentKwargs
     from llmling_agent.common_types import PromptCompatible
 
 

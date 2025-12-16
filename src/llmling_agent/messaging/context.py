@@ -8,8 +8,8 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from llmling_agent import Agent, AgentPool
-    from llmling_agent.agent.acp_agent import ACPAgent
-    from llmling_agent.agent.agui_agent import AGUIAgent
+    from llmling_agent.agents.acp_agent import ACPAgent
+    from llmling_agent.agents.agui_agent import AGUIAgent
     from llmling_agent.messaging import MessageNode
     from llmling_agent.models.manifest import AgentsManifest
     from llmling_agent.prompts.manager import PromptManager
