@@ -308,51 +308,11 @@ class CallableResourceLoaderConfig(BaseResourceLoaderConfig):
         return bool(sig.parameters)
 
 
-class LangChainResourceLoader(BaseResourceLoaderConfig):
-    """Wrapper for LangChain document loaders."""
-
-    type: Literal["langchain"] = Field(default="langchain", init=False, title="Resource type")
-    """Langchain resource configuration."""
-
-    loader_class: str = Field(
-        title="LangChain loader class",
-        examples=["langchain.document_loaders.TextLoader", "langchain.document_loaders.CSVLoader"],
-    )
-    """Import path to LangChain loader class."""
-
-    loader_args: JsonObject = Field(default_factory=dict, title="Loader arguments")
-    """Arguments for loader initialization."""
-
-    # async def load(self, **kwargs: Any) -> AsyncIterator[Content]:
-    #     """Load documents using LangChain loader.
-
-    #     Converts LangChain documents to Content objects.
-    #     """
-    #     from langchain.document_loaders import BaseLoader
-    #     from llmling_agent.utils.importing import import_class
-
-    #     # Import and initialize loader
-    #     loader_cls = import_class(self.loader_class)
-    #     if not issubclass(loader_cls, BaseLoader):
-    #         msg = f"{self.loader_class} is not a LangChain loader"
-    #         raise ValueError(msg)
-
-    #     loader = loader_cls(**self.loader_args)
-
-    #     # Load documents
-    #     for doc in await loader.aload():
-    #         yield Content(
-    #             content=doc.page_content,
-    #             metadata=Metadata(mime_type="text/plain", extra=doc.metadata),
-    #         )
-
-
 Resource = Annotated[
     PathResourceLoaderConfig
     | TextResourceLoaderConfig
     | CLIResourceLoaderConfig
     | SourceResourceLoaderConfig
-    | LangChainResourceLoader
     | CallableResourceLoaderConfig,
     Field(discriminator="type"),
 ]

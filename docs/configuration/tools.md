@@ -10,7 +10,7 @@ icon: material/tools
 
 # Tool Configuration
 
-Tools provide agents with specific capabilities. Configure tools using import-based tools, CrewAI tools, or LangChain tools.
+Tools provide agents with specific capabilities. Configure tools using import-based tools.
 
 /// mknodes
 {{ "llmling_agent_config.tools.ToolConfig" | union_to_markdown(display_mode="yaml", header_style="pymdownx") }}

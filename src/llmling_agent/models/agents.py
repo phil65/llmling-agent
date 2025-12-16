@@ -21,7 +21,6 @@ from llmling_agent import log
 from llmling_agent.common_types import EndStrategy  # noqa: TC001
 from llmling_agent.prompts.prompts import PromptMessage, StaticPrompt
 from llmling_agent.resource_providers import StaticResourceProvider
-from llmling_agent.utils.importing import import_class
 from llmling_agent_config.knowledge import Knowledge  # noqa: TC001
 from llmling_agent_config.nodes import NodeConfig
 from llmling_agent_config.output_types import StructuredResponseConfig  # noqa: TC001
@@ -526,15 +525,8 @@ class AgentConfig(NodeConfig):
             try:
                 match tool_config:
                     case str():
-                        if tool_config.startswith("crewai_tools"):
-                            obj = import_class(tool_config)()
-                            static_tools.append(Tool.from_crewai_tool(obj))
-                        elif tool_config.startswith("langchain"):
-                            obj = import_class(tool_config)()
-                            static_tools.append(Tool.from_langchain_tool(obj))
-                        else:
-                            tool = Tool.from_callable(tool_config)
-                            static_tools.append(tool)
+                        tool = Tool.from_callable(tool_config)
+                        static_tools.append(tool)
                     case BaseToolConfig():
                         static_tools.append(tool_config.get_tool())
             except Exception:
@@ -644,5 +636,5 @@ class AgentConfig(NodeConfig):
 
 if __name__ == "__main__":
     model = "openai:gpt-5-nano"
-    agent_cfg = AgentConfig(name="test_agent", model=model, tools=["crewai_tools.BraveSearchTool"])
+    agent_cfg = AgentConfig(name="test_agent", model=model)
     print(agent_cfg)
