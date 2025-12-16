@@ -1,0 +1,148 @@
+"""Callable hook implementation."""
+
+from __future__ import annotations
+
+import asyncio
+from typing import TYPE_CHECKING, Any
+
+from llmling_agent.hooks.base import Hook, HookResult
+from llmling_agent.log import get_logger
+from llmling_agent.utils.importing import import_callable
+
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from llmling_agent.hooks.base import HookEvent, HookInput
+
+
+logger = get_logger(__name__)
+
+
+class CallableHook(Hook):
+    """Hook that executes a Python callable.
+
+    The callable receives hook input as a dictionary and should return
+    a HookResult dictionary or None.
+    """
+
+    def __init__(
+        self,
+        event: HookEvent,
+        fn: Callable[..., HookResult | None] | str,
+        matcher: str | None = None,
+        timeout: float = 60.0,
+        enabled: bool = True,
+        arguments: dict[str, Any] | None = None,
+    ):
+        """Initialize callable hook.
+
+        Args:
+            event: The lifecycle event this hook handles.
+            fn: The callable to execute, or import path string.
+            matcher: Regex pattern for matching.
+            timeout: Maximum execution time in seconds.
+            enabled: Whether this hook is active.
+            arguments: Additional keyword arguments for the callable.
+        """
+        super().__init__(event=event, matcher=matcher, timeout=timeout, enabled=enabled)
+        self._callable: Callable[..., HookResult | None] | None = None
+        self._import_path: str | None = None
+
+        if isinstance(fn, str):
+            self._import_path = fn
+        else:
+            self._callable = fn
+
+        self.arguments = arguments or {}
+
+    @property
+    def callable(self) -> Callable[..., HookResult | None]:
+        """Get the callable, importing lazily if needed."""
+        if self._callable is None:
+            if self._import_path is None:
+                msg = "No callable or import path provided"
+                raise ValueError(msg)
+            self._callable = import_callable(self._import_path)
+        return self._callable
+
+    async def execute(self, input_data: HookInput) -> HookResult:
+        """Execute the callable.
+
+        Args:
+            input_data: The hook input data.
+
+        Returns:
+            Hook result from callable.
+        """
+        try:
+            fn = self.callable
+
+            # Merge input data with additional arguments
+            kwargs = {**dict(input_data), **self.arguments}
+
+            # Execute with timeout
+            if asyncio.iscoroutinefunction(fn):
+                result = await asyncio.wait_for(
+                    fn(**kwargs),
+                    timeout=self.timeout,
+                )
+            else:
+                # Run sync function in executor
+                loop = asyncio.get_event_loop()
+                result = await asyncio.wait_for(
+                    loop.run_in_executor(None, lambda: fn(**kwargs)),
+                    timeout=self.timeout,
+                )
+
+            # Normalize result
+            if result is None:
+                return HookResult(decision="allow")
+
+            return self._normalize_result(result)
+
+        except TimeoutError:
+            logger.exception(
+                "Hook callable timed out after %s seconds: %s",
+                self.timeout,
+                self._import_path or self._callable,
+            )
+            return HookResult(decision="allow")
+        except Exception as e:
+            logger.exception("Hook callable failed: %s", self._import_path or self._callable)
+            return HookResult(decision="allow", reason=str(e))
+
+    def _normalize_result(self, result: Any) -> HookResult:
+        """Normalize callable result to HookResult.
+
+        Args:
+            result: Result from callable.
+
+        Returns:
+            Normalized hook result.
+        """
+        if isinstance(result, dict):
+            # Already a dict, ensure proper typing
+            normalized: HookResult = {}
+            if "decision" in result:
+                normalized["decision"] = result["decision"]
+            if "reason" in result:
+                normalized["reason"] = result["reason"]
+            if "modified_input" in result:
+                normalized["modified_input"] = result["modified_input"]
+            if "additional_context" in result:
+                normalized["additional_context"] = result["additional_context"]
+            if "continue_" in result:
+                normalized["continue_"] = result["continue_"]
+            return normalized
+
+        # String result treated as additional context
+        if isinstance(result, str):
+            return HookResult(decision="allow", additional_context=result)
+
+        # Bool result treated as allow/deny
+        if isinstance(result, bool):
+            return HookResult(decision="allow" if result else "deny")
+
+        # Unknown type, allow by default
+        return HookResult(decision="allow")

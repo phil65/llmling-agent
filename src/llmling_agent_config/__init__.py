@@ -20,14 +20,28 @@ from llmling_agent_config.event_handlers import (
     EventHandlerConfig,
     resolve_handler_configs,
 )
+from llmling_agent_config.hooks import (
+    BaseHookConfig,
+    CallableHookConfig,
+    CommandHookConfig,
+    HookConfig,
+    HooksConfig,
+    PromptHookConfig,
+)
 
 __all__ = [
     "BaseEventHandlerConfig",
+    "BaseHookConfig",
     "BaseMCPServerConfig",
+    "CallableHookConfig",
     "CallbackEventHandlerConfig",
+    "CommandHookConfig",
     "EventHandlerConfig",
     "ForwardingTarget",
+    "HookConfig",
+    "HooksConfig",
     "MCPServerConfig",
+    "PromptHookConfig",
     "ResourceInfo",
     "SSEMCPServerConfig",
     "SessionQuery",

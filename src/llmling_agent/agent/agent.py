@@ -76,6 +76,7 @@ if TYPE_CHECKING:
         ToolType,
     )
     from llmling_agent.delegation import AgentPool, Team, TeamRun
+    from llmling_agent.hooks import AgentHooks
     from llmling_agent.models.agents import AgentConfig, AutoCache, ToolMode
     from llmling_agent.prompts.prompts import PromptType
     from llmling_agent.resource_providers import ResourceProvider
@@ -111,6 +112,7 @@ class AgentKwargs(TypedDict, total=False):
     event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None
     env: ExecutionEnvironment | None
     auto_cache: AutoCache
+    hooks: AgentHooks | None
 
 
 class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
@@ -162,6 +164,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         agent_config: AgentConfig | None = None,
         env: ExecutionEnvironment | None = None,
         auto_cache: AutoCache = "off",
+        hooks: AgentHooks | None = None,
     ) -> None:
         """Initialize agent.
 
@@ -202,6 +205,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             agent_config: Agent configuration
             env: Execution environment for code/command execution and filesystem access
             auto_cache: Automatic caching configuration ("off", "5m", or "1h")
+            hooks: AgentHooks instance for intercepting agent behavior at run and tool events
         """
         from llmling_agent.agent import AgentContext
         from llmling_agent.agent.interactions import Interactions
@@ -305,6 +309,9 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         elif system_prompt:
             all_prompts.append(system_prompt)
         self.sys_prompts = SystemPrompts(all_prompts, prompt_manager=ctx.prompt_manager)
+
+        # Store hooks
+        self.hooks = hooks
 
         # Store auto_cache setting
         self._auto_cache: AutoCache = auto_cache or (
@@ -596,7 +603,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         )
 
         for tool in tools:
-            wrapped = wrap_tool(tool, context_for_tools)
+            wrapped = wrap_tool(tool, context_for_tools, hooks=self.hooks)
             if get_argument_key(wrapped, RunContext):
                 logger.info("Registering tool: with context", tool_name=tool.name)
                 agent.tool(wrapped)
@@ -712,7 +719,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         return final_message
 
     @method_spawner
-    async def run_stream(
+    async def run_stream(  # noqa: PLR0915
         self,
         *prompt: PromptCompatible,
         output_type: type[OutputDataT] | None = None,
@@ -760,6 +767,21 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         start_time = time.perf_counter()
         history_list = conversation.get_history()
         pending_parts = conversation.get_pending_parts()
+
+        # Execute pre-run hooks
+        if self.hooks:
+            pre_run_result = await self.hooks.run_pre_run_hooks(
+                agent_name=self.name,
+                prompt=user_msg.content
+                if isinstance(user_msg.content, str)
+                else str(user_msg.content),
+                conversation_id=conversation_id,
+            )
+            if pre_run_result.get("decision") == "deny":
+                reason = pre_run_result.get("reason", "Blocked by pre-run hook")
+                msg = f"Run blocked: {reason}"
+                raise RuntimeError(msg)
+
         yield RunStartedEvent(thread_id=self.conversation_id, run_id=run_id, agent_name=self.name)
         try:
             agentlet = await self.get_agentlet(tool_choice, model, output_type, input_provider)
@@ -828,6 +850,19 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             if response_msg is None:
                 msg = "Stream completed without producing a result"
                 raise RuntimeError(msg)  # noqa: TRY301
+
+            # Execute post-run hooks
+            if self.hooks:
+                prompt_str = (
+                    user_msg.content if isinstance(user_msg.content, str) else str(user_msg.content)
+                )
+                await self.hooks.run_post_run_hooks(
+                    agent_name=self.name,
+                    prompt=prompt_str,
+                    result=response_msg.content,
+                    conversation_id=conversation_id,
+                )
+
             # Apply forwarding logic if needed
             if original_message:
                 response_msg = response_msg.forwarded(original_message)

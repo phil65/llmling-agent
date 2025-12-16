@@ -21,6 +21,7 @@ from llmling_agent import log
 from llmling_agent.common_types import EndStrategy  # noqa: TC001
 from llmling_agent.prompts.prompts import PromptMessage, StaticPrompt
 from llmling_agent.resource_providers import StaticResourceProvider
+from llmling_agent_config.hooks import HooksConfig  # noqa: TC001
 from llmling_agent_config.knowledge import Knowledge  # noqa: TC001
 from llmling_agent_config.nodes import NodeConfig
 from llmling_agent_config.output_types import StructuredResponseConfig  # noqa: TC001
@@ -461,6 +462,16 @@ class AgentConfig(NodeConfig):
     - "off": No automatic caching
     - "5m": Add cache point with 5 minute TTL
     - "1h": Add cache point with 1 hour TTL
+    """
+
+    hooks: HooksConfig | None = Field(
+        default=None,
+        title="Lifecycle hooks",
+    )
+    """Hooks for intercepting and customizing agent behavior at key lifecycle points.
+
+    Allows adding context, blocking operations, modifying inputs, or triggering
+    side effects during session start/end, run execution, tool usage, and delegation.
     """
 
     @model_validator(mode="before")
