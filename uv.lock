@@ -1162,6 +1162,21 @@ wheels = [
 ]
 
 [[package]]
+name = "edge-tts"
+version = "7.2.7"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "aiohttp" },
+    { name = "certifi" },
+    { name = "tabulate" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/16/d2/1ce38f6e4fe7275207f4033b0971db489a0b594340ae6bac2320127e71ee/edge_tts-7.2.7.tar.gz", hash = "sha256:0127fba57a742bc48ff0a2a3b24b8324f7859260185274c335b4e54735aff325", size = 27508, upload-time = "2025-12-12T20:54:28.403Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/bf/89/92ac6b154ab87d236c15e5e0c73cb99be58efb1ea3eb9318c266bf9a36bf/edge_tts-7.2.7-py3-none-any.whl", hash = "sha256:ac11d9e834347e5ee62cbe72e8a56ffd65d3c4e795be14b1e593b72cf6480dd9", size = 30556, upload-time = "2025-12-12T20:54:26.956Z" },
+]
+
+[[package]]
 name = "email-validator"
 version = "2.3.0"
 source = { registry = "https://pypi.org/simple" }
@@ -2407,6 +2422,11 @@ tts = [
     { name = "openai" },
     { name = "sounddevice" },
 ]
+tts-edge = [
+    { name = "edge-tts" },
+    { name = "miniaudio" },
+    { name = "sounddevice" },
+]
 
 [package.dev-dependencies]
 benchmark = [
@@ -2452,6 +2472,7 @@ requires-dist = [
     { name = "composio", marker = "extra == 'composio'" },
     { name = "docler", specifier = ">=1.0.3" },
     { name = "docstring-parser", specifier = ">=0.17.0" },
+    { name = "edge-tts", marker = "extra == 'tts-edge'", specifier = ">=7.0.0" },
     { name = "epregistry" },
     { name = "evented", specifier = ">=1.0.5" },
     { name = "evented", extras = ["all"], marker = "extra == 'events'" },
@@ -2473,6 +2494,7 @@ requires-dist = [
     { name = "markitdown", marker = "python_full_version < '3.14' and extra == 'markitdown'" },
     { name = "mcp", specifier = ">=1.2.0" },
     { name = "mcpx-py", marker = "extra == 'mcp-run'", specifier = ">=0.7.0" },
+    { name = "miniaudio", marker = "extra == 'tts-edge'", specifier = ">=1.60" },
     { name = "numpy", marker = "extra == 'tts'", specifier = ">=1.24.0" },
     { name = "openai", marker = "extra == 'tts'", specifier = ">=1.0.0" },
     { name = "platformdirs" },
@@ -2489,6 +2511,7 @@ requires-dist = [
     { name = "searchly", extras = ["all"], specifier = ">=2.0.1" },
     { name = "slashed", specifier = ">=0.1.0" },
     { name = "sounddevice", marker = "extra == 'tts'", specifier = ">=0.5.0" },
+    { name = "sounddevice", marker = "extra == 'tts-edge'", specifier = ">=0.5.0" },
     { name = "sqlalchemy", extras = ["aiosqlite"] },
     { name = "sqlmodel", specifier = ">=0.0.22" },
     { name = "starlette", marker = "extra == 'a2a'" },
@@ -2513,7 +2536,7 @@ requires-dist = [
     { name = "uvicorn", extras = ["standard"], marker = "extra == 'server'" },
     { name = "yamling", specifier = ">=2.0.2" },
 ]
-provides-extras = ["a2a", "ag-ui", "braintrust", "clipboard", "coding", "composio", "default", "events", "git", "langfuse", "markitdown", "mcp-run", "memory", "notifications", "oauth", "promptlayer", "server", "textual", "tiktoken", "tree-sitter", "tts"]
+provides-extras = ["a2a", "ag-ui", "braintrust", "clipboard", "coding", "composio", "default", "events", "git", "langfuse", "markitdown", "mcp-run", "memory", "notifications", "oauth", "promptlayer", "server", "textual", "tiktoken", "tree-sitter", "tts", "tts-edge"]
 
 [package.metadata.requires-dev]
 benchmark = [{ name = "pyinstrument" }]
@@ -2911,6 +2934,15 @@ sdist = { url = "https://files.pythonhosted.org/packages/3a/41/580bb4006e3ed0361
 wheels = [
     { url = "https://files.pythonhosted.org/packages/2c/19/04f9b178c2d8a15b076c8b5140708fa6ffc5601fb6f1e975537072df5b2a/mergedeep-1.3.4-py3-none-any.whl", hash = "sha256:70775750742b25c0d8f36c55aed03d24c3384d17c951b3175d898bd778ef0307", size = 6354, upload-time = "2021-02-05T18:55:29.583Z" },
 ]
+
+[[package]]
+name = "miniaudio"
+version = "1.61"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "cffi" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/55/fa/96d4cc7ada283357117f7890418ac065a0a6d81ec59e681cd965a403aba3/miniaudio-1.61.tar.gz", hash = "sha256:e88e97837d031f0fb6982394218b6487de02eaa382ad273b8fca37791a2b4b15", size = 1103527, upload-time = "2024-07-24T18:13:10.037Z" }
 
 [[package]]
 name = "mistralai"
@@ -5408,6 +5440,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/c1/90/1a442d21527009d4b40f37fe50b606ebb68a6407142c2b5cc508c34b696b/syrupy-5.0.0.tar.gz", hash = "sha256:3282fe963fa5d4d3e47231b16d1d4d0f4523705e8199eeb99a22a1bc9f5942f2", size = 48881, upload-time = "2025-09-28T21:15:12.783Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/9d/9a/6c68aad2ccfce6e2eeebbf5bb709d0240592eb51ff142ec4c8fbf3c2460a/syrupy-5.0.0-py3-none-any.whl", hash = "sha256:c848e1a980ca52a28715cd2d2b4d434db424699c05653bd1158fb31cf56e9546", size = 49087, upload-time = "2025-09-28T21:15:11.639Z" },
+]
+
+[[package]]
+name = "tabulate"
+version = "0.9.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/ec/fe/802052aecb21e3797b8f7902564ab6ea0d60ff8ca23952079064155d1ae1/tabulate-0.9.0.tar.gz", hash = "sha256:0095b12bf5966de529c0feb1fa08671671b3368eec77d7ef7ab114be2c068b3c", size = 81090, upload-time = "2022-10-06T17:21:48.54Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/40/44/4a5f08c96eb108af5cb50b41f76142f0afa346dfa99d5296fe7202a11854/tabulate-0.9.0-py3-none-any.whl", hash = "sha256:024ca478df22e9340661486f85298cff5f6dcdba14f3813e8830015b9ed1948f", size = 35252, upload-time = "2022-10-06T17:21:44.262Z" },
 ]
 
 [[package]]
