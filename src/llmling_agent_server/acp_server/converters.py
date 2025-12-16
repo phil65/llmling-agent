@@ -179,5 +179,40 @@ def from_acp_content(blocks: Sequence[ContentBlock]) -> Sequence[UserContent]:
 
 
 def agent_to_mode(agent: MessageNode[Any, Any]) -> SessionMode:
+    """Convert agent to a session mode (deprecated - use get_confirmation_modes)."""
     desc = agent.description or f"Switch to {agent.name} agent"
     return SessionMode(id=agent.name, name=agent.display_name, description=desc)
+
+
+def get_confirmation_modes() -> list[SessionMode]:
+    """Get available tool confirmation modes as ACP session modes.
+
+    Returns standard ACP-compatible modes for tool confirmation levels.
+    """
+    return [
+        SessionMode(
+            id="default",
+            name="Default",
+            description="Require confirmation for tools marked as needing it",
+        ),
+        SessionMode(
+            id="acceptEdits",
+            name="Accept Edits",
+            description="Auto-approve all tool calls without confirmation",
+        ),
+    ]
+
+
+def mode_id_to_confirmation_mode(mode_id: str) -> str | None:
+    """Map ACP mode ID to ToolConfirmationMode.
+
+    Returns:
+        ToolConfirmationMode value or None if mode_id is invalid
+    """
+    mapping = {
+        "default": "per_tool",
+        "acceptEdits": "never",
+        "bypassPermissions": "never",
+        # "plan": "..."
+    }
+    return mapping.get(mode_id)
