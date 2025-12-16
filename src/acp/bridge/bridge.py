@@ -17,8 +17,22 @@ from starlette.responses import JSONResponse, Response
 from starlette.routing import Route
 import uvicorn
 
+from acp.bridge.settings import BridgeSettings
 from acp.client.connection import ClientSideConnection
 from acp.client.implementations import NoOpClient
+from acp.schema import (
+    AuthenticateRequest,
+    CancelNotification,
+    ForkSessionRequest,
+    InitializeRequest,
+    ListSessionsRequest,
+    LoadSessionRequest,
+    NewSessionRequest,
+    PromptRequest,
+    ResumeSessionRequest,
+    SetSessionModelRequest,
+    SetSessionModeRequest,
+)
 from acp.transports import spawn_stdio_transport
 
 
@@ -28,8 +42,6 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from starlette.requests import Request
-
-    from acp.bridge.settings import BridgeSettings
 
 
 logger = logging.getLogger(__name__)
@@ -56,8 +68,6 @@ class ACPBridge:
             cwd: Working directory for the subprocess.
             settings: Bridge server settings.
         """
-        from acp.bridge.settings import BridgeSettings
-
         self.command = command
         self.args = args or []
         self.env = env
@@ -69,18 +79,14 @@ class ACPBridge:
     async def _handle_acp_request(self, request: Request) -> Response:
         """Handle incoming ACP JSON-RPC requests."""
         if self._connection is None:
-            return JSONResponse(
-                {"jsonrpc": "2.0", "error": {"code": -32603, "message": "Not connected"}},
-                status_code=503,
-            )
+            response = {"jsonrpc": "2.0", "error": {"code": -32603, "message": "Not connected"}}
+            return JSONResponse(response, status_code=503)
 
         try:
             body = await request.json()
         except Exception:  # noqa: BLE001
-            return JSONResponse(
-                {"jsonrpc": "2.0", "error": {"code": -32700, "message": "Parse error"}},
-                status_code=400,
-            )
+            response = {"jsonrpc": "2.0", "error": {"code": -32700, "message": "Parse error"}}
+            return JSONResponse(response, status_code=400)
 
         method = body.get("method")
         params = body.get("params")
@@ -123,22 +129,6 @@ class ACPBridge:
         if self._connection is None:
             msg = "No agent connection"
             raise RuntimeError(msg)
-
-        # Import schema types for request construction
-        from acp.schema import (
-            AuthenticateRequest,
-            CancelNotification,
-            ForkSessionRequest,
-            InitializeRequest,
-            ListSessionsRequest,
-            LoadSessionRequest,
-            NewSessionRequest,
-            PromptRequest,
-            ResumeSessionRequest,
-            SetSessionModelRequest,
-            SetSessionModeRequest,
-        )
-
         match method:
             case "initialize":
                 init_request = InitializeRequest.model_validate(params)
@@ -239,12 +229,7 @@ class ACPBridge:
             # Spawn the stdio agent subprocess
             logger.info("Spawning ACP agent: %s %s", self.command, " ".join(self.args))
             reader, writer, process = await stack.enter_async_context(
-                spawn_stdio_transport(
-                    self.command,
-                    *self.args,
-                    env=self.env,
-                    cwd=self.cwd,
-                )
+                spawn_stdio_transport(self.command, *self.args, env=self.env, cwd=self.cwd)
             )
             self._process = process
 
@@ -254,7 +239,6 @@ class ACPBridge:
 
             self._connection = ClientSideConnection(client_factory, writer, reader)
             stack.push_async_callback(self._connection.close)
-
             # Create and run the HTTP server
             app = self._create_app()
             config = uvicorn.Config(
@@ -264,8 +248,6 @@ class ACPBridge:
                 log_level=self.settings.log_level.lower(),
             )
             server = uvicorn.Server(config)
-
             url = f"http://{self.settings.host}:{self.settings.port}"
             logger.info("ACP Bridge serving at %s/acp", url)
-
             await server.serve()

@@ -27,15 +27,8 @@ def main() -> None:
         formatter_class=argparse.RawTextHelpFormatter,
     )
 
-    parser.add_argument(
-        "command",
-        help="Command to spawn the ACP agent.",
-    )
-    parser.add_argument(
-        "args",
-        nargs="*",
-        help="Arguments for the agent command.",
-    )
+    parser.add_argument("command", help="Command to spawn the ACP agent.")
+    parser.add_argument("args", nargs="*", help="Arguments for the agent command.")
     parser.add_argument(
         "-p",
         "--port",
@@ -88,13 +81,7 @@ def main() -> None:
         allow_origins=parsed.allow_origin if parsed.allow_origin else None,
     )
 
-    bridge = ACPBridge(
-        command=parsed.command,
-        args=parsed.args,
-        cwd=parsed.cwd,
-        settings=settings,
-    )
-
+    bridge = ACPBridge(command=parsed.command, args=parsed.args, cwd=parsed.cwd, settings=settings)
     with contextlib.suppress(KeyboardInterrupt):
         asyncio.run(bridge.run())
 

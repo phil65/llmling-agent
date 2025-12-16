@@ -124,13 +124,12 @@ class HeadlessACPClient(Client):
         """Write text to file."""
         if not self.allow_file_operations:
             raise RuntimeError("File operations not allowed")
+        path = Path(params.path)
         try:
-            path = Path(params.path)
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(params.content, encoding="utf-8")
             logger.debug("Wrote file", path=params.path, num_chars=len(params.content))
             return WriteTextFileResponse()
-
         except Exception:
             logger.exception("Failed to write file", path=params.path)
             raise
