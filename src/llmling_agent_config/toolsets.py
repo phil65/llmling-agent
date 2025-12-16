@@ -22,6 +22,7 @@ from upathtools.configs import FilesystemConfigType
 from upathtools.configs.base import FileSystemConfig
 
 from llmling_agent_config.converters import ConversionConfig
+from llmling_agent_config.tools import ImportToolConfig
 from llmling_agent_config.workers import WorkerConfig
 
 
@@ -832,6 +833,42 @@ class RemoteCodeModeToolsetConfig(BaseToolsetConfig):
         )
 
 
+class ImportToolsToolsetConfig(BaseToolsetConfig):
+    """Configuration for importing individual functions as tools.
+
+    Allows adding arbitrary Python callables as agent tools via import paths.
+    """
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "x-icon": "octicon:package-dependencies-16",
+            "x-doc-title": "Import Tools Toolset",
+        }
+    )
+
+    type: Literal["import_tools"] = Field("import_tools", init=False)
+    """Import tools toolset."""
+
+    tools: list[ImportToolConfig] = Field(
+        title="Tools to import",
+        examples=[
+            [
+                {"import_path": "os.listdir", "name": "list_files"},
+                {"import_path": "webbrowser.open", "description": "Open URL in browser"},
+            ]
+        ],
+    )
+    """List of tool configurations to import."""
+
+    def get_provider(self) -> ResourceProvider:
+        """Create static provider with imported tools."""
+        from llmling_agent.resource_providers import StaticResourceProvider
+
+        tools = [tool_config.get_tool() for tool_config in self.tools]
+        name = self.namespace or "import_tools"
+        return StaticResourceProvider(name=name, tools=tools)
+
+
 class ConfigCreationToolsetConfig(BaseToolsetConfig):
     """Configuration for config creation with schema validation."""
 
@@ -884,6 +921,7 @@ ToolsetConfig = Annotated[
     | NotificationsToolsetConfig
     | SemanticMemoryToolsetConfig
     | ConfigCreationToolsetConfig
+    | ImportToolsToolsetConfig
     | CustomToolsetConfig,
     Field(discriminator="type"),
 ]

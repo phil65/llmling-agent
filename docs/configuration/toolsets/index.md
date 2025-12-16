@@ -74,6 +74,7 @@ agents:
 | [Skills](./skills.md) | Load and execute skills |
 | [Integrations](./integrations.md) | Integration utilities |
 | [Config Creation](./config-creation.md) | Create agent configurations |
+| [Import Tools](./import-tools.md) | Import individual functions as tools |
 | [Custom](./custom.md) | Load custom toolset implementations |
 
 ## Common Configuration
