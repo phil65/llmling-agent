@@ -1,0 +1,74 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/phil65/llmling-agent/refs/heads/main/schema/config-schema.json
+#
+# Test configuration for TTS synchronization modes.
+# Each agent demonstrates a different TTS mode.
+#
+# Usage:
+#   uv run llmling-agent chat --config src/llmling_agent/config_resources/tts_test_agents.yml --agent tts_sync_sentence
+#
+# Modes:
+#   - sync_sentence: Block per sentence (audio syncs with text output)
+#   - sync_run: Block at run end (fast streaming, wait for audio before next run)
+#   - async_queue: Fully async, multiple runs queue up
+#   - async_cancel: Fully async, new run cancels previous audio
+
+agents:
+  tts_sync_sentence:
+    description: "TTS with sync_sentence mode - blocks per sentence, most synchronized"
+    model: openai:gpt-4.1-nano
+    system_prompts:
+      - |
+        You are a storyteller. Tell engaging short stories in 3-4 sentences.
+        Speak naturally with clear sentence breaks.
+    event_handlers:
+      - type: builtin
+        handler: simple
+      - type: tts
+        voice: alloy
+        mode: sync_sentence
+        min_text_length: 15
+
+  tts_sync_run:
+    description: "TTS with sync_run mode - fast streaming, waits at run end"
+    model: openai:gpt-4.1-nano
+    system_prompts:
+      - |
+        You are a storyteller. Tell engaging short stories in 3-4 sentences.
+        Speak naturally with clear sentence breaks.
+    event_handlers:
+      - type: builtin
+        handler: simple
+      - type: tts
+        voice: echo
+        mode: sync_run
+        min_text_length: 15
+
+  tts_async_queue:
+    description: "TTS with async_queue mode - fully async, runs queue up"
+    model: openai:gpt-4.1-nano
+    system_prompts:
+      - |
+        You are a storyteller. Tell engaging short stories in 3-4 sentences.
+        Speak naturally with clear sentence breaks.
+    event_handlers:
+      - type: builtin
+        handler: simple
+      - type: tts
+        voice: fable
+        mode: async_queue
+        min_text_length: 15
+
+  tts_async_cancel:
+    description: "TTS with async_cancel mode - fully async, new run cancels previous"
+    model: openai:gpt-4.1-nano
+    system_prompts:
+      - |
+        You are a storyteller. Tell engaging short stories in 3-4 sentences.
+        Speak naturally with clear sentence breaks.
+    event_handlers:
+      - type: builtin
+        handler: simple
+      - type: tts
+        voice: nova
+        mode: async_cancel
+        min_text_length: 15

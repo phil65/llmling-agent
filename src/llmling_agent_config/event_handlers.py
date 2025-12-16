@@ -24,6 +24,14 @@ if TYPE_CHECKING:
 StdOutStyle = Literal["simple", "detailed"]
 TTSModel = Literal["tts-1", "tts-1-hd"]
 TTSVoice = Literal["alloy", "echo", "fable", "onyx", "nova", "shimmer"]
+TTSMode = Literal["sync_sentence", "sync_run", "async_queue", "async_cancel"]
+"""TTS synchronization modes.
+
+- sync_sentence: Wait for each sentence's audio before continuing (slowest, most synchronized)
+- sync_run: Stream fast, wait for all audio at run end (default)
+- async_queue: Stream fast, audio plays in background, multiple runs queue up
+- async_cancel: Stream fast, audio plays in background, new run cancels previous audio
+"""
 
 
 class BaseEventHandlerConfig(Schema):
@@ -94,14 +102,13 @@ class CallbackEventHandlerConfig(BaseEventHandlerConfig):
 
 
 class TTSEventHandler:
-    """Text-to-Speech event handler with optional non-blocking synthesis.
+    """Text-to-Speech event handler with configurable synchronization modes.
 
-    When blocking=False (default), sentences are queued and synthesized sequentially
-    in the background, avoiding blocking the event stream while ensuring audio
-    plays in correct order.
-
-    When blocking=True, awaits each TTS synthesis call before processing the next
-    event (original behavior, useful for testing).
+    Modes:
+    - sync_sentence: Wait for each sentence's audio before continuing (most synchronized)
+    - sync_run: Stream fast, wait for all audio at run end (default)
+    - async_queue: Stream fast, audio in background, multiple runs queue up
+    - async_cancel: Stream fast, audio in background, new run cancels previous
     """
 
     def __init__(
@@ -114,7 +121,7 @@ class TTSEventHandler:
         chunk_size: int = 1024,
         sample_rate: int = 24000,
         min_text_length: int = 20,
-        blocking: bool = False,
+        mode: TTSMode = "sync_run",
     ) -> None:
         from openai import AsyncOpenAI
 
@@ -125,7 +132,7 @@ class TTSEventHandler:
         self._chunk_size = chunk_size
         self._sample_rate = sample_rate
         self._min_text_length = min_text_length
-        self._blocking = blocking
+        self._mode = mode
 
         # State
         self._audio_queue: asyncio.Queue[bytes | None] = asyncio.Queue()
@@ -193,11 +200,53 @@ class TTSEventHandler:
         # Queue the sentence - doesn't block
         self._sentence_queue.put_nowait(text)
 
+    async def _cancel_pending(self) -> None:
+        """Cancel all pending synthesis and playback."""
+        # Cancel synthesis worker
+        if self._synthesis_task and not self._synthesis_task.done():
+            self._synthesis_task.cancel()
+            try:
+                await self._synthesis_task
+            except asyncio.CancelledError:
+                pass
+            self._synthesis_task = None
+
+        # Clear sentence queue
+        while not self._sentence_queue.empty():
+            try:
+                self._sentence_queue.get_nowait()
+            except asyncio.QueueEmpty:
+                break
+
+        # Cancel playback
+        if self._playback_task and not self._playback_task.done():
+            self._playback_task.cancel()
+            try:
+                await self._playback_task
+            except asyncio.CancelledError:
+                pass
+            self._playback_task = None
+
+        # Clear audio queue
+        while not self._audio_queue.empty():
+            try:
+                self._audio_queue.get_nowait()
+            except asyncio.QueueEmpty:
+                break
+
+        # Reset text buffer
+        self._text_buffer = ""
+
     async def __call__(self, ctx: RunContext[Any], event: RichAgentStreamEvent[Any]) -> None:
         """Handle stream events and trigger TTS synthesis."""
-        from llmling_agent.agent.events import StreamCompleteEvent
+        from llmling_agent.agent.events import RunStartedEvent, StreamCompleteEvent
 
         match event:
+            case RunStartedEvent():
+                # For async_cancel mode, cancel any pending audio from previous run
+                if self._mode == "async_cancel":
+                    await self._cancel_pending()
+
             case (
                 PartStartEvent(part=TextPart(content=delta))
                 | PartDeltaEvent(delta=TextPartDelta(content_delta=delta))
@@ -216,7 +265,7 @@ class TTSEventHandler:
                         self._text_buffer = self._text_buffer[last_term + 1 :]
 
                         if sentence:
-                            if self._blocking:
+                            if self._mode == "sync_sentence":
                                 await self._synthesize_text(sentence)
                             else:
                                 self._schedule_synthesis(sentence)
@@ -224,22 +273,24 @@ class TTSEventHandler:
             case StreamCompleteEvent():
                 # Process remaining text
                 if self._text_buffer.strip():
-                    if self._blocking:
+                    if self._mode == "sync_sentence":
                         await self._synthesize_text(self._text_buffer.strip())
                     else:
                         self._schedule_synthesis(self._text_buffer.strip())
                     self._text_buffer = ""
 
-                # Wait for synthesis worker to finish (non-blocking mode)
-                if self._synthesis_task and not self._synthesis_task.done():
-                    # Signal worker to stop and wait for it
-                    await self._sentence_queue.put(None)
-                    await self._synthesis_task
+                # For sync modes, wait for everything to finish
+                if self._mode in ("sync_sentence", "sync_run"):
+                    # Wait for synthesis worker to finish
+                    if self._synthesis_task and not self._synthesis_task.done():
+                        await self._sentence_queue.put(None)
+                        await self._synthesis_task
 
-                # Signal playback to stop and wait for it
-                await self._audio_queue.put(None)
-                if self._playback_task and not self._playback_task.done():
-                    await self._playback_task
+                    # Signal playback to stop and wait for it
+                    await self._audio_queue.put(None)
+                    if self._playback_task and not self._playback_task.done():
+                        await self._playback_task
+                # For async modes, don't wait - let audio continue in background
 
 
 class TTSEventHandlerConfig(BaseEventHandlerConfig):
@@ -290,11 +341,17 @@ class TTSEventHandlerConfig(BaseEventHandlerConfig):
     )
     """Minimum text length before synthesizing (in characters)."""
 
-    blocking: bool = Field(default=False, title="Blocking Mode")
-    """If True, wait for each TTS synthesis to complete before processing next event.
+    mode: TTSMode = Field(
+        default="sync_run",
+        examples=["sync_sentence", "sync_run", "async_queue", "async_cancel"],
+        title="Synchronization Mode",
+    )
+    """How TTS synthesis synchronizes with the event stream.
 
-    Default (False) uses non-blocking fire-and-forget synthesis for better streaming
-    performance. Set to True for testing or when you need sequential processing.
+    - sync_sentence: Wait for each sentence's audio before continuing (slowest, most synchronized)
+    - sync_run: Stream fast, wait for all audio at run end (default, recommended)
+    - async_queue: Stream fast, audio plays in background, multiple runs queue up
+    - async_cancel: Stream fast, audio plays in background, new run cancels previous audio
     """
 
     def get_handler(self) -> IndividualEventHandler:
@@ -307,7 +364,7 @@ class TTSEventHandlerConfig(BaseEventHandlerConfig):
             speed=self.speed,
             chunk_size=self.chunk_size,
             sample_rate=self.sample_rate,
-            blocking=self.blocking,
+            mode=self.mode,
             min_text_length=self.min_text_length,
         )
 
