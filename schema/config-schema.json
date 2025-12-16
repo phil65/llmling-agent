@@ -3060,7 +3060,8 @@
         }
       },
       "title": "AgentOpsObservabilityConfig",
-      "type": "object"
+      "type": "object",
+      "x-doc-title": "AgentOps"
     },
     "AgentWorkerConfig": {
       "additionalProperties": false,
@@ -4100,7 +4101,8 @@
         }
       },
       "title": "ArizePhoenixObservabilityConfig",
-      "type": "object"
+      "type": "object",
+      "x-doc-title": "Arize Phoenix"
     },
     "ArrowFilesystemConfig": {
       "additionalProperties": true,
@@ -6869,7 +6871,8 @@
         }
       },
       "title": "BraintrustConfig",
-      "type": "object"
+      "type": "object",
+      "x-doc-title": "Braintrust"
     },
     "BraveSearchConfig": {
       "additionalProperties": false,
@@ -10170,7 +10173,8 @@
         "endpoint"
       ],
       "title": "CustomObservabilityConfig",
-      "type": "object"
+      "type": "object",
+      "x-doc-title": "Custom OTEL"
     },
     "CustomToolsetConfig": {
       "additionalProperties": false,
@@ -16351,7 +16355,8 @@
         }
       },
       "title": "FabricConfig",
-      "type": "object"
+      "type": "object",
+      "x-doc-title": "Fabric"
     },
     "FallbackModelConfig": {
       "additionalProperties": false,
@@ -18753,7 +18758,8 @@
         "path"
       ],
       "title": "FilePromptConfig",
-      "type": "object"
+      "type": "object",
+      "x-doc-title": "File Prompt"
     },
     "FileStorageConfig": {
       "additionalProperties": false,
@@ -18858,7 +18864,8 @@
         "path"
       ],
       "title": "FileStorageConfig",
-      "type": "object"
+      "type": "object",
+      "x-doc-title": "File Storage"
     },
     "FileWatchConfig": {
       "additionalProperties": false,
@@ -19147,7 +19154,8 @@
         "function"
       ],
       "title": "FunctionPromptConfig",
-      "type": "object"
+      "type": "object",
+      "x-doc-title": "Function Prompt"
     },
     "GCSFilesystemConfig": {
       "additionalProperties": true,
@@ -23045,7 +23053,8 @@
         "public_key"
       ],
       "title": "LangfuseConfig",
-      "type": "object"
+      "type": "object",
+      "x-doc-title": "Langfuse"
     },
     "LangsmithObservabilityConfig": {
       "additionalProperties": false,
@@ -23135,7 +23144,8 @@
         }
       },
       "title": "LangsmithObservabilityConfig",
-      "type": "object"
+      "type": "object",
+      "x-doc-title": "Langsmith"
     },
     "LibArchiveFilesystemConfig": {
       "additionalProperties": true,
@@ -23285,7 +23295,8 @@
         "reference"
       ],
       "title": "LibraryPromptConfig",
-      "type": "object"
+      "type": "object",
+      "x-doc-title": "Library Prompt"
     },
     "LinearFilesystemConfig": {
       "additionalProperties": true,
@@ -23754,7 +23765,8 @@
         }
       },
       "title": "LogfireObservabilityConfig",
-      "type": "object"
+      "type": "object",
+      "x-doc-title": "Logfire"
     },
     "MCPPoolServerConfig": {
       "additionalProperties": false,
@@ -24464,7 +24476,8 @@
         }
       },
       "title": "MemoryStorageConfig",
-      "type": "object"
+      "type": "object",
+      "x-doc-title": "Memory Storage"
     },
     "MessageContent": {
       "additionalProperties": false,
@@ -28641,7 +28654,8 @@
         "api_key"
       ],
       "title": "PromptLayerConfig",
-      "type": "object"
+      "type": "object",
+      "x-doc-title": "PromptLayer"
     },
     "PromptLibraryConfig": {
       "additionalProperties": false,
@@ -29718,7 +29732,8 @@
         }
       },
       "title": "SQLStorageConfig",
-      "type": "object"
+      "type": "object",
+      "x-doc-title": "SQL Storage"
     },
     "SRTExecutionEnvironmentConfig": {
       "additionalProperties": false,
@@ -30054,7 +30069,8 @@
         "url"
       ],
       "title": "SSEMCPServerConfig",
-      "type": "object"
+      "type": "object",
+      "x-doc-title": "SSE MCP Server"
     },
     "SandboxConfig": {
       "description": "Configuration for sandbox-runtime restrictions.",
@@ -33410,7 +33426,8 @@
         "content"
       ],
       "title": "StaticPromptConfig",
-      "type": "object"
+      "type": "object",
+      "x-doc-title": "Static Prompt"
     },
     "StdioMCPServerConfig": {
       "additionalProperties": false,
@@ -33508,7 +33525,8 @@
         "command"
       ],
       "title": "StdioMCPServerConfig",
-      "type": "object"
+      "type": "object",
+      "x-doc-title": "Stdio MCP Server"
     },
     "StdoutEventHandlerConfig": {
       "additionalProperties": false,
@@ -35123,7 +35141,8 @@
         "url"
       ],
       "title": "StreamableHTTPMCPServerConfig",
-      "type": "object"
+      "type": "object",
+      "x-doc-title": "Streamable HTTP MCP Server"
     },
     "StringModelConfig": {
       "additionalProperties": false,
@@ -37654,7 +37673,8 @@
         "path"
       ],
       "title": "TextLogConfig",
-      "type": "object"
+      "type": "object",
+      "x-doc-title": "Text Log"
     },
     "TimeCondition": {
       "additionalProperties": false,

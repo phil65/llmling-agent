@@ -74,6 +74,8 @@ class BaseResourceLoaderConfig(Schema):
 class PathResourceLoaderConfig(BaseResourceLoaderConfig):
     """Resource loaded from a file or URL."""
 
+    model_config = ConfigDict(json_schema_extra={"x-doc-title": "Path Resource"})
+
     type: Literal["path"] = Field(default="path", init=False, title="Resource type")
     """Discriminator field identifying this as a path-based resource."""
 
@@ -128,6 +130,8 @@ class PathResourceLoaderConfig(BaseResourceLoaderConfig):
 class TextResourceLoaderConfig(BaseResourceLoaderConfig):
     """Raw text resource."""
 
+    model_config = ConfigDict(json_schema_extra={"x-doc-title": "Text Resource"})
+
     type: Literal["text"] = Field(default="text", init=False, title="Resource type")
     """Discriminator field identifying this as a text-based resource."""
 
@@ -158,6 +162,8 @@ class TextResourceLoaderConfig(BaseResourceLoaderConfig):
 
 class CLIResourceLoaderConfig(BaseResourceLoaderConfig):
     """Resource from CLI command execution."""
+
+    model_config = ConfigDict(json_schema_extra={"x-doc-title": "CLI Resource"})
 
     type: Literal["cli"] = Field(default="cli", init=False, title="Resource type")
     """Discriminator field identifying this as a CLI-based resource."""
@@ -203,6 +209,8 @@ class CLIResourceLoaderConfig(BaseResourceLoaderConfig):
 
 class RepositoryResource(BaseResourceLoaderConfig):
     """Git repository content."""
+
+    model_config = ConfigDict(json_schema_extra={"x-doc-title": "Repository Resource"})
 
     type: Literal["repository"] = Field(default="repository", init=False, title="Resource type")
     """Repository resource configuration."""
@@ -254,6 +262,8 @@ class RepositoryResource(BaseResourceLoaderConfig):
 class SourceResourceLoaderConfig(BaseResourceLoaderConfig):
     """Resource from Python source code."""
 
+    model_config = ConfigDict(json_schema_extra={"x-doc-title": "Source Resource"})
+
     type: Literal["source"] = Field(default="source", init=False, title="Resource type")
     """Source code resource configuration."""
 
@@ -280,6 +290,8 @@ class SourceResourceLoaderConfig(BaseResourceLoaderConfig):
 
 class CallableResourceLoaderConfig(BaseResourceLoaderConfig):
     """Resource from executing a Python callable."""
+
+    model_config = ConfigDict(json_schema_extra={"x-doc-title": "Callable Resource"})
 
     type: Literal["callable"] = Field(default="callable", init=False, title="Resource type")
     """Callable-based resource configuration."""

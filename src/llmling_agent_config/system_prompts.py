@@ -48,11 +48,11 @@ class BaseSystemPrompt(Schema):
     )
     """Categorization for template organization."""
 
-    model_config = ConfigDict(frozen=True)
-
 
 class StaticPromptConfig(BaseSystemPrompt):
     """Configuration for a static text prompt."""
+
+    model_config = ConfigDict(json_schema_extra={"x-doc-title": "Static Prompt"})
 
     type: Literal["static"] = Field("static", init=False)
     """Static prompt reference."""
@@ -63,11 +63,11 @@ class StaticPromptConfig(BaseSystemPrompt):
     )
     """The prompt text content."""
 
-    model_config = ConfigDict(frozen=True)
-
 
 class FilePromptConfig(BaseSystemPrompt):
     """Configuration for a file-based Jinja template prompt."""
+
+    model_config = ConfigDict(json_schema_extra={"x-doc-title": "File Prompt"})
 
     type: Literal["file"] = Field("file", init=False)
     """File prompt reference."""
@@ -85,6 +85,8 @@ class FilePromptConfig(BaseSystemPrompt):
 class LibraryPromptConfig(Schema):
     """Configuration for a library reference prompt."""
 
+    model_config = ConfigDict(json_schema_extra={"x-doc-title": "Library Prompt"})
+
     type: Literal["library"] = Field("library", init=False)
     """Library prompt reference."""
 
@@ -94,11 +96,11 @@ class LibraryPromptConfig(Schema):
     )
     """Library prompt reference identifier."""
 
-    model_config = ConfigDict(frozen=True)
-
 
 class FunctionPromptConfig(BaseSystemPrompt):
     """Configuration for a function-generated prompt."""
+
+    model_config = ConfigDict(json_schema_extra={"x-doc-title": "Function Prompt"})
 
     type: Literal["function"] = Field("function", init=False)
     """Function prompt reference."""
@@ -158,8 +160,6 @@ class PromptLibraryConfig(Schema):
         title="Prompt hub providers",
     )
     """List of external prompt providers to use."""
-
-    model_config = ConfigDict(frozen=True)
 
     def format_prompts(self, identifiers: list[str] | None = None) -> str:
         """Format selected prompts using template.

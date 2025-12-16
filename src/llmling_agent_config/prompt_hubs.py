@@ -4,11 +4,12 @@ from __future__ import annotations
 
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, SecretStr
+from pydantic import ConfigDict, Field, SecretStr  # noqa: TC002
 from pydantic.networks import HttpUrl
+from schemez.schema import Schema
 
 
-class BasePromptHubConfig(BaseModel):
+class BasePromptHubConfig(Schema):
     """Configuration for prompt providers."""
 
     type: str = Field(init=False, title="Prompt hub type")
@@ -20,6 +21,8 @@ class BasePromptHubConfig(BaseModel):
 class PromptLayerConfig(BasePromptHubConfig):
     """Configuration for PromptLayer prompt provider."""
 
+    model_config = ConfigDict(json_schema_extra={"x-doc-title": "PromptLayer"})
+
     type: Literal["promptlayer"] = Field("promptlayer", init=False)
     """Configuration for PromptLayer prompt provider."""
 
@@ -29,6 +32,8 @@ class PromptLayerConfig(BasePromptHubConfig):
 
 class LangfuseConfig(BasePromptHubConfig):
     """Configuration for Langfuse prompt provider."""
+
+    model_config = ConfigDict(json_schema_extra={"x-doc-title": "Langfuse"})
 
     type: Literal["langfuse"] = Field("langfuse", init=False)
     """Configuration for Langfuse prompt provider."""
@@ -69,6 +74,8 @@ class LangfuseConfig(BasePromptHubConfig):
 class BraintrustConfig(BasePromptHubConfig):
     """Configuration for Braintrust prompt provider."""
 
+    model_config = ConfigDict(json_schema_extra={"x-doc-title": "Braintrust"})
+
     type: Literal["braintrust"] = Field("braintrust", init=False)
     """Configuration for Braintrust prompt provider."""
 
@@ -85,6 +92,8 @@ class BraintrustConfig(BasePromptHubConfig):
 
 class FabricConfig(BasePromptHubConfig):
     """Configuration for Fabric GitHub prompt provider."""
+
+    model_config = ConfigDict(json_schema_extra={"x-doc-title": "Fabric"})
 
     type: Literal["fabric"] = Field("fabric", init=False)
     """Configuration for Fabric GitHub prompt provider."""

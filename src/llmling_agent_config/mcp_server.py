@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 from typing import TYPE_CHECKING, Annotated, Literal, Self
 
-from pydantic import Field, HttpUrl
+from pydantic import ConfigDict, Field, HttpUrl
 from schemez import Schema
 
 
@@ -111,6 +111,8 @@ class StdioMCPServerConfig(BaseMCPServerConfig):
     Uses subprocess communication through standard input/output streams.
     """
 
+    model_config = ConfigDict(json_schema_extra={"x-doc-title": "Stdio MCP Server"})
+
     type: Literal["stdio"] = Field("stdio", init=False)
     """Stdio server coniguration."""
 
@@ -159,6 +161,8 @@ class SSEMCPServerConfig(BaseMCPServerConfig):
     Connects to a server over HTTP with SSE for real-time communication.
     """
 
+    model_config = ConfigDict(json_schema_extra={"x-doc-title": "SSE MCP Server"})
+
     type: Literal["sse"] = Field("sse", init=False)
     """SSE server configuration."""
 
@@ -195,6 +199,8 @@ class StreamableHTTPMCPServerConfig(BaseMCPServerConfig):
 
     Connects to a server over HTTP with streamable HTTP.
     """
+
+    model_config = ConfigDict(json_schema_extra={"x-doc-title": "Streamable HTTP MCP Server"})
 
     type: Literal["streamable-http"] = Field("streamable-http", init=False)
     """HTTP server configuration."""

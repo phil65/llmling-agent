@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Annotated, Any, Literal
 
-from pydantic import Field, PrivateAttr, SecretStr
+from pydantic import ConfigDict, Field, PrivateAttr, SecretStr
 from schemez import Schema
 
 
@@ -37,6 +37,8 @@ class BaseObservabilityConfig(Schema):
 class LogfireObservabilityConfig(BaseObservabilityConfig):
     """Configuration for Logfire endpoint."""
 
+    model_config = ConfigDict(json_schema_extra={"x-doc-title": "Logfire"})
+
     type: Literal["logfire"] = "logfire"
     """Logfire endpoint type."""
 
@@ -67,6 +69,8 @@ class LogfireObservabilityConfig(BaseObservabilityConfig):
 class LangsmithObservabilityConfig(BaseObservabilityConfig):
     """Configuration for Langsmith endpoint."""
 
+    model_config = ConfigDict(json_schema_extra={"x-doc-title": "Langsmith"})
+
     type: Literal["langsmith"] = "langsmith"
     """Langsmith observability configuration."""
 
@@ -92,6 +96,8 @@ class LangsmithObservabilityConfig(BaseObservabilityConfig):
 class AgentOpsObservabilityConfig(BaseObservabilityConfig):
     """Configuration for AgentOps endpoint."""
 
+    model_config = ConfigDict(json_schema_extra={"x-doc-title": "AgentOps"})
+
     type: Literal["agentops"] = "agentops"
     """AgentOps observability configuration."""
 
@@ -110,6 +116,8 @@ class AgentOpsObservabilityConfig(BaseObservabilityConfig):
 
 class ArizePhoenixObservabilityConfig(BaseObservabilityConfig):
     """Configuration for Arize Phoenix endpoint."""
+
+    model_config = ConfigDict(json_schema_extra={"x-doc-title": "Arize Phoenix"})
 
     type: Literal["arize"] = "arize"
     """Arize observability configuration."""
@@ -143,6 +151,8 @@ class ArizePhoenixObservabilityConfig(BaseObservabilityConfig):
 
 class CustomObservabilityConfig(BaseObservabilityConfig):
     """Configuration for custom OTEL endpoint."""
+
+    model_config = ConfigDict(json_schema_extra={"x-doc-title": "Custom OTEL"})
 
     type: Literal["custom"] = "custom"
     """Custom OTEL endpoint configuration."""

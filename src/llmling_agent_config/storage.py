@@ -59,11 +59,11 @@ class BaseStorageProviderConfig(Schema):
     log_context: bool = Field(default=True, title="Log context")
     """Whether to log context messages."""
 
-    model_config = ConfigDict(frozen=True)
-
 
 class SQLStorageConfig(BaseStorageProviderConfig):
     """SQL database storage configuration."""
+
+    model_config = ConfigDict(json_schema_extra={"x-doc-title": "SQL Storage"})
 
     type: Literal["sql"] = Field("sql", init=False)
     """SQLModel storage configuration."""
@@ -107,6 +107,8 @@ class SQLStorageConfig(BaseStorageProviderConfig):
 class TextLogConfig(BaseStorageProviderConfig):
     """Text log configuration."""
 
+    model_config = ConfigDict(json_schema_extra={"x-doc-title": "Text Log"})
+
     type: Literal["text_file"] = Field("text_file", init=False)
     """Text log storage configuration."""
 
@@ -134,9 +136,10 @@ class TextLogConfig(BaseStorageProviderConfig):
     """File encoding"""
 
 
-# Config:
 class FileStorageConfig(BaseStorageProviderConfig):
     """File storage configuration."""
+
+    model_config = ConfigDict(json_schema_extra={"x-doc-title": "File Storage"})
 
     type: Literal["file"] = Field("file", init=False)
     """File storage configuration."""
@@ -160,6 +163,8 @@ class FileStorageConfig(BaseStorageProviderConfig):
 
 class MemoryStorageConfig(BaseStorageProviderConfig):
     """In-memory storage configuration for testing."""
+
+    model_config = ConfigDict(json_schema_extra={"x-doc-title": "Memory Storage"})
 
     type: Literal["memory"] = Field("memory", init=False)
     """In-memory storage configuration for testing."""
