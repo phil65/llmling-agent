@@ -11,24 +11,21 @@ agents:
         - file_info: Get file metadata
 
         Always confirm before modifying files.
-    tools:
-      - type: import
-        name: list_files
-        import_path: os.listdir
-        description: "List directory contents"
-      - type: import
-        name: read_file
-        import_path: builtins.open
-        description: "Read file contents"
-      - type: import
-        name: write_file
-        import_path: builtins.open
-        description: "Write file contents"
-      - type: import
-        name: delete_file
-        import_path: os.remove
-        description: "Delete a file"
-      - type: import
-        name: modify_file
-        import_path: custom_tools.modify_file
-        description: "Modify file contents"
+    toolsets:
+      - type: import_tools
+        tools:
+          - import_path: os.listdir
+            name: list_files
+            description: "List directory contents"
+          - import_path: builtins.open
+            name: read_file
+            description: "Read file contents"
+          - import_path: builtins.open
+            name: write_file
+            description: "Write file contents"
+          - import_path: os.remove
+            name: delete_file
+            description: "Delete a file"
+          - import_path: custom_tools.modify_file
+            name: modify_file
+            description: "Modify file contents"
