@@ -216,6 +216,7 @@
               "mapping": {
                 "builtin": "#/$defs/StdoutEventHandlerConfig",
                 "callback": "#/$defs/CallbackEventHandlerConfig",
+                "edge-tts": "#/$defs/EdgeTTSEventHandlerConfig",
                 "tts": "#/$defs/TTSEventHandlerConfig"
               },
               "propertyName": "type"
@@ -229,6 +230,9 @@
               },
               {
                 "$ref": "#/$defs/TTSEventHandlerConfig"
+              },
+              {
+                "$ref": "#/$defs/EdgeTTSEventHandlerConfig"
               }
             ]
           },
@@ -643,6 +647,7 @@
               "mapping": {
                 "builtin": "#/$defs/StdoutEventHandlerConfig",
                 "callback": "#/$defs/CallbackEventHandlerConfig",
+                "edge-tts": "#/$defs/EdgeTTSEventHandlerConfig",
                 "tts": "#/$defs/TTSEventHandlerConfig"
               },
               "propertyName": "type"
@@ -656,6 +661,9 @@
               },
               {
                 "$ref": "#/$defs/TTSEventHandlerConfig"
+              },
+              {
+                "$ref": "#/$defs/EdgeTTSEventHandlerConfig"
               }
             ]
           },
@@ -721,21 +729,13 @@
           "items": {
             "discriminator": {
               "mapping": {
-                "crewai": "#/$defs/CrewAIToolConfig",
-                "import": "#/$defs/ImportToolConfig",
-                "langchain": "#/$defs/LangChainToolConfig"
+                "import": "#/$defs/ImportToolConfig"
               },
               "propertyName": "type"
             },
             "oneOf": [
               {
                 "$ref": "#/$defs/ImportToolConfig"
-              },
-              {
-                "$ref": "#/$defs/CrewAIToolConfig"
-              },
-              {
-                "$ref": "#/$defs/LangChainToolConfig"
               }
             ]
           },
@@ -994,6 +994,7 @@
               "mapping": {
                 "builtin": "#/$defs/StdoutEventHandlerConfig",
                 "callback": "#/$defs/CallbackEventHandlerConfig",
+                "edge-tts": "#/$defs/EdgeTTSEventHandlerConfig",
                 "tts": "#/$defs/TTSEventHandlerConfig"
               },
               "propertyName": "type"
@@ -1007,6 +1008,9 @@
               },
               {
                 "$ref": "#/$defs/TTSEventHandlerConfig"
+              },
+              {
+                "$ref": "#/$defs/EdgeTTSEventHandlerConfig"
               }
             ]
           },
@@ -2446,21 +2450,13 @@
               {
                 "discriminator": {
                   "mapping": {
-                    "crewai": "#/$defs/CrewAIToolConfig",
-                    "import": "#/$defs/ImportToolConfig",
-                    "langchain": "#/$defs/LangChainToolConfig"
+                    "import": "#/$defs/ImportToolConfig"
                   },
                   "propertyName": "type"
                 },
                 "oneOf": [
                   {
                     "$ref": "#/$defs/ImportToolConfig"
-                  },
-                  {
-                    "$ref": "#/$defs/CrewAIToolConfig"
-                  },
-                  {
-                    "$ref": "#/$defs/LangChainToolConfig"
                   }
                 ]
               },
@@ -2508,6 +2504,7 @@
                 "execution": "#/$defs/ExecutionEnvironmentToolsetConfig",
                 "file_access": "#/$defs/FSSpecToolsetConfig",
                 "history": "#/$defs/HistoryToolsetConfig",
+                "import_tools": "#/$defs/ImportToolsToolsetConfig",
                 "integrations": "#/$defs/IntegrationToolsetConfig",
                 "notifications": "#/$defs/NotificationsToolsetConfig",
                 "openapi": "#/$defs/OpenAPIToolsetConfig",
@@ -2586,6 +2583,9 @@
               },
               {
                 "$ref": "#/$defs/ConfigCreationToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/ImportToolsToolsetConfig"
               },
               {
                 "$ref": "#/$defs/CustomToolsetConfig"
@@ -3408,6 +3408,7 @@
               "mapping": {
                 "builtin": "#/$defs/StdoutEventHandlerConfig",
                 "callback": "#/$defs/CallbackEventHandlerConfig",
+                "edge-tts": "#/$defs/EdgeTTSEventHandlerConfig",
                 "tts": "#/$defs/TTSEventHandlerConfig"
               },
               "propertyName": "type"
@@ -3421,6 +3422,9 @@
               },
               {
                 "$ref": "#/$defs/TTSEventHandlerConfig"
+              },
+              {
+                "$ref": "#/$defs/EdgeTTSEventHandlerConfig"
               }
             ]
           },
@@ -4390,6 +4394,7 @@
               "mapping": {
                 "builtin": "#/$defs/StdoutEventHandlerConfig",
                 "callback": "#/$defs/CallbackEventHandlerConfig",
+                "edge-tts": "#/$defs/EdgeTTSEventHandlerConfig",
                 "tts": "#/$defs/TTSEventHandlerConfig"
               },
               "propertyName": "type"
@@ -4403,6 +4408,9 @@
               },
               {
                 "$ref": "#/$defs/TTSEventHandlerConfig"
+              },
+              {
+                "$ref": "#/$defs/EdgeTTSEventHandlerConfig"
               }
             ]
           },
@@ -4514,6 +4522,7 @@
                 "execution": "#/$defs/ExecutionEnvironmentToolsetConfig",
                 "file_access": "#/$defs/FSSpecToolsetConfig",
                 "history": "#/$defs/HistoryToolsetConfig",
+                "import_tools": "#/$defs/ImportToolsToolsetConfig",
                 "integrations": "#/$defs/IntegrationToolsetConfig",
                 "notifications": "#/$defs/NotificationsToolsetConfig",
                 "openapi": "#/$defs/OpenAPIToolsetConfig",
@@ -4592,6 +4601,9 @@
               },
               {
                 "$ref": "#/$defs/ConfigCreationToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/ImportToolsToolsetConfig"
               },
               {
                 "$ref": "#/$defs/CustomToolsetConfig"
@@ -7129,6 +7141,7 @@
               "mapping": {
                 "builtin": "#/$defs/StdoutEventHandlerConfig",
                 "callback": "#/$defs/CallbackEventHandlerConfig",
+                "edge-tts": "#/$defs/EdgeTTSEventHandlerConfig",
                 "tts": "#/$defs/TTSEventHandlerConfig"
               },
               "propertyName": "type"
@@ -7142,6 +7155,9 @@
               },
               {
                 "$ref": "#/$defs/TTSEventHandlerConfig"
+              },
+              {
+                "$ref": "#/$defs/EdgeTTSEventHandlerConfig"
               }
             ]
           },
@@ -7970,6 +7986,7 @@
               "mapping": {
                 "builtin": "#/$defs/StdoutEventHandlerConfig",
                 "callback": "#/$defs/CallbackEventHandlerConfig",
+                "edge-tts": "#/$defs/EdgeTTSEventHandlerConfig",
                 "tts": "#/$defs/TTSEventHandlerConfig"
               },
               "propertyName": "type"
@@ -7983,6 +8000,9 @@
               },
               {
                 "$ref": "#/$defs/TTSEventHandlerConfig"
+              },
+              {
+                "$ref": "#/$defs/EdgeTTSEventHandlerConfig"
               }
             ]
           },
@@ -8094,6 +8114,7 @@
                 "execution": "#/$defs/ExecutionEnvironmentToolsetConfig",
                 "file_access": "#/$defs/FSSpecToolsetConfig",
                 "history": "#/$defs/HistoryToolsetConfig",
+                "import_tools": "#/$defs/ImportToolsToolsetConfig",
                 "integrations": "#/$defs/IntegrationToolsetConfig",
                 "notifications": "#/$defs/NotificationsToolsetConfig",
                 "openapi": "#/$defs/OpenAPIToolsetConfig",
@@ -8172,6 +8193,9 @@
               },
               {
                 "$ref": "#/$defs/ConfigCreationToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/ImportToolsToolsetConfig"
               },
               {
                 "$ref": "#/$defs/CustomToolsetConfig"
@@ -8724,6 +8748,7 @@
                 "execution": "#/$defs/ExecutionEnvironmentToolsetConfig",
                 "file_access": "#/$defs/FSSpecToolsetConfig",
                 "history": "#/$defs/HistoryToolsetConfig",
+                "import_tools": "#/$defs/ImportToolsToolsetConfig",
                 "integrations": "#/$defs/IntegrationToolsetConfig",
                 "notifications": "#/$defs/NotificationsToolsetConfig",
                 "openapi": "#/$defs/OpenAPIToolsetConfig",
@@ -8802,6 +8827,9 @@
               },
               {
                 "$ref": "#/$defs/ConfigCreationToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/ImportToolsToolsetConfig"
               },
               {
                 "$ref": "#/$defs/CustomToolsetConfig"
@@ -9088,6 +9116,7 @@
               "mapping": {
                 "builtin": "#/$defs/StdoutEventHandlerConfig",
                 "callback": "#/$defs/CallbackEventHandlerConfig",
+                "edge-tts": "#/$defs/EdgeTTSEventHandlerConfig",
                 "tts": "#/$defs/TTSEventHandlerConfig"
               },
               "propertyName": "type"
@@ -9101,6 +9130,9 @@
               },
               {
                 "$ref": "#/$defs/TTSEventHandlerConfig"
+              },
+              {
+                "$ref": "#/$defs/EdgeTTSEventHandlerConfig"
               }
             ]
           },
@@ -9589,121 +9621,6 @@
       "title": "Cost Limit Condition",
       "type": "object"
     },
-    "CrewAIToolConfig": {
-      "additionalProperties": false,
-      "description": "Configuration for CrewAI-based tools.",
-      "properties": {
-        "type": {
-          "const": "crewai",
-          "default": "crewai",
-          "description": "CrewAI tool configuration.",
-          "title": "Type",
-          "type": "string"
-        },
-        "name": {
-          "default": null,
-          "description": "Optional override for the tool name.",
-          "examples": [
-            "search_web",
-            "file_reader",
-            "calculator"
-          ],
-          "title": "Tool name override",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "description": {
-          "default": null,
-          "description": "Optional override for the tool description.",
-          "examples": [
-            "Search the web for information",
-            "Read file contents"
-          ],
-          "title": "Tool description override",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "enabled": {
-          "default": true,
-          "description": "Whether this tool is initially enabled.",
-          "title": "Tool enabled",
-          "type": "boolean"
-        },
-        "requires_confirmation": {
-          "default": false,
-          "description": "Whether tool execution needs confirmation.",
-          "title": "Requires confirmation",
-          "type": "boolean"
-        },
-        "metadata": {
-          "additionalProperties": {
-            "type": "string"
-          },
-          "description": "Additional tool metadata.",
-          "examples": [
-            {
-              "category": "web",
-              "version": "1.0"
-            },
-            {
-              "author": "system",
-              "tags": "search,utility"
-            },
-            {
-              "environment": "production",
-              "priority": "high"
-            }
-          ],
-          "title": "Tool metadata",
-          "type": "object"
-        },
-        "hints": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ToolHints"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Hints for tool execution.",
-          "examples": [
-            {
-              "destructive": false,
-              "idempotent": false,
-              "open_world": true,
-              "read_only": true
-            }
-          ],
-          "title": "Execution hints"
-        },
-        "import_path": {
-          "description": "Import path to CrewAI tool class.",
-          "examples": [
-            "crewai_tools.BrowserTool",
-            "crewai_tools.SearchTool"
-          ],
-          "title": "CrewAI tool import path",
-          "type": "string"
-        },
-        "params": {
-          "additionalProperties": true,
-          "description": "Tool-specific parameters.",
-          "title": "Tool parameters",
-          "type": "object"
-        }
-      },
-      "required": [
-        "import_path"
-      ],
-      "title": "CrewAIToolConfig",
-      "type": "object"
-    },
     "CursorACPAgentConfig": {
       "additionalProperties": false,
       "description": "Configuration for Cursor via ACP.\n\nCursor CLI agent with filesystem and terminal capabilities.\nSee https://github.com/blowmage/cursor-agent-acp-npm\n\nExample:\n    ```yaml\n    acp_agents:\n      coder:\n        type: cursor\n        cwd: /path/to/project\n        session_dir: ~/.cursor-sessions\n        timeout: 30000\n    ```",
@@ -9920,6 +9837,7 @@
               "mapping": {
                 "builtin": "#/$defs/StdoutEventHandlerConfig",
                 "callback": "#/$defs/CallbackEventHandlerConfig",
+                "edge-tts": "#/$defs/EdgeTTSEventHandlerConfig",
                 "tts": "#/$defs/TTSEventHandlerConfig"
               },
               "propertyName": "type"
@@ -9933,6 +9851,9 @@
               },
               {
                 "$ref": "#/$defs/TTSEventHandlerConfig"
+              },
+              {
+                "$ref": "#/$defs/EdgeTTSEventHandlerConfig"
               }
             ]
           },
@@ -14028,6 +13949,117 @@
       "type": "object",
       "x-doc-title": "E2B Execution Environment"
     },
+    "EdgeTTSEventHandlerConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for Edge TTS event handler (free, no API key required).\n\nUses Microsoft Edge's TTS service via edge-tts library.\nSupports many voices and languages without requiring an API key.",
+      "properties": {
+        "type": {
+          "const": "edge-tts",
+          "default": "edge-tts",
+          "description": "Edge TTS event handler.",
+          "title": "Type",
+          "type": "string"
+        },
+        "enabled": {
+          "default": true,
+          "description": "Whether this handler is enabled.",
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "voice": {
+          "default": "en-US-AriaNeural",
+          "description": "Voice to use for synthesis.\n\nUse `edge-tts --list-voices` to see all available voices.\nFormat: {locale}-{Name}Neural (e.g., en-US-AriaNeural)",
+          "examples": [
+            "en-US-AriaNeural",
+            "en-US-GuyNeural",
+            "en-GB-SoniaNeural",
+            "de-DE-KatjaNeural",
+            "fr-FR-DeniseNeural"
+          ],
+          "title": "Voice name",
+          "type": "string"
+        },
+        "rate": {
+          "default": "+0%",
+          "description": "Speaking rate adjustment (e.g., '+25%', '-10%').",
+          "examples": [
+            "-50%",
+            "+0%",
+            "+25%",
+            "+50%"
+          ],
+          "title": "Speech rate",
+          "type": "string"
+        },
+        "volume": {
+          "default": "+0%",
+          "description": "Volume adjustment (e.g., '+10%', '-20%').",
+          "examples": [
+            "-50%",
+            "+0%",
+            "+25%",
+            "+50%"
+          ],
+          "title": "Volume",
+          "type": "string"
+        },
+        "pitch": {
+          "default": "+0Hz",
+          "description": "Pitch adjustment in Hz (e.g., '+10Hz', '-5Hz').",
+          "examples": [
+            "-50Hz",
+            "+0Hz",
+            "+25Hz",
+            "+50Hz"
+          ],
+          "title": "Pitch",
+          "type": "string"
+        },
+        "sample_rate": {
+          "default": 24000,
+          "description": "Audio sample rate in Hz for playback.",
+          "examples": [
+            16000,
+            24000,
+            44100
+          ],
+          "title": "Sample Rate",
+          "type": "integer"
+        },
+        "min_text_length": {
+          "default": 20,
+          "description": "Minimum text length before synthesizing (in characters).",
+          "examples": [
+            10,
+            20,
+            50
+          ],
+          "minimum": 5,
+          "title": "Minimum Text Length",
+          "type": "integer"
+        },
+        "mode": {
+          "default": "sync_run",
+          "description": "How TTS synthesis synchronizes with the event stream.\n\n- sync_sentence: Wait for each sentence's audio before continuing (slowest, most synchronized)\n- sync_run: Stream fast, wait for all audio at run end (default, recommended)\n- async_queue: Stream fast, audio plays in background, multiple runs queue up\n- async_cancel: Stream fast, audio plays in background, new run cancels previous audio",
+          "enum": [
+            "sync_sentence",
+            "sync_run",
+            "async_queue",
+            "async_cancel"
+          ],
+          "examples": [
+            "sync_sentence",
+            "sync_run",
+            "async_queue",
+            "async_cancel"
+          ],
+          "title": "Synchronization Mode",
+          "type": "string"
+        }
+      },
+      "title": "Edge TTS Event Handler",
+      "type": "object"
+    },
     "EmailConfig": {
       "additionalProperties": false,
       "description": "Email event source configuration.\n\nMonitors an email inbox for new messages and converts them to events.",
@@ -14423,18 +14455,262 @@
           "title": "Type",
           "type": "string"
         },
-        "url": {
+        "fs": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "discriminator": {
+                "mapping": {
+                  "abfs": "#/$defs/AzureBlobFilesystemConfig",
+                  "appwrite": "#/$defs/AppwriteFilesystemConfig",
+                  "arrow": "#/$defs/ArrowFilesystemConfig",
+                  "asynclocal": "#/$defs/AsyncLocalFilesystemConfig",
+                  "basemodel": "#/$defs/BaseModelFilesystemConfig",
+                  "basemodel_instance": "#/$defs/BaseModelInstanceFilesystemConfig",
+                  "beam": "#/$defs/BeamFilesystemConfig",
+                  "cli": "#/$defs/CliFilesystemConfig",
+                  "dask": "#/$defs/DaskWorkerFilesystemConfig",
+                  "data": "#/$defs/DataFilesystemConfig",
+                  "daytona": "#/$defs/DaytonaFilesystemConfig",
+                  "distribution": "#/$defs/DistributionFilesystemConfig",
+                  "e2b": "#/$defs/E2BFilesystemConfig",
+                  "file": "#/$defs/LocalFilesystemConfig",
+                  "flatunion": "#/$defs/FlatUnionFilesystemConfig",
+                  "ftp": "#/$defs/FTPFilesystemConfig",
+                  "gcs": "#/$defs/GCSFilesystemConfig",
+                  "gist": "#/$defs/GistFilesystemConfig",
+                  "git": "#/$defs/GitFilesystemConfig",
+                  "github": "#/$defs/GithubFilesystemConfig",
+                  "gitlab": "#/$defs/GitLabFilesystemConfig",
+                  "hdfs": "#/$defs/HadoopFilesystemConfig",
+                  "hf": "#/$defs/HuggingFaceFilesystemConfig",
+                  "http": "#/$defs/HttpFilesystemConfig",
+                  "httpx": "#/$defs/HttpxFilesystemConfig",
+                  "jsonschema": "#/$defs/JsonSchemaFilesystemConfig",
+                  "jupyter": "#/$defs/JupyterFilesystemConfig",
+                  "libarchive": "#/$defs/LibArchiveFilesystemConfig",
+                  "linear": "#/$defs/LinearFilesystemConfig",
+                  "mcp": "#/$defs/McpFilesystemConfig",
+                  "mcptools": "#/$defs/McpToolsFilesystemConfig",
+                  "md": "#/$defs/MarkdownFilesystemConfig",
+                  "memory": "#/$defs/MemoryFilesystemConfig",
+                  "microsandbox": "#/$defs/MicrosandboxFilesystemConfig",
+                  "modal": "#/$defs/ModalFilesystemConfig",
+                  "notion": "#/$defs/NotionFilesystemConfig",
+                  "openapi": "#/$defs/OpenApiFilesystemConfig",
+                  "overlay": "#/$defs/OverlayFilesystemConfig",
+                  "pkg": "#/$defs/PackageFilesystemConfig",
+                  "s3": "#/$defs/S3FilesystemConfig",
+                  "sftp": "#/$defs/SFTPFilesystemConfig",
+                  "skills": "#/$defs/SkillsFilesystemConfig",
+                  "smb": "#/$defs/SMBFilesystemConfig",
+                  "sqlite": "#/$defs/SqliteFilesystemConfig",
+                  "srt": "#/$defs/SRTFilesystemConfig",
+                  "tar": "#/$defs/TarFilesystemConfig",
+                  "treesitter": "#/$defs/TreeSitterFilesystemConfig",
+                  "union": "#/$defs/UnionFilesystemConfig",
+                  "uri": "#/$defs/URIFileSystemConfig",
+                  "vercel": "#/$defs/VercelFilesystemConfig",
+                  "webdav": "#/$defs/WebdavFilesystemConfig",
+                  "webhdfs": "#/$defs/WebHDFSFilesystemConfig",
+                  "wiki": "#/$defs/WikiFilesystemConfig",
+                  "zip": "#/$defs/ZipFilesystemConfig"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/AsyncLocalFilesystemConfig"
+                },
+                {
+                  "$ref": "#/$defs/BaseModelFilesystemConfig"
+                },
+                {
+                  "$ref": "#/$defs/BaseModelInstanceFilesystemConfig"
+                },
+                {
+                  "$ref": "#/$defs/CliFilesystemConfig"
+                },
+                {
+                  "$ref": "#/$defs/DistributionFilesystemConfig"
+                },
+                {
+                  "$ref": "#/$defs/FlatUnionFilesystemConfig"
+                },
+                {
+                  "$ref": "#/$defs/HttpFilesystemConfig"
+                },
+                {
+                  "$ref": "#/$defs/HttpxFilesystemConfig"
+                },
+                {
+                  "$ref": "#/$defs/OverlayFilesystemConfig"
+                },
+                {
+                  "$ref": "#/$defs/PackageFilesystemConfig"
+                },
+                {
+                  "$ref": "#/$defs/SkillsFilesystemConfig"
+                },
+                {
+                  "$ref": "#/$defs/UnionFilesystemConfig"
+                },
+                {
+                  "$ref": "#/$defs/ArrowFilesystemConfig"
+                },
+                {
+                  "$ref": "#/$defs/AzureBlobFilesystemConfig"
+                },
+                {
+                  "$ref": "#/$defs/DataFilesystemConfig"
+                },
+                {
+                  "$ref": "#/$defs/DaskWorkerFilesystemConfig"
+                },
+                {
+                  "$ref": "#/$defs/FTPFilesystemConfig"
+                },
+                {
+                  "$ref": "#/$defs/GCSFilesystemConfig"
+                },
+                {
+                  "$ref": "#/$defs/GitFilesystemConfig"
+                },
+                {
+                  "$ref": "#/$defs/GithubFilesystemConfig"
+                },
+                {
+                  "$ref": "#/$defs/HadoopFilesystemConfig"
+                },
+                {
+                  "$ref": "#/$defs/HuggingFaceFilesystemConfig"
+                },
+                {
+                  "$ref": "#/$defs/JupyterFilesystemConfig"
+                },
+                {
+                  "$ref": "#/$defs/LibArchiveFilesystemConfig"
+                },
+                {
+                  "$ref": "#/$defs/LocalFilesystemConfig"
+                },
+                {
+                  "$ref": "#/$defs/MemoryFilesystemConfig"
+                },
+                {
+                  "$ref": "#/$defs/S3FilesystemConfig"
+                },
+                {
+                  "$ref": "#/$defs/SFTPFilesystemConfig"
+                },
+                {
+                  "$ref": "#/$defs/SMBFilesystemConfig"
+                },
+                {
+                  "$ref": "#/$defs/TarFilesystemConfig"
+                },
+                {
+                  "$ref": "#/$defs/WebdavFilesystemConfig"
+                },
+                {
+                  "$ref": "#/$defs/WebHDFSFilesystemConfig"
+                },
+                {
+                  "$ref": "#/$defs/ZipFilesystemConfig"
+                },
+                {
+                  "$ref": "#/$defs/URIFileSystemConfig"
+                },
+                {
+                  "$ref": "#/$defs/BeamFilesystemConfig"
+                },
+                {
+                  "$ref": "#/$defs/DaytonaFilesystemConfig"
+                },
+                {
+                  "$ref": "#/$defs/E2BFilesystemConfig"
+                },
+                {
+                  "$ref": "#/$defs/ModalFilesystemConfig"
+                },
+                {
+                  "$ref": "#/$defs/MicrosandboxFilesystemConfig"
+                },
+                {
+                  "$ref": "#/$defs/SRTFilesystemConfig"
+                },
+                {
+                  "$ref": "#/$defs/VercelFilesystemConfig"
+                },
+                {
+                  "$ref": "#/$defs/AppwriteFilesystemConfig"
+                },
+                {
+                  "$ref": "#/$defs/GistFilesystemConfig"
+                },
+                {
+                  "$ref": "#/$defs/GitLabFilesystemConfig"
+                },
+                {
+                  "$ref": "#/$defs/LinearFilesystemConfig"
+                },
+                {
+                  "$ref": "#/$defs/McpFilesystemConfig"
+                },
+                {
+                  "$ref": "#/$defs/McpToolsFilesystemConfig"
+                },
+                {
+                  "$ref": "#/$defs/NotionFilesystemConfig"
+                },
+                {
+                  "$ref": "#/$defs/WikiFilesystemConfig"
+                },
+                {
+                  "$ref": "#/$defs/JsonSchemaFilesystemConfig"
+                },
+                {
+                  "$ref": "#/$defs/MarkdownFilesystemConfig"
+                },
+                {
+                  "$ref": "#/$defs/OpenApiFilesystemConfig"
+                },
+                {
+                  "$ref": "#/$defs/SqliteFilesystemConfig"
+                },
+                {
+                  "$ref": "#/$defs/TreeSitterFilesystemConfig"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
           "default": null,
-          "description": "Filesystem URL or protocol. If None set, use agent default FS.",
+          "description": "Filesystem URI string or configuration object. If None, use agent default FS.\n\nSupports:\n- URI strings: \"file:///\", \"s3://bucket\", \"github://org/repo\"\n- Full configs: {\"type\": \"github\", \"org\": \"...\", \"repo\": \"...\"}\n- Composed filesystems: {\"type\": \"union\", \"filesystems\": {...}}",
           "examples": [
             "file:///",
-            "s3://my-bucket"
+            "s3://my-bucket",
+            {
+              "org": "sveltejs",
+              "repo": "svelte",
+              "type": "github"
+            },
+            {
+              "filesystems": {
+                "docs": {
+                  "org": "org",
+                  "repo": "repo",
+                  "type": "github"
+                }
+              },
+              "type": "union"
+            }
           ],
-          "title": "Filesystem URL",
-          "type": [
-            "string",
-            "null"
-          ]
+          "title": "Filesystem"
         },
         "model": {
           "anyOf": [
@@ -15841,7 +16117,7 @@
           "additionalProperties": {
             "type": "string"
           },
-          "description": "Additional options to pass to the filesystem constructor.",
+          "description": "Additional options for URI-based filesystems (ignored when using config object).",
           "examples": [
             {
               "profile": "default",
@@ -15850,10 +16126,6 @@
             {
               "timeout": "30",
               "token": "ghp_123456789"
-            },
-            {
-              "key": "value",
-              "ssl_verify": "true"
             }
           ],
           "title": "Storage options",
@@ -17655,6 +17927,7 @@
               "mapping": {
                 "builtin": "#/$defs/StdoutEventHandlerConfig",
                 "callback": "#/$defs/CallbackEventHandlerConfig",
+                "edge-tts": "#/$defs/EdgeTTSEventHandlerConfig",
                 "tts": "#/$defs/TTSEventHandlerConfig"
               },
               "propertyName": "type"
@@ -17668,6 +17941,9 @@
               },
               {
                 "$ref": "#/$defs/TTSEventHandlerConfig"
+              },
+              {
+                "$ref": "#/$defs/EdgeTTSEventHandlerConfig"
               }
             ]
           },
@@ -17779,6 +18055,7 @@
                 "execution": "#/$defs/ExecutionEnvironmentToolsetConfig",
                 "file_access": "#/$defs/FSSpecToolsetConfig",
                 "history": "#/$defs/HistoryToolsetConfig",
+                "import_tools": "#/$defs/ImportToolsToolsetConfig",
                 "integrations": "#/$defs/IntegrationToolsetConfig",
                 "notifications": "#/$defs/NotificationsToolsetConfig",
                 "openapi": "#/$defs/OpenAPIToolsetConfig",
@@ -17857,6 +18134,9 @@
               },
               {
                 "$ref": "#/$defs/ConfigCreationToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/ImportToolsToolsetConfig"
               },
               {
                 "$ref": "#/$defs/CustomToolsetConfig"
@@ -19197,6 +19477,7 @@
               "mapping": {
                 "builtin": "#/$defs/StdoutEventHandlerConfig",
                 "callback": "#/$defs/CallbackEventHandlerConfig",
+                "edge-tts": "#/$defs/EdgeTTSEventHandlerConfig",
                 "tts": "#/$defs/TTSEventHandlerConfig"
               },
               "propertyName": "type"
@@ -19210,6 +19491,9 @@
               },
               {
                 "$ref": "#/$defs/TTSEventHandlerConfig"
+              },
+              {
+                "$ref": "#/$defs/EdgeTTSEventHandlerConfig"
               }
             ]
           },
@@ -19321,6 +19605,7 @@
                 "execution": "#/$defs/ExecutionEnvironmentToolsetConfig",
                 "file_access": "#/$defs/FSSpecToolsetConfig",
                 "history": "#/$defs/HistoryToolsetConfig",
+                "import_tools": "#/$defs/ImportToolsToolsetConfig",
                 "integrations": "#/$defs/IntegrationToolsetConfig",
                 "notifications": "#/$defs/NotificationsToolsetConfig",
                 "openapi": "#/$defs/OpenAPIToolsetConfig",
@@ -19399,6 +19684,9 @@
               },
               {
                 "$ref": "#/$defs/ConfigCreationToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/ImportToolsToolsetConfig"
               },
               {
                 "$ref": "#/$defs/CustomToolsetConfig"
@@ -20623,6 +20911,7 @@
               "mapping": {
                 "builtin": "#/$defs/StdoutEventHandlerConfig",
                 "callback": "#/$defs/CallbackEventHandlerConfig",
+                "edge-tts": "#/$defs/EdgeTTSEventHandlerConfig",
                 "tts": "#/$defs/TTSEventHandlerConfig"
               },
               "propertyName": "type"
@@ -20636,6 +20925,9 @@
               },
               {
                 "$ref": "#/$defs/TTSEventHandlerConfig"
+              },
+              {
+                "$ref": "#/$defs/EdgeTTSEventHandlerConfig"
               }
             ]
           },
@@ -21336,6 +21628,59 @@
       ],
       "title": "ImportToolConfig",
       "type": "object"
+    },
+    "ImportToolsToolsetConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for importing individual functions as tools.\n\nAllows adding arbitrary Python callables as agent tools via import paths.",
+      "properties": {
+        "namespace": {
+          "default": null,
+          "description": "Optional namespace prefix for tool names",
+          "examples": [
+            "web",
+            "files"
+          ],
+          "title": "Tool namespace",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "type": {
+          "const": "import_tools",
+          "default": "import_tools",
+          "description": "Import tools toolset.",
+          "title": "Type",
+          "type": "string"
+        },
+        "tools": {
+          "description": "List of tool configurations to import.",
+          "examples": [
+            [
+              {
+                "import_path": "os.listdir",
+                "name": "list_files"
+              },
+              {
+                "description": "Open URL in browser",
+                "import_path": "webbrowser.open"
+              }
+            ]
+          ],
+          "items": {
+            "$ref": "#/$defs/ImportToolConfig"
+          },
+          "title": "Tools to import",
+          "type": "array"
+        }
+      },
+      "required": [
+        "tools"
+      ],
+      "title": "ImportToolsToolsetConfig",
+      "type": "object",
+      "x-doc-title": "Import Tools Toolset",
+      "x-icon": "octicon:package-dependencies-16"
     },
     "ImportedSchemaDef": {
       "additionalProperties": false,
@@ -22203,6 +22548,7 @@
               "mapping": {
                 "builtin": "#/$defs/StdoutEventHandlerConfig",
                 "callback": "#/$defs/CallbackEventHandlerConfig",
+                "edge-tts": "#/$defs/EdgeTTSEventHandlerConfig",
                 "tts": "#/$defs/TTSEventHandlerConfig"
               },
               "propertyName": "type"
@@ -22216,6 +22562,9 @@
               },
               {
                 "$ref": "#/$defs/TTSEventHandlerConfig"
+              },
+              {
+                "$ref": "#/$defs/EdgeTTSEventHandlerConfig"
               }
             ]
           },
@@ -22327,6 +22676,7 @@
                 "execution": "#/$defs/ExecutionEnvironmentToolsetConfig",
                 "file_access": "#/$defs/FSSpecToolsetConfig",
                 "history": "#/$defs/HistoryToolsetConfig",
+                "import_tools": "#/$defs/ImportToolsToolsetConfig",
                 "integrations": "#/$defs/IntegrationToolsetConfig",
                 "notifications": "#/$defs/NotificationsToolsetConfig",
                 "openapi": "#/$defs/OpenAPIToolsetConfig",
@@ -22405,6 +22755,9 @@
               },
               {
                 "$ref": "#/$defs/ConfigCreationToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/ImportToolsToolsetConfig"
               },
               {
                 "$ref": "#/$defs/CustomToolsetConfig"
@@ -22610,122 +22963,6 @@
         }
       },
       "title": "LLMConverterConfig",
-      "type": "object"
-    },
-    "LangChainToolConfig": {
-      "additionalProperties": false,
-      "description": "Configuration for LangChain tools.",
-      "properties": {
-        "type": {
-          "const": "langchain",
-          "default": "langchain",
-          "description": "LangChain tool configuration.",
-          "title": "Type",
-          "type": "string"
-        },
-        "name": {
-          "default": null,
-          "description": "Optional override for the tool name.",
-          "examples": [
-            "search_web",
-            "file_reader",
-            "calculator"
-          ],
-          "title": "Tool name override",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "description": {
-          "default": null,
-          "description": "Optional override for the tool description.",
-          "examples": [
-            "Search the web for information",
-            "Read file contents"
-          ],
-          "title": "Tool description override",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "enabled": {
-          "default": true,
-          "description": "Whether this tool is initially enabled.",
-          "title": "Tool enabled",
-          "type": "boolean"
-        },
-        "requires_confirmation": {
-          "default": false,
-          "description": "Whether tool execution needs confirmation.",
-          "title": "Requires confirmation",
-          "type": "boolean"
-        },
-        "metadata": {
-          "additionalProperties": {
-            "type": "string"
-          },
-          "description": "Additional tool metadata.",
-          "examples": [
-            {
-              "category": "web",
-              "version": "1.0"
-            },
-            {
-              "author": "system",
-              "tags": "search,utility"
-            },
-            {
-              "environment": "production",
-              "priority": "high"
-            }
-          ],
-          "title": "Tool metadata",
-          "type": "object"
-        },
-        "hints": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ToolHints"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Hints for tool execution.",
-          "examples": [
-            {
-              "destructive": false,
-              "idempotent": false,
-              "open_world": true,
-              "read_only": true
-            }
-          ],
-          "title": "Execution hints"
-        },
-        "tool_name": {
-          "description": "Name of LangChain tool to use.",
-          "examples": [
-            "wikipedia",
-            "google-search",
-            "python_repl"
-          ],
-          "title": "LangChain tool name",
-          "type": "string"
-        },
-        "params": {
-          "additionalProperties": true,
-          "description": "Tool-specific parameters.",
-          "title": "Tool parameters",
-          "type": "object"
-        }
-      },
-      "required": [
-        "tool_name"
-      ],
-      "title": "LangChainToolConfig",
       "type": "object"
     },
     "LangfuseConfig": {
@@ -24807,6 +25044,7 @@
               "mapping": {
                 "builtin": "#/$defs/StdoutEventHandlerConfig",
                 "callback": "#/$defs/CallbackEventHandlerConfig",
+                "edge-tts": "#/$defs/EdgeTTSEventHandlerConfig",
                 "tts": "#/$defs/TTSEventHandlerConfig"
               },
               "propertyName": "type"
@@ -24820,6 +25058,9 @@
               },
               {
                 "$ref": "#/$defs/TTSEventHandlerConfig"
+              },
+              {
+                "$ref": "#/$defs/EdgeTTSEventHandlerConfig"
               }
             ]
           },
@@ -26435,6 +26676,7 @@
               "mapping": {
                 "builtin": "#/$defs/StdoutEventHandlerConfig",
                 "callback": "#/$defs/CallbackEventHandlerConfig",
+                "edge-tts": "#/$defs/EdgeTTSEventHandlerConfig",
                 "tts": "#/$defs/TTSEventHandlerConfig"
               },
               "propertyName": "type"
@@ -26448,6 +26690,9 @@
               },
               {
                 "$ref": "#/$defs/TTSEventHandlerConfig"
+              },
+              {
+                "$ref": "#/$defs/EdgeTTSEventHandlerConfig"
               }
             ]
           },
@@ -26761,6 +27006,7 @@
               "mapping": {
                 "builtin": "#/$defs/StdoutEventHandlerConfig",
                 "callback": "#/$defs/CallbackEventHandlerConfig",
+                "edge-tts": "#/$defs/EdgeTTSEventHandlerConfig",
                 "tts": "#/$defs/TTSEventHandlerConfig"
               },
               "propertyName": "type"
@@ -26774,6 +27020,9 @@
               },
               {
                 "$ref": "#/$defs/TTSEventHandlerConfig"
+              },
+              {
+                "$ref": "#/$defs/EdgeTTSEventHandlerConfig"
               }
             ]
           },
@@ -28816,6 +29065,7 @@
                 "execution": "#/$defs/ExecutionEnvironmentToolsetConfig",
                 "file_access": "#/$defs/FSSpecToolsetConfig",
                 "history": "#/$defs/HistoryToolsetConfig",
+                "import_tools": "#/$defs/ImportToolsToolsetConfig",
                 "integrations": "#/$defs/IntegrationToolsetConfig",
                 "notifications": "#/$defs/NotificationsToolsetConfig",
                 "openapi": "#/$defs/OpenAPIToolsetConfig",
@@ -28894,6 +29144,9 @@
               },
               {
                 "$ref": "#/$defs/ConfigCreationToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/ImportToolsToolsetConfig"
               },
               {
                 "$ref": "#/$defs/CustomToolsetConfig"
@@ -32713,6 +32966,7 @@
               "mapping": {
                 "builtin": "#/$defs/StdoutEventHandlerConfig",
                 "callback": "#/$defs/CallbackEventHandlerConfig",
+                "edge-tts": "#/$defs/EdgeTTSEventHandlerConfig",
                 "tts": "#/$defs/TTSEventHandlerConfig"
               },
               "propertyName": "type"
@@ -32726,6 +32980,9 @@
               },
               {
                 "$ref": "#/$defs/TTSEventHandlerConfig"
+              },
+              {
+                "$ref": "#/$defs/EdgeTTSEventHandlerConfig"
               }
             ]
           },
@@ -36588,6 +36845,12 @@
           "default": null,
           "description": "Optional tool filter to enable/disable specific tools.",
           "title": "Tool filter"
+        },
+        "batch_stream_deltas": {
+          "default": false,
+          "description": "Batch consecutive text/thinking deltas for fewer UI updates.",
+          "title": "Batch stream deltas",
+          "type": "boolean"
         }
       },
       "title": "SubagentToolsetConfig",
@@ -36714,6 +36977,24 @@
           "minimum": 5,
           "title": "Minimum Text Length",
           "type": "integer"
+        },
+        "mode": {
+          "default": "sync_run",
+          "description": "How TTS synthesis synchronizes with the event stream.\n\n- sync_sentence: Wait for each sentence's audio before continuing (slowest, most synchronized)\n- sync_run: Stream fast, wait for all audio at run end (default, recommended)\n- async_queue: Stream fast, audio plays in background, multiple runs queue up\n- async_cancel: Stream fast, audio plays in background, new run cancels previous audio",
+          "enum": [
+            "sync_sentence",
+            "sync_run",
+            "async_queue",
+            "async_cancel"
+          ],
+          "examples": [
+            "sync_sentence",
+            "sync_run",
+            "async_queue",
+            "async_cancel"
+          ],
+          "title": "Synchronization Mode",
+          "type": "string"
         }
       },
       "title": "Text-to-Speech Event Handler",
@@ -37099,6 +37380,7 @@
               "mapping": {
                 "builtin": "#/$defs/StdoutEventHandlerConfig",
                 "callback": "#/$defs/CallbackEventHandlerConfig",
+                "edge-tts": "#/$defs/EdgeTTSEventHandlerConfig",
                 "tts": "#/$defs/TTSEventHandlerConfig"
               },
               "propertyName": "type"
@@ -37112,6 +37394,9 @@
               },
               {
                 "$ref": "#/$defs/TTSEventHandlerConfig"
+              },
+              {
+                "$ref": "#/$defs/EdgeTTSEventHandlerConfig"
               }
             ]
           },
@@ -39675,6 +39960,7 @@
               "mapping": {
                 "builtin": "#/$defs/StdoutEventHandlerConfig",
                 "callback": "#/$defs/CallbackEventHandlerConfig",
+                "edge-tts": "#/$defs/EdgeTTSEventHandlerConfig",
                 "tts": "#/$defs/TTSEventHandlerConfig"
               },
               "propertyName": "type"
@@ -39688,6 +39974,9 @@
               },
               {
                 "$ref": "#/$defs/TTSEventHandlerConfig"
+              },
+              {
+                "$ref": "#/$defs/EdgeTTSEventHandlerConfig"
               }
             ]
           },
