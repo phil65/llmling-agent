@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import asyncio
+import types
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Self
+from typing import TYPE_CHECKING, Annotated, Any, Self, Union, get_args, get_origin
 
 
 if TYPE_CHECKING:
@@ -127,6 +128,105 @@ def get_example(name: str, root: Path | str | None = None) -> Example:
         if example.name == name:
             return example
     raise KeyError(f"Example {name!r} not found")
+
+
+def get_discriminator_values(union_type: Any) -> dict[str, type]:
+    """Extract discriminator values from a discriminated union.
+
+    Args:
+        union_type: A Union type (possibly wrapped in Annotated)
+
+    Returns:
+        Dict mapping discriminator values to their model classes
+    """
+    # Unwrap Annotated if present
+    origin = get_origin(union_type)
+    if origin is Annotated:
+        union_type = get_args(union_type)[0]
+        origin = get_origin(union_type)
+
+    # Verify it's a Union
+    if origin not in (Union, types.UnionType):
+        msg = f"Expected Union type, got: {union_type}"
+        raise TypeError(msg)
+
+    # Get all types in the union
+    union_args = get_args(union_type)
+
+    # Extract discriminator values from each model
+    result: dict[str, type] = {}
+    for model_cls in union_args:
+        if model_cls is type(None):
+            continue
+
+        # Get the 'type' field which serves as discriminator
+        if hasattr(model_cls, "model_fields") and "type" in model_cls.model_fields:
+            field = model_cls.model_fields["type"]
+            if field.default is not None:
+                result[field.default] = model_cls
+
+    return result
+
+
+def discriminator_to_filename(discriminator: str) -> str:
+    """Convert discriminator value to expected doc filename.
+
+    Examples:
+        "file_access" -> "file-access"
+        "vfs" -> "vfs"
+        "agent_management" -> "agent-management"
+    """
+    return discriminator.replace("_", "-")
+
+
+def check_docs_for_union(
+    union_type: Any,
+    docs_dir: Path | str,
+    *,
+    index_filename: str = "index",
+) -> tuple[dict[str, type], set[str]]:
+    """Check that all union members have corresponding doc files.
+
+    Args:
+        union_type: A discriminated Union type
+        docs_dir: Directory containing the doc files
+        index_filename: Filename to ignore (default: "index")
+
+    Returns:
+        Tuple of (missing_docs, extra_docs) where:
+        - missing_docs: Dict of discriminator -> model class for undocumented types
+        - extra_docs: Set of doc filenames without corresponding union member
+
+    Example:
+        ```python
+        from llmling_agent_config.toolsets import ToolsetConfig
+        missing, extra = check_docs_for_union(
+            ToolsetConfig,
+            Path("docs/configuration/toolsets"),
+        )
+        ```
+    """
+    docs_dir = Path(docs_dir)
+
+    # Get discriminator values from union
+    discriminators = get_discriminator_values(union_type)
+
+    # Get doc files (filename without .md, excluding index)
+    doc_files = {f.stem for f in docs_dir.glob("*.md") if f.stem != index_filename}
+
+    # Convert discriminators to expected filenames
+    expected_files = {discriminator_to_filename(d): d for d in discriminators}
+
+    # Find mismatches
+    missing_docs = {
+        orig_discriminator: discriminators[orig_discriminator]
+        for filename, orig_discriminator in expected_files.items()
+        if filename not in doc_files
+    }
+
+    extra_docs = doc_files - set(expected_files.keys())
+
+    return missing_docs, extra_docs
 
 
 if __name__ == "__main__":
