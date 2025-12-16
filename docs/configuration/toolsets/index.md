@@ -2,11 +2,13 @@
 title: Toolsets
 description: Toolset configuration overview
 icon: material/toolbox
+order: 0
 ---
 
 # Toolsets
 
 Toolsets are collections of tools that can be dynamically loaded and assigned to agents. They provide a modular way to extend agent capabilities.
+
 
 ## Overview
 

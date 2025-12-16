@@ -34,9 +34,38 @@ def build(ctx, *args: str):
 
 @duty(capture=False)
 def serve(ctx, *args: str):
-    """Serve documentation."""
-    args_str = " " + " ".join(args) if args else ""
-    ctx.run(f"uv run zensical serve{args_str}")
+    """Serve documentation. Pass --reorder to build, reorder nav, and serve static files.
+
+    With --reorder, also accepts --port=XXXX (default: 8000).
+    """
+    reorder = "--reorder" in args
+    args = tuple(a for a in args if a != "--reorder")
+
+    # Extract --port for reorder mode
+    port = "8000"
+    new_args = []
+    for arg in args:
+        if arg.startswith("--port="):
+            port = arg.split("=", 1)[1]
+        else:
+            new_args.append(arg)
+    args = tuple(new_args)
+
+    if reorder:
+        ctx.run("uv run zensical build")
+        ctx.run("uv run python scripts/reorder_nav.py")
+        # Serve the static site directly (zensical serve would rebuild and undo reorder)
+        # Create a temp structure to match zensical's URL scheme: /llmling-agent/
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir)
+            (tmp_path / "llmling-agent").symlink_to(Path("site").resolve())
+            print(f"Serving at http://localhost:{port}/llmling-agent/")
+            ctx.run(f"uv run python -m http.server {port} -d {tmpdir} -b localhost")
+    else:
+        args_str = " " + " ".join(args) if args else ""
+        ctx.run(f"uv run zensical serve{args_str}")
 
 
 @duty(capture=False)

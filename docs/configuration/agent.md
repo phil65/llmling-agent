@@ -84,8 +84,7 @@ agents:
 | [`event_handlers`](observability.md#event-handlers) | Event handlers for processing agent stream events |
 | [`inherits`](inheritance.md) | Name of agent config to inherit from |
 | [`model`](model.md) | The model to use for this agent |
-| [`tools`](./tools.md) | A list of tools to register with this agent |
-| [`toolsets`](./toolsets.md) | Toolset configurations for extensible tool collections |
+| [`toolsets`](./toolsets/index.md) | Toolset configurations for extensible tool collections |
 | [`session`](session.md) | Session configuration for conversation recovery |
 | [`output_type`](responses.md) | Name of the response definition to use |
 | [`retries`](agent.md#retries) | Number of retries for failed operations |

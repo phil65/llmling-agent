@@ -188,8 +188,10 @@ def sort_nav_items_with_context(
         # Clean up href first
         href = href.strip("/")  # pyright: ignore[reportAttributeAccessIssue, reportOptionalMemberAccess]
 
-        # Resolve relative path
-        if href in (".", "..") or href.startswith(("./", "../")):
+        # Resolve relative paths based on current page context
+        # This handles: "../foo", "./foo", "foo" (all relative to current page)
+        # Skip absolute URLs (http://, https://, //)
+        if href and not href.startswith(("http://", "https://", "//")):
             # Build absolute path from current location
             resolved_parts = list(current_parts)
             href_parts = Path(href).parts
