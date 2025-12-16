@@ -77,7 +77,7 @@ if TYPE_CHECKING:
     )
     from llmling_agent.delegation import AgentPool, Team, TeamRun
     from llmling_agent.hooks import AgentHooks
-    from llmling_agent.models.agents import AgentConfig, AutoCache, ToolMode
+    from llmling_agent.models.agents import AgentConfig, AutoCache, ToolConfirmationMode, ToolMode
     from llmling_agent.prompts.prompts import PromptType
     from llmling_agent.resource_providers import ResourceProvider
     from llmling_agent.ui.base import InputProvider
@@ -316,6 +316,11 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         # Store auto_cache setting
         self._auto_cache: AutoCache = auto_cache or (
             ctx.config.auto_cache if ctx and ctx.config else "off"
+        )
+
+        # Copy tool confirmation mode from config
+        self.tool_confirmation_mode: ToolConfirmationMode = (
+            ctx.config.requires_tool_confirmation if ctx and ctx.config else "per_tool"
         )
 
     def __repr__(self) -> str:
@@ -1102,6 +1107,18 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
 
         """
         self._model = model
+
+    async def set_tool_confirmation_mode(self, mode: ToolConfirmationMode) -> None:
+        """Set the tool confirmation mode for this agent.
+
+        Args:
+            mode: Tool confirmation mode:
+                - "always": Always require confirmation for all tools
+                - "never": Never require confirmation
+                - "per_tool": Use individual tool settings
+        """
+        self.tool_confirmation_mode = mode
+        self.log.info("Tool confirmation mode changed", mode=mode)
 
     async def reset(self) -> None:
         """Reset agent state (conversation history and tool states)."""

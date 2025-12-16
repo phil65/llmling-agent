@@ -80,6 +80,8 @@ class ACPClientHandler(Client):
         self._update_event = asyncio.Event()
         # Map ACP terminal IDs to process manager IDs
         self._terminal_to_process: dict[str, str] = {}
+        # Copy tool confirmation mode from agent (can be updated via set_tool_confirmation_mode)
+        self.tool_confirmation_mode: ToolConfirmationMode = agent.tool_confirmation_mode
 
     @property
     def env(self) -> ExecutionEnvironment:
@@ -96,7 +98,8 @@ class ACPClientHandler(Client):
 
     @property
     def auto_grant_permissions(self) -> bool:
-        return self._agent.config.auto_grant_permissions
+        """Check if permissions should be auto-granted based on tool_confirmation_mode."""
+        return self.tool_confirmation_mode == "never"
 
     async def session_update(self, params: SessionNotification[Any]) -> None:
         """Handle session update notifications from the agent."""

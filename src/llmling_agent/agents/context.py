@@ -57,7 +57,8 @@ class AgentContext[TDeps = Any](NodeContext[TDeps]):
         - Handler confirms the execution
         """
         provider = self.get_input_provider()
-        mode = self.config.requires_tool_confirmation
+        # Use agent's runtime attribute instead of config
+        mode = self.agent.tool_confirmation_mode
         if (mode == "per_tool" and not tool.requires_confirmation) or mode == "never":
             return "allow"
         history = self.agent.conversation.get_history() if self.pool else []

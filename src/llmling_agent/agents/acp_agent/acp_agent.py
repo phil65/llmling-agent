@@ -68,6 +68,7 @@ if TYPE_CHECKING:
     from llmling_agent.mcp_server.tool_bridge import ToolManagerBridge
     from llmling_agent.messaging.context import NodeContext
     from llmling_agent.models.acp_agents import BaseACPAgentConfig
+    from llmling_agent.models.agents import ToolConfirmationMode
     from llmling_agent.ui.base import InputProvider
 
 logger = get_logger(__name__)
@@ -217,6 +218,12 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         self.tools = ToolManager()
         self._tool_bridge: ToolManagerBridge | None = None
         self._owns_bridge = False  # Track if we created the bridge (for cleanup)
+
+        # Copy tool confirmation mode from config (aligned with Agent class)
+        # auto_grant_permissions=True maps to "never", False maps to "always"
+        self.tool_confirmation_mode: ToolConfirmationMode = (
+            "never" if config.auto_grant_permissions else "always"
+        )
 
     @property
     def context(self) -> NodeContext:
@@ -592,6 +599,26 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         self.config = new_config  # Update config and restart
         await self._start_process()
         await self._initialize()
+
+    async def set_tool_confirmation_mode(self, mode: ToolConfirmationMode) -> None:
+        """Set the tool confirmation mode for this agent.
+
+        This controls how permission requests from the ACP agent are handled:
+        - "always": Always prompt user for confirmation
+        - "never": Auto-grant all permissions (no prompts)
+        - "per_tool": Use individual tool settings (treated as "always" for ACP)
+
+        Note: For ACPAgent, "per_tool" behaves like "always" since we don't have
+        per-tool metadata from the ACP server.
+
+        Args:
+            mode: Tool confirmation mode
+        """
+        self.tool_confirmation_mode = mode
+        # Update client handler if it exists
+        if self._client_handler:
+            self._client_handler.tool_confirmation_mode = mode
+        self.log.info("Tool confirmation mode changed", mode=mode)
 
     async def get_stats(self) -> MessageStats:
         """Get message statistics."""
