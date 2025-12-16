@@ -35,7 +35,7 @@ class ConnectionCondition(Schema):
 
 
 class Jinja2Condition(ConnectionCondition):
-    """Evaluate condition using Jinja2 template."""
+    """Triggers based on Jinja2 template."""
 
     model_config = ConfigDict(json_schema_extra={"title": "Jinja2 Template Condition"})
 
@@ -91,7 +91,7 @@ class WordMatchCondition(ConnectionCondition):
     """
 
     async def check(self, context: EventContext[Any]) -> bool:
-        """Check if message contains specified words."""
+        """Triggers if message contains specified words."""
         text = str(context.message.content)
         if not self.case_sensitive:
             text = text.lower()
@@ -104,7 +104,7 @@ class WordMatchCondition(ConnectionCondition):
 
 
 class MessageCountCondition(ConnectionCondition):
-    """Disconnect after N messages."""
+    """Triggers after N messages."""
 
     model_config = ConfigDict(json_schema_extra={"title": "Message Count Condition"})
 
@@ -135,7 +135,7 @@ class MessageCountCondition(ConnectionCondition):
 
 
 class TimeCondition(ConnectionCondition):
-    """Disconnect after time period."""
+    """Triggers after time period."""
 
     model_config = ConfigDict(json_schema_extra={"title": "Time-based Condition"})
 
@@ -154,7 +154,7 @@ class TimeCondition(ConnectionCondition):
 
 
 class TokenThresholdCondition(ConnectionCondition):
-    """Disconnect after token threshold is reached."""
+    """Triggers after token threshold is reached."""
 
     model_config = ConfigDict(json_schema_extra={"title": "Token Threshold Condition"})
 
@@ -192,7 +192,7 @@ class TokenThresholdCondition(ConnectionCondition):
 
 
 class CostCondition(ConnectionCondition):
-    """Stop when cost threshold is reached."""
+    """Triggers when cost threshold is reached."""
 
     model_config = ConfigDict(json_schema_extra={"title": "Cost Condition"})
 
@@ -208,7 +208,7 @@ class CostCondition(ConnectionCondition):
 
 
 class CostLimitCondition(ConnectionCondition):
-    """Disconnect when cost limit is reached."""
+    """Triggers when cost limit is reached."""
 
     model_config = ConfigDict(json_schema_extra={"title": "Cost Limit Condition"})
 

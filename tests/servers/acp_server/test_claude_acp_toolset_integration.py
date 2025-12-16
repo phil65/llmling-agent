@@ -25,7 +25,7 @@ from llmling_agent_config.toolsets import SubagentToolsetConfig
 if not shutil.which("claude-code-acp"):
     pytest.skip("claude-code-acp CLI not available", allow_module_level=True)
 
-pytestmark = [pytest.mark.asyncio, pytest.mark.timeout(60), pytest.mark.integration]
+pytestmark = [pytest.mark.asyncio, pytest.mark.integration]
 
 
 @pytest.fixture

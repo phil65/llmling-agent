@@ -181,6 +181,11 @@ lint = [
 requires = ["uv_build>=0.8.22"]
 build-backend = "uv_build"
 
+[tool.coverage.run]
+source = ["src"]
+branch = true
+parallel = true
+
 [tool.coverage.report]
 exclude_lines = [
   "pragma: no cover",
@@ -189,6 +194,8 @@ exclude_lines = [
   "except ImportError",
   'if __name__ == "__main__":',
 ]
+show_missing = true
+skip_covered = true
 
 [tool.logfire]
 ignore_no_config = true
