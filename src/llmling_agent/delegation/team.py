@@ -65,16 +65,11 @@ async def normalize_stream_for_teams(
 class Team[TDeps = None](BaseTeam[TDeps, Any]):
     """Group of agents that can execute together."""
 
-    async def execute(
-        self,
-        *prompts: PromptCompatible | None,
-        **kwargs: Any,
-    ) -> TeamResponse:
+    async def execute(self, *prompts: PromptCompatible | None, **kwargs: Any) -> TeamResponse:
         """Run all agents in parallel with monitoring."""
         from llmling_agent.talk.talk import Talk
 
         self._team_talk.clear()
-
         start_time = get_now()
         responses: list[AgentResponse[Any]] = []
         errors: dict[str, Exception] = {}
@@ -101,13 +96,11 @@ class Team[TDeps = None](BaseTeam[TDeps, Any]):
                 # Update talk stats for this agent
                 talk = next(t for t in execution_talks if t.source == node)
                 talk._stats.messages.append(message)
-
             except Exception as e:  # noqa: BLE001
                 errors[node.name] = e
 
         # Run all agents in parallel
         await asyncio.gather(*[_run(node) for node in all_nodes])
-
         return TeamResponse(responses=responses, start_time=start_time, errors=errors)
 
     def __prompt__(self) -> str:
@@ -303,7 +296,6 @@ class Team[TDeps = None](BaseTeam[TDeps, Any]):
 
             # Run job in parallel on all agents
             await asyncio.gather(*[_run(node) for node in self.nodes])
-
             return TeamResponse(responses=responses, start_time=start_time, errors=errors)
 
         except Exception as e:
@@ -320,7 +312,6 @@ if __name__ == "__main__":
         agent_a = Agent(name="A", model="test")
         agent_b = Agent(name="B", model="test")
         agent_c = Agent(name="C", model="test")
-
         # Test Team containing TeamRun (parallel containing sequential)
         inner_run = TeamRun([agent_a, agent_b], name="Sequential")
         outer_team = Team([inner_run, agent_c], name="Parallel")

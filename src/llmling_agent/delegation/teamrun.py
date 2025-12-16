@@ -28,6 +28,7 @@ if TYPE_CHECKING:
     from llmling_agent import MessageNode
     from llmling_agent.agent.events import RichAgentStreamEvent
     from llmling_agent.common_types import PromptCompatible, SupportsStructuredOutput
+    from llmling_agent.delegation import AgentPool
 
 
 logger = get_logger(__name__)
@@ -67,6 +68,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
         picker: SupportsStructuredOutput | None = None,
         num_picks: int | None = None,
         pick_prompt: str | None = None,
+        agent_pool: AgentPool | None = None,
     ) -> None: ...
 
     @overload
@@ -82,6 +84,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
         picker: SupportsStructuredOutput | None = None,
         num_picks: int | None = None,
         pick_prompt: str | None = None,
+        agent_pool: AgentPool | None = None,
     ) -> None: ...
 
     @overload
@@ -97,6 +100,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
         picker: SupportsStructuredOutput | None = None,
         num_picks: int | None = None,
         pick_prompt: str | None = None,
+        agent_pool: AgentPool | None = None,
     ) -> None: ...
 
     def __init__(
@@ -111,6 +115,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
         picker: SupportsStructuredOutput | None = None,
         num_picks: int | None = None,
         pick_prompt: str | None = None,
+        agent_pool: AgentPool | None = None,
         # result_mode: ResultMode = "last",
     ) -> None:
         super().__init__(
@@ -122,6 +127,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
             picker=picker,
             num_picks=num_picks,
             pick_prompt=pick_prompt,
+            agent_pool=agent_pool,
         )
         self.validator = validator
         self.result_mode = "last"

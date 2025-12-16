@@ -69,6 +69,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
         num_picks: int | None = None,
         pick_prompt: str | None = None,
         event_configs: Sequence[EventConfig] | None = None,
+        agent_pool: AgentPool | None = None,
     ) -> None:
         """Common variables only for typing."""
         from llmling_agent.delegation.teamrun import ExtendedTeamTalk
@@ -87,6 +88,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
             mcp_servers=mcp_servers,
             description=description,
             event_configs=event_configs,
+            agent_pool=agent_pool,
         )
         self.nodes.extend(list(agents))
         self._team_talk = ExtendedTeamTalk()
