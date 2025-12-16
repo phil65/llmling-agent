@@ -2,7 +2,7 @@
 title: Toolsets
 description: Toolset configuration overview
 icon: material/toolbox
-order: 0
+order: 1
 ---
 
 # Toolsets
