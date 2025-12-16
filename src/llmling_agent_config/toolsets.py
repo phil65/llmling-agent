@@ -18,6 +18,8 @@ from searchly.config import (
 )
 from tokonomics import ModelName
 from upathtools import UPath
+from upathtools.configs import FilesystemConfigType
+from upathtools.configs.base import FileSystemConfig
 
 from llmling_agent_config.converters import ConversionConfig
 from llmling_agent_config.workers import WorkerConfig
@@ -512,12 +514,26 @@ class FSSpecToolsetConfig(BaseToolsetConfig):
     type: Literal["file_access"] = Field("file_access", init=False)
     """File access toolset."""
 
-    url: str | None = Field(
+    fs: str | FilesystemConfigType | None = Field(
         default=None,
-        examples=["file:///", "s3://my-bucket"],
-        title="Filesystem URL",
+        examples=[
+            "file:///",
+            "s3://my-bucket",
+            {"type": "github", "org": "sveltejs", "repo": "svelte"},
+            {
+                "type": "union",
+                "filesystems": {"docs": {"type": "github", "org": "org", "repo": "repo"}},
+            },
+        ],
+        title="Filesystem",
     )
-    """Filesystem URL or protocol. If None set, use agent default FS."""
+    """Filesystem URI string or configuration object. If None, use agent default FS.
+
+    Supports:
+    - URI strings: "file:///", "s3://bucket", "github://org/repo"
+    - Full configs: {"type": "github", "org": "...", "repo": "..."}
+    - Composed filesystems: {"type": "union", "filesystems": {...}}
+    """
 
     model: str | ModelName | AnyModelConfig | None = Field(
         default=None,
@@ -530,11 +546,10 @@ class FSSpecToolsetConfig(BaseToolsetConfig):
         examples=[
             {"region": "us-east-1", "profile": "default"},
             {"token": "ghp_123456789", "timeout": "30"},
-            {"key": "value", "ssl_verify": "true"},
         ],
         title="Storage options",
     )
-    """Additional options to pass to the filesystem constructor."""
+    """Additional options for URI-based filesystems (ignored when using config object)."""
 
     conversion: ConversionConfig | None = Field(default=None, title="Conversion config")
     """Optional conversion configuration for markdown conversion."""
@@ -573,9 +588,15 @@ class FSSpecToolsetConfig(BaseToolsetConfig):
             if isinstance(self.model, str) or self.model is None
             else self.model.get_model()
         )
-        # Extract protocol name for the provider name
-        if self.url:
-            fs, _url_path = fsspec.url_to_fs(self.url, **self.storage_options)
+        # Create filesystem from config
+        if self.fs is None:
+            fs = None
+        elif isinstance(self.fs, str):
+            # URI string - use fsspec directly
+            fs, _url_path = fsspec.url_to_fs(self.fs, **self.storage_options)
+        elif isinstance(self.fs, FileSystemConfig):
+            # Full config object - use create_fs()
+            fs = self.fs.create_fs()
         else:
             fs = None
         converter = ConversionManager(self.conversion) if self.conversion else None
