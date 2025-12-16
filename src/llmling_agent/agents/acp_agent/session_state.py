@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field as dataclass_field
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from llmling_agent.log import get_logger
 
+
+if TYPE_CHECKING:
+    from acp.schema import SessionModelState
 
 logger = get_logger(__name__)
 
@@ -41,6 +44,9 @@ class ACPSessionState:
     current_model_id: str | None = None
     """Current model ID from session state."""
 
+    models: SessionModelState | None = None
+    """Full model state including available models from nested ACP agent."""
+
     def clear(self) -> None:
         self.text_chunks.clear()
         self.thought_chunks.clear()
@@ -48,4 +54,4 @@ class ACPSessionState:
         self.events.clear()
         self.is_complete = False
         self.stop_reason = None
-        self.current_model_id = None
+        # Note: Don't clear current_model_id or models - those persist across prompts

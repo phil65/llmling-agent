@@ -350,7 +350,8 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         self._session_id = response.session_id
         if self._state:
             self._state.session_id = self._session_id
-            if response.models:  # Store model info from session response
+            if response.models:  # Store full model info from session response
+                self._state.models = response.models
                 self._state.current_model_id = response.models.current_model_id
         model = self._state.current_model_id if self._state else None
         self.log.info(
@@ -585,6 +586,16 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
             ValueError: If the config doesn't have a model field
             RuntimeError: If agent is currently processing (has active process but no session)
         """
+        # TODO: Once ACP protocol stabilizes, use set_session_model instead of restart
+        # from acp.schema import SetSessionModelRequest  # UNSTABLE
+        # if self._connection and self._session_id:
+        #     request = SetSessionModelRequest(session_id=self._session_id, model_id=model)
+        #     await self._connection.set_session_model(request)
+        #     if self._state:
+        #         self._state.current_model_id = model
+        #     self.log.info("Model changed via ACP protocol", model=model)
+        #     return
+
         if not hasattr(self.config, "model"):
             msg = f"Config type {type(self.config).__name__} doesn't support model changes"
             raise ValueError(msg)
