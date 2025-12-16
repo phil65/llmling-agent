@@ -96,9 +96,9 @@ class CallbackEventHandlerConfig(BaseEventHandlerConfig):
 class TTSEventHandler:
     """Text-to-Speech event handler with optional non-blocking synthesis.
 
-    When blocking=False (default), uses fire-and-forget tasks for TTS API calls
-    to avoid blocking the event stream. Audio chunks are queued and played back
-    asynchronously.
+    When blocking=False (default), sentences are queued and synthesized sequentially
+    in the background, avoiding blocking the event stream while ensuring audio
+    plays in correct order.
 
     When blocking=True, awaits each TTS synthesis call before processing the next
     event (original behavior, useful for testing).
@@ -129,8 +129,9 @@ class TTSEventHandler:
 
         # State
         self._audio_queue: asyncio.Queue[bytes | None] = asyncio.Queue()
+        self._sentence_queue: asyncio.Queue[str | None] = asyncio.Queue()
         self._playback_task: asyncio.Task[None] | None = None
-        self._synthesis_tasks: set[asyncio.Task[None]] = set()
+        self._synthesis_task: asyncio.Task[None] | None = None
         self._text_buffer = ""
         self._sentence_terminators = frozenset({".", "!", "?", "\n"})
 
@@ -176,11 +177,21 @@ class TTSEventHandler:
         except Exception as e:  # noqa: BLE001
             print(f"\n❌ TTS error: {e}", file=sys.stderr)
 
+    async def _synthesis_worker(self) -> None:
+        """Worker that processes sentences sequentially from the queue."""
+        while True:
+            sentence = await self._sentence_queue.get()
+            if sentence is None:  # Shutdown signal
+                break
+            await self._synthesize_text(sentence)
+
     def _schedule_synthesis(self, text: str) -> None:
-        """Schedule text synthesis without blocking (fire-and-forget)."""
-        task = asyncio.create_task(self._synthesize_text(text))
-        self._synthesis_tasks.add(task)
-        task.add_done_callback(self._synthesis_tasks.discard)
+        """Queue text for sequential synthesis (non-blocking to caller)."""
+        # Start worker if not running
+        if self._synthesis_task is None or self._synthesis_task.done():
+            self._synthesis_task = asyncio.create_task(self._synthesis_worker())
+        # Queue the sentence - doesn't block
+        self._sentence_queue.put_nowait(text)
 
     async def __call__(self, ctx: RunContext[Any], event: RichAgentStreamEvent[Any]) -> None:
         """Handle stream events and trigger TTS synthesis."""
@@ -219,9 +230,11 @@ class TTSEventHandler:
                         self._schedule_synthesis(self._text_buffer.strip())
                     self._text_buffer = ""
 
-                # Wait for all synthesis tasks to complete (only needed in non-blocking mode)
-                if self._synthesis_tasks:
-                    await asyncio.gather(*self._synthesis_tasks, return_exceptions=True)
+                # Wait for synthesis worker to finish (non-blocking mode)
+                if self._synthesis_task and not self._synthesis_task.done():
+                    # Signal worker to stop and wait for it
+                    await self._sentence_queue.put(None)
+                    await self._synthesis_task
 
                 # Signal playback to stop and wait for it
                 await self._audio_queue.put(None)
