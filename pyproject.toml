@@ -48,7 +48,7 @@ dependencies = [
   "platformdirs",
   "promptantic>=0.4.5",
   "psygnal>=0.11.1",
-  "pydantic>=2.12.0",
+  "pydantic>=2.10.0",
   "pydantic-ai-slim>=1.0.0",
   # Only add below (Copier)
   "python-dotenv>=1.0.1",

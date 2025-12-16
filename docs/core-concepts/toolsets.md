@@ -225,29 +225,6 @@ agents:
       - web_search
 ```
 
-## Security Considerations
-
-Toolsets provide different levels of system access:
-
-**Low Risk:**
-
-- `fsspec` - File system operations (configurable scope)
-- `resource_access` - Access to configured resources
-- `user_interaction` - User prompts only
-
-**Medium Risk:**
-
-- `agent_management` - Can create and coordinate agents
-- `history` - Access to conversation data
-- `integrations` - External service access
-
-**High Risk:**
-
-- `code_execution` - Can execute arbitrary code
-- `process_management` - System process control
-- `tool_management` - Can modify available tools
-
-Always use the principle of least privilege - only enable toolsets that agents actually need.
 
 ## Custom Toolsets
 
@@ -260,5 +237,3 @@ agents:
       - type: custom
         import_path: "mypackage.toolsets.SpecializedTools"
 ```
-
-See the [Tools](./tools.md) documentation for implementation details.

@@ -1,5 +1,5 @@
 ---
-title: Execution environments.
+title: Execution environments
 description: Event handler setup and configuration
 icon: material/bell-ring
 ---
