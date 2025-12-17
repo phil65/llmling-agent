@@ -31,17 +31,14 @@ async def main_unified() -> None:
     research_agent = Agent.from_callback(name="researcher", callback=research_callback)
     analysis_agent = Agent.from_callback(name="analyzer", callback=analysis_callback)
     summary_agent = Agent.from_callback(name="summarizer", callback=summary_callback)
-
     # Create agent pool and register agents
     pool = AgentPool()
     pool.register("researcher", research_agent)
     pool.register("analyzer", analysis_agent)
     pool.register("summarizer", summary_agent)
-
     # Create protocol servers (ports are ignored in unified mode)
     agui_server = AGUIServer(pool, name="agui-server")
     a2a_server = A2AServer(pool, name="a2a-server")
-
     # Create aggregating server in UNIFIED mode - single port for all!
     aggregating_server = AggregatingServer(
         pool,

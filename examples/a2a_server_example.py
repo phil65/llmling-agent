@@ -30,40 +30,20 @@ async def main() -> None:
         """Writing specialist agent."""
         return f"Writing Agent: Let me help you write: {message}"
 
-    # Create agents
-    math_agent = Agent.from_callback(
-        name="math_specialist",
-        callback=math_agent_callback,
-    )
-
-    code_agent = Agent.from_callback(
-        name="code_specialist",
-        callback=code_agent_callback,
-    )
-
-    writing_agent = Agent.from_callback(
-        name="writing_specialist",
-        callback=writing_agent_callback,
-    )
-
-    # Create agent pool and register agents
+    math_agent = Agent.from_callback(name="math_specialist", callback=math_agent_callback)
+    code_agent = Agent.from_callback(name="code_specialist", callback=code_agent_callback)
+    writing_agent = Agent.from_callback(name="writing_specialist", callback=writing_agent_callback)
     pool = AgentPool()
     pool.register("math", math_agent)
     pool.register("code", code_agent)
     pool.register("writing", writing_agent)
 
     # Create A2AServer
-    server = A2AServer(
-        pool,
-        host="localhost",
-        port=8001,
-        name="multi-agent-a2a-server",
-    )
-
+    server = A2AServer(pool, host="localhost", port=8001, name="multi-agent-a2a-server")
     print("Starting A2A Server with multiple agents...")
     print(f"Server URL: {server.base_url}")
     print("\nAvailable agent endpoints:")
-    for agent_name, urls in server.list_routes().items():
+    for agent_name, urls in server.list_agent_routes().items():
         print(f"  - {agent_name}:")
         print(f"    Endpoint: POST {urls['endpoint']}")
         print(f"    Agent Card: GET {urls['agent_card']}")
@@ -71,7 +51,6 @@ async def main() -> None:
     print("\nAgent list endpoint:")
     print(f"  - GET {server.base_url}/")
     print("\nPress Ctrl+C to stop the server\n")
-
     # Run server
     async with server, server.run_context():
         # Server is now running and handling requests
