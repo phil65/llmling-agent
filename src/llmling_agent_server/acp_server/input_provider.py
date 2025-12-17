@@ -7,7 +7,7 @@ import webbrowser
 
 from mcp import types
 
-from acp import PermissionOption
+from acp import AllowedOutcome, PermissionOption
 from acp.utils import DEFAULT_PERMISSION_OPTIONS
 from llmling_agent.log import get_logger
 from llmling_agent.ui.base import InputProvider
@@ -138,7 +138,7 @@ class ACPInputProvider(InputProvider):
                 options=DEFAULT_PERMISSION_OPTIONS,
             )
             # Map ACP permission response to our confirmation result
-            if response.outcome.outcome == "selected":
+            if isinstance(response.outcome, AllowedOutcome):
                 return self._handle_permission_response(response.outcome.option_id, tool.name)
             if response.outcome.outcome == "cancelled":
                 return "skip"
@@ -203,7 +203,7 @@ class ACPInputProvider(InputProvider):
                     title=title,
                     options=url_options,
                 )
-                if response.outcome.outcome == "selected":
+                if isinstance(response.outcome, AllowedOutcome):
                     if response.outcome.option_id == "accept":
                         webbrowser.open(params.url)
                         return types.ElicitResult(action="accept")
@@ -243,7 +243,7 @@ class ACPInputProvider(InputProvider):
             )
 
             # Convert permission response to elicitation result
-            if response.outcome.outcome == "selected":
+            if isinstance(response.outcome, AllowedOutcome):
                 if response.outcome.option_id == "accept":
                     # For non-boolean schemas, return empty content
                     return types.ElicitResult(action="accept", content={})
@@ -260,7 +260,7 @@ class ACPInputProvider(InputProvider):
         self, response: RequestPermissionResponse, schema: dict[str, Any]
     ) -> types.ElicitResult | types.ErrorData:
         """Handle ACP response for boolean elicitation."""
-        if response.outcome.outcome == "selected":
+        if isinstance(response.outcome, AllowedOutcome):
             if response.outcome.option_id == "true":
                 # Check if we need to wrap in object structure
                 if schema.get("type") == "object":
@@ -312,7 +312,7 @@ def _handle_enum_elicitation_response(
     """Handle ACP response for enum elicitation."""
     from mcp import types
 
-    if response.outcome.outcome == "selected":
+    if isinstance(response.outcome, AllowedOutcome):
         option_id = response.outcome.option_id
 
         if option_id == "cancel":
