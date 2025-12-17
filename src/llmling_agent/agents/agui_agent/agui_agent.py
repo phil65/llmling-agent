@@ -525,6 +525,9 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
                 input_provider=self._input_provider,
                 context=self.context,
             )
+            # If no results (all tools were server-side), we're done
+            if not pending_tool_results:
+                break
             # Add tool results to messages for next iteration
             messages = [*pending_tool_results]
             self.log.debug("Continuing with tool results", count=len(pending_tool_results))

@@ -20,34 +20,46 @@ if TYPE_CHECKING:
 from pydantic_ai.models.test import TestModel
 
 
-# Configure TestModel with custom responses
-test_model = TestModel(
-    custom_output_text="The answer is 4.",
-)
-test_agent = Agent(
-    test_model,
-    system_prompt="You are a helpful test assistant. Keep responses brief and clear.",
-)
+def get_weather(city: str) -> str:
+    """Get the current weather for a city."""
+    return f"The weather in {city} is sunny and 22°C."
 
 
-async def handle_agent_request(request: Request) -> Response:
-    """Handle AG-UI protocol requests."""
-    from pydantic_ai.ag_ui import handle_ag_ui_request
+def create_agent(with_tools: bool = False) -> Agent[None, str]:
+    """Create the test agent, optionally with tools."""
+    if with_tools:
+        test_model = TestModel(call_tools=["get_weather"])
+    else:
+        test_model = TestModel(custom_output_text="The answer is 4.")
 
-    return await handle_ag_ui_request(test_agent, request)
+    agent = Agent(
+        test_model,
+        system_prompt="You are a helpful test assistant. Keep responses brief and clear.",
+    )
+
+    if with_tools:
+        agent.tool_plain(get_weather)
+
+    return agent
 
 
-# Create Starlette app
-app = Starlette(
-    routes=[
-        Route("/agent/run", handle_agent_request, methods=["POST"]),
-    ],
-)
-
-
-async def main(port: int = 8765) -> None:
+async def main(port: int = 8765, with_tools: bool = False) -> None:
     """Run the AG-UI test server."""
     import uvicorn
+
+    agent = create_agent(with_tools=with_tools)
+
+    async def handle_agent_request(request: Request) -> Response:
+        """Handle AG-UI protocol requests."""
+        from pydantic_ai.ag_ui import handle_ag_ui_request
+
+        return await handle_ag_ui_request(agent, request)
+
+    app = Starlette(
+        routes=[
+            Route("/agent/run", handle_agent_request, methods=["POST"]),
+        ],
+    )
 
     config = uvicorn.Config(
         app,
@@ -62,5 +74,8 @@ async def main(port: int = 8765) -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--port", type=int, default=8765)
+    parser.add_argument(
+        "--with-tools", action="store_true", help="Enable test tools (add, multiply, get_weather)"
+    )
     args = parser.parse_args()
-    asyncio.run(main(args.port))
+    asyncio.run(main(args.port, args.with_tools))

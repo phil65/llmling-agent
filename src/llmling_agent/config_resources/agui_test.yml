@@ -1,0 +1,17 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/phil65/llmling-agent/refs/heads/main/schema/config-schema.json
+#
+# Test configuration for AG-UI agent.
+#
+# Usage:
+#   from llmling_agent import AgentPool
+#   async with AgentPool("src/llmling_agent/config_resources/agui_test.yml") as pool:
+#       agent = pool.get_agent("test_agui")
+#       result = await agent.run("Hello!")
+
+agui_agents:
+  test_agui:
+    endpoint: http://127.0.0.1:8765/agent/run
+    description: "AG-UI test client with auto-started server"
+    startup_command: "uv run python tests/test_server_agui.py --port 8765 --with-tools"
+    startup_delay: 3.0
+    timeout: 60.0

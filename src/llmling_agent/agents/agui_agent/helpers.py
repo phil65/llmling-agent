@@ -97,14 +97,8 @@ async def execute_tool_calls(
     results: list[AGUIToolMessage] = []
     for tc_id, tool_name, args in tool_calls:
         if tool_name not in tools_by_name:
-            logger.warning("Unknown tool requested", tool=tool_name)
-            result_msg = AGUIToolMessage(
-                id=str(uuid4()),
-                tool_call_id=tc_id,
-                content=f"Error: Unknown tool {tool_name!r}",
-                error=f"Tool {tool_name!r} not found",
-            )
-            results.append(result_msg)
+            # Tool not registered locally - this is a server-side tool, skip it
+            logger.debug("Skipping server-side tool", tool=tool_name)
             continue
 
         tool = tools_by_name[tool_name]
