@@ -263,11 +263,9 @@ class LLMlingACPAgent(ACPAgent):
 
             current_model = session.agent.model_name if session.agent else None
             models = create_session_model_state(self.available_models, current_model)
-
             # Schedule post-load initialization tasks
             self.tasks.create_task(session.send_available_commands_update())
             self.tasks.create_task(session.init_project_context())
-
             # Replay conversation history via ACP notifications
             self.tasks.create_task(self._replay_conversation_history(session))
             logger.info("Session loaded successfully", agent=session.current_agent_name)
@@ -362,14 +360,13 @@ class LLMlingACPAgent(ACPAgent):
                         # Filter by cwd if specified
                         if params.cwd and data.cwd != params.cwd:
                             continue
-                        sessions.append(
-                            SessionInfo(
-                                session_id=session_id,
-                                cwd=data.cwd or "",
-                                title=f"Session with {data.agent_name}",
-                                updated_at=data.last_active.isoformat(),
-                            )
+                        info = SessionInfo(
+                            session_id=session_id,
+                            cwd=data.cwd or "",
+                            title=f"Session with {data.agent_name}",
+                            updated_at=data.last_active.isoformat(),
                         )
+                        sessions.append(info)
 
             logger.info("Listed sessions", count=len(sessions))
             return ListSessionsResponse(sessions=sessions)

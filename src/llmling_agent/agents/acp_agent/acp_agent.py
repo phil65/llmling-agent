@@ -232,12 +232,9 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         from llmling_agent.models.manifest import AgentsManifest
         from llmling_agent_config.nodes import NodeConfig
 
-        return NodeContext(
-            node_name=self.name,
-            pool=self.agent_pool,
-            config=NodeConfig(name=self.name, description=self.description),
-            definition=self.agent_pool.manifest if self.agent_pool else AgentsManifest(),
-        )
+        cfg = NodeConfig(name=self.name, description=self.description)
+        defn = self.agent_pool.manifest if self.agent_pool else AgentsManifest()
+        return NodeContext(node_name=self.name, pool=self.agent_pool, config=cfg, definition=defn)
 
     async def _setup_toolsets(self) -> None:
         """Initialize toolsets from config and create bridge if needed."""
@@ -263,8 +260,6 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
         # Add bridge's MCP server to session
         mcp_config = self._tool_bridge.get_mcp_server_config()
         self._extra_mcp_servers.append(mcp_config)
-        count = len(self.config.toolsets)
-        self.log.info("Toolsets bridge started", url=self._tool_bridge.url, toolset_count=count)
 
     async def __aenter__(self) -> Self:
         """Start subprocess and initialize ACP connection."""
@@ -609,11 +604,6 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
 
     async def set_tool_confirmation_mode(self, mode: ToolConfirmationMode) -> None:
         """Set the tool confirmation mode for this agent.
-
-        This controls how permission requests from the ACP agent are handled:
-        - "always": Always prompt user for confirmation
-        - "never": Auto-grant all permissions (no prompts)
-        - "per_tool": Use individual tool settings (treated as "always" for ACP)
 
         Note: For ACPAgent, "per_tool" behaves like "always" since we don't have
         per-tool metadata from the ACP server.

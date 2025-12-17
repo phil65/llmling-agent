@@ -39,6 +39,13 @@ if TYPE_CHECKING:
 
 
 ToolConfirmationMode = Literal["always", "never", "per_tool"]
+"""Controls how permission requests are handled:
+
+- "always": Always prompt user for confirmation
+- "never": Auto-grant all permissions (no prompts)
+- "per_tool": Use individual tool settings (treated as "always" for ACP)
+"""
+
 ToolMode = Literal["codemode"]
 AutoCache = Literal["off", "5m", "1h"]
 
