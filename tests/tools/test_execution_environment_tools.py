@@ -206,7 +206,7 @@ class TestProcessLifecycle:
         # Check event was emitted
         events = get_progress_events(test_agent)
         assert len(events) == 1
-        assert "Running: echo" in events[0].title
+        assert "Running: echo" in str(events[0].title)
 
     async def test_start_process_failure(self, agent_ctx: AgentContext, test_agent: Agent):
         """Test process start failure."""
@@ -299,7 +299,7 @@ class TestProcessLifecycle:
         # Check event was emitted
         events = get_progress_events(test_agent)
         assert len(events) == 1
-        assert "Process exited" in events[0].title
+        assert "Process exited" in str(events[0].title)
 
     async def test_wait_for_process_failure(self, agent_ctx: AgentContext, test_agent: Agent):
         """Test waiting for failed process."""
@@ -338,7 +338,7 @@ class TestProcessLifecycle:
         # Check event was emitted
         events = get_progress_events(test_agent)
         assert len(events) == 1
-        assert "Killed process" in events[0].title
+        assert "Killed process" in str(events[0].title)
 
     async def test_kill_process_not_found(self, agent_ctx: AgentContext, test_agent: Agent):
         """Test killing nonexistent process."""
@@ -369,7 +369,7 @@ class TestProcessLifecycle:
         # Check event was emitted
         events = get_progress_events(test_agent)
         assert len(events) == 1
-        assert "Released process" in events[0].title
+        assert "Released process" in str(events[0].title)
 
     async def test_list_processes_empty(self, agent_ctx: AgentContext):
         """Test listing when no processes running."""

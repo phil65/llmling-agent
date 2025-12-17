@@ -23,13 +23,13 @@ Here's the complete manifest structure with all available top-level sections:
 
 Dictionary of individual agent configurations. Each key is an agent identifier, and the value is the complete agent configuration.
 
-See [Agent Configuration](./agent.md) for detailed agent setup options.
+See [Agent Configuration](./node-types/agent.md) for detailed agent setup options.
 
 ### `teams`  
 
 Dictionary of team configurations for multi-agent workflows. Teams can run agents in parallel or sequence.
 
-See [Team Configuration](./team.md) for team setup and coordination.
+See [Team Configuration](./node-types/team.md) for team setup and coordination.
 
 ### `responses`
 

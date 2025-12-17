@@ -71,7 +71,7 @@ def auto_callable[R, **P](
             if return_type is inspect.Parameter.empty:
                 return_type = str
 
-            return await get_structured(
+            return await get_structured(  # pyright: ignore[reportReturnType]
                 prompt=prompt,
                 response_type=return_type,
                 model=model,
