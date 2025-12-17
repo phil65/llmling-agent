@@ -9,7 +9,7 @@ from pydantic_ai import (
     CodeExecutionTool,
     ImageGenerationTool,
     MCPServerTool,
-    UrlContextTool,
+    WebFetchTool,
     WebSearchTool,
 )
 from pydantic_ai.builtin_tools import WebSearchUserLocation  # noqa: TC002
@@ -88,17 +88,17 @@ class CodeExecutionToolConfig(BaseBuiltinToolConfig):
         return CodeExecutionTool()
 
 
-class UrlContextToolConfig(BaseBuiltinToolConfig):
+class WebFetchToolConfig(BaseBuiltinToolConfig):
     """Configuration for PydanticAI URL context builtin tool."""
 
     model_config = ConfigDict(title="Url Context Tool")
 
-    type: Literal["url_context"] = Field("url_context", init=False)
+    type: Literal["web_fetch"] = Field("web_fetch", init=False)
     """URL context builtin tool."""
 
-    def get_builtin_tool(self) -> UrlContextTool:
-        """Convert config to UrlContextTool instance."""
-        return UrlContextTool()
+    def get_builtin_tool(self) -> WebFetchTool:
+        """Convert config to WebFetchTool instance."""
+        return WebFetchTool()
 
 
 class ImageGenerationToolConfig(BaseBuiltinToolConfig):
@@ -258,7 +258,7 @@ class MCPServerToolConfig(BaseBuiltinToolConfig):
 BuiltinToolConfig = Annotated[
     WebSearchToolConfig
     | CodeExecutionToolConfig
-    | UrlContextToolConfig
+    | WebFetchToolConfig
     | ImageGenerationToolConfig
     | MemoryToolConfig
     | MCPServerToolConfig,
