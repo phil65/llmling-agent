@@ -461,7 +461,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             and return_type.__origin__ is Awaitable
         ):
             return_type = return_type.__args__[0]
-        return Agent(model=model, name=name, output_type=return_type or str, **kwargs)  # pyright: ignore[reportReturnType]
+        return Agent(model=model, name=name, output_type=return_type or str, **kwargs)
 
     @property
     def name(self) -> str:
@@ -872,7 +872,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
             if original_message:
                 response_msg = response_msg.forwarded(original_message)
             # Send additional enriched completion event
-            yield StreamCompleteEvent(message=response_msg)  # pyright: ignore[reportReturnType]
+            yield StreamCompleteEvent(message=response_msg)
             self.message_sent.emit(response_msg)
             await self.log_message(response_msg)
             if store_history:

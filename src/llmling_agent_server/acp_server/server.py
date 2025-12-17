@@ -118,7 +118,7 @@ class ACPServer(BaseServer):
             pool,
             file_access=file_access,
             terminal_access=terminal_access,
-            providers=providers,  # pyright: ignore[reportArgumentType]
+            providers=providers,
             debug_messages=debug_messages,
             debug_file=debug_file or "acp-debug.jsonl" if debug_messages else None,
             debug_commands=debug_commands,
