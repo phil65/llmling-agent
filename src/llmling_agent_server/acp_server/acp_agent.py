@@ -548,61 +548,48 @@ class LLMlingACPAgent(ACPAgent):
     ) -> SetSessionModeResponse | None:
         """Set the session mode (change tool confirmation level).
 
-        For native Agent:
+        Maps ACP mode IDs to ToolConfirmationMode and calls set_tool_confirmation_mode
+        on the session's agent. Each agent type handles the mode change appropriately:
+        - Agent/AGUIAgent: Updates local confirmation mode
+        - ACPAgent: Updates local mode AND forwards to remote ACP server
+
+        Mode mappings:
         - "default": per_tool (confirm tools marked as requiring it)
         - "acceptEdits": never (auto-approve all tool calls)
-
-        For ACPAgent: forwards mode change to nested agent via ACP protocol.
         """
-        from acp.schema import SetSessionModeRequest as ACPSetSessionModeRequest
         from llmling_agent.agents.acp_agent import ACPAgent as ACPAgentClient
 
         try:
             session = self.session_manager.get_session(params.session_id)
             if not session:
-                msg = "Session not found for mode switch"
-                logger.warning(msg, session_id=params.session_id)
+                logger.warning("Session not found for mode switch", session_id=params.session_id)
                 return None
 
-            if isinstance(session.agent, ACPAgentClient):
-                # Forward mode change to nested ACP agent
-                if session.agent._connection and session.agent._session_id:
-                    nested_request = ACPSetSessionModeRequest(
-                        session_id=session.agent._session_id,
-                        mode_id=params.mode_id,
-                    )
-                    await session.agent._connection.set_session_mode(nested_request)
-                    # Update stored mode state
-                    if session.agent._state and session.agent._state.modes:
-                        session.agent._state.modes.current_mode_id = params.mode_id
-                    logger.info(
-                        "Forwarded mode change to nested ACP agent",
-                        mode_id=params.mode_id,
-                        session_id=params.session_id,
-                    )
-                    return SetSessionModeResponse()
-                logger.warning("ACPAgent not connected, cannot forward mode change")
-                return None
-            # Native Agent - use tool confirmation mode mapping
+            # Map mode_id to confirmation mode
             confirmation_mode = mode_id_to_confirmation_mode(params.mode_id)
             if not confirmation_mode:
                 logger.error("Invalid mode_id", mode_id=params.mode_id)
                 return None
 
+            # All agent types support set_tool_confirmation_mode
+            # ACPAgent handles forwarding to remote server internally
             await session.agent.set_tool_confirmation_mode(confirmation_mode)
+
+            # Update stored mode state for ACPAgent
+            if (
+                isinstance(session.agent, ACPAgentClient)
+                and session.agent._state
+                and session.agent._state.modes
+            ):
+                session.agent._state.modes.current_mode_id = params.mode_id
+
             logger.info(
                 "Set tool confirmation mode",
                 mode_id=params.mode_id,
                 confirmation_mode=confirmation_mode,
                 session_id=params.session_id,
+                agent_type=type(session.agent).__name__,
             )
-
-            # TODO: Re-enable agent switching via modes when needed:
-            # if not self.agent_pool or params.mode_id not in self.agent_pool.agents:
-            #     logger.error("Agent not found in pool", mode_id=params.mode_id)
-            #     return None
-            # await session.switch_active_agent(params.mode_id)
-
             return SetSessionModeResponse()
 
         except Exception:

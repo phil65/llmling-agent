@@ -201,13 +201,14 @@ class ToolManagerBridge:
             agent_config = AgentConfig(name="bridge")
             definition = AgentsManifest()
 
+        node_name = self.owner_agent_name or "bridge"
         return AgentContext(
-            node_name=self.owner_agent_name or "bridge",
+            agent=self.pool.agents[node_name],
+            node_name=node_name,
             pool=self.pool,
             config=agent_config,
             definition=definition,
             input_provider=self.input_provider,
-            data=None,
             tool_name=tool_name,
             tool_call_id=tool_call_id,
             tool_input=tool_input,
@@ -221,14 +222,12 @@ class ToolManagerBridge:
         tools = await self.tool_manager.get_tools(state="enabled")
         for tool in tools:
             self._register_single_tool(tool)
-        msg = "Registered tools with MCP bridge"
-        logger.info(msg, tool_count=len(tools), tools=[t.name for t in tools])
+        logger.info("Registered tools with MCP bridge", tools=[t.name for t in tools])
 
     def _register_single_tool(self, tool: Tool) -> None:
         """Register a single tool with the FastMCP server."""
         if not self._mcp:
             return
-
         # Create a custom FastMCP Tool that wraps our tool
         bridge_tool = _BridgeTool(tool=tool, bridge=self)
         self._mcp.add_tool(bridge_tool)

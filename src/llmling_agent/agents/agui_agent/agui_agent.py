@@ -11,7 +11,7 @@ locally and results sent back.
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING, Any, Self
+from typing import TYPE_CHECKING, Any, Literal, Self
 from uuid import uuid4
 
 from anyenv import MultiEventHandler
@@ -43,10 +43,14 @@ if TYPE_CHECKING:
     from llmling_agent.delegation import AgentPool
     from llmling_agent.messaging.context import NodeContext
     from llmling_agent.tools import Tool
+    from llmling_agent.ui.base import InputProvider
     from llmling_agent_config.mcp_server import MCPServerConfig
 
 
 logger = get_logger(__name__)
+
+# Local type alias to avoid circular import from models.agents
+ToolConfirmationMode = Literal["always", "never", "per_tool"]
 
 
 def get_client(headers: dict[str, str], timeout: float) -> httpx.AsyncClient:
@@ -159,6 +163,9 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
         resolved_handlers = resolve_event_handlers(event_handlers)
         self.event_handler = MultiEventHandler[IndividualEventHandler](resolved_handlers)
         self.tools = ToolManager(tools)
+        # Tool confirmation mode - defaults to "per_tool" like Agent class
+        self.tool_confirmation_mode: ToolConfirmationMode = "per_tool"
+        self._input_provider: InputProvider | None = None
 
     @property
     def context(self) -> NodeContext:
@@ -208,6 +215,18 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
         """
         return self.tools.register_tool(tool)
 
+    async def set_tool_confirmation_mode(self, mode: ToolConfirmationMode) -> None:
+        """Set the tool confirmation mode for this agent.
+
+        Args:
+            mode: Tool confirmation mode:
+                - "always": Always require confirmation for all tools
+                - "never": Never require confirmation
+                - "per_tool": Use individual tool settings
+        """
+        self.tool_confirmation_mode = mode
+        self.log.info("Tool confirmation mode changed", mode=mode)
+
     async def _start_server(self) -> None:
         """Start the AG-UI server subprocess."""
         if not self._startup_command:
@@ -250,6 +269,7 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
         self,
         *prompts: PromptCompatible,
         message_id: str | None = None,
+        input_provider: InputProvider | None = None,
         message_history: MessageHistory | None = None,
         **kwargs: Any,
     ) -> ChatMessage[str]:
@@ -262,6 +282,7 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
         Args:
             prompts: Prompts to send (will be joined with spaces)
             message_id: Optional message id for the returned message
+            input_provider: Optional input provider for tool confirmation requests
             message_history: Optional MessageHistory to use instead of agent's own
             **kwargs: Additional arguments (ignored for compatibility)
 
@@ -270,7 +291,10 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
         """
         final_message: ChatMessage[str] | None = None
         async for event in self.run_stream(
-            *prompts, message_id=message_id, message_history=message_history
+            *prompts,
+            message_id=message_id,
+            input_provider=input_provider,
+            message_history=message_history,
         ):
             if isinstance(event, StreamCompleteEvent):
                 final_message = event.message
@@ -283,6 +307,7 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
         self,
         *prompts: PromptCompatible,
         message_id: str | None = None,
+        input_provider: InputProvider | None = None,
         message_history: MessageHistory | None = None,
         **kwargs: Any,
     ) -> AsyncIterator[RichAgentStreamEvent[str]]:
@@ -295,12 +320,16 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
         Args:
             prompts: Prompts to send
             message_id: Optional message ID
+            input_provider: Optional input provider for tool confirmation requests
             message_history: Optional MessageHistory to use instead of agent's own
             **kwargs: Additional arguments (ignored for compatibility)
 
         Yields:
             Native streaming events converted from AG-UI protocol
         """
+        # Update input provider if provided
+        if input_provider is not None:
+            self._input_provider = input_provider
         from ag_ui.core import (
             RunAgentInput,
             ToolCallArgsEvent as AGUIToolCallArgsEvent,
@@ -418,7 +447,13 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
                 break
 
             # Execute pending tool calls locally and collect results
-            pending_tool_results = await execute_tool_calls(tool_calls_pending, tools_by_name)
+            pending_tool_results = await execute_tool_calls(
+                tool_calls_pending,
+                tools_by_name,
+                confirmation_mode=self.tool_confirmation_mode,
+                input_provider=self._input_provider,
+                context=self.context,
+            )
             # Add tool results to messages for next iteration
             messages = [*pending_tool_results]
             self.log.debug("Continuing with tool results", count=len(pending_tool_results))

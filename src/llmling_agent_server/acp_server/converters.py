@@ -216,3 +216,20 @@ def mode_id_to_confirmation_mode(mode_id: str) -> ToolConfirmationMode | None:
         # "plan": "..."
     }
     return mapping.get(mode_id)
+
+
+def confirmation_mode_to_mode_id(mode: ToolConfirmationMode) -> str:
+    """Map ToolConfirmationMode to ACP mode ID.
+
+    Args:
+        mode: Tool confirmation mode
+
+    Returns:
+        ACP mode ID string
+    """
+    mapping: dict[ToolConfirmationMode, str] = {
+        "per_tool": "default",
+        "always": "default",  # No direct ACP equivalent, use default (requires confirmation)
+        "never": "acceptEdits",
+    }
+    return mapping.get(mode, "default")

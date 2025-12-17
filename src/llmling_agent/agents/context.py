@@ -29,6 +29,9 @@ class AgentContext[TDeps = Any](NodeContext[TDeps]):
     Generically typed with AgentContext[Type of Dependencies]
     """
 
+    agent: Agent[TDeps, Any]
+    """Current agent."""
+
     config: AgentConfig
     """Current agent's specific configuration."""
 
@@ -40,14 +43,6 @@ class AgentContext[TDeps = Any](NodeContext[TDeps]):
 
     tool_input: dict[str, Any] = field(default_factory=dict)
     """Input arguments for the current tool call."""
-
-    # TODO: perhaps add agent directly to context?
-    @property
-    def agent(self) -> Agent[TDeps, Any]:
-        """Get the agent instance from the pool."""
-        assert self.pool, "No agent pool available"
-        assert self.node_name, "No agent name available"
-        return self.pool.agents[self.node_name]
 
     async def handle_confirmation(self, tool: Tool, args: dict[str, Any]) -> ConfirmationResult:
         """Handle tool execution confirmation.

@@ -7,39 +7,43 @@ acp_agents:
     description: "Claude Code through ACP"
     env: # override to make sure subscription is used
       ANTHROPIC_API_KEY: ""
+
+    toolsets:
+      - type: code
+      - type: subagent
   codex:
     type: codex
     display_name: "Codex"
     description: "Codex Code through ACP"
-  opencode:
-    type: opencode
-    display_name: "OpenCode"
-    description: "OpenCode through ACP"
-  goose:
-    type: goose
-    display_name: "Goose"
-    description: "Block's Goose agent through ACP"
-  fast-agent:
-    type: fast-agent
-    display_name: "Fast Agent"
-    description: "fast-agent through ACP"
-    model: openai.gpt-4o
-  amp:
-    type: amp
-    display_name: "Amp (AmpCode)"
-    description: "Open-source ACP adapter for Amp CLI through ACP"
-  auggie:
-    type: auggie
-    display_name: "Auggie (Augment Code)"
-    description: "Augment Code's AI agent through ACP"
-  kimi:
-    type: kimi
-    display_name: "Kimi CLI"
-    description: "Moonshot AI's Kimi agent through ACP"
-  stakpak:
-    type: stakpak
-    display_name: "Stakpak Agent"
-    description: "Terminal-native DevOps Agent through ACP"
+  # opencode:
+  #   type: opencode
+  #   display_name: "OpenCode"
+  #   description: "OpenCode through ACP"
+  # goose:
+  #   type: goose
+  #   display_name: "Goose"
+  #   description: "Block's Goose agent through ACP"
+  # fast-agent:
+  #   type: fast-agent
+  #   display_name: "Fast Agent"
+  #   description: "fast-agent through ACP"
+  #   model: openai.gpt-4o
+  # amp:
+  #   type: amp
+  #   display_name: "Amp (AmpCode)"
+  #   description: "Open-source ACP adapter for Amp CLI through ACP"
+  # auggie:
+  #   type: auggie
+  #   display_name: "Auggie (Augment Code)"
+  #   description: "Augment Code's AI agent through ACP"
+  # kimi:
+  #   type: kimi
+  #   display_name: "Kimi CLI"
+  #   description: "Moonshot AI's Kimi agent through ACP"
+  # stakpak:
+  #   type: stakpak
+  #   display_name: "Stakpak Agent"
+  #   description: "Terminal-native DevOps Agent through ACP"
 
   # cagent:
   #   type: cagent

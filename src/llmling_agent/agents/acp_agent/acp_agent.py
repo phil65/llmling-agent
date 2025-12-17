@@ -605,17 +605,39 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
     async def set_tool_confirmation_mode(self, mode: ToolConfirmationMode) -> None:
         """Set the tool confirmation mode for this agent.
 
-        Note: For ACPAgent, "per_tool" behaves like "always" since we don't have
-        per-tool metadata from the ACP server.
+        For ACPAgent, this sends a set_session_mode request to the remote ACP server
+        to change its mode. The mode is also stored locally for the client handler.
+
+        Note: "per_tool" behaves like "always" since we don't have per-tool metadata
+        from the ACP server.
 
         Args:
             mode: Tool confirmation mode
         """
+        from llmling_agent_server.acp_server.converters import confirmation_mode_to_mode_id
+
         self.tool_confirmation_mode = mode
         # Update client handler if it exists
         if self._client_handler:
             self._client_handler.tool_confirmation_mode = mode
-        self.log.info("Tool confirmation mode changed", mode=mode)
+
+        # Forward mode change to remote ACP server if connected
+        if self._connection and self._session_id:
+            from acp.schema import SetSessionModeRequest
+
+            mode_id = confirmation_mode_to_mode_id(mode)
+            request = SetSessionModeRequest(session_id=self._session_id, mode_id=mode_id)
+            try:
+                await self._connection.set_session_mode(request)
+                self.log.info(
+                    "Forwarded mode change to remote ACP server",
+                    mode=mode,
+                    mode_id=mode_id,
+                )
+            except Exception:
+                self.log.exception("Failed to forward mode change to remote ACP server")
+        else:
+            self.log.info("Tool confirmation mode changed (local only)", mode=mode)
 
     async def get_stats(self) -> MessageStats:
         """Get message statistics."""
