@@ -5,6 +5,8 @@ acp_agents:
     type: claude
     display_name: "Claude Code"
     description: "Claude Code through ACP"
+    env: # override to make sure subscription is used
+      ANTHROPIC_API_KEY: ""
   codex:
     type: codex
     display_name: "Codex"
