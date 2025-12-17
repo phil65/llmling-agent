@@ -82,19 +82,14 @@ class AGUIServer(HTTPServer):
 
             async def agent_handler(request: Request, agent_name: str = agent_name) -> Response:
                 """Handle AG-UI requests for a specific agent."""
-                from starlette.responses import JSONResponse
+                from starlette.responses import JSONResponse, Response
 
+                pool_agent = self.pool.agents.get(agent_name)
+                if pool_agent is None:
+                    msg = f"Agent {agent_name!r} not found"
+                    return JSONResponse({"error": msg}, status_code=404)
+                agentlet = await pool_agent.get_agentlet(None, pool_agent.model_name, str)
                 try:
-                    # Get the agent from pool
-                    pool_agent = self.pool.agents.get(agent_name)
-                    if pool_agent is None:
-                        return JSONResponse(
-                            {"error": f"Agent '{agent_name}' not found"},
-                            status_code=404,
-                        )
-
-                    # Get the underlying pydantic-ai agentlet and convert to AG-UI app
-                    agentlet = await pool_agent.get_agentlet(None, pool_agent.model_name, str)
                     agui_app = AGUIApp(
                         agent=agentlet,
                         # Agent.iter parameters
@@ -119,16 +114,11 @@ class AGUIServer(HTTPServer):
                     )
                     # ASGI apps don't return a value, they write to send()
                     await agui_app(request.scope, request.receive, request._send)
-                    from starlette.responses import Response
-
                     return Response()
 
                 except Exception as e:
                     self.log.exception("Error handling AG-UI request", agent=agent_name)
-                    return JSONResponse(
-                        {"error": str(e)},
-                        status_code=500,
-                    )
+                    return JSONResponse({"error": str(e)}, status_code=500)
 
             routes.append(Route(f"/{agent_name}", agent_handler, methods=["POST"]))
             self.log.debug("Registered AG-UI route", agent=agent_name, route=f"/{agent_name}")
@@ -139,35 +129,17 @@ class AGUIServer(HTTPServer):
             from starlette.responses import JSONResponse
 
             agent_list = [
-                {
-                    "name": name,
-                    "route": f"/{name}",
-                    "model": agent.model_name,
-                }
+                {"name": name, "route": f"/{name}", "model": agent.model_name}
                 for name, agent in self.pool.agents.items()
             ]
-            return JSONResponse({
-                "agents": agent_list,
-                "count": len(agent_list),
-            })
+            return JSONResponse({"agents": agent_list, "count": len(agent_list)})
 
         routes.append(Route("/", list_agents, methods=["GET"]))
-
-        self.log.info(
-            "Created AG-UI routes",
-            agent_count=len(self.pool.agents),
-        )
+        self.log.info("Created AG-UI routes", agent_count=len(self.pool.agents))
         return routes
 
     def get_agent_url(self, agent_name: str) -> str:
-        """Get the URL for a specific agent.
-
-        Args:
-            agent_name: Name of the agent
-
-        Returns:
-            Full URL for the agent's AG-UI endpoint
-        """
+        """Get the endpoint URL for a specific agent."""
         return f"{self.base_url}/{agent_name}"
 
     def list_agent_routes(self) -> dict[str, str]:
