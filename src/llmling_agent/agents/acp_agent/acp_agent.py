@@ -355,12 +355,7 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
                 self._state.current_model_id = response.models.current_model_id
             self._state.modes = response.modes
         model = self._state.current_model_id if self._state else None
-        self.log.info(
-            "ACP session created",
-            session_id=self._session_id,
-            model=model,
-            mcp_servers=[s.name for s in mcp_servers],
-        )
+        self.log.info("ACP session created", session_id=self._session_id, model=model)
 
     def add_mcp_server(self, server: McpServer) -> None:
         """Add an MCP server to be passed to the next session."""

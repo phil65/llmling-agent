@@ -87,15 +87,6 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
         # Connect to existing server
         async with AGUIAgent(
             endpoint="http://localhost:8000/agent/run",
-            name="remote-agent"
-        ) as agent:
-            result = await agent.run("Hello, world!")
-            async for event in agent.run_stream("Tell me a story"):
-                print(event)
-
-        # With client-side tools
-        async with AGUIAgent(
-            endpoint="http://localhost:8000/agent/run",
             name="tool-agent",
             tools=[my_tool_function],
         ) as agent:
@@ -291,15 +282,12 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
                 )
             else:
                 tool = tools_by_name[tool_name]
+                self.log.info("Executing tool", tool=tool_name, args=args)
                 try:
-                    self.log.info("Executing tool", tool=tool_name, args=args)
                     result = await tool.execute(**args)
                     result_str = str(result) if not isinstance(result, str) else result
-                    result_msg = AGUIToolMessage(
-                        id=str(uuid4()),
-                        tool_call_id=tc_id,
-                        content=result_str,
-                    )
+                    id_ = str(uuid4())
+                    result_msg = AGUIToolMessage(id=id_, tool_call_id=tc_id, content=result_str)
                     self.log.debug("Tool executed", tool=tool_name, result=result_str[:100])
                 except Exception as e:
                     self.log.exception("Tool execution failed", tool=tool_name)
@@ -407,23 +395,15 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
         # Combine pending parts with new content
         final_content = [*pending_content, *user_content]
         user_message = UserMessage(id=str(uuid4()), content=final_content)
-
         # Convert registered tools to AG-UI format
         available_tools = await self.tools.get_tools(state="enabled")
         agui_tools = [to_agui_tool(t) for t in available_tools]
         tools_by_name = {t.name: t for t in available_tools}
-
         # Build initial messages list
         messages: list[Message] = [user_message]
         tool_accumulator = ToolCallAccumulator()
         pending_tool_results: list[ToolMessage] = []
-
-        self.log.debug(
-            "Sending prompt to AG-UI agent",
-            tools_count=len(agui_tools),
-            tool_names=[t.name for t in agui_tools],
-        )
-
+        self.log.debug("Sending prompt to AG-UI agent", tool_names=[t.name for t in agui_tools])
         # Loop to handle tool calls - agent may request multiple rounds
         while True:
             request_data = RunAgentInput(
@@ -442,13 +422,10 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
             try:
                 async with self._client.stream("POST", self.endpoint, json=data) as response:
                     response.raise_for_status()
-                    async for event in self._parse_sse_stream(response):
-                        # Track text chunks
-                        if text := extract_text_from_event(event):
+                    async for event in _parse_sse_stream(response):
+                        if text := extract_text_from_event(event):  # Track text chunks
                             self._state.text_chunks.append(text)
-
-                        # Handle tool call events for client-side execution
-                        match event:
+                        match event:  # Handle tool call events for client-side execution
                             case AGUIToolCallStartEvent(
                                 tool_call_id=tc_id, tool_call_name=name
                             ) if name:
@@ -496,7 +473,6 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
 
             # Execute pending tool calls locally and collect results
             pending_tool_results = await self._execute_tool_calls(tool_calls_pending, tools_by_name)
-
             # Add tool results to messages for next iteration
             messages = [*pending_tool_results]
             self.log.debug("Continuing with tool results", count=len(pending_tool_results))
@@ -516,38 +492,6 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
         yield complete_event
         # Record to conversation history
         conversation.add_chat_messages([user_msg, final_message])
-
-    async def _parse_sse_stream(self, response: httpx.Response) -> AsyncIterator[Event]:
-        """Parse Server-Sent Events stream.
-
-        Args:
-            response: HTTP response with SSE stream
-
-        Yields:
-            Parsed AG-UI events
-        """
-        from ag_ui.core import Event
-
-        event_adapter: TypeAdapter[Event] = TypeAdapter(Event)
-        buffer = ""
-        async for chunk in response.aiter_text():
-            buffer += chunk
-            # Process complete SSE events
-            while "\n\n" in buffer:
-                event_text, buffer = buffer.split("\n\n", 1)
-                # Parse SSE format: "data: {json}\n"
-                for line in event_text.split("\n"):
-                    if line.startswith("data: "):
-                        json_str = line[6:]  # Remove "data: " prefix
-                        try:
-                            event = event_adapter.validate_json(json_str)
-                            yield event
-                        except (ValueError, TypeError) as e:
-                            self.log.warning(
-                                "Failed to parse AG-UI event",
-                                json=json_str[:100],
-                                error=str(e),
-                            )
 
     async def run_iter(
         self,
@@ -579,15 +523,47 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
         return MessageStats()
 
 
-async def main() -> None:
-    """Example usage."""
-    async with AGUIAgent(endpoint="http://localhost:8000/agent/run", name="test-agent") as agent:
-        result = await agent.run("What is 2+2?")
-        print(f"Result: {result.content}")
-        print("\nStreaming:")
-        async for event in agent.run_stream("Tell me a short joke"):
-            print(f"Event: {event}")
+async def _parse_sse_stream(response: httpx.Response) -> AsyncIterator[Event]:
+    """Parse Server-Sent Events stream.
+
+    Args:
+        response: HTTP response with SSE stream
+
+    Yields:
+        Parsed AG-UI events
+    """
+    from ag_ui.core import Event
+
+    event_adapter: TypeAdapter[Event] = TypeAdapter(Event)
+    buffer = ""
+    async for chunk in response.aiter_text():
+        buffer += chunk
+        # Process complete SSE events
+        while "\n\n" in buffer:
+            event_text, buffer = buffer.split("\n\n", 1)
+            # Parse SSE format: "data: {json}\n"
+            for line in event_text.split("\n"):
+                if not line.startswith("data: "):
+                    continue
+                json_str = line[6:]  # Remove "data: " prefix
+                try:
+                    event = event_adapter.validate_json(json_str)
+                    yield event
+                except (ValueError, TypeError) as e:
+                    logger.warning("Failed to parse AG-UI event", json=json_str[:100], error=str(e))
 
 
 if __name__ == "__main__":
+
+    async def main() -> None:
+        """Example usage."""
+        async with AGUIAgent(
+            endpoint="http://localhost:8000/agent/run", name="test-agent"
+        ) as agent:
+            result = await agent.run("What is 2+2?")
+            print(f"Result: {result.content}")
+            print("\nStreaming:")
+            async for event in agent.run_stream("Tell me a short joke"):
+                print(f"Event: {event}")
+
     asyncio.run(main())
