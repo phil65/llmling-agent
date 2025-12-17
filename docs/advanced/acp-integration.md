@@ -14,7 +14,7 @@ ACP provides:
 - Session management and conversation history
 - File system operations with permission handling
 - Terminal integration for command execution
-- Support for multiple agents with mode switching
+- Tool confirmation mode switching for different workflows
 - MCP (Model Context Protocol) server integration
 
 ## ACP Agents as First-Class Citizens
@@ -123,7 +123,7 @@ In this mode, llmling-agent:
 - Sends back agent responses
 - Handles file operations on behalf of the IDE
 - Manages terminal sessions
-- Provides multi-agent "modes" for the IDE to switch between
+- Provides tool confirmation modes for the IDE to switch between
 
 #### As an ACP Client (External Agent Integration)
 
@@ -189,31 +189,17 @@ This bridge architecture enables:
 
 The key insight: **llmling-agent doesn't just implement ACP—it bridges multiple ACP worlds together into a unified orchestration layer**.
 
-## Multi-Agent Modes
+## Tool Confirmation Modes
 
-When your configuration includes multiple agents, the IDE will show a mode selector allowing users to switch between different agents mid-conversation.
+The IDE's mode selector controls **tool confirmation behavior** - how the agent handles tool executions that may affect your files or system.
 
-Example configuration with multiple agents:
+Available modes:
 
-```yaml
-agents:
-  code_reviewer:
-    name: "Code Reviewer"
-    model: "openai:gpt-4"
-    system_prompt: "You are an expert code reviewer..."
+- **Auto-approve**: Tools execute without confirmation (fastest workflow)
+- **Confirm destructive**: Only confirm file writes, deletions, and terminal commands  
+- **Confirm all**: Confirm every tool execution (safest)
 
-  documentation_writer:
-    name: "Documentation Writer"
-    model: "anthropic:gpt-5-nano"
-    system_prompt: "You are a technical documentation expert..."
-
-```
-
-Each agent appears as a separate "mode" in the IDE interface, allowing users to:
-
-- Switch between specialized agents for different tasks
-- Maintain separate conversation contexts per agent
-- Access agent-specific capabilities and tools
+The mode affects tool confirmation, not agent selection. To work with different agents, use the `/spawn` command or configure delegation through toolsets.
 
 ## External ACP Agents
 
