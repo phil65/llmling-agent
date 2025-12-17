@@ -2,39 +2,59 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, Mock
+import asyncio
+from typing import TYPE_CHECKING
 
 from anyenv.process_manager.models import ProcessOutput
 from exxec import MockExecutionEnvironment
 from exxec.models import ExecutionResult
 import pytest
 
-from llmling_agent import AgentContext
-from llmling_agent.agents.events import StreamEventEmitter
+from llmling_agent import Agent, AgentContext
+from llmling_agent.agents.events import ToolCallProgressEvent
 from llmling_agent.models.agents import AgentConfig
+from llmling_agent.models.manifest import AgentsManifest
 from llmling_agent_toolsets.builtin.execution_environment import ExecutionEnvironmentTools
 
 
-def create_mock_agent_context() -> AgentContext:
-    """Create a mock AgentContext for testing."""
-    context = Mock(spec=AgentContext)
-    context.node_name = "test_agent"
-    context.events = Mock(spec=StreamEventEmitter)
-    context.events.process_started = AsyncMock()
-    context.events.process_output = AsyncMock()
-    context.events.process_exit = AsyncMock()
-    context.events.process_killed = AsyncMock()
-    context.events.process_released = AsyncMock()
-    context.config = Mock(spec=AgentConfig)
-    context.tool_call_id = "test_call_123"
-    context.tool_input = {"command": "echo", "args": ["hello"]}
-    return context
+if TYPE_CHECKING:
+    from llmling_agent.agents.events import RichAgentStreamEvent
+
+
+def drain_event_queue(agent: Agent) -> list[RichAgentStreamEvent]:
+    """Drain all events from the agent's event queue."""
+    events: list[RichAgentStreamEvent] = []
+    while not agent._event_queue.empty():
+        try:
+            events.append(agent._event_queue.get_nowait())
+        except asyncio.QueueEmpty:
+            break
+    return events
+
+
+def get_progress_events(agent: Agent) -> list[ToolCallProgressEvent]:
+    """Get all ToolCallProgressEvent from the agent's queue."""
+    events = drain_event_queue(agent)
+    return [e for e in events if isinstance(e, ToolCallProgressEvent)]
 
 
 @pytest.fixture
-def mock_ctx() -> AgentContext:
-    """Create a fresh mock context for each test."""
-    return create_mock_agent_context()
+def test_agent() -> Agent[None]:
+    """Create a minimal agent for testing event emission."""
+    return Agent(name="test_agent")
+
+
+@pytest.fixture
+def agent_ctx(test_agent: Agent[None]) -> AgentContext:
+    """Create a real AgentContext for testing."""
+    return AgentContext(
+        node=test_agent,
+        config=AgentConfig(name="test_agent"),
+        definition=AgentsManifest(),
+        tool_call_id="test_call_123",
+        tool_name="test_tool",
+        tool_input={"command": "echo", "args": ["hello"]},
+    )
 
 
 @pytest.fixture
@@ -75,14 +95,15 @@ def execution_tools(mock_env: MockExecutionEnvironment) -> ExecutionEnvironmentT
 
 async def test_start_process(
     execution_tools: ExecutionEnvironmentTools,
-    mock_ctx: AgentContext,
+    agent_ctx: AgentContext,
+    test_agent: Agent[None],
 ):
     """Test starting a process through execution tools."""
     tools = await execution_tools.get_tools()
     start_tool = next(tool for tool in tools if tool.name == "start_process")
 
     result = await start_tool.execute(
-        agent_ctx=mock_ctx,
+        agent_ctx=agent_ctx,
         command="echo",
         args=["hello", "world"],
         cwd="/tmp",
@@ -93,15 +114,18 @@ async def test_start_process(
     assert result["args"] == ["hello", "world"]
     assert result["status"] == "started"
 
-    mock_ctx.events.process_started.assert_called_once()  # type: ignore[attr-defined]
-    call_args = mock_ctx.events.process_started.call_args[1]  # type: ignore[attr-defined]
-    assert call_args["success"] is True
+    # Check event was emitted to the queue
+    events = get_progress_events(test_agent)
+    assert len(events) == 1
+    assert events[0].title is not None
+    assert "Running: echo" in events[0].title
 
 
 async def test_get_process_output(
     execution_tools: ExecutionEnvironmentTools,
     mock_env: MockExecutionEnvironment,
-    mock_ctx: AgentContext,
+    agent_ctx: AgentContext,
+    test_agent: Agent[None],
 ):
     """Test getting process output."""
     # Start a process first
@@ -111,7 +135,7 @@ async def test_get_process_output(
     output_tool = next(tool for tool in tools if tool.name == "get_process_output")
 
     result = await output_tool.execute(
-        agent_ctx=mock_ctx,
+        agent_ctx=agent_ctx,
         process_id=process_id,
     )
 
@@ -120,13 +144,18 @@ async def test_get_process_output(
     assert result["stdout"] == "hello world\n"
     assert result["combined"] == "hello world\n"
 
-    mock_ctx.events.process_output.assert_called_once()  # type: ignore[attr-defined]
+    # Check event was emitted (title contains output)
+    events = get_progress_events(test_agent)
+    assert len(events) == 1
+    assert events[0].title is not None
+    assert "hello world" in events[0].title
 
 
 async def test_kill_process(
     execution_tools: ExecutionEnvironmentTools,
     mock_env: MockExecutionEnvironment,
-    mock_ctx: AgentContext,
+    agent_ctx: AgentContext,
+    test_agent: Agent[None],
 ):
     """Test killing a process."""
     # Start a process first
@@ -136,7 +165,7 @@ async def test_kill_process(
     kill_tool = next(tool for tool in tools if tool.name == "kill_process")
 
     result = await kill_tool.execute(
-        agent_ctx=mock_ctx,
+        agent_ctx=agent_ctx,
         process_id=process_id,
     )
 
@@ -144,16 +173,19 @@ async def test_kill_process(
     assert result["process_id"] == process_id
     assert result["status"] == "killed"
 
-    mock_ctx.events.process_killed.assert_called_once()  # type: ignore[attr-defined]
-    call_args = mock_ctx.events.process_killed.call_args[1]  # type: ignore[attr-defined]
-    assert call_args["process_id"] == process_id
-    assert call_args["success"] is True
+    # Check event was emitted
+    events = get_progress_events(test_agent)
+    assert len(events) == 1
+    assert events[0].title is not None
+    assert "Killed process" in events[0].title
+    assert process_id in events[0].title
 
 
 async def test_wait_for_process(
     execution_tools: ExecutionEnvironmentTools,
     mock_env: MockExecutionEnvironment,
-    mock_ctx: AgentContext,
+    agent_ctx: AgentContext,
+    test_agent: Agent[None],
 ):
     """Test waiting for process completion."""
     # Start a process first
@@ -163,7 +195,7 @@ async def test_wait_for_process(
     wait_tool = next(tool for tool in tools if tool.name == "wait_for_process")
 
     result = await wait_tool.execute(
-        agent_ctx=mock_ctx,
+        agent_ctx=agent_ctx,
         process_id=process_id,
     )
 
@@ -172,13 +204,19 @@ async def test_wait_for_process(
     assert result["exit_code"] == 0
     assert result["status"] == "completed"
 
-    mock_ctx.events.process_exit.assert_called_once()  # type: ignore[attr-defined]
+    # Check event was emitted
+    events = get_progress_events(test_agent)
+    assert len(events) == 1
+    assert events[0].title is not None
+    assert "Process exited" in events[0].title
+    assert "exit 0" in events[0].title
 
 
 async def test_release_process(
     execution_tools: ExecutionEnvironmentTools,
     mock_env: MockExecutionEnvironment,
-    mock_ctx: AgentContext,
+    agent_ctx: AgentContext,
+    test_agent: Agent[None],
 ):
     """Test releasing process resources."""
     # Start a process first
@@ -188,7 +226,7 @@ async def test_release_process(
     release_tool = next(tool for tool in tools if tool.name == "release_process")
 
     result = await release_tool.execute(
-        agent_ctx=mock_ctx,
+        agent_ctx=agent_ctx,
         process_id=process_id,
     )
 
@@ -200,13 +238,18 @@ async def test_release_process(
     processes = await mock_env.process_manager.list_processes()
     assert process_id not in processes
 
-    mock_ctx.events.process_released.assert_called_once()  # type: ignore[attr-defined]
+    # Check event was emitted
+    events = get_progress_events(test_agent)
+    assert len(events) == 1
+    assert events[0].title is not None
+    assert "Released process" in events[0].title
+    assert process_id in events[0].title
 
 
 async def test_list_processes(
     execution_tools: ExecutionEnvironmentTools,
     mock_env: MockExecutionEnvironment,
-    mock_ctx: AgentContext,
+    agent_ctx: AgentContext,
 ):
     """Test listing all processes."""
     # Start some processes
@@ -216,7 +259,7 @@ async def test_list_processes(
     tools = await execution_tools.get_tools()
     list_tool = next(tool for tool in tools if tool.name == "list_processes")
 
-    result = await list_tool.execute(agent_ctx=mock_ctx)
+    result = await list_tool.execute(agent_ctx=agent_ctx)
 
     assert isinstance(result, dict)
     assert "processes" in result
@@ -227,14 +270,15 @@ async def test_list_processes(
 
 async def test_execute_command(
     execution_tools: ExecutionEnvironmentTools,
-    mock_ctx: AgentContext,
+    agent_ctx: AgentContext,
+    test_agent: Agent[None],
 ):
     """Test executing a command directly."""
     tools = await execution_tools.get_tools()
     cmd_tool = next(tool for tool in tools if tool.name == "execute_command")
 
     result = await cmd_tool.execute(
-        agent_ctx=mock_ctx,
+        agent_ctx=agent_ctx,
         command="echo hello world",
     )
 
@@ -242,17 +286,21 @@ async def test_execute_command(
     assert result["stdout"] == "hello world\n"
     assert result["exit_code"] == 0
 
+    # Check events were emitted (start + output + exit)
+    events = get_progress_events(test_agent)
+    assert len(events) >= 1  # At least process start event
+
 
 async def test_process_not_found(
     execution_tools: ExecutionEnvironmentTools,
-    mock_ctx: AgentContext,
+    agent_ctx: AgentContext,
 ):
     """Test error handling for non-existent process."""
     tools = await execution_tools.get_tools()
     output_tool = next(tool for tool in tools if tool.name == "get_process_output")
 
     result = await output_tool.execute(
-        agent_ctx=mock_ctx,
+        agent_ctx=agent_ctx,
         process_id="nonexistent_process",
     )
 
