@@ -199,7 +199,7 @@ class AgentHooks:
 
         for raw_result in raw_results:
             if isinstance(raw_result, BaseException):
-                logger.warning("Hook execution failed: %s", raw_result)
+                logger.warning("Hook execution failed", error=str(raw_result))
                 continue
 
             result: HookResult = raw_result

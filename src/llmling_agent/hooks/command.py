@@ -104,17 +104,21 @@ class CommandHook(Hook):
                 )
             # Non-blocking error
             logger.warning(
-                "Hook command failed with code %d: %s",
-                proc.returncode,
-                stderr_str,
+                "Hook command failed",
+                returncode=proc.returncode,
+                stderr=stderr_str,
             )
             return HookResult(decision="allow")
 
         except TimeoutError:
-            logger.exception("Hook command timed out after %s seconds: %s", self.timeout, command)
+            logger.exception(
+                "Hook command timed out",
+                timeout=self.timeout,
+                command=command,
+            )
             return HookResult(decision="allow")
         except Exception as e:
-            logger.exception("Hook command failed: %s", command)
+            logger.exception("Hook command failed", command=command)
             return HookResult(decision="allow", reason=str(e))
 
     def _parse_success_output(self, stdout: str) -> HookResult:

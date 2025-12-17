@@ -77,16 +77,11 @@ class CallableHook(Hook):
         """
         try:
             fn = self.callable
-
             # Merge input data with additional arguments
             kwargs = {**dict(input_data), **self.arguments}
-
             # Execute with timeout
             if asyncio.iscoroutinefunction(fn):
-                result = await asyncio.wait_for(
-                    fn(**kwargs),
-                    timeout=self.timeout,
-                )
+                result = await asyncio.wait_for(fn(**kwargs), timeout=self.timeout)
             else:
                 # Run sync function in executor
                 loop = asyncio.get_event_loop()
@@ -103,13 +98,16 @@ class CallableHook(Hook):
 
         except TimeoutError:
             logger.exception(
-                "Hook callable timed out after %s seconds: %s",
-                self.timeout,
-                self._import_path or self._callable,
+                "Hook callable timed out",
+                timeout=self.timeout,
+                callable=self._import_path or str(self._callable),
             )
             return HookResult(decision="allow")
         except Exception as e:
-            logger.exception("Hook callable failed: %s", self._import_path or self._callable)
+            logger.exception(
+                "Hook callable failed",
+                callable=self._import_path or str(self._callable),
+            )
             return HookResult(decision="allow", reason=str(e))
 
     def _normalize_result(self, result: Any) -> HookResult:
