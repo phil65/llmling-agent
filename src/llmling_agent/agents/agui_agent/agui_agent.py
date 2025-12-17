@@ -18,8 +18,10 @@ from anyenv import MultiEventHandler
 from anyenv.processes import hard_kill
 import httpx
 
+from llmling_agent.agents.agui_agent.chunk_transformer import ChunkTransformer
 from llmling_agent.agents.agui_agent.helpers import execute_tool_calls, parse_sse_stream
 from llmling_agent.agents.agui_agent.session_state import AGUISessionState
+from llmling_agent.agents.agui_agent.subscriber import AGUISubscriber, SubscriberManager
 from llmling_agent.agents.events import RunStartedEvent, StreamCompleteEvent, resolve_event_handlers
 from llmling_agent.common_types import IndividualEventHandler
 from llmling_agent.log import get_logger
@@ -32,7 +34,7 @@ from llmling_agent.tools import ToolManager
 
 if TYPE_CHECKING:
     from asyncio.subprocess import Process
-    from collections.abc import AsyncIterator, Sequence
+    from collections.abc import AsyncIterator, Callable, Sequence
     from types import TracebackType
 
     from ag_ui.core import Message, ToolMessage
@@ -71,12 +73,24 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
     - Event conversion to native llmling-agent events
     - Message accumulation and final response generation
     - Client-side tool execution (tools defined locally, executed when requested)
+    - Subscriber system for event hooks
+    - Chunk transformation for compatibility with different server modes
 
     Client-Side Tools:
         Tools can be registered with this agent and sent to the remote AG-UI server.
         When the server requests a tool call, the tool is executed locally and the
         result is sent back. This enables human-in-the-loop workflows and local
         capability exposure to remote agents.
+
+    Subscribers:
+        Register callbacks to react to AG-UI events without subclassing:
+        ```python
+        subscriber = AGUISubscriber(
+            on_text_content=lambda e, buf, state: print(f"Text: {e.delta}"),
+            on_thinking_content=lambda e, buf, state: print(f"Thinking: {e.delta}"),
+        )
+        unsubscribe = agent.subscribe(subscriber)
+        ```
 
     Example:
         ```python
@@ -117,6 +131,7 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
         enable_logging: bool = True,
         event_configs: Sequence[EventConfig] | None = None,
         event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
+        debug: bool = False,
     ) -> None:
         """Initialize AG-UI agent client.
 
@@ -137,6 +152,7 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
             enable_logging: Whether to enable database logging
             event_configs: Event trigger configurations
             event_handlers: Sequence of event handlers to register
+            debug: Enable debug logging for chunk transformer
         """
         super().__init__(
             name=name,
@@ -150,6 +166,7 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
         self.endpoint = endpoint
         self.timeout = timeout
         self.headers = headers or {}
+        self._debug = debug
         # Startup command configuration
         self._startup_command = startup_command
         self._startup_delay = startup_delay
@@ -166,6 +183,10 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
         # Tool confirmation mode - defaults to "per_tool" like Agent class
         self.tool_confirmation_mode: ToolConfirmationMode = "per_tool"
         self._input_provider: InputProvider | None = None
+        # Subscriber system for AG-UI event hooks
+        self._subscriber_manager = SubscriberManager()
+        # Chunk transformer for normalizing CHUNK events
+        self._chunk_transformer = ChunkTransformer(debug=debug)
 
     @property
     def context(self) -> NodeContext:
@@ -177,6 +198,17 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
         cfg = NodeConfig(name=self.name, description=self.description)
         defn = self.agent_pool.manifest if self.agent_pool else AgentsManifest()
         return NodeContext(node=self, pool=self.agent_pool, config=cfg, definition=defn)
+
+    def subscribe(self, subscriber: AGUISubscriber) -> Callable[[], None]:
+        """Subscribe to AG-UI events.
+
+        Args:
+            subscriber: Subscriber with event callbacks
+
+        Returns:
+            Unsubscribe function
+        """
+        return self._subscriber_manager.add(subscriber)
 
     async def __aenter__(self) -> Self:
         """Enter async context - initialize client and base resources."""
@@ -332,6 +364,9 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
             self._input_provider = input_provider
         from ag_ui.core import (
             RunAgentInput,
+            ThinkingStartEvent,
+            ThinkingEndEvent,
+            ThinkingTextMessageContentEvent,
             ToolCallArgsEvent as AGUIToolCallArgsEvent,
             ToolCallEndEvent as AGUIToolCallEndEvent,
             ToolCallStartEvent as AGUIToolCallStartEvent,
@@ -342,6 +377,7 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
             ToolCallAccumulator,
             agui_to_native_event,
             extract_text_from_event,
+            extract_thinking_from_event,
             to_agui_input_content,
             to_agui_tool,
         )
@@ -353,6 +389,9 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
         conversation = message_history if message_history is not None else self.conversation
         user_msg, _processed_prompts, _original_message = await prepare_prompts(*prompts)
         self._state.clear()  # Reset state
+        self._chunk_transformer.reset()  # Reset chunk transformer
+        self._subscriber_manager.reset_buffers()  # Reset subscriber buffers
+
         run_started = RunStartedEvent(
             thread_id=self._state.thread_id,
             run_id=self._state.run_id or str(uuid4()),
@@ -397,42 +436,70 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
             try:
                 async with self._client.stream("POST", self.endpoint, json=data) as response:
                     response.raise_for_status()
-                    async for event in parse_sse_stream(response):
-                        if text := extract_text_from_event(event):  # Track text chunks
-                            self._state.text_chunks.append(text)
-                        match event:  # Handle tool call events for client-side execution
-                            case AGUIToolCallStartEvent(
-                                tool_call_id=tc_id, tool_call_name=name
-                            ) if name:
-                                tool_accumulator.start(tc_id, name)
-                                self.log.debug("Tool call started", tool_call_id=tc_id, tool=name)
+                    async for raw_event in parse_sse_stream(response):
+                        # Transform chunks to proper START/CONTENT/END sequences
+                        transformed_events = self._chunk_transformer.transform(raw_event)
 
-                            case AGUIToolCallArgsEvent(tool_call_id=tc_id, delta=delta):
-                                tool_accumulator.add_args(tc_id, delta)
+                        for event in transformed_events:
+                            # Track text chunks in session state
+                            if text := extract_text_from_event(event):
+                                self._state.add_text(text)
 
-                            case AGUIToolCallEndEvent(tool_call_id=tc_id):
-                                if result := tool_accumulator.complete(tc_id):
-                                    tool_name, args = result
-                                    tool_calls_pending.append((tc_id, tool_name, args))
-                                    self.log.debug(
-                                        "Tool call completed",
-                                        tool_call_id=tc_id,
-                                        tool=tool_name,
-                                        args=args,
-                                    )
+                            # Track thinking chunks in session state
+                            if thinking := extract_thinking_from_event(event):
+                                self._state.add_thinking(thinking)
 
-                        # Convert to native event and distribute to handlers
+                            # Track thinking state
+                            if isinstance(event, ThinkingStartEvent):
+                                self._state.start_thinking()
+                            elif isinstance(event, ThinkingEndEvent):
+                                self._state.end_thinking()
+
+                            # Dispatch to subscribers
+                            await self._subscriber_manager.dispatch(event, self._state)
+
+                            # Handle tool call events for client-side execution
+                            match event:
+                                case AGUIToolCallStartEvent(
+                                    tool_call_id=tc_id, tool_call_name=name
+                                ) if name:
+                                    tool_accumulator.start(tc_id, name)
+                                    self.log.debug("Tool call started", tool_call_id=tc_id, tool=name)
+
+                                case AGUIToolCallArgsEvent(tool_call_id=tc_id, delta=delta):
+                                    tool_accumulator.add_args(tc_id, delta)
+
+                                case AGUIToolCallEndEvent(tool_call_id=tc_id):
+                                    if result := tool_accumulator.complete(tc_id):
+                                        tool_name, args = result
+                                        tool_calls_pending.append((tc_id, tool_name, args))
+                                        self.log.debug(
+                                            "Tool call completed",
+                                            tool_call_id=tc_id,
+                                            tool=tool_name,
+                                            args=args,
+                                        )
+
+                            # Convert to native event and distribute to handlers
+                            if native_event := agui_to_native_event(event):
+                                # Check for queued custom events first
+                                while not self._event_queue.empty():
+                                    try:
+                                        custom_event = self._event_queue.get_nowait()
+                                        for handler in self.event_handler._wrapped_handlers:
+                                            await handler(None, custom_event)
+                                        yield custom_event
+                                    except asyncio.QueueEmpty:
+                                        break
+                                # Distribute to handlers
+                                for handler in self.event_handler._wrapped_handlers:
+                                    await handler(None, native_event)
+                                yield native_event
+
+                    # Flush any pending chunk events at end of stream
+                    for event in self._chunk_transformer.flush():
+                        await self._subscriber_manager.dispatch(event, self._state)
                         if native_event := agui_to_native_event(event):
-                            # Check for queued custom events first
-                            while not self._event_queue.empty():
-                                try:
-                                    custom_event = self._event_queue.get_nowait()
-                                    for handler in self.event_handler._wrapped_handlers:
-                                        await handler(None, custom_event)
-                                    yield custom_event
-                                except asyncio.QueueEmpty:
-                                    break
-                            # Distribute to handlers
                             for handler in self.event_handler._wrapped_handlers:
                                 await handler(None, native_event)
                             yield native_event
@@ -461,7 +528,7 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
         # Finalize
         self._state.is_complete = True
         final_message = ChatMessage[str](
-            content="".join(self._state.text_chunks),
+            content=self._state.text_content,
             role="assistant",
             name=self.name,
             message_id=message_id or str(uuid4()),
@@ -498,6 +565,13 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
     def model_name(self) -> str | None:
         """Get model name (AG-UI doesn't expose this)."""
         return None
+
+    @property
+    def thinking_content(self) -> str:
+        """Get accumulated thinking/reasoning content from last run."""
+        if self._state:
+            return self._state.thinking_content
+        return ""
 
     async def get_stats(self) -> MessageStats:
         """Get message statistics for this node."""
