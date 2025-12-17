@@ -21,7 +21,7 @@ import httpx
 from llmling_agent.agents.agui_agent.chunk_transformer import ChunkTransformer
 from llmling_agent.agents.agui_agent.helpers import execute_tool_calls, parse_sse_stream
 from llmling_agent.agents.agui_agent.session_state import AGUISessionState
-from llmling_agent.agents.agui_agent.subscriber import AGUISubscriber, SubscriberManager
+from llmling_agent.agents.agui_agent.subscriber import SubscriberManager
 from llmling_agent.agents.events import RunStartedEvent, StreamCompleteEvent, resolve_event_handlers
 from llmling_agent.common_types import IndividualEventHandler
 from llmling_agent.log import get_logger
@@ -40,6 +40,7 @@ if TYPE_CHECKING:
     from ag_ui.core import Message, ToolMessage
     from evented.configs import EventConfig
 
+    from llmling_agent.agents.agui_agent.subscriber import AGUISubscriber
     from llmling_agent.agents.events import RichAgentStreamEvent
     from llmling_agent.common_types import BuiltinEventHandlerType, PromptCompatible, ToolType
     from llmling_agent.delegation import AgentPool
@@ -364,9 +365,8 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
             self._input_provider = input_provider
         from ag_ui.core import (
             RunAgentInput,
-            ThinkingStartEvent,
             ThinkingEndEvent,
-            ThinkingTextMessageContentEvent,
+            ThinkingStartEvent,
             ToolCallArgsEvent as AGUIToolCallArgsEvent,
             ToolCallEndEvent as AGUIToolCallEndEvent,
             ToolCallStartEvent as AGUIToolCallStartEvent,
@@ -464,7 +464,11 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
                                     tool_call_id=tc_id, tool_call_name=name
                                 ) if name:
                                     tool_accumulator.start(tc_id, name)
-                                    self.log.debug("Tool call started", tool_call_id=tc_id, tool=name)
+                                    self.log.debug(
+                                        "Tool call started",
+                                        tool_call_id=tc_id,
+                                        tool=name,
+                                    )
 
                                 case AGUIToolCallArgsEvent(tool_call_id=tc_id, delta=delta):
                                     tool_accumulator.add_args(tc_id, delta)

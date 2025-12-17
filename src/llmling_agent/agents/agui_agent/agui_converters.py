@@ -66,7 +66,7 @@ from llmling_agent.resource_providers.plan_provider import PlanEntry
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from ag_ui.core import InputContent, Tool as AGUITool, BaseEvent
+    from ag_ui.core import BaseEvent, InputContent, Tool as AGUITool
     from pydantic_ai import UserContent
 
     from llmling_agent.agents.events import RichAgentStreamEvent

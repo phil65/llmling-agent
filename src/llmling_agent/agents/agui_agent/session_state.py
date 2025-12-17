@@ -129,7 +129,7 @@ class AGUISessionState:
         except (ImportError, ModuleNotFoundError):
             # Fallback: just store delta info if jsonpatch not available
             self.state["_pending_delta"] = delta
-        except Exception:
+        except Exception:  # noqa: BLE001
             # Log but don't fail on patch errors
             pass
 
@@ -160,9 +160,7 @@ class AGUISessionState:
         self.processed_message_ids = set(checkpoint.message_ids)
         # Restore accumulated content
         self.text_chunks = [checkpoint.text_content] if checkpoint.text_content else []
-        self.thought_chunks = (
-            [checkpoint.thinking_content] if checkpoint.thinking_content else []
-        )
+        self.thought_chunks = [checkpoint.thinking_content] if checkpoint.thinking_content else []
 
     def clear(self) -> None:
         """Clear session state for new run."""
