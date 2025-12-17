@@ -472,5 +472,68 @@ def test_to_agui_tool():
     assert "count" in agui_tool.parameters["properties"]
 
 
+@pytest.mark.asyncio
+async def test_agui_agent_e2e_with_server_side_tools():
+    """End-to-end test: AGUIAgent with server-side tool execution.
+
+    This test verifies that when a pydantic-ai AG-UI server executes tools
+    server-side, our AGUIAgent correctly ignores the tool call events
+    (since they're not meant for client-side execution) and receives
+    the final response.
+    """
+    from llmling_agent import AgentPool
+
+    # Use the test config that starts the server with --with-tools
+    config_path = "src/llmling_agent/config_resources/agui_test.yml"
+
+    async with AgentPool(config_path) as pool:
+        agent = pool.agui_agents["test_agui"]
+
+        # The server has get_weather tool, TestModel will call it
+        result = await agent.run("What is the weather in Berlin?")
+
+        assert isinstance(result, ChatMessage)
+        # TestModel returns tool results as JSON
+        assert "get_weather" in result.content
+        assert "sunny" in result.content or "22" in result.content
+
+
+@pytest.mark.asyncio
+async def test_agui_agent_e2e_without_tools():
+    """End-to-end test: AGUIAgent with simple text response (no tools)."""
+    from pathlib import Path
+
+    # Create a temporary config without --with-tools
+    import tempfile
+
+    from llmling_agent import AgentPool
+
+    config_content = """
+agui_agents:
+  test_simple:
+    endpoint: http://127.0.0.1:8766/agent/run
+    description: "AG-UI test client without tools"
+    startup_command: "uv run python tests/test_server_agui.py --port 8766"
+    startup_delay: 3.0
+    timeout: 60.0
+"""
+
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".yml", delete=False) as f:
+        f.write(config_content)
+        config_path = f.name
+
+    try:
+        async with AgentPool(config_path) as pool:
+            agent = pool.agui_agents["test_simple"]
+
+            result = await agent.run("Hello!")
+
+            assert isinstance(result, ChatMessage)
+            # Without tools, TestModel returns "The answer is 4."
+            assert result.content == "The answer is 4."
+    finally:
+        Path(config_path).unlink()
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
