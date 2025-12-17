@@ -1301,7 +1301,7 @@ wheels = [
 
 [[package]]
 name = "exxec"
-version = "0.1.3"
+version = "0.1.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyenv" },
@@ -1309,9 +1309,9 @@ dependencies = [
     { name = "schemez" },
     { name = "upathtools" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/69/02/98f9487943983b6a94d78458362dc5b74bd1dfd3ee2edf476c2c3548e37b/exxec-0.1.3.tar.gz", hash = "sha256:eb84d7255a405faaadd7241d7e2c9e11451e5a0e1cc3a5ba14c64f0e83430b84", size = 68174, upload-time = "2025-12-15T10:11:53.832Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/2b/a5/eb7761172fa63ee51b1b248305ad7cffb03fb07fdb96c96c7866e75d3978/exxec-0.1.4.tar.gz", hash = "sha256:216e1a6de4b90d28b99348cf654e1a920a55e2161b45fb515605cb9dbbcf6df1", size = 68316, upload-time = "2025-12-17T12:25:10.198Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e4/d2/1df0e3e8629d8abbbee7f4af79fcd0f672874d5fc9eedcb9b22e8c507f37/exxec-0.1.3-py3-none-any.whl", hash = "sha256:08f3dba9b51a5a278305aa683d0a7b79761a40878631db4c81fc2479cbad35f4", size = 93988, upload-time = "2025-12-15T10:11:52.621Z" },
+    { url = "https://files.pythonhosted.org/packages/51/15/2749e5719501b2e619b7a9d5b601fbd1502daf37f08e1a64ecd6a81cb733/exxec-0.1.4-py3-none-any.whl", hash = "sha256:ea605fb8e48eeb993d332641a59b2dc1bd229ff0345a87e51509988dff3416a9", size = 94262, upload-time = "2025-12-17T12:25:08.553Z" },
 ]
 
 [[package]]
@@ -1536,15 +1536,15 @@ git = [
 
 [[package]]
 name = "genai-prices"
-version = "0.0.48"
+version = "0.0.49"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "httpx" },
     { name = "pydantic" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/72/55/bcdae9be6fa596ca5529f094f5d757d3ac0cdd72a607a2165d2d77f00edf/genai_prices-0.0.48.tar.gz", hash = "sha256:608374a730f9e813c70698602794414e62c8902b49fb36b7ad37f6fcf078b5a9", size = 56582, upload-time = "2025-12-12T13:18:39.131Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/0d/aa/81f76b90f8d1a7dcd9297bd8bf664927ae2a1efe40fe5d1a8856dc721359/genai_prices-0.0.49.tar.gz", hash = "sha256:a7f98f1537e6f89ed54f1cd8f560806e187033dcb42554fbecd4d635567120c5", size = 57852, upload-time = "2025-12-17T10:47:29.345Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/6a/09/98ce9c0bac33793867c2a536dab0fa2bca0c9f4a50b6b1957e8c7805601e/genai_prices-0.0.48-py3-none-any.whl", hash = "sha256:88ed3f9ab399389ae7acf6e62a5f7007332d2653926f205671b29e2f2ec5b27c", size = 59089, upload-time = "2025-12-12T13:18:37.737Z" },
+    { url = "https://files.pythonhosted.org/packages/e4/1e/1d51238dd164dde10c4e3be6ad2d8f26dd34dd262117c277440e2b5dc7c0/genai_prices-0.0.49-py3-none-any.whl", hash = "sha256:dd3efbebcd865d89cd849793530729e7f7e1ca59d2b17a091ad1aa6aa76daf0d", size = 60433, upload-time = "2025-12-17T10:47:28.3Z" },
 ]
 
 [[package]]
@@ -2204,7 +2204,7 @@ wheels = [
 
 [[package]]
 name = "langfuse"
-version = "3.10.7"
+version = "3.11.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "backoff" },
@@ -2218,9 +2218,9 @@ dependencies = [
     { name = "requests" },
     { name = "wrapt" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/44/62/f46319500aff363bedf5dbbcb3afa0fdd5788c6faf901eee8fce27f9643c/langfuse-3.10.7.tar.gz", hash = "sha256:64eaec6923e6c61baa62b18516f5f37c011d55caa409b2214c1819fe01cd1056", size = 223808, upload-time = "2025-12-16T15:36:55.959Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/15/6d/f381dd6f89f95dccbe194dcf3203a964a8fb6e17a681356da6d85e5de5aa/langfuse-3.11.0.tar.gz", hash = "sha256:61b0a5e67512c7521a113bbcd2536b566b5517ab0e9933899de5214ad3851364", size = 224002, upload-time = "2025-12-17T10:29:29.517Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ed/10/67fd830dfd4ab33f66a60d6b61395601b478dec78e15065d4d6fb4d74610/langfuse-3.10.7-py3-none-any.whl", hash = "sha256:206dabd786ca64c403b5552488515ff08d4b2d55cebf00255ed1ae3c59794d17", size = 399345, upload-time = "2025-12-16T15:36:54.716Z" },
+    { url = "https://files.pythonhosted.org/packages/d8/06/0946bca555a0e8f74393d08d4d37c0b1aab21cbc5109ec96074f1a7690ec/langfuse-3.11.0-py3-none-any.whl", hash = "sha256:a11322d49c674ea9ca7951dd02b0e8b73b5cfd158c94d8d0f220546529b8986f", size = 399616, upload-time = "2025-12-17T10:29:27.681Z" },
 ]
 
 [[package]]
@@ -4659,11 +4659,11 @@ wheels = [
 
 [[package]]
 name = "python-multipart"
-version = "0.0.20"
+version = "0.0.21"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/f3/87/f44d7c9f274c7ee665a29b885ec97089ec5dc034c7f3fafa03da9e39a09e/python_multipart-0.0.20.tar.gz", hash = "sha256:8dd0cab45b8e23064ae09147625994d090fa46f5b0d1e13af944c331a7fa9d13", size = 37158, upload-time = "2024-12-16T19:45:46.972Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/78/96/804520d0850c7db98e5ccb70282e29208723f0964e88ffd9d0da2f52ea09/python_multipart-0.0.21.tar.gz", hash = "sha256:7137ebd4d3bbf70ea1622998f902b97a29434a9e8dc40eb203bbcf7c2a2cba92", size = 37196, upload-time = "2025-12-17T09:24:22.446Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/45/58/38b5afbc1a800eeea951b9285d3912613f2603bdf897a4ab0f4bd7f405fc/python_multipart-0.0.20-py3-none-any.whl", hash = "sha256:8a62d3a8335e06589fe01f2a3e178cdcc632f3fbe0d492ad9ee0ec35aab1f104", size = 24546, upload-time = "2024-12-16T19:45:44.423Z" },
+    { url = "https://files.pythonhosted.org/packages/aa/76/03af049af4dcee5d27442f71b6924f01f3efb5d2bd34f23fcd563f2cc5f5/python_multipart-0.0.21-py3-none-any.whl", hash = "sha256:cf7a6713e01c87aa35387f4774e812c4361150938d20d232800f75ffcf266090", size = 24541, upload-time = "2025-12-17T09:24:21.153Z" },
 ]
 
 [[package]]
@@ -6028,7 +6028,7 @@ wheels = [
 
 [[package]]
 name = "upathtools"
-version = "1.16.9"
+version = "1.16.10"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "fsspec" },
@@ -6036,9 +6036,9 @@ dependencies = [
     { name = "python-dotenv" },
     { name = "universal-pathlib" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/be/e4/d2ee79bbf74a4ea0bc89f13f47bbdd5dc5290d984074ee0813d0561c680c/upathtools-1.16.9.tar.gz", hash = "sha256:776177f794685062dca115b35e6cc5a886736cec29d88bd44b6d380fa13afbcf", size = 163973, upload-time = "2025-12-15T13:08:26.004Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c8/70/94cc2dc2fdbc9988b0498557aca2494a17233c301022524264678c93db85/upathtools-1.16.10.tar.gz", hash = "sha256:7ab1808b6ba3b42f86191a67a0ab593ec87f3d96478428d8789f62ce31971665", size = 165294, upload-time = "2025-12-17T12:21:15.578Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/07/be/b61acc0a7d4f436a02af56a1ebaec75a377f0347bc291ffbd6c30cb2c0af/upathtools-1.16.9-py3-none-any.whl", hash = "sha256:b5309ac2101a4daccd17de7ba75af1ff10e36b8ffb6c6421874e3f7531007b40", size = 220074, upload-time = "2025-12-15T13:08:24.56Z" },
+    { url = "https://files.pythonhosted.org/packages/a1/54/d3b9fbe26a223bb6ec912dbe97e45cbfd052316902a542c21a9339abe1a5/upathtools-1.16.10-py3-none-any.whl", hash = "sha256:e5623f828b02814ddf1e9f7c5f1eed8d8263f6f485971281482393c76c3c8dfa", size = 221530, upload-time = "2025-12-17T12:21:13.763Z" },
 ]
 
 [package.optional-dependencies]

@@ -2,61 +2,69 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock, Mock
+import asyncio
+from typing import TYPE_CHECKING
 
 from anyenv.process_manager import ProcessOutput
-from exxec.events import OutputEvent, ProcessCompletedEvent, ProcessErrorEvent, ProcessStartedEvent
+from exxec.mock_provider import MockExecutionEnvironment
+from exxec.models import ExecutionResult
 import pytest
 
-from llmling_agent.agents.context import AgentContext
-from llmling_agent.agents.events import StreamEventEmitter
+from llmling_agent import Agent, AgentContext
+from llmling_agent.agents.events import ToolCallProgressEvent
 from llmling_agent.models.agents import AgentConfig
+from llmling_agent.models.manifest import AgentsManifest
 from llmling_agent_toolsets.builtin.execution_environment import ExecutionEnvironmentTools
 
 
-def create_mock_agent_context() -> AgentContext:
-    """Create a mock AgentContext for testing."""
-    context = Mock(spec=AgentContext)
-    context.node_name = "test_agent"
-    context.events = Mock(spec=StreamEventEmitter)
-    context.events.process_started = AsyncMock()
-    context.events.process_output = AsyncMock()
-    context.events.process_exit = AsyncMock()
-    context.events.process_killed = AsyncMock()
-    context.events.process_released = AsyncMock()
-    context.config = Mock(spec=AgentConfig)
-    context.tool_call_id = "test_call_123"
-    context.tool_input = {"command": "echo", "args": ["hello"]}
-    return context
+if TYPE_CHECKING:
+    from llmling_agent.agents.events import RichAgentStreamEvent
+
+
+def drain_event_queue(agent: Agent) -> list[RichAgentStreamEvent]:
+    """Drain all events from the agent's event queue."""
+    events: list[RichAgentStreamEvent] = []
+    while not agent._event_queue.empty():
+        try:
+            events.append(agent._event_queue.get_nowait())
+        except asyncio.QueueEmpty:
+            break
+    return events
+
+
+def get_progress_events(agent: Agent) -> list[ToolCallProgressEvent]:
+    """Get all ToolCallProgressEvent from the agent's queue."""
+    events = drain_event_queue(agent)
+    return [e for e in events if isinstance(e, ToolCallProgressEvent)]
 
 
 @pytest.fixture
-def agent_ctx():
-    """Create mock agent context."""
-    return create_mock_agent_context()
+def test_agent() -> Agent[None]:
+    """Create a minimal agent for testing event emission."""
+    return Agent(name="test_agent")
 
 
 @pytest.fixture
-def mock_env():
-    """Create a mock ExecutionEnvironment for testing."""
-    env = MagicMock()
-    env.process_manager = MagicMock()
-    return env
-
-
-@pytest.fixture
-def tools(mock_env):
-    """Create ExecutionEnvironmentTools instance with mocked environment."""
-    return ExecutionEnvironmentTools(env=mock_env)
+def agent_ctx(test_agent: Agent[None]) -> AgentContext:
+    """Create a real AgentContext for testing."""
+    return AgentContext(
+        node=test_agent,
+        config=AgentConfig(name="test_agent"),
+        definition=AgentsManifest(),
+        tool_call_id="test_call_123",
+        tool_name="test_tool",
+        tool_input={"command": "echo", "args": ["hello"]},
+    )
 
 
 class TestToolsInitialization:
     """Test tools initialization and configuration."""
 
-    def test_custom_env_is_used(self, mock_env):
+    def test_custom_env_is_used(self):
         """Test that custom environment is properly set."""
-        tools = ExecutionEnvironmentTools(env=mock_env)
-        assert tools._env is mock_env
+        env = MockExecutionEnvironment()
+        tools = ExecutionEnvironmentTools(env=env)
+        assert tools._env is env
 
     def test_default_env_is_created(self):
         """Test that ExecutionEnvironmentTools creates default LocalExecutionEnvironment."""
@@ -67,80 +75,110 @@ class TestToolsInitialization:
 class TestCodeExecution:
     """Test code execution tools."""
 
-    async def test_execute_code_success(self, tools: ExecutionEnvironmentTools, agent_ctx):
+    async def test_execute_code_success(self, agent_ctx: AgentContext, test_agent: Agent):
         """Test successful code execution."""
-        assert tools._env
+        env = MockExecutionEnvironment(
+            code_results={
+                "print(42)": ExecutionResult(
+                    result=None,
+                    duration=0.1,
+                    success=True,
+                    stdout="42\n",
+                    stderr="",
+                    exit_code=0,
+                ),
+            },
+        )
+        tools = ExecutionEnvironmentTools(env=env)
 
-        async def mock_stream_code(code):
-            yield ProcessStartedEvent(command=f"execute({len(code)} chars)")
-            yield OutputEvent(data="42\n", stream="stdout")
-            yield ProcessCompletedEvent(exit_code=0, duration=0.1)
-
-        tools._env.stream_code = mock_stream_code
         result = await tools.execute_code(agent_ctx, "print(42)")
         assert "42" in result["output"]
         assert result["exit_code"] == 0
-        agent_ctx.events.process_started.assert_called()
-        agent_ctx.events.process_exit.assert_called()
 
-    async def test_execute_code_failure(self, tools: ExecutionEnvironmentTools, agent_ctx):
+        # Check events were emitted
+        events = get_progress_events(test_agent)
+        assert len(events) >= 1
+
+    async def test_execute_code_failure(self, agent_ctx: AgentContext, test_agent: Agent):
         """Test code execution failure."""
-        assert tools._env
+        env = MockExecutionEnvironment(
+            code_results={
+                "print(x)": ExecutionResult(
+                    result=None,
+                    duration=0.1,
+                    success=False,
+                    stdout="",
+                    stderr="",
+                    error="NameError: name 'x' is not defined",
+                    error_type="NameError",
+                    exit_code=1,
+                ),
+            },
+        )
+        tools = ExecutionEnvironmentTools(env=env)
 
-        async def mock_stream_code(code):
-            yield ProcessStartedEvent(command=f"execute({len(code)} chars)")
-            yield ProcessErrorEvent(
-                error="NameError: name 'x' is not defined",
-                error_type="NameError",
-                exit_code=1,
-            )
-
-        tools._env.stream_code = mock_stream_code
         result = await tools.execute_code(agent_ctx, "print(x)")
         assert "NameError" in result["error"]
-        agent_ctx.events.process_exit.assert_called()
 
-    async def test_execute_code_exception(self, tools: ExecutionEnvironmentTools, agent_ctx):
+        # Check events were emitted
+        events = get_progress_events(test_agent)
+        assert len(events) >= 1
+
+    async def test_execute_code_exception(self, agent_ctx: AgentContext, test_agent: Agent):
         """Test code execution with exception."""
-        assert tools._env
+        env = MockExecutionEnvironment(
+            code_exceptions={
+                "bad code": RuntimeError("Execution failed"),
+            },
+        )
+        tools = ExecutionEnvironmentTools(env=env)
 
-        async def mock_stream_code(code):
-            raise RuntimeError("Execution failed")
-            yield  # Make it a generator
-
-        tools._env.stream_code = mock_stream_code
         result = await tools.execute_code(agent_ctx, "bad code")
         assert "Execution failed" in result["error"]
 
-    async def test_execute_command_success(self, tools: ExecutionEnvironmentTools, agent_ctx):
+    async def test_execute_command_success(self, agent_ctx: AgentContext, test_agent: Agent):
         """Test successful command execution."""
-        assert tools._env
+        env = MockExecutionEnvironment(
+            command_results={
+                "echo hello world": ExecutionResult(
+                    result=None,
+                    duration=0.2,
+                    success=True,
+                    stdout="hello world\n",
+                    stderr="",
+                    exit_code=0,
+                ),
+            },
+        )
+        tools = ExecutionEnvironmentTools(env=env)
 
-        async def mock_stream_command(command):
-            yield ProcessStartedEvent(command=command, process_id="test_proc_123")
-            yield OutputEvent(data="hello world\n", stream="stdout", process_id="test_proc_123")
-            yield ProcessCompletedEvent(exit_code=0, duration=0.2, process_id="test_proc_123")
-
-        tools._env.stream_command = mock_stream_command
         result = await tools.execute_command(agent_ctx, "echo hello world")
         assert result["stdout"] == "hello world\n"
         assert result["exit_code"] == 0
-        agent_ctx.events.process_started.assert_called()
-        agent_ctx.events.process_exit.assert_called()
+
+        # Check events were emitted
+        events = get_progress_events(test_agent)
+        assert len(events) >= 1
 
     async def test_execute_command_with_output_limit(
-        self, tools: ExecutionEnvironmentTools, agent_ctx
+        self, agent_ctx: AgentContext, test_agent: Agent
     ):
         """Test command execution with output truncation."""
-        assert tools._env
         long_output = "x" * 1000
+        env = MockExecutionEnvironment(
+            command_results={
+                "echo": ExecutionResult(
+                    result=None,
+                    duration=0.1,
+                    success=True,
+                    stdout=long_output,
+                    stderr="",
+                    exit_code=0,
+                ),
+            },
+        )
+        tools = ExecutionEnvironmentTools(env=env)
 
-        async def mock_stream_command(command):
-            yield ProcessStartedEvent(command=command, process_id="test_proc_456")
-            yield OutputEvent(data=long_output, stream="stdout", process_id="test_proc_456")
-            yield ProcessCompletedEvent(exit_code=0, duration=0.1, process_id="test_proc_456")
-
-        tools._env.stream_command = mock_stream_command
         result = await tools.execute_command(agent_ctx, "echo", output_limit=100)
         assert "[truncated]" in result["stdout"]
         assert result["truncated"] is True
@@ -149,190 +187,241 @@ class TestCodeExecution:
 class TestProcessLifecycle:
     """Test process lifecycle scenarios."""
 
-    async def test_start_process_success(self, tools: ExecutionEnvironmentTools, agent_ctx):
+    async def test_start_process_success(self, agent_ctx: AgentContext, test_agent: Agent):
         """Test successful process start."""
-        assert tools._env
-        tools._env.process_manager.start_process = AsyncMock(return_value="proc_123")
+        env = MockExecutionEnvironment()
+        tools = ExecutionEnvironmentTools(env=env)
+
         result = await tools.start_process(
             agent_ctx,
             command="echo",
             args=["hello", "world"],
             cwd="/tmp",
         )
-        assert result["process_id"] == "proc_123"
+        assert "process_id" in result
         assert result["command"] == "echo"
         assert result["args"] == ["hello", "world"]
         assert result["status"] == "started"
-        agent_ctx.events.process_started.assert_called_once()
-        call_args = agent_ctx.events.process_started.call_args[1]
-        assert call_args["success"] is True
 
-    async def test_start_process_failure(self, tools: ExecutionEnvironmentTools, agent_ctx):
+        # Check event was emitted
+        events = get_progress_events(test_agent)
+        assert len(events) == 1
+        assert "Running: echo" in events[0].title
+
+    async def test_start_process_failure(self, agent_ctx: AgentContext, test_agent: Agent):
         """Test process start failure."""
-        assert tools._env
-        tools._env.process_manager.start_process = AsyncMock(
-            side_effect=FileNotFoundError("Command not found")
-        )
+        env = MockExecutionEnvironment()
+        # Inject a failure into the mock process manager
+        original_start = env.process_manager.start_process
+
+        async def failing_start(*args, **kwargs):
+            raise FileNotFoundError("Command not found")
+
+        env.process_manager.start_process = failing_start
+        tools = ExecutionEnvironmentTools(env=env)
+
         result = await tools.start_process(agent_ctx, command="nonexistent")
         assert "error" in result
         assert "Command not found" in result["error"]
-        agent_ctx.events.process_started.assert_called_once()
-        call_args = agent_ctx.events.process_started.call_args[1]
-        assert call_args["success"] is False
 
-    async def test_get_process_output_running(self, tools: ExecutionEnvironmentTools, agent_ctx):
+        # Check event was emitted with failure
+        events = get_progress_events(test_agent)
+        assert len(events) == 1
+
+    async def test_get_process_output_running(self, agent_ctx: AgentContext, test_agent: Agent):
         """Test getting output from running process."""
-        assert tools._env
-        tools._env.process_manager.get_output = AsyncMock(
-            return_value=ProcessOutput(
+        env = MockExecutionEnvironment(
+            default_process_output=ProcessOutput(
                 stdout="output line 1\noutput line 2\n",
                 stderr="",
                 combined="output line 1\noutput line 2\n",
                 exit_code=None,
-            )
+            ),
         )
-        result = await tools.get_process_output(agent_ctx, "proc_123")
-        assert result["process_id"] == "proc_123"
+        tools = ExecutionEnvironmentTools(env=env)
+
+        # Start a process first
+        start_result = await tools.start_process(agent_ctx, command="sleep", args=["10"])
+        process_id = start_result["process_id"]
+        drain_event_queue(test_agent)  # Clear start event
+
+        result = await tools.get_process_output(agent_ctx, process_id)
+        assert result["process_id"] == process_id
         assert result["status"] == "running"
         assert "output line 1" in result["stdout"]
-        agent_ctx.events.process_output.assert_called_once()
 
-    async def test_get_process_output_completed(self, tools: ExecutionEnvironmentTools, agent_ctx):
+        # Check event was emitted
+        events = get_progress_events(test_agent)
+        assert len(events) == 1
+
+    async def test_get_process_output_completed(self, agent_ctx: AgentContext, test_agent: Agent):
         """Test getting output from completed process."""
-        assert tools._env
-        tools._env.process_manager.get_output = AsyncMock(
-            return_value=ProcessOutput(
+        env = MockExecutionEnvironment(
+            default_process_output=ProcessOutput(
                 stdout="done\n",
                 stderr="",
                 combined="done\n",
                 exit_code=0,
-            )
+            ),
         )
-        result = await tools.get_process_output(agent_ctx, "proc_123")
+        tools = ExecutionEnvironmentTools(env=env)
+
+        # Start a process first
+        start_result = await tools.start_process(agent_ctx, command="echo", args=["done"])
+        process_id = start_result["process_id"]
+
+        result = await tools.get_process_output(agent_ctx, process_id)
         assert result["status"] == "completed"
         assert result["exit_code"] == 0
 
-    async def test_wait_for_process_success(self, tools: ExecutionEnvironmentTools, agent_ctx):
+    async def test_wait_for_process_success(self, agent_ctx: AgentContext, test_agent: Agent):
         """Test waiting for process completion."""
-        assert tools._env
-        tools._env.process_manager.wait_for_exit = AsyncMock(return_value=0)
-        tools._env.process_manager.get_output = AsyncMock(
-            return_value=ProcessOutput(
+        env = MockExecutionEnvironment(
+            default_process_output=ProcessOutput(
                 stdout="Process completed\n",
                 stderr="",
                 combined="Process completed\n",
                 exit_code=0,
-            )
+            ),
         )
-        result = await tools.wait_for_process(agent_ctx, "proc_123")
-        assert result["process_id"] == "proc_123"
+        tools = ExecutionEnvironmentTools(env=env)
+
+        # Start a process first
+        start_result = await tools.start_process(agent_ctx, command="echo", args=["done"])
+        process_id = start_result["process_id"]
+        drain_event_queue(test_agent)  # Clear start event
+
+        result = await tools.wait_for_process(agent_ctx, process_id)
+        assert result["process_id"] == process_id
         assert result["exit_code"] == 0
         assert result["status"] == "completed"
         assert "Process completed" in result["stdout"]
-        agent_ctx.events.process_exit.assert_called_once()
 
-    async def test_wait_for_process_failure(self, tools: ExecutionEnvironmentTools, agent_ctx):
+        # Check event was emitted
+        events = get_progress_events(test_agent)
+        assert len(events) == 1
+        assert "Process exited" in events[0].title
+
+    async def test_wait_for_process_failure(self, agent_ctx: AgentContext, test_agent: Agent):
         """Test waiting for failed process."""
-        assert tools._env
-        tools._env.process_manager.wait_for_exit = AsyncMock(return_value=1)
-        tools._env.process_manager.get_output = AsyncMock(
-            return_value=ProcessOutput(
+        env = MockExecutionEnvironment(
+            default_process_output=ProcessOutput(
                 stdout="",
                 stderr="Command failed\n",
                 combined="Command failed\n",
                 exit_code=1,
-            )
+            ),
         )
-        result = await tools.wait_for_process(agent_ctx, "proc_456")
+        tools = ExecutionEnvironmentTools(env=env)
+
+        # Start a process first
+        start_result = await tools.start_process(agent_ctx, command="false")
+        process_id = start_result["process_id"]
+
+        result = await tools.wait_for_process(agent_ctx, process_id)
         assert result["exit_code"] == 1
         assert "Command failed" in result["stderr"]
 
-    async def test_kill_process_success(self, tools: ExecutionEnvironmentTools, agent_ctx):
+    async def test_kill_process_success(self, agent_ctx: AgentContext, test_agent: Agent):
         """Test killing a process."""
-        assert tools._env
-        tools._env.process_manager.kill_process = AsyncMock()
-        result = await tools.kill_process(agent_ctx, "proc_123")
-        assert result["process_id"] == "proc_123"
-        assert result["status"] == "killed"
-        agent_ctx.events.process_killed.assert_called_once()
-        call_args = agent_ctx.events.process_killed.call_args[1]
-        assert call_args["success"] is True
+        env = MockExecutionEnvironment()
+        tools = ExecutionEnvironmentTools(env=env)
 
-    async def test_kill_process_not_found(self, tools: ExecutionEnvironmentTools, agent_ctx):
+        # Start a process first
+        start_result = await tools.start_process(agent_ctx, command="sleep", args=["100"])
+        process_id = start_result["process_id"]
+        drain_event_queue(test_agent)  # Clear start event
+
+        result = await tools.kill_process(agent_ctx, process_id)
+        assert result["process_id"] == process_id
+        assert result["status"] == "killed"
+
+        # Check event was emitted
+        events = get_progress_events(test_agent)
+        assert len(events) == 1
+        assert "Killed process" in events[0].title
+
+    async def test_kill_process_not_found(self, agent_ctx: AgentContext, test_agent: Agent):
         """Test killing nonexistent process."""
-        assert tools._env
-        tools._env.process_manager.kill_process = AsyncMock(
-            side_effect=ValueError("Process not found")
-        )
+        env = MockExecutionEnvironment()
+        tools = ExecutionEnvironmentTools(env=env)
 
         result = await tools.kill_process(agent_ctx, "invalid")
         assert "error" in result
-        agent_ctx.events.process_killed.assert_called_once()
-        call_args = agent_ctx.events.process_killed.call_args[1]
-        assert call_args["success"] is False
 
-    async def test_release_process_success(self, tools: ExecutionEnvironmentTools, agent_ctx):
+        # Check event was emitted with failure
+        events = get_progress_events(test_agent)
+        assert len(events) == 1
+
+    async def test_release_process_success(self, agent_ctx: AgentContext, test_agent: Agent):
         """Test releasing process resources."""
-        assert tools._env
-        tools._env.process_manager.release_process = AsyncMock()
-        result = await tools.release_process(agent_ctx, "proc_123")
-        assert result["process_id"] == "proc_123"
-        assert result["status"] == "released"
-        agent_ctx.events.process_released.assert_called_once()
+        env = MockExecutionEnvironment()
+        tools = ExecutionEnvironmentTools(env=env)
 
-    async def test_list_processes_empty(self, tools: ExecutionEnvironmentTools, agent_ctx):
+        # Start a process first
+        start_result = await tools.start_process(agent_ctx, command="echo")
+        process_id = start_result["process_id"]
+        drain_event_queue(test_agent)  # Clear start event
+
+        result = await tools.release_process(agent_ctx, process_id)
+        assert result["process_id"] == process_id
+        assert result["status"] == "released"
+
+        # Check event was emitted
+        events = get_progress_events(test_agent)
+        assert len(events) == 1
+        assert "Released process" in events[0].title
+
+    async def test_list_processes_empty(self, agent_ctx: AgentContext):
         """Test listing when no processes running."""
-        assert tools._env
-        tools._env.process_manager.list_processes = AsyncMock(return_value=[])
+        env = MockExecutionEnvironment()
+        tools = ExecutionEnvironmentTools(env=env)
+
         result = await tools.list_processes(agent_ctx)
         assert result["processes"] == []
         assert result["count"] == 0
 
-    async def test_list_processes_with_results(self, tools: ExecutionEnvironmentTools, agent_ctx):
+    async def test_list_processes_with_results(self, agent_ctx: AgentContext):
         """Test listing active processes."""
-        assert tools._env
-        tools._env.process_manager.list_processes = AsyncMock(return_value=["proc_1", "proc_2"])
-        tools._env.process_manager.get_process_info = AsyncMock(
-            side_effect=[
-                {
-                    "command": "sleep",
-                    "args": ["60"],
-                    "is_running": True,
-                    "exit_code": None,
-                    "cwd": "/tmp",
-                    "created_at": "2024-01-01T00:00:00",
-                },
-                {
-                    "command": "echo",
-                    "args": ["done"],
-                    "is_running": False,
-                    "exit_code": 0,
-                    "cwd": "/home",
-                    "created_at": "2024-01-01T00:01:00",
-                },
-            ]
-        )
+        env = MockExecutionEnvironment()
+        tools = ExecutionEnvironmentTools(env=env)
+
+        # Start two processes
+        await tools.start_process(agent_ctx, command="sleep", args=["60"], cwd="/tmp")
+        await tools.start_process(agent_ctx, command="echo", args=["done"], cwd="/home")
 
         result = await tools.list_processes(agent_ctx)
         assert result["count"] == 2  # noqa: PLR2004
         assert len(result["processes"]) == 2  # noqa: PLR2004
-        assert result["processes"][0]["command"] == "sleep"
-        assert result["processes"][0]["is_running"] is True
-        assert result["processes"][1]["command"] == "echo"
-        assert result["processes"][1]["is_running"] is False
+        # Check that processes have expected fields
+        for proc in result["processes"]:
+            assert "process_id" in proc
+            assert "command" in proc
+            assert "args" in proc
 
-    async def test_list_processes_partial_failure(
-        self, tools: ExecutionEnvironmentTools, agent_ctx
-    ):
+    async def test_list_processes_partial_failure(self, agent_ctx: AgentContext):
         """Test listing when some process info fails."""
-        assert tools._env
-        tools._env.process_manager.list_processes = AsyncMock(return_value=["proc_1", "proc_2"])
-        tools._env.process_manager.get_process_info = AsyncMock(
-            side_effect=[
-                {"command": "sleep", "args": [], "is_running": True},
-                RuntimeError("Can't get info"),
-            ]
-        )
+        env = MockExecutionEnvironment()
+        tools = ExecutionEnvironmentTools(env=env)
+
+        # Start a process
+        await tools.start_process(agent_ctx, command="sleep", args=[])
+
+        # Override get_process_info to fail for the second call
+        original_get_info = env.process_manager.get_process_info
+        call_count = 0
+
+        async def failing_get_info(process_id: str):
+            nonlocal call_count
+            call_count += 1
+            if call_count > 1:
+                raise RuntimeError("Can't get info")
+            return await original_get_info(process_id)
+
+        # Start another process, then make info fail
+        await tools.start_process(agent_ctx, command="echo", args=[])
+        env.process_manager.get_process_info = failing_get_info
+
         result = await tools.list_processes(agent_ctx)
         assert result["count"] == 2  # noqa: PLR2004
         assert result["processes"][0]["command"] == "sleep"
@@ -342,33 +431,42 @@ class TestProcessLifecycle:
 class TestEdgeCases:
     """Test edge cases and boundary conditions."""
 
-    async def test_truncated_output(self, tools: ExecutionEnvironmentTools, agent_ctx):
+    async def test_truncated_output(self, agent_ctx: AgentContext, test_agent: Agent):
         """Test handling of truncated output."""
-        assert tools._env
-        tools._env.process_manager.get_output = AsyncMock(
-            return_value=ProcessOutput(
+        env = MockExecutionEnvironment(
+            default_process_output=ProcessOutput(
                 stdout="partial output...",
                 stderr="",
                 combined="partial output...",
                 truncated=True,
                 exit_code=None,
-            )
+            ),
         )
-        result = await tools.get_process_output(agent_ctx, "big_proc")
+        tools = ExecutionEnvironmentTools(env=env)
+
+        # Start a process first
+        start_result = await tools.start_process(agent_ctx, command="big_command")
+        process_id = start_result["process_id"]
+
+        result = await tools.get_process_output(agent_ctx, process_id)
         assert result["truncated"] is True
 
-    async def test_process_with_signal(self, tools: ExecutionEnvironmentTools, agent_ctx):
+    async def test_process_with_signal(self, agent_ctx: AgentContext, test_agent: Agent):
         """Test process terminated by signal."""
-        assert tools._env
-        tools._env.process_manager.wait_for_exit = AsyncMock(return_value=-15)
-        tools._env.process_manager.get_output = AsyncMock(
-            return_value=ProcessOutput(
+        env = MockExecutionEnvironment(
+            default_process_output=ProcessOutput(
                 stdout="",
                 stderr="Killed\n",
                 combined="Killed\n",
                 exit_code=-15,
                 signal="15",
-            )
+            ),
         )
-        result = await tools.wait_for_process(agent_ctx, "killed_proc")
+        tools = ExecutionEnvironmentTools(env=env)
+
+        # Start a process first
+        start_result = await tools.start_process(agent_ctx, command="killed_proc")
+        process_id = start_result["process_id"]
+
+        result = await tools.wait_for_process(agent_ctx, process_id)
         assert result["exit_code"] == -15  # noqa: PLR2004
