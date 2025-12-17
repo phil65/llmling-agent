@@ -8,7 +8,7 @@ only the functionality actually used.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Self
+from typing import TYPE_CHECKING
 
 
 if TYPE_CHECKING:
@@ -35,16 +35,16 @@ class DAGNode:
     name: str
     """Name/identifier of this node."""
 
-    _parents: list[Self] = field(default_factory=list, repr=False)
-    _children: list[Self] = field(default_factory=list, repr=False)
+    _parents: list[DAGNode] = field(default_factory=list, repr=False)
+    _children: list[DAGNode] = field(default_factory=list, repr=False)
 
     @property
-    def parents(self) -> list[Self]:
+    def parents(self) -> list[DAGNode]:
         """Get parent nodes."""
         return list(self._parents)
 
     @property
-    def children(self) -> list[Self]:
+    def children(self) -> list[DAGNode]:
         """Get child nodes."""
         return list(self._children)
 
@@ -58,7 +58,7 @@ class DAGNode:
         """Check if this node has no children."""
         return len(self._children) == 0
 
-    def add_parent(self, parent: Self) -> None:
+    def add_parent(self, parent: DAGNode) -> None:
         """Add a parent node, also adding self as child of parent.
 
         Args:
@@ -79,7 +79,7 @@ class DAGNode:
         self._parents.append(parent)
         parent._children.append(self)
 
-    def add_child(self, child: Self) -> None:
+    def add_child(self, child: DAGNode) -> None:
         """Add a child node, also adding self as parent of child.
 
         Args:
@@ -90,11 +90,11 @@ class DAGNode:
         """
         child.add_parent(self)
 
-    def _is_ancestor_of(self, node: Self) -> bool:
+    def _is_ancestor_of(self, node: DAGNode) -> bool:
         """Check if self is an ancestor of the given node."""
         visited: set[str] = set()
 
-        def _check(current: Self) -> bool:
+        def _check(current: DAGNode) -> bool:
             if current.name in visited:
                 return False
             visited.add(current.name)
@@ -104,12 +104,12 @@ class DAGNode:
 
         return _check(node)
 
-    def __rshift__(self, other: Self) -> Self:
+    def __rshift__(self, other: DAGNode) -> DAGNode:
         """Set child using >> operator: parent >> child."""
         other.add_parent(self)
         return other
 
-    def __lshift__(self, other: Self) -> Self:
+    def __lshift__(self, other: DAGNode) -> DAGNode:
         """Set parent using << operator: child << parent."""
         self.add_parent(other)
         return self
