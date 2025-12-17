@@ -845,9 +845,12 @@ def get_supported_languages_md() -> str:
     return res
 
 
-async def find_src_files(fs: AsyncFileSystem, directory: str) -> list[str]:
+async def find_src_files(fs: AbstractFileSystem, directory: str) -> list[str]:
     """Find all source files in a directory using async fsspec."""
     results: list[str] = []
+    from fsspec.implementations.asyn_wrapper import AsyncFileSystemWrapper
+
+    fs = fs if isinstance(fs, AsyncFileSystem) else AsyncFileSystemWrapper(fs)
 
     async def _recurse(path: str) -> None:
         try:
