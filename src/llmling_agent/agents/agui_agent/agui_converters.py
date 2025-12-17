@@ -28,6 +28,8 @@ from ag_ui.core import (
     TextMessageContentEvent,
     TextMessageEndEvent,
     TextMessageStartEvent,
+    ThinkingEndEvent,
+    ThinkingStartEvent,
     ThinkingTextMessageContentEvent,
     ThinkingTextMessageEndEvent,
     ThinkingTextMessageStartEvent,
@@ -64,14 +66,14 @@ from llmling_agent.resource_providers.plan_provider import PlanEntry
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from ag_ui.core import Event, InputContent, Tool as AGUITool
+    from ag_ui.core import InputContent, Tool as AGUITool, BaseEvent
     from pydantic_ai import UserContent
 
     from llmling_agent.agents.events import RichAgentStreamEvent
     from llmling_agent.tools.base import Tool
 
 
-def agui_to_native_event(event: Event) -> RichAgentStreamEvent[Any] | None:  # noqa: PLR0911
+def agui_to_native_event(event: BaseEvent) -> RichAgentStreamEvent[Any] | None:  # noqa: PLR0911
     """Convert AG-UI event to native streaming event.
 
     Args:
@@ -97,14 +99,21 @@ def agui_to_native_event(event: Event) -> RichAgentStreamEvent[Any] | None:  # n
         case TextMessageChunkEvent(delta=delta) if delta:
             return PartDeltaEvent(index=0, delta=TextPartDelta(content_delta=delta))
 
+        case TextMessageStartEvent() | TextMessageEndEvent():
+            return None
+
+        # === Thinking/Reasoning Events ===
+
         case ThinkingTextMessageContentEvent(delta=delta):
             return PartDeltaEvent(index=0, delta=ThinkingPartDelta(content_delta=delta))
 
-        case TextMessageStartEvent() | TextMessageEndEvent():
+        case ThinkingStartEvent() | ThinkingEndEvent():
+            # These mark thinking blocks but don't carry content
             return None
 
         case ThinkingTextMessageStartEvent() | ThinkingTextMessageEndEvent():
             return None
+
         # === Tool Call Events ===
 
         case ToolCallStartEvent(tool_call_id=str() as tc_id, tool_call_name=name):
@@ -201,7 +210,7 @@ def _content_to_plan_entries(content: list[Any]) -> list[PlanEntry]:
     return entries
 
 
-def extract_text_from_event(event: Event) -> str | None:
+def extract_text_from_event(event: BaseEvent) -> str | None:
     """Extract plain text content from an AG-UI event.
 
     Args:
@@ -215,15 +224,41 @@ def extract_text_from_event(event: Event) -> str | None:
             return delta
         case TextMessageChunkEvent(delta=delta) if delta:
             return delta
+        case _:
+            return None
+
+
+def extract_thinking_from_event(event: BaseEvent) -> str | None:
+    """Extract thinking/reasoning content from an AG-UI event.
+
+    Args:
+        event: AG-UI Event
+
+    Returns:
+        Thinking content if this is a thinking event, None otherwise
+    """
+    match event:
         case ThinkingTextMessageContentEvent(delta=delta):
             return delta
         case _:
             return None
 
 
-def is_text_event(event: Event) -> bool:
+def is_text_event(event: BaseEvent) -> bool:
     """Check if this event contains text content."""
     return extract_text_from_event(event) is not None
+
+
+def is_thinking_event(event: BaseEvent) -> bool:
+    """Check if this event is related to thinking/reasoning."""
+    return isinstance(
+        event,
+        ThinkingStartEvent
+        | ThinkingEndEvent
+        | ThinkingTextMessageStartEvent
+        | ThinkingTextMessageContentEvent
+        | ThinkingTextMessageEndEvent,
+    )
 
 
 def to_agui_input_content(
@@ -306,6 +341,56 @@ def to_agui_tool(tool: Tool) -> AGUITool:
     )
 
 
+def _repair_partial_json(buffer: str) -> str:
+    """Attempt to repair truncated JSON for preview purposes.
+
+    Handles common truncation cases:
+    - Unclosed strings
+    - Missing closing braces/brackets
+    - Trailing commas
+
+    Args:
+        buffer: Potentially incomplete JSON string
+
+    Returns:
+        Repaired JSON string (may still be invalid in edge cases)
+    """
+    if not buffer:
+        return "{}"
+
+    result = buffer.rstrip()
+
+    # Check if we're in the middle of a string by counting unescaped quotes
+    in_string = False
+    i = 0
+    while i < len(result):
+        char = result[i]
+        if char == "\\" and i + 1 < len(result):
+            i += 2  # Skip escaped character
+            continue
+        if char == '"':
+            in_string = not in_string
+        i += 1
+
+    # Close unclosed string
+    if in_string:
+        result += '"'
+
+    # Remove trailing comma (invalid JSON)
+    result = result.rstrip()
+    if result.endswith(","):
+        result = result[:-1]
+
+    # Balance braces and brackets
+    open_braces = result.count("{") - result.count("}")
+    open_brackets = result.count("[") - result.count("]")
+
+    result += "]" * max(0, open_brackets)
+    result += "}" * max(0, open_braces)
+
+    return result
+
+
 class ToolCallAccumulator:
     """Accumulates streamed tool call arguments.
 
@@ -348,6 +433,38 @@ class ToolCallAccumulator:
             return None
         data = self._calls[tool_call_id]
         return data["name"], data["args_buffer"]
+
+    def get_partial_args(self, tool_call_id: str) -> dict[str, Any]:
+        """Get best-effort parsed args from incomplete JSON stream.
+
+        Uses heuristics to complete truncated JSON for preview purposes.
+        Handles unclosed strings, missing braces/brackets, and trailing commas.
+
+        Args:
+            tool_call_id: Tool call ID
+
+        Returns:
+            Partially parsed arguments or empty dict
+        """
+        if tool_call_id not in self._calls:
+            return {}
+
+        buffer = self._calls[tool_call_id]["args_buffer"]
+        if not buffer:
+            return {}
+
+        # Try direct parse first
+        try:
+            return anyenv.load_json(buffer)
+        except anyenv.JsonLoadError:
+            pass
+
+        # Try to repair truncated JSON
+        try:
+            repaired = _repair_partial_json(buffer)
+            return anyenv.load_json(repaired)
+        except anyenv.JsonLoadError:
+            return {}
 
     def clear(self) -> None:
         """Clear all pending tool calls."""
