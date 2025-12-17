@@ -40,8 +40,8 @@ if TYPE_CHECKING:
 
     from acp.schema import ContentBlock, McpServer
     from llmling_agent.messaging import MessageNode
+    from llmling_agent.models.agents import ToolConfirmationMode
     from llmling_agent_config.mcp_server import MCPServerConfig
-
 
 logger = get_logger(__name__)
 
@@ -203,13 +203,13 @@ def get_confirmation_modes() -> list[SessionMode]:
     ]
 
 
-def mode_id_to_confirmation_mode(mode_id: str) -> str | None:
+def mode_id_to_confirmation_mode(mode_id: str) -> ToolConfirmationMode | None:
     """Map ACP mode ID to ToolConfirmationMode.
 
     Returns:
         ToolConfirmationMode value or None if mode_id is invalid
     """
-    mapping = {
+    mapping: dict[str, ToolConfirmationMode] = {
         "default": "per_tool",
         "acceptEdits": "never",
         "bypassPermissions": "never",

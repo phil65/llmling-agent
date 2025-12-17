@@ -209,10 +209,11 @@ class ACPSession:
                             outcome=response.outcome.outcome,
                             option_id=getattr(response.outcome, "option_id", None),
                         )
-                        return response
                     except Exception as exc:
                         self.log.exception("Permission forwarding failed", error=str(exc))
                         raise
+                    else:
+                        return response
 
                 agent.acp_permission_callback = permission_callback
         self.log.info("Created ACP session", current_agent=self.current_agent_name)
