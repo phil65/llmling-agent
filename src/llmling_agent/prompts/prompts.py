@@ -355,7 +355,9 @@ class DynamicPrompt(BasePrompt):
         else:
             description = description_override or f"Prompt from {name}"
 
-        path = f"{fn.__module__}.{fn.__qualname__}"
+        from llmling_agent.utils.inspection import get_fn_qualname
+
+        path = f"{fn.__module__}.{get_fn_qualname(fn)}"
         return cls(
             name=name,
             description=description or "",

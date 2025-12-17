@@ -67,14 +67,10 @@ def convert_acp_locations(
     locations: list[ToolCallLocation] | None,
 ) -> list[LocationContentItem]:
     """Convert ACP ToolCallLocation list to native LocationContentItem list."""
-    if not locations:
-        return []
-    return [LocationContentItem(path=loc.path, line=loc.line) for loc in locations]
+    return [LocationContentItem(path=loc.path, line=loc.line) for loc in locations or []]
 
 
-def convert_acp_content(
-    content: list[ToolCallContent] | None,
-) -> list[ToolCallContentItem]:
+def convert_acp_content(content: list[ToolCallContent] | None) -> list[ToolCallContentItem]:
     """Convert ACP ToolCallContent list to native ToolCallContentItem list."""
     if not content:
         return []
@@ -88,11 +84,7 @@ def convert_acp_content(
             case "diff":
                 # FileEditToolCallContent
                 result.append(
-                    DiffContentItem(
-                        path=item.path,
-                        old_text=item.old_text,
-                        new_text=item.new_text,
-                    )
+                    DiffContentItem(path=item.path, old_text=item.old_text, new_text=item.new_text)
                 )
             case "content":
                 # ContentToolCallContent - extract text if present

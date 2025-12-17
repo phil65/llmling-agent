@@ -11,7 +11,12 @@ from pydantic_ai.tools import Tool as PydanticAiTool
 import schemez
 
 from llmling_agent.log import get_logger
-from llmling_agent.utils.inspection import dataclasses_no_defaults_repr, execute
+from llmling_agent.utils.inspection import (
+    dataclasses_no_defaults_repr,
+    execute,
+    get_fn_name,
+    get_fn_qualname,
+)
 from llmling_agent_config.tools import ToolHints
 
 
@@ -198,8 +203,8 @@ class Tool[TOutputType = Any]:
             callable_obj = fn
             module = fn.__module__
             if hasattr(fn, "__qualname__"):  # Regular function
-                name = fn.__name__
-                import_path = f"{module}.{fn.__qualname__}"
+                name = get_fn_name(fn)
+                import_path = f"{module}.{get_fn_qualname(fn)}"
             else:  # Instance with __call__ method
                 name = fn.__class__.__name__
                 import_path = f"{module}.{fn.__class__.__qualname__}"

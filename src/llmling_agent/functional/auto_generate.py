@@ -7,6 +7,7 @@ import inspect
 from typing import TYPE_CHECKING, Any
 
 from llmling_agent.functional.structure import get_structured
+from llmling_agent.utils.inspection import get_fn_name
 
 
 if TYPE_CHECKING:
@@ -60,7 +61,7 @@ def auto_callable[R, **P](
             # Create prompt from signature and args
             prompt = (
                 f"Based on this function:\n\n"
-                f"def {func.__name__}{sig!s}:\n"
+                f"def {get_fn_name(func)}{sig!s}:\n"
                 f'    """{doc}"""\n\n'
                 f"Generate response for inputs: {arg_values}"
             )

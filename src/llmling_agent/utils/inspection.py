@@ -274,3 +274,61 @@ Optional dependency {module_path!r} not found.
 Install with: pip install {PACKAGE_NAME}[{extras_name}]
 """
         raise ImportError(msg.strip())
+
+
+def get_fn_name(func: Any) -> str:
+    """Get the __name__ of a callable, handling edge cases.
+
+    Works with regular functions, lambdas, partials, and other callables
+    that may not have a __name__ attribute.
+
+    Args:
+        func: Any callable object
+
+    Returns:
+        The function name, or a fallback string if not available
+    """
+    # Unwrap functools.partial
+    while isinstance(func, functools.partial):
+        func = func.func
+
+    # Try __name__ first (most common case)
+    if hasattr(func, "__name__"):
+        return func.__name__  # type: ignore[no-any-return]
+
+    # Try __class__.__name__ for callable objects
+    if hasattr(func, "__class__"):
+        return func.__class__.__name__  # type: ignore[no-any-return]
+
+    return "<unknown>"
+
+
+def get_fn_qualname(func: Any) -> str:
+    """Get the __qualname__ of a callable, handling edge cases.
+
+    Works with regular functions, lambdas, partials, methods, and other
+    callables that may not have a __qualname__ attribute.
+
+    Args:
+        func: Any callable object
+
+    Returns:
+        The qualified name, or a fallback string if not available
+    """
+    # Unwrap functools.partial
+    while isinstance(func, functools.partial):
+        func = func.func
+
+    # Try __qualname__ first (most common case)
+    if hasattr(func, "__qualname__"):
+        return func.__qualname__  # type: ignore[no-any-return]
+
+    # Fall back to __name__
+    if hasattr(func, "__name__"):
+        return func.__name__  # type: ignore[no-any-return]
+
+    # Try __class__.__qualname__ for callable objects
+    if hasattr(func, "__class__"):
+        return func.__class__.__qualname__  # type: ignore[no-any-return]
+
+    return "<unknown>"

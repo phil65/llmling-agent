@@ -16,7 +16,7 @@ from psygnal import Signal
 from pydantic import SecretStr
 
 from llmling_agent.log import get_logger
-from llmling_agent.utils.inspection import execute
+from llmling_agent.utils.inspection import execute, get_fn_name
 from llmling_agent.utils.now import get_now
 from llmling_agent.utils.tasks import TaskManager
 
@@ -81,7 +81,7 @@ class EventManager:
                 if isinstance(result, Awaitable):
                     await result
             except Exception:
-                logger.exception("Error in event callback", name=callback.__name__)
+                logger.exception("Error in event callback", name=get_fn_name(callback))
 
         self.event_processed.emit(event)
 
@@ -313,7 +313,8 @@ class EventManager:
         """
 
         def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
-            name = event_name or func.__name__
+
+            name = event_name or get_fn_name(func)
 
             @wraps(func)
             async def async_wrapper(*args: Any, **kwargs: Any) -> Any:

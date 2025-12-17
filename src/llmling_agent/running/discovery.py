@@ -8,6 +8,7 @@ import inspect
 from typing import TYPE_CHECKING, Any
 
 from llmling_agent.log import get_logger
+from llmling_agent.utils.inspection import get_fn_name
 
 
 if TYPE_CHECKING:
@@ -39,7 +40,7 @@ class NodeFunction:
 
     def __post_init__(self) -> None:
         """Set name and validate dependencies."""
-        self.name = self.func.__name__
+        self.name = get_fn_name(self.func)
         # Extract default inputs from function signature
 
         sig = inspect.signature(self.func)
@@ -83,8 +84,7 @@ def node_function(
             case str():
                 depends_on_ = [depends_on]
             case Callable():
-                depends_on_ = [depends_on.__name__]
-
+                depends_on_ = [get_fn_name(depends_on)]
             case [*items]:
                 depends_on_ = [
                     i.__name__ if isinstance(i, Callable) else str(i)  # type: ignore[union-attr, arg-type]

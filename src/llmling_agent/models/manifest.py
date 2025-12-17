@@ -599,7 +599,9 @@ class AgentsManifest(Schema):
 
 
 if __name__ == "__main__":
-    model = {"type": "input"}
-    agent_cfg = dict(name="test_agent", model=model)
+    from llmling_models.configs import InputModelConfig
+
+    model = InputModelConfig()
+    agent_cfg = AgentConfig(name="test_agent", model=model)
     manifest = AgentsManifest(agents=dict(test_agent=agent_cfg))  # pyright: ignore[reportArgumentType]
     print(AgentsManifest.generate_test_data(mode="maximal").model_dump_yaml())
