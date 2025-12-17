@@ -2,33 +2,20 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, Mock
-
 from exxec import MockExecutionEnvironment
 import pytest
 
-from llmling_agent import Agent, AgentContext
-from llmling_agent.agents.events import StreamEventEmitter
+from llmling_agent import Agent, AgentContext, AgentsManifest
 from llmling_agent.models.agents import AgentConfig
 from llmling_agent_toolsets.fsspec_toolset import FSSpecTools
 
 
-def create_mock_agent_context() -> AgentContext:
-    """Create a mock AgentContext for testing."""
-    context = Mock(spec=AgentContext)
-    context.agent = Agent(name="test_agent")
-    context.node_name = "test_agent"
-    context.events = Mock(spec=StreamEventEmitter)
-    context.events.file_operation = AsyncMock()
-    context.events.tool_call_start = AsyncMock()
-    context.config = Mock(spec=AgentConfig)
-    return context
-
-
 @pytest.fixture
-def mock_ctx() -> AgentContext:
+def agent_ctx() -> AgentContext:
     """Create a fresh mock context for each test."""
-    return create_mock_agent_context()
+    return AgentContext(
+        node=Agent(name="test_agent"), config=AgentConfig(), definition=AgentsManifest()
+    )
 
 
 @pytest.fixture
@@ -46,14 +33,14 @@ def fs_tools(mock_env: MockExecutionEnvironment) -> FSSpecTools:
 async def test_read_file_success(
     fs_tools: FSSpecTools,
     mock_env: MockExecutionEnvironment,
-    mock_ctx: AgentContext,
+    agent_ctx: AgentContext,
 ):
     """Test successful file reading."""
     await mock_env.set_file_content("/home/user/test.txt", "Hello, World!\nThis is a test file.\n")
 
     tools = await fs_tools.get_tools()
     read_tool = next(tool for tool in tools if tool.name == "read_file")
-    result = await read_tool.execute(agent_ctx=mock_ctx, path="/home/user/test.txt")
+    result = await read_tool.execute(agent_ctx=agent_ctx, path="/home/user/test.txt")
 
     assert isinstance(result, str)
     assert "Hello, World!" in result
@@ -63,7 +50,7 @@ async def test_read_file_success(
 async def test_read_file_with_line_and_limit(
     fs_tools: FSSpecTools,
     mock_env: MockExecutionEnvironment,
-    mock_ctx: AgentContext,
+    agent_ctx: AgentContext,
 ):
     """Test file reading with line and limit parameters."""
     await mock_env.set_file_content(
@@ -73,7 +60,7 @@ async def test_read_file_with_line_and_limit(
     tools = await fs_tools.get_tools()
     read_tool = next(tool for tool in tools if tool.name == "read_file")
     result = await read_tool.execute(
-        agent_ctx=mock_ctx, path="/home/large_file.txt", line=2, limit=2
+        agent_ctx=agent_ctx, path="/home/large_file.txt", line=2, limit=2
     )
 
     assert isinstance(result, str)
@@ -85,25 +72,25 @@ async def test_read_file_with_line_and_limit(
 
 async def test_read_file_error(
     fs_tools: FSSpecTools,
-    mock_ctx: AgentContext,
+    agent_ctx: AgentContext,
 ):
     """Test file reading error handling."""
     tools = await fs_tools.get_tools()
     read_tool = next(tool for tool in tools if tool.name == "read_file")
-    result = await read_tool.execute(agent_ctx=mock_ctx, path="/home/user/nonexistent.txt")
+    result = await read_tool.execute(agent_ctx=agent_ctx, path="/home/user/nonexistent.txt")
     assert "error" in result
 
 
 async def test_write_text_file_success(
     fs_tools: FSSpecTools,
     mock_env: MockExecutionEnvironment,
-    mock_ctx: AgentContext,
+    agent_ctx: AgentContext,
 ):
     """Test successful file writing."""
     tools = await fs_tools.get_tools()
     write_tool = next(tool for tool in tools if tool.name == "write_file")
     result = await write_tool.execute(
-        agent_ctx=mock_ctx,
+        agent_ctx=agent_ctx,
         path="/home/user/output.txt",
         content="Hello, World!\nThis is written content.\n",
     )
@@ -119,7 +106,7 @@ async def test_write_text_file_success(
 async def test_write_text_file_json(
     fs_tools: FSSpecTools,
     mock_env: MockExecutionEnvironment,
-    mock_ctx: AgentContext,
+    agent_ctx: AgentContext,
 ):
     """Test writing JSON content."""
     json_str = '{\n  "debug": true,\n  "version": "1.0.0"\n}'
@@ -127,7 +114,7 @@ async def test_write_text_file_json(
     tools = await fs_tools.get_tools()
     write_tool = next(tool for tool in tools if tool.name == "write_file")
     result = await write_tool.execute(
-        agent_ctx=mock_ctx, path="/home/user/config.json", content=json_str
+        agent_ctx=agent_ctx, path="/home/user/config.json", content=json_str
     )
 
     assert isinstance(result, dict)
@@ -140,14 +127,14 @@ async def test_write_text_file_json(
 async def test_read_empty_file(
     fs_tools: FSSpecTools,
     mock_env: MockExecutionEnvironment,
-    mock_ctx: AgentContext,
+    agent_ctx: AgentContext,
 ):
     """Test reading an empty file."""
     await mock_env.set_file_content("/home/user/empty.txt", "")
 
     tools = await fs_tools.get_tools()
     read_tool = next(tool for tool in tools if tool.name == "read_file")
-    result = await read_tool.execute(agent_ctx=mock_ctx, path="/home/user/empty.txt")
+    result = await read_tool.execute(agent_ctx=agent_ctx, path="/home/user/empty.txt")
 
     assert isinstance(result, str)
     assert result == ""
@@ -156,13 +143,13 @@ async def test_read_empty_file(
 async def test_write_empty_file(
     fs_tools: FSSpecTools,
     mock_env: MockExecutionEnvironment,
-    mock_ctx: AgentContext,
+    agent_ctx: AgentContext,
 ):
     """Test writing empty content to a file."""
     tools = await fs_tools.get_tools()
     write_tool = next(tool for tool in tools if tool.name == "write_file")
     result = await write_tool.execute(
-        agent_ctx=mock_ctx, path="/home/user/empty_output.txt", content=""
+        agent_ctx=agent_ctx, path="/home/user/empty_output.txt", content=""
     )
 
     assert isinstance(result, dict)
@@ -175,7 +162,7 @@ async def test_write_empty_file(
 async def test_read_file_with_unicode(
     fs_tools: FSSpecTools,
     mock_env: MockExecutionEnvironment,
-    mock_ctx: AgentContext,
+    agent_ctx: AgentContext,
 ):
     """Test reading file with unicode content."""
     content = "Hello 世界! 🌍\nThis has émojis and spëcial chars: café"
@@ -183,7 +170,7 @@ async def test_read_file_with_unicode(
 
     tools = await fs_tools.get_tools()
     read_tool = next(tool for tool in tools if tool.name == "read_file")
-    result = await read_tool.execute(agent_ctx=mock_ctx, path="/home/user/unicode.txt")
+    result = await read_tool.execute(agent_ctx=agent_ctx, path="/home/user/unicode.txt")
 
     assert isinstance(result, str)
     assert "世界" in result
@@ -195,14 +182,14 @@ async def test_read_file_with_unicode(
 async def test_write_file_with_unicode(
     fs_tools: FSSpecTools,
     mock_env: MockExecutionEnvironment,
-    mock_ctx: AgentContext,
+    agent_ctx: AgentContext,
 ):
     """Test writing file with unicode content."""
     content = "Testing unicode: 日本語, русский, العربية 🎉"
 
     tools = await fs_tools.get_tools()
     write_tool = next(tool for tool in tools if tool.name == "write_file")
-    result = await write_tool.execute(agent_ctx=mock_ctx, path="/home/output.txt", content=content)
+    result = await write_tool.execute(agent_ctx=agent_ctx, path="/home/output.txt", content=content)
 
     assert isinstance(result, dict)
     assert result["path"] == "/home/output.txt"
@@ -214,7 +201,7 @@ async def test_write_file_with_unicode(
 async def test_read_then_write(
     fs_tools: FSSpecTools,
     mock_env: MockExecutionEnvironment,
-    mock_ctx: AgentContext,
+    agent_ctx: AgentContext,
 ):
     """Test reading and writing in sequence."""
     await mock_env.set_file_content("/home/user/test.txt", "original content")
@@ -224,16 +211,16 @@ async def test_read_then_write(
     write_tool = next(tool for tool in tools if tool.name == "write_file")
 
     # Read original
-    result = await read_tool.execute(agent_ctx=mock_ctx, path="/home/user/test.txt")
+    result = await read_tool.execute(agent_ctx=agent_ctx, path="/home/user/test.txt")
     assert result == "original content"
 
     # Write new content
     await write_tool.execute(
-        agent_ctx=mock_ctx, path="/home/user/test.txt", content="modified content", overwrite=True
+        agent_ctx=agent_ctx, path="/home/user/test.txt", content="modified content", overwrite=True
     )
 
     # Read modified
-    result = await read_tool.execute(agent_ctx=mock_ctx, path="/home/user/test.txt")
+    result = await read_tool.execute(agent_ctx=agent_ctx, path="/home/user/test.txt")
     assert result == "modified content"
 
 

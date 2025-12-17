@@ -378,7 +378,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
         if not pool_ids:
             logger.debug("No pool found for team.", team=self.name)
             return TeamContext(
-                node_name=self.name,
+                node=self,
                 pool=shared_pool,
                 config=team_config,
                 definition=shared_pool.manifest if shared_pool else AgentsManifest(),
@@ -388,7 +388,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
             msg = f"Team members in {self.name} belong to different pools"
             raise ValueError(msg)
         return TeamContext(
-            node_name=self.name,
+            node=self,
             pool=shared_pool,
             config=team_config,
             definition=shared_pool.manifest if shared_pool else AgentsManifest(),

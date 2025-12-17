@@ -73,16 +73,11 @@ class TestContextBoundCallable:
         """Create a mock AgentContext for testing."""
         from llmling_agent.models.agents import AgentConfig
         from llmling_agent.models.manifest import AgentsManifest
-        from llmling_agent_config.nodes import NodeConfig
 
         # Create minimal config objects
         config = AgentConfig(name="test_agent")
-        NodeConfig()
         manifest = AgentsManifest()
-
-        return AgentContext(
-            agent=Agent(), node_name="test_agent", config=config, definition=manifest
-        )
+        return AgentContext(node=Agent(name="test_agent"), config=config, definition=manifest)
 
     @pytest.fixture
     def mock_run_context(self):
@@ -200,9 +195,7 @@ class TestCodeModeIntegration:
         NodeConfig()
         manifest = AgentsManifest()
 
-        return AgentContext(
-            agent=Agent(), node_name="test_agent", config=config, definition=manifest
-        )
+        return AgentContext(node=Agent(name="test_agent"), config=config, definition=manifest)
 
     async def test_fsspec_like_tool_binding(self, mock_agent_context):
         """Test binding context for FSSpec-like tools."""

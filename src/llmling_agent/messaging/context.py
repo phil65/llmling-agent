@@ -21,8 +21,8 @@ if TYPE_CHECKING:
 class NodeContext[TDeps = object]:
     """Context for message processing nodes."""
 
-    node_name: str
-    """Name of the current node."""
+    node: MessageNode[TDeps, Any]
+    """Current Node."""
 
     pool: AgentPool[Any] | None = None
     """The agent pool the node is part of."""
@@ -40,11 +40,19 @@ class NodeContext[TDeps = object]:
     """Custom context data."""
 
     @property
+    def node_name(self) -> str:
+        """Name of the current node."""
+        return self.node.name
+
+    @property
     def any_agent(self) -> Agent[TDeps, Any] | ACPAgent | AGUIAgent:
-        """Get the agent instance from the pool."""
-        assert self.pool, "No agent pool available"
-        assert self.node_name, "No agent name available"
-        return self.pool.all_agents[self.node_name]
+        """Return any-agent node, type-narrowed."""
+        from llmling_agent import Agent
+        from llmling_agent.agents.acp_agent import ACPAgent
+        from llmling_agent.agents.agui_agent import AGUIAgent
+
+        assert isinstance(self.node, Agent | ACPAgent | AGUIAgent)
+        return self.node
 
     def get_input_provider(self) -> InputProvider:
         from llmling_agent.ui.stdlib_provider import StdlibInputProvider
@@ -54,13 +62,6 @@ class NodeContext[TDeps = object]:
         if self.pool and self.pool._input_provider:
             return self.pool._input_provider
         return StdlibInputProvider()
-
-    @property
-    def node(self) -> MessageNode[TDeps, Any]:
-        """Get the agent instance from the pool."""
-        assert self.pool, "No agent pool available"
-        assert self.node_name, "No agent name available"
-        return self.pool[self.node_name]  # pyright: ignore
 
     @property
     def prompt_manager(self) -> PromptManager:

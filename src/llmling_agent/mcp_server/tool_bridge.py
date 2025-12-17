@@ -203,8 +203,7 @@ class ToolManagerBridge:
 
         node_name = self.owner_agent_name or "bridge"
         return AgentContext(
-            agent=self.pool.agents[node_name],
-            node_name=node_name,
+            node=self.pool.agents[node_name],
             pool=self.pool,
             config=agent_config,
             definition=definition,

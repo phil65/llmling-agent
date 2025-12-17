@@ -12,7 +12,7 @@ from llmling_agent.messaging.context import NodeContext
 if TYPE_CHECKING:
     from mcp import types
 
-    from llmling_agent.agents import Agent
+    from llmling_agent import Agent
     from llmling_agent.agents.events import StreamEventEmitter
     from llmling_agent.models.agents import AgentConfig
     from llmling_agent.tools.base import Tool
@@ -29,9 +29,6 @@ class AgentContext[TDeps = Any](NodeContext[TDeps]):
     Generically typed with AgentContext[Type of Dependencies]
     """
 
-    agent: Agent[TDeps, Any]
-    """Current agent."""
-
     config: AgentConfig
     """Current agent's specific configuration."""
 
@@ -43,6 +40,14 @@ class AgentContext[TDeps = Any](NodeContext[TDeps]):
 
     tool_input: dict[str, Any] = field(default_factory=dict)
     """Input arguments for the current tool call."""
+
+    @property
+    def agent(self) -> Agent[TDeps, Any]:
+        """Current agent, type-narrowed."""
+        from llmling_agent import Agent
+
+        assert isinstance(self.node, Agent)
+        return self.node
 
     async def handle_confirmation(self, tool: Tool, args: dict[str, Any]) -> ConfirmationResult:
         """Handle tool execution confirmation.

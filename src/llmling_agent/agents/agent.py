@@ -220,8 +220,7 @@ class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
         self.deps_type = deps_type
         self._manifest = agent_pool.manifest if agent_pool else AgentsManifest()
         ctx = AgentContext[TDeps](
-            agent=self,
-            node_name=name,
+            node=self,
             definition=self._manifest,
             config=agent_config or AgentConfig(name=name),
             input_provider=input_provider,
