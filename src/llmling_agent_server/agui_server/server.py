@@ -72,7 +72,7 @@ class AGUIServer(HTTPServer):
         Returns:
             List of Route objects for each agent plus root listing endpoint
         """
-        from pydantic_ai.ui.ag_ui.app import AGUIApp
+        from pydantic_ai.ui.ag_ui import AGUIAdapter
         from starlette.routing import Route
 
         routes: list[Route] = []
@@ -82,7 +82,7 @@ class AGUIServer(HTTPServer):
 
             async def agent_handler(request: Request, agent_name: str = agent_name) -> Response:
                 """Handle AG-UI requests for a specific agent."""
-                from starlette.responses import JSONResponse, Response
+                from starlette.responses import JSONResponse
 
                 pool_agent = self.pool.agents.get(agent_name)
                 if pool_agent is None:
@@ -90,32 +90,9 @@ class AGUIServer(HTTPServer):
                     return JSONResponse({"error": msg}, status_code=404)
                 agentlet = await pool_agent.get_agentlet(None, pool_agent.model_name, str)
                 try:
-                    agui_app = AGUIApp(
-                        agent=agentlet,
-                        # Agent.iter parameters
-                        # output_type=output_type,
-                        # message_history=message_history,
-                        # deferred_tool_results=deferred_tool_results,
-                        # model=model,
-                        # deps=deps,
-                        # model_settings=model_settings,
-                        # usage_limits=usage_limits,
-                        # usage=usage,
-                        # infer_name=infer_name,
-                        # toolsets=toolsets,
-                        # # Starlette
-                        # debug=debug,
-                        # routes=routes,
-                        # middleware=middleware,
-                        # exception_handlers=exception_handlers,
-                        # on_startup=on_startup,
-                        # on_shutdown=on_shutdown,
-                        # lifespan=lifespan,
-                    )
-                    # ASGI apps don't return a value, they write to send()
-                    await agui_app(request.scope, request.receive, request._send)
-                    return Response()
-
+                    # Use AGUIAdapter.dispatch_request() which handles the full
+                    # AG-UI protocol: parsing request, running agent, streaming response
+                    return await AGUIAdapter.dispatch_request(request, agent=agentlet)
                 except Exception as e:
                     self.log.exception("Error handling AG-UI request", agent=agent_name)
                     return JSONResponse({"error": str(e)}, status_code=500)
