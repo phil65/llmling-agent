@@ -1,8 +1,6 @@
-"""Base class for HTTP-based servers with unified route handling.
+"""Base class for HTTP-based servers.
 
 This module provides a base class for servers that expose HTTP routes via Starlette.
-Servers inheriting from HTTPServer can be combined into a single application
-by AggregatingServer for more efficient resource usage.
 """
 
 from __future__ import annotations
@@ -28,15 +26,12 @@ DEFAULT_HTTP_PORT = 8000
 
 
 class HTTPServer(BaseServer):
-    """Base class for HTTP-based servers with unified route handling.
+    """Base class for HTTP-based servers.
 
     Provides common infrastructure for servers that expose HTTP routes via Starlette.
-    Servers inheriting from this class can be combined into a single application
-    by AggregatingServer when using unified mode.
 
     Subclasses must implement:
     - `get_routes()`: Return list of Starlette Route objects
-    - Optionally override `get_route_prefix()` for URL prefixing
 
     Example:
         ```python
@@ -46,9 +41,6 @@ class HTTPServer(BaseServer):
                     Route("/hello", self.hello_handler, methods=["GET"]),
                     Route("/world", self.world_handler, methods=["POST"]),
                 ]
-
-            def get_route_prefix(self) -> str:
-                return "/myserver"  # Routes become /myserver/hello, /myserver/world
         ```
     """
 
@@ -85,50 +77,6 @@ class HTTPServer(BaseServer):
         """
         ...
 
-    def get_route_prefix(self) -> str:
-        """Get the URL prefix for this server's routes.
-
-        Override this method to add a prefix to all routes.
-        Default returns empty string (no prefix).
-
-        Returns:
-            URL prefix string (e.g., "/api", "/v1")
-        """
-        return ""
-
-    async def get_prefixed_routes(self) -> list[Route]:
-        """Get routes with the server's prefix applied.
-
-        Returns:
-            List of Route objects with prefixed paths
-        """
-        from starlette.routing import Route
-
-        routes = await self.get_routes()
-        prefix = self.get_route_prefix()
-
-        if not prefix:
-            return routes
-
-        # Create new routes with prefixed paths
-        prefixed: list[Route] = []
-        for route in routes:
-            if isinstance(route, Route):
-                new_path = f"{prefix}{route.path}"
-                prefixed.append(
-                    Route(
-                        new_path,
-                        route.endpoint,
-                        methods=route.methods,
-                        name=route.name,
-                    )
-                )
-            else:
-                # For non-Route objects (Mount, etc.), add as-is
-                prefixed.append(route)
-
-        return prefixed
-
     async def create_app(self) -> Starlette:
         """Create Starlette application with this server's routes.
 
@@ -137,7 +85,7 @@ class HTTPServer(BaseServer):
         """
         from starlette.applications import Starlette
 
-        routes = await self.get_prefixed_routes()
+        routes = await self.get_routes()
         app = Starlette(debug=False, routes=routes)
         self.log.info(
             "Created HTTP app",

@@ -6,14 +6,11 @@ import pytest
 
 from llmling_agent import Agent, AgentPool
 from llmling_agent_server import A2AServer, AggregatingServer, AGUIServer
-from llmling_agent_server.http_server import HTTPServer
 
 
 # Test constants
 TEST_PORT_BASE = 9000
-AGENT_COUNT = 2
 SERVER_COUNT = 2
-INITIALIZED_COUNT = 2
 
 
 @pytest.fixture
@@ -64,52 +61,6 @@ async def test_aggregating_server_requires_servers(simple_agent_pool: AgentPool)
         AggregatingServer(simple_agent_pool, servers=[])
 
 
-async def test_aggregating_server_separate_mode(simple_agent_pool: AgentPool):
-    """Test AggregatingServer in separate mode (default)."""
-    agui = AGUIServer(simple_agent_pool, port=TEST_PORT_BASE + 20)
-    a2a = A2AServer(simple_agent_pool, port=TEST_PORT_BASE + 21)
-
-    server = AggregatingServer(simple_agent_pool, servers=[agui, a2a])
-
-    assert server.unified_http is False
-    assert "separate" in repr(server)
-
-
-async def test_aggregating_server_unified_mode_creation(simple_agent_pool: AgentPool):
-    """Test AggregatingServer in unified HTTP mode."""
-    agui = AGUIServer(simple_agent_pool, port=TEST_PORT_BASE + 30)
-    a2a = A2AServer(simple_agent_pool, port=TEST_PORT_BASE + 31)
-
-    server = AggregatingServer(
-        simple_agent_pool,
-        servers=[agui, a2a],
-        unified_http=True,
-        unified_host="localhost",
-        unified_port=TEST_PORT_BASE + 32,
-    )
-
-    assert server.unified_http is True
-    assert server.unified_host == "localhost"
-    assert server.unified_port == TEST_PORT_BASE + 32
-    assert "unified" in repr(server)
-
-
-async def test_aggregating_server_unified_base_url(simple_agent_pool: AgentPool):
-    """Test AggregatingServer unified base URL."""
-    agui = AGUIServer(simple_agent_pool, port=TEST_PORT_BASE + 40)
-
-    server = AggregatingServer(
-        simple_agent_pool,
-        servers=[agui],
-        unified_http=True,
-        unified_host="localhost",
-        unified_port=TEST_PORT_BASE + 41,
-    )
-
-    expected_url = f"http://localhost:{TEST_PORT_BASE + 41}"
-    assert server.unified_base_url == expected_url
-
-
 async def test_aggregating_server_initialization(simple_agent_pool: AgentPool):
     """Test AggregatingServer initialization with pool context."""
     agui = AGUIServer(simple_agent_pool, port=TEST_PORT_BASE + 50)
@@ -135,10 +86,6 @@ async def test_aggregating_server_list_servers(simple_agent_pool: AgentPool):
     names = [s.name for s in servers_info]
     assert "agui-test" in names
     assert "a2a-test" in names
-
-    # Check is_http flag
-    for info in servers_info:
-        assert info.is_http is True  # Both are HTTPServer subclasses
 
 
 async def test_aggregating_server_get_server(simple_agent_pool: AgentPool):
@@ -174,70 +121,6 @@ async def test_aggregating_server_add_remove_server(simple_agent_pool: AgentPool
     assert len(server.servers) == initial_count
 
 
-async def test_aggregating_server_is_http_server_detection(simple_agent_pool: AgentPool):
-    """Test that AggregatingServer correctly detects HTTP servers."""
-    agui = AGUIServer(simple_agent_pool, port=TEST_PORT_BASE + 90)
-
-    server = AggregatingServer(simple_agent_pool, servers=[agui])
-
-    async with server:
-        http_servers = server._get_http_servers()
-        expected_http_count = 1
-        assert len(http_servers) == expected_http_count
-        assert isinstance(http_servers[0], HTTPServer)
-
-
-async def test_aggregating_server_collect_routes_unified(simple_agent_pool: AgentPool):
-    """Test route collection in unified mode."""
-    pytest.importorskip("starlette")
-
-    agui = AGUIServer(simple_agent_pool, port=TEST_PORT_BASE + 100)
-    a2a = A2AServer(simple_agent_pool, port=TEST_PORT_BASE + 101)
-
-    server = AggregatingServer(
-        simple_agent_pool,
-        servers=[agui, a2a],
-        unified_http=True,
-        unified_port=TEST_PORT_BASE + 102,
-    )
-
-    async with server:
-        routes = await server._collect_all_routes()
-
-        # Should have routes from both servers with prefixes
-        route_paths = [r.path for r in routes]
-
-        # Check AGUI routes have /agui prefix
-        agui_routes = [p for p in route_paths if p.startswith("/agui")]
-        assert agui_routes  # At least one route
-
-        # Check A2A routes have /a2a prefix
-        a2a_routes = [p for p in route_paths if p.startswith("/a2a")]
-        assert a2a_routes  # At least one route
-
-
-async def test_aggregating_server_create_unified_app(simple_agent_pool: AgentPool):
-    """Test unified app creation."""
-    pytest.importorskip("starlette")
-
-    agui = AGUIServer(simple_agent_pool, port=TEST_PORT_BASE + 110)
-    a2a = A2AServer(simple_agent_pool, port=TEST_PORT_BASE + 111)
-
-    server = AggregatingServer(
-        simple_agent_pool,
-        servers=[agui, a2a],
-        unified_http=True,
-        unified_port=TEST_PORT_BASE + 112,
-    )
-
-    async with server:
-        app = await server._create_unified_app()
-        assert app is not None
-
-        # App should have routes from both servers plus root
-        assert app.routes  # At least one route
-
-
 async def test_aggregating_server_status(simple_agent_pool: AgentPool):
     """Test server status tracking."""
     agui = AGUIServer(simple_agent_pool, port=TEST_PORT_BASE + 120, name="status-test")
@@ -268,6 +151,22 @@ async def test_aggregating_server_repr(simple_agent_pool: AgentPool):
     assert "AggregatingServer" in repr_str
     assert "test-aggregator" in repr_str
     assert "servers=1" in repr_str
+
+
+async def test_aggregating_server_running_count(simple_agent_pool: AgentPool):
+    """Test running server count tracking."""
+    agui = AGUIServer(simple_agent_pool, port=TEST_PORT_BASE + 140)
+
+    server = AggregatingServer(simple_agent_pool, servers=[agui])
+
+    # Before initialization
+    assert server.running_server_count == 0
+
+    async with server:
+        # After initialization but before starting
+        assert server.initialized_server_count == 1
+        # Not running yet (would need run_context())
+        assert server.running_server_count == 0
 
 
 if __name__ == "__main__":

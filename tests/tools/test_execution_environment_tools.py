@@ -212,7 +212,6 @@ class TestProcessLifecycle:
         """Test process start failure."""
         env = MockExecutionEnvironment()
         # Inject a failure into the mock process manager
-        original_start = env.process_manager.start_process
 
         async def failing_start(*args, **kwargs):
             raise FileNotFoundError("Command not found")
