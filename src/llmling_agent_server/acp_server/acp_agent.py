@@ -6,6 +6,8 @@ from dataclasses import KW_ONLY, dataclass, field
 from importlib.metadata import version as _version
 from typing import TYPE_CHECKING, Any, ClassVar
 
+from tokonomics.model_discovery.model_info import ModelInfo as TokoModelInfo
+
 from acp import Agent as ACPAgent
 from acp.schema import (
     ForkSessionResponse,
@@ -27,7 +29,11 @@ from acp.schema import (
 from llmling_agent import Agent
 from llmling_agent.log import get_logger
 from llmling_agent.utils.tasks import TaskManager
-from llmling_agent_server.acp_server.converters import agent_to_mode
+from llmling_agent_server.acp_server.converters import (
+    # agent_to_mode,  # TODO: Re-enable when supporting agent switching via modes
+    get_confirmation_modes,
+    mode_id_to_confirmation_mode,
+)
 from llmling_agent_server.acp_server.session_manager import ACPSessionManager
 
 
@@ -35,7 +41,6 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from pydantic_ai import ModelRequest, ModelResponse
-    from tokonomics.model_discovery.model_info import ModelInfo as TokoModelInfo
 
     from acp import AgentSideConnection, Client
     from acp.schema import (
@@ -58,6 +63,20 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
+def to_tokonomics_model_info(model_info: ACPModelInfo) -> TokoModelInfo:
+    if len(model_info.model_id.split(":")) > 1:
+        provider, model_id = model_info.model_id.split(":")
+    else:
+        provider = ""
+        model_id = model_info.model_id
+    return TokoModelInfo(
+        id=model_id,
+        provider=provider,
+        name=model_info.name,
+        description=model_info.description,
+    )
+
+
 def create_session_model_state(
     available_models: Sequence[TokoModelInfo], current_model: str | None = None
 ) -> SessionModelState | None:
@@ -76,7 +95,7 @@ def create_session_model_state(
     models = [
         ACPModelInfo(
             model_id=model.pydantic_ai_id,
-            name=f"{model.provider}: {model.name}",
+            name=f"{model.provider}: {model.name}" if model.provider else model.name,
             description=model.format(),
         )
         for model in available_models
@@ -161,7 +180,7 @@ class LLMlingACPAgent(ACPAgent):
         logger.info("ACP agent initialized successfully", response=response)
         return response
 
-    async def new_session(self, params: NewSessionRequest) -> NewSessionResponse:
+    async def new_session(self, params: NewSessionRequest) -> NewSessionResponse:  # noqa: PLR0915
         """Create a new session."""
         if not self._initialized:
             raise RuntimeError("Agent not initialized")
@@ -188,12 +207,46 @@ class LLMlingACPAgent(ACPAgent):
                 client_capabilities=self.client_capabilities,
             )
 
-            modes = [agent_to_mode(agent) for agent in self.agent_pool.all_agents.values()]
-            state = SessionModeState(current_mode_id=default_name, available_modes=modes)
+            # Get mode information - pass through from ACPAgent or use our confirmation modes
+            from llmling_agent.agents.acp_agent import ACPAgent as ACPAgentClient
+
+            if session := self.session_manager.get_session(session_id):
+                if isinstance(session.agent, ACPAgentClient):
+                    # Pass through nested agent's modes (e.g., Claude Code's modes)
+                    if session.agent._state and session.agent._state.modes:
+                        state = session.agent._state.modes
+                        modes = state.available_modes
+                    else:
+                        # Fallback to our confirmation modes if nested agent has none
+                        modes = get_confirmation_modes()
+                        state = SessionModeState(current_mode_id="default", available_modes=modes)
+                else:
+                    # Native Agent - use our tool confirmation modes
+                    modes = get_confirmation_modes()
+                    state = SessionModeState(current_mode_id="default", available_modes=modes)
+            else:
+                modes = get_confirmation_modes()
+                state = SessionModeState(current_mode_id="default", available_modes=modes)
+            # TODO: Re-enable agent switching via modes when needed:
+            # modes = [agent_to_mode(agent) for agent in self.agent_pool.all_agents.values()]
+            # state = SessionModeState(current_mode_id=default_name, available_modes=modes)
+
             # Get model information from the default agent
             if session := self.session_manager.get_session(session_id):
-                current_model = session.agent.model_name
-                models = create_session_model_state(self.available_models, current_model)
+                if isinstance(session.agent, ACPAgentClient):
+                    current_model = (
+                        session.agent._state.current_model_id if session.agent._state else None
+                    )
+                    all_models = (
+                        session.agent._state.models.available_models
+                        if session.agent._state and session.agent._state.models
+                        else []
+                    )
+                    converted = [to_tokonomics_model_info(i) for i in all_models]
+                    models = create_session_model_state(converted, current_model)
+                else:
+                    current_model = session.agent.model_name
+                    models = create_session_model_state(self.available_models, current_model)
             else:
                 models = None
         except Exception:
@@ -255,11 +308,27 @@ class LLMlingACPAgent(ACPAgent):
                 await session.initialize_mcp_servers()
 
             # Build response with current session state
-            modes = [agent_to_mode(agent) for agent in self.agent_pool.all_agents.values()]
-            mode_state = SessionModeState(
-                current_mode_id=session.current_agent_name,
-                available_modes=modes,
-            )
+            # Get mode information - pass through from ACPAgent or use our confirmation modes
+            from llmling_agent.agents.acp_agent import ACPAgent as ACPAgentClient
+
+            if isinstance(session.agent, ACPAgentClient):
+                # Pass through nested agent's modes (e.g., Claude Code's modes)
+                if session.agent._state and session.agent._state.modes:
+                    mode_state = session.agent._state.modes
+                else:
+                    # Fallback to our confirmation modes if nested agent has none
+                    modes = get_confirmation_modes()
+                    mode_state = SessionModeState(current_mode_id="default", available_modes=modes)
+            else:
+                # Native Agent - use our tool confirmation modes
+                modes = get_confirmation_modes()
+                mode_state = SessionModeState(current_mode_id="default", available_modes=modes)
+            # TODO: Re-enable agent switching via modes when needed:
+            # modes = [agent_to_mode(agent) for agent in self.agent_pool.all_agents.values()]
+            # mode_state = SessionModeState(
+            #     current_mode_id=session.current_agent_name,
+            #     available_modes=modes,
+            # )
 
             current_model = session.agent.model_name if session.agent else None
             models = create_session_model_state(self.available_models, current_model)
@@ -477,10 +546,17 @@ class LLMlingACPAgent(ACPAgent):
     async def set_session_mode(
         self, params: SetSessionModeRequest
     ) -> SetSessionModeResponse | None:
-        """Set the session mode (switch active agent).
+        """Set the session mode (change tool confirmation level).
 
-        The mode ID corresponds to the agent name in the pool.
+        For native Agent:
+        - "default": per_tool (confirm tools marked as requiring it)
+        - "acceptEdits": never (auto-approve all tool calls)
+
+        For ACPAgent: forwards mode change to nested agent via ACP protocol.
         """
+        from acp.schema import SetSessionModeRequest as ACPSetSessionModeRequest
+        from llmling_agent.agents.acp_agent import ACPAgent as ACPAgentClient
+
         try:
             session = self.session_manager.get_session(params.session_id)
             if not session:
@@ -488,11 +564,45 @@ class LLMlingACPAgent(ACPAgent):
                 logger.warning(msg, session_id=params.session_id)
                 return None
 
-            # Validate agent exists in pool
-            if not self.agent_pool or params.mode_id not in self.agent_pool.agents:
-                logger.error("Agent not found in pool", mode_id=params.mode_id)
+            if isinstance(session.agent, ACPAgentClient):
+                # Forward mode change to nested ACP agent
+                if session.agent._connection and session.agent._session_id:
+                    nested_request = ACPSetSessionModeRequest(
+                        session_id=session.agent._session_id,
+                        mode_id=params.mode_id,
+                    )
+                    await session.agent._connection.set_session_mode(nested_request)
+                    # Update stored mode state
+                    if session.agent._state and session.agent._state.modes:
+                        session.agent._state.modes.current_mode_id = params.mode_id
+                    logger.info(
+                        "Forwarded mode change to nested ACP agent",
+                        mode_id=params.mode_id,
+                        session_id=params.session_id,
+                    )
+                    return SetSessionModeResponse()
+                logger.warning("ACPAgent not connected, cannot forward mode change")
                 return None
-            await session.switch_active_agent(params.mode_id)
+            # Native Agent - use tool confirmation mode mapping
+            confirmation_mode = mode_id_to_confirmation_mode(params.mode_id)
+            if not confirmation_mode:
+                logger.error("Invalid mode_id", mode_id=params.mode_id)
+                return None
+
+            await session.agent.set_tool_confirmation_mode(confirmation_mode)
+            logger.info(
+                "Set tool confirmation mode",
+                mode_id=params.mode_id,
+                confirmation_mode=confirmation_mode,
+                session_id=params.session_id,
+            )
+
+            # TODO: Re-enable agent switching via modes when needed:
+            # if not self.agent_pool or params.mode_id not in self.agent_pool.agents:
+            #     logger.error("Agent not found in pool", mode_id=params.mode_id)
+            #     return None
+            # await session.switch_active_agent(params.mode_id)
+
             return SetSessionModeResponse()
 
         except Exception:
