@@ -15,9 +15,8 @@ from llmling_agent.ui.base import InputProvider
 
 if TYPE_CHECKING:
     from acp import RequestPermissionResponse
-    from llmling_agent.agents.context import ConfirmationResult
     from llmling_agent.messaging import ChatMessage
-    from llmling_agent.messaging.context import NodeContext
+    from llmling_agent.messaging.context import ConfirmationResult, NodeContext
     from llmling_agent.tools.base import Tool
     from llmling_agent_server.acp_server.session import ACPSession
 

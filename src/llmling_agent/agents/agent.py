@@ -28,6 +28,7 @@ from pydantic_ai import (
 )
 from pydantic_ai.models import Model
 
+from llmling_agent.agents.base_agent import BaseAgent
 from llmling_agent.agents.events import (
     RichAgentStreamEvent,
     RunStartedEvent,
@@ -115,7 +116,7 @@ class AgentKwargs(TypedDict, total=False):
     hooks: AgentHooks | None
 
 
-class Agent[TDeps = None, OutputDataT = str](MessageNode[TDeps, OutputDataT]):
+class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
     """The main agent class.
 
     Generically typed with: LLMLingAgent[Type of Dependencies, Type of Result]

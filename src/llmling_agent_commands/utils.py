@@ -51,7 +51,7 @@ class CopyClipboardCommand(NodeCommand):
             msg = "clipman package required for clipboard operations"
             raise CommandError(msg) from e
 
-        content = await ctx.context.any_agent.conversation.format_history(
+        content = await ctx.context.agent.conversation.format_history(
             num_messages=num_messages,
             include_system=include_system,
             max_tokens=max_tokens,
@@ -94,7 +94,7 @@ class EditAgentFileCommand(NodeCommand):
 
     async def execute_command(self, ctx: CommandContext[NodeContext]) -> None:
         """Open agent's configuration file."""
-        agent = ctx.context.any_agent
+        agent = ctx.context.agent
         if not agent.context:
             msg = "No agent context available"
             raise CommandError(msg)
@@ -156,7 +156,7 @@ class ShareHistoryCommand(NodeCommand):
         """
         from anyenv.text_sharing import get_sharer
 
-        content = await ctx.context.any_agent.conversation.format_history(
+        content = await ctx.context.agent.conversation.format_history(
             num_messages=num_messages,
             include_system=include_system,
             max_tokens=max_tokens,

@@ -11,7 +11,7 @@ locally and results sent back.
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING, Any, Literal, Self
+from typing import TYPE_CHECKING, Any, Self
 from uuid import uuid4
 
 from anyenv import MultiEventHandler
@@ -22,11 +22,11 @@ from llmling_agent.agents.agui_agent.chunk_transformer import ChunkTransformer
 from llmling_agent.agents.agui_agent.helpers import execute_tool_calls, parse_sse_stream
 from llmling_agent.agents.agui_agent.session_state import AGUISessionState
 from llmling_agent.agents.agui_agent.subscriber import SubscriberManager
+from llmling_agent.agents.base_agent import BaseAgent
 from llmling_agent.agents.events import RunStartedEvent, StreamCompleteEvent, resolve_event_handlers
 from llmling_agent.common_types import IndividualEventHandler
 from llmling_agent.log import get_logger
 from llmling_agent.messaging import ChatMessage, MessageHistory
-from llmling_agent.messaging.messagenode import MessageNode
 from llmling_agent.messaging.processing import prepare_prompts
 from llmling_agent.talk.stats import MessageStats
 from llmling_agent.tools import ToolManager
@@ -41,6 +41,7 @@ if TYPE_CHECKING:
     from evented.configs import EventConfig
 
     from llmling_agent.agents.agui_agent.subscriber import AGUISubscriber
+    from llmling_agent.agents.base_agent import ToolConfirmationMode
     from llmling_agent.agents.events import RichAgentStreamEvent
     from llmling_agent.common_types import BuiltinEventHandlerType, PromptCompatible, ToolType
     from llmling_agent.delegation import AgentPool
@@ -52,16 +53,13 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 
-# Local type alias to avoid circular import from models.agents
-ToolConfirmationMode = Literal["always", "never", "per_tool"]
-
 
 def get_client(headers: dict[str, str], timeout: float) -> httpx.AsyncClient:
     headers = {**headers, "Accept": "text/event-stream", "Content-Type": "application/json"}
     return httpx.AsyncClient(timeout=httpx.Timeout(timeout), headers=headers)
 
 
-class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
+class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
     """MessageNode that wraps a remote AG-UI protocol server.
 
     Connects to AG-UI compatible endpoints via HTTP/SSE and provides the same
@@ -184,6 +182,10 @@ class AGUIAgent[TDeps = None](MessageNode[TDeps, str]):
         # Tool confirmation mode - defaults to "per_tool" like Agent class
         self.tool_confirmation_mode: ToolConfirmationMode = "per_tool"
         self._input_provider: InputProvider | None = None
+        # Execution environment
+        from exxec import LocalExecutionEnvironment
+
+        self.env = LocalExecutionEnvironment()
         # Subscriber system for AG-UI event hooks
         self._subscriber_manager = SubscriberManager()
         # Chunk transformer for normalizing CHUNK events

@@ -139,10 +139,8 @@ class CallableCommandConfig(BaseCommandConfig):
             msg = f"Imported object {self.function} is not callable"
             raise TypeError(msg)
 
-        # Set name if not provided
-        if self.name is None and hasattr(func, "__name__"):
-            func.__name__ = self.name or func.__name__
-        elif self.name:
+        # Set name if provided and function has __name__
+        if self.name and hasattr(func, "__name__"):
             func.__name__ = self.name
 
         # Set description as docstring if provided

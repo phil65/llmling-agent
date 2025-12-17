@@ -41,7 +41,7 @@ async def create_worker_agent[TDeps](
     model = model or ctx.agent.model_name
     agent = Agent[TDeps](name=name, model=model, system_prompt=system_prompt, agent_pool=ctx.pool)
     assert ctx.agent
-    tool_info = ctx.agent.register_worker(agent)
+    tool_info = ctx.native_agent.register_worker(agent)
     return f"Created worker agent and registered as tool: {tool_info.name}"
 
 

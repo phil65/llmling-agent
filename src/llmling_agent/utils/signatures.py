@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import inspect
-from typing import TYPE_CHECKING, Any, get_origin
+from typing import TYPE_CHECKING, Any, get_args, get_origin
 
 from llmling_agent.log import get_logger
 
@@ -13,6 +13,91 @@ if TYPE_CHECKING:
 
 
 logger = get_logger(__name__)
+
+
+_CONTEXT_TYPE_NAMES = frozenset({
+    "NodeContext",
+    "AgentContext",
+    "RunContext",
+})
+
+
+def is_context_type(annotation: Any) -> bool:
+    """Check if an annotation is a context type (for auto-injection/hiding from agent).
+
+    This detects context types that should be hidden from the agent's view of tool
+    parameters. Both our own context types (AgentContext/NodeContext) and pydantic-ai's
+    RunContext are detected.
+
+    Uses name-based detection to avoid importing context classes, which would trigger
+    Pydantic schema generation for their fields.
+
+    Handles:
+    - Direct AgentContext/NodeContext/RunContext references
+    - Generic forms like AgentContext[SomeDeps], RunContext[SomeDeps]
+    - Union types containing context types
+    """
+    if annotation is None or annotation is inspect.Parameter.empty:
+        return False
+
+    # Check direct class match by name
+    if isinstance(annotation, type) and annotation.__name__ in _CONTEXT_TYPE_NAMES:
+        return True
+
+    # Check generic origin (e.g., AgentContext[SomeDeps], RunContext[SomeDeps])
+    origin = get_origin(annotation)
+    if origin is not None:
+        if isinstance(origin, type) and origin.__name__ in _CONTEXT_TYPE_NAMES:
+            return True
+        # Handle Union types
+        if origin is type(None) or str(origin) in ("typing.Union", "types.UnionType"):
+            args = get_args(annotation)
+            return any(is_context_type(arg) for arg in args)
+
+    return False
+
+
+def get_params_matching_predicate(
+    fn: Callable[..., Any],
+    predicate: Callable[[inspect.Parameter], bool],
+) -> set[str]:
+    """Get names of function parameters matching a predicate.
+
+    Args:
+        fn: Function to inspect
+        predicate: Function that takes a Parameter and returns True if it matches
+
+    Returns:
+        Set of parameter names that match the predicate
+    """
+    sig = inspect.signature(fn)
+    return {name for name, param in sig.parameters.items() if predicate(param)}
+
+
+def filter_schema_params(schema: dict[str, Any], params_to_remove: set[str]) -> dict[str, Any]:
+    """Filter parameters from a JSON schema.
+
+    Creates a copy of the schema with specified parameters removed from
+    'properties' and 'required' fields.
+
+    Args:
+        schema: JSON schema with 'properties' dict
+        params_to_remove: Set of parameter names to remove
+
+    Returns:
+        New schema dict with parameters filtered out
+    """
+    if not params_to_remove:
+        return schema
+
+    result = schema.copy()
+    if "properties" in result:
+        result["properties"] = {
+            k: v for k, v in result["properties"].items() if k not in params_to_remove
+        }
+    if "required" in result:
+        result["required"] = [r for r in result["required"] if r not in params_to_remove]
+    return result
 
 
 def create_modified_signature(

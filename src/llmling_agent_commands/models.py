@@ -46,7 +46,7 @@ class SetModelCommand(NodeCommand):
         """
         try:
             # Create new session with model override
-            ctx.context.agent.set_model(model)
+            ctx.context.native_agent.set_model(model)
             await ctx.print(f"✅ **Model changed to:** `{model}`")
         except Exception as e:  # noqa: BLE001
             await ctx.print(f"❌ **Failed to change model:** {e}")

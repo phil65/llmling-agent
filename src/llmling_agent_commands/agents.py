@@ -66,7 +66,7 @@ class CreateAgentCommand(NodeCommand):
                 raise CommandError(msg)
 
             # Get model from args or current agent
-            current_agent = ctx.context.any_agent
+            current_agent = ctx.context.agent
             tool_list = [t.strip() for t in tools.split("|")] if tools else None
             # Create and register the new agent
             await ctx.context.pool.add_agent(

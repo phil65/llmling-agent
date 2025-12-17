@@ -23,26 +23,32 @@ from fastmcp.tools import Tool as FastMCPTool
 from pydantic import HttpUrl
 
 from llmling_agent.log import get_logger
+from llmling_agent.utils.signatures import (
+    filter_schema_params,
+    get_params_matching_predicate,
+    is_context_type,
+)
 
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator
+    from collections.abc import AsyncIterator, Callable
 
     from fastmcp import Context
     from fastmcp.tools.tool import ToolResult
     from uvicorn import Server
 
     from acp.schema.mcp import HttpMcpServer, SseMcpServer
-    from llmling_agent import AgentPool
-    from llmling_agent.agents.context import AgentContext
-    from llmling_agent.models.agents import AgentConfig
-    from llmling_agent.models.manifest import AgentsManifest
+    from llmling_agent.agents.base_agent import BaseAgent
+    from llmling_agent.messaging.context import NodeContext
     from llmling_agent.tools.base import Tool
-    from llmling_agent.tools.manager import ToolManager
-    from llmling_agent.ui.base import InputProvider
 
 
 logger = get_logger(__name__)
+
+
+def _get_context_param_names(fn: Callable[..., Any]) -> set[str]:
+    """Get names of parameters that are context types (to be auto-injected)."""
+    return get_params_matching_predicate(fn, lambda p: is_context_type(p.annotation))
 
 
 @dataclass
@@ -64,23 +70,19 @@ class BridgeConfig:
 
 @dataclass
 class ToolManagerBridge:
-    """Exposes a ToolManager's tools as an MCP server for ACP agents.
+    """Exposes a node's tools as an MCP server for ACP agents.
 
     This bridge allows external ACP agents to access our internal toolsets
     (SubagentTools, AgentManagementTools, etc.) via HTTP MCP transport.
 
-    The bridge creates synthetic AgentContext instances for tool invocations,
-    allowing tools that need pool access to work correctly.
+    The node's existing context is used for tool invocations, providing
+    pool access and proper configuration without reconstruction.
 
     Example:
         ```python
         async with AgentPool() as pool:
             agent = pool.agents["my_agent"]
-            bridge = ToolManagerBridge(
-                tool_manager=agent.tools,
-                pool=pool,
-                config=BridgeConfig(port=8765),
-            )
+            bridge = ToolManagerBridge(node=agent, config=BridgeConfig(port=8765))
             async with bridge:
                 # Bridge is running, get MCP config for ACP agent
                 mcp_config = bridge.get_mcp_server_config()
@@ -88,20 +90,11 @@ class ToolManagerBridge:
         ```
     """
 
-    tool_manager: ToolManager
-    """The ToolManager whose tools to expose."""
-
-    pool: AgentPool[Any]
-    """Agent pool for context creation."""
+    node: BaseAgent[Any, Any]
+    """The node whose tools to expose."""
 
     config: BridgeConfig = field(default_factory=BridgeConfig)
     """Bridge configuration."""
-
-    owner_agent_name: str | None = None
-    """Name of the agent that owns this bridge (for context creation)."""
-
-    input_provider: InputProvider | None = None
-    """Optional input provider for tool confirmations."""
 
     _mcp: FastMCP | None = field(default=None, init=False, repr=False)
     """FastMCP server instance."""
@@ -173,52 +166,12 @@ class ToolManagerBridge:
             return SseMcpServer(name=self.config.server_name, url=url, headers=[])
         return HttpMcpServer(name=self.config.server_name, url=url, headers=[])
 
-    def _create_proxy_context(
-        self,
-        tool_name: str,
-        tool_call_id: str,
-        tool_input: dict[str, Any],
-        mcp_ctx: Context,
-    ) -> AgentContext[None]:
-        """Create a synthetic AgentContext for MCP tool invocation.
-
-        This context provides pool access for delegation tools while
-        bridging progress reporting to MCP.
-        """
-        from llmling_agent.agents.context import AgentContext
-        from llmling_agent.models.agents import AgentConfig
-        from llmling_agent.models.manifest import AgentsManifest
-
-        # Use owner agent's config or create minimal one
-        agent_config: AgentConfig
-        definition: AgentsManifest
-        if self.owner_agent_name and self.owner_agent_name in self.pool.agents:
-            agent = self.pool.agents[self.owner_agent_name]
-            agent_config = agent.context.config
-            definition = agent.context.definition
-        else:
-            # Create minimal config for bridge-only usage
-            agent_config = AgentConfig(name="bridge")
-            definition = AgentsManifest()
-
-        node_name = self.owner_agent_name or "bridge"
-        return AgentContext(
-            node=self.pool.agents[node_name],
-            pool=self.pool,
-            config=agent_config,
-            definition=definition,
-            input_provider=self.input_provider,
-            tool_name=tool_name,
-            tool_call_id=tool_call_id,
-            tool_input=tool_input,
-        )
-
     async def _register_tools(self) -> None:
-        """Register all ToolManager tools with the FastMCP server."""
+        """Register all node tools with the FastMCP server."""
         if not self._mcp:
             return
 
-        tools = await self.tool_manager.get_tools(state="enabled")
+        tools = await self.node.tools.get_tools(state="enabled")
         for tool in tools:
             self._register_single_tool(tool)
         logger.info("Registered tools with MCP bridge", tools=[t.name for t in tools])
@@ -234,41 +187,21 @@ class ToolManagerBridge:
     async def invoke_tool_with_context(
         self,
         tool: Tool,
-        agent_ctx: AgentContext[None],
+        ctx: NodeContext[Any],
         kwargs: dict[str, Any],
     ) -> Any:
         """Invoke a tool with proper context injection.
 
         Handles tools that expect AgentContext, RunContext, or neither.
         """
-        from llmling_agent.agents.context import AgentContext as AgentContextType
-
         fn = tool.callable
-        sig = inspect.signature(fn)
 
-        # Check what context types the tool expects
-        needs_agent_ctx = any(
-            param.annotation is AgentContextType
-            or (
-                hasattr(param.annotation, "__origin__")
-                and param.annotation.__origin__ is AgentContextType
-            )
-            or str(param.annotation).startswith("AgentContext")
-            for param in sig.parameters.values()
-        )
-
-        # Find parameter name for AgentContext if needed
-        agent_ctx_param: str | None = None
-        if needs_agent_ctx:
-            for name, param in sig.parameters.items():
-                annotation = param.annotation
-                if annotation is AgentContextType or str(annotation).startswith("AgentContext"):
-                    agent_ctx_param = name
-                    break
-
-        # Invoke with appropriate context injection
-        if agent_ctx_param:
-            kwargs[agent_ctx_param] = agent_ctx
+        # Find context parameters and inject them
+        context_param_names = _get_context_param_names(fn)
+        for param_name in context_param_names:
+            # Don't override if caller somehow provided it (shouldn't happen)
+            if param_name not in kwargs:
+                kwargs[param_name] = ctx
 
         # Execute the tool
         result = fn(**kwargs)
@@ -317,28 +250,34 @@ class _BridgeTool(FastMCPTool):
         # Get input schema from our tool
         schema = tool.schema["function"]
         input_schema = schema.get("parameters", {"type": "object", "properties": {}})
+
+        # Filter out context parameters - they're auto-injected by the bridge
+        context_params = _get_context_param_names(tool.callable)
+        filtered_schema = filter_schema_params(input_schema, context_params)
+
         desc = tool.description or "No description"
-        super().__init__(name=tool.name, description=desc, parameters=input_schema)
+        super().__init__(name=tool.name, description=desc, parameters=filtered_schema)
         # Set these AFTER super().__init__() to avoid being overwritten
         self._tool = tool
         self._bridge = bridge
 
     async def run(self, arguments: dict[str, Any], context: Context | None = None) -> ToolResult:
         """Execute the wrapped tool with context bridging."""
+        from dataclasses import replace
+
         from fastmcp.tools.tool import ToolResult
 
         tool_call_id = str(uuid4())
-        # Create proxy context with pool access
-        agent_ctx = self._bridge._create_proxy_context(
+        # Get context with tool-specific metadata
+        ctx = replace(
+            self._bridge.node.context,
             tool_name=self._tool.name,
             tool_call_id=tool_call_id,
             tool_input=arguments,
-            # TODO: fix this type violation
-            mcp_ctx=context,  # type: ignore[arg-type]
         )
 
         # Invoke with context
-        result = await self._bridge.invoke_tool_with_context(self._tool, agent_ctx, arguments)
+        result = await self._bridge.invoke_tool_with_context(self._tool, ctx, arguments)
         # Convert result to ToolResult
         if isinstance(result, str):
             return ToolResult(content=result)
@@ -347,37 +286,25 @@ class _BridgeTool(FastMCPTool):
 
 @asynccontextmanager
 async def create_tool_bridge(
-    tool_manager: ToolManager,
-    pool: AgentPool[Any],
+    node: BaseAgent[Any, Any],
     *,
     host: str = "127.0.0.1",
     port: int = 0,
     transport: str = "sse",
-    owner_agent_name: str | None = None,
-    input_provider: InputProvider | None = None,
 ) -> AsyncIterator[ToolManagerBridge]:
     """Create and start a ToolManagerBridge as a context manager.
 
     Args:
-        tool_manager: ToolManager whose tools to expose
-        pool: Agent pool for context creation
+        node: The node whose tools to expose
         host: Host to bind to
         port: Port to bind to (0 = auto-select)
         transport: Transport protocol ('sse' or 'streamable-http')
-        owner_agent_name: Name of owning agent for context
-        input_provider: Optional input provider
 
     Yields:
         Running ToolManagerBridge instance
     """
     config = BridgeConfig(host=host, port=port, transport=transport)
-    bridge = ToolManagerBridge(
-        tool_manager=tool_manager,
-        pool=pool,
-        config=config,
-        owner_agent_name=owner_agent_name,
-        input_provider=input_provider,
-    )
+    bridge = ToolManagerBridge(node=node, config=config)
     async with bridge:
         yield bridge
 
@@ -395,20 +322,13 @@ class ToolBridgeRegistry:
     async def create_bridge(
         self,
         name: str,
-        tool_manager: ToolManager,
-        pool: AgentPool[Any],
-        *,
-        owner_agent_name: str | None = None,
-        input_provider: InputProvider | None = None,
+        node: BaseAgent[Any, Any],
     ) -> ToolManagerBridge:
         """Create and register a new bridge.
 
         Args:
             name: Unique name for this bridge
-            tool_manager: ToolManager to expose
-            pool: Agent pool for context
-            owner_agent_name: Optional owner agent name
-            input_provider: Optional input provider
+            node: The node whose tools to expose
 
         Returns:
             Started ToolManagerBridge
@@ -420,13 +340,7 @@ class ToolBridgeRegistry:
         config = BridgeConfig(port=self._port_counter, server_name=f"llmling-{name}")
         self._port_counter += 1
 
-        bridge = ToolManagerBridge(
-            tool_manager=tool_manager,
-            pool=pool,
-            config=config,
-            owner_agent_name=owner_agent_name,
-            input_provider=input_provider,
-        )
+        bridge = ToolManagerBridge(node=node, config=config)
         await bridge.start()
         self._bridges[name] = bridge
         return bridge

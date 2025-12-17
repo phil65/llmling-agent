@@ -42,6 +42,7 @@ if TYPE_CHECKING:
     from llmling_agent.agents.acp_agent import ACPAgent
     from llmling_agent.agents.agent import AgentKwargs
     from llmling_agent.agents.agui_agent import AGUIAgent
+    from llmling_agent.agents.base_agent import BaseAgent
     from llmling_agent.common_types import (
         AgentName,
         BuiltinEventHandlerType,
@@ -52,7 +53,6 @@ if TYPE_CHECKING:
     from llmling_agent.delegation.base_team import BaseTeam
     from llmling_agent.mcp_server.tool_bridge import ToolManagerBridge
     from llmling_agent.models.manifest import AgentsManifest
-    from llmling_agent.tools.manager import ToolManager
     from llmling_agent.ui.base import InputProvider
     from llmling_agent_config.session import SessionQuery
     from llmling_agent_config.task import Job
@@ -234,24 +234,22 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
 
     async def create_tool_bridge(
         self,
-        tool_manager: ToolManager,
+        node: BaseAgent[Any, Any],
         *,
         name: str = "pool_tools",
-        owner_agent_name: str | None = None,
         host: str = "127.0.0.1",
         port: int = 0,
         transport: str = "sse",
     ) -> ToolManagerBridge:
         """Create and start a tool bridge for exposing tools to ACP agents.
 
-        This creates an in-process MCP server that exposes the given ToolManager's
+        This creates an in-process MCP server that exposes the given node's
         tools. The returned bridge can be added to ACP agents to give them access
         to internal toolsets.
 
         Args:
-            tool_manager: ToolManager whose tools to expose
+            node: The agent node whose tools to expose
             name: Unique name for this bridge
-            owner_agent_name: Name of agent to use for context creation
             host: Host to bind the HTTP server to
             port: Port to bind to (0 = auto-select)
             transport: Transport protocol ('sse' or 'streamable-http')
@@ -264,7 +262,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
             async with AgentPool() as pool:
                 # Create bridge from an agent's tools
                 bridge = await pool.create_tool_bridge(
-                    pool.agents["orchestrator"].tools,
+                    pool.agents["orchestrator"],
                     name="orchestrator_tools",
                 )
                 # Add to ACP agent
@@ -283,13 +281,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
             transport=transport,
             server_name=f"llmling-{name}",
         )
-        bridge = ToolManagerBridge(
-            tool_manager=tool_manager,
-            pool=self,
-            config=config,
-            owner_agent_name=owner_agent_name,
-            input_provider=self._input_provider,
-        )
+        bridge = ToolManagerBridge(node=node, config=config)
         await bridge.start()
         self._tool_bridges[name] = bridge
         return bridge
@@ -516,14 +508,11 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         return {i.name: i for i in self._items.values() if isinstance(i, AGUIAgent)}
 
     @property
-    def all_agents(self) -> dict[str, Agent[Any, Any] | ACPAgent | AGUIAgent]:
+    def all_agents(self) -> dict[str, BaseAgent[Any, Any]]:
         """Get all agents (regular, ACP, and AG-UI)."""
-        from llmling_agent.agents.acp_agent import ACPAgent
-        from llmling_agent.agents.agui_agent import AGUIAgent
+        from llmling_agent.agents.base_agent import BaseAgent
 
-        return {
-            i.name: i for i in self._items.values() if isinstance(i, Agent | ACPAgent | AGUIAgent)
-        }
+        return {i.name: i for i in self._items.values() if isinstance(i, BaseAgent)}
 
     @property
     def teams(self) -> dict[str, BaseTeam[Any, Any]]:

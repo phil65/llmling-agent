@@ -44,5 +44,5 @@ class ResetCommand(AgentCommand):
         Args:
             ctx: Command context
         """
-        await ctx.context.agent.reset()
+        await ctx.context.native_agent.reset()
         await ctx.print("🔄 **Session state reset** - history cleared, tools and settings restored")

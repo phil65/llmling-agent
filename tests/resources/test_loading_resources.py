@@ -59,10 +59,9 @@ async def test_vfs_registry():
 async def test_resource_path():
     """Test UPath-based resource access."""
     manifest = AgentsManifest.model_validate(yamling.load_yaml(MANIFEST_CONFIG))
-    # TODO: which behviour do we wnt here?
     path = manifest.vfs_registry.get_upath("docs")
     print(list(path.iterdir()))
-    assert str(path) == "docs"
+    assert str(path) == "union://docs"  # UPath str includes protocol prefix
     assert path.fs == manifest.vfs_registry.get_fs()
 
 

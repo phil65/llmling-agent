@@ -39,11 +39,11 @@ from acp.utils import to_acp_content_blocks
 from llmling_agent.agents.acp_agent.acp_converters import convert_to_acp_content, mcp_configs_to_acp
 from llmling_agent.agents.acp_agent.client_handler import ACPClientHandler
 from llmling_agent.agents.acp_agent.session_state import ACPSessionState
+from llmling_agent.agents.base_agent import BaseAgent
 from llmling_agent.agents.events import RunStartedEvent, StreamCompleteEvent
 from llmling_agent.common_types import IndividualEventHandler
 from llmling_agent.log import get_logger
 from llmling_agent.messaging import ChatMessage, MessageHistory
-from llmling_agent.messaging.messagenode import MessageNode
 from llmling_agent.messaging.processing import prepare_prompts
 from llmling_agent.models.acp_agents import ACPAgentConfig, MCPCapableACPAgentConfig
 from llmling_agent.talk.stats import MessageStats
@@ -76,7 +76,7 @@ logger = get_logger(__name__)
 PROTOCOL_VERSION = 1
 
 
-class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
+class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
     """MessageNode that wraps an external ACP agent subprocess.
 
     This allows integrating any ACP-compatible agent into the llmling-agent
@@ -248,13 +248,7 @@ class ACPAgent[TDeps = None](MessageNode[TDeps, str]):
             self.tools.add_provider(provider)
         # Auto-create bridge to expose tools via MCP
         config = BridgeConfig(transport="sse", server_name=f"llmling-{self.name}-tools")
-        self._tool_bridge = ToolManagerBridge(
-            tool_manager=self.tools,
-            pool=self.agent_pool,  # type: ignore[arg-type]
-            config=config,
-            owner_agent_name=self.name,
-            input_provider=self._input_provider,
-        )
+        self._tool_bridge = ToolManagerBridge(node=self, config=config)
         await self._tool_bridge.start()
         self._owns_bridge = True
         # Add bridge's MCP server to session

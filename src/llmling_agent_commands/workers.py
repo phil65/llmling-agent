@@ -67,7 +67,7 @@ class AddWorkerCommand(AgentCommand):
                 worker,
                 reset_history_on_run=reset_history_bool,
                 pass_message_history=share_history_bool,
-                parent=ctx.context.agent,
+                parent=ctx.context.native_agent,
             )
 
             await ctx.print(
