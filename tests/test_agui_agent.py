@@ -6,7 +6,7 @@ import sys
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from ag_ui.core import TextMessageContentEvent, TextMessageStartEvent, ToolCallStartEvent
+from ag_ui.core import TextMessageContentEvent, ToolCallStartEvent
 import httpx
 from pydantic_ai import PartDeltaEvent
 import pytest
@@ -14,7 +14,6 @@ import pytest
 from llmling_agent.agents.agui_agent import AGUIAgent, AGUISessionState
 from llmling_agent.agents.agui_agent.agui_converters import (
     agui_to_native_event,
-    extract_text_from_event,
 )
 from llmling_agent.agents.events import ToolCallStartEvent as NativeToolCallStart
 from llmling_agent.messaging import ChatMessage
@@ -123,19 +122,6 @@ async def test_agui_agent_run(mock_sse_response):
             assert result.content == "Result"
             assert result.role == "assistant"
             assert result.name == "test-agent"
-
-
-def test_extract_text_from_event():
-    """Test text extraction from AG-UI events."""
-    # Text content event
-    event1 = TextMessageContentEvent(message_id="msg1", delta="Hello")
-    assert extract_text_from_event(event1) == "Hello"
-    # Text start event (no text)
-    event2 = TextMessageStartEvent(message_id="msg2")
-    assert extract_text_from_event(event2) is None
-    # Tool call event (no text)
-    event3 = ToolCallStartEvent(tool_call_id="call1", tool_call_name="test_tool")
-    assert extract_text_from_event(event3) is None
 
 
 def test_agui_to_native_event_text_content():

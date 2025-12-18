@@ -5,8 +5,6 @@ from llmling_agent.agents.agui_agent.agui_agent import AGUIAgent
 from llmling_agent.agents.agui_agent.agui_converters import (
     ToolCallAccumulator,
     agui_to_native_event,
-    extract_text_from_event,
-    extract_thinking_from_event,
     to_agui_input_content,
     to_agui_tool,
 )
@@ -33,8 +31,6 @@ __all__ = [
     # Converters
     "ToolCallAccumulator",
     "agui_to_native_event",
-    "extract_text_from_event",
-    "extract_thinking_from_event",
     "to_agui_input_content",
     "to_agui_tool",
 ]

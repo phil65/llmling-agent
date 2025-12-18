@@ -210,40 +210,6 @@ def _content_to_plan_entries(content: list[Any]) -> list[PlanEntry]:
     return entries
 
 
-def extract_text_from_event(event: BaseEvent) -> str | None:
-    """Extract plain text content from an AG-UI event.
-
-    Args:
-        event: AG-UI Event
-
-    Returns:
-        Text content if this is a text-bearing event, None otherwise
-    """
-    match event:
-        case TextMessageContentEvent(delta=delta):
-            return delta
-        case TextMessageChunkEvent(delta=delta) if delta:
-            return delta
-        case _:
-            return None
-
-
-def extract_thinking_from_event(event: BaseEvent) -> str | None:
-    """Extract thinking/reasoning content from an AG-UI event.
-
-    Args:
-        event: AG-UI Event
-
-    Returns:
-        Thinking content if this is a thinking event, None otherwise
-    """
-    match event:
-        case ThinkingTextMessageContentEvent(delta=delta):
-            return delta
-        case _:
-            return None
-
-
 def to_agui_input_content(
     parts: UserContent | Sequence[UserContent] | None,
 ) -> list[InputContent]:

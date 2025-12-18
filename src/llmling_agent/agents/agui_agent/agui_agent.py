@@ -368,6 +368,9 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             self._input_provider = input_provider
         from ag_ui.core import (
             RunAgentInput,
+            TextMessageChunkEvent,
+            TextMessageContentEvent,
+            ThinkingTextMessageContentEvent,
             ToolCallArgsEvent as AGUIToolCallArgsEvent,
             ToolCallEndEvent as AGUIToolCallEndEvent,
             ToolCallStartEvent as AGUIToolCallStartEvent,
@@ -377,8 +380,6 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         from llmling_agent.agents.agui_agent.agui_converters import (
             ToolCallAccumulator,
             agui_to_native_event,
-            extract_text_from_event,
-            extract_thinking_from_event,
             to_agui_input_content,
             to_agui_tool,
         )
@@ -445,19 +446,17 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
                         transformed_events = self._chunk_transformer.transform(raw_event)
 
                         for event in transformed_events:
-                            # Track text chunks locally
-                            if text := extract_text_from_event(event):
-                                text_chunks.append(text)
-
-                            # Track thinking chunks locally
-                            if thinking := extract_thinking_from_event(event):
-                                thinking_chunks.append(thinking)
-
                             # Dispatch to subscribers
                             await self._subscriber_manager.dispatch(event, self._state)
 
-                            # Handle tool call events for client-side execution
+                            # Handle events for accumulation and tool calls
                             match event:
+                                case TextMessageContentEvent(delta=delta):
+                                    text_chunks.append(delta)
+                                case TextMessageChunkEvent(delta=delta) if delta:
+                                    text_chunks.append(delta)
+                                case ThinkingTextMessageContentEvent(delta=delta):
+                                    thinking_chunks.append(delta)
                                 case AGUIToolCallStartEvent(
                                     tool_call_id=tc_id, tool_call_name=name
                                 ) if name:
@@ -543,14 +542,11 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         text_content = "".join(text_chunks)
         if text_content:
             parts.append(TextPart(content=text_content))
-
         # Add tool call parts
         for tc_id, tc_name, tc_args in completed_tool_calls:
             parts.append(ToolCallPart(tool_name=tc_name, args=tc_args, tool_call_id=tc_id))
 
-        # Build ModelResponse
         model_response = ModelResponse(parts=parts)
-
         final_message = ChatMessage[str](
             content=text_content,
             role="assistant",
@@ -600,9 +596,8 @@ if __name__ == "__main__":
 
     async def main() -> None:
         """Example usage."""
-        async with AGUIAgent(
-            endpoint="http://localhost:8000/agent/run", name="test-agent"
-        ) as agent:
+        endpoint = "http://localhost:8000/agent/run"
+        async with AGUIAgent(endpoint=endpoint, name="test-agent") as agent:
             result = await agent.run("What is 2+2?")
             print(f"Result: {result.content}")
             print("\nStreaming:")
