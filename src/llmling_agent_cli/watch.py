@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Annotated, Any
 
 import typer as t
 
@@ -19,15 +19,15 @@ logger = get_logger(__name__)
 
 
 def watch_command(
-    config: str = t.Argument(..., help="Path to agent configuration"),
-    show_messages: bool = t.Option(
-        True, "--show-messages", help="Show all messages (not just final responses)"
-    ),
-    detail_level: DetailLevel = t.Option(  # noqa: B008
-        "simple", "-d", "--detail", help="Output detail level"
-    ),
-    show_metadata: bool = t.Option(False, "--metadata", help="Show message metadata"),
-    show_costs: bool = t.Option(False, "--costs", help="Show token usage and costs"),
+    config: Annotated[str, t.Argument(help="Path to agent configuration")],
+    show_messages: Annotated[
+        bool, t.Option("--show-messages", help="Show all messages (not just final responses)")
+    ] = True,
+    detail_level: Annotated[
+        DetailLevel, t.Option("-d", "--detail", help="Output detail level")
+    ] = "simple",
+    show_metadata: Annotated[bool, t.Option("--metadata", help="Show message metadata")] = False,
+    show_costs: Annotated[bool, t.Option("--costs", help="Show token usage and costs")] = False,
 ) -> None:
     """Run agents in event-watching mode."""
 

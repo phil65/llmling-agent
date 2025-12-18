@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Annotated, Any
 
 import typer as t
 
@@ -20,12 +20,14 @@ logger = get_logger(__name__)
 
 def api_command(
     ctx: t.Context,
-    config: str = t.Argument(None, help="Path to agent configuration"),
-    host: str = t.Option("localhost", help="Host to bind server to"),
-    port: int = t.Option(8000, help="Port to listen on"),
-    cors: bool = t.Option(True, help="Enable CORS"),
-    show_messages: bool = t.Option(False, "--show-messages", help="Show message activity"),
-    docs: bool = t.Option(True, help="Enable API documentation"),
+    config: Annotated[str | None, t.Argument(help="Path to agent configuration")] = None,
+    host: Annotated[str, t.Option(help="Host to bind server to")] = "localhost",
+    port: Annotated[int, t.Option(help="Port to listen on")] = 8000,
+    cors: Annotated[bool, t.Option(help="Enable CORS")] = True,
+    show_messages: Annotated[
+        bool, t.Option("--show-messages", help="Show message activity")
+    ] = False,
+    docs: Annotated[bool, t.Option(help="Enable API documentation")] = True,
 ) -> None:
     """Run agents as a completions API server.
 
@@ -45,7 +47,7 @@ def api_command(
         msg = str(e)
         raise t.BadParameter(msg) from e
     manifest = AgentsManifest.from_file(config_path)
-    pool = AgentPool[None](manifest)
+    pool = AgentPool(manifest)
 
     if show_messages:
         for agent in pool.agents.values():

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Annotated
 
 import typer as t
 
@@ -49,10 +49,12 @@ async def execute_job(
 
 
 def task_command(
-    agent_name: str = t.Argument(help="Name of agent to run task with"),
-    task_name: str = t.Argument(help="Name of task to execute"),
-    config: str | None = t.Option(None, "--config", "-c", help="Agent configuration file"),
-    prompt: str | None = t.Option(None, "--prompt", "-p", help="Additional prompt"),
+    agent_name: Annotated[str, t.Argument(help="Name of agent to run task with")],
+    task_name: Annotated[str, t.Argument(help="Name of task to execute")],
+    config: Annotated[
+        str | None, t.Option("--config", "-c", help="Agent configuration file")
+    ] = None,
+    prompt: Annotated[str | None, t.Option("--prompt", "-p", help="Additional prompt")] = None,
 ) -> None:
     """Execute a task with the specified agent."""
     logger = log.get_logger(__name__)
@@ -80,4 +82,4 @@ def task_command(
 
 
 if __name__ == "__main__":
-    task_command()
+    t.run(task_command)

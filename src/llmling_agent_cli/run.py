@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import traceback
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Annotated, Any
 
 import typer as t
 
@@ -19,17 +19,19 @@ if TYPE_CHECKING:
 
 
 def run_command(
-    node_name: str = t.Argument(help="Agent / Team name to run"),
-    prompts: list[str] = t.Argument(None, help="Additional prompts to send"),  # noqa: B008
-    config_path: str = t.Option(None, "-c", "--config", help="Override config path"),
-    show_messages: bool = t.Option(
-        True, "--show-messages", help="Show all messages (not just final responses)"
-    ),
-    detail_level: DetailLevel = t.Option(  # noqa: B008
-        "simple", "-d", "--detail", help="Output detail level"
-    ),
-    show_metadata: bool = t.Option(False, "--metadata", help="Show message metadata"),
-    show_costs: bool = t.Option(False, "--costs", help="Show token usage and costs"),
+    node_name: Annotated[str, t.Argument(help="Agent / Team name to run")],
+    prompts: Annotated[list[str] | None, t.Argument(help="Additional prompts to send")] = None,
+    config_path: Annotated[
+        str | None, t.Option("-c", "--config", help="Override config path")
+    ] = None,
+    show_messages: Annotated[
+        bool, t.Option("--show-messages", help="Show all messages (not just final responses)")
+    ] = True,
+    detail_level: Annotated[
+        DetailLevel, t.Option("-d", "--detail", help="Output detail level")
+    ] = "simple",
+    show_metadata: Annotated[bool, t.Option("--metadata", help="Show message metadata")] = False,
+    show_costs: Annotated[bool, t.Option("--costs", help="Show token usage and costs")] = False,
     verbose: bool = verbose_opt,
 ) -> None:
     """Single-shot run a node (agent/team) with prompts."""
@@ -57,7 +59,7 @@ def run_command(
                 if show_messages:
                     for node in pool.nodes.values():
                         node.message_sent.connect(on_message)
-                for prompt in prompts:
+                for prompt in prompts or []:
                     response = await pool.nodes[node_name].run(prompt)
 
                     if not show_messages:

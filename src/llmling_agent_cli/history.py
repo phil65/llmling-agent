@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Annotated
 
 import typer as t
 
@@ -50,18 +50,20 @@ def get_history_provider(config_path: str) -> StorageProvider:
 
 @history_cli.command(name="show")
 def show_history(
-    agent_name: str | None = t.Argument(None, help=AGENT_NAME_HELP),
-    config: str | None = t.Option(None, "--config", "-c", help=CONFIG_HELP),
+    agent_name: Annotated[str | None, t.Argument(help=AGENT_NAME_HELP)] = None,
+    config: Annotated[str | None, t.Option("--config", "-c", help=CONFIG_HELP)] = None,
     # Time-based filtering
-    since: datetime | None = t.Option(None, "--since", "-s", help=SINCE_HELP),  # noqa: B008
-    period: str | None = t.Option(None, "--period", "-p", help=PERIOD_HELP),
+    since: Annotated[datetime | None, t.Option("--since", "-s", help=SINCE_HELP)] = None,
+    period: Annotated[str | None, t.Option("--period", "-p", help=PERIOD_HELP)] = None,
     # Content filtering
-    query: str | None = t.Option(None, "--query", "-q", help="Search in message content"),
-    model: str | None = t.Option(None, "--model", "-m", help="Filter by model used"),
+    query: Annotated[
+        str | None, t.Option("--query", "-q", help="Search in message content")
+    ] = None,
+    model: Annotated[str | None, t.Option("--model", "-m", help="Filter by model used")] = None,
     # Output control
-    limit: int = t.Option(10, "--limit", "-n", help="Number of conversations"),
-    compact: bool = t.Option(False, "--compact", help=COMPACT_HELP),
-    tokens: bool = t.Option(False, "--tokens", "-t", help=TOKEN_HELP),
+    limit: Annotated[int, t.Option("--limit", "-n", help="Number of conversations")] = 10,
+    compact: Annotated[bool, t.Option("--compact", help=COMPACT_HELP)] = False,
+    tokens: Annotated[bool, t.Option("--tokens", "-t", help=TOKEN_HELP)] = False,
     output_format: OutputFormat = output_format_opt,
 ) -> None:
     """Show conversation history with filtering options.
@@ -113,10 +115,12 @@ def show_history(
 
 @history_cli.command(name="stats")
 def show_stats(
-    agent_name: str | None = t.Argument(None, help=AGENT_NAME_HELP),
-    config: str | None = t.Option(None, "--config", "-c", help=CONFIG_HELP),
-    period: str = t.Option("1d", "--period", "-p", help="Time period (1h, 1d, 1w, 1m, 1y)"),
-    group_by: GroupBy = t.Option("agent", "--group-by", "-g", help="Group by"),  # noqa: B008
+    agent_name: Annotated[str | None, t.Argument(help=AGENT_NAME_HELP)] = None,
+    config: Annotated[str | None, t.Option("--config", "-c", help=CONFIG_HELP)] = None,
+    period: Annotated[
+        str, t.Option("--period", "-p", help="Time period (1h, 1d, 1w, 1m, 1y)")
+    ] = "1d",
+    group_by: Annotated[GroupBy, t.Option("--group-by", "-g", help="Group by")] = "agent",
     output_format: OutputFormat = output_format_opt,
 ) -> None:
     """Show usage statistics.
@@ -158,10 +162,14 @@ def show_stats(
 
 @history_cli.command(name="reset")
 def reset_history(
-    config: str | None = t.Option(None, "--config", "-c", help=CONFIG_HELP),
-    confirm: bool = t.Option(False, "--confirm", "-y", help="Confirm deletion"),
-    agent_name: str | None = t.Option(None, "--agent", "-a", help="Only delete for specific agent"),
-    hard: bool = t.Option(False, "--hard", help="Drop and recreate tables (for schema changes)"),
+    config: Annotated[str | None, t.Option("--config", "-c", help=CONFIG_HELP)] = None,
+    confirm: Annotated[bool, t.Option("--confirm", "-y", help="Confirm deletion")] = False,
+    agent_name: Annotated[
+        str | None, t.Option("--agent", "-a", help="Only delete for specific agent")
+    ] = None,
+    hard: Annotated[
+        bool, t.Option("--hard", help="Drop and recreate tables (for schema changes)")
+    ] = False,
 ) -> None:
     """Reset (clear) conversation history.
 

@@ -8,6 +8,7 @@ integration with file system access, permission handling, and terminal support.
 from __future__ import annotations
 
 import asyncio
+from typing import Annotated
 
 from platformdirs import user_log_path
 import typer as t
@@ -20,46 +21,62 @@ logger = get_logger(__name__)
 
 
 def acp_command(
-    config: str | None = t.Argument(None, help="Path to agent configuration (optional)"),
-    file_access: bool = t.Option(
-        True,
-        "--file-access/--no-file-access",
-        help="Enable file system access for agents",
-    ),
-    terminal_access: bool = t.Option(
-        True,
-        "--terminal-access/--no-terminal-access",
-        help="Enable terminal access for agents",
-    ),
-    show_messages: bool = t.Option(False, "--show-messages", help="Show message activity in logs"),
-    debug_messages: bool = t.Option(
-        False, "--debug-messages", help="Save raw JSON-RPC messages to debug file"
-    ),
-    debug_file: str | None = t.Option(
-        None,
-        "--debug-file",
-        help="File to save JSON-RPC debug messages (default: acp-debug.jsonl)",
-    ),
-    providers: list[str] | None = t.Option(  # noqa: B008
-        None,
-        "--model-provider",
-        help="Providers to search for models (can be specified multiple times)",
-    ),
-    debug_commands: bool = t.Option(
-        False,
-        "--debug-commands",
-        help="Enable debug slash commands for testing ACP notifications",
-    ),
-    agent: str | None = t.Option(
-        None,
-        "--agent",
-        help="Name of specific agent to use (defaults to first agent in config)",
-    ),
-    load_skills: bool = t.Option(
-        True,
-        "--skills/--no-skills",
-        help="Load client-side skills from .claude/skills directory",
-    ),
+    config: Annotated[str | None, t.Argument(help="Path to agent configuration (optional)")] = None,
+    file_access: Annotated[
+        bool,
+        t.Option(
+            "--file-access/--no-file-access",
+            help="Enable file system access for agents",
+        ),
+    ] = True,
+    terminal_access: Annotated[
+        bool,
+        t.Option(
+            "--terminal-access/--no-terminal-access",
+            help="Enable terminal access for agents",
+        ),
+    ] = True,
+    show_messages: Annotated[
+        bool, t.Option("--show-messages", help="Show message activity in logs")
+    ] = False,
+    debug_messages: Annotated[
+        bool, t.Option("--debug-messages", help="Save raw JSON-RPC messages to debug file")
+    ] = False,
+    debug_file: Annotated[
+        str | None,
+        t.Option(
+            "--debug-file",
+            help="File to save JSON-RPC debug messages (default: acp-debug.jsonl)",
+        ),
+    ] = None,
+    providers: Annotated[
+        list[str] | None,
+        t.Option(
+            "--model-provider",
+            help="Providers to search for models (can be specified multiple times)",
+        ),
+    ] = None,
+    debug_commands: Annotated[
+        bool,
+        t.Option(
+            "--debug-commands",
+            help="Enable debug slash commands for testing ACP notifications",
+        ),
+    ] = False,
+    agent: Annotated[
+        str | None,
+        t.Option(
+            "--agent",
+            help="Name of specific agent to use (defaults to first agent in config)",
+        ),
+    ] = None,
+    load_skills: Annotated[
+        bool,
+        t.Option(
+            "--skills/--no-skills",
+            help="Load client-side skills from .claude/skills directory",
+        ),
+    ] = True,
 ) -> None:
     r"""Run agents as an ACP (Agent Client Protocol) server.
 

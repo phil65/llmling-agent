@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING, Annotated, Any, ClassVar
 
 from pydantic import ValidationError
 import typer
@@ -12,22 +12,25 @@ from llmling_agent_cli.cli_types import Provider  # noqa: TC001
 
 
 def create(
-    output: str = typer.Option(
-        None,
-        "-o",
-        "--output",
-        help="Output file path. If not provided, only displays the config.",
-    ),
-    add_to_store: bool = typer.Option(
-        False, "-a", "--add-to-store", help="Add generated config to ConfigStore"
-    ),
-    model: str = typer.Option("gpt-5", "-m", "--model", help="Model to use for generation"),
-    provider: Provider = typer.Option(  # noqa: B008
-        "pydantic_ai", "-p", "--provider", help="Provider to use"
-    ),
+    output: Annotated[
+        str | None,
+        typer.Option(
+            "-o",
+            "--output",
+            help="Output file path. If not provided, only displays the config.",
+        ),
+    ] = None,
+    add_to_store: Annotated[
+        bool, typer.Option("-a", "--add-to-store", help="Add generated config to ConfigStore")
+    ] = False,
+    model: Annotated[
+        str, typer.Option("-m", "--model", help="Model to use for generation")
+    ] = "gpt-5",
+    provider: Annotated[
+        Provider, typer.Option("-p", "--provider", help="Provider to use")
+    ] = "pydantic_ai",
 ) -> None:
     """Interactive config generator for agents and teams."""
-    from llmling_agent.agents.architect import create_architect_agent
     from schemez import YAMLCode
     from textual.app import App
     from textual.binding import Binding
@@ -35,6 +38,7 @@ def create(
     from textual.widgets import Header, Input, Static
 
     from llmling_agent import Agent, AgentsManifest
+    from llmling_agent.agents.architect import create_architect_agent
     from llmling_agent.utils.count_tokens import count_tokens
     from llmling_agent_cli import agent_store
 

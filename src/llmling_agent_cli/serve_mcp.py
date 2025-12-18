@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Annotated, Any
 
 import typer as t
 
@@ -23,12 +23,16 @@ logger = get_logger(__name__)
 
 
 def serve_command(
-    config: str = t.Argument(..., help="Path to agent configuration"),
-    transport: TransportType = t.Option("stdio", help="Transport type"),  # noqa: B008
-    host: str = t.Option("localhost", help="Host to bind server to (sse/streamable-http only)"),
-    port: int = t.Option(3001, help="Port to listen on (sse/streamable-http only)"),
-    zed_mode: bool = t.Option(False, help="Enable Zed editor compatibility"),
-    show_messages: bool = t.Option(False, "--show-messages", help="Show message activity"),
+    config: Annotated[str, t.Argument(help="Path to agent configuration")],
+    transport: Annotated[TransportType, t.Option(help="Transport type")] = "stdio",
+    host: Annotated[
+        str, t.Option(help="Host to bind server to (sse/streamable-http only)")
+    ] = "localhost",
+    port: Annotated[int, t.Option(help="Port to listen on (sse/streamable-http only)")] = 3001,
+    zed_mode: Annotated[bool, t.Option(help="Enable Zed editor compatibility")] = False,
+    show_messages: Annotated[
+        bool, t.Option("--show-messages", help="Show message activity")
+    ] = False,
 ) -> None:
     """Run agents as an MCP server.
 

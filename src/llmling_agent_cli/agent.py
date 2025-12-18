@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import shutil
+from typing import Annotated
 
 import typer as t
 
@@ -21,9 +22,9 @@ INTERACTIVE_HELP = "Use interactive configuration wizard"
 
 @agent_cli.command("init")
 def init_agent_config(
-    output: str = t.Argument(help="Path to write agent configuration file"),
-    name: str | None = t.Option(None, "--name", "-n", help=NAME_HELP),
-    interactive: bool = t.Option(False, INTERACTIVE_CMD, help=INTERACTIVE_HELP),
+    output: Annotated[str, t.Argument(help="Path to write agent configuration file")],
+    name: Annotated[str | None, t.Option("--name", "-n", help=NAME_HELP)] = None,
+    interactive: Annotated[bool, t.Option(INTERACTIVE_CMD, help=INTERACTIVE_HELP)] = False,
 ) -> None:
     """Initialize a new agent configuration file.
 
@@ -58,8 +59,8 @@ def init_agent_config(
 
 @agent_cli.command("add")
 def add_agent_file(
-    name: str = t.Argument(help="Name for the agent configuration file"),
-    path: str = t.Argument(help="Path to agent configuration file"),
+    name: Annotated[str, t.Argument(help="Name for the agent configuration file")],
+    path: Annotated[str, t.Argument(help="Path to agent configuration file")],
     verbose: bool = verbose_opt,
 ) -> None:
     """Add a new agent configuration file."""
@@ -73,7 +74,7 @@ def add_agent_file(
 
 @agent_cli.command("set")
 def set_active_file(
-    name: str = t.Argument(help="Name of agent configuration to set as active"),
+    name: Annotated[str, t.Argument(help="Name of agent configuration to set as active")],
     verbose: bool = verbose_opt,
 ) -> None:
     """Set the active agent configuration file."""
@@ -87,12 +88,14 @@ def set_active_file(
 
 @agent_cli.command("list")
 def list_agents(
-    config_name: str = t.Option(
-        None,
-        "-c",
-        "--config",
-        help="Name of agent configuration to list (defaults to active)",
-    ),
+    config_name: Annotated[
+        str | None,
+        t.Option(
+            "-c",
+            "--config",
+            help="Name of agent configuration to list (defaults to active)",
+        ),
+    ] = None,
     output_format: OutputFormat = output_format_opt,
     verbose: bool = verbose_opt,
 ) -> None:
