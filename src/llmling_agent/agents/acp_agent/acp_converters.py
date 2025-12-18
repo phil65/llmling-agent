@@ -228,13 +228,14 @@ def acp_to_native_event(update: SessionUpdate) -> RichAgentStreamEvent[Any] | No
             )
 
         # Plan update -> PlanUpdateEvent
-        case AgentPlanUpdate(entries=entries):
+        case AgentPlanUpdate(entries=acp_entries):
             from llmling_agent.resource_providers.plan_provider import PlanEntry
 
-            entries = [
-                PlanEntry(content=e.content, priority=e.priority, status=e.status) for e in entries
+            native_entries = [
+                PlanEntry(content=e.content, priority=e.priority, status=e.status)
+                for e in acp_entries
             ]
-            return PlanUpdateEvent(entries=entries)
+            return PlanUpdateEvent(entries=native_entries)
 
         case _:
             return None
