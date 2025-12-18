@@ -38,9 +38,6 @@ if TYPE_CHECKING:
     type ToolType = str | AnyCallable | Tool
     # Define what we consider JSON-serializable
     type JsonPrimitive = None | bool | int | float | str
-    type JsonValue = JsonPrimitive | JsonArray | JsonObject
-    type JsonObject = dict[str, JsonValue]
-    type JsonArray = list[JsonValue]
     type SessionIdType = str | UUID | None
     type ProcessorCallback[TResult] = Callable[..., TResult | Awaitable[TResult]]
 
@@ -48,6 +45,9 @@ if TYPE_CHECKING:
 SimpleJsonType = dict[
     str, bool | int | float | str | list[str] | dict[str, bool | int | float | str]
 ]
+type JsonValue = JsonPrimitive | JsonArray | JsonObject
+type JsonObject = dict[str, JsonValue]
+type JsonArray = list[JsonValue]
 
 
 NodeName = str
