@@ -263,14 +263,20 @@ class _BridgeTool(FastMCPTool):
 
     async def run(self, arguments: dict[str, Any], context: Context | None = None) -> ToolResult:
         """Execute the wrapped tool with context bridging."""
-        from dataclasses import replace
-
         from fastmcp.tools.tool import ToolResult
 
+        from llmling_agent.agents.context import AgentContext
+
         tool_call_id = str(uuid4())
-        # Get context with tool-specific metadata
-        ctx = replace(
-            self._bridge.node.context,
+        node_ctx = self._bridge.node.context
+        # Create AgentContext with tool-specific metadata
+        ctx = AgentContext(
+            node=node_ctx.node,
+            pool=node_ctx.pool,
+            config=node_ctx.config,  # type: ignore[arg-type]
+            definition=node_ctx.definition,
+            input_provider=node_ctx.input_provider,
+            data=node_ctx.data,
             tool_name=self._tool.name,
             tool_call_id=tool_call_id,
             tool_input=arguments,

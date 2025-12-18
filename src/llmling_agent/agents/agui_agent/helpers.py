@@ -16,7 +16,8 @@ if TYPE_CHECKING:
     from ag_ui.core import Event, ToolMessage
     import httpx
 
-    from llmling_agent.messaging.context import ConfirmationResult, NodeContext
+    from llmling_agent.agents.context import ConfirmationResult
+    from llmling_agent.messaging.context import NodeContext
     from llmling_agent.models.agents import ToolConfirmationMode
     from llmling_agent.tools import Tool
     from llmling_agent.ui.base import InputProvider

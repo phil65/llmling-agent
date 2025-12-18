@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Any, Literal
 
 from llmling_agent.log import get_logger
 from llmling_agent.messaging.context import NodeContext
@@ -15,7 +15,10 @@ if TYPE_CHECKING:
     from llmling_agent import Agent
     from llmling_agent.agents.events import StreamEventEmitter
     from llmling_agent.models.agents import AgentConfig
+    from llmling_agent.tools.base import Tool
 
+
+ConfirmationResult = Literal["allow", "skip", "abort_run", "abort_chain"]
 
 logger = get_logger(__name__)
 
@@ -29,6 +32,15 @@ class AgentContext[TDeps = Any](NodeContext[TDeps]):
 
     config: AgentConfig
     """Current agent's specific configuration."""
+
+    tool_name: str | None = None
+    """Name of the currently executing tool."""
+
+    tool_call_id: str | None = None
+    """ID of the current tool call."""
+
+    tool_input: dict[str, Any] = field(default_factory=dict)
+    """Input arguments for the current tool call."""
 
     @property
     def native_agent(self) -> Agent[TDeps, Any]:
@@ -67,3 +79,24 @@ class AgentContext[TDeps = Any](NodeContext[TDeps]):
         from llmling_agent.agents.events import StreamEventEmitter
 
         return StreamEventEmitter(self)
+
+    async def handle_confirmation(self, tool: Tool, args: dict[str, Any]) -> ConfirmationResult:
+        """Handle tool execution confirmation.
+
+        Returns "allow" if:
+        - No confirmation handler is set
+        - Handler confirms the execution
+
+        Args:
+            tool: The tool being executed
+            args: Arguments passed to the tool
+
+        Returns:
+            Confirmation result indicating how to proceed
+        """
+        provider = self.get_input_provider()
+        mode = self.agent.tool_confirmation_mode
+        if (mode == "per_tool" and not tool.requires_confirmation) or mode == "never":
+            return "allow"
+        history = self.agent.conversation.get_history() if self.pool else []
+        return await provider.get_tool_confirmation(self, tool, args, history)
