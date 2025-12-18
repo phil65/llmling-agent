@@ -48,13 +48,14 @@ class MCPMessageHandler:
             case RequestResponder():
                 await self.on_request(message)
                 # Handle specific requests
-                match message.request.root:
+                root = message.request.root
+                match root:
                     case mcp.types.PingRequest():
-                        await self.on_ping(message.request.root)
+                        await self.on_ping(root)
                     case mcp.types.ListRootsRequest():
-                        await self.on_list_roots(message.request.root)
+                        await self.on_list_roots(root)
                     case mcp.types.CreateMessageRequest():
-                        await self.on_create_message(message.request.root)
+                        await self.on_create_message(root)
 
             case mcp.types.ServerNotification():
                 await self.on_notification(message)
