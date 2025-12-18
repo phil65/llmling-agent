@@ -5,10 +5,12 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
+from llmling_agent_server.a2a_server.a2a_types import TaskData
+
 
 if TYPE_CHECKING:
     from llmling_agent.messaging.messages import ChatMessage
-    from llmling_agent_server.a2a_server.a2a_types import A2ARequest, TaskData, TaskStatus
+    from llmling_agent_server.a2a_server.a2a_types import A2ARequest, TaskStatus
 
 
 @dataclass
@@ -22,14 +24,14 @@ class SimpleStorage:
 
     async def store_task(self, task_id: str, task_data: A2ARequest) -> None:
         """Store a task."""
-        self.tasks[task_id] = {
-            "id": task_id,
-            "status": "submitted",
-            "data": task_data,
-            "result": None,
-            "error": None,
-            "context_id": task_data.get("params", {}).get("context_id"),
-        }
+        self.tasks[task_id] = TaskData(
+            id=task_id,
+            status="submitted",
+            data=task_data,
+            result=None,
+            error=None,
+            context_id=task_data.get("params", {}).get("context_id"),
+        )
 
     async def get_task(self, task_id: str) -> TaskData | None:
         """Get task data."""

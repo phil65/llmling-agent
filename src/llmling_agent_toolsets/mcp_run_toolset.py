@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import os
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
+
+from schemez import OpenAIFunctionDefinition
 
 from llmling_agent.resource_providers import ResourceProvider
 
@@ -40,7 +42,9 @@ class McpRunTools(ResourceProvider):
                     return await session.call_tool(tool_name, arguments=input_dict)  # type: ignore[no-any-return]
 
             run.__name__ = name
-            wrapped_tool = self.create_tool(run, schema_override=tool.input_schema)  # pyright: ignore[reportArgumentType]
+            wrapped_tool = self.create_tool(
+                run, schema_override=cast(OpenAIFunctionDefinition, tool.input_schema)
+            )
             self._tools.append(wrapped_tool)
 
         return self._tools

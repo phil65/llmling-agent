@@ -87,7 +87,8 @@ class SQLModelProvider(StorageProvider):
     async def __aenter__(self) -> Self:
         """Initialize async database resources."""
         await self._init_database(auto_migrate=self.auto_migrate)
-        return await super().__aenter__()
+        await super().__aenter__()
+        return self
 
     async def __aexit__(
         self,

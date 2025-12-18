@@ -46,7 +46,7 @@ def format_output(
             console = Console(record=True)
             if is_conversation_data(data):
                 # Single conversation
-                _print_conversation(console, data)
+                _print_conversation(console, data)  # ty: ignore
             elif isinstance(data, list):
                 # Multiple conversations
                 for conv in data:

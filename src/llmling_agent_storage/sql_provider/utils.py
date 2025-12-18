@@ -13,7 +13,7 @@ from sqlmodel import select
 
 from llmling_agent.messaging import ChatMessage, TokenCost
 from llmling_agent.storage import deserialize_messages
-from llmling_agent_storage.models import ConversationData
+from llmling_agent_storage.models import ConversationData, MessageData
 from llmling_agent_storage.sql_provider.models import Conversation
 
 
@@ -209,20 +209,20 @@ def format_conversation(
             title=conv.title,
             start_time=conv.start_time.isoformat(),
             messages=[
-                {
-                    "role": msg.role,
-                    "content": msg.content,
-                    "timestamp": msg.timestamp.isoformat(),
-                    "model": msg.model_name,
-                    "name": msg.name,
-                    "token_usage": {
+                MessageData(
+                    role=msg.role,
+                    content=msg.content,
+                    timestamp=msg.timestamp.isoformat(),
+                    model=msg.model_name,
+                    name=msg.name,
+                    token_usage={
                         "prompt": msg.usage.input_tokens,
                         "completion": msg.usage.output_tokens,
                         "total": msg.usage.total_tokens,
                     },
-                    "cost": float(msg.cost_info.total_cost) if msg.cost_info else None,
-                    "response_time": msg.response_time,
-                }
+                    cost=float(msg.cost_info.total_cost) if msg.cost_info else None,
+                    response_time=msg.response_time,
+                )
                 for msg in chat_messages
             ],
             token_usage=aggregate_token_usage(msgs) if include_tokens else None,

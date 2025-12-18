@@ -59,6 +59,7 @@ class GetSourceCommand(NodeCommand):
                 return
 
             importing_py_path = llmling_agent.utils.importing.__file__
+            assert isinstance(importing_py_path, str)
             await session.notifications.tool_call_start(
                 tool_call_id=tool_call_id,
                 title=f"Getting source: {dot_path}",
