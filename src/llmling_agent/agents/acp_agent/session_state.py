@@ -27,9 +27,6 @@ class ACPSessionState:
     events: list[RichAgentStreamEvent[Any]] = dataclass_field(default_factory=list)
     """Queue of native events converted from ACP updates."""
 
-    is_complete: bool = False
-    """Whether the prompt processing is complete."""
-
     stop_reason: str | None = None
     """Reason processing stopped."""
 
@@ -47,6 +44,5 @@ class ACPSessionState:
 
     def clear(self) -> None:
         self.events.clear()
-        self.is_complete = False
         self.stop_reason = None
         # Note: Don't clear current_model_id or models - those persist across prompts

@@ -574,7 +574,6 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         if current_response_parts:
             model_messages.append(ModelResponse(parts=current_response_parts))
 
-        self._state.is_complete = True
         text_content = "".join(text_chunks)
         final_message = ChatMessage[str](
             content=text_content,

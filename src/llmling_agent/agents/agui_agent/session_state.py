@@ -38,9 +38,6 @@ class AGUISessionState:
     run_id: str | None = None
     """Current run ID."""
 
-    is_complete: bool = False
-    """Whether the current run is complete."""
-
     error: str | None = None
     """Error message if run failed."""
 
@@ -116,7 +113,6 @@ class AGUISessionState:
         """Clear session state for new run."""
         self.state.clear()
         self.processed_message_ids.clear()
-        self.is_complete = False
         self.current_step = None
         self.error = None
         self.run_id = str(uuid4())
