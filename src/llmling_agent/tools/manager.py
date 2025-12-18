@@ -176,12 +176,6 @@ class ToolManager:
         """Get a specific tool by name.
 
         First checks local tools, then uses concurrent provider fetching.
-
-        Args:
-            name: Name of the tool to retrieve
-
-        Returns:
-            Tool instance if found, None otherwise
         """
         tool = next((tool for tool in await self.get_tools() if tool.name == name), None)
         if not tool:
@@ -190,11 +184,7 @@ class ToolManager:
         return tool
 
     async def list_prompts(self) -> list[MCPClientPrompt]:
-        """Get all prompts from all providers.
-
-        Returns:
-            List of Prompt instances
-        """
+        """Get all prompts from all providers."""
         from llmling_agent.mcp_server.manager import MCPManager
 
         all_prompts: list[MCPClientPrompt] = []
@@ -226,18 +216,9 @@ class ToolManager:
 
         Yields:
             List of registered tool infos
-
-        Example:
-            ```python
-            with tool_manager.temporary_tools([tool1, tool2], exclusive=True) as tools:
-                # Only tool1 and tool2 are available
-                await agent.run(prompt)
-            # Original tool states are restored
-            ```
         """
         # Normalize inputs to lists
         tools_list: list[ToolType] = [tools] if not isinstance(tools, Sequence) else list(tools)
-
         # Store original tool states if exclusive
         tools = await self.get_tools()
         original_states: dict[str, bool] = {}
@@ -246,7 +227,6 @@ class ToolManager:
             # Disable all existing tools
             for t in tools:
                 t.enabled = False
-
         # Register all tools
         registered_tools: list[Tool] = []
         try:
@@ -259,7 +239,6 @@ class ToolManager:
             # Remove temporary tools
             for tool_info in registered_tools:
                 self.builtin_provider.remove_tool(tool_info.name)
-
             # Restore original tool states if exclusive
             if exclusive:
                 for name_, was_enabled in original_states.items():
