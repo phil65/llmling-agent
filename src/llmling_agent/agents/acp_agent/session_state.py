@@ -10,6 +10,7 @@ from llmling_agent.log import get_logger
 
 if TYPE_CHECKING:
     from acp.schema import SessionModelState, SessionModeState
+    from llmling_agent.agents.events import RichAgentStreamEvent
 
 logger = get_logger(__name__)
 
@@ -23,7 +24,7 @@ class ACPSessionState:
     session_id: str
     """The session ID from the ACP server."""
 
-    events: list[Any] = dataclass_field(default_factory=list)
+    events: list[RichAgentStreamEvent[Any]] = dataclass_field(default_factory=list)
     """Queue of native events converted from ACP updates."""
 
     is_complete: bool = False
