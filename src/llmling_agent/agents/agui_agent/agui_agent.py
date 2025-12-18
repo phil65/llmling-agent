@@ -124,7 +124,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         headers: dict[str, str] | None = None,
         startup_command: str | None = None,
         startup_delay: float = 2.0,
-        tools: Sequence[Tool | ToolType] | None = None,
+        tools: Sequence[ToolType] | None = None,
         mcp_servers: Sequence[str | MCPServerConfig] | None = None,
         agent_pool: AgentPool[Any] | None = None,
         enable_logging: bool = True,
@@ -239,7 +239,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         self.log.debug("AG-UI client closed")
         await super().__aexit__(exc_type, exc_val, exc_tb)
 
-    def register_tool(self, tool: Tool | ToolType) -> Tool:
+    def register_tool(self, tool: ToolType) -> Tool:
         """Register a tool for client-side execution.
 
         Args:

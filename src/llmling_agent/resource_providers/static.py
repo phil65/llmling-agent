@@ -129,7 +129,7 @@ class StaticResourceProvider(ResourceProvider):
 
     def register_tool(
         self,
-        tool: ToolType | Tool,
+        tool: ToolType,
         *,
         name_override: str | None = None,
         description_override: str | None = None,

@@ -13,15 +13,6 @@ from typing import (
     get_origin,
     runtime_checkable,
 )
-from uuid import UUID
-
-
-if TYPE_CHECKING:
-    from collections.abc import AsyncIterator
-
-    from llmling_agent.agents.events import RichAgentStreamEvent
-    from llmling_agent.messaging import ChatMessage
-    from llmling_agent.messaging.messagenode import MessageNode
 
 from pydantic import BaseModel, ConfigDict, field_validator
 from pydantic_ai import AgentStreamEvent, RunContext
@@ -31,18 +22,60 @@ from toprompt.to_prompt import AnyPromptType
 from upathtools import JoinablePathLike
 
 
-# Define what we consider JSON-serializable
-type JsonPrimitive = None | bool | int | float | str
-type JsonValue = JsonPrimitive | JsonArray | JsonObject
-type JsonObject = dict[str, JsonValue]
-type JsonArray = list[JsonValue]
+if TYPE_CHECKING:
+    from collections.abc import AsyncIterator
+    from uuid import UUID
+
+    from llmling_agent.agents.events import RichAgentStreamEvent
+    from llmling_agent.messaging import ChatMessage
+    from llmling_agent.messaging.messagenode import MessageNode
+    from llmling_agent.tools.base import Tool
+
+    # Type alias for team streaming return type (node + event tuples)
+    type TeamStreamEvent = tuple[MessageNode[Any, Any], RichAgentStreamEvent[Any]]
+    type AnyTransformFn[T] = Callable[[T], T | Awaitable[T]]
+    type OptionalAwaitable[T] = T | Awaitable[T]
+    type ToolType = str | AnyCallable | Tool
+    # Define what we consider JSON-serializable
+    type JsonPrimitive = None | bool | int | float | str
+    type JsonValue = JsonPrimitive | JsonArray | JsonObject
+    type JsonObject = dict[str, JsonValue]
+    type JsonArray = list[JsonValue]
+    type SessionIdType = str | UUID | None
+    type ProcessorCallback[TResult] = Callable[..., TResult | Awaitable[TResult]]
 
 # In reflex for example, the complex ones create issues..
 SimpleJsonType = dict[
     str, bool | int | float | str | list[str] | dict[str, bool | int | float | str]
 ]
-type SessionIdType = str | UUID | None
-type ProcessorCallback[TResult] = Callable[..., TResult | Awaitable[TResult]]
+
+
+NodeName = str
+TeamName = str
+AgentName = str
+MessageRole = Literal["user", "assistant"]
+PartType = Literal["text", "image", "audio", "video"]
+ModelType = Model | ModelName | str | None
+EnvironmentType = Literal["file", "inline"]
+ToolSource = Literal["agent", "builtin", "dynamic", "task", "mcp", "toolset"]
+AnyCallable = Callable[..., Any]
+AsyncFilterFn = Callable[..., Awaitable[bool]]
+SyncFilterFn = Callable[..., bool]
+AnyFilterFn = Callable[..., bool | Awaitable[bool]]
+# Event handler types for composable event processing
+# Individual event handler for composability - takes single events
+IndividualEventHandler = Callable[[RunContext, AgentStreamEvent], Awaitable[None]]
+BuiltinEventHandlerType = Literal["simple", "detailed"]
+PromptCompatible = AnyPromptType | JoinablePathLike
+# P = ParamSpec("P")
+# SyncAsync = Callable[P, OptionalAwaitable[T]]
+EndStrategy = Literal["early", "exhaustive"]
+QueueStrategy = Literal["concat", "latest", "buffer"]
+"""The strategy for handling multiple tool calls when a final result is found.
+
+- `'early'`: Stop processing other tool calls once a final result is found
+- `'exhaustive'`: Process all tool calls even after finding a final result
+"""
 
 
 class SupportsStructuredOutput(Protocol):
@@ -53,10 +86,6 @@ class SupportsStructuredOutput(Protocol):
     """
 
     async def run(self, *prompts: Any, output_type: Any = ...) -> ChatMessage[Any]: ...
-
-
-# Type alias for team streaming return type (node + event tuples)
-type TeamStreamEvent = tuple[MessageNode[Any, Any], RichAgentStreamEvent[Any]]
 
 
 @runtime_checkable
@@ -73,40 +102,6 @@ class SupportsRunStream[TResult](Protocol):
     def run_stream(
         self, *prompts: Any, **kwargs: Any
     ) -> AsyncIterator[RichAgentStreamEvent[TResult] | TeamStreamEvent]: ...
-
-
-NodeName = str
-TeamName = str
-AgentName = str
-MessageRole = Literal["user", "assistant"]
-PartType = Literal["text", "image", "audio", "video"]
-ModelType = Model | ModelName | str | None
-EnvironmentType = Literal["file", "inline"]
-ToolSource = Literal["agent", "builtin", "dynamic", "task", "mcp", "toolset"]
-AnyCallable = Callable[..., Any]
-AsyncFilterFn = Callable[..., Awaitable[bool]]
-SyncFilterFn = Callable[..., bool]
-AnyFilterFn = Callable[..., bool | Awaitable[bool]]
-type AnyTransformFn[T] = Callable[[T], T | Awaitable[T]]
-type OptionalAwaitable[T] = T | Awaitable[T]
-
-type ToolType = str | AnyCallable
-
-
-# Event handler types for composable event processing
-# Individual event handler for composability - takes single events
-IndividualEventHandler = Callable[[RunContext, AgentStreamEvent], Awaitable[None]]
-BuiltinEventHandlerType = Literal["simple", "detailed"]
-PromptCompatible = AnyPromptType | JoinablePathLike
-# P = ParamSpec("P")
-# SyncAsync = Callable[P, OptionalAwaitable[T]]
-EndStrategy = Literal["early", "exhaustive"]
-QueueStrategy = Literal["concat", "latest", "buffer"]
-"""The strategy for handling multiple tool calls when a final result is found.
-
-- `'early'`: Stop processing other tool calls once a final result is found
-- `'exhaustive'`: Process all tool calls even after finding a final result
-"""
 
 
 class BaseCode(BaseModel):

@@ -99,7 +99,7 @@ class AgentKwargs(TypedDict, total=False):
     description: str | None
     model: ModelType
     system_prompt: str | Sequence[str]
-    tools: Sequence[ToolType | Tool] | None
+    tools: Sequence[ToolType] | None
     toolsets: Sequence[ResourceProvider] | None
     mcp_servers: Sequence[str | MCPServerConfig] | None
     skills_paths: Sequence[JoinablePathLike] | None
@@ -147,7 +147,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         system_prompt: AnyPromptType | Sequence[AnyPromptType] = (),
         description: str | None = None,
         display_name: str | None = None,
-        tools: Sequence[ToolType | Tool] | None = None,
+        tools: Sequence[ToolType] | None = None,
         toolsets: Sequence[ResourceProvider] | None = None,
         mcp_servers: Sequence[str | MCPServerConfig] | None = None,
         resources: Sequence[PromptType | str] = (),

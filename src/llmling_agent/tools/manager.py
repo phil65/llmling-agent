@@ -40,7 +40,7 @@ class ToolManager:
 
     def __init__(
         self,
-        tools: Sequence[Tool | ToolType] | None = None,
+        tools: Sequence[ToolType] | None = None,
         tool_mode: ToolMode | None = None,
     ) -> None:
         """Initialize tool manager.
@@ -120,7 +120,7 @@ class ToolManager:
         for info in await self.get_tools():
             info.enabled = True
 
-    def _validate_item(self, item: Tool | ToolType) -> Tool:
+    def _validate_item(self, item: ToolType) -> Tool:
         """Validate and convert items before registration."""
         match item:
             case Tool():
@@ -214,7 +214,7 @@ class ToolManager:
     @asynccontextmanager
     async def temporary_tools(
         self,
-        tools: ToolType | Tool | Sequence[ToolType | Tool],
+        tools: ToolType | Sequence[ToolType],
         *,
         exclusive: bool = False,
     ) -> AsyncIterator[list[Tool]]:
@@ -236,9 +236,7 @@ class ToolManager:
             ```
         """
         # Normalize inputs to lists
-        tools_list: list[ToolType | Tool] = (
-            [tools] if not isinstance(tools, Sequence) else list(tools)
-        )
+        tools_list: list[ToolType] = [tools] if not isinstance(tools, Sequence) else list(tools)
 
         # Store original tool states if exclusive
         tools = await self.get_tools()
