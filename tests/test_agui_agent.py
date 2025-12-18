@@ -11,7 +11,7 @@ import httpx
 from pydantic_ai import PartDeltaEvent
 import pytest
 
-from llmling_agent.agents.agui_agent import AGUIAgent, AGUISessionState
+from llmling_agent.agents.agui_agent import AGUIAgent
 from llmling_agent.agents.agui_agent.agui_converters import (
     agui_to_native_event,
 )
@@ -51,7 +51,7 @@ async def test_agui_agent_initialization():
     assert agent.name == "test-agent"
     assert agent.conversation_id is not None
     assert agent._client is None
-    assert agent._state is None
+    assert agent._thread_id is None
 
 
 @pytest.mark.asyncio
@@ -59,12 +59,11 @@ async def test_agui_agent_context_manager():
     """Test AGUIAgent context manager."""
     async with AGUIAgent(endpoint="http://localhost:8000/run", name="test-agent") as agent:
         assert agent._client is not None
-        assert agent._state is not None
-        assert isinstance(agent._state, AGUISessionState)
+        assert agent._thread_id is not None
 
     # After exit, should be cleaned up
     assert agent._client is None
-    assert agent._state is None
+    assert agent._thread_id is None
 
 
 @pytest.mark.asyncio
@@ -213,8 +212,6 @@ async def test_agui_agent_error_handling(mock_sse_response):
             with pytest.raises(httpx.HTTPStatusError):
                 async for _ in agent.run_stream("Test"):
                     pass
-            assert agent._state
-            assert agent._state.error is not None
 
 
 @pytest.mark.asyncio

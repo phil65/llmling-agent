@@ -21,8 +21,6 @@ from pydantic_ai.messages import ModelResponse
 
 from llmling_agent.agents.agui_agent.chunk_transformer import ChunkTransformer
 from llmling_agent.agents.agui_agent.helpers import execute_tool_calls, parse_sse_stream
-from llmling_agent.agents.agui_agent.session_state import AGUISessionState
-from llmling_agent.agents.agui_agent.subscriber import SubscriberManager
 from llmling_agent.agents.base_agent import BaseAgent
 from llmling_agent.agents.events import RunStartedEvent, StreamCompleteEvent, resolve_event_handlers
 from llmling_agent.common_types import IndividualEventHandler
@@ -35,14 +33,13 @@ from llmling_agent.tools import ToolManager
 
 if TYPE_CHECKING:
     from asyncio.subprocess import Process
-    from collections.abc import AsyncIterator, Callable, Sequence
+    from collections.abc import AsyncIterator, Sequence
     from types import TracebackType
 
     from ag_ui.core import Message, ToolMessage
     from evented.configs import EventConfig
     from pydantic_ai.messages import TextPart, ThinkingPart, ToolCallPart
 
-    from llmling_agent.agents.agui_agent.subscriber import AGUISubscriber
     from llmling_agent.agents.base_agent import ToolConfirmationMode
     from llmling_agent.agents.events import RichAgentStreamEvent
     from llmling_agent.common_types import BuiltinEventHandlerType, PromptCompatible, ToolType
@@ -82,16 +79,6 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         When the server requests a tool call, the tool is executed locally and the
         result is sent back. This enables human-in-the-loop workflows and local
         capability exposure to remote agents.
-
-    Subscribers:
-        Register callbacks to react to AG-UI events without subclassing:
-        ```python
-        subscriber = AGUISubscriber(
-            on_text_content=lambda e, buf, state: print(f"Text: {e.delta}"),
-            on_thinking_content=lambda e, buf, state: print(f"Thinking: {e.delta}"),
-        )
-        unsubscribe = agent.subscribe(subscriber)
-        ```
 
     Example:
         ```python
@@ -173,7 +160,9 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         self._startup_delay = startup_delay
         self._startup_process: Process | None = None
         self._client: httpx.AsyncClient | None = None
-        self._state: AGUISessionState | None = None
+        # Session tracking (inline, no separate state object for uniformity)
+        self._thread_id: str | None = None
+        self._run_id: str | None = None
         self._message_count = 0
         self.conversation = MessageHistory()
         self._total_tokens = 0
@@ -188,8 +177,6 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         from exxec import LocalExecutionEnvironment
 
         self.env = LocalExecutionEnvironment()
-        # Subscriber system for AG-UI event hooks
-        self._subscriber_manager = SubscriberManager()
         # Chunk transformer for normalizing CHUNK events
         self._chunk_transformer = ChunkTransformer(debug=debug)
 
@@ -204,22 +191,11 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         defn = self.agent_pool.manifest if self.agent_pool else AgentsManifest()
         return NodeContext(node=self, pool=self.agent_pool, config=cfg, definition=defn)
 
-    def subscribe(self, subscriber: AGUISubscriber) -> Callable[[], None]:
-        """Subscribe to AG-UI events.
-
-        Args:
-            subscriber: Subscriber with event callbacks
-
-        Returns:
-            Unsubscribe function
-        """
-        return self._subscriber_manager.add(subscriber)
-
     async def __aenter__(self) -> Self:
         """Enter async context - initialize client and base resources."""
         await super().__aenter__()
         self._client = get_client(self.headers, self.timeout)
-        self._state = AGUISessionState(thread_id=self.conversation_id)
+        self._thread_id = self.conversation_id
         if self._startup_command:  # Start server if startup command is provided
             await self._start_server()
         self.log.debug("AG-UI client initialized", endpoint=self.endpoint)
@@ -235,7 +211,8 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         if self._client:
             await self._client.aclose()
             self._client = None
-        self._state = None
+        self._thread_id = None
+        self._run_id = None
         if self._startup_process:  # Stop server if we started it
             await self._stop_server()
         self.log.debug("AG-UI client closed")
@@ -393,15 +370,14 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             to_agui_tool,
         )
 
-        if not self._client or not self._state:
+        if not self._client or not self._thread_id:
             msg = "Agent not initialized - use async context manager"
             raise RuntimeError(msg)
 
         conversation = message_history if message_history is not None else self.conversation
         user_msg, processed_prompts, _original_message = await prepare_prompts(*prompts)
-        self._state.clear()  # Reset state
+        self._run_id = str(uuid4())  # New run ID for each run
         self._chunk_transformer.reset()  # Reset chunk transformer
-        self._subscriber_manager.reset_buffers()  # Reset subscriber buffers
         # Track messages in pydantic-ai format: ModelRequest -> ModelResponse -> ModelRequest...
         # This mirrors pydantic-ai's new_messages() which includes the initial user request.
         model_messages: list[ModelResponse | ModelRequest] = []
@@ -412,8 +388,8 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         text_chunks: list[str] = []  # For final content string
 
         run_started = RunStartedEvent(
-            thread_id=self._state.thread_id,
-            run_id=self._state.run_id or str(uuid4()),
+            thread_id=self._thread_id or self.conversation_id,
+            run_id=self._run_id or str(uuid4()),
             agent_name=self.name,
         )
         for handler in self.event_handler._wrapped_handlers:
@@ -440,8 +416,8 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         # Loop to handle tool calls - agent may request multiple rounds
         while True:
             request_data = RunAgentInput(
-                thread_id=self._state.thread_id,
-                run_id=self._state.run_id,  # pyright: ignore[reportArgumentType]
+                thread_id=self._thread_id or self.conversation_id,
+                run_id=self._run_id,  # pyright: ignore[reportArgumentType]
                 state={},
                 messages=messages,
                 tools=agui_tools,
@@ -460,9 +436,6 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
                         transformed_events = self._chunk_transformer.transform(raw_event)
 
                         for event in transformed_events:
-                            # Dispatch to subscribers
-                            await self._subscriber_manager.dispatch(event, self._state)
-
                             # Handle events for accumulation and tool calls
                             match event:
                                 case TextMessageContentEvent(delta=delta):
@@ -522,14 +495,12 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
 
                     # Flush any pending chunk events at end of stream
                     for event in self._chunk_transformer.flush():
-                        await self._subscriber_manager.dispatch(event, self._state)
                         if native_event := agui_to_native_event(event):
                             for handler in self.event_handler._wrapped_handlers:
                                 await handler(None, native_event)
                             yield native_event
 
-            except httpx.HTTPError as e:
-                self._state.error = str(e)
+            except httpx.HTTPError:
                 self.log.exception("HTTP error during AG-UI run")
                 raise
 
