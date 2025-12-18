@@ -93,7 +93,7 @@ class MCPCapableACPAgentConfig(BaseACPAgentConfig):
                 case SSEMCPServerConfig(url=url) | StreamableHTTPMCPServerConfig(url=url):
                     name = urlparse(str(url)).hostname or f"server_{idx}"
                 case _ as unreachable:
-                    assert_never(unreachable)
+                    assert_never(unreachable)  # ty: ignore
 
             config: dict[str, Any]
             match server:
@@ -106,7 +106,7 @@ class MCPCapableACPAgentConfig(BaseACPAgentConfig):
                 case StreamableHTTPMCPServerConfig(url=url):
                     config = {"url": str(url), "transport": "http"}
                 case _ as unreachable:
-                    assert_never(unreachable)
+                    assert_never(unreachable)  # ty: ignore
             mcp_servers[name] = config
 
         if not mcp_servers:

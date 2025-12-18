@@ -144,7 +144,7 @@ async def from_mcp_content(
                     case BlobResourceContents() as blob_resource:
                         contents.append(f"[Binary data: {blob_resource.mimeType}]")
                     case _ as unreachable:
-                        assert_never(unreachable)
+                        assert_never(unreachable)  # ty: ignore
             case _ as unreachable:
                 assert_never(unreachable)
     return contents
@@ -161,7 +161,7 @@ def content_block_as_text(content: ContentBlock) -> str:
                 case BlobResourceContents() as blob_contents:
                     return f"[Resource: {blob_contents.uri}]"
                 case _ as unreachable:
-                    assert_never(unreachable)
+                    assert_never(unreachable)  # ty: ignore
         case ResourceLink(uri=uri, description=desc):
             return f"[Resource Link: {uri}] - {desc}" if desc else f"[Resource Link: {uri}]"
         case ImageContent(mimeType=mime_type):

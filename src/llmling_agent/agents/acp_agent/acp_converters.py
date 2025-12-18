@@ -28,9 +28,12 @@ from acp.schema import (
     AgentThoughtChunk,
     AudioContentBlock,
     BlobResourceContents,
+    ContentToolCallContent,
     EmbeddedResourceContentBlock,
+    FileEditToolCallContent,
     ImageContentBlock,
     ResourceContentBlock,
+    TerminalToolCallContent,
     TextContentBlock,
     ToolCallProgress,
     ToolCallStart,
@@ -77,21 +80,15 @@ def convert_acp_content(content: list[ToolCallContent] | None) -> list[ToolCallC
 
     result: list[ToolCallContentItem] = []
     for item in content:
-        match item.type:
-            case "terminal":
-                # TerminalToolCallContent
-                result.append(TerminalContentItem(terminal_id=item.terminal_id))
-            case "diff":
-                # FileEditToolCallContent
-                result.append(
-                    DiffContentItem(path=item.path, old_text=item.old_text, new_text=item.new_text)
-                )
-            case "content":
-                # ContentToolCallContent - extract text if present
-                if hasattr(item, "content") and isinstance(item.content, TextContentBlock):
-                    from llmling_agent.agents.events import TextContentItem
+        match item:
+            case TerminalToolCallContent(terminal_id=terminal_id):
+                result.append(TerminalContentItem(terminal_id=terminal_id))
+            case FileEditToolCallContent(path=path, old_text=old_text, new_text=new_text):
+                result.append(DiffContentItem(path=path, old_text=old_text, new_text=new_text))
+            case ContentToolCallContent(content=TextContentBlock(text=text)):
+                from llmling_agent.agents.events import TextContentItem
 
-                    result.append(TextContentItem(text=item.content.text))
+                result.append(TextContentItem(text=text))
     return result
 
 
@@ -232,19 +229,12 @@ def acp_to_native_event(update: SessionUpdate) -> RichAgentStreamEvent[Any] | No
 
         # Plan update -> PlanUpdateEvent
         case AgentPlanUpdate(entries=entries):
-            from llmling_agent.resource_providers.plan_provider import (
-                PlanEntry as NativePlanEntry,
-            )
+            from llmling_agent.resource_providers.plan_provider import PlanEntry
 
-            native_entries = [
-                NativePlanEntry(
-                    content=e.content,
-                    priority=e.priority,
-                    status=e.status,
-                )
-                for e in entries
+            entries = [
+                PlanEntry(content=e.content, priority=e.priority, status=e.status) for e in entries
             ]
-            return PlanUpdateEvent(entries=native_entries)
+            return PlanUpdateEvent(entries=entries)
 
         case _:
             return None
