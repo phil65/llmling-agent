@@ -9,18 +9,12 @@ import uuid
 
 from acp.client.protocol import Client
 from acp.schema import (
-    AgentMessageChunk,
-    AgentThoughtChunk,
     CreateTerminalResponse,
     KillTerminalCommandResponse,
     ReadTextFileResponse,
     ReleaseTerminalResponse,
     RequestPermissionResponse,
     TerminalOutputResponse,
-    TextContentBlock,
-    ToolCallProgress,
-    ToolCallStart,
-    UserMessageChunk,
     WaitForTerminalExitResponse,
     WriteTextFileResponse,
 )
@@ -110,34 +104,6 @@ class ACPClientHandler(Client):
         # Convert to native event and queue it
         if native_event := acp_to_native_event(update):
             self.state.events.append(native_event)
-        # Also maintain text chunk accumulation for simple access
-        match update:
-            case AgentMessageChunk(content=TextContentBlock(text=text)):
-                self.state.text_chunks.append(text)
-            case AgentThoughtChunk(content=TextContentBlock(text=text)):
-                self.state.thought_chunks.append(text)
-            case ToolCallStart() as tc:
-                self.state.tool_calls.append({
-                    "id": tc.tool_call_id,
-                    "title": tc.title,
-                    "kind": tc.kind,
-                    "status": tc.status,
-                    "input": tc.raw_input,
-                    "output": tc.raw_output,
-                })
-            case ToolCallProgress() as tc:
-                # Update existing tool call
-                for tool in self.state.tool_calls:
-                    if tool["id"] == tc.tool_call_id:
-                        if tc.status:
-                            tool["status"] = tc.status
-                        if tc.raw_output:
-                            tool["output"] = tc.raw_output
-                        break
-            case UserMessageChunk():
-                pass  # Echo of user message, ignore
-            case _:
-                logger.debug("Unhandled session update", update_type=type(update).__name__)
         self._update_event.set()
 
     async def request_permission(  # noqa: PLR0911

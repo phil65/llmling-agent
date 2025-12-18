@@ -367,8 +367,6 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             self._input_provider = input_provider
         from ag_ui.core import (
             RunAgentInput,
-            ThinkingEndEvent,
-            ThinkingStartEvent,
             ToolCallArgsEvent as AGUIToolCallArgsEvent,
             ToolCallEndEvent as AGUIToolCallEndEvent,
             ToolCallStartEvent as AGUIToolCallStartEvent,
@@ -393,6 +391,9 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         self._state.clear()  # Reset state
         self._chunk_transformer.reset()  # Reset chunk transformer
         self._subscriber_manager.reset_buffers()  # Reset subscriber buffers
+        text_chunks: list[str] = []  # Accumulate text locally
+        thinking_chunks: list[str] = []  # Accumulate thinking locally
+        completed_tool_calls: list[tuple[str, str, dict[str, Any]]] = []  # (id, name, args)
 
         run_started = RunStartedEvent(
             thread_id=self._state.thread_id,
@@ -443,19 +444,13 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
                         transformed_events = self._chunk_transformer.transform(raw_event)
 
                         for event in transformed_events:
-                            # Track text chunks in session state
+                            # Track text chunks locally
                             if text := extract_text_from_event(event):
-                                self._state.add_text(text)
+                                text_chunks.append(text)
 
-                            # Track thinking chunks in session state
+                            # Track thinking chunks locally
                             if thinking := extract_thinking_from_event(event):
-                                self._state.add_thinking(thinking)
-
-                            # Track thinking state
-                            if isinstance(event, ThinkingStartEvent):
-                                self._state.start_thinking()
-                            elif isinstance(event, ThinkingEndEvent):
-                                self._state.end_thinking()
+                                thinking_chunks.append(thinking)
 
                             # Dispatch to subscribers
                             await self._subscriber_manager.dispatch(event, self._state)
@@ -479,6 +474,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
                                     if result := tool_accumulator.complete(tc_id):
                                         tool_name, args = result
                                         tool_calls_pending.append((tc_id, tool_name, args))
+                                        completed_tool_calls.append((tc_id, tool_name, args))
                                         self.log.debug(
                                             "Tool call completed",
                                             tool_call_id=tc_id,
@@ -534,14 +530,36 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             messages = [*pending_tool_results]
             self.log.debug("Continuing with tool results", count=len(pending_tool_results))
 
-        # Finalize
+        # Finalize - build ModelResponse with parts
+        from pydantic_ai.messages import ModelResponse, TextPart, ThinkingPart, ToolCallPart
+
         self._state.is_complete = True
+        parts: list[TextPart | ThinkingPart | ToolCallPart] = []
+
+        # Add thinking part if we have thinking content
+        thinking_content = "".join(thinking_chunks)
+        if thinking_content:
+            parts.append(ThinkingPart(content=thinking_content))
+
+        # Add text part if we have text content
+        text_content = "".join(text_chunks)
+        if text_content:
+            parts.append(TextPart(content=text_content))
+
+        # Add tool call parts
+        for tc_id, tc_name, tc_args in completed_tool_calls:
+            parts.append(ToolCallPart(tool_name=tc_name, args=tc_args, tool_call_id=tc_id))
+
+        # Build ModelResponse
+        model_response = ModelResponse(parts=parts)
+
         final_message = ChatMessage[str](
-            content=self._state.text_content,
+            content=text_content,
             role="assistant",
             name=self.name,
             message_id=message_id or str(uuid4()),
             conversation_id=self.conversation_id,
+            messages=[model_response],
         )
         complete_event = StreamCompleteEvent(message=final_message)
         for handler in self.event_handler._wrapped_handlers:
@@ -574,13 +592,6 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
     def model_name(self) -> str | None:
         """Get model name (AG-UI doesn't expose this)."""
         return None
-
-    @property
-    def thinking_content(self) -> str:
-        """Get accumulated thinking/reasoning content from last run."""
-        if self._state:
-            return self._state.thinking_content
-        return ""
 
     async def get_stats(self) -> MessageStats:
         """Get message statistics for this node."""

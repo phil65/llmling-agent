@@ -94,7 +94,9 @@ async def test_agui_agent_run_stream(mock_sse_response):
             collected_events = [event async for event in agent.run_stream("Test prompt")]
             # Should have text deltas and final message
             assert len(collected_events) > 0
-            assert agent._state.text_chunks == ["Hello", " world"]  # pyright: ignore[reportOptionalMemberAccess]
+            # Final event should be StreamCompleteEvent with ChatMessage
+            final_event = collected_events[-1]
+            assert final_event.message.content == "Hello world"
 
 
 @pytest.mark.asyncio
