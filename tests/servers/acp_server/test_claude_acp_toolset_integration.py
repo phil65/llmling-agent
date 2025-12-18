@@ -38,6 +38,7 @@ def claude_config_with_subagent() -> ClaudeACPAgentConfig:
         model="haiku",
         permission_mode="acceptEdits",
         toolsets=[SubagentToolsetConfig()],
+        env={"ANTHROPIC_API_KEY": ""},  # Use subscription, not direct API key
     )
 
 
@@ -81,11 +82,8 @@ async def test_claude_acp_subagent_invocation(manifest_with_claude: AgentsManife
     async with AgentPool(manifest=manifest_with_claude) as pool:
         agent = pool.acp_agents["claude_orchestrator"]
         # Ask the agent to list available nodes - it should have access via MCP
-        result = await asyncio.wait_for(
-            agent.run("Use the list_available_nodes tool to show me available agents"),
-            timeout=45.0,
-        )
-
+        prompt = "Use the list_available_nodes tool to show me available agents"
+        result = await asyncio.wait_for(agent.run(prompt), timeout=45.0)
         assert result is not None
         assert result.content is not None
 
@@ -99,7 +97,6 @@ async def test_claude_acp_tool_bridge_mcp_config(claude_config_with_subagent: Cl
         async with agent:
             # Verify extra MCP servers include our bridge
             assert len(agent._extra_mcp_servers) > 0
-
             # Find our toolset bridge server
             bridge_server = next(
                 (s for s in agent._extra_mcp_servers if "tools" in s.name),

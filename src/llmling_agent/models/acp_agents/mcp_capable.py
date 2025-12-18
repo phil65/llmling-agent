@@ -120,6 +120,11 @@ class ClaudeACPAgentConfig(MCPCapableACPAgentConfig):
 
     Provides typed settings for the claude-code-acp server.
 
+    Note:
+        If ANTHROPIC_API_KEY is set in your environment, Claude Code will use it
+        directly instead of the subscription. To force subscription usage, set
+        `env: {"ANTHROPIC_API_KEY": ""}` in the config.
+
     Example:
         ```yaml
         agents:
@@ -128,6 +133,8 @@ class ClaudeACPAgentConfig(MCPCapableACPAgentConfig):
             cwd: /path/to/project
             model: sonnet
             permission_mode: acceptEdits
+            env:
+              ANTHROPIC_API_KEY: ""  # Use subscription instead of API key
             allowed_tools:
               - Read
               - Write
