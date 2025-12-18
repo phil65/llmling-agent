@@ -17,6 +17,7 @@ from uuid import uuid4
 from anyenv import MultiEventHandler
 from anyenv.processes import hard_kill
 import httpx
+from pydantic_ai.messages import ModelResponse, TextPart, ThinkingPart, ToolCallPart
 
 from llmling_agent.agents.agui_agent.chunk_transformer import ChunkTransformer
 from llmling_agent.agents.agui_agent.helpers import execute_tool_calls, parse_sse_stream
@@ -529,9 +530,6 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             # Add tool results to messages for next iteration
             messages = [*pending_tool_results]
             self.log.debug("Continuing with tool results", count=len(pending_tool_results))
-
-        # Finalize - build ModelResponse with parts
-        from pydantic_ai.messages import ModelResponse, TextPart, ThinkingPart, ToolCallPart
 
         self._state.is_complete = True
         parts: list[TextPart | ThinkingPart | ToolCallPart] = []

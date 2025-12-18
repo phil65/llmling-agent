@@ -244,23 +244,6 @@ def extract_thinking_from_event(event: BaseEvent) -> str | None:
             return None
 
 
-def is_text_event(event: BaseEvent) -> bool:
-    """Check if this event contains text content."""
-    return extract_text_from_event(event) is not None
-
-
-def is_thinking_event(event: BaseEvent) -> bool:
-    """Check if this event is related to thinking/reasoning."""
-    return isinstance(
-        event,
-        ThinkingStartEvent
-        | ThinkingEndEvent
-        | ThinkingTextMessageStartEvent
-        | ThinkingTextMessageContentEvent
-        | ThinkingTextMessageEndEvent,
-    )
-
-
 def to_agui_input_content(
     parts: UserContent | Sequence[UserContent] | None,
 ) -> list[InputContent]:

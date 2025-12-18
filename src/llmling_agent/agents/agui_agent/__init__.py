@@ -7,8 +7,6 @@ from llmling_agent.agents.agui_agent.agui_converters import (
     agui_to_native_event,
     extract_text_from_event,
     extract_thinking_from_event,
-    is_text_event,
-    is_thinking_event,
     to_agui_input_content,
     to_agui_tool,
 )
@@ -37,8 +35,6 @@ __all__ = [
     "agui_to_native_event",
     "extract_text_from_event",
     "extract_thinking_from_event",
-    "is_text_event",
-    "is_thinking_event",
     "to_agui_input_content",
     "to_agui_tool",
 ]

@@ -15,7 +15,6 @@ from llmling_agent.agents.agui_agent import AGUIAgent, AGUISessionState
 from llmling_agent.agents.agui_agent.agui_converters import (
     agui_to_native_event,
     extract_text_from_event,
-    is_text_event,
 )
 from llmling_agent.agents.events import ToolCallStartEvent as NativeToolCallStart
 from llmling_agent.messaging import ChatMessage
@@ -137,14 +136,6 @@ def test_extract_text_from_event():
     # Tool call event (no text)
     event3 = ToolCallStartEvent(tool_call_id="call1", tool_call_name="test_tool")
     assert extract_text_from_event(event3) is None
-
-
-def test_is_text_event():
-    """Test text event detection."""
-    event1 = TextMessageContentEvent(message_id="msg1", delta="Hello")
-    assert is_text_event(event1) is True
-    event2 = TextMessageStartEvent(message_id="msg2")
-    assert is_text_event(event2) is False
 
 
 def test_agui_to_native_event_text_content():
