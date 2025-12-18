@@ -17,7 +17,7 @@ from uuid import uuid4
 from anyenv import MultiEventHandler
 from anyenv.processes import hard_kill
 import httpx
-from pydantic_ai.messages import ModelResponse, TextPart, ThinkingPart, ToolCallPart
+from pydantic_ai.messages import ModelResponse
 
 from llmling_agent.agents.agui_agent.chunk_transformer import ChunkTransformer
 from llmling_agent.agents.agui_agent.helpers import execute_tool_calls, parse_sse_stream
@@ -40,6 +40,7 @@ if TYPE_CHECKING:
 
     from ag_ui.core import Message, ToolMessage
     from evented.configs import EventConfig
+    from pydantic_ai.messages import TextPart, ThinkingPart, ToolCallPart
 
     from llmling_agent.agents.agui_agent.subscriber import AGUISubscriber
     from llmling_agent.agents.base_agent import ToolConfirmationMode
@@ -376,6 +377,14 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             ToolCallStartEvent as AGUIToolCallStartEvent,
             UserMessage,
         )
+        from pydantic_ai.messages import (
+            ModelRequest,
+            TextPart,
+            ThinkingPart,
+            ToolCallPart,
+            ToolReturnPart,
+            UserPromptPart,
+        )
 
         from llmling_agent.agents.agui_agent.agui_converters import (
             ToolCallAccumulator,
@@ -389,13 +398,18 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             raise RuntimeError(msg)
 
         conversation = message_history if message_history is not None else self.conversation
-        user_msg, _processed_prompts, _original_message = await prepare_prompts(*prompts)
+        user_msg, processed_prompts, _original_message = await prepare_prompts(*prompts)
         self._state.clear()  # Reset state
         self._chunk_transformer.reset()  # Reset chunk transformer
         self._subscriber_manager.reset_buffers()  # Reset subscriber buffers
-        text_chunks: list[str] = []  # Accumulate text locally
-        thinking_chunks: list[str] = []  # Accumulate thinking locally
-        completed_tool_calls: list[tuple[str, str, dict[str, Any]]] = []  # (id, name, args)
+        # Track messages in pydantic-ai format: ModelRequest -> ModelResponse -> ModelRequest...
+        # This mirrors pydantic-ai's new_messages() which includes the initial user request.
+        model_messages: list[ModelResponse | ModelRequest] = []
+        # Start with the user's request (same as pydantic-ai's new_messages())
+        initial_request = ModelRequest(parts=[UserPromptPart(content=processed_prompts)])
+        model_messages.append(initial_request)
+        current_response_parts: list[TextPart | ThinkingPart | ToolCallPart] = []
+        text_chunks: list[str] = []  # For final content string
 
         run_started = RunStartedEvent(
             thread_id=self._state.thread_id,
@@ -410,7 +424,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         pending_parts = conversation.get_pending_parts()
         pending_content = to_agui_input_content(pending_parts)
         # Convert user message content to AGUI format using processed prompts
-        user_content = to_agui_input_content(_processed_prompts)
+        user_content = to_agui_input_content(processed_prompts)
         # Combine pending parts with new content
         final_content = [*pending_content, *user_content]
         user_message = UserMessage(id=str(uuid4()), content=final_content)
@@ -453,10 +467,12 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
                             match event:
                                 case TextMessageContentEvent(delta=delta):
                                     text_chunks.append(delta)
+                                    current_response_parts.append(TextPart(content=delta))
                                 case TextMessageChunkEvent(delta=delta) if delta:
                                     text_chunks.append(delta)
+                                    current_response_parts.append(TextPart(content=delta))
                                 case ThinkingTextMessageContentEvent(delta=delta):
-                                    thinking_chunks.append(delta)
+                                    current_response_parts.append(ThinkingPart(content=delta))
                                 case AGUIToolCallStartEvent(
                                     tool_call_id=tc_id, tool_call_name=name
                                 ) if name:
@@ -474,7 +490,13 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
                                     if result := tool_accumulator.complete(tc_id):
                                         tool_name, args = result
                                         tool_calls_pending.append((tc_id, tool_name, args))
-                                        completed_tool_calls.append((tc_id, tool_name, args))
+                                        current_response_parts.append(
+                                            ToolCallPart(
+                                                tool_name=tool_name,
+                                                args=args,
+                                                tool_call_id=tc_id,
+                                            )
+                                        )
                                         self.log.debug(
                                             "Tool call completed",
                                             tool_call_id=tc_id,
@@ -526,34 +548,41 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             # If no results (all tools were server-side), we're done
             if not pending_tool_results:
                 break
+
+            # Flush current response parts to model_messages
+            if current_response_parts:
+                model_messages.append(ModelResponse(parts=current_response_parts))
+                current_response_parts = []
+
+            # Create ModelRequest with tool return parts
+            tc_id_to_name = {tc_id: name for tc_id, name, _ in tool_calls_pending}
+            tool_return_parts: list[ToolReturnPart] = [
+                ToolReturnPart(
+                    tool_name=tc_id_to_name.get(r.tool_call_id, "unknown"),
+                    content=r.content,
+                    tool_call_id=r.tool_call_id,
+                )
+                for r in pending_tool_results
+            ]
+            model_messages.append(ModelRequest(parts=tool_return_parts))
+
             # Add tool results to messages for next iteration
             messages = [*pending_tool_results]
             self.log.debug("Continuing with tool results", count=len(pending_tool_results))
 
+        # Flush any remaining response parts
+        if current_response_parts:
+            model_messages.append(ModelResponse(parts=current_response_parts))
+
         self._state.is_complete = True
-        parts: list[TextPart | ThinkingPart | ToolCallPart] = []
-
-        # Add thinking part if we have thinking content
-        thinking_content = "".join(thinking_chunks)
-        if thinking_content:
-            parts.append(ThinkingPart(content=thinking_content))
-
-        # Add text part if we have text content
         text_content = "".join(text_chunks)
-        if text_content:
-            parts.append(TextPart(content=text_content))
-        # Add tool call parts
-        for tc_id, tc_name, tc_args in completed_tool_calls:
-            parts.append(ToolCallPart(tool_name=tc_name, args=tc_args, tool_call_id=tc_id))
-
-        model_response = ModelResponse(parts=parts)
         final_message = ChatMessage[str](
             content=text_content,
             role="assistant",
             name=self.name,
             message_id=message_id or str(uuid4()),
             conversation_id=self.conversation_id,
-            messages=[model_response],
+            messages=model_messages,
         )
         complete_event = StreamCompleteEvent(message=final_message)
         for handler in self.event_handler._wrapped_handlers:
