@@ -33,7 +33,16 @@ import uuid
 
 from anyenv import MultiEventHandler, create_process
 from pydantic_ai import PartDeltaEvent
-from pydantic_ai.messages import TextPartDelta, ThinkingPartDelta
+from pydantic_ai.messages import (
+    ModelRequest,
+    ModelResponse,
+    TextPart,
+    TextPartDelta,
+    ThinkingPart,
+    ThinkingPartDelta,
+    ToolCallPart,
+    UserPromptPart,
+)
 
 from acp.client.connection import ClientSideConnection
 from acp.schema import InitializeRequest, NewSessionRequest, PromptRequest
@@ -469,9 +478,16 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         user_msg, processed_prompts, _original_message = await prepare_prompts(*prompts)
         run_id = str(uuid.uuid4())
         self._state.clear()  # Reset state
-        text_chunks: list[str] = []  # Accumulate text locally
-        thinking_chunks: list[str] = []  # Accumulate thinking locally
-        completed_tool_calls: list[tuple[str, str, dict[str, Any]]] = []  # (id, name, args)
+
+        # Track messages in pydantic-ai format: ModelRequest -> ModelResponse -> ...
+        # This mirrors pydantic-ai's new_messages() which includes the initial user request.
+
+        model_messages: list[ModelResponse | ModelRequest] = []
+        # Start with the user's request (same as pydantic-ai's new_messages())
+        initial_request = ModelRequest(parts=[UserPromptPart(content=processed_prompts)])
+        model_messages.append(initial_request)
+        current_response_parts: list[TextPart | ThinkingPart | ToolCallPart] = []
+        text_chunks: list[str] = []  # For final content string
         run_started = RunStartedEvent(
             thread_id=self.conversation_id,
             run_id=run_id,
@@ -509,16 +525,19 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
                     except asyncio.QueueEmpty:
                         break
 
-                # Extract content from events
+                # Extract content from events and build parts in arrival order
                 match event:
                     case PartDeltaEvent(delta=TextPartDelta(content_delta=delta)):
                         text_chunks.append(delta)
+                        current_response_parts.append(TextPart(content=delta))
                     case PartDeltaEvent(delta=ThinkingPartDelta(content_delta=delta)) if delta:
-                        thinking_chunks.append(delta)
+                        current_response_parts.append(ThinkingPart(content=delta))
                     case ToolCallStartEvent(
                         tool_call_id=tc_id, tool_name=tc_name, raw_input=tc_input
                     ):
-                        completed_tool_calls.append((tc_id, tc_name, tc_input))
+                        current_response_parts.append(
+                            ToolCallPart(tool_name=tc_name, args=tc_input, tool_call_id=tc_id)
+                        )
 
                 for handler in self.event_handler._wrapped_handlers:  # Distribute to handlers
                     await handler(None, event)
@@ -528,14 +547,17 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         # Yield remaining events after completion
         while last_idx < len(self._state.events):
             event = self._state.events[last_idx]
-            # Extract content from events
+            # Extract content from events and build parts in arrival order
             match event:
                 case PartDeltaEvent(delta=TextPartDelta(content_delta=delta)):
                     text_chunks.append(delta)
+                    current_response_parts.append(TextPart(content=delta))
                 case PartDeltaEvent(delta=ThinkingPartDelta(content_delta=delta)) if delta:
-                    thinking_chunks.append(delta)
+                    current_response_parts.append(ThinkingPart(content=delta))
                 case ToolCallStartEvent(tool_call_id=tc_id, tool_name=tc_name, raw_input=tc_input):
-                    completed_tool_calls.append((tc_id, tc_name, tc_input))
+                    current_response_parts.append(
+                        ToolCallPart(tool_name=tc_name, args=tc_input, tool_call_id=tc_id)
+                    )
 
             for handler in self.event_handler._wrapped_handlers:
                 await handler(None, event)
@@ -547,28 +569,11 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         self._state.is_complete = True
         self._message_count += 1
 
-        # Build ModelResponse with parts
-        from pydantic_ai.messages import ModelResponse, TextPart, ThinkingPart, ToolCallPart
+        # Flush response parts to model_messages
+        if current_response_parts:
+            model_messages.append(ModelResponse(parts=current_response_parts))
 
-        parts: list[TextPart | ThinkingPart | ToolCallPart] = []
-
-        # Add thinking part if we have thinking content
-        thinking_content = "".join(thinking_chunks)
-        if thinking_content:
-            parts.append(ThinkingPart(content=thinking_content))
-
-        # Add text part if we have text content
         text_content = "".join(text_chunks)
-        if text_content:
-            parts.append(TextPart(content=text_content))
-
-        # Add tool call parts
-        for tc_id, tc_name, tc_args in completed_tool_calls:
-            parts.append(ToolCallPart(tool_name=tc_name, args=tc_args, tool_call_id=tc_id))
-
-        # Build ModelResponse
-        model_response = ModelResponse(parts=parts, model_name=self.model_name)
-
         message = ChatMessage[str](
             content=text_content,
             role="assistant",
@@ -576,7 +581,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             message_id=message_id or str(uuid.uuid4()),
             conversation_id=self.conversation_id,
             model_name=self.model_name,
-            messages=[model_response],
+            messages=model_messages,
         )
         complete_event = StreamCompleteEvent(message=message)
         for handler in self.event_handler._wrapped_handlers:
