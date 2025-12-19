@@ -12,6 +12,7 @@ from llmling_agent_cli.run import run_command
 from llmling_agent_cli.serve_acp import acp_command
 from llmling_agent_cli.serve_api import api_command
 from llmling_agent_cli.serve_mcp import serve_command
+from llmling_agent_cli.serve_vercel import vercel_command
 from llmling_agent_cli.store import config_store
 from llmling_agent_cli.task import task_command
 from llmling_agent_cli.watch import watch_command
@@ -53,6 +54,7 @@ cli.command(name="watch")(watch_command)
 cli.command(name="serve-acp")(acp_command)
 cli.command(name="serve-mcp")(serve_command)
 cli.command(name="serve-api")(api_command)
+cli.command(name="serve-vercel")(vercel_command)
 cli.command(name="task")(task_command)
 
 cli.add_typer(history_cli, name="history")
