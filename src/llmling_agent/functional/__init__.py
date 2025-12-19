@@ -1,6 +1,5 @@
 """High-level functional interfaces for LLMling agent."""
 
-from llmling_agent.functional.auto_generate import auto_callable
 from llmling_agent.functional.run import (
     run_agent,
     run_agent_sync,
