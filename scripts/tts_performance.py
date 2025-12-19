@@ -1,6 +1,6 @@
-"""Manual test script to test TTS synchronization modes.
+"""Manual script to test TTS synchronization modes.
 
-Run with: uv run python tests/manual/test_tts_performance.py
+Run with: uv run python scripts/tts_performance.py
 
 Requires:
 - For OpenAI TTS: OPENAI_API_KEY environment variable
