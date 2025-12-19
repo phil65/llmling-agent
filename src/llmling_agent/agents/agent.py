@@ -279,9 +279,8 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
 
         # Initialize conversation manager
         resources = list(resources)
-        effective_knowledge = knowledge or (ctx.config.knowledge if ctx else None)
-        if effective_knowledge:
-            resources.extend(effective_knowledge.get_resources())
+        if knowledge:
+            resources.extend(knowledge.get_resources())
         storage = agent_pool.storage if agent_pool else StorageManager(self._manifest.storage)
         self.conversation = MessageHistory(
             storage=storage,
