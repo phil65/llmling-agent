@@ -18,6 +18,7 @@ from llmling_agent.agents.context import AgentContext  # noqa: TC001
 from llmling_agent.log import get_logger
 from llmling_agent.resource_providers import ResourceProvider
 from llmling_agent_toolsets.builtin.file_edit import replace_content
+from llmling_agent_toolsets.fsspec_toolset.diagnostics import DiagnosticsManager
 from llmling_agent_toolsets.fsspec_toolset.grep import GrepBackend
 from llmling_agent_toolsets.fsspec_toolset.helpers import (
     apply_structured_edits,
@@ -35,6 +36,7 @@ if TYPE_CHECKING:
 
     from llmling_agent.common_types import ModelType
     from llmling_agent.prompts.conversion_manager import ConversionManager
+    from llmling_agent.repomap import RepoMap
     from llmling_agent.tools.base import Tool
 
 
@@ -58,6 +60,9 @@ class FSSpecTools(ResourceProvider):
         max_file_size_kb: int = 64,
         max_grep_output_kb: int = 64,
         use_subprocess_grep: bool = True,
+        enable_diagnostics: bool = False,
+        large_file_tokens: int = 12_000,
+        map_max_tokens: int = 2048,
     ) -> None:
         """Initialize with an fsspec filesystem or execution environment.
 
@@ -71,6 +76,9 @@ class FSSpecTools(ResourceProvider):
             max_file_size_kb: Maximum file size in KB for read/write operations (default: 64KB)
             max_grep_output_kb: Maximum grep output size in KB (default: 64KB)
             use_subprocess_grep: Use ripgrep/grep subprocess if available (default: True)
+            enable_diagnostics: Run LSP CLI diagnostics after file writes (default: False)
+            large_file_tokens: Token threshold for switching to structure map (default: 12000)
+            map_max_tokens: Maximum tokens for structure map output (default: 2048)
         """
         from fsspec.asyn import AsyncFileSystem
         from fsspec.implementations.asyn_wrapper import AsyncFileSystemWrapper
@@ -96,6 +104,11 @@ class FSSpecTools(ResourceProvider):
         self.use_subprocess_grep = use_subprocess_grep
         self._tools: list[Tool] | None = None
         self._grep_backend: GrepBackend | None = None
+        self._enable_diagnostics = enable_diagnostics
+        self._diagnostics: DiagnosticsManager | None = None
+        self._large_file_tokens = large_file_tokens
+        self._map_max_tokens = map_max_tokens
+        self._repomap: RepoMap | None = None
 
     def get_fs(self, agent_ctx: AgentContext) -> AsyncFileSystem:
         """Get filesystem, falling back to agent's env if not set.
@@ -110,6 +123,49 @@ class FSSpecTools(ResourceProvider):
             return self._fs
         fs = agent_ctx.agent.env.get_fs()
         return fs if isinstance(fs, AsyncFileSystem) else AsyncFileSystemWrapper(fs)
+
+    def _get_diagnostics_manager(self, agent_ctx: AgentContext) -> DiagnosticsManager:
+        """Get or create the diagnostics manager."""
+        if self._diagnostics is None:
+            env = self.execution_env or agent_ctx.agent.env
+            self._diagnostics = DiagnosticsManager(env if self._enable_diagnostics else None)
+        return self._diagnostics
+
+    async def _run_diagnostics(self, agent_ctx: AgentContext, path: str) -> str | None:
+        """Run diagnostics on a file if enabled.
+
+        Returns formatted diagnostics string if issues found, None otherwise.
+        """
+        if not self._enable_diagnostics:
+            return None
+        mgr = self._get_diagnostics_manager(agent_ctx)
+        diagnostics = await mgr.run_for_file(path)
+        if diagnostics:
+            return mgr.format_diagnostics(diagnostics)
+        return None
+
+    async def _get_file_map(self, path: str, agent_ctx: AgentContext) -> str | None:
+        """Get structure map for a large file if language is supported.
+
+        Args:
+            path: Absolute file path
+            agent_ctx: Agent context for filesystem access
+
+        Returns:
+            Structure map string or None if language not supported
+        """
+        from llmling_agent.repomap import RepoMap, is_language_supported
+
+        if not is_language_supported(path):
+            return None
+
+        # Lazy init repomap - use file's directory as root
+        if self._repomap is None:
+            root = str(Path(path).parent)
+            fs = self.get_fs(agent_ctx)
+            self._repomap = RepoMap(fs, root, max_tokens=self._map_max_tokens)
+
+        return await self._repomap.get_file_map(path, max_tokens=self._map_max_tokens)
 
     def _resolve_path(self, path: str, agent_ctx: AgentContext) -> str:
         """Resolve a potentially relative path to an absolute path.
@@ -297,18 +353,37 @@ class FSSpecTools(ResourceProvider):
                 mime = mime_type or "application/octet-stream"
                 return BinaryContent(data=data, media_type=mime, identifier=path)
             content = data.decode(encoding)
-            lines = content.splitlines()
-            offset = (line - 1) if line else 0
-            result_lines, was_truncated = truncate_lines(lines, offset, limit, self.max_file_size)
-            content = "\n".join(result_lines)
-            await agent_ctx.events.file_operation("read", path=path, success=True)
+
+            # Check if file is too large and no targeted read requested
+            tokens_approx = len(content) // 4
+            if line is None and limit is None and tokens_approx > self._large_file_tokens:
+                # Try structure map for supported languages
+                map_result = await self._get_file_map(path, agent_ctx)
+                if map_result:
+                    await agent_ctx.events.file_operation("read", path=path, success=True)
+                    content = map_result
+                else:
+                    # Fallback: head + tail for unsupported languages
+                    from llmling_agent.repomap import truncate_with_notice
+
+                    content = truncate_with_notice(path, content)
+                    await agent_ctx.events.file_operation("read", path=path, success=True)
+            else:
+                # Normal read with optional offset/limit
+                lines = content.splitlines()
+                offset = (line - 1) if line else 0
+                result_lines, was_truncated = truncate_lines(
+                    lines, offset, limit, self.max_file_size
+                )
+                content = "\n".join(result_lines)
+                await agent_ctx.events.file_operation("read", path=path, success=True)
+                if was_truncated:
+                    content += f"\n\n[Content truncated at {self.max_file_size} bytes]"
 
         except Exception as e:  # noqa: BLE001
             await agent_ctx.events.file_operation("read", path=path, success=False, error=str(e))
             return f"error: Failed to read file {path}: {e}"
         else:
-            if was_truncated:
-                content += f"\n\n[Content truncated at {self.max_file_size} bytes]"
             # Emit file content for UI display (formatted at ACP layer)
             from llmling_agent.agents.events import FileContentItem
 
@@ -413,7 +488,7 @@ class FSSpecTools(ResourceProvider):
             except (OSError, KeyError):
                 size = content_bytes
 
-            result = {
+            result: dict[str, Any] = {
                 "path": path,
                 "size": size,
                 "mode": mode,
@@ -421,6 +496,10 @@ class FSSpecTools(ResourceProvider):
                 "bytes_written": content_bytes,
             }
             await agent_ctx.events.file_operation("write", path=path, success=True)
+
+            # Run diagnostics if enabled
+            if diagnostics_output := await self._run_diagnostics(agent_ctx, path):
+                result["diagnostics"] = diagnostics_output
         except Exception as e:  # noqa: BLE001
             await agent_ctx.events.file_operation("write", path=path, success=False, error=str(e))
             return {"error": f"Failed to write file {path}: {e}"}
@@ -548,6 +627,10 @@ class FSSpecTools(ResourceProvider):
                 new_text=new_content,
                 status="completed",
             )
+
+            # Run diagnostics if enabled
+            if diagnostics_output := await self._run_diagnostics(agent_ctx, path):
+                success_msg += f"\n\nDiagnostics:\n{diagnostics_output}"
         except Exception as e:  # noqa: BLE001
             error_msg = f"Error editing file: {e}"
             await agent_ctx.events.file_operation("edit", path=path, success=False, error=error_msg)
