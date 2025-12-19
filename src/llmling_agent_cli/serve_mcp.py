@@ -61,13 +61,13 @@ def serve_command(
 
         server = MCPServer(pool, server_config)
 
-        async with pool, server, server.run_context():
+        async with pool, server:
             if show_messages:
                 for agent in pool.agents.values():
                     agent.message_sent.connect(on_message)
 
             try:
-                await pool.run_event_loop()
+                await server.start()  # Blocks until server stops
             except KeyboardInterrupt:
                 logger.info("Server shutdown requested")
 

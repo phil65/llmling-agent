@@ -410,6 +410,7 @@ class ACPDebugServer:
         self.debug_state = DebugState()
         self.agent = MockAgent(self.debug_state)
         self._running = False
+        self._shutdown_event: asyncio.Event | None = None
         self._fastapi_thread: threading.Thread | None = None
 
         # Set global reference for FastAPI endpoints
@@ -421,6 +422,7 @@ class ACPDebugServer:
             raise RuntimeError("Server already running")
 
         self._running = True
+        self._shutdown_event = asyncio.Event()
         logger.info("Starting ACP Debug Server")
 
         try:
@@ -469,8 +471,8 @@ class ACPDebugServer:
             logger.info("ACP Debug Server ready - connect your client!")
             url = f"http://{self.fastapi_host}:{self.fastapi_port}"
             logger.info("Web interface", url=url)
-            while self._running:  # Keep server running
-                await asyncio.sleep(0.1)
+            assert self._shutdown_event is not None
+            await self._shutdown_event.wait()
 
         except Exception:
             logger.exception("ACP server error")
@@ -482,6 +484,8 @@ class ACPDebugServer:
             raise RuntimeError("Server is not running")
 
         self._running = False
+        if self._shutdown_event:
+            self._shutdown_event.set()
         logger.info("Shutting down ACP Debug Server")
 
         # Clean up connection

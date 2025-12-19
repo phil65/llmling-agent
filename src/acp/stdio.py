@@ -273,10 +273,10 @@ async def run_agent(
             return agent
 
     conn = AgentSideConnection(agent_factory, input_stream, output_stream, **connection_kwargs)
+    shutdown_event = asyncio.Event()
     try:
-        # Keep the connection alive
-        while True:
-            await asyncio.sleep(3600)
+        # Keep the connection alive until cancelled
+        await shutdown_event.wait()
     except asyncio.CancelledError:
         pass
     finally:
