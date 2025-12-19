@@ -413,16 +413,27 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
     async def _cp_file(self, path1: str, path2: str, **kwargs: Any) -> None:
         """Copy a file from path1 to path2.
 
-        Uses read/write approach for portability. Could alternatively be implemented
-        via terminal commands (cp/copy) if a copy command is added to the provider.
+        Uses CLI cp/copy command for efficiency - single round-trip and
+        native binary file support without base64 encoding overhead.
 
         Args:
             path1: Source file path
             path2: Destination file path
             **kwargs: Additional options
         """
-        content = await self._cat_file(path1)
-        await self._put_file(path2, content)
+        copy_cmd = self.command_provider.get_command("copy_path")
+        cmd_str = copy_cmd.create_command(path1, path2, recursive=False)
+
+        try:
+            cmd, args = self._parse_command(cmd_str)
+            output, exit_code = await self.requests.run_command(cmd, args=args, timeout_seconds=30)
+            success = copy_cmd.parse_command(output, exit_code if exit_code is not None else 1)
+            if not success:
+                msg = f"Error copying {path1} to {path2}: {output}"
+                raise OSError(msg)  # noqa: TRY301
+        except Exception as e:
+            msg = f"Could not copy {path1} to {path2}: {e}"
+            raise OSError(msg) from e
 
     cp_file = sync_wrapper(_cp_file)
 
