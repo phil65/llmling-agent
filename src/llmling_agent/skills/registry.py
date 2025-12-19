@@ -56,26 +56,31 @@ class SkillsRegistry(BaseRegistry[str, Skill]):
     async def register_skills_from_path(
         self,
         skills_dir: JoinablePathLike | AbstractFileSystem,
+        base_path: str | None = None,
         **storage_options: Any,
     ) -> None:
         """Register skills from a given path.
 
         Args:
-            skills_dir: Path to the directory containing skills.
+            skills_dir: Path to the directory containing skills, or filesystem instance.
+            base_path: When skills_dir is a filesystem, the path within that filesystem
+                      to look for skills. Defaults to root_marker if not specified.
             storage_options: Additional options to pass to the filesystem.
         """
         if isinstance(skills_dir, AbstractFileSystem):
             fs = skills_dir
             if not isinstance(fs, AsyncFileSystem):
                 fs = AsyncFileSystemWrapper(fs)
+            search_path = base_path if base_path is not None else fs.root_marker
         else:
             fs = upath_to_fs(skills_dir, **storage_options)
+            search_path = fs.root_marker
 
         try:
             # List entries in skills directory
-            entries = await fs._ls(fs.root_marker, detail=True)
+            entries = await fs._ls(search_path, detail=True)
         except FileNotFoundError:
-            logger.warning("Skills directory not found", path=skills_dir)
+            logger.warning("Skills directory not found", path=search_path)
             return
         # Filter for directories that might contain skills
         skill_dirs = [
@@ -84,14 +89,20 @@ class SkillsRegistry(BaseRegistry[str, Skill]):
             if await is_directory(fs, entry["name"], entry_type=entry.get("type"))
         ]
         if not skill_dirs:
-            logger.info("No skills found", skills_dir=skills_dir)
+            logger.info("No skills found", skills_dir=search_path)
             return
-        logger.info("Found skills", skills=skill_dirs, skills_dir=skills_dir)
+        logger.info("Found skills", skills=skill_dirs, skills_dir=search_path)
         for skill_entry in skill_dirs:
             skill_name = skill_entry["name"].lstrip("./")
-            skill_dir_path = skills_dir / skill_name
+            # Construct full path for skill directory
+            if search_path and search_path != fs.root_marker:
+                skill_dir_path = to_upath(f"{search_path}/{skill_name}")
+                skill_md_path = f"{search_path}/{skill_name}/SKILL.md"
+            else:
+                skill_dir_path = to_upath(skill_name)
+                skill_md_path = f"{skill_name}/SKILL.md"
             try:
-                await fs._cat(f"{skill_name}/SKILL.md")
+                await fs._cat_file(skill_md_path)
             except FileNotFoundError:
                 continue
 

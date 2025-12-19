@@ -283,10 +283,12 @@ class ACPSession:
 
         Adds the client's .claude/skills directory to the pool's skills manager,
         making those skills available to all agents via the SkillsTools toolset.
+
+        We pass the filesystem directly to avoid fsspec trying to create a new
+        ACPFileSystem instance without the required client/session_id parameters.
         """
         try:
-            path = self.fs.get_upath(".claude/skills")
-            await self.agent_pool.skills.add_skills_directory(path)
+            await self.agent_pool.skills.add_skills_directory(".claude/skills", fs=self.fs)
             skills = self.agent_pool.skills.list_skills()
             self.log.info("Collected client-side skills", skill_count=len(skills))
         except Exception as e:

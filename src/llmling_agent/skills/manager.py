@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Self
+from typing import TYPE_CHECKING, Self, overload
 
+from fsspec import AbstractFileSystem
 from upathtools import to_upath
 
 from llmling_agent.log import get_logger
@@ -66,17 +67,39 @@ class SkillsManager:
         """Clean up the skills manager."""
         # Skills are file-based, no persistent connections to clean up
 
-    async def add_skills_directory(self, path: JoinablePathLike) -> None:
+    @overload
+    async def add_skills_directory(self, path: JoinablePathLike) -> None: ...
+
+    @overload
+    async def add_skills_directory(self, path: str, *, fs: AbstractFileSystem) -> None: ...
+
+    async def add_skills_directory(
+        self,
+        path: JoinablePathLike,
+        *,
+        fs: AbstractFileSystem | None = None,
+    ) -> None:
         """Add a new skills directory and discover its skills.
 
         Args:
-            path: Path to directory containing skills
+            path: Path to directory containing skills.
+            fs: Optional filesystem instance. When provided, path is interpreted
+                as a path within this filesystem (e.g., ".claude/skills").
         """
-        upath = to_upath(path)
-        if upath not in self.registry.skills_dirs:
-            self.registry.skills_dirs.append(upath)
-            await self.registry.register_skills_from_path(upath)
-            logger.info("Added skills directory", path=str(path))
+        if fs is not None:
+            # Pass filesystem directly to registry with the path
+            await self.registry.register_skills_from_path(fs, base_path=str(path))
+            logger.info(
+                "Added skills directory from filesystem",
+                protocol=fs.protocol,
+                path=path,
+            )
+        else:
+            upath = to_upath(path)
+            if upath not in self.registry.skills_dirs:
+                self.registry.skills_dirs.append(upath)
+                await self.registry.register_skills_from_path(upath)
+                logger.info("Added skills directory", path=str(path))
 
     async def refresh(self) -> None:
         """Force rediscovery of all skills."""
