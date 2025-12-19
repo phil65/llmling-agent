@@ -156,9 +156,8 @@ class ACPServer(BaseServer):
         file = self.debug_file if self.debug_messages else None
         conn = AgentSideConnection(create_acp_agent, writer, reader, debug_file=file)
         self.log.info("ACP server started", file=self.file_access, terminal=self.terminal_access)
-        try:  # Keep the connection alive
-            while not self._shutdown_event.is_set():
-                await asyncio.sleep(0.1)
+        try:  # Keep the connection alive until shutdown
+            await self._shutdown_event.wait()
         except asyncio.CancelledError:
             self.log.info("ACP server shutdown requested")
             raise
