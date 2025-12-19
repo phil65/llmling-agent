@@ -401,13 +401,14 @@
   
   CLI Help Output:
   ----------------------------------------------------------------------
-  usage: vibe-acp [-h] [--setup]
+  usage: vibe-acp [-h] [-v] [--setup]
   
   Run Mistral Vibe in ACP mode
   
   options:
-    -h, --help  show this help message and exit
-    --setup     Setup API key and exit
+    -h, --help     show this help message and exit
+    -v, --version  show program's version number and exit
+    --setup        Setup API key and exit
   '''
 # ---
 # name: test_acp_agent_help_output[OpenCodeACPAgentConfig]
