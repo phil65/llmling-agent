@@ -21,7 +21,7 @@ from llmling_agent.prompts.prompts import PromptMessage, StaticPrompt
 from llmling_agent.resource_providers import StaticResourceProvider
 from llmling_agent_config.hooks import HooksConfig  # noqa: TC001
 from llmling_agent_config.knowledge import Knowledge  # noqa: TC001
-from llmling_agent_config.nodes import NodeConfig
+from llmling_agent_config.nodes import BaseAgentConfig
 from llmling_agent_config.output_types import StructuredResponseConfig  # noqa: TC001
 from llmling_agent_config.session import MemoryConfig, SessionQuery
 from llmling_agent_config.system_prompts import PromptConfig  # noqa: TC001
@@ -36,21 +36,13 @@ if TYPE_CHECKING:
     from llmling_agent.tools.base import Tool
 
 
-ToolConfirmationMode = Literal["always", "never", "per_tool"]
-"""Controls how permission requests are handled:
-
-- "always": Always prompt user for confirmation
-- "never": Auto-grant all permissions (no prompts)
-- "per_tool": Use individual tool settings (treated as "always" for ACP)
-"""
-
 ToolMode = Literal["codemode"]
 AutoCache = Literal["off", "5m", "1h"]
 
 logger = log.get_logger(__name__)
 
 
-class NativeAgentConfig(NodeConfig):
+class NativeAgentConfig(BaseAgentConfig):
     """Configuration for a single agent in the system.
 
     Defines an agent's complete configuration including its model, environment,
@@ -222,17 +214,6 @@ class NativeAgentConfig(NodeConfig):
     """Worker agents which will be available as tools.
 
     Docs: https://phil65.github.io/llmling-agent/YAML%20Configuration/worker_configuration/
-    """
-
-    requires_tool_confirmation: ToolConfirmationMode = Field(
-        default="per_tool",
-        examples=["always", "never", "per_tool"],
-        title="Tool confirmation mode",
-    )
-    """How to handle tool confirmation:
-    - "always": Always require confirmation for all tools
-    - "never": Never require confirmation (ignore tool settings)
-    - "per_tool": Use individual tool settings
     """
 
     debug: bool = Field(default=False, title="Debug mode")

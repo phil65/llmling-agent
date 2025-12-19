@@ -40,8 +40,8 @@ if TYPE_CHECKING:
 
     from acp.schema import ContentBlock, McpServer
     from llmling_agent.messaging import MessageNode
-    from llmling_agent.models.agents import ToolConfirmationMode
     from llmling_agent_config.mcp_server import MCPServerConfig
+    from llmling_agent_config.nodes import ToolConfirmationMode
 
 logger = get_logger(__name__)
 

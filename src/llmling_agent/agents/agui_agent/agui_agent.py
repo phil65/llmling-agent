@@ -17,7 +17,15 @@ from uuid import uuid4
 from anyenv import MultiEventHandler
 from anyenv.processes import hard_kill
 import httpx
-from pydantic_ai.messages import ModelResponse
+from pydantic_ai.messages import (
+    ModelRequest,
+    ModelResponse,
+    TextPart,
+    ThinkingPart,
+    ToolCallPart,
+    ToolReturnPart,
+    UserPromptPart,
+)
 
 from llmling_agent.agents.agui_agent.chunk_transformer import ChunkTransformer
 from llmling_agent.agents.agui_agent.helpers import execute_tool_calls, parse_sse_stream
@@ -38,7 +46,6 @@ if TYPE_CHECKING:
 
     from ag_ui.core import Message, ToolMessage
     from evented.configs import EventConfig
-    from pydantic_ai.messages import TextPart, ThinkingPart, ToolCallPart
 
     from llmling_agent.agents.base_agent import ToolConfirmationMode
     from llmling_agent.agents.events import RichAgentStreamEvent
@@ -120,6 +127,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         event_configs: Sequence[EventConfig] | None = None,
         event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
         debug: bool = False,
+        tool_confirmation_mode: ToolConfirmationMode = "per_tool",
     ) -> None:
         """Initialize AG-UI agent client.
 
@@ -141,7 +149,10 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             event_configs: Event trigger configurations
             event_handlers: Sequence of event handlers to register
             debug: Enable debug logging for chunk transformer
+            tool_confirmation_mode: Tool confirmation mode
         """
+        from exxec import LocalExecutionEnvironment
+
         super().__init__(
             name=name,
             description=description,
@@ -172,11 +183,8 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         self.event_handler = MultiEventHandler[IndividualEventHandler](resolved_handlers)
         self.tools = ToolManager(tools)
         # Tool confirmation mode - defaults to "per_tool" like Agent class
-        self.tool_confirmation_mode: ToolConfirmationMode = "per_tool"
+        self.tool_confirmation_mode: ToolConfirmationMode = tool_confirmation_mode
         self._input_provider: InputProvider | None = None
-        # Execution environment
-        from exxec import LocalExecutionEnvironment
-
         self.env = LocalExecutionEnvironment()
         # Chunk transformer for normalizing CHUNK events
         self._chunk_transformer = ChunkTransformer(debug=debug)
@@ -354,14 +362,6 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             ToolCallEndEvent as AGUIToolCallEndEvent,
             ToolCallStartEvent as AGUIToolCallStartEvent,
             UserMessage,
-        )
-        from pydantic_ai.messages import (
-            ModelRequest,
-            TextPart,
-            ThinkingPart,
-            ToolCallPart,
-            ToolReturnPart,
-            UserPromptPart,
         )
 
         from llmling_agent.agents.agui_agent.agui_converters import (

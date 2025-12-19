@@ -869,6 +869,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
             toolsets=toolsets_list,
             auto_cache=config.auto_cache,
             hooks=config.hooks.get_agent_hooks() if config.hooks else None,
+            tool_confirmation_mode=config.requires_tool_confirmation,
         )
 
     def create_acp_agent[TDeps](
@@ -937,6 +938,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
             startup_delay=config.startup_delay,
             tools=[tool_config.get_tool() for tool_config in config.tools],
             mcp_servers=config.mcp_servers,
+            tool_confirmation_mode=config.requires_tool_confirmation,
         )
 
 

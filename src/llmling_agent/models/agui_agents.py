@@ -4,11 +4,11 @@ from __future__ import annotations
 
 from pydantic import ConfigDict, Field
 
-from llmling_agent_config.nodes import NodeConfig
+from llmling_agent_config.nodes import BaseAgentConfig
 from llmling_agent_config.tools import ToolConfig  # noqa: TC001
 
 
-class AGUIAgentConfig(NodeConfig):
+class AGUIAgentConfig(BaseAgentConfig):
     """Configuration for AG-UI protocol agents.
 
     AG-UI agents connect to remote HTTP endpoints that implement the AG-UI protocol,

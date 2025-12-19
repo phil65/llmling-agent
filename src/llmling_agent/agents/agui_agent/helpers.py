@@ -18,9 +18,9 @@ if TYPE_CHECKING:
 
     from llmling_agent.agents.context import ConfirmationResult
     from llmling_agent.messaging.context import NodeContext
-    from llmling_agent.models.agents import ToolConfirmationMode
     from llmling_agent.tools import Tool
     from llmling_agent.ui.base import InputProvider
+    from llmling_agent_config.nodes import ToolConfirmationMode
 
 
 logger = get_logger(__name__)

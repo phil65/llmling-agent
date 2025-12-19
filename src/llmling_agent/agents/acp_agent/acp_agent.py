@@ -79,8 +79,8 @@ if TYPE_CHECKING:
     from llmling_agent.mcp_server.tool_bridge import ToolManagerBridge
     from llmling_agent.messaging.context import NodeContext
     from llmling_agent.models.acp_agents import BaseACPAgentConfig
-    from llmling_agent.models.agents import ToolConfirmationMode
     from llmling_agent.ui.base import InputProvider
+    from llmling_agent_config.nodes import ToolConfirmationMode
 
 logger = get_logger(__name__)
 
@@ -227,9 +227,9 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
                 providers=list(providers) if providers else [],
             )
         super().__init__(
-            name=config.name or config.get_command(),
-            description=config.description,
-            display_name=config.display_name,
+            name=name or config.get_command(),
+            description=description,
+            display_name=display_name,
             mcp_servers=config.mcp_servers,
             agent_pool=agent_pool,
             enable_logging=enable_logging,

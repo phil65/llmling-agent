@@ -78,17 +78,13 @@ if TYPE_CHECKING:
     )
     from llmling_agent.delegation import AgentPool, Team, TeamRun
     from llmling_agent.hooks import AgentHooks
-    from llmling_agent.models.agents import (
-        AutoCache,
-        NativeAgentConfig,
-        ToolConfirmationMode,
-        ToolMode,
-    )
+    from llmling_agent.models.agents import AutoCache, NativeAgentConfig, ToolMode
     from llmling_agent.prompts.prompts import PromptType
     from llmling_agent.resource_providers import ResourceProvider
     from llmling_agent.ui.base import InputProvider
     from llmling_agent_config.knowledge import Knowledge
     from llmling_agent_config.mcp_server import MCPServerConfig
+    from llmling_agent_config.nodes import ToolConfirmationMode
     from llmling_agent_config.session import MemoryConfig, SessionQuery
     from llmling_agent_config.task import Job
 
@@ -171,6 +167,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         env: ExecutionEnvironment | None = None,
         auto_cache: AutoCache = "off",
         hooks: AgentHooks | None = None,
+        tool_confirmation_mode: ToolConfirmationMode = "per_tool",
     ) -> None:
         """Initialize agent.
 
@@ -212,6 +209,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             env: Execution environment for code/command execution and filesystem access
             auto_cache: Automatic caching configuration ("off", "5m", or "1h")
             hooks: AgentHooks instance for intercepting agent behavior at run and tool events
+            tool_confirmation_mode: Tool confirmation mode
         """
         from llmling_agent.agents import AgentContext
         from llmling_agent.agents.interactions import Interactions
@@ -253,7 +251,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             event_configs=agent_config.triggers if agent_config else [],
         )
 
-        # Initialize tool manager
         from llmling_agent.agents.events import resolve_event_handlers
 
         resolved_handlers = resolve_event_handlers(event_handlers)
@@ -261,13 +258,11 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         all_tools = list(tools or [])
         effective_tool_mode = tool_mode
         self.tools = ToolManager(all_tools, tool_mode=effective_tool_mode)
-
         # MCP manager will be initialized in __aenter__ and providers added there
         for toolset_provider in toolsets or []:
             self.tools.add_provider(toolset_provider)
         aggregating_provider = self.mcp.get_aggregating_provider()
         self.tools.add_provider(aggregating_provider)
-
         # # Add local skills provider if directories specified
         # if skills_paths:
         #     from llmling_agent.resource_providers.skills import SkillsResourceProvider
@@ -325,9 +320,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         )
 
         # Copy tool confirmation mode from config
-        self.tool_confirmation_mode: ToolConfirmationMode = (
-            ctx.config.requires_tool_confirmation if ctx and ctx.config else "per_tool"
-        )
+        self.tool_confirmation_mode: ToolConfirmationMode = tool_confirmation_mode
 
     def __repr__(self) -> str:
         desc = f", {self.description!r}" if self.description else ""

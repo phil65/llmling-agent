@@ -38,8 +38,8 @@ if TYPE_CHECKING:
     )
     from llmling_agent.agents.acp_agent import ACPAgent
     from llmling_agent.agents.acp_agent.session_state import ACPSessionState
-    from llmling_agent.models.agents import ToolConfirmationMode
     from llmling_agent.ui.base import InputProvider
+    from llmling_agent_config.nodes import ToolConfirmationMode
 
 logger = get_logger(__name__)
 

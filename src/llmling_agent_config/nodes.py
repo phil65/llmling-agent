@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 from evented.configs import EventConfig
 from pydantic import ConfigDict, Field, ImportString
@@ -19,6 +19,15 @@ from llmling_agent_config.mcp_server import (
 
 if TYPE_CHECKING:
     from llmling_agent.common_types import IndividualEventHandler
+
+
+ToolConfirmationMode = Literal["always", "never", "per_tool"]
+"""Controls how permission requests are handled:
+
+- "always": Always prompt user for confirmation
+- "never": Auto-grant all permissions (no prompts)
+- "per_tool": Use individual tool settings (treated as "always" for ACP)
+"""
 
 
 class NodeConfig(Schema):
@@ -175,3 +184,18 @@ class NodeConfig(Schema):
                     configs.append(server)
 
         return configs
+
+
+class BaseAgentConfig(NodeConfig):
+    """Base configuration for agents."""
+
+    requires_tool_confirmation: ToolConfirmationMode = Field(
+        default="per_tool",
+        examples=["always", "never", "per_tool"],
+        title="Tool confirmation mode",
+    )
+    """How to handle tool confirmation:
+    - "always": Always require confirmation for all tools
+    - "never": Never require confirmation (ignore tool settings)
+    - "per_tool": Use individual tool settings
+    """
