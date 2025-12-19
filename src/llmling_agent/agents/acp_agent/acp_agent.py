@@ -112,8 +112,8 @@ def extract_file_path_from_tool_call(
 
     # Try common path argument names
     for key in ("file_path", "path", "filepath", "filename", "file"):
-        if key in raw_input and isinstance(raw_input[key], str):
-            return raw_input[key]
+        if key in raw_input and isinstance(val := raw_input[key], str):
+            return val
 
     return None
 
