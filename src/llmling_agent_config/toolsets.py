@@ -490,11 +490,18 @@ class CodeToolsetConfig(BaseToolsetConfig):
     )
     """Optional tool filter to enable/disable specific tools."""
 
+    environment: ExecutionEnvironmentConfig | None = Field(
+        default=None,
+        title="Execution environment",
+    )
+    """Optional execution environment. If None, falls back to agent's env at runtime."""
+
     def get_provider(self) -> ResourceProvider:
         """Create code tools provider."""
         from llmling_agent_toolsets.builtin.code import CodeTools
 
-        provider = CodeTools(name="code")
+        env = self.environment.create_env() if self.environment else None
+        provider = CodeTools(env=env, name="code")
         if self.tools is not None:
             from llmling_agent.resource_providers import FilteringResourceProvider
 
@@ -577,6 +584,28 @@ class FSSpecToolsetConfig(BaseToolsetConfig):
     )
     """Use ripgrep/grep subprocess if available (faster than Python regex)."""
 
+    enable_diagnostics: bool = Field(
+        default=False,
+        title="Enable diagnostics",
+    )
+    """Run LSP CLI diagnostics (type checking, linting) after file writes."""
+
+    large_file_tokens: int = Field(
+        default=12_000,
+        ge=1000,
+        le=100_000,
+        title="Large file threshold",
+    )
+    """Token threshold for switching to structure map instead of full content."""
+
+    map_max_tokens: int = Field(
+        default=2048,
+        ge=256,
+        le=16_000,
+        title="Structure map max tokens",
+    )
+    """Maximum tokens for structure map output when reading large files."""
+
     def get_provider(self) -> ResourceProvider:
         """Create FSSpec filesystem tools provider."""
         import fsspec
@@ -608,6 +637,9 @@ class FSSpecToolsetConfig(BaseToolsetConfig):
             max_file_size_kb=self.max_file_size_kb,
             max_grep_output_kb=self.max_grep_output_kb,
             use_subprocess_grep=self.use_subprocess_grep,
+            enable_diagnostics=self.enable_diagnostics,
+            large_file_tokens=self.large_file_tokens,
+            map_max_tokens=self.map_max_tokens,
         )
 
 
