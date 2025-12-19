@@ -148,5 +148,21 @@ async def test_agent_forwarding():
         assert all(m.response_time is not None for m in messages)
 
 
+@pytest.mark.integration
+async def test_cost_tracking_with_real_model():
+    """Test that cost tracking works with a real model (integration test)."""
+    model = "openrouter:google/gemini-2.5-flash-lite"
+    async with Agent(model=model, name="cost-test-agent") as agent:
+        result = await agent.run("Say 'hello' and nothing else.")
+
+        # Verify we got a response
+        assert result.data is not None
+
+        # Verify cost info is present and non-zero
+        assert result.cost_info is not None, "cost_info should not be None"
+        assert result.cost_info.total_cost > 0, "total_cost should be greater than zero"
+        assert result.cost_info.token_usage.total_tokens > 0, "total_tokens should be > 0"
+
+
 if __name__ == "__main__":
     pytest.main([__file__])
