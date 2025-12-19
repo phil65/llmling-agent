@@ -63,7 +63,7 @@ Time: {{ timestamp.strftime('%Y-%m-%d %H:%M:%S') }}
 ----------------------------------------
 {%- if show_costs and cost_info %}
 Tokens: {{ "{:,}".format(cost_info.token_usage.total_tokens) }}
-Cost: ${{ "%.5f"|format(cost_info.total_cost) }}
+Cost: ${{ "%.6f"|format(cost_info.total_cost) }}
 {%- if response_time %}
 Response time: {{ "%.2f"|format(response_time) }}s
 {%- endif %}
@@ -87,7 +87,7 @@ MARKDOWN_TEMPLATE = """## {{ name or role.title() }}
 ---
 **Stats:**
 - Tokens: {{ "{:,}".format(cost_info.token_usage.total_tokens) }}
-- Cost: ${{ "%.4f"|format(cost_info.total_cost) }}
+- Cost: ${{ "%.6f"|format(cost_info.total_cost) }}
 {%- if response_time %}
 - Response time: {{ "%.2f"|format(response_time) }}s
 {%- endif %}
@@ -122,28 +122,43 @@ class TokenCost:
     """Total cost in USD"""
 
     @classmethod
-    async def from_usage(cls, usage: RunUsage, model: str) -> TokenCost | None:
+    async def from_usage(
+        cls,
+        usage: RunUsage,
+        model: str,
+        provider: str | None = None,
+    ) -> TokenCost | None:
         """Create result from usage data.
 
         Args:
             usage: Token counts from model response
             model: Name of the model used
-
+            provider: Provider ID (e.g. 'openrouter', 'openai'). If not provided,
+                     will try to extract from model string (e.g. 'openrouter:model')
 
         Returns:
             TokenCost if usage data available, None otherwise
         """
         logger.debug("Token usage", usage=usage)
-        # return cls(token_usage=token_usage, total_cost=Decimal(total_cost))
         if model in {"None", "test"}:
             price = Decimal(0)
         else:
+            # Determine provider and model ref
             parts = model.split(":", 1)
+            if len(parts) > 1:
+                # Model string has provider prefix (e.g. 'openrouter:google/gemini')
+                provider_id = parts[0]
+                model_ref = parts[1]
+            else:
+                # Use explicit provider or default to openai
+                provider_id = provider or "openai"
+                model_ref = parts[0]
+
             try:
                 price_data = calc_price(
                     usage,
-                    model_ref=parts[1] if len(parts) > 1 else parts[0],
-                    provider_id=parts[0] if len(parts) > 1 else "openai",
+                    model_ref=model_ref,
+                    provider_id=provider_id,
                 )
                 price = price_data.total_price
             except Exception:  # noqa: BLE001
@@ -261,13 +276,7 @@ class ChatMessage[TContent]:
             return self.messages
         match self.kind:
             case "request":
-                return [
-                    ModelRequest(
-                        parts=self.parts,  # type: ignore
-                        instructions=None,
-                        run_id=self.message_id,
-                    )
-                ]
+                return [ModelRequest(parts=self.parts, instructions=None, run_id=self.message_id)]  # type: ignore
             case "response":
                 return [
                     ModelResponse(
@@ -293,12 +302,8 @@ class ChatMessage[TContent]:
         """Create a user prompt message."""
         part = UserPromptPart(content=message)
         request = ModelRequest(parts=[part], instructions=instructions)
-        return ChatMessage(
-            messages=[request],
-            role="user",
-            content=message,
-            conversation_id=conversation_id or str(uuid4()),
-        )
+        id_ = conversation_id or str(uuid4())
+        return ChatMessage(messages=[request], role="user", content=message, conversation_id=id_)
 
     @classmethod
     def from_pydantic_ai[TContentType](
@@ -376,7 +381,9 @@ class ChatMessage[TContent]:
         run_usage = result.usage()
         usage = result.response.usage
         cost_info = await TokenCost.from_usage(
-            model=result.response.model_name or "", usage=run_usage
+            model=result.response.model_name or "",
+            usage=run_usage,
+            provider=result.response.provider_name,
         )
 
         return ChatMessage[OutputDataT](
