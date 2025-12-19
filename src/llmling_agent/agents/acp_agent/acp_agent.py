@@ -74,7 +74,7 @@ if TYPE_CHECKING:
     from acp.schema import InitializeResponse, RequestPermissionRequest, RequestPermissionResponse
     from acp.schema.mcp import McpServer
     from llmling_agent.agents.events import RichAgentStreamEvent
-    from llmling_agent.common_types import BuiltinEventHandlerType, PromptCompatible
+    from llmling_agent.common_types import BuiltinEventHandlerType, PromptCompatible, SimpleJsonType
     from llmling_agent.delegation import AgentPool
     from llmling_agent.mcp_server.tool_bridge import ToolManagerBridge
     from llmling_agent.messaging.context import NodeContext
@@ -85,6 +85,37 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 PROTOCOL_VERSION = 1
+
+
+def extract_file_path_from_tool_call(
+    tool_name: str,
+    raw_input: dict[str, Any],
+) -> str | None:
+    """Extract file path from a tool call if it's a file-writing tool.
+
+    Uses simple heuristics by default:
+    - Tool name contains 'write' or 'edit' (case-insensitive)
+    - Input contains 'path' or 'file_path' key
+
+    Override in subclasses for agent-specific tool naming conventions.
+
+    Args:
+        tool_name: Name of the tool being called
+        raw_input: Tool call arguments
+
+    Returns:
+        File path if this is a file-writing tool, None otherwise
+    """
+    name_lower = tool_name.lower()
+    if "write" not in name_lower and "edit" not in name_lower:
+        return None
+
+    # Try common path argument names
+    for key in ("file_path", "path", "filepath", "filename", "file"):
+        if key in raw_input and isinstance(raw_input[key], str):
+            return raw_input[key]
+
+    return None
 
 
 class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
@@ -488,6 +519,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         model_messages.append(initial_request)
         current_response_parts: list[TextPart | ThinkingPart | ToolCallPart] = []
         text_chunks: list[str] = []  # For final content string
+        touched_files: set[str] = set()  # Track files modified by tool calls
         run_started = RunStartedEvent(
             thread_id=self.conversation_id,
             run_id=run_id,
@@ -538,6 +570,11 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
                         current_response_parts.append(
                             ToolCallPart(tool_name=tc_name, args=tc_input, tool_call_id=tc_id)
                         )
+                        # Track files modified by write/edit tools
+                        if file_path := extract_file_path_from_tool_call(
+                            tc_name or "", tc_input or {}
+                        ):
+                            touched_files.add(file_path)
 
                 for handler in self.event_handler._wrapped_handlers:  # Distribute to handlers
                     await handler(None, event)
@@ -558,6 +595,9 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
                     current_response_parts.append(
                         ToolCallPart(tool_name=tc_name, args=tc_input, tool_call_id=tc_id)
                     )
+                    # Track files modified by write/edit tools
+                    if file_path := extract_file_path_from_tool_call(tc_name or "", tc_input or {}):
+                        touched_files.add(file_path)
 
             for handler in self.event_handler._wrapped_handlers:
                 await handler(None, event)
@@ -573,6 +613,10 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             model_messages.append(ModelResponse(parts=current_response_parts))
 
         text_content = "".join(text_chunks)
+        # Build metadata with touched files if any
+        metadata: SimpleJsonType = {}
+        if touched_files:
+            metadata["touched_files"] = sorted(touched_files)
         message = ChatMessage[str](
             content=text_content,
             role="assistant",
@@ -581,6 +625,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             conversation_id=self.conversation_id,
             model_name=self.model_name,
             messages=model_messages,
+            metadata=metadata,
         )
         complete_event = StreamCompleteEvent(message=message)
         for handler in self.event_handler._wrapped_handlers:
