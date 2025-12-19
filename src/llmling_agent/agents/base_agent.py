@@ -11,20 +11,17 @@ from llmling_agent.messaging import MessageNode
 
 if TYPE_CHECKING:
     import asyncio
-    from collections.abc import AsyncIterator, Sequence
+    from collections.abc import AsyncIterator
 
     from anyenv import MultiEventHandler
-    from evented.configs import EventConfig
     from exxec import ExecutionEnvironment
 
     from llmling_agent.agents.events import RichAgentStreamEvent
     from llmling_agent.common_types import IndividualEventHandler
-    from llmling_agent.delegation import AgentPool
     from llmling_agent.messaging import MessageHistory
     from llmling_agent.messaging.context import NodeContext
     from llmling_agent.tools import ToolManager
     from llmling_agent.ui.base import InputProvider
-    from llmling_agent_config.mcp_server import MCPServerConfig
 
 
 logger = get_logger(__name__)
@@ -69,38 +66,6 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
 
     _output_type: type = str
     """Output type for this agent (default: str)."""
-
-    def __init__(
-        self,
-        name: str,
-        *,
-        description: str | None = None,
-        display_name: str | None = None,
-        mcp_servers: Sequence[str | MCPServerConfig] | None = None,
-        agent_pool: AgentPool[Any] | None = None,
-        enable_logging: bool = True,
-        event_configs: Sequence[EventConfig] | None = None,
-    ) -> None:
-        """Initialize base agent.
-
-        Args:
-            name: Agent name
-            description: Agent description
-            display_name: Human-readable display name
-            mcp_servers: MCP servers to connect to
-            agent_pool: Agent pool this agent belongs to
-            enable_logging: Whether to enable database logging
-            event_configs: Event trigger configurations
-        """
-        super().__init__(
-            name=name,
-            description=description,
-            display_name=display_name,
-            mcp_servers=mcp_servers,
-            agent_pool=agent_pool,
-            enable_logging=enable_logging,
-            event_configs=event_configs,
-        )
 
     @property
     @abstractmethod
