@@ -410,6 +410,22 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
 
     makedirs = sync_wrapper(_makedirs)
 
+    async def _cp_file(self, path1: str, path2: str, **kwargs: Any) -> None:
+        """Copy a file from path1 to path2.
+
+        Uses read/write approach for portability. Could alternatively be implemented
+        via terminal commands (cp/copy) if a copy command is added to the provider.
+
+        Args:
+            path1: Source file path
+            path2: Destination file path
+            **kwargs: Additional options
+        """
+        content = await self._cat_file(path1)
+        await self._put_file(path2, content)
+
+    cp_file = sync_wrapper(_cp_file)
+
     async def _rm(self, path: str, recursive: bool = False, **kwargs: Any) -> None:
         """Remove file or directory via rm command.
 
