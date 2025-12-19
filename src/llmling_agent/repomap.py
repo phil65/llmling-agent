@@ -424,8 +424,8 @@ class RepoMap:
             return
 
         try:
-            language = get_language(lang)
-            parser = get_parser(lang)
+            language = get_language(lang)  # pyright: ignore[reportArgumentType]
+            parser = get_parser(lang)  # pyright: ignore[reportArgumentType]
         except Exception:  # noqa: BLE001
             return
 
