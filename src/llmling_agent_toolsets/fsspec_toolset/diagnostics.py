@@ -90,21 +90,26 @@ class DiagnosticsManager:
         return all_diagnostics
 
     def format_diagnostics(self, diagnostics: list[Diagnostic]) -> str:
-        """Format diagnostics for display.
+        """Format diagnostics as a Markdown table.
 
         Args:
             diagnostics: List of diagnostics to format
 
         Returns:
-            Formatted string representation
+            Markdown table with Severity, Location, Code, Description columns
         """
         if not diagnostics:
             return ""
 
-        lines: list[str] = []
+        lines: list[str] = [
+            "| Severity | Location | Code | Description |",
+            "|----------|----------|------|-------------|",
+        ]
         for d in diagnostics:
             loc = f"{d.file}:{d.line}:{d.column}"
-            code_str = f" [{d.code}]" if d.code else ""
-            lines.append(f"[{d.severity.upper()}] {loc}{code_str}: {d.message}")
+            code = d.code or ""
+            # Escape pipe characters in message
+            msg = d.message.replace("|", "\\|")
+            lines.append(f"| {d.severity.upper()} | {loc} | {code} | {msg} |")
 
         return "\n".join(lines)
