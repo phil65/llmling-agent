@@ -5,9 +5,9 @@ from __future__ import annotations
 import asyncio
 import json
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 import anyenv
+from pydantic import TypeAdapter
 from slashed import CommandContext  # noqa: TC002
 
 from acp.schema import (
@@ -15,6 +15,7 @@ from acp.schema import (
     AgentThoughtChunk,
     ContentToolCallContent,
     SessionNotification,
+    SessionUpdate,
     TextContentBlock,
     ToolCallKind,  # noqa: TC001
     ToolCallProgress,
@@ -27,11 +28,10 @@ from llmling_agent_commands.base import NodeCommand
 from llmling_agent_server.acp_server.session import ACPSession  # noqa: TC001
 
 
-if TYPE_CHECKING:
-    from acp.schema import SessionUpdate
-
-
 logger = get_logger(__name__)
+
+# TypeAdapter for auto-constructing SessionUpdate variants from discriminator
+SessionUpdateAdapter: TypeAdapter[SessionUpdate] = TypeAdapter(SessionUpdate)
 
 
 class DebugSendTextCommand(NodeCommand):
@@ -198,38 +198,17 @@ class DebugReplaySequenceCommand(NodeCommand):
 
             notifications = sequence_data["notifications"]
             count = 0
+            delay_ms = sequence_data.get("delay_ms", 0)
 
             for notification_data in notifications:
                 try:
-                    # Parse the notification based on its type
-                    update_data = notification_data.get("update", {})
-                    update_type = update_data.get("session_update")
-
-                    if update_type == "agent_message_chunk":
-                        content = TextContentBlock(**update_data["content"])
-                        update: SessionUpdate = AgentMessageChunk(content=content)
-                    elif update_type == "user_message_chunk":
-                        content = TextContentBlock(**update_data["content"])
-                        update = UserMessageChunk(content=content)
-                    elif update_type == "agent_thought_chunk":
-                        content = TextContentBlock(**update_data["content"])
-                        update = AgentThoughtChunk(content=content)
-                    elif update_type == "tool_call":
-                        update = ToolCallStart(**update_data)
-                    elif update_type == "tool_call_update":
-                        update = ToolCallProgress(**update_data)
-                    else:
-                        logger.warning("Unknown update type", update_type=update_type)
-                        continue
-
+                    # Auto-construct the correct SessionUpdate type via discriminator
+                    update = SessionUpdateAdapter.validate_python(notification_data)
                     notification = SessionNotification(session_id=session.session_id, update=update)
-
                     await session.client.session_update(notification)  # pyright: ignore[reportArgumentType]
                     count += 1
-
-                    # Optional delay between notifications
-                    if delay := sequence_data.get("delay_ms", 0):
-                        await asyncio.sleep(delay / 1000)
+                    if delay_ms:
+                        await asyncio.sleep(delay_ms / 1000)
 
                 except Exception as e:  # noqa: BLE001
                     logger.warning("Failed to replay notification", error=e)
