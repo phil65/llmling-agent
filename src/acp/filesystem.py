@@ -535,7 +535,7 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
                 }
             return [entry.path for entry in entries]
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.warning("CLI find error, falling back to walk: %s", e)
             return await super()._find(path, maxdepth=maxdepth, withdirs=withdirs, **kwargs)
 
