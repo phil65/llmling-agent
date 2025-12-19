@@ -8,18 +8,19 @@ import re
 from typing import TYPE_CHECKING, Any
 
 from fsspec import AbstractFileSystem
+from upathtools import is_directory
 
 from llmling_agent.agents.context import AgentContext  # noqa: TC001
 from llmling_agent.log import get_logger
 from llmling_agent.resource_providers import ResourceProvider
+from llmling_agent_toolsets.fsspec_toolset.diagnostics import DiagnosticsManager
 
 
 if TYPE_CHECKING:
-    import fsspec
+    from anyenv.lsp_servers import Diagnostic
+    from exxec.base import ExecutionEnvironment
 
     from llmling_agent.tools.base import Tool
-
-from exxec.base import ExecutionEnvironment
 
 
 logger = get_logger(__name__)
@@ -83,14 +84,14 @@ class CodeTools(ResourceProvider):
 
     def __init__(
         self,
-        source: fsspec.AbstractFileSystem | ExecutionEnvironment | None = None,
+        env: ExecutionEnvironment | None = None,
         name: str = "code",
         cwd: str | None = None,
     ) -> None:
-        """Initialize with an fsspec filesystem or execution environment.
+        """Initialize with an optional execution environment.
 
         Args:
-            source: Filesystem or execution environment to operate on
+            env: Execution environment to operate on. If None, falls back to agent.env
             name: Name for this toolset provider
             cwd: Optional cwd to resolve relative paths against
         """
@@ -100,14 +101,9 @@ class CodeTools(ResourceProvider):
 
         super().__init__(name=name)
 
-        if isinstance(source, ExecutionEnvironment):
-            self.execution_env: ExecutionEnvironment | None = source
-            self.cwd = cwd or self.execution_env.cwd
-            fs = source.get_fs()
-        else:
-            self.execution_env = None
-            fs = source
-            self.cwd = cwd
+        self.execution_env = env
+        self.cwd = cwd or (env.cwd if env else None)
+        fs = env.get_fs() if env else None
         match fs:
             case AsyncFileSystem():
                 self.fs = fs
@@ -116,6 +112,11 @@ class CodeTools(ResourceProvider):
             case None:
                 self.fs = AsyncLocalFileSystem()
         self._tools: list[Tool] | None = None
+        self._diagnostics: DiagnosticsManager | None = None
+
+    def _get_env(self, agent_ctx: AgentContext) -> ExecutionEnvironment | None:
+        """Get execution environment (explicit or from agent)."""
+        return self.execution_env or agent_ctx.agent.env
 
     def _resolve_path(self, path: str, agent_ctx: AgentContext) -> str:
         """Resolve a potentially relative path to an absolute path.
@@ -124,15 +125,8 @@ class CodeTools(ResourceProvider):
         If cwd is set and path is relative, resolves relative to cwd.
         Otherwise returns the path as-is.
         """
-        # Get cwd: explicit toolset cwd > execution_env.cwd > agent.env.cwd
-        cwd: str | None = None
-        if self.cwd:
-            cwd = self.cwd
-        elif self.execution_env and self.execution_env.cwd:
-            cwd = self.execution_env.cwd
-        elif agent_ctx.agent.env and agent_ctx.agent.env.cwd:
-            cwd = agent_ctx.agent.env.cwd
-
+        env = self._get_env(agent_ctx)
+        cwd = self.cwd or (env.cwd if env else None)
         if cwd and not (path.startswith("/") or (len(path) > 1 and path[1] == ":")):
             return str(Path(cwd) / path)
         return path
@@ -145,6 +139,10 @@ class CodeTools(ResourceProvider):
         self._tools = [self.create_tool(self.format_code, category="execute")]
         if importlib.util.find_spec("ast_grep_py"):
             self._tools.append(self.create_tool(self.ast_grep, category="search", idempotent=True))
+        # Always register - checks for env at runtime (self.execution_env or agent.env)
+        self._tools.append(
+            self.create_tool(self.run_diagnostics, category="search", idempotent=True)
+        )
         return self._tools
 
     async def format_code(
@@ -326,3 +324,78 @@ class CodeTools(ResourceProvider):
                 result["written"] = True
 
         return result
+
+    async def run_diagnostics(self, agent_ctx: AgentContext, path: str) -> str:  # noqa: PLR0911
+        """Run LSP diagnostics (type checking, linting) on files.
+
+        Uses available CLI diagnostic tools (pyright, mypy, ty, oxlint, biome, etc.)
+        to check code for errors, warnings, and style issues.
+
+        Args:
+            agent_ctx: Agent context for path resolution.
+            path: Path to file or directory to check. For directories, checks all
+                  supported files recursively.
+
+        Returns:
+            Formatted diagnostic output showing errors, warnings, and info messages.
+            Returns a message if no diagnostics tools are available.
+
+        Note:
+            Only available when CodeTools is initialized with an ExecutionEnvironment.
+            Automatically detects available diagnostic tools and runs appropriate
+            ones based on file extensions.
+        """
+        resolved = self._resolve_path(path, agent_ctx)
+
+        # Get or create diagnostics manager
+        if self._diagnostics is None:
+            env = self._get_env(agent_ctx)
+            if not env:
+                return "Diagnostics unavailable: no execution environment configured"
+            self._diagnostics = DiagnosticsManager(env)
+
+        # Check if path is directory or file
+        try:
+            is_dir = await self.fs._isdir(resolved)
+        except Exception:  # noqa: BLE001
+            is_dir = False
+
+        if is_dir:
+            # Collect all files in directory
+            try:
+                files = await self.fs._find(resolved, detail=True)
+                # Filter to only include files (not directories)
+                file_paths = [
+                    path
+                    for path, info in files.items()  # pyright: ignore[reportAttributeAccessIssue]
+                    if not await is_directory(self.fs, path, entry_type=info["type"])
+                ]
+            except Exception as e:  # noqa: BLE001
+                return f"Error scanning directory: {e}"
+
+            if not file_paths:
+                return f"No files found in: {path}"
+
+            all_diagnostics: list[Diagnostic] = []
+            for file_path in file_paths:
+                diagnostics = await self._diagnostics.run_for_file(file_path)
+                all_diagnostics.extend(diagnostics)
+
+            if not all_diagnostics:
+                return f"No issues found in {len(file_paths)} files"
+
+            formatted = self._diagnostics.format_diagnostics(all_diagnostics)
+            return f"Found {len(all_diagnostics)} issues:\n{formatted}"
+        # Single file
+        try:
+            diagnostics = await self._diagnostics.run_for_file(resolved)
+        except FileNotFoundError:
+            return f"File not found: {path}"
+        except Exception as e:  # noqa: BLE001
+            return f"Error running diagnostics: {e}"
+
+        if not diagnostics:
+            return f"No issues found in: {path}"
+
+        formatted = self._diagnostics.format_diagnostics(diagnostics)
+        return f"Found {len(diagnostics)} issues:\n{formatted}"
