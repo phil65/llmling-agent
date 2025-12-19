@@ -16,6 +16,7 @@ from acp.schema import ForkSessionResponse, ListSessionsResponse, ResumeSessionR
 
 
 if TYPE_CHECKING:
+    from acp import SetSessionModeRequest
     from acp.schema import (
         CancelNotification,
         ForkSessionRequest,
@@ -25,6 +26,7 @@ if TYPE_CHECKING:
         NewSessionRequest,
         PromptRequest,
         ResumeSessionRequest,
+        SetSessionModelRequest,
     )
 
 
@@ -60,11 +62,11 @@ class TestAgent(Agent):
     async def cancel(self, params: CancelNotification) -> None:
         self.cancellations.append(params.session_id)
 
-    async def set_session_mode(self, params):
-        return {}
+    async def set_session_mode(self, params: SetSessionModeRequest) -> None:
+        return None
 
-    async def set_session_model(self, params):
-        return {}
+    async def set_session_model(self, params: SetSessionModelRequest) -> None:
+        return None
 
     async def ext_method(self, method: str, params: dict[str, Any]) -> dict[str, Any]:
         self.ext_calls.append((method, params))
