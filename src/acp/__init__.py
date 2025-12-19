@@ -3,7 +3,7 @@
 from acp.client import DefaultACPClient, HeadlessACPClient, NoOpClient, ClientSideConnection
 from acp.agent import AgentSideConnection
 from acp.bridge import ACPBridge, BridgeSettings
-from acp.debug_server import cli
+from acp.agent.implementations.debug_server import cli
 from acp.filesystem import ACPFileSystem, ACPPath
 from acp.agent.protocol import Agent
 from acp.client.protocol import Client

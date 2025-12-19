@@ -12,12 +12,18 @@ from acp import (
     NewSessionResponse,
     PromptResponse,
 )
-from acp.schema import ForkSessionResponse, ListSessionsResponse, ResumeSessionResponse
+from acp.schema import (
+    AuthenticateResponse,
+    ForkSessionResponse,
+    ListSessionsResponse,
+    ResumeSessionResponse,
+)
 
 
 if TYPE_CHECKING:
     from acp import SetSessionModeRequest
     from acp.schema import (
+        AuthenticateRequest,
         CancelNotification,
         ForkSessionRequest,
         InitializeRequest,
@@ -52,8 +58,8 @@ class TestAgent(Agent):
     async def load_session(self, params: LoadSessionRequest) -> LoadSessionResponse:
         return LoadSessionResponse()
 
-    async def authenticate(self, params) -> None:
-        return None
+    async def authenticate(self, params: AuthenticateRequest) -> AuthenticateResponse | None:
+        return AuthenticateResponse()
 
     async def prompt(self, params: PromptRequest) -> PromptResponse:
         self.prompts.append(params)
