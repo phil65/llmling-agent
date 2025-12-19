@@ -63,10 +63,8 @@ class SpawnSubagentCommand(NodeCommand):
         """
         session = ctx.context.data
         assert session, "ACP session required for spawn command"
-
         # Generate unique tool call ID
         tool_call_id = f"spawn-{agent_name}-{uuid.uuid4().hex[:8]}"
-
         try:
             # Check if agent exists in pool
             if not session.agent_pool or agent_name not in session.agent_pool.agents:
@@ -75,10 +73,7 @@ class SpawnSubagentCommand(NodeCommand):
                 await ctx.print(f"❌ {error_msg}")
                 return
 
-            # Get the target agent
             target_agent = session.agent_pool.get_agent(agent_name)
-
-            # Start the tool call box
             await session.notifications.tool_call_start(
                 tool_call_id=tool_call_id,
                 title=f"Spawning agent: {agent_name}",
@@ -89,15 +84,12 @@ class SpawnSubagentCommand(NodeCommand):
                 },
             )
 
-            # Aggregate output as we stream
-            aggregated_content: list[str] = []
-
+            aggregated_content: list[str] = []  # Aggregate output as we stream
             try:
                 # Run the subagent and handle events
                 async for event in target_agent.run_stream(task_prompt):
                     await _handle_subagent_event(event, tool_call_id, aggregated_content, session)
 
-                # Send final completion
                 final_content = "".join(aggregated_content).strip()
                 await session.notifications.tool_call_progress(
                     tool_call_id=tool_call_id,
@@ -195,10 +187,7 @@ async def _handle_subagent_event(
                 content=["".join(aggregated_content)],
             )
 
-        case ToolCallProgressEvent(
-            message=message,
-            tool_name=tool_name,
-        ):
+        case ToolCallProgressEvent(message=message, tool_name=tool_name):
             # Progress event from tools
             if message:
                 progress_text = f"🔄 {tool_name}: {message}\n"
@@ -215,9 +204,7 @@ async def _handle_subagent_event(
             | FinalResultEvent()
             | StreamCompleteEvent()
         ):
-            # These events don't need special handling
-            pass
+            pass  # These events don't need special handling
 
         case _:
-            # Log unhandled events for debugging
             logger.debug("Unhandled subagent event", event_type=type(event).__name__)
