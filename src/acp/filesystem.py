@@ -497,7 +497,7 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
         """
         if not self.use_cli_find:
             # Fall back to default fsspec implementation (walks tree with _ls)
-            return await super()._find(path, maxdepth=maxdepth, withdirs=withdirs, **kwargs)
+            return await super()._find(path, maxdepth=maxdepth, withdirs=withdirs, **kwargs)  # type: ignore[no-any-return]
 
         detail = kwargs.pop("detail", False)
         stripped = self._strip_protocol(path)
@@ -516,7 +516,7 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
             if exit_code != 0:
                 # If find fails, fall back to default implementation
                 logger.warning("CLI find failed, falling back to walk: %s", output)
-                return await super()._find(path, maxdepth=maxdepth, withdirs=withdirs, **kwargs)
+                return await super()._find(path, maxdepth=maxdepth, withdirs=withdirs, **kwargs)  # type: ignore[no-any-return]
 
             entries = find_cmd.parse_command(output, search_path)
 
@@ -537,7 +537,7 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
 
         except Exception as e:  # noqa: BLE001
             logger.warning("CLI find error, falling back to walk: %s", e)
-            return await super()._find(path, maxdepth=maxdepth, withdirs=withdirs, **kwargs)
+            return await super()._find(path, maxdepth=maxdepth, withdirs=withdirs, **kwargs)  # type: ignore[no-any-return]
 
     find = sync_wrapper(_find)  # pyright: ignore[reportAssignmentType]
 

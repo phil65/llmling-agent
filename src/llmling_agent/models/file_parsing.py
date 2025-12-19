@@ -18,7 +18,7 @@ from llmling_agent.log import get_logger
 
 if TYPE_CHECKING:
     from llmling_agent.models.agents import AgentConfig
-    from llmling_agent.models.file_agents import FileAgentConfig, FileAgentFormat
+    from llmling_agent.models.file_agents import FileAgentConfig
 
 
 logger = get_logger(__name__)
@@ -94,7 +94,7 @@ def extract_frontmatter(content: str, file_path: str) -> tuple[dict[str, Any], s
     return metadata, system_prompt
 
 
-def detect_format(metadata: dict[str, Any]) -> Literal["claude", "opencode", "llmling"]:
+def detect_format(metadata: dict[str, Any]) -> Literal["claude", "opencode", "native"]:
     """Detect the file format based on frontmatter content.
 
     Args:
@@ -112,10 +112,10 @@ def detect_format(metadata: dict[str, Any]) -> Literal["claude", "opencode", "ll
     if is_opencode:
         return "opencode"
 
-    # LLMling indicators (native fields)
-    llmling_fields = {"toolsets", "session", "knowledge", "workers", "triggers"}
-    if any(field in metadata for field in llmling_fields):
-        return "llmling"
+    # Native format indicators (llmling-agent specific fields)
+    native_fields = {"toolsets", "session", "knowledge", "workers", "triggers"}
+    if any(field in metadata for field in native_fields):
+        return "native"
 
     # Default to Claude Code format
     return "claude"
@@ -265,12 +265,11 @@ def parse_opencode_format(
     return config_kwargs
 
 
-def parse_llmling_format(
+def parse_native_format(
     metadata: dict[str, Any],
     system_prompt: str,
-    file_path: str,
 ) -> dict[str, Any]:
-    """Parse LLMling native format frontmatter.
+    """Parse native format frontmatter.
 
     This format allows full AgentConfig fields in the frontmatter,
     with the markdown body used as system prompt.
@@ -278,7 +277,6 @@ def parse_llmling_format(
     Args:
         metadata: Parsed YAML frontmatter
         system_prompt: Markdown body content
-        file_path: Path for logging
 
     Returns:
         Dict of AgentConfig kwargs
@@ -296,17 +294,17 @@ def parse_llmling_format(
 def parse_agent_file(
     file_path: str,
     *,
-    format: FileAgentFormat = "auto",
+    file_format: Literal["claude", "opencode", "native", "auto"] = "auto",
     skills_registry: Any | None = None,
 ) -> AgentConfig:
     """Parse agent markdown file to AgentConfig.
 
-    Supports Claude Code, OpenCode, and LLMling formats with auto-detection.
+    Supports Claude Code, OpenCode, and native formats with auto-detection.
     Also supports local and remote paths via UPath.
 
     Args:
         file_path: Path to .md file with YAML frontmatter (local or remote)
-        format: File format to use ("auto" for detection, or explicit format)
+        file_format: File format to use ("auto" for detection, or explicit format)
         skills_registry: Optional skills registry for loading skills
 
     Returns:
@@ -324,10 +322,7 @@ def parse_agent_file(
     metadata, system_prompt = extract_frontmatter(content, file_path)
 
     # Detect or use specified format
-    if format == "auto":
-        detected_format = detect_format(metadata)
-    else:
-        detected_format = format
+    detected_format = detect_format(metadata) if file_format == "auto" else file_format
 
     # Parse based on format
     if detected_format == "claude":
@@ -336,8 +331,8 @@ def parse_agent_file(
         )
     elif detected_format == "opencode":
         config_kwargs = parse_opencode_format(metadata, system_prompt, file_path)
-    elif detected_format == "llmling":
-        config_kwargs = parse_llmling_format(metadata, system_prompt, file_path)
+    elif detected_format == "native":
+        config_kwargs = parse_native_format(metadata, system_prompt)
     else:
         msg = f"Unknown format {detected_format!r} for {file_path}"
         raise ValueError(msg)
@@ -353,17 +348,20 @@ def parse_file_agent_reference(
     """Parse a file agent reference (path string or config) to AgentConfig.
 
     Args:
-        reference: Either a path string or FileAgentConfig
+        reference: Either a path string (auto-detect format) or FileAgentConfig
+            with explicit type discriminator
         skills_registry: Optional skills registry for loading skills
 
     Returns:
         Parsed AgentConfig
     """
     if isinstance(reference, str):
+        # Simple path string: auto-detect format
         return parse_agent_file(reference, skills_registry=skills_registry)
 
+    # Explicit config: use type as format
     return parse_agent_file(
         reference.path,
-        format=reference.format,
+        file_format=reference.type,
         skills_registry=skills_registry,
     )

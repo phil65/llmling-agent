@@ -110,28 +110,29 @@ class AgentsManifest(Schema):
             {
                 "code_reviewer": ".claude/agents/reviewer.md",
                 "debugger": "https://example.com/agents/debugger.md",
-                "custom": {"path": "./agents/custom.md", "format": "opencode"},
+                "custom": {"type": "opencode", "path": "./agents/custom.md"},
             }
         ],
     )
     """Mapping of agent IDs to file-based agent definitions.
 
-    Supports both simple path strings (auto-detect format) and explicit config.
+    Supports both simple path strings (auto-detect format) and explicit config
+    with type discriminator.
     Files must have YAML frontmatter in Claude Code, OpenCode, or LLMling format.
     The markdown body becomes the system prompt.
 
     Formats:
-      - Claude Code: name, description, tools (comma-separated), model, permissionMode
-      - OpenCode: description, mode, model, temperature, maxSteps, tools (dict)
-      - LLMling: Full AgentConfig fields in frontmatter
+      - claude: name, description, tools (comma-separated), model, permissionMode
+      - opencode: description, mode, model, temperature, maxSteps, tools (dict)
+      - native: Full AgentConfig fields in frontmatter
 
     Example:
         ```yaml
         file_agents:
           reviewer: .claude/agents/reviewer.md  # auto-detect
           debugger:
+            type: opencode  # explicit type
             path: ./agents/debugger.md
-            format: opencode  # explicit format
         ```
     """
 

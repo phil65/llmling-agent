@@ -14,48 +14,103 @@ from pydantic import Field
 from schemez import Schema
 
 
-FileAgentFormat = Literal["claude", "opencode", "llmling", "auto"]
+class ClaudeFileAgentConfig(Schema):
+    """Configuration for a Claude Code format agent file.
 
-
-class FileAgentConfig(Schema):
-    """Configuration for a file-based agent definition.
-
-    Allows explicit configuration of file-based agents instead of just a path string.
-    Useful for overriding auto-detection or adding future options.
+    Claude Code agents use markdown files with YAML frontmatter containing
+    fields like `model`, `tools`, `allowed-tools`, etc.
 
     Example:
         ```yaml
         file_agents:
-          # Simple path (auto-detect format)
-          reviewer: .claude/agents/reviewer.md
-
-          # Explicit config
-          debugger:
-            path: ./agents/debugger.md
-            format: opencode
+          reviewer:
+            type: claude
+            path: .claude/agents/reviewer.md
         ```
     """
 
+    type: Literal["claude"] = Field(
+        default="claude",
+        description="Discriminator for Claude Code format",
+    )
+
     path: str = Field(
         ...,
-        description="Path to the agent markdown file (local or remote via UPath)",
-        examples=[".claude/agents/reviewer.md", "https://example.com/agents/helper.md"],
-    )
-
-    format: FileAgentFormat = Field(
-        default="auto",
-        description="File format to use for parsing. 'auto' detects based on content.",
+        description="Path to the agent markdown file",
+        examples=[".claude/agents/reviewer.md"],
     )
 
 
-# Type alias for manifest usage: either a simple path string or full config
+class OpenCodeFileAgentConfig(Schema):
+    """Configuration for an OpenCode format agent file.
+
+    OpenCode agents use markdown files with YAML frontmatter containing
+    fields like `model`, `tools`, `description`, etc.
+
+    Example:
+        ```yaml
+        file_agents:
+          debugger:
+            type: opencode
+            path: ./agents/debugger.md
+        ```
+    """
+
+    type: Literal["opencode"] = Field(
+        default="opencode",
+        description="Discriminator for OpenCode format",
+    )
+
+    path: str = Field(
+        ...,
+        description="Path to the agent markdown file",
+        examples=["./agents/debugger.md"],
+    )
+
+
+class NativeFileAgentConfig(Schema):
+    """Configuration for a native format agent file.
+
+    Native agents use markdown files with YAML frontmatter containing
+    full AgentConfig fields (model, toolsets, knowledge, etc.).
+
+    Example:
+        ```yaml
+        file_agents:
+          assistant:
+            type: native
+            path: ./agents/assistant.md
+        ```
+    """
+
+    type: Literal["native"] = Field(
+        default="native",
+        description="Discriminator for native format",
+    )
+
+    path: str = Field(
+        ...,
+        description="Path to the agent markdown file",
+        examples=["./agents/assistant.md"],
+    )
+
+
+# Discriminated union of all file agent config types
+FileAgentConfig = ClaudeFileAgentConfig | OpenCodeFileAgentConfig | NativeFileAgentConfig
+
+# All supported file agent config types for documentation
+FileAgentConfigTypes = ClaudeFileAgentConfig | OpenCodeFileAgentConfig | NativeFileAgentConfig
+
+# Type alias for manifest usage: either a simple path string (auto-detect) or explicit config
 FileAgentReference = Annotated[
     str | FileAgentConfig,
     Field(
-        description="Agent file reference - either a path string or explicit config",
+        description="Agent file reference - either a path string (auto-detect format) "
+        "or explicit config with type discriminator",
         examples=[
             ".claude/agents/reviewer.md",
-            {"path": "./agents/debugger.md", "format": "opencode"},
+            {"type": "claude", "path": "./agents/reviewer.md"},
+            {"type": "opencode", "path": "./agents/debugger.md"},
         ],
     ),
 ]
