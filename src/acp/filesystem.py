@@ -193,6 +193,21 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
 
     put_file = sync_wrapper(_put_file)
 
+    async def _pipe_file(self, path: str, data: bytes, **kwargs: Any) -> None:
+        """Write bytes directly to a file path.
+
+        This is the fsspec standard method for writing data to a file.
+        Wraps _put_file for compatibility.
+
+        Args:
+            path: File path to write
+            data: Bytes to write
+            **kwargs: Additional options
+        """
+        await self._put_file(path, data, **kwargs)
+
+    pipe_file = sync_wrapper(_pipe_file)
+
     @overload
     async def _ls(self, path: str, detail: Literal[True] = ..., **kwargs: Any) -> list[AcpInfo]: ...
 
