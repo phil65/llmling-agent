@@ -158,8 +158,7 @@ def ui(ctx, *args: str):
     """Launch Textual UI."""
     args_str = " " + " ".join(args) if args else ""
     cmd_parts = [
-        "uv run --project ../toad/",
-        "textual run --dev ../toad/src/toad/__main__.py acp",
+        "uvx --from batrachian-toad@latest toad acp",
         f'"uv run --python 3.13 llmling-agent serve-acp --model-provider openai{args_str}"',
     ]
     ctx.run(" ".join(cmd_parts))
