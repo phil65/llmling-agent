@@ -7889,7 +7889,7 @@
     },
     "ClaudeACPAgentConfig": {
       "additionalProperties": false,
-      "description": "Configuration for Claude Code via ACP.\n\nProvides typed settings for the claude-code-acp server.\n\nExample:\n    ```yaml\n    agents:\n      coder:\n        type: claude\n        cwd: /path/to/project\n        model: sonnet\n        permission_mode: acceptEdits\n        allowed_tools:\n          - Read\n          - Write\n          - Bash(git:*)\n    ```",
+      "description": "Configuration for Claude Code via ACP.\n\nProvides typed settings for the claude-code-acp server.\n\nNote:\n    If ANTHROPIC_API_KEY is set in your environment, Claude Code will use it\n    directly instead of the subscription. To force subscription usage, set\n    `env: {\"ANTHROPIC_API_KEY\": \"\"}` in the config.\n\nExample:\n    ```yaml\n    agents:\n      coder:\n        type: claude\n        cwd: /path/to/project\n        model: sonnet\n        permission_mode: acceptEdits\n        env:\n          ANTHROPIC_API_KEY: \"\"  # Use subscription instead of API key\n        allowed_tools:\n          - Read\n          - Write\n          - Bash(git:*)\n    ```",
       "properties": {
         "name": {
           "default": null,
@@ -18472,6 +18472,38 @@
         "model"
       ],
       "title": "FastAgent ACP Agent Configuration",
+      "type": "object"
+    },
+    "FileAgentConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for a file-based agent definition.\n\nAllows explicit configuration of file-based agents instead of just a path string.\nUseful for overriding auto-detection or adding future options.\n\nExample:\n    ```yaml\n    file_agents:\n      # Simple path (auto-detect format)\n      reviewer: .claude/agents/reviewer.md\n\n      # Explicit config\n      debugger:\n        path: ./agents/debugger.md\n        format: opencode\n    ```",
+      "properties": {
+        "path": {
+          "description": "Path to the agent markdown file (local or remote via UPath)",
+          "examples": [
+            ".claude/agents/reviewer.md",
+            "https://example.com/agents/helper.md"
+          ],
+          "title": "Path",
+          "type": "string"
+        },
+        "format": {
+          "default": "auto",
+          "description": "File format to use for parsing. 'auto' detects based on content.",
+          "enum": [
+            "claude",
+            "opencode",
+            "llmling",
+            "auto"
+          ],
+          "title": "Format",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "title": "FileAgentConfig",
       "type": "object"
     },
     "FileCommandConfig": {
@@ -42145,12 +42177,23 @@
     },
     "file_agents": {
       "additionalProperties": {
-        "type": "string"
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "$ref": "#/$defs/FileAgentConfig"
+          }
+        ]
       },
-      "description": "Mapping of agent IDs to Claude Code style subagent file paths.\n\nSupports local and remote paths via UPath. Files must have YAML frontmatter\nwith Claude Code subagent format (name, description, tools, model, etc.).\nThe markdown body becomes the system prompt.\n\nExample file format:\n    ```markdown\n    ---\n    name: code-reviewer\n    description: Expert code reviewer\n    model: sonnet\n    ---\n\n    You are a senior code reviewer...\n    ```",
+      "description": "Mapping of agent IDs to file-based agent definitions.\n\nSupports both simple path strings (auto-detect format) and explicit config.\nFiles must have YAML frontmatter in Claude Code, OpenCode, or LLMling format.\nThe markdown body becomes the system prompt.\n\nFormats:\n  - Claude Code: name, description, tools (comma-separated), model, permissionMode\n  - OpenCode: description, mode, model, temperature, maxSteps, tools (dict)\n  - LLMling: Full AgentConfig fields in frontmatter\n\nExample:\n    ```yaml\n    file_agents:\n      reviewer: .claude/agents/reviewer.md  # auto-detect\n      debugger:\n        path: ./agents/debugger.md\n        format: opencode  # explicit format\n    ```",
       "examples": [
         {
           "code_reviewer": ".claude/agents/reviewer.md",
+          "custom": {
+            "format": "opencode",
+            "path": "./agents/custom.md"
+          },
           "debugger": "https://example.com/agents/debugger.md"
         }
       ],
