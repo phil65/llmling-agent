@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Self, overload
 
-from fsspec import AbstractFileSystem
 from upathtools import to_upath
 
 from llmling_agent.log import get_logger
@@ -12,6 +11,7 @@ from llmling_agent.skills.registry import SkillsRegistry
 
 
 if TYPE_CHECKING:
+    from fsspec import AbstractFileSystem
     from upathtools import JoinablePathLike
 
     from llmling_agent.skills.skill import Skill

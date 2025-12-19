@@ -12,13 +12,15 @@ from llmling_agent_cli import resolve_agent_config
 
 
 if TYPE_CHECKING:
+    from collections.abc import AsyncIterator
+
     from llmling_agent import ChatMessage
 
 
 logger = get_logger(__name__)
 
 
-def vercel_command(
+def vercel_command(  # noqa: PLR0915
     ctx: t.Context,
     config: Annotated[str | None, t.Argument(help="Path to agent configuration")] = None,
     agent_name: Annotated[
@@ -48,7 +50,7 @@ def vercel_command(
     from pydantic_ai import PartDeltaEvent, PartStartEvent
     from pydantic_ai.messages import TextPart, TextPartDelta
     from starlette.requests import Request
-    from starlette.responses import StreamingResponse
+    from starlette.responses import JSONResponse, Response, StreamingResponse
     import uvicorn
 
     from llmling_agent import AgentPool, AgentsManifest
@@ -96,7 +98,7 @@ def vercel_command(
         logger.info("Agent pool shut down")
 
     @app.post("/chat")
-    async def chat(request: Request) -> StreamingResponse:
+    async def chat(request: Request) -> Response:
         """Handle Vercel AI protocol chat requests.
 
         Implements the Vercel AI Data Stream Protocol:
@@ -106,15 +108,11 @@ def vercel_command(
         try:
             data = json.loads(body)
         except json.JSONDecodeError as e:
-            from starlette.responses import JSONResponse
-
             return JSONResponse({"error": f"Invalid JSON: {e}"}, status_code=400)
 
         # Extract messages from the request
         messages = data.get("messages", [])
         if not messages:
-            from starlette.responses import JSONResponse
-
             return JSONResponse({"error": "No messages provided"}, status_code=400)
 
         # Get the last user message
@@ -128,8 +126,6 @@ def vercel_command(
                     break
 
         if not user_text:
-            from starlette.responses import JSONResponse
-
             return JSONResponse({"error": "No user text found"}, status_code=400)
 
         # Determine which agent to use
@@ -137,13 +133,11 @@ def vercel_command(
             selected_agent = pool.get_agent(agent_name)
         else:
             if not pool.agents:
-                from starlette.responses import JSONResponse
-
                 return JSONResponse({"error": "No agents available"}, status_code=500)
             first_name = next(iter(pool.agents.keys()))
             selected_agent = pool.get_agent(first_name)
 
-        async def generate_stream():
+        async def generate_stream() -> AsyncIterator[str]:
             """Generate Vercel AI Data Stream Protocol events.
 
             Protocol format:

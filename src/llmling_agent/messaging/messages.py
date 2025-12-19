@@ -442,12 +442,12 @@ class ChatMessage[TContent]:
                     # Text & File parts (images, etc.) become user content directly
                     user_content.append(content)
                 case BaseToolReturnPart(content=(str() | FileUrl() | BinaryContent()) as content):
-                    user_content.append(content)
+                    user_content.append(content)  # type: ignore[arg-type]
                 case BaseToolReturnPart(content=list() as content_list):
                     # Handle sequence of content items
                     for item in content_list:
                         if isinstance(item, str | FileUrl | BinaryContent):
-                            user_content.append(item)
+                            user_content.append(item)  # type: ignore[arg-type]
                         else:
                             user_content.append(str(item))
                 case BaseToolReturnPart():
