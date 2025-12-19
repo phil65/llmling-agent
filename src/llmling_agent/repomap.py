@@ -245,7 +245,7 @@ class RepoMap:
         Returns:
             Formatted structure map or None if no tags found
         """
-        rel_fname = get_rel_path(fname, self.root)
+        rel_fname = get_rel_path(fname, self.root_path)
 
         # Get all definition tags for this file
         tags = await self._get_tags(fname, rel_fname)
@@ -903,7 +903,7 @@ def get_supported_languages() -> set[str]:
 
 def is_language_supported(fname: str) -> bool:
     """Check if a file's language supports tree-sitter tags."""
-    from grep_ast import filename_to_lang  # type: ignore[import-untyped]
+    from grep_ast import filename_to_lang
 
     lang = filename_to_lang(fname)
     if not lang:
@@ -952,7 +952,7 @@ def truncate_with_notice(
 
 def get_supported_languages_md() -> str:
     """Generate markdown table of supported languages."""
-    from grep_ast.parsers import PARSERS  # type: ignore[import-untyped]
+    from grep_ast.parsers import PARSERS
 
     res = "| Language | Extension | Repo Map |\n"
     res += "|----------|-----------|----------|\n"
