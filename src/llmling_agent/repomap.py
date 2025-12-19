@@ -228,6 +228,67 @@ class RepoMap:
         await _recurse(path)
         return results
 
+    async def get_file_map(
+        self,
+        fname: str,
+        max_tokens: int = 2048,
+    ) -> str | None:
+        """Generate a structure map for a single file.
+
+        Unlike get_map which uses PageRank across multiple files, this method
+        shows all definitions in a single file with line numbers.
+
+        Args:
+            fname: Absolute path to the file
+            max_tokens: Maximum tokens for output (approximate)
+
+        Returns:
+            Formatted structure map or None if no tags found
+        """
+        rel_fname = get_rel_path(fname, self.root)
+
+        # Get all definition tags for this file
+        tags = await self._get_tags(fname, rel_fname)
+        def_tags = [t for t in tags if t.kind == "def"]
+
+        if not def_tags:
+            return None
+
+        # Build line ranges for rendering
+        lois: list[int] = []
+        line_ranges: dict[int, int] = {}
+
+        for tag in def_tags:
+            if tag.signature_end_line >= tag.line:
+                lois.extend(range(tag.line, tag.signature_end_line + 1))
+            else:
+                lois.append(tag.line)
+            if tag.end_line >= 0:
+                line_ranges[tag.line] = tag.end_line
+
+        # Render the tree
+        tree_output = await self._render_tree(fname, rel_fname, lois, line_ranges)
+
+        # Add header with file info
+        info = await self._info(fname)
+        size_info = f", {info.size} bytes" if info else ""
+        lines = (await self._cat_file(fname) or "").count("\n") + 1
+        tokens = self.token_count(tree_output)
+
+        header = (
+            f"# File: {rel_fname} ({lines} lines{size_info})\n"
+            f"# Structure map ({tokens} tokens). Use offset/limit to read sections.\n\n"
+        )
+
+        result = header + f"{rel_fname}:\n" + tree_output
+
+        # Truncate if needed
+        max_chars = max_tokens * 4
+        if len(result) > max_chars:
+            result = result[:max_chars] + "\n... [truncated]\n"
+
+        return result
+
     async def get_map(
         self,
         files: Sequence[str],
@@ -826,6 +887,67 @@ def get_scm_fname(lang: str) -> Path | None:
         return Path(str(path))
     except KeyError:
         return None
+
+
+def get_supported_languages() -> set[str]:
+    """Get set of languages that have tree-sitter tag support."""
+    from grep_ast.parsers import PARSERS  # type: ignore[import-untyped]
+
+    supported = set()
+    for lang in set(PARSERS.values()):
+        scm = get_scm_fname(lang)
+        if scm and scm.exists():
+            supported.add(lang)
+    return supported
+
+
+def is_language_supported(fname: str) -> bool:
+    """Check if a file's language supports tree-sitter tags."""
+    from grep_ast import filename_to_lang  # type: ignore[import-untyped]
+
+    lang = filename_to_lang(fname)
+    if not lang:
+        return False
+    scm = get_scm_fname(lang)
+    return scm is not None and scm.exists()
+
+
+def truncate_with_notice(
+    path: str,
+    content: str,
+    head_lines: int = 100,
+    tail_lines: int = 50,
+) -> str:
+    """Show head + tail for files where structure map isn't supported.
+
+    Args:
+        path: File path for display
+        content: Full file content
+        head_lines: Number of lines to show from start
+        tail_lines: Number of lines to show from end
+
+    Returns:
+        Truncated content with notice about omitted lines
+    """
+    lines = content.splitlines()
+    total = len(lines)
+
+    if total <= head_lines + tail_lines:
+        return content
+
+    head = lines[:head_lines]
+    tail = lines[-tail_lines:]
+    omitted = total - head_lines - tail_lines
+
+    return (
+        f"# File: {path} ({total} lines)\n"
+        f"# Showing first {head_lines} and last {tail_lines} lines "
+        f"(language not supported for structure map)\n\n"
+        + "\n".join(head)
+        + f"\n\n... [{omitted} lines omitted] ...\n\n"
+        + "\n".join(tail)
+        + "\n\n# Use offset/limit params to read specific sections"
+    )
 
 
 def get_supported_languages_md() -> str:
