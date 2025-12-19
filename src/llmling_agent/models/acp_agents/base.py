@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING, Annotated, Literal
 
 from exxec import ExecutionEnvironmentStr, get_environment  # noqa: TC002
 from exxec.configs import (
-    DockerExecutionEnvironmentConfig,
     E2bExecutionEnvironmentConfig,
     ExecutionEnvironmentConfig,  # noqa: TC002
 )
@@ -53,10 +52,8 @@ class BaseACPAgentConfig(NodeConfig):
             default="local",
             title="Execution Environment",
             examples=[
-                "local",
                 "docker",
                 E2bExecutionEnvironmentConfig(template="python-sandbox"),
-                DockerExecutionEnvironmentConfig(image="python:3.13-slim"),
             ],
         ),
     ] = "local"
