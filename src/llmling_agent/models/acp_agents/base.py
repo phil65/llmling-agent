@@ -65,7 +65,9 @@ class BaseACPAgentConfig(NodeConfig):
     allow_terminal: bool = Field(default=True, title="Allow Terminal")
     """Whether to allow terminal operations."""
 
-    auto_grant_permissions: bool = Field(default=True, title="Auto-Grant Permissions")
+    requires_tool_confirmation: Literal["never", "always"] = Field(
+        default="always", title="Tool confirmation mode"
+    )
     """Whether to automatically grant all permission requests."""
 
     def get_command(self) -> str:

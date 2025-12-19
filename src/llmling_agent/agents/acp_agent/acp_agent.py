@@ -174,13 +174,13 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         env: ExecutionEnvironment | None = None,
         allow_file_operations: bool = True,
         allow_terminal: bool = True,
-        auto_grant_permissions: bool = True,
         providers: list[ProviderType] | None = None,
         input_provider: InputProvider | None = None,
         agent_pool: AgentPool[Any] | None = None,
         enable_logging: bool = True,
         event_configs: Sequence[EventConfig] | None = None,
         event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
+        tool_confirmation_mode: ToolConfirmationMode = "always",
     ) -> None: ...
 
     def __init__(
@@ -197,13 +197,13 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         env: ExecutionEnvironment | None = None,
         allow_file_operations: bool = True,
         allow_terminal: bool = True,
-        auto_grant_permissions: bool = True,
         providers: list[ProviderType] | None = None,
         input_provider: InputProvider | None = None,
         agent_pool: AgentPool[Any] | None = None,
         enable_logging: bool = True,
         event_configs: Sequence[EventConfig] | None = None,
         event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
+        tool_confirmation_mode: ToolConfirmationMode = "always",
     ) -> None:
         from llmling_agent.agents.events import resolve_event_handlers
         from llmling_agent.tools.manager import ToolManager
@@ -223,7 +223,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
                 env=env_vars or {},
                 allow_file_operations=allow_file_operations,
                 allow_terminal=allow_terminal,
-                auto_grant_permissions=auto_grant_permissions,
+                requires_tool_confirmation=tool_confirmation_mode,
                 providers=list(providers) if providers else [],
             )
         super().__init__(
@@ -263,9 +263,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
 
         # Copy tool confirmation mode from config (aligned with Agent class)
         # auto_grant_permissions=True maps to "never", False maps to "always"
-        self.tool_confirmation_mode: ToolConfirmationMode = (
-            "never" if config.auto_grant_permissions else "always"
-        )
+        self.tool_confirmation_mode: ToolConfirmationMode = tool_confirmation_mode
 
     @property
     def context(self) -> NodeContext:
