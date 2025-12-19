@@ -88,12 +88,23 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
     sep = "/"
     upath_cls = ACPPath
 
-    def __init__(self, client: Client, session_id: str, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        client: Client,
+        session_id: str,
+        *,
+        use_cli_find: bool = True,
+        **kwargs: Any,
+    ) -> None:
         """Initialize ACP filesystem.
 
         Args:
             client: ACP client for operations
             session_id: Session identifier
+            use_cli_find: Use CLI find command for _find/_glob operations.
+                When True (default), uses a single `find` command for recursive
+                file discovery, which is much more efficient over the protocol
+                barrier than walking the tree with multiple ls calls.
             **kwargs: Additional filesystem options
         """
         super().__init__(**kwargs)
@@ -102,6 +113,7 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
         self.requests = ACPRequests(client, session_id)
         self.notifications = ACPNotifications(client, session_id)
         self.command_provider = get_os_command_provider()
+        self.use_cli_find = use_cli_find
 
     def _parse_command(self, command_str: str) -> tuple[str, list[str]]:
         """Parse a shell command string into command and arguments.
@@ -460,6 +472,74 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
             raise OSError(msg) from e
 
     rm = sync_wrapper(_rm)
+
+    async def _find(
+        self,
+        path: str,
+        maxdepth: int | None = None,
+        withdirs: bool = False,
+        **kwargs: Any,
+    ) -> list[str] | dict[str, AcpInfo]:
+        """Find files recursively.
+
+        When use_cli_find is enabled, uses a single CLI find command instead of
+        walking the directory tree with multiple ls calls. This is much more
+        efficient over the protocol barrier.
+
+        Args:
+            path: Root path to search from
+            maxdepth: Maximum depth to descend (None for unlimited)
+            withdirs: Include directories in results
+            **kwargs: Additional options (detail=True returns dict with info)
+
+        Returns:
+            List of paths, or dict mapping paths to info if detail=True
+        """
+        if not self.use_cli_find:
+            # Fall back to default fsspec implementation (walks tree with _ls)
+            return await super()._find(path, maxdepth=maxdepth, withdirs=withdirs, **kwargs)
+
+        detail = kwargs.pop("detail", False)
+        stripped = self._strip_protocol(path)
+        search_path = stripped if isinstance(stripped, str) else stripped[0]
+
+        # Determine file_type filter
+        file_type: Literal["file", "directory", "all"] = "all" if withdirs else "file"
+
+        find_cmd = self.command_provider.get_command("find")
+        cmd_str = find_cmd.create_command(search_path, maxdepth=maxdepth, file_type=file_type)
+
+        try:
+            cmd, args = self._parse_command(cmd_str)
+            output, exit_code = await self.requests.run_command(cmd, args=args, timeout_seconds=60)
+
+            if exit_code != 0:
+                # If find fails, fall back to default implementation
+                logger.warning("CLI find failed, falling back to walk: %s", output)
+                return await super()._find(path, maxdepth=maxdepth, withdirs=withdirs, **kwargs)
+
+            entries = find_cmd.parse_command(output, search_path)
+
+            if detail:
+                # Return dict with basic info from find output
+                return {
+                    entry.path: AcpInfo(
+                        name=entry.path,
+                        path=entry.path,
+                        type=entry.type,
+                        size=entry.size,
+                        timestamp=entry.timestamp,
+                        permissions=entry.permissions,
+                    )
+                    for entry in entries
+                }
+            return [entry.path for entry in entries]
+
+        except Exception as e:
+            logger.warning("CLI find error, falling back to walk: %s", e)
+            return await super()._find(path, maxdepth=maxdepth, withdirs=withdirs, **kwargs)
+
+    find = sync_wrapper(_find)  # pyright: ignore[reportAssignmentType]
 
     def open(self, path: str, mode: str = "rb", **kwargs: Any) -> ACPFile:
         """Open file for reading or writing.
