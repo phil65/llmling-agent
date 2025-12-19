@@ -227,7 +227,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
                 providers=list(providers) if providers else [],
             )
         super().__init__(
-            name=name or config.get_command(),
+            name=name or config.name or config.get_command(),
             description=description,
             display_name=display_name,
             mcp_servers=config.mcp_servers,
