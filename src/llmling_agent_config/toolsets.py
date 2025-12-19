@@ -500,7 +500,7 @@ class CodeToolsetConfig(BaseToolsetConfig):
         """Create code tools provider."""
         from llmling_agent_toolsets.builtin.code import CodeTools
 
-        env = self.environment.create_env() if self.environment else None
+        env = self.environment.get_provider() if self.environment else None
         provider = CodeTools(env=env, name="code")
         if self.tools is not None:
             from llmling_agent.resource_providers import FilteringResourceProvider
