@@ -319,7 +319,7 @@ async def grep_with_fsspec(
                         total_bytes += len(line.encode("utf-8"))
 
                 if file_matches:
-                    matches[file_path] = file_matches
+                    matches[file_path] = file_matches  # pyright: ignore[reportArgumentType]
 
             except Exception as e:  # noqa: BLE001
                 logger.debug("Error reading file during grep", file=file_path, error=str(e))
