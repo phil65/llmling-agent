@@ -76,7 +76,7 @@ stats = await run.run_in_background("Process this task")
 results = await run.wait()
 ```
 
-For detailed monitoring capabilities, see [Task Monitoring](../advanced/task-monitoring.md).
+For detailed monitoring capabilities, see [Task Monitoring](./task-monitoring.md).
 
 ## Iterating Over Execution
 

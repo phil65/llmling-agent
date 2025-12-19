@@ -78,22 +78,22 @@ agents:
 | [`display_name`](agent.md#display-name) | Human-readable display name for the agent |
 | [`description`](agent.md#description) | Optional description of the agent |
 | [`triggers`](event-sources.md) | Event sources that activate this agent |
-| [`connections`](./connections.md) | Targets to forward results to |
-| [`mcp_servers`](./mcp.md) | List of MCP server configurations |
+| [`connections`](../connections.md) | Targets to forward results to |
+| [`mcp_servers`](../mcp.md) | List of MCP server configurations |
 | [`input_provider`](agent.md#input-provider) | Provider for human-input-handling |
 | [`event_handlers`](observability.md#event-handlers) | Event handlers for processing agent stream events |
 | [`inherits`](inheritance.md) | Name of agent config to inherit from |
 | [`model`](model.md) | The model to use for this agent |
-| [`toolsets`](./toolsets/index.md) | Toolset configurations for extensible tool collections |
+| [`toolsets`](../toolsets/index.md) | Toolset configurations for extensible tool collections |
 | [`session`](session.md) | Session configuration for conversation recovery |
 | [`output_type`](responses.md) | Name of the response definition to use |
 | [`retries`](agent.md#retries) | Number of retries for failed operations |
 | [`output_retries`](agent.md#output-retries) | Max retries for result validation |
 | [`end_strategy`](agent.md#end-strategy) | The strategy for handling multiple tool calls when a final result is found |
 | [`avatar`](agent.md#avatar) | URL or path to agent's avatar image |
-| [`system_prompts`](./prompts.md) | System prompts for the agent |
-| [`knowledge`](./knowledge.md) | Knowledge sources for this agent |
-| [`workers`](worker.md) | Worker agents which will be available as tools |
+| [`system_prompts`](../prompts.md) | System prompts for the agent |
+| [`knowledge`](../knowledge.md) | Knowledge sources for this agent |
+| [`workers`](../toolsets/workers.md) | Worker agents which will be available as tools |
 | [`requires_tool_confirmation`](agent.md#tool-confirmation) | How to handle tool confirmation (always/never/per_tool) |
 | [`debug`](agent.md#debug) | Enable debug output for this agent |
 | [`environment`](execution-environments.md) | Execution environment configuration for this agent |
@@ -104,12 +104,11 @@ agents:
 
 ## Related Configuration
 
-- [Model Configuration](./model.md) - Configure LLM providers
-- [System Prompts](./prompts.md) - Define agent behavior
-- [Tools](./tools.md) - Individual tool configuration
-- [Toolsets](./toolsets.md) - Tool collections
-- [Workers](./worker.md) - Sub-agent delegation
-- [Connections](./connections.md) - Message routing
-- [MCP Servers](./mcp.md) - MCP integration
+- [Model Configuration](../model.md) - Configure LLM providers
+- [System Prompts](../prompts.md) - Define agent behavior
+- [Toolsets](../toolsets/index.md) - Tool collections
+- [Workers](../toolsets/workers.md) - Sub-agent delegation
+- [Connections](../connections.md) - Message routing
+- [MCP Servers](../mcp.md) - MCP integration
 - [ACP Agents](acp-agents.md) - External ACP agent integration
 - [AG-UI Agents](agui-agents.md) - AG-UI protocol agents

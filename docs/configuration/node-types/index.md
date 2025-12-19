@@ -31,7 +31,7 @@ Nodes are the core building blocks of LLMling-Agent. This section covers the dif
 
 ## Teams
 
-[Teams](team.md) coordinate multiple agents to work together on complex tasks:
+[Teams](./team.md) coordinate multiple agents to work together on complex tasks:
 
 - **Parallel teams**: Members execute simultaneously
 - **Sequential teams**: Members execute in sequence, passing results along
