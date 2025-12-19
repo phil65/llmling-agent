@@ -2,9 +2,15 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Annotated, Any, Literal
+from typing import TYPE_CHECKING, Annotated, Literal
 
-from pydantic import ConfigDict, Field, TypeAdapter
+from exxec import ExecutionEnvironmentStr, get_environment  # noqa: TC002
+from exxec.configs import (
+    DockerExecutionEnvironmentConfig,
+    E2bExecutionEnvironmentConfig,
+    ExecutionEnvironmentConfig,  # noqa: TC002
+)
+from pydantic import ConfigDict, Field
 from tokonomics.model_discovery import ProviderType  # noqa: TC002
 
 from llmling_agent_config.nodes import NodeConfig
@@ -12,9 +18,6 @@ from llmling_agent_config.nodes import NodeConfig
 
 if TYPE_CHECKING:
     from exxec import ExecutionEnvironment
-    from exxec.configs import (
-        ExecutionEnvironmentConfig as ExecutionEnvironmentConfigType,
-    )
 
 
 class BaseACPAgentConfig(NodeConfig):
@@ -45,15 +48,15 @@ class BaseACPAgentConfig(NodeConfig):
     """Environment variables to set."""
 
     execution_environment: Annotated[
-        Literal["local", "docker", "e2b", "beam", "daytona", "srt"] | dict[str, Any],
+        ExecutionEnvironmentStr | ExecutionEnvironmentConfig,
         Field(
             default="local",
             title="Execution Environment",
             examples=[
                 "local",
                 "docker",
-                {"type": "e2b", "template": "python-sandbox"},
-                {"type": "docker", "image": "python:3.13-slim"},
+                E2bExecutionEnvironmentConfig(template="python-sandbox"),
+                DockerExecutionEnvironmentConfig(image="python:3.13-slim"),
             ],
         ),
     ] = "local"
@@ -80,23 +83,9 @@ class BaseACPAgentConfig(NodeConfig):
 
     def get_execution_environment(self) -> ExecutionEnvironment:
         """Create execution environment from config."""
-        from exxec.configs import (
-            ExecutionEnvironmentConfig,
-            LocalExecutionEnvironmentConfig,
-        )
-
-        config: ExecutionEnvironmentConfigType
-        match self.execution_environment:
-            case str() as env_type:
-                # Simple string like "local", "docker"
-                config = TypeAdapter(ExecutionEnvironmentConfig).validate_python({"type": env_type})
-            case dict() as env_dict:
-                # Full config dict
-                config = TypeAdapter(ExecutionEnvironmentConfig).validate_python(env_dict)
-            case _:
-                config = LocalExecutionEnvironmentConfig()
-
-        return config.get_provider()
+        if isinstance(self.execution_environment, str):
+            return get_environment(self.execution_environment)
+        return self.execution_environment.get_provider()
 
     @property
     def model_providers(self) -> list[ProviderType]:
