@@ -151,7 +151,7 @@ async def test_agent_forwarding():
 @pytest.mark.integration
 async def test_cost_tracking_with_real_model():
     """Test that cost tracking works with a real model (integration test)."""
-    model = "openrouter:google/gemini-2.5-flash-lite"
+    model = "openai:gpt-5-nano"
     async with Agent(model=model, name="cost-test-agent") as agent:
         result = await agent.run("Say 'hello' and nothing else.")
 
