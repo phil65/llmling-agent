@@ -50,7 +50,7 @@ AutoCache = Literal["off", "5m", "1h"]
 logger = log.get_logger(__name__)
 
 
-class AgentConfig(NodeConfig):
+class NativeAgentConfig(NodeConfig):
     """Configuration for a single agent in the system.
 
     Defines an agent's complete configuration including its model, environment,
@@ -450,5 +450,5 @@ class AgentConfig(NodeConfig):
 
 if __name__ == "__main__":
     model = "openai:gpt-5-nano"
-    agent_cfg = AgentConfig(name="test_agent", model=model)
+    agent_cfg = NativeAgentConfig(name="test_agent", model=model)
     print(agent_cfg)

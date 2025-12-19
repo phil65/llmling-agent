@@ -9,7 +9,7 @@ from pydantic_ai.models.test import TestModel
 import pytest
 import yamling
 
-from llmling_agent import Agent, AgentConfig, AgentPool, AgentsManifest
+from llmling_agent import Agent, AgentPool, AgentsManifest, NativeAgentConfig
 
 
 TEST_RESPONSE = "I am a test response"
@@ -104,8 +104,8 @@ def test_agent() -> Agent[None]:
 @pytest.fixture
 def manifest():
     """Create test manifest with some agents."""
-    agent_1 = AgentConfig(name="agent1", model="test")
-    agent_2 = AgentConfig(name="agent2", model="test")
+    agent_1 = NativeAgentConfig(name="agent1", model="test")
+    agent_2 = NativeAgentConfig(name="agent2", model="test")
     return AgentsManifest(agents={"agent1": agent_1, "agent2": agent_2})
 
 

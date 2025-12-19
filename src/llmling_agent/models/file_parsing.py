@@ -3,7 +3,7 @@
 Supports loading agents from markdown files with YAML frontmatter in various formats:
 - Claude Code: https://code.claude.com/docs/en/sub-agents.md
 - OpenCode: https://github.com/sst/opencode
-- LLMling (native): Full AgentConfig fields in frontmatter
+- LLMling (native): Full NativeAgentConfig fields in frontmatter
 """
 
 from __future__ import annotations
@@ -17,7 +17,7 @@ from llmling_agent.log import get_logger
 
 
 if TYPE_CHECKING:
-    from llmling_agent.models.agents import AgentConfig
+    from llmling_agent.models.agents import NativeAgentConfig
     from llmling_agent.models.file_agents import FileAgentConfig
 
 
@@ -39,7 +39,7 @@ PERMISSION_MODE_MAP: dict[str, Literal["always", "never", "per_tool"]] = {
     # 'plan' and 'ignore' don't map well, default to per_tool
 }
 
-# Fields that pass through directly to AgentConfig
+# Fields that pass through directly to NativeAgentConfig
 PASSTHROUGH_FIELDS = {
     "inherits",
     "toolsets",
@@ -137,7 +137,7 @@ def parse_claude_format(
         skills_registry: Optional skills registry for loading skills
 
     Returns:
-        Dict of AgentConfig kwargs
+        Dict of NativeAgentConfig kwargs
     """
     config_kwargs: dict[str, Any] = {}
 
@@ -205,7 +205,7 @@ def parse_opencode_format(
         file_path: Path for logging
 
     Returns:
-        Dict of AgentConfig kwargs
+        Dict of NativeAgentConfig kwargs
     """
     config_kwargs: dict[str, Any] = {}
 
@@ -271,7 +271,7 @@ def parse_native_format(
 ) -> dict[str, Any]:
     """Parse native format frontmatter.
 
-    This format allows full AgentConfig fields in the frontmatter,
+    This format allows full NativeAgentConfig fields in the frontmatter,
     with the markdown body used as system prompt.
 
     Args:
@@ -279,9 +279,9 @@ def parse_native_format(
         system_prompt: Markdown body content
 
     Returns:
-        Dict of AgentConfig kwargs
+        Dict of NativeAgentConfig kwargs
     """
-    # Start with all metadata (it's already in AgentConfig format)
+    # Start with all metadata (it's already in NativeAgentConfig format)
     config_kwargs = dict(metadata)
 
     # Add system prompt from body if present and not already defined
@@ -296,8 +296,8 @@ def parse_agent_file(
     *,
     file_format: Literal["claude", "opencode", "native", "auto"] = "auto",
     skills_registry: Any | None = None,
-) -> AgentConfig:
-    """Parse agent markdown file to AgentConfig.
+) -> NativeAgentConfig:
+    """Parse agent markdown file to NativeAgentConfig.
 
     Supports Claude Code, OpenCode, and native formats with auto-detection.
     Also supports local and remote paths via UPath.
@@ -308,12 +308,12 @@ def parse_agent_file(
         skills_registry: Optional skills registry for loading skills
 
     Returns:
-        Parsed AgentConfig
+        Parsed NativeAgentConfig
 
     Raises:
         ValueError: If file cannot be parsed
     """
-    from llmling_agent.models.agents import AgentConfig
+    from llmling_agent.models.agents import NativeAgentConfig
 
     path = to_upath(file_path)
     content = path.read_text("utf-8")
@@ -337,15 +337,15 @@ def parse_agent_file(
         msg = f"Unknown format {detected_format!r} for {file_path}"
         raise ValueError(msg)
 
-    return AgentConfig(**config_kwargs)
+    return NativeAgentConfig(**config_kwargs)
 
 
 def parse_file_agent_reference(
     reference: str | FileAgentConfig,
     *,
     skills_registry: Any | None = None,
-) -> AgentConfig:
-    """Parse a file agent reference (path string or config) to AgentConfig.
+) -> NativeAgentConfig:
+    """Parse a file agent reference (path string or config) to NativeAgentConfig.
 
     Args:
         reference: Either a path string (auto-detect format) or FileAgentConfig
@@ -353,7 +353,7 @@ def parse_file_agent_reference(
         skills_registry: Optional skills registry for loading skills
 
     Returns:
-        Parsed AgentConfig
+        Parsed NativeAgentConfig
     """
     if isinstance(reference, str):
         # Simple path string: auto-detect format

@@ -5,8 +5,7 @@ from __future__ import annotations
 from exxec import MockExecutionEnvironment
 import pytest
 
-from llmling_agent import Agent, AgentContext, AgentsManifest
-from llmling_agent.models.agents import AgentConfig
+from llmling_agent import Agent, AgentContext, AgentsManifest, NativeAgentConfig
 from llmling_agent_toolsets.fsspec_toolset import FSSpecTools
 
 
@@ -14,7 +13,7 @@ from llmling_agent_toolsets.fsspec_toolset import FSSpecTools
 def agent_ctx() -> AgentContext:
     """Create a fresh mock context for each test."""
     return AgentContext(
-        node=Agent(name="test_agent"), config=AgentConfig(), definition=AgentsManifest()
+        node=Agent(name="test_agent"), config=NativeAgentConfig(), definition=AgentsManifest()
     )
 
 

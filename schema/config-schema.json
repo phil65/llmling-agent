@@ -779,2185 +779,6 @@
       "title": "AGUIAgentWorkerConfig",
       "type": "object"
     },
-    "AgentConfig": {
-      "additionalProperties": false,
-      "description": "Configuration for a single agent in the system.\n\nDefines an agent's complete configuration including its model, environment,\nand behavior settings.\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/agent_configuration/",
-      "properties": {
-        "name": {
-          "default": null,
-          "description": "Identifier for the node. Set from dict key, not from YAML.",
-          "title": "Name",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "config_file_path": {
-          "default": null,
-          "description": "Config file path for resolving relative paths.",
-          "examples": [
-            "/path/to/config.yml",
-            "configs/agent.yaml"
-          ],
-          "title": "Configuration file path",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "display_name": {
-          "default": null,
-          "description": "Human-readable display name for the node.",
-          "examples": [
-            "Main Agent",
-            "Web Searcher",
-            "Code Assistant"
-          ],
-          "title": "Display name",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "description": {
-          "default": null,
-          "description": "Optional description of the agent / team.",
-          "examples": [
-            "Main conversation agent",
-            "Handles web search requests"
-          ],
-          "title": "Node description",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "triggers": {
-          "description": "Event sources that activate this agent / team",
-          "examples": [
-            [
-              {
-                "name": "daily_check",
-                "prompt": "Daily status update",
-                "schedule": "0 9 * * *",
-                "type": "time"
-              }
-            ],
-            [
-              {
-                "extensions": [
-                  ".py"
-                ],
-                "name": "code_watcher",
-                "paths": [
-                  "./src"
-                ],
-                "type": "file"
-              }
-            ]
-          ],
-          "items": {
-            "discriminator": {
-              "mapping": {
-                "email": "#/$defs/EmailConfig",
-                "file": "#/$defs/FileWatchConfig",
-                "time": "#/$defs/TimeEventConfig",
-                "webhook": "#/$defs/WebhookConfig"
-              },
-              "propertyName": "type"
-            },
-            "oneOf": [
-              {
-                "$ref": "#/$defs/FileWatchConfig"
-              },
-              {
-                "$ref": "#/$defs/WebhookConfig"
-              },
-              {
-                "$ref": "#/$defs/EmailConfig"
-              },
-              {
-                "$ref": "#/$defs/TimeEventConfig"
-              }
-            ]
-          },
-          "title": "Event triggers",
-          "type": "array"
-        },
-        "connections": {
-          "description": "Targets to forward results to.",
-          "examples": [
-            [
-              {
-                "connection_type": "run",
-                "name": "output_agent",
-                "type": "node",
-                "wait_for_completion": true
-              }
-            ],
-            [
-              {
-                "path": "logs/messages.txt",
-                "template": "{{ message.content }}",
-                "type": "file"
-              }
-            ]
-          ],
-          "items": {
-            "discriminator": {
-              "mapping": {
-                "callable": "#/$defs/CallableConnectionConfig",
-                "file": "#/$defs/FileConnectionConfig",
-                "node": "#/$defs/NodeConnectionConfig"
-              },
-              "propertyName": "type"
-            },
-            "oneOf": [
-              {
-                "$ref": "#/$defs/NodeConnectionConfig"
-              },
-              {
-                "$ref": "#/$defs/FileConnectionConfig"
-              },
-              {
-                "$ref": "#/$defs/CallableConnectionConfig"
-              }
-            ]
-          },
-          "title": "Message forwarding targets",
-          "type": "array"
-        },
-        "mcp_servers": {
-          "description": "List of MCP server configurations:\n- str entries are converted to StdioMCPServerConfig\n- MCPServerConfig for full server configuration",
-          "examples": [
-            [
-              "uvx some-server"
-            ],
-            [
-              {
-                "type": "streamable-http",
-                "url": "http://mcp.example.com"
-              }
-            ]
-          ],
-          "items": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "discriminator": {
-                  "mapping": {
-                    "sse": "#/$defs/SSEMCPServerConfig",
-                    "stdio": "#/$defs/StdioMCPServerConfig",
-                    "streamable-http": "#/$defs/StreamableHTTPMCPServerConfig"
-                  },
-                  "propertyName": "type"
-                },
-                "oneOf": [
-                  {
-                    "$ref": "#/$defs/StdioMCPServerConfig"
-                  },
-                  {
-                    "$ref": "#/$defs/SSEMCPServerConfig"
-                  },
-                  {
-                    "$ref": "#/$defs/StreamableHTTPMCPServerConfig"
-                  }
-                ]
-              }
-            ]
-          },
-          "title": "MCP servers",
-          "type": "array"
-        },
-        "input_provider": {
-          "default": null,
-          "description": "Provider for human-input-handling.",
-          "title": "Input provider",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "event_handlers": {
-          "description": "Event handlers for processing agent stream events.\n\nSupports:\n- builtin: Simple/detailed console output\n- tts: Text-to-speech synthesis\n- callback: Custom handler via import path",
-          "examples": [
-            [
-              {
-                "handler": "simple",
-                "type": "builtin"
-              }
-            ]
-          ],
-          "items": {
-            "discriminator": {
-              "mapping": {
-                "builtin": "#/$defs/StdoutEventHandlerConfig",
-                "callback": "#/$defs/CallbackEventHandlerConfig",
-                "edge-tts": "#/$defs/EdgeTTSEventHandlerConfig",
-                "tts": "#/$defs/TTSEventHandlerConfig"
-              },
-              "propertyName": "type"
-            },
-            "oneOf": [
-              {
-                "$ref": "#/$defs/StdoutEventHandlerConfig"
-              },
-              {
-                "$ref": "#/$defs/CallbackEventHandlerConfig"
-              },
-              {
-                "$ref": "#/$defs/TTSEventHandlerConfig"
-              },
-              {
-                "$ref": "#/$defs/EdgeTTSEventHandlerConfig"
-              }
-            ]
-          },
-          "title": "Event handlers",
-          "type": "array"
-        },
-        "inherits": {
-          "default": null,
-          "description": "Name of agent config to inherit from",
-          "title": "Inheritance source",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "model": {
-          "anyOf": [
-            {
-              "discriminator": {
-                "mapping": {
-                  "anthropic": "#/$defs/AnthropicModelConfig",
-                  "augmented": "#/$defs/AugmentedModelConfig",
-                  "claude_code": "#/$defs/ClaudeCodeModelConfig",
-                  "delegation": "#/$defs/DelegationModelConfig",
-                  "fallback": "#/$defs/FallbackModelConfig",
-                  "function": "#/$defs/FunctionModelConfig",
-                  "gemini": "#/$defs/GeminiModelConfig",
-                  "import": "#/$defs/ImportModelConfig",
-                  "input": "#/$defs/InputModelConfig",
-                  "openai": "#/$defs/OpenAIModelConfig",
-                  "remote-input": "#/$defs/RemoteInputConfig",
-                  "remote-proxy": "#/$defs/RemoteProxyConfig",
-                  "string": "#/$defs/StringModelConfig",
-                  "test": "#/$defs/TestModelConfig",
-                  "user-select": "#/$defs/UserSelectModelConfig"
-                },
-                "propertyName": "type"
-              },
-              "oneOf": [
-                {
-                  "$ref": "#/$defs/AugmentedModelConfig"
-                },
-                {
-                  "$ref": "#/$defs/ClaudeCodeModelConfig"
-                },
-                {
-                  "$ref": "#/$defs/DelegationModelConfig"
-                },
-                {
-                  "$ref": "#/$defs/FallbackModelConfig"
-                },
-                {
-                  "$ref": "#/$defs/FunctionModelConfig"
-                },
-                {
-                  "$ref": "#/$defs/ImportModelConfig"
-                },
-                {
-                  "$ref": "#/$defs/InputModelConfig"
-                },
-                {
-                  "$ref": "#/$defs/RemoteInputConfig"
-                },
-                {
-                  "$ref": "#/$defs/RemoteProxyConfig"
-                },
-                {
-                  "$ref": "#/$defs/StringModelConfig"
-                },
-                {
-                  "$ref": "#/$defs/TestModelConfig"
-                },
-                {
-                  "$ref": "#/$defs/UserSelectModelConfig"
-                },
-                {
-                  "$ref": "#/$defs/OpenAIModelConfig"
-                },
-                {
-                  "$ref": "#/$defs/AnthropicModelConfig"
-                },
-                {
-                  "$ref": "#/$defs/GeminiModelConfig"
-                }
-              ]
-            },
-            {
-              "enum": [
-                "anthropic:claude-haiku-4-5",
-                "anthropic:claude-haiku-4-5-20251001",
-                "anthropic:claude-opus-4-1",
-                "anthropic:claude-opus-4-1-20250805",
-                "anthropic:claude-opus-4-5",
-                "anthropic:claude-opus-4-5-20251101",
-                "anthropic:claude-sonnet-4-5",
-                "anthropic:claude-sonnet-4-5-20250929"
-              ],
-              "type": "string"
-            },
-            {
-              "enum": [
-                "cerebras:gpt-oss-120b",
-                "cerebras:qwen-3-235b-a22b-instruct-2507",
-                "cerebras:zai-glm-4.6"
-              ],
-              "type": "string"
-            },
-            {
-              "enum": [
-                "claude-code:haiku",
-                "claude-code:opus",
-                "claude-code:sonnet"
-              ],
-              "type": "string"
-            },
-            {
-              "enum": [
-                "cohere:command-a-reasoning-08-2025",
-                "cohere:command-a-translate-08-2025",
-                "cohere:command-a-vision-07-2025"
-              ],
-              "type": "string"
-            },
-            {
-              "enum": [
-                "comet:DeepSeek-V3.2-Exp-nothinking",
-                "comet:DeepSeek-V3.2-Exp-thinking",
-                "comet:Qwen2.5-72B-Instruct-128K",
-                "comet:abab5.5-chat",
-                "comet:abab5.5s-chat",
-                "comet:abab6-chat",
-                "comet:abab6.5g-chat",
-                "comet:abab6.5s-chat",
-                "comet:abab6.5t-chat",
-                "comet:abab7-chat-preview",
-                "comet:black-forest-labs/flux-1.1-pro",
-                "comet:black-forest-labs/flux-1.1-pro-ultra",
-                "comet:black-forest-labs/flux-2-dev",
-                "comet:black-forest-labs/flux-2-flex",
-                "comet:black-forest-labs/flux-2-pro",
-                "comet:black-forest-labs/flux-dev",
-                "comet:black-forest-labs/flux-kontext-max",
-                "comet:black-forest-labs/flux-kontext-pro",
-                "comet:black-forest-labs/flux-pro",
-                "comet:black-forest-labs/flux-schnell",
-                "comet:bria_image_edit_enhance",
-                "comet:bria_image_edit_erase",
-                "comet:bria_image_edit_expand",
-                "comet:bria_image_edit_gen_fill",
-                "comet:bria_image_edit_increase_resolution",
-                "comet:bria_image_edit_replace_background",
-                "comet:bria_text_to_image",
-                "comet:bria_text_to_vector",
-                "comet:bytedance-seedEdit-3.0-i2i",
-                "comet:bytedance-seedance-1-0-lite",
-                "comet:bytedance-seedance-1-0-lite-i2v-250428",
-                "comet:bytedance-seedance-1-0-lite-t2v-250428",
-                "comet:bytedance-seedance-1-0-pro",
-                "comet:bytedance-seedream-3.0-t2i",
-                "comet:bytedance-seedream-4-0-250828",
-                "comet:chatgpt-4o-latest",
-                "comet:claude-3-5-haiku-20241022",
-                "comet:claude-3-5-haiku-latest",
-                "comet:claude-3-5-sonnet-20240620",
-                "comet:claude-3-5-sonnet-20241022",
-                "comet:claude-3-5-sonnet-all",
-                "comet:claude-3-5-sonnet-latest",
-                "comet:claude-3-7-sonnet-20250219",
-                "comet:claude-3-7-sonnet-20250219-thinking",
-                "comet:claude-3-7-sonnet-latest",
-                "comet:claude-3-7-sonnet-thinking",
-                "comet:claude-3-haiku-20240307",
-                "comet:claude-3-opus-20240229",
-                "comet:claude-3-opus-latest",
-                "comet:claude-haiku-4-5-20251001",
-                "comet:claude-opus-4-1-20250805",
-                "comet:claude-opus-4-1-20250805-thinking",
-                "comet:claude-opus-4-20250514",
-                "comet:claude-opus-4-20250514-thinking",
-                "comet:claude-opus-4-5-20251101",
-                "comet:claude-opus-4-5-20251101-thinking",
-                "comet:claude-sonnet-4-20250514",
-                "comet:claude-sonnet-4-20250514-thinking",
-                "comet:claude-sonnet-4-5",
-                "comet:claude-sonnet-4-5-20250929",
-                "comet:claude-sonnet-4-5-20250929-thinking",
-                "comet:codex-mini-latest",
-                "comet:cometapi-3-5-sonnet",
-                "comet:cometapi-3-7-sonnet",
-                "comet:cometapi-3-7-sonnet-thinking",
-                "comet:cometapi-haiku-4-5-20251001",
-                "comet:cometapi-opus-4-1-20250805",
-                "comet:cometapi-opus-4-1-20250805-thinking",
-                "comet:cometapi-opus-4-20250514",
-                "comet:cometapi-opus-4-20250514-thinking",
-                "comet:cometapi-opus-4-5-20251101",
-                "comet:cometapi-opus-4-5-20251101-thinking",
-                "comet:cometapi-sonnet-4-20250514",
-                "comet:cometapi-sonnet-4-20250514-thinking",
-                "comet:cometapi-sonnet-4-5",
-                "comet:cometapi-sonnet-4-5-20250929",
-                "comet:cometapi-sonnet-4-5-20250929-thinking",
-                "comet:dall-e-2",
-                "comet:dall-e-3",
-                "comet:deepseek-ai/DeepSeek-V3",
-                "comet:deepseek-ai/deepseek-r1",
-                "comet:deepseek-chat",
-                "comet:deepseek-ocr",
-                "comet:deepseek-r1",
-                "comet:deepseek-r1-0528",
-                "comet:deepseek-r1t2-chimera",
-                "comet:deepseek-reasoner",
-                "comet:deepseek-v3",
-                "comet:deepseek-v3-1-250821",
-                "comet:deepseek-v3-250324",
-                "comet:deepseek-v3.1",
-                "comet:deepseek-v3.1-think-250821",
-                "comet:deepseek-v3.2",
-                "comet:deepseek-v3.2-exp",
-                "comet:doubao-1-5-pro-256k",
-                "comet:doubao-1-5-pro-256k-250115",
-                "comet:doubao-1-5-pro-32k",
-                "comet:doubao-1-5-pro-32k-250115",
-                "comet:doubao-1-5-thinking-pro-250415",
-                "comet:doubao-1-5-thinking-vision-pro-250428",
-                "comet:doubao-1-5-vision-pro-32k",
-                "comet:doubao-1.5-lite-32k",
-                "comet:doubao-1.5-pro-256k",
-                "comet:doubao-1.5-pro-32k",
-                "comet:doubao-1.5-pro-32k-250115",
-                "comet:doubao-1.5-thinking-pro",
-                "comet:doubao-1.5-vision-pro",
-                "comet:doubao-1.5-vision-pro-250328",
-                "comet:doubao-1.5-vision-pro-32k",
-                "comet:doubao-1.5-vision-pro-32k-250115",
-                "comet:doubao-lite-128k",
-                "comet:doubao-lite-32k",
-                "comet:doubao-lite-32k-240828",
-                "comet:doubao-lite-4k",
-                "comet:doubao-pro-128k",
-                "comet:doubao-pro-256k",
-                "comet:doubao-pro-32k",
-                "comet:doubao-pro-32k-241215",
-                "comet:doubao-pro-4k",
-                "comet:doubao-seed-1-6-250615",
-                "comet:doubao-seed-1-6-flash-250615",
-                "comet:doubao-seed-1-6-thinking-250715",
-                "comet:doubao-seed-1.6",
-                "comet:doubao-seed-1.6-thinking",
-                "comet:doubao-seedance-1-0-lite-i2v-250428",
-                "comet:doubao-seedance-1-0-lite-t2v-250428",
-                "comet:doubao-seedance-1-0-pro-250528",
-                "comet:doubao-seedance-1.0-pro",
-                "comet:doubao-seededit-3-0-i2i-250628",
-                "comet:doubao-seedream-3-0-t2i-250415",
-                "comet:doubao-seedream-4-0-250828",
-                "comet:doubao-seedream-4-5-251128",
-                "comet:doubao-vision-pro-32k",
-                "comet:flux-1.1-pro",
-                "comet:flux-2-flex",
-                "comet:flux-2-pro",
-                "comet:flux-dev",
-                "comet:flux-finetune",
-                "comet:flux-kontext-max",
-                "comet:flux-kontext-pro",
-                "comet:flux-pro",
-                "comet:flux-pro-1.0-canny",
-                "comet:flux-pro-1.0-canny-finetuned",
-                "comet:flux-pro-1.0-depth",
-                "comet:flux-pro-1.0-depth-finetuned",
-                "comet:flux-pro-1.0-fill",
-                "comet:flux-pro-1.0-fill-finetuned",
-                "comet:flux-pro-1.1",
-                "comet:flux-pro-1.1-ultra",
-                "comet:flux-pro-1.1-ultra-finetuned",
-                "comet:flux-pro-finetuned",
-                "comet:gemini-2.0-flash",
-                "comet:gemini-2.0-flash-exp",
-                "comet:gemini-2.0-flash-exp-image-generation",
-                "comet:gemini-2.0-flash-lite-preview-02-05",
-                "comet:gemini-2.0-flash-thinking",
-                "comet:gemini-2.0-flash-thinking-exp",
-                "comet:gemini-2.0-flash-thinking-exp-01-21",
-                "comet:gemini-2.0-flash-thinking-exp-0119",
-                "comet:gemini-2.0-flash-thinking-exp-0129",
-                "comet:gemini-2.0-flash-thinking-exp-1219",
-                "comet:gemini-2.0-pro-exp",
-                "comet:gemini-2.0-pro-exp-02-05",
-                "comet:gemini-2.5-flash",
-                "comet:gemini-2.5-flash-all",
-                "comet:gemini-2.5-flash-deepsearch",
-                "comet:gemini-2.5-flash-image",
-                "comet:gemini-2.5-flash-image-preview",
-                "comet:gemini-2.5-flash-lite",
-                "comet:gemini-2.5-flash-lite-preview-06-17",
-                "comet:gemini-2.5-flash-lite-preview-06-17-thinking",
-                "comet:gemini-2.5-flash-lite-preview-09-2025",
-                "comet:gemini-2.5-flash-lite-thinking",
-                "comet:gemini-2.5-flash-preview-04-17",
-                "comet:gemini-2.5-flash-preview-05-20",
-                "comet:gemini-2.5-flash-preview-05-20-thinking",
-                "comet:gemini-2.5-flash-preview-09-2025",
-                "comet:gemini-2.5-flash-thinking",
-                "comet:gemini-2.5-pro",
-                "comet:gemini-2.5-pro-all",
-                "comet:gemini-2.5-pro-deepsearch",
-                "comet:gemini-2.5-pro-exp-03-25",
-                "comet:gemini-2.5-pro-preview-03-25",
-                "comet:gemini-2.5-pro-preview-05-06",
-                "comet:gemini-2.5-pro-preview-06-05",
-                "comet:gemini-2.5-pro-thinking",
-                "comet:gemini-3-pro-image",
-                "comet:gemini-3-pro-image-preview",
-                "comet:gemini-3-pro-preview",
-                "comet:gemini-3-pro-preview-thinking",
-                "comet:glm-3-turbo",
-                "comet:glm-4",
-                "comet:glm-4-0520",
-                "comet:glm-4-air",
-                "comet:glm-4-airx",
-                "comet:glm-4-flash",
-                "comet:glm-4-plus",
-                "comet:glm-4.5",
-                "comet:glm-4.5-air",
-                "comet:glm-4.5-airx",
-                "comet:glm-4.5-flash",
-                "comet:glm-4.5-x",
-                "comet:glm-4.6",
-                "comet:glm-4v",
-                "comet:glm-4v-plus",
-                "comet:gpt-3.5-turbo",
-                "comet:gpt-3.5-turbo-0125",
-                "comet:gpt-3.5-turbo-0613",
-                "comet:gpt-3.5-turbo-1106",
-                "comet:gpt-3.5-turbo-16k",
-                "comet:gpt-3.5-turbo-16k-0613",
-                "comet:gpt-3.5-turbo-instruct",
-                "comet:gpt-4",
-                "comet:gpt-4-0125-preview",
-                "comet:gpt-4-0613",
-                "comet:gpt-4-1106-preview",
-                "comet:gpt-4-32k",
-                "comet:gpt-4-32k-0613",
-                "comet:gpt-4-all",
-                "comet:gpt-4-gizmo-*",
-                "comet:gpt-4-turbo",
-                "comet:gpt-4-turbo-2024-04-09",
-                "comet:gpt-4-turbo-preview",
-                "comet:gpt-4-vision-preview",
-                "comet:gpt-4.1",
-                "comet:gpt-4.1-2025-04-14",
-                "comet:gpt-4.1-mini",
-                "comet:gpt-4.1-mini-2025-04-14",
-                "comet:gpt-4.1-nano",
-                "comet:gpt-4.1-nano-2025-04-14",
-                "comet:gpt-4o",
-                "comet:gpt-4o-2024-05-13",
-                "comet:gpt-4o-2024-08-06",
-                "comet:gpt-4o-2024-11-20",
-                "comet:gpt-4o-all",
-                "comet:gpt-4o-audio-preview",
-                "comet:gpt-4o-audio-preview-2024-10-01",
-                "comet:gpt-4o-audio-preview-2024-12-17",
-                "comet:gpt-4o-audio-preview-2025-06-03",
-                "comet:gpt-4o-image",
-                "comet:gpt-4o-mini",
-                "comet:gpt-4o-mini-2024-07-18",
-                "comet:gpt-4o-mini-audio-preview",
-                "comet:gpt-4o-mini-audio-preview-2024-12-17",
-                "comet:gpt-4o-mini-realtime-preview",
-                "comet:gpt-4o-mini-realtime-preview-2024-12-17",
-                "comet:gpt-4o-mini-search-preview",
-                "comet:gpt-4o-mini-search-preview-2025-03-11",
-                "comet:gpt-4o-mini-transcribe",
-                "comet:gpt-4o-mini-tts",
-                "comet:gpt-4o-realtime-preview",
-                "comet:gpt-4o-realtime-preview-2024-10-01",
-                "comet:gpt-4o-realtime-preview-2024-12-17",
-                "comet:gpt-4o-realtime-preview-2025-06-03",
-                "comet:gpt-4o-search",
-                "comet:gpt-4o-search-preview",
-                "comet:gpt-4o-search-preview-2025-03-11",
-                "comet:gpt-4o-transcribe",
-                "comet:gpt-5",
-                "comet:gpt-5-2025-08-07",
-                "comet:gpt-5-all",
-                "comet:gpt-5-chat-latest",
-                "comet:gpt-5-codex",
-                "comet:gpt-5-codex-high",
-                "comet:gpt-5-codex-low",
-                "comet:gpt-5-codex-medium",
-                "comet:gpt-5-high",
-                "comet:gpt-5-low",
-                "comet:gpt-5-medium",
-                "comet:gpt-5-mini",
-                "comet:gpt-5-mini-2025-08-07",
-                "comet:gpt-5-minimal",
-                "comet:gpt-5-nano",
-                "comet:gpt-5-nano-2025-08-07",
-                "comet:gpt-5-pro",
-                "comet:gpt-5-pro-2025-10-06",
-                "comet:gpt-5-thinking",
-                "comet:gpt-5-thinking-all",
-                "comet:gpt-5.1",
-                "comet:gpt-5.1-chat-latest",
-                "comet:gpt-5.1-codex",
-                "comet:gpt-image-1",
-                "comet:gpt-image-1-mini",
-                "comet:gpt-oss-120b",
-                "comet:gpt-oss-20b",
-                "comet:gpt-realtime",
-                "comet:gpt-realtime-mini",
-                "comet:grok-2",
-                "comet:grok-2-1212",
-                "comet:grok-2-vision-1212",
-                "comet:grok-3",
-                "comet:grok-3-beta",
-                "comet:grok-3-deepersearch",
-                "comet:grok-3-deepsearch",
-                "comet:grok-3-fast",
-                "comet:grok-3-fast-latest",
-                "comet:grok-3-latest",
-                "comet:grok-3-mini",
-                "comet:grok-3-mini-fast",
-                "comet:grok-3-mini-fast-latest",
-                "comet:grok-3-mini-latest",
-                "comet:grok-3-reasoner",
-                "comet:grok-3-reasoning",
-                "comet:grok-3-search",
-                "comet:grok-4",
-                "comet:grok-4-0709",
-                "comet:grok-4-1-fast-non-reasoning",
-                "comet:grok-4-1-fast-reasoning",
-                "comet:grok-4-auto",
-                "comet:grok-4-fast-non-reasoning",
-                "comet:grok-4-fast-reasoning",
-                "comet:grok-code-fast-1",
-                "comet:hunyuan",
-                "comet:hunyuan-a13b",
-                "comet:hunyuan-code",
-                "comet:hunyuan-functioncall",
-                "comet:hunyuan-large",
-                "comet:hunyuan-large-vision",
-                "comet:hunyuan-lite",
-                "comet:hunyuan-pro",
-                "comet:hunyuan-role",
-                "comet:hunyuan-standard",
-                "comet:hunyuan-standard-256K",
-                "comet:hunyuan-t1-20250321",
-                "comet:hunyuan-t1-20250403",
-                "comet:hunyuan-t1-20250521",
-                "comet:hunyuan-t1-20250529",
-                "comet:hunyuan-t1-20250711",
-                "comet:hunyuan-t1-20250822",
-                "comet:hunyuan-t1-latest",
-                "comet:hunyuan-t1-vision",
-                "comet:hunyuan-t1-vision-20250619",
-                "comet:hunyuan-turbos-20250313",
-                "comet:hunyuan-turbos-20250416",
-                "comet:hunyuan-turbos-20250515",
-                "comet:hunyuan-turbos-20250604",
-                "comet:hunyuan-turbos-latest",
-                "comet:hunyuan-turbos-longtext-128k-20250325",
-                "comet:hunyuan-turbos-vision",
-                "comet:hunyuan-turbos-vision-20250619",
-                "comet:hunyuan-vision",
-                "comet:ideogram-ai/ideogram-v2",
-                "comet:ideogram-ai/ideogram-v2-turbo",
-                "comet:ideogram-ai/ideogram-v2a",
-                "comet:ideogram-ai/ideogram-v3-balanced",
-                "comet:ideogram-ai/ideogram-v3-quality",
-                "comet:ideogram-ai/ideogram-v3-turbo",
-                "comet:kimi-k2-0711-preview",
-                "comet:kimi-k2-0905-preview",
-                "comet:kimi-k2-250905",
-                "comet:kimi-k2-thinking",
-                "comet:kimi-k2-thinking-turbo",
-                "comet:kling_advanced_lip_sync",
-                "comet:kling_audio_text_to_audio",
-                "comet:kling_audio_video_to_audio",
-                "comet:kling_avatar_image2video",
-                "comet:kling_effects",
-                "comet:kling_extend",
-                "comet:kling_identify_face",
-                "comet:kling_image",
-                "comet:kling_image_expand",
-                "comet:kling_image_recognize",
-                "comet:kling_lip_sync",
-                "comet:kling_multi_elements_add",
-                "comet:kling_multi_elements_clear",
-                "comet:kling_multi_elements_delete",
-                "comet:kling_multi_elements_init",
-                "comet:kling_multi_elements_preview",
-                "comet:kling_multi_elements_submit",
-                "comet:kling_multi_image2image",
-                "comet:kling_tts",
-                "comet:kling_video",
-                "comet:kling_virtual_try_on",
-                "comet:llama-4-maverick",
-                "comet:llama-4-scout",
-                "comet:luma-video",
-                "comet:luma_extend",
-                "comet:luma_fast_extend",
-                "comet:luma_fast_nomark",
-                "comet:luma_fast_video",
-                "comet:luma_nomark",
-                "comet:luma_relax_extend",
-                "comet:luma_relax_nomark",
-                "comet:luma_relax_video",
-                "comet:luma_video",
-                "comet:minimax-hailuo-02",
-                "comet:minimax-m2",
-                "comet:minimax_files_retrieve",
-                "comet:minimax_minimax-hailuo-02",
-                "comet:minimax_video-01",
-                "comet:mj_fast_blend",
-                "comet:mj_fast_custom_zoom",
-                "comet:mj_fast_describe",
-                "comet:mj_fast_edits",
-                "comet:mj_fast_high_variation",
-                "comet:mj_fast_imagine",
-                "comet:mj_fast_inpaint",
-                "comet:mj_fast_low_variation",
-                "comet:mj_fast_modal",
-                "comet:mj_fast_pan",
-                "comet:mj_fast_pic_reader",
-                "comet:mj_fast_prompt_analyzer",
-                "comet:mj_fast_prompt_analyzer_extended",
-                "comet:mj_fast_reroll",
-                "comet:mj_fast_shorten",
-                "comet:mj_fast_upload",
-                "comet:mj_fast_upscale",
-                "comet:mj_fast_upscale_creative",
-                "comet:mj_fast_upscale_subtle",
-                "comet:mj_fast_variation",
-                "comet:mj_fast_video",
-                "comet:mj_fast_zoom",
-                "comet:mj_turbo_blend",
-                "comet:mj_turbo_custom_zoom",
-                "comet:mj_turbo_describe",
-                "comet:mj_turbo_high_variation",
-                "comet:mj_turbo_imagine",
-                "comet:mj_turbo_inpaint",
-                "comet:mj_turbo_low_variation",
-                "comet:mj_turbo_modal",
-                "comet:mj_turbo_pan",
-                "comet:mj_turbo_pic_reader",
-                "comet:mj_turbo_prompt_analyzer",
-                "comet:mj_turbo_prompt_analyzer_extended",
-                "comet:mj_turbo_reroll",
-                "comet:mj_turbo_shorten",
-                "comet:mj_turbo_upload",
-                "comet:mj_turbo_upscale",
-                "comet:mj_turbo_upscale_creative",
-                "comet:mj_turbo_upscale_subtle",
-                "comet:mj_turbo_variation",
-                "comet:mj_turbo_zoom",
-                "comet:o1",
-                "comet:o1-2024-12-17",
-                "comet:o1-mini",
-                "comet:o1-mini-2024-09-12",
-                "comet:o1-preview",
-                "comet:o1-preview-2024-09-12",
-                "comet:o1-pro",
-                "comet:o1-pro-2025-03-19",
-                "comet:o1-pro-all",
-                "comet:o3",
-                "comet:o3-2025-04-16",
-                "comet:o3-deep-research",
-                "comet:o3-deep-research-2025-06-26",
-                "comet:o3-mini",
-                "comet:o3-mini-2025-01-31",
-                "comet:o3-mini-2025-01-31-high",
-                "comet:o3-mini-2025-01-31-low",
-                "comet:o3-mini-2025-01-31-medium",
-                "comet:o3-mini-all",
-                "comet:o3-mini-high",
-                "comet:o3-mini-high-2025-01-31",
-                "comet:o3-mini-high-all",
-                "comet:o3-mini-low",
-                "comet:o3-mini-medium",
-                "comet:o3-pro",
-                "comet:o3-pro-2025-06-10",
-                "comet:o4-mini",
-                "comet:o4-mini-2025-04-16",
-                "comet:o4-mini-deep-research",
-                "comet:o4-mini-deep-research-2025-06-26",
-                "comet:omni-moderation-2024-09-26",
-                "comet:omni-moderation-latest",
-                "comet:qwen-72b",
-                "comet:qwen-image",
-                "comet:qwen-image-edit",
-                "comet:qwen-long",
-                "comet:qwen-max",
-                "comet:qwen-max-2025-01-25",
-                "comet:qwen-max-latest",
-                "comet:qwen-plus",
-                "comet:qwen-plus-latest",
-                "comet:qwen-turbo",
-                "comet:qwen-turbo-1101",
-                "comet:qwen-turbo-2024-11-01",
-                "comet:qwen-turbo-latest",
-                "comet:qwen-vl-max",
-                "comet:qwen-vl-max-0201",
-                "comet:qwen-vl-max-0809",
-                "comet:qwen-vl-max-latest",
-                "comet:qwen-vl-ocr",
-                "comet:qwen-vl-plus",
-                "comet:qwen-vl-plus-latest",
-                "comet:qwen/qwq-32b",
-                "comet:qwen1.5-110b-chat",
-                "comet:qwen1.5-14b-chat",
-                "comet:qwen1.5-32b-chat",
-                "comet:qwen1.5-7b-chat",
-                "comet:qwen2-1.5b-instruct",
-                "comet:qwen2-57b-a14b-instruct",
-                "comet:qwen2-72b-instruct",
-                "comet:qwen2-7b-instruct",
-                "comet:qwen2-vl-72b-instruct",
-                "comet:qwen2-vl-7b-instruct",
-                "comet:qwen2.5-14b-instruct",
-                "comet:qwen2.5-32b-instruct",
-                "comet:qwen2.5-72b-instruct",
-                "comet:qwen2.5-7b-instruct",
-                "comet:qwen2.5-coder-32b-instruct",
-                "comet:qwen2.5-coder-7b-instruct",
-                "comet:qwen2.5-math-72b-instruct",
-                "comet:qwen2.5-omni-7b",
-                "comet:qwen2.5-vl-32b-instruct",
-                "comet:qwen2.5-vl-72b",
-                "comet:qwen2.5-vl-72b-instruct",
-                "comet:qwen3-14b",
-                "comet:qwen3-235b-a22b",
-                "comet:qwen3-30b-a3b",
-                "comet:qwen3-32b",
-                "comet:qwen3-8b",
-                "comet:qwen3-coder",
-                "comet:qwen3-coder-480b-a35b-instruct",
-                "comet:qwen3-coder-plus",
-                "comet:qwen3-coder-plus-2025-07-22",
-                "comet:qwen3-max-preview",
-                "comet:qwq-32b",
-                "comet:recraft-ai/recraft-v3",
-                "comet:recraft-ai/recraft-v3-svg",
-                "comet:recraft-api",
-                "comet:recraftv3",
-                "comet:runway_act_one",
-                "comet:runway_video",
-                "comet:runway_video2video",
-                "comet:runwayml_character_performance",
-                "comet:runwayml_control_character",
-                "comet:runwayml_image_to_video",
-                "comet:runwayml_text_to_image",
-                "comet:runwayml_upscale_video",
-                "comet:runwayml_video_to_video",
-                "comet:sora-2",
-                "comet:sora-2-all",
-                "comet:sora-2-pro",
-                "comet:sora-2-pro-all",
-                "comet:stability-ai/sdxl",
-                "comet:stability-ai/stable-diffusion",
-                "comet:stability-ai/stable-diffusion-3",
-                "comet:stability-ai/stable-diffusion-3.5-large",
-                "comet:stability-ai/stable-diffusion-3.5-large-turbo",
-                "comet:stability-ai/stable-diffusion-3.5-medium",
-                "comet:suno_act_create_project",
-                "comet:suno_act_midi",
-                "comet:suno_act_mp4",
-                "comet:suno_act_stems",
-                "comet:suno_act_tags",
-                "comet:suno_act_timing",
-                "comet:suno_act_wav",
-                "comet:suno_concat",
-                "comet:suno_lyrics",
-                "comet:suno_music",
-                "comet:suno_persona_create",
-                "comet:suno_render",
-                "comet:suno_uploads",
-                "comet:suno_uploads_audio",
-                "comet:suno_uploads_audio_finish",
-                "comet:suno_uploads_audio_initialize_clip",
-                "comet:tts",
-                "comet:tts-1",
-                "comet:tts-1-1106",
-                "comet:tts-1-hd",
-                "comet:tts-1-hd-1106",
-                "comet:tts-hd",
-                "comet:veo-3.1-generate-preview",
-                "comet:veo3",
-                "comet:veo3-fast",
-                "comet:veo3-fast-frames",
-                "comet:veo3-frames",
-                "comet:veo3-pro",
-                "comet:veo3-pro-frames",
-                "comet:veo3.1",
-                "comet:veo3.1-pro",
-                "comet:whisper-1"
-              ],
-              "type": "string"
-            },
-            {
-              "enum": [
-                "copilot:claude-haiku-4.5",
-                "copilot:claude-opus-4.5",
-                "copilot:claude-sonnet-4",
-                "copilot:claude-sonnet-4.5",
-                "copilot:gemini-2.5-pro",
-                "copilot:gemini-3-pro-preview",
-                "copilot:gpt-4.1",
-                "copilot:gpt-4o",
-                "copilot:gpt-5",
-                "copilot:gpt-5-codex",
-                "copilot:gpt-5-mini",
-                "copilot:gpt-5.1",
-                "copilot:gpt-5.1-codex",
-                "copilot:gpt-5.1-codex-max",
-                "copilot:gpt-5.1-codex-mini",
-                "copilot:gpt-5.2",
-                "copilot:grok-code-fast-1",
-                "copilot:oswe-vscode-prime"
-              ],
-              "type": "string"
-            },
-            {
-              "enum": [
-                "deepseek:deepseek-chat",
-                "deepseek:deepseek-reasoner"
-              ],
-              "type": "string"
-            },
-            {
-              "enum": [
-                "gemini:aqa",
-                "gemini:deep-research-pro-preview-12-2025",
-                "gemini:gemini-2.0-flash",
-                "gemini:gemini-2.0-flash-001",
-                "gemini:gemini-2.0-flash-exp",
-                "gemini:gemini-2.0-flash-lite",
-                "gemini:gemini-2.0-flash-lite-001",
-                "gemini:gemini-2.0-flash-lite-preview",
-                "gemini:gemini-2.0-flash-lite-preview-02-05",
-                "gemini:gemini-2.5-computer-use-preview-10-2025",
-                "gemini:gemini-2.5-flash",
-                "gemini:gemini-2.5-flash-image",
-                "gemini:gemini-2.5-flash-image-preview",
-                "gemini:gemini-2.5-flash-lite",
-                "gemini:gemini-2.5-flash-lite-preview-09-2025",
-                "gemini:gemini-2.5-flash-native-audio-latest",
-                "gemini:gemini-2.5-flash-native-audio-preview-09-2025",
-                "gemini:gemini-2.5-flash-native-audio-preview-12-2025",
-                "gemini:gemini-2.5-flash-preview-09-2025",
-                "gemini:gemini-2.5-flash-preview-tts",
-                "gemini:gemini-2.5-pro",
-                "gemini:gemini-2.5-pro-preview-tts",
-                "gemini:gemini-3-pro-image-preview",
-                "gemini:gemini-3-pro-preview",
-                "gemini:gemini-exp-1206",
-                "gemini:gemini-flash-latest",
-                "gemini:gemini-flash-lite-latest",
-                "gemini:gemini-pro-latest",
-                "gemini:gemini-robotics-er-1.5-preview",
-                "gemini:gemma-3-12b-it",
-                "gemini:gemma-3-1b-it",
-                "gemini:gemma-3-27b-it",
-                "gemini:gemma-3-4b-it",
-                "gemini:gemma-3n-e2b-it",
-                "gemini:gemma-3n-e4b-it",
-                "gemini:imagen-4.0-fast-generate-001",
-                "gemini:imagen-4.0-generate-001",
-                "gemini:imagen-4.0-generate-preview-06-06",
-                "gemini:imagen-4.0-ultra-generate-001",
-                "gemini:imagen-4.0-ultra-generate-preview-06-06",
-                "gemini:nano-banana-pro-preview",
-                "gemini:veo-2.0-generate-001",
-                "gemini:veo-3.0-fast-generate-001",
-                "gemini:veo-3.0-generate-001",
-                "gemini:veo-3.1-fast-generate-preview",
-                "gemini:veo-3.1-generate-preview"
-              ],
-              "type": "string"
-            },
-            {
-              "enum": [
-                "github:AI21-Jamba-1.5-Large",
-                "github:AI21-Jamba-1.5-Mini",
-                "github:Aurora",
-                "github:BioEmu",
-                "github:Codestral-2501",
-                "github:Cohere-command-r",
-                "github:Cohere-command-r-08-2024",
-                "github:Cohere-command-r-plus",
-                "github:Cohere-command-r-plus-08-2024",
-                "github:Cohere-embed-v3-english",
-                "github:Cohere-embed-v3-multilingual",
-                "github:DeepSeek-R1",
-                "github:DeepSeek-R1-0528",
-                "github:DeepSeek-V3",
-                "github:DeepSeek-V3-0324",
-                "github:DeepSeek-V3.1",
-                "github:DeepSeek-V3.2",
-                "github:DeepSeek-V3.2-Speciale",
-                "github:EvoDiff",
-                "github:FLUX.2-pro",
-                "github:Flux-1.1-Pro",
-                "github:Flux.1-Kontext-pro",
-                "github:Llama-3.2-11B-Vision-Instruct",
-                "github:Llama-3.2-90B-Vision-Instruct",
-                "github:Llama-3.3-70B-Instruct",
-                "github:Llama-4-Maverick-17B-128E-Instruct-FP8",
-                "github:Llama-4-Scout-17B-16E",
-                "github:Llama-4-Scout-17B-16E-Instruct",
-                "github:MAI-DS-R1",
-                "github:MatterGen",
-                "github:Meta-Llama-3-70B-Instruct",
-                "github:Meta-Llama-3-8B-Instruct",
-                "github:Meta-Llama-3.1-405B-Instruct",
-                "github:Meta-Llama-3.1-70B-Instruct",
-                "github:Meta-Llama-3.1-8B-Instruct",
-                "github:Ministral-3B",
-                "github:Ministral-8B",
-                "github:Mistral-Large-2411",
-                "github:Mistral-Large-3",
-                "github:Mistral-Nemo",
-                "github:Mistral-large-2407",
-                "github:Mistral-small",
-                "github:Muse",
-                "github:Phi-4-mini-flash-reasoning",
-                "github:Phi-4-reasoning-plus",
-                "github:codex-mini",
-                "github:cohere-command-a",
-                "github:computer-use-preview",
-                "github:embed-v-4-0",
-                "github:financial-reports-analysis-v2",
-                "github:gpt-4.1",
-                "github:gpt-4.1-mini",
-                "github:gpt-4.1-nano",
-                "github:gpt-4.5-preview",
-                "github:gpt-4o",
-                "github:gpt-4o-mini",
-                "github:gpt-4o-mini-transcribe",
-                "github:gpt-4o-mini-tts",
-                "github:gpt-4o-transcribe",
-                "github:gpt-4o-transcribe-diarize",
-                "github:gpt-5",
-                "github:gpt-5-chat",
-                "github:gpt-5-codex",
-                "github:gpt-5-mini",
-                "github:gpt-5.1-codex",
-                "github:gpt-5.1-codex-max",
-                "github:gpt-5.1-codex-mini",
-                "github:gpt-image-1",
-                "github:gpt-image-1-mini",
-                "github:grok-3",
-                "github:grok-3-mini",
-                "github:jais-30b-chat",
-                "github:mistral-document-ai-2505",
-                "github:mistral-medium-2505",
-                "github:mistral-ocr-2503",
-                "github:mistral-small-2503",
-                "github:model-router",
-                "github:o3-deep-research",
-                "github:o3-pro",
-                "github:retrochimera",
-                "github:sora",
-                "github:sora-2",
-                "github:supply-chain-trade-regulations-v2"
-              ],
-              "type": "string"
-            },
-            {
-              "enum": [
-                "groq:allam-2-7b",
-                "groq:groq/compound",
-                "groq:groq/compound-mini",
-                "groq:llama-3.1-8b-instant",
-                "groq:llama-3.3-70b-versatile",
-                "groq:meta-llama/llama-4-maverick-17b-128e-instruct",
-                "groq:meta-llama/llama-4-scout-17b-16e-instruct",
-                "groq:meta-llama/llama-guard-4-12b",
-                "groq:meta-llama/llama-prompt-guard-2-22m",
-                "groq:meta-llama/llama-prompt-guard-2-86m",
-                "groq:moonshotai/kimi-k2-instruct",
-                "groq:moonshotai/kimi-k2-instruct-0905",
-                "groq:openai/gpt-oss-120b",
-                "groq:openai/gpt-oss-20b",
-                "groq:openai/gpt-oss-safeguard-20b",
-                "groq:playai-tts",
-                "groq:playai-tts-arabic",
-                "groq:qwen/qwen3-32b",
-                "groq:whisper-large-v3",
-                "groq:whisper-large-v3-turbo"
-              ],
-              "type": "string"
-            },
-            {
-              "enum": [
-                "mistral:codestral-2508",
-                "mistral:codestral-latest",
-                "mistral:devstral-2512",
-                "mistral:devstral-latest",
-                "mistral:devstral-medium-2507",
-                "mistral:devstral-medium-latest",
-                "mistral:devstral-small-2507",
-                "mistral:devstral-small-latest",
-                "mistral:labs-devstral-small-2512",
-                "mistral:labs-mistral-small-creative",
-                "mistral:magistral-medium-2509",
-                "mistral:magistral-medium-latest",
-                "mistral:magistral-small-2509",
-                "mistral:magistral-small-latest",
-                "mistral:ministral-14b-2512",
-                "mistral:ministral-14b-latest",
-                "mistral:ministral-3b-2512",
-                "mistral:ministral-3b-latest",
-                "mistral:ministral-8b-2512",
-                "mistral:ministral-8b-latest",
-                "mistral:mistral-large-2411",
-                "mistral:mistral-large-2512",
-                "mistral:mistral-large-latest",
-                "mistral:mistral-large-pixtral-2411",
-                "mistral:mistral-medium",
-                "mistral:mistral-medium-2505",
-                "mistral:mistral-medium-2508",
-                "mistral:mistral-medium-latest",
-                "mistral:mistral-ocr-2505",
-                "mistral:mistral-ocr-2512",
-                "mistral:mistral-ocr-latest",
-                "mistral:mistral-small-2506",
-                "mistral:mistral-small-latest",
-                "mistral:mistral-tiny-2407",
-                "mistral:mistral-tiny-latest",
-                "mistral:mistral-vibe-cli-latest",
-                "mistral:open-mistral-nemo",
-                "mistral:open-mistral-nemo-2407",
-                "mistral:pixtral-large-2411",
-                "mistral:pixtral-large-latest",
-                "mistral:voxtral-mini-2507",
-                "mistral:voxtral-mini-latest",
-                "mistral:voxtral-mini-transcribe-2507",
-                "mistral:voxtral-small-2507",
-                "mistral:voxtral-small-latest"
-              ],
-              "type": "string"
-            },
-            {
-              "enum": [
-                "moonshotai:kimi-k2-0711-preview",
-                "moonshotai:kimi-k2-0905-preview",
-                "moonshotai:kimi-k2-thinking",
-                "moonshotai:kimi-k2-thinking-turbo",
-                "moonshotai:kimi-k2-turbo-preview"
-              ],
-              "type": "string"
-            },
-            {
-              "enum": [
-                "openai:gpt-5",
-                "openai:gpt-5-chat-latest",
-                "openai:gpt-5-codex",
-                "openai:gpt-5-mini",
-                "openai:gpt-5-nano",
-                "openai:gpt-5-pro",
-                "openai:gpt-5.1",
-                "openai:gpt-5.1-chat-latest",
-                "openai:gpt-5.1-codex",
-                "openai:gpt-5.1-codex-max",
-                "openai:gpt-5.1-codex-mini",
-                "openai:gpt-5.2",
-                "openai:gpt-5.2-chat-latest",
-                "openai:gpt-5.2-pro",
-                "openai:o3-pro"
-              ],
-              "type": "string"
-            },
-            {
-              "enum": [
-                "openrouter:ai21/jamba-large-1.7",
-                "openrouter:ai21/jamba-mini-1.7",
-                "openrouter:alibaba/tongyi-deepresearch-30b-a3b",
-                "openrouter:alibaba/tongyi-deepresearch-30b-a3b:free",
-                "openrouter:allenai/olmo-3-32b-think:free",
-                "openrouter:allenai/olmo-3-7b-instruct",
-                "openrouter:allenai/olmo-3-7b-think",
-                "openrouter:allenai/olmo-3.1-32b-think:free",
-                "openrouter:amazon/nova-2-lite-v1",
-                "openrouter:amazon/nova-2-lite-v1:free",
-                "openrouter:amazon/nova-premier-v1",
-                "openrouter:anthropic/claude-haiku-4.5",
-                "openrouter:anthropic/claude-opus-4.1",
-                "openrouter:anthropic/claude-opus-4.5",
-                "openrouter:anthropic/claude-sonnet-4.5",
-                "openrouter:arcee-ai/trinity-mini",
-                "openrouter:arcee-ai/trinity-mini:free",
-                "openrouter:baidu/ernie-4.5-21b-a3b",
-                "openrouter:baidu/ernie-4.5-21b-a3b-thinking",
-                "openrouter:baidu/ernie-4.5-300b-a47b",
-                "openrouter:baidu/ernie-4.5-vl-28b-a3b",
-                "openrouter:baidu/ernie-4.5-vl-424b-a47b",
-                "openrouter:bytedance/ui-tars-1.5-7b",
-                "openrouter:cognitivecomputations/dolphin-mistral-24b-venice-edition:free",
-                "openrouter:deepcogito/cogito-v2-preview-llama-109b-moe",
-                "openrouter:deepcogito/cogito-v2-preview-llama-405b",
-                "openrouter:deepcogito/cogito-v2-preview-llama-70b",
-                "openrouter:deepcogito/cogito-v2.1-671b",
-                "openrouter:deepseek/deepseek-chat-v3.1",
-                "openrouter:deepseek/deepseek-v3.1-terminus",
-                "openrouter:deepseek/deepseek-v3.1-terminus:exacto",
-                "openrouter:deepseek/deepseek-v3.2",
-                "openrouter:deepseek/deepseek-v3.2-exp",
-                "openrouter:deepseek/deepseek-v3.2-speciale",
-                "openrouter:essentialai/rnj-1-instruct",
-                "openrouter:google/gemini-2.5-flash",
-                "openrouter:google/gemini-2.5-flash-image",
-                "openrouter:google/gemini-2.5-flash-image-preview",
-                "openrouter:google/gemini-2.5-flash-lite",
-                "openrouter:google/gemini-2.5-flash-lite-preview-09-2025",
-                "openrouter:google/gemini-2.5-flash-preview-09-2025",
-                "openrouter:google/gemini-2.5-pro",
-                "openrouter:google/gemini-2.5-pro-preview",
-                "openrouter:google/gemini-3-pro-image-preview",
-                "openrouter:google/gemini-3-pro-preview",
-                "openrouter:google/gemma-3n-e2b-it:free",
-                "openrouter:ibm-granite/granite-4.0-h-micro",
-                "openrouter:inception/mercury",
-                "openrouter:kwaipilot/kat-coder-pro:free",
-                "openrouter:liquid/lfm-2.2-6b",
-                "openrouter:liquid/lfm2-8b-a1b",
-                "openrouter:meituan/longcat-flash-chat",
-                "openrouter:minimax/minimax-m1",
-                "openrouter:minimax/minimax-m2",
-                "openrouter:mistralai/codestral-2508",
-                "openrouter:mistralai/devstral-2512",
-                "openrouter:mistralai/devstral-2512:free",
-                "openrouter:mistralai/devstral-medium",
-                "openrouter:mistralai/devstral-small",
-                "openrouter:mistralai/ministral-14b-2512",
-                "openrouter:mistralai/ministral-3b-2512",
-                "openrouter:mistralai/ministral-8b-2512",
-                "openrouter:mistralai/mistral-large-2512",
-                "openrouter:mistralai/mistral-medium-3.1",
-                "openrouter:mistralai/mistral-small-3.2-24b-instruct",
-                "openrouter:mistralai/mistral-small-creative",
-                "openrouter:mistralai/voxtral-small-24b-2507",
-                "openrouter:moonshotai/kimi-dev-72b",
-                "openrouter:moonshotai/kimi-k2",
-                "openrouter:moonshotai/kimi-k2-0905",
-                "openrouter:moonshotai/kimi-k2-0905:exacto",
-                "openrouter:moonshotai/kimi-k2-thinking",
-                "openrouter:moonshotai/kimi-k2:free",
-                "openrouter:morph/morph-v3-fast",
-                "openrouter:morph/morph-v3-large",
-                "openrouter:nex-agi/deepseek-v3.1-nex-n1:free",
-                "openrouter:nousresearch/hermes-4-405b",
-                "openrouter:nousresearch/hermes-4-70b",
-                "openrouter:nvidia/llama-3.3-nemotron-super-49b-v1.5",
-                "openrouter:nvidia/nemotron-3-nano-30b-a3b:free",
-                "openrouter:nvidia/nemotron-nano-12b-v2-vl",
-                "openrouter:nvidia/nemotron-nano-12b-v2-vl:free",
-                "openrouter:nvidia/nemotron-nano-9b-v2",
-                "openrouter:nvidia/nemotron-nano-9b-v2:free",
-                "openrouter:openai/gpt-4o-audio-preview",
-                "openrouter:openai/gpt-5",
-                "openrouter:openai/gpt-5-chat",
-                "openrouter:openai/gpt-5-codex",
-                "openrouter:openai/gpt-5-image",
-                "openrouter:openai/gpt-5-image-mini",
-                "openrouter:openai/gpt-5-mini",
-                "openrouter:openai/gpt-5-nano",
-                "openrouter:openai/gpt-5-pro",
-                "openrouter:openai/gpt-5.1",
-                "openrouter:openai/gpt-5.1-chat",
-                "openrouter:openai/gpt-5.1-codex",
-                "openrouter:openai/gpt-5.1-codex-max",
-                "openrouter:openai/gpt-5.1-codex-mini",
-                "openrouter:openai/gpt-5.2",
-                "openrouter:openai/gpt-5.2-chat",
-                "openrouter:openai/gpt-5.2-pro",
-                "openrouter:openai/gpt-oss-120b",
-                "openrouter:openai/gpt-oss-120b:exacto",
-                "openrouter:openai/gpt-oss-120b:free",
-                "openrouter:openai/gpt-oss-20b",
-                "openrouter:openai/gpt-oss-20b:free",
-                "openrouter:openai/gpt-oss-safeguard-20b",
-                "openrouter:openai/o3-deep-research",
-                "openrouter:openai/o3-pro",
-                "openrouter:openai/o4-mini-deep-research",
-                "openrouter:opengvlab/internvl3-78b",
-                "openrouter:openrouter/bodybuilder",
-                "openrouter:perplexity/sonar-pro-search",
-                "openrouter:prime-intellect/intellect-3",
-                "openrouter:qwen/qwen-plus-2025-07-28",
-                "openrouter:qwen/qwen-plus-2025-07-28:thinking",
-                "openrouter:qwen/qwen3-235b-a22b-2507",
-                "openrouter:qwen/qwen3-235b-a22b-thinking-2507",
-                "openrouter:qwen/qwen3-30b-a3b-instruct-2507",
-                "openrouter:qwen/qwen3-30b-a3b-thinking-2507",
-                "openrouter:qwen/qwen3-coder",
-                "openrouter:qwen/qwen3-coder-30b-a3b-instruct",
-                "openrouter:qwen/qwen3-coder-flash",
-                "openrouter:qwen/qwen3-coder-plus",
-                "openrouter:qwen/qwen3-coder:exacto",
-                "openrouter:qwen/qwen3-coder:free",
-                "openrouter:qwen/qwen3-max",
-                "openrouter:qwen/qwen3-next-80b-a3b-instruct",
-                "openrouter:qwen/qwen3-next-80b-a3b-thinking",
-                "openrouter:qwen/qwen3-vl-235b-a22b-instruct",
-                "openrouter:qwen/qwen3-vl-235b-a22b-thinking",
-                "openrouter:qwen/qwen3-vl-30b-a3b-instruct",
-                "openrouter:qwen/qwen3-vl-30b-a3b-thinking",
-                "openrouter:qwen/qwen3-vl-8b-instruct",
-                "openrouter:qwen/qwen3-vl-8b-thinking",
-                "openrouter:relace/relace-apply-3",
-                "openrouter:relace/relace-search",
-                "openrouter:stepfun-ai/step3",
-                "openrouter:switchpoint/router",
-                "openrouter:tencent/hunyuan-a13b-instruct",
-                "openrouter:thedrummer/cydonia-24b-v4.1",
-                "openrouter:thudm/glm-4.1v-9b-thinking",
-                "openrouter:tngtech/deepseek-r1t2-chimera",
-                "openrouter:tngtech/deepseek-r1t2-chimera:free",
-                "openrouter:tngtech/tng-r1t-chimera",
-                "openrouter:tngtech/tng-r1t-chimera:free",
-                "openrouter:x-ai/grok-3",
-                "openrouter:x-ai/grok-3-mini",
-                "openrouter:x-ai/grok-4",
-                "openrouter:x-ai/grok-4-fast",
-                "openrouter:x-ai/grok-4.1-fast",
-                "openrouter:x-ai/grok-code-fast-1",
-                "openrouter:xiaomi/mimo-v2-flash:free",
-                "openrouter:z-ai/glm-4-32b",
-                "openrouter:z-ai/glm-4.5",
-                "openrouter:z-ai/glm-4.5-air",
-                "openrouter:z-ai/glm-4.5-air:free",
-                "openrouter:z-ai/glm-4.5v",
-                "openrouter:z-ai/glm-4.6",
-                "openrouter:z-ai/glm-4.6:exacto",
-                "openrouter:z-ai/glm-4.6v"
-              ],
-              "type": "string"
-            },
-            {
-              "enum": [
-                "requesty:alibaba/qwen3-30b-a3b-instruct-2507",
-                "requesty:alibaba/qwen3-coder-flash",
-                "requesty:alibaba/qwen3-coder-plus",
-                "requesty:alibaba/qwen3-max",
-                "requesty:anthropic/claude-haiku-4-5",
-                "requesty:anthropic/claude-opus-4-1",
-                "requesty:anthropic/claude-opus-4-5",
-                "requesty:anthropic/claude-sonnet-4-5",
-                "requesty:azure/gpt-5.1",
-                "requesty:azure/gpt-5.1@swedencentral",
-                "requesty:bedrock/claude-haiku-4-5",
-                "requesty:bedrock/claude-haiku-4-5@eu-central-1",
-                "requesty:bedrock/claude-haiku-4-5@eu-north-1",
-                "requesty:bedrock/claude-haiku-4-5@eu-west-1",
-                "requesty:bedrock/claude-haiku-4-5@eu-west-3",
-                "requesty:bedrock/claude-haiku-4-5@us-east-1",
-                "requesty:bedrock/claude-haiku-4-5@us-east-2",
-                "requesty:bedrock/claude-haiku-4-5@us-west-2",
-                "requesty:bedrock/claude-opus-4-5",
-                "requesty:deepinfra/Qwen/Qwen3-Coder-480B-A35B-Instruct",
-                "requesty:deepinfra/deepseek-ai/DeepSeek-V3.1",
-                "requesty:deepinfra/zai-org/GLM-4.5",
-                "requesty:deepinfra/zai-org/GLM-4.5-Air",
-                "requesty:groq/moonshotai/Kimi-K2-Instruct-0905",
-                "requesty:groq/moonshotai/kimi-k2-instruct",
-                "requesty:groq/openai/gpt-oss-120b",
-                "requesty:groq/openai/gpt-oss-20b",
-                "requesty:minimaxi/MiniMax-M2",
-                "requesty:mistral/devstral-latest",
-                "requesty:moonshot/kimi-k2-0711-preview",
-                "requesty:moonshot/kimi-k2-0905-preview",
-                "requesty:moonshot/kimi-k2-thinking",
-                "requesty:moonshot/kimi-k2-thinking-turbo",
-                "requesty:moonshot/kimi-k2-turbo-preview",
-                "requesty:nebius/Qwen/Qwen3-Coder-480B-A35B-Instruct",
-                "requesty:nebius/deepseek-ai/DeepSeek-V3-0324-fast",
-                "requesty:nebius/moonshotai/Kimi-K2-Instruct",
-                "requesty:nebius/zai-org/GLM-4.5",
-                "requesty:novita/deepseek/deepseek-v3-0324",
-                "requesty:novita/deepseek/deepseek-v3-turbo",
-                "requesty:novita/deepseek/deepseek_v3",
-                "requesty:novita/moonshotai/kimi-k2-instruct",
-                "requesty:novita/zai-org/glm-4.5",
-                "requesty:novita/zai-org/glm-4.6",
-                "requesty:openai-responses/gpt-5",
-                "requesty:openai-responses/gpt-5-codex",
-                "requesty:openai-responses/gpt-5-mini",
-                "requesty:openai-responses/gpt-5-nano",
-                "requesty:openai-responses/gpt-5-pro",
-                "requesty:openai-responses/gpt-5.1-codex",
-                "requesty:openai-responses/o3-pro",
-                "requesty:openai/gpt-5",
-                "requesty:openai/gpt-5-chat",
-                "requesty:openai/gpt-5-mini",
-                "requesty:openai/gpt-5-mini:flex",
-                "requesty:openai/gpt-5-mini:priority",
-                "requesty:openai/gpt-5-nano",
-                "requesty:openai/gpt-5-nano:flex",
-                "requesty:openai/gpt-5.1",
-                "requesty:openai/gpt-5.1-chat",
-                "requesty:openai/gpt-5.2",
-                "requesty:openai/gpt-5:flex",
-                "requesty:openai/gpt-5:priority",
-                "requesty:openai/o3-deep-research",
-                "requesty:openai/o4-mini-deep-research",
-                "requesty:parasail/parasail-deepseek-v3-0324",
-                "requesty:parasail/parasail-kimi-k2-instruct",
-                "requesty:parasail/parasail-qwen3-235b-a22b-instruct-2507",
-                "requesty:together/deepseek-ai/DeepSeek-R1",
-                "requesty:together/deepseek-ai/DeepSeek-V3",
-                "requesty:vertex/claude-opus-4-5",
-                "requesty:vertex/claude-opus-4-5@europe-west1",
-                "requesty:vertex/claude-opus-4-5@us-east5",
-                "requesty:vertex/gemini-2.5-flash-image-preview",
-                "requesty:xai/grok-2-1212",
-                "requesty:xai/grok-3",
-                "requesty:xai/grok-3-mini",
-                "requesty:xai/grok-3-mini:high",
-                "requesty:xai/grok-3-mini:low",
-                "requesty:xai/grok-4",
-                "requesty:xai/grok-4-1-fast-non-reasoning",
-                "requesty:xai/grok-4-1-fast-reasoning",
-                "requesty:xai/grok-4-fast",
-                "requesty:xai/grok-4-fast-non-reasoning",
-                "requesty:xai/grok-code-fast-1",
-                "requesty:zai/GLM-4.5",
-                "requesty:zai/GLM-4.6"
-              ],
-              "type": "string"
-            },
-            {
-              "enum": [
-                "vercel-gateway:alibaba/qwen-3-14b",
-                "vercel-gateway:alibaba/qwen-3-235b",
-                "vercel-gateway:alibaba/qwen-3-30b",
-                "vercel-gateway:alibaba/qwen-3-32b",
-                "vercel-gateway:alibaba/qwen3-235b-a22b-thinking",
-                "vercel-gateway:alibaba/qwen3-coder",
-                "vercel-gateway:alibaba/qwen3-coder-30b-a3b",
-                "vercel-gateway:alibaba/qwen3-coder-plus",
-                "vercel-gateway:alibaba/qwen3-max",
-                "vercel-gateway:alibaba/qwen3-max-preview",
-                "vercel-gateway:alibaba/qwen3-next-80b-a3b-instruct",
-                "vercel-gateway:alibaba/qwen3-next-80b-a3b-thinking",
-                "vercel-gateway:alibaba/qwen3-vl-instruct",
-                "vercel-gateway:alibaba/qwen3-vl-thinking",
-                "vercel-gateway:amazon/nova-2-lite",
-                "vercel-gateway:amazon/nova-lite",
-                "vercel-gateway:amazon/nova-micro",
-                "vercel-gateway:amazon/nova-pro",
-                "vercel-gateway:anthropic/claude-3-haiku",
-                "vercel-gateway:anthropic/claude-3-opus",
-                "vercel-gateway:anthropic/claude-3.5-haiku",
-                "vercel-gateway:anthropic/claude-3.5-sonnet",
-                "vercel-gateway:anthropic/claude-3.5-sonnet-20240620",
-                "vercel-gateway:anthropic/claude-3.7-sonnet",
-                "vercel-gateway:anthropic/claude-haiku-4.5",
-                "vercel-gateway:anthropic/claude-opus-4",
-                "vercel-gateway:anthropic/claude-opus-4.1",
-                "vercel-gateway:anthropic/claude-opus-4.5",
-                "vercel-gateway:anthropic/claude-sonnet-4",
-                "vercel-gateway:anthropic/claude-sonnet-4.5",
-                "vercel-gateway:arcee-ai/trinity-mini",
-                "vercel-gateway:bfl/flux-kontext-max",
-                "vercel-gateway:bfl/flux-kontext-pro",
-                "vercel-gateway:bfl/flux-pro-1.0-fill",
-                "vercel-gateway:bfl/flux-pro-1.1",
-                "vercel-gateway:bfl/flux-pro-1.1-ultra",
-                "vercel-gateway:cohere/command-a",
-                "vercel-gateway:deepseek/deepseek-r1",
-                "vercel-gateway:deepseek/deepseek-v3",
-                "vercel-gateway:deepseek/deepseek-v3.1",
-                "vercel-gateway:deepseek/deepseek-v3.1-terminus",
-                "vercel-gateway:deepseek/deepseek-v3.2",
-                "vercel-gateway:deepseek/deepseek-v3.2-exp",
-                "vercel-gateway:deepseek/deepseek-v3.2-thinking",
-                "vercel-gateway:google/gemini-2.0-flash",
-                "vercel-gateway:google/gemini-2.0-flash-lite",
-                "vercel-gateway:google/gemini-2.5-flash",
-                "vercel-gateway:google/gemini-2.5-flash-image",
-                "vercel-gateway:google/gemini-2.5-flash-image-preview",
-                "vercel-gateway:google/gemini-2.5-flash-lite",
-                "vercel-gateway:google/gemini-2.5-flash-lite-preview-09-2025",
-                "vercel-gateway:google/gemini-2.5-flash-preview-09-2025",
-                "vercel-gateway:google/gemini-2.5-pro",
-                "vercel-gateway:google/gemini-3-pro-image",
-                "vercel-gateway:google/gemini-3-pro-preview",
-                "vercel-gateway:google/imagen-4.0-fast-generate-001",
-                "vercel-gateway:google/imagen-4.0-generate-001",
-                "vercel-gateway:google/imagen-4.0-ultra-generate-001",
-                "vercel-gateway:inception/mercury-coder-small",
-                "vercel-gateway:kwaipilot/kat-coder-pro-v1",
-                "vercel-gateway:meituan/longcat-flash-chat",
-                "vercel-gateway:meituan/longcat-flash-thinking",
-                "vercel-gateway:meta/llama-3.1-70b",
-                "vercel-gateway:meta/llama-3.1-8b",
-                "vercel-gateway:meta/llama-3.2-11b",
-                "vercel-gateway:meta/llama-3.2-1b",
-                "vercel-gateway:meta/llama-3.2-3b",
-                "vercel-gateway:meta/llama-3.2-90b",
-                "vercel-gateway:meta/llama-3.3-70b",
-                "vercel-gateway:meta/llama-4-maverick",
-                "vercel-gateway:meta/llama-4-scout",
-                "vercel-gateway:minimax/minimax-m2",
-                "vercel-gateway:mistral/codestral",
-                "vercel-gateway:mistral/devstral-2",
-                "vercel-gateway:mistral/devstral-small",
-                "vercel-gateway:mistral/devstral-small-2",
-                "vercel-gateway:mistral/magistral-medium",
-                "vercel-gateway:mistral/magistral-small",
-                "vercel-gateway:mistral/ministral-14b",
-                "vercel-gateway:mistral/ministral-3b",
-                "vercel-gateway:mistral/ministral-8b",
-                "vercel-gateway:mistral/mistral-large",
-                "vercel-gateway:mistral/mistral-large-3",
-                "vercel-gateway:mistral/mistral-medium",
-                "vercel-gateway:mistral/mistral-nemo",
-                "vercel-gateway:mistral/mistral-small",
-                "vercel-gateway:mistral/mixtral-8x22b-instruct",
-                "vercel-gateway:mistral/pixtral-12b",
-                "vercel-gateway:mistral/pixtral-large",
-                "vercel-gateway:moonshotai/kimi-k2",
-                "vercel-gateway:moonshotai/kimi-k2-0905",
-                "vercel-gateway:moonshotai/kimi-k2-thinking",
-                "vercel-gateway:moonshotai/kimi-k2-thinking-turbo",
-                "vercel-gateway:moonshotai/kimi-k2-turbo",
-                "vercel-gateway:morph/morph-v3-fast",
-                "vercel-gateway:morph/morph-v3-large",
-                "vercel-gateway:nvidia/nemotron-nano-12b-v2-vl",
-                "vercel-gateway:nvidia/nemotron-nano-9b-v2",
-                "vercel-gateway:openai/codex-mini",
-                "vercel-gateway:openai/gpt-3.5-turbo",
-                "vercel-gateway:openai/gpt-3.5-turbo-instruct",
-                "vercel-gateway:openai/gpt-4-turbo",
-                "vercel-gateway:openai/gpt-4.1",
-                "vercel-gateway:openai/gpt-4.1-mini",
-                "vercel-gateway:openai/gpt-4.1-nano",
-                "vercel-gateway:openai/gpt-4o",
-                "vercel-gateway:openai/gpt-4o-mini",
-                "vercel-gateway:openai/gpt-5",
-                "vercel-gateway:openai/gpt-5-chat",
-                "vercel-gateway:openai/gpt-5-codex",
-                "vercel-gateway:openai/gpt-5-mini",
-                "vercel-gateway:openai/gpt-5-nano",
-                "vercel-gateway:openai/gpt-5-pro",
-                "vercel-gateway:openai/gpt-5.1-codex",
-                "vercel-gateway:openai/gpt-5.1-codex-max",
-                "vercel-gateway:openai/gpt-5.1-codex-mini",
-                "vercel-gateway:openai/gpt-5.1-instant",
-                "vercel-gateway:openai/gpt-5.1-thinking",
-                "vercel-gateway:openai/gpt-5.2",
-                "vercel-gateway:openai/gpt-5.2-chat",
-                "vercel-gateway:openai/gpt-5.2-pro",
-                "vercel-gateway:openai/gpt-oss-120b",
-                "vercel-gateway:openai/gpt-oss-20b",
-                "vercel-gateway:openai/gpt-oss-safeguard-20b",
-                "vercel-gateway:openai/o1",
-                "vercel-gateway:openai/o3",
-                "vercel-gateway:openai/o3-deep-research",
-                "vercel-gateway:openai/o3-mini",
-                "vercel-gateway:openai/o3-pro",
-                "vercel-gateway:openai/o4-mini",
-                "vercel-gateway:perplexity/sonar",
-                "vercel-gateway:perplexity/sonar-pro",
-                "vercel-gateway:perplexity/sonar-reasoning",
-                "vercel-gateway:perplexity/sonar-reasoning-pro",
-                "vercel-gateway:prime-intellect/intellect-3",
-                "vercel-gateway:stealth/sonoma-dusk-alpha",
-                "vercel-gateway:stealth/sonoma-sky-alpha",
-                "vercel-gateway:vercel/v0-1.0-md",
-                "vercel-gateway:vercel/v0-1.5-md",
-                "vercel-gateway:xai/grok-2",
-                "vercel-gateway:xai/grok-2-vision",
-                "vercel-gateway:xai/grok-3",
-                "vercel-gateway:xai/grok-3-fast",
-                "vercel-gateway:xai/grok-3-mini",
-                "vercel-gateway:xai/grok-3-mini-fast",
-                "vercel-gateway:xai/grok-4",
-                "vercel-gateway:xai/grok-4-fast-non-reasoning",
-                "vercel-gateway:xai/grok-4-fast-reasoning",
-                "vercel-gateway:xai/grok-4.1-fast-non-reasoning",
-                "vercel-gateway:xai/grok-4.1-fast-reasoning",
-                "vercel-gateway:xai/grok-code-fast-1",
-                "vercel-gateway:zai/glm-4.5",
-                "vercel-gateway:zai/glm-4.5-air",
-                "vercel-gateway:zai/glm-4.5v",
-                "vercel-gateway:zai/glm-4.6",
-                "vercel-gateway:zai/glm-4.6v",
-                "vercel-gateway:zai/glm-4.6v-flash"
-              ],
-              "type": "string"
-            },
-            {
-              "enum": [
-                "xai:grok-4-0709",
-                "xai:grok-4-1-fast-non-reasoning",
-                "xai:grok-4-1-fast-reasoning",
-                "xai:grok-4-fast-non-reasoning",
-                "xai:grok-4-fast-reasoning",
-                "xai:grok-code-fast-1"
-              ],
-              "type": "string"
-            },
-            {
-              "enum": [
-                "zai:glm-4.5",
-                "zai:glm-4.5-air",
-                "zai:glm-4.5-flash",
-                "zai:glm-4.5v",
-                "zai:glm-4.6",
-                "zai:glm-4.6v"
-              ],
-              "type": "string"
-            },
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "The model to use for this agent. Can be either a simple model name\nstring (e.g. 'openai:gpt-5') or a structured model definition.\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/model_configuration/",
-          "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/model_configuration/",
-          "examples": [
-            "openai:gpt-5-nano"
-          ],
-          "title": "Model configuration or name"
-        },
-        "tools": {
-          "description": "A list of tools to register with this agent.\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/tool_configuration/",
-          "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/tool_configuration/",
-          "examples": [
-            [
-              "webbrowser:open",
-              "builtins:print"
-            ],
-            [
-              {
-                "import_path": "webbrowser:open",
-                "name": "web_browser",
-                "type": "import"
-              }
-            ]
-          ],
-          "items": {
-            "anyOf": [
-              {
-                "discriminator": {
-                  "mapping": {
-                    "import": "#/$defs/ImportToolConfig"
-                  },
-                  "propertyName": "type"
-                },
-                "oneOf": [
-                  {
-                    "$ref": "#/$defs/ImportToolConfig"
-                  }
-                ]
-              },
-              {
-                "type": "string"
-              }
-            ]
-          },
-          "title": "Tool configurations",
-          "type": "array"
-        },
-        "toolsets": {
-          "description": "Toolset configurations for extensible tool collections.\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/toolset_configuration/",
-          "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/toolset_configuration/",
-          "examples": [
-            [
-              {
-                "namespace": "api",
-                "spec": "https://api.example.com/openapi.json",
-                "type": "openapi"
-              },
-              {
-                "type": "file_access"
-              },
-              {
-                "toolsets": [
-                  "github",
-                  "slack"
-                ],
-                "type": "composio",
-                "user_id": "user123@example.com"
-              }
-            ]
-          ],
-          "items": {
-            "discriminator": {
-              "mapping": {
-                "agent_management": "#/$defs/AgentManagementToolsetConfig",
-                "code": "#/$defs/CodeToolsetConfig",
-                "code_mode": "#/$defs/CodeModeToolsetConfig",
-                "composio": "#/$defs/ComposioToolSetConfig",
-                "config_creation": "#/$defs/ConfigCreationToolsetConfig",
-                "custom": "#/$defs/CustomToolsetConfig",
-                "entry_points": "#/$defs/EntryPointToolsetConfig",
-                "execution": "#/$defs/ExecutionEnvironmentToolsetConfig",
-                "file_access": "#/$defs/FSSpecToolsetConfig",
-                "history": "#/$defs/HistoryToolsetConfig",
-                "import_tools": "#/$defs/ImportToolsToolsetConfig",
-                "integrations": "#/$defs/IntegrationToolsetConfig",
-                "notifications": "#/$defs/NotificationsToolsetConfig",
-                "openapi": "#/$defs/OpenAPIToolsetConfig",
-                "remote_code_mode": "#/$defs/RemoteCodeModeToolsetConfig",
-                "search": "#/$defs/SearchToolsetConfig",
-                "semantic_memory": "#/$defs/SemanticMemoryToolsetConfig",
-                "skills": "#/$defs/SkillsToolsetConfig",
-                "subagent": "#/$defs/SubagentToolsetConfig",
-                "tool_management": "#/$defs/ToolManagementToolsetConfig",
-                "user_interaction": "#/$defs/UserInteractionToolsetConfig",
-                "vfs": "#/$defs/VFSToolsetConfig",
-                "workers": "#/$defs/WorkersToolsetConfig"
-              },
-              "propertyName": "type"
-            },
-            "oneOf": [
-              {
-                "$ref": "#/$defs/OpenAPIToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/EntryPointToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/ComposioToolSetConfig"
-              },
-              {
-                "$ref": "#/$defs/AgentManagementToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/ExecutionEnvironmentToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/ToolManagementToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/UserInteractionToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/HistoryToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/SkillsToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/IntegrationToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/CodeToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/FSSpecToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/VFSToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/SubagentToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/WorkersToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/CodeModeToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/RemoteCodeModeToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/SearchToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/NotificationsToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/SemanticMemoryToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/ConfigCreationToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/ImportToolsToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/CustomToolsetConfig"
-              }
-            ]
-          },
-          "title": "Toolset configurations",
-          "type": "array"
-        },
-        "session": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "$ref": "#/$defs/SessionQuery"
-            },
-            {
-              "$ref": "#/$defs/MemoryConfig"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Session configuration for conversation recovery.\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/session_configuration/",
-          "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/session_configuration/",
-          "examples": [
-            "main_session",
-            "user_123"
-          ],
-          "title": "Session configuration"
-        },
-        "output_type": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "$ref": "#/$defs/StructuredResponseConfig"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Name of the response definition to use.\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/response_configuration/",
-          "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/response_configuration/",
-          "examples": [
-            "json_response",
-            "code_output"
-          ],
-          "title": "Response type"
-        },
-        "retries": {
-          "default": 1,
-          "description": "Number of retries for failed operations (maps to pydantic-ai's retries)",
-          "examples": [
-            1,
-            3
-          ],
-          "minimum": 0,
-          "title": "Model retries",
-          "type": "integer"
-        },
-        "output_retries": {
-          "default": null,
-          "description": "Max retries for result validation",
-          "examples": [
-            1,
-            3
-          ],
-          "title": "Output retries",
-          "type": [
-            "integer",
-            "null"
-          ]
-        },
-        "end_strategy": {
-          "default": "early",
-          "description": "The strategy for handling multiple tool calls when a final result is found",
-          "enum": [
-            "early",
-            "exhaustive"
-          ],
-          "examples": [
-            "early",
-            "exhaust"
-          ],
-          "title": "Tool execution strategy",
-          "type": "string"
-        },
-        "avatar": {
-          "default": null,
-          "description": "URL or path to agent's avatar image",
-          "examples": [
-            "https://example.com/avatar.png",
-            "/assets/robot.jpg"
-          ],
-          "title": "Avatar image",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "system_prompts": {
-          "description": "System prompts for the agent. Can be strings or structured prompt configs.\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/system_prompts_configuration/",
-          "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/system_prompts_configuration/",
-          "examples": [
-            [
-              "You are an AI assistant."
-            ]
-          ],
-          "items": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "discriminator": {
-                  "mapping": {
-                    "file": "#/$defs/FilePromptConfig",
-                    "function": "#/$defs/FunctionPromptConfig",
-                    "library": "#/$defs/LibraryPromptConfig",
-                    "static": "#/$defs/StaticPromptConfig"
-                  },
-                  "propertyName": "type"
-                },
-                "oneOf": [
-                  {
-                    "$ref": "#/$defs/StaticPromptConfig"
-                  },
-                  {
-                    "$ref": "#/$defs/FilePromptConfig"
-                  },
-                  {
-                    "$ref": "#/$defs/LibraryPromptConfig"
-                  },
-                  {
-                    "$ref": "#/$defs/FunctionPromptConfig"
-                  }
-                ]
-              }
-            ]
-          },
-          "title": "System prompts",
-          "type": "array"
-        },
-        "knowledge": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/Knowledge"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Knowledge sources for this agent.\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/knowledge_configuration/",
-          "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/knowledge_configuration/",
-          "title": "Knowledge sources"
-        },
-        "workers": {
-          "description": "Worker agents which will be available as tools.\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/worker_configuration/",
-          "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/worker_configuration/",
-          "examples": [
-            [
-              {
-                "name": "web_agent",
-                "reset_history_on_run": true,
-                "type": "agent"
-              }
-            ],
-            [
-              {
-                "name": "analysis_team",
-                "type": "team"
-              }
-            ]
-          ],
-          "items": {
-            "discriminator": {
-              "mapping": {
-                "acp_agent": "#/$defs/ACPAgentWorkerConfig",
-                "agent": "#/$defs/AgentWorkerConfig",
-                "agui_agent": "#/$defs/AGUIAgentWorkerConfig",
-                "team": "#/$defs/TeamWorkerConfig"
-              },
-              "propertyName": "type"
-            },
-            "oneOf": [
-              {
-                "$ref": "#/$defs/TeamWorkerConfig"
-              },
-              {
-                "$ref": "#/$defs/AgentWorkerConfig"
-              },
-              {
-                "$ref": "#/$defs/ACPAgentWorkerConfig"
-              },
-              {
-                "$ref": "#/$defs/AGUIAgentWorkerConfig"
-              }
-            ]
-          },
-          "title": "Worker agents",
-          "type": "array"
-        },
-        "requires_tool_confirmation": {
-          "default": "per_tool",
-          "description": "How to handle tool confirmation:\n- \"always\": Always require confirmation for all tools\n- \"never\": Never require confirmation (ignore tool settings)\n- \"per_tool\": Use individual tool settings",
-          "enum": [
-            "always",
-            "never",
-            "per_tool"
-          ],
-          "examples": [
-            "always",
-            "never",
-            "per_tool"
-          ],
-          "title": "Tool confirmation mode",
-          "type": "string"
-        },
-        "debug": {
-          "default": false,
-          "description": "Enable debug output for this agent.",
-          "title": "Debug mode",
-          "type": "boolean"
-        },
-        "environment": {
-          "anyOf": [
-            {
-              "discriminator": {
-                "mapping": {
-                  "beam": "#/$defs/BeamExecutionEnvironmentConfig",
-                  "daytona": "#/$defs/DaytonaExecutionEnvironmentConfig",
-                  "docker": "#/$defs/DockerExecutionEnvironmentConfig",
-                  "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
-                  "local": "#/$defs/LocalExecutionEnvironmentConfig",
-                  "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
-                  "modal": "#/$defs/ModalExecutionEnvironmentConfig",
-                  "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
-                  "srt": "#/$defs/SRTExecutionEnvironmentConfig",
-                  "ssh": "#/$defs/SshExecutionEnvironmentConfig",
-                  "vercel": "#/$defs/VercelExecutionEnvironmentConfig"
-                },
-                "propertyName": "type"
-              },
-              "oneOf": [
-                {
-                  "$ref": "#/$defs/LocalExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/DockerExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/E2bExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/BeamExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/SshExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/VercelExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/PyodideExecutionEnvironmentConfig"
-                }
-              ]
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Execution environment configuration for this agent.",
-          "title": "Execution environment"
-        },
-        "usage_limits": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/UsageLimits"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Usage limits for this agent.",
-          "title": "Usage limits"
-        },
-        "tool_mode": {
-          "anyOf": [
-            {
-              "const": "codemode",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Tool execution mode:\n- None: Default mode - tools are called directly\n- \"codemode\": Tools are wrapped in a Python execution environment",
-          "examples": [
-            "codemode"
-          ],
-          "title": "Tool execution mode"
-        },
-        "auto_cache": {
-          "default": "off",
-          "description": "Automatic prompt caching configuration:\n- \"off\": No automatic caching\n- \"5m\": Add cache point with 5 minute TTL\n- \"1h\": Add cache point with 1 hour TTL",
-          "enum": [
-            "off",
-            "5m",
-            "1h"
-          ],
-          "examples": [
-            "off",
-            "5m",
-            "1h"
-          ],
-          "title": "Automatic caching",
-          "type": "string"
-        },
-        "hooks": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/HooksConfig"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Hooks for intercepting and customizing agent behavior at key lifecycle points.\n\nAllows adding context, blocking operations, modifying inputs, or triggering\nside effects during session start/end, run execution, tool usage, and delegation.",
-          "title": "Lifecycle hooks"
-        }
-      },
-      "title": "AgentConfig",
-      "type": "object",
-      "x-doc-title": "Agent Configuration",
-      "x-icon": "octicon:hubot-16"
-    },
     "AgentManagementToolsetConfig": {
       "additionalProperties": false,
       "description": "Configuration for agent pool building tools.",
@@ -8774,6 +6595,32 @@
       "title": "ClaudeCodeModelConfig",
       "type": "object",
       "x-doc-title": "Claude Code model"
+    },
+    "ClaudeFileAgentConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for a Claude Code format agent file.\n\nClaude Code agents use markdown files with YAML frontmatter containing\nfields like `model`, `tools`, `allowed-tools`, etc.\n\nExample:\n    ```yaml\n    file_agents:\n      reviewer:\n        type: claude\n        path: .claude/agents/reviewer.md\n    ```",
+      "properties": {
+        "type": {
+          "const": "claude",
+          "default": "claude",
+          "description": "Discriminator for Claude Code format",
+          "title": "Type",
+          "type": "string"
+        },
+        "path": {
+          "description": "Path to the agent markdown file",
+          "examples": [
+            ".claude/agents/reviewer.md"
+          ],
+          "title": "Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "title": "ClaudeFileAgentConfig",
+      "type": "object"
     },
     "CliFilesystemConfig": {
       "additionalProperties": true,
@@ -18474,38 +16321,6 @@
       "title": "FastAgent ACP Agent Configuration",
       "type": "object"
     },
-    "FileAgentConfig": {
-      "additionalProperties": false,
-      "description": "Configuration for a file-based agent definition.\n\nAllows explicit configuration of file-based agents instead of just a path string.\nUseful for overriding auto-detection or adding future options.\n\nExample:\n    ```yaml\n    file_agents:\n      # Simple path (auto-detect format)\n      reviewer: .claude/agents/reviewer.md\n\n      # Explicit config\n      debugger:\n        path: ./agents/debugger.md\n        format: opencode\n    ```",
-      "properties": {
-        "path": {
-          "description": "Path to the agent markdown file (local or remote via UPath)",
-          "examples": [
-            ".claude/agents/reviewer.md",
-            "https://example.com/agents/helper.md"
-          ],
-          "title": "Path",
-          "type": "string"
-        },
-        "format": {
-          "default": "auto",
-          "description": "File format to use for parsing. 'auto' detects based on content.",
-          "enum": [
-            "claude",
-            "opencode",
-            "llmling",
-            "auto"
-          ],
-          "title": "Format",
-          "type": "string"
-        }
-      },
-      "required": [
-        "path"
-      ],
-      "title": "FileAgentConfig",
-      "type": "object"
-    },
     "FileCommandConfig": {
       "additionalProperties": false,
       "description": "File-based command that loads content from external file.",
@@ -25914,6 +23729,2211 @@
       "title": "Mounts Configuration",
       "type": "object"
     },
+    "NativeAgentConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for a single agent in the system.\n\nDefines an agent's complete configuration including its model, environment,\nand behavior settings.\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/agent_configuration/",
+      "properties": {
+        "name": {
+          "default": null,
+          "description": "Identifier for the node. Set from dict key, not from YAML.",
+          "title": "Name",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "config_file_path": {
+          "default": null,
+          "description": "Config file path for resolving relative paths.",
+          "examples": [
+            "/path/to/config.yml",
+            "configs/agent.yaml"
+          ],
+          "title": "Configuration file path",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "display_name": {
+          "default": null,
+          "description": "Human-readable display name for the node.",
+          "examples": [
+            "Main Agent",
+            "Web Searcher",
+            "Code Assistant"
+          ],
+          "title": "Display name",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "default": null,
+          "description": "Optional description of the agent / team.",
+          "examples": [
+            "Main conversation agent",
+            "Handles web search requests"
+          ],
+          "title": "Node description",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "triggers": {
+          "description": "Event sources that activate this agent / team",
+          "examples": [
+            [
+              {
+                "name": "daily_check",
+                "prompt": "Daily status update",
+                "schedule": "0 9 * * *",
+                "type": "time"
+              }
+            ],
+            [
+              {
+                "extensions": [
+                  ".py"
+                ],
+                "name": "code_watcher",
+                "paths": [
+                  "./src"
+                ],
+                "type": "file"
+              }
+            ]
+          ],
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "email": "#/$defs/EmailConfig",
+                "file": "#/$defs/FileWatchConfig",
+                "time": "#/$defs/TimeEventConfig",
+                "webhook": "#/$defs/WebhookConfig"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/FileWatchConfig"
+              },
+              {
+                "$ref": "#/$defs/WebhookConfig"
+              },
+              {
+                "$ref": "#/$defs/EmailConfig"
+              },
+              {
+                "$ref": "#/$defs/TimeEventConfig"
+              }
+            ]
+          },
+          "title": "Event triggers",
+          "type": "array"
+        },
+        "connections": {
+          "description": "Targets to forward results to.",
+          "examples": [
+            [
+              {
+                "connection_type": "run",
+                "name": "output_agent",
+                "type": "node",
+                "wait_for_completion": true
+              }
+            ],
+            [
+              {
+                "path": "logs/messages.txt",
+                "template": "{{ message.content }}",
+                "type": "file"
+              }
+            ]
+          ],
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "callable": "#/$defs/CallableConnectionConfig",
+                "file": "#/$defs/FileConnectionConfig",
+                "node": "#/$defs/NodeConnectionConfig"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/NodeConnectionConfig"
+              },
+              {
+                "$ref": "#/$defs/FileConnectionConfig"
+              },
+              {
+                "$ref": "#/$defs/CallableConnectionConfig"
+              }
+            ]
+          },
+          "title": "Message forwarding targets",
+          "type": "array"
+        },
+        "mcp_servers": {
+          "description": "List of MCP server configurations:\n- str entries are converted to StdioMCPServerConfig\n- MCPServerConfig for full server configuration",
+          "examples": [
+            [
+              "uvx some-server"
+            ],
+            [
+              {
+                "type": "streamable-http",
+                "url": "http://mcp.example.com"
+              }
+            ]
+          ],
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "discriminator": {
+                  "mapping": {
+                    "sse": "#/$defs/SSEMCPServerConfig",
+                    "stdio": "#/$defs/StdioMCPServerConfig",
+                    "streamable-http": "#/$defs/StreamableHTTPMCPServerConfig"
+                  },
+                  "propertyName": "type"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/StdioMCPServerConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/SSEMCPServerConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/StreamableHTTPMCPServerConfig"
+                  }
+                ]
+              }
+            ]
+          },
+          "title": "MCP servers",
+          "type": "array"
+        },
+        "input_provider": {
+          "default": null,
+          "description": "Provider for human-input-handling.",
+          "title": "Input provider",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "event_handlers": {
+          "description": "Event handlers for processing agent stream events.\n\nSupports:\n- builtin: Simple/detailed console output\n- tts: Text-to-speech synthesis\n- callback: Custom handler via import path",
+          "examples": [
+            [
+              {
+                "handler": "simple",
+                "type": "builtin"
+              }
+            ]
+          ],
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "builtin": "#/$defs/StdoutEventHandlerConfig",
+                "callback": "#/$defs/CallbackEventHandlerConfig",
+                "edge-tts": "#/$defs/EdgeTTSEventHandlerConfig",
+                "tts": "#/$defs/TTSEventHandlerConfig"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/StdoutEventHandlerConfig"
+              },
+              {
+                "$ref": "#/$defs/CallbackEventHandlerConfig"
+              },
+              {
+                "$ref": "#/$defs/TTSEventHandlerConfig"
+              },
+              {
+                "$ref": "#/$defs/EdgeTTSEventHandlerConfig"
+              }
+            ]
+          },
+          "title": "Event handlers",
+          "type": "array"
+        },
+        "inherits": {
+          "default": null,
+          "description": "Name of agent config to inherit from",
+          "title": "Inheritance source",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "model": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "anthropic": "#/$defs/AnthropicModelConfig",
+                  "augmented": "#/$defs/AugmentedModelConfig",
+                  "claude_code": "#/$defs/ClaudeCodeModelConfig",
+                  "delegation": "#/$defs/DelegationModelConfig",
+                  "fallback": "#/$defs/FallbackModelConfig",
+                  "function": "#/$defs/FunctionModelConfig",
+                  "gemini": "#/$defs/GeminiModelConfig",
+                  "import": "#/$defs/ImportModelConfig",
+                  "input": "#/$defs/InputModelConfig",
+                  "openai": "#/$defs/OpenAIModelConfig",
+                  "remote-input": "#/$defs/RemoteInputConfig",
+                  "remote-proxy": "#/$defs/RemoteProxyConfig",
+                  "string": "#/$defs/StringModelConfig",
+                  "test": "#/$defs/TestModelConfig",
+                  "user-select": "#/$defs/UserSelectModelConfig"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/AugmentedModelConfig"
+                },
+                {
+                  "$ref": "#/$defs/ClaudeCodeModelConfig"
+                },
+                {
+                  "$ref": "#/$defs/DelegationModelConfig"
+                },
+                {
+                  "$ref": "#/$defs/FallbackModelConfig"
+                },
+                {
+                  "$ref": "#/$defs/FunctionModelConfig"
+                },
+                {
+                  "$ref": "#/$defs/ImportModelConfig"
+                },
+                {
+                  "$ref": "#/$defs/InputModelConfig"
+                },
+                {
+                  "$ref": "#/$defs/RemoteInputConfig"
+                },
+                {
+                  "$ref": "#/$defs/RemoteProxyConfig"
+                },
+                {
+                  "$ref": "#/$defs/StringModelConfig"
+                },
+                {
+                  "$ref": "#/$defs/TestModelConfig"
+                },
+                {
+                  "$ref": "#/$defs/UserSelectModelConfig"
+                },
+                {
+                  "$ref": "#/$defs/OpenAIModelConfig"
+                },
+                {
+                  "$ref": "#/$defs/AnthropicModelConfig"
+                },
+                {
+                  "$ref": "#/$defs/GeminiModelConfig"
+                }
+              ]
+            },
+            {
+              "enum": [
+                "anthropic:claude-haiku-4-5",
+                "anthropic:claude-haiku-4-5-20251001",
+                "anthropic:claude-opus-4-1",
+                "anthropic:claude-opus-4-1-20250805",
+                "anthropic:claude-opus-4-5",
+                "anthropic:claude-opus-4-5-20251101",
+                "anthropic:claude-sonnet-4-5",
+                "anthropic:claude-sonnet-4-5-20250929"
+              ],
+              "type": "string"
+            },
+            {
+              "enum": [
+                "cerebras:gpt-oss-120b",
+                "cerebras:qwen-3-235b-a22b-instruct-2507",
+                "cerebras:zai-glm-4.6"
+              ],
+              "type": "string"
+            },
+            {
+              "enum": [
+                "claude-code:haiku",
+                "claude-code:opus",
+                "claude-code:sonnet"
+              ],
+              "type": "string"
+            },
+            {
+              "enum": [
+                "cohere:command-a-reasoning-08-2025",
+                "cohere:command-a-translate-08-2025",
+                "cohere:command-a-vision-07-2025"
+              ],
+              "type": "string"
+            },
+            {
+              "enum": [
+                "comet:DeepSeek-V3.2-Exp-nothinking",
+                "comet:DeepSeek-V3.2-Exp-thinking",
+                "comet:Qwen2.5-72B-Instruct-128K",
+                "comet:abab5.5-chat",
+                "comet:abab5.5s-chat",
+                "comet:abab6-chat",
+                "comet:abab6.5g-chat",
+                "comet:abab6.5s-chat",
+                "comet:abab6.5t-chat",
+                "comet:abab7-chat-preview",
+                "comet:black-forest-labs/flux-1.1-pro",
+                "comet:black-forest-labs/flux-1.1-pro-ultra",
+                "comet:black-forest-labs/flux-2-dev",
+                "comet:black-forest-labs/flux-2-flex",
+                "comet:black-forest-labs/flux-2-pro",
+                "comet:black-forest-labs/flux-dev",
+                "comet:black-forest-labs/flux-kontext-max",
+                "comet:black-forest-labs/flux-kontext-pro",
+                "comet:black-forest-labs/flux-pro",
+                "comet:black-forest-labs/flux-schnell",
+                "comet:bria_image_edit_enhance",
+                "comet:bria_image_edit_erase",
+                "comet:bria_image_edit_expand",
+                "comet:bria_image_edit_gen_fill",
+                "comet:bria_image_edit_increase_resolution",
+                "comet:bria_image_edit_replace_background",
+                "comet:bria_text_to_image",
+                "comet:bria_text_to_vector",
+                "comet:bytedance-seedEdit-3.0-i2i",
+                "comet:bytedance-seedance-1-0-lite",
+                "comet:bytedance-seedance-1-0-lite-i2v-250428",
+                "comet:bytedance-seedance-1-0-lite-t2v-250428",
+                "comet:bytedance-seedance-1-0-pro",
+                "comet:bytedance-seedream-3.0-t2i",
+                "comet:bytedance-seedream-4-0-250828",
+                "comet:chatgpt-4o-latest",
+                "comet:claude-3-5-haiku-20241022",
+                "comet:claude-3-5-haiku-latest",
+                "comet:claude-3-5-sonnet-20240620",
+                "comet:claude-3-5-sonnet-20241022",
+                "comet:claude-3-5-sonnet-all",
+                "comet:claude-3-5-sonnet-latest",
+                "comet:claude-3-7-sonnet-20250219",
+                "comet:claude-3-7-sonnet-20250219-thinking",
+                "comet:claude-3-7-sonnet-latest",
+                "comet:claude-3-7-sonnet-thinking",
+                "comet:claude-3-haiku-20240307",
+                "comet:claude-3-opus-20240229",
+                "comet:claude-3-opus-latest",
+                "comet:claude-haiku-4-5-20251001",
+                "comet:claude-opus-4-1-20250805",
+                "comet:claude-opus-4-1-20250805-thinking",
+                "comet:claude-opus-4-20250514",
+                "comet:claude-opus-4-20250514-thinking",
+                "comet:claude-opus-4-5-20251101",
+                "comet:claude-opus-4-5-20251101-thinking",
+                "comet:claude-sonnet-4-20250514",
+                "comet:claude-sonnet-4-20250514-thinking",
+                "comet:claude-sonnet-4-5",
+                "comet:claude-sonnet-4-5-20250929",
+                "comet:claude-sonnet-4-5-20250929-thinking",
+                "comet:codex-mini-latest",
+                "comet:cometapi-3-5-sonnet",
+                "comet:cometapi-3-7-sonnet",
+                "comet:cometapi-3-7-sonnet-thinking",
+                "comet:cometapi-haiku-4-5-20251001",
+                "comet:cometapi-opus-4-1-20250805",
+                "comet:cometapi-opus-4-1-20250805-thinking",
+                "comet:cometapi-opus-4-20250514",
+                "comet:cometapi-opus-4-20250514-thinking",
+                "comet:cometapi-opus-4-5-20251101",
+                "comet:cometapi-opus-4-5-20251101-thinking",
+                "comet:cometapi-sonnet-4-20250514",
+                "comet:cometapi-sonnet-4-20250514-thinking",
+                "comet:cometapi-sonnet-4-5",
+                "comet:cometapi-sonnet-4-5-20250929",
+                "comet:cometapi-sonnet-4-5-20250929-thinking",
+                "comet:dall-e-2",
+                "comet:dall-e-3",
+                "comet:deepseek-ai/DeepSeek-V3",
+                "comet:deepseek-ai/deepseek-r1",
+                "comet:deepseek-chat",
+                "comet:deepseek-ocr",
+                "comet:deepseek-r1",
+                "comet:deepseek-r1-0528",
+                "comet:deepseek-r1t2-chimera",
+                "comet:deepseek-reasoner",
+                "comet:deepseek-v3",
+                "comet:deepseek-v3-1-250821",
+                "comet:deepseek-v3-250324",
+                "comet:deepseek-v3.1",
+                "comet:deepseek-v3.1-think-250821",
+                "comet:deepseek-v3.2",
+                "comet:deepseek-v3.2-exp",
+                "comet:doubao-1-5-pro-256k",
+                "comet:doubao-1-5-pro-256k-250115",
+                "comet:doubao-1-5-pro-32k",
+                "comet:doubao-1-5-pro-32k-250115",
+                "comet:doubao-1-5-thinking-pro-250415",
+                "comet:doubao-1-5-thinking-vision-pro-250428",
+                "comet:doubao-1-5-vision-pro-32k",
+                "comet:doubao-1.5-lite-32k",
+                "comet:doubao-1.5-pro-256k",
+                "comet:doubao-1.5-pro-32k",
+                "comet:doubao-1.5-pro-32k-250115",
+                "comet:doubao-1.5-thinking-pro",
+                "comet:doubao-1.5-vision-pro",
+                "comet:doubao-1.5-vision-pro-250328",
+                "comet:doubao-1.5-vision-pro-32k",
+                "comet:doubao-1.5-vision-pro-32k-250115",
+                "comet:doubao-lite-128k",
+                "comet:doubao-lite-32k",
+                "comet:doubao-lite-32k-240828",
+                "comet:doubao-lite-4k",
+                "comet:doubao-pro-128k",
+                "comet:doubao-pro-256k",
+                "comet:doubao-pro-32k",
+                "comet:doubao-pro-32k-241215",
+                "comet:doubao-pro-4k",
+                "comet:doubao-seed-1-6-250615",
+                "comet:doubao-seed-1-6-flash-250615",
+                "comet:doubao-seed-1-6-thinking-250715",
+                "comet:doubao-seed-1.6",
+                "comet:doubao-seed-1.6-thinking",
+                "comet:doubao-seedance-1-0-lite-i2v-250428",
+                "comet:doubao-seedance-1-0-lite-t2v-250428",
+                "comet:doubao-seedance-1-0-pro-250528",
+                "comet:doubao-seedance-1.0-pro",
+                "comet:doubao-seededit-3-0-i2i-250628",
+                "comet:doubao-seedream-3-0-t2i-250415",
+                "comet:doubao-seedream-4-0-250828",
+                "comet:doubao-seedream-4-5-251128",
+                "comet:doubao-vision-pro-32k",
+                "comet:flux-1.1-pro",
+                "comet:flux-2-flex",
+                "comet:flux-2-pro",
+                "comet:flux-dev",
+                "comet:flux-finetune",
+                "comet:flux-kontext-max",
+                "comet:flux-kontext-pro",
+                "comet:flux-pro",
+                "comet:flux-pro-1.0-canny",
+                "comet:flux-pro-1.0-canny-finetuned",
+                "comet:flux-pro-1.0-depth",
+                "comet:flux-pro-1.0-depth-finetuned",
+                "comet:flux-pro-1.0-fill",
+                "comet:flux-pro-1.0-fill-finetuned",
+                "comet:flux-pro-1.1",
+                "comet:flux-pro-1.1-ultra",
+                "comet:flux-pro-1.1-ultra-finetuned",
+                "comet:flux-pro-finetuned",
+                "comet:gemini-2.0-flash",
+                "comet:gemini-2.0-flash-exp",
+                "comet:gemini-2.0-flash-exp-image-generation",
+                "comet:gemini-2.0-flash-lite-preview-02-05",
+                "comet:gemini-2.0-flash-thinking",
+                "comet:gemini-2.0-flash-thinking-exp",
+                "comet:gemini-2.0-flash-thinking-exp-01-21",
+                "comet:gemini-2.0-flash-thinking-exp-0119",
+                "comet:gemini-2.0-flash-thinking-exp-0129",
+                "comet:gemini-2.0-flash-thinking-exp-1219",
+                "comet:gemini-2.0-pro-exp",
+                "comet:gemini-2.0-pro-exp-02-05",
+                "comet:gemini-2.5-flash",
+                "comet:gemini-2.5-flash-all",
+                "comet:gemini-2.5-flash-deepsearch",
+                "comet:gemini-2.5-flash-image",
+                "comet:gemini-2.5-flash-image-preview",
+                "comet:gemini-2.5-flash-lite",
+                "comet:gemini-2.5-flash-lite-preview-06-17",
+                "comet:gemini-2.5-flash-lite-preview-06-17-thinking",
+                "comet:gemini-2.5-flash-lite-preview-09-2025",
+                "comet:gemini-2.5-flash-lite-thinking",
+                "comet:gemini-2.5-flash-preview-04-17",
+                "comet:gemini-2.5-flash-preview-05-20",
+                "comet:gemini-2.5-flash-preview-05-20-thinking",
+                "comet:gemini-2.5-flash-preview-09-2025",
+                "comet:gemini-2.5-flash-thinking",
+                "comet:gemini-2.5-pro",
+                "comet:gemini-2.5-pro-all",
+                "comet:gemini-2.5-pro-deepsearch",
+                "comet:gemini-2.5-pro-exp-03-25",
+                "comet:gemini-2.5-pro-preview-03-25",
+                "comet:gemini-2.5-pro-preview-05-06",
+                "comet:gemini-2.5-pro-preview-06-05",
+                "comet:gemini-2.5-pro-thinking",
+                "comet:gemini-3-pro-image",
+                "comet:gemini-3-pro-image-preview",
+                "comet:gemini-3-pro-preview",
+                "comet:gemini-3-pro-preview-thinking",
+                "comet:glm-3-turbo",
+                "comet:glm-4",
+                "comet:glm-4-0520",
+                "comet:glm-4-air",
+                "comet:glm-4-airx",
+                "comet:glm-4-flash",
+                "comet:glm-4-plus",
+                "comet:glm-4.5",
+                "comet:glm-4.5-air",
+                "comet:glm-4.5-airx",
+                "comet:glm-4.5-flash",
+                "comet:glm-4.5-x",
+                "comet:glm-4.6",
+                "comet:glm-4v",
+                "comet:glm-4v-plus",
+                "comet:gpt-3.5-turbo",
+                "comet:gpt-3.5-turbo-0125",
+                "comet:gpt-3.5-turbo-0613",
+                "comet:gpt-3.5-turbo-1106",
+                "comet:gpt-3.5-turbo-16k",
+                "comet:gpt-3.5-turbo-16k-0613",
+                "comet:gpt-3.5-turbo-instruct",
+                "comet:gpt-4",
+                "comet:gpt-4-0125-preview",
+                "comet:gpt-4-0613",
+                "comet:gpt-4-1106-preview",
+                "comet:gpt-4-32k",
+                "comet:gpt-4-32k-0613",
+                "comet:gpt-4-all",
+                "comet:gpt-4-gizmo-*",
+                "comet:gpt-4-turbo",
+                "comet:gpt-4-turbo-2024-04-09",
+                "comet:gpt-4-turbo-preview",
+                "comet:gpt-4-vision-preview",
+                "comet:gpt-4.1",
+                "comet:gpt-4.1-2025-04-14",
+                "comet:gpt-4.1-mini",
+                "comet:gpt-4.1-mini-2025-04-14",
+                "comet:gpt-4.1-nano",
+                "comet:gpt-4.1-nano-2025-04-14",
+                "comet:gpt-4o",
+                "comet:gpt-4o-2024-05-13",
+                "comet:gpt-4o-2024-08-06",
+                "comet:gpt-4o-2024-11-20",
+                "comet:gpt-4o-all",
+                "comet:gpt-4o-audio-preview",
+                "comet:gpt-4o-audio-preview-2024-10-01",
+                "comet:gpt-4o-audio-preview-2024-12-17",
+                "comet:gpt-4o-audio-preview-2025-06-03",
+                "comet:gpt-4o-image",
+                "comet:gpt-4o-mini",
+                "comet:gpt-4o-mini-2024-07-18",
+                "comet:gpt-4o-mini-audio-preview",
+                "comet:gpt-4o-mini-audio-preview-2024-12-17",
+                "comet:gpt-4o-mini-realtime-preview",
+                "comet:gpt-4o-mini-realtime-preview-2024-12-17",
+                "comet:gpt-4o-mini-search-preview",
+                "comet:gpt-4o-mini-search-preview-2025-03-11",
+                "comet:gpt-4o-mini-transcribe",
+                "comet:gpt-4o-mini-tts",
+                "comet:gpt-4o-realtime-preview",
+                "comet:gpt-4o-realtime-preview-2024-10-01",
+                "comet:gpt-4o-realtime-preview-2024-12-17",
+                "comet:gpt-4o-realtime-preview-2025-06-03",
+                "comet:gpt-4o-search",
+                "comet:gpt-4o-search-preview",
+                "comet:gpt-4o-search-preview-2025-03-11",
+                "comet:gpt-4o-transcribe",
+                "comet:gpt-5",
+                "comet:gpt-5-2025-08-07",
+                "comet:gpt-5-all",
+                "comet:gpt-5-chat-latest",
+                "comet:gpt-5-codex",
+                "comet:gpt-5-codex-high",
+                "comet:gpt-5-codex-low",
+                "comet:gpt-5-codex-medium",
+                "comet:gpt-5-high",
+                "comet:gpt-5-low",
+                "comet:gpt-5-medium",
+                "comet:gpt-5-mini",
+                "comet:gpt-5-mini-2025-08-07",
+                "comet:gpt-5-minimal",
+                "comet:gpt-5-nano",
+                "comet:gpt-5-nano-2025-08-07",
+                "comet:gpt-5-pro",
+                "comet:gpt-5-pro-2025-10-06",
+                "comet:gpt-5-thinking",
+                "comet:gpt-5-thinking-all",
+                "comet:gpt-5.1",
+                "comet:gpt-5.1-chat-latest",
+                "comet:gpt-5.1-codex",
+                "comet:gpt-image-1",
+                "comet:gpt-image-1-mini",
+                "comet:gpt-oss-120b",
+                "comet:gpt-oss-20b",
+                "comet:gpt-realtime",
+                "comet:gpt-realtime-mini",
+                "comet:grok-2",
+                "comet:grok-2-1212",
+                "comet:grok-2-vision-1212",
+                "comet:grok-3",
+                "comet:grok-3-beta",
+                "comet:grok-3-deepersearch",
+                "comet:grok-3-deepsearch",
+                "comet:grok-3-fast",
+                "comet:grok-3-fast-latest",
+                "comet:grok-3-latest",
+                "comet:grok-3-mini",
+                "comet:grok-3-mini-fast",
+                "comet:grok-3-mini-fast-latest",
+                "comet:grok-3-mini-latest",
+                "comet:grok-3-reasoner",
+                "comet:grok-3-reasoning",
+                "comet:grok-3-search",
+                "comet:grok-4",
+                "comet:grok-4-0709",
+                "comet:grok-4-1-fast-non-reasoning",
+                "comet:grok-4-1-fast-reasoning",
+                "comet:grok-4-auto",
+                "comet:grok-4-fast-non-reasoning",
+                "comet:grok-4-fast-reasoning",
+                "comet:grok-code-fast-1",
+                "comet:hunyuan",
+                "comet:hunyuan-a13b",
+                "comet:hunyuan-code",
+                "comet:hunyuan-functioncall",
+                "comet:hunyuan-large",
+                "comet:hunyuan-large-vision",
+                "comet:hunyuan-lite",
+                "comet:hunyuan-pro",
+                "comet:hunyuan-role",
+                "comet:hunyuan-standard",
+                "comet:hunyuan-standard-256K",
+                "comet:hunyuan-t1-20250321",
+                "comet:hunyuan-t1-20250403",
+                "comet:hunyuan-t1-20250521",
+                "comet:hunyuan-t1-20250529",
+                "comet:hunyuan-t1-20250711",
+                "comet:hunyuan-t1-20250822",
+                "comet:hunyuan-t1-latest",
+                "comet:hunyuan-t1-vision",
+                "comet:hunyuan-t1-vision-20250619",
+                "comet:hunyuan-turbos-20250313",
+                "comet:hunyuan-turbos-20250416",
+                "comet:hunyuan-turbos-20250515",
+                "comet:hunyuan-turbos-20250604",
+                "comet:hunyuan-turbos-latest",
+                "comet:hunyuan-turbos-longtext-128k-20250325",
+                "comet:hunyuan-turbos-vision",
+                "comet:hunyuan-turbos-vision-20250619",
+                "comet:hunyuan-vision",
+                "comet:ideogram-ai/ideogram-v2",
+                "comet:ideogram-ai/ideogram-v2-turbo",
+                "comet:ideogram-ai/ideogram-v2a",
+                "comet:ideogram-ai/ideogram-v3-balanced",
+                "comet:ideogram-ai/ideogram-v3-quality",
+                "comet:ideogram-ai/ideogram-v3-turbo",
+                "comet:kimi-k2-0711-preview",
+                "comet:kimi-k2-0905-preview",
+                "comet:kimi-k2-250905",
+                "comet:kimi-k2-thinking",
+                "comet:kimi-k2-thinking-turbo",
+                "comet:kling_advanced_lip_sync",
+                "comet:kling_audio_text_to_audio",
+                "comet:kling_audio_video_to_audio",
+                "comet:kling_avatar_image2video",
+                "comet:kling_effects",
+                "comet:kling_extend",
+                "comet:kling_identify_face",
+                "comet:kling_image",
+                "comet:kling_image_expand",
+                "comet:kling_image_recognize",
+                "comet:kling_lip_sync",
+                "comet:kling_multi_elements_add",
+                "comet:kling_multi_elements_clear",
+                "comet:kling_multi_elements_delete",
+                "comet:kling_multi_elements_init",
+                "comet:kling_multi_elements_preview",
+                "comet:kling_multi_elements_submit",
+                "comet:kling_multi_image2image",
+                "comet:kling_tts",
+                "comet:kling_video",
+                "comet:kling_virtual_try_on",
+                "comet:llama-4-maverick",
+                "comet:llama-4-scout",
+                "comet:luma-video",
+                "comet:luma_extend",
+                "comet:luma_fast_extend",
+                "comet:luma_fast_nomark",
+                "comet:luma_fast_video",
+                "comet:luma_nomark",
+                "comet:luma_relax_extend",
+                "comet:luma_relax_nomark",
+                "comet:luma_relax_video",
+                "comet:luma_video",
+                "comet:minimax-hailuo-02",
+                "comet:minimax-m2",
+                "comet:minimax_files_retrieve",
+                "comet:minimax_minimax-hailuo-02",
+                "comet:minimax_video-01",
+                "comet:mj_fast_blend",
+                "comet:mj_fast_custom_zoom",
+                "comet:mj_fast_describe",
+                "comet:mj_fast_edits",
+                "comet:mj_fast_high_variation",
+                "comet:mj_fast_imagine",
+                "comet:mj_fast_inpaint",
+                "comet:mj_fast_low_variation",
+                "comet:mj_fast_modal",
+                "comet:mj_fast_pan",
+                "comet:mj_fast_pic_reader",
+                "comet:mj_fast_prompt_analyzer",
+                "comet:mj_fast_prompt_analyzer_extended",
+                "comet:mj_fast_reroll",
+                "comet:mj_fast_shorten",
+                "comet:mj_fast_upload",
+                "comet:mj_fast_upscale",
+                "comet:mj_fast_upscale_creative",
+                "comet:mj_fast_upscale_subtle",
+                "comet:mj_fast_variation",
+                "comet:mj_fast_video",
+                "comet:mj_fast_zoom",
+                "comet:mj_turbo_blend",
+                "comet:mj_turbo_custom_zoom",
+                "comet:mj_turbo_describe",
+                "comet:mj_turbo_high_variation",
+                "comet:mj_turbo_imagine",
+                "comet:mj_turbo_inpaint",
+                "comet:mj_turbo_low_variation",
+                "comet:mj_turbo_modal",
+                "comet:mj_turbo_pan",
+                "comet:mj_turbo_pic_reader",
+                "comet:mj_turbo_prompt_analyzer",
+                "comet:mj_turbo_prompt_analyzer_extended",
+                "comet:mj_turbo_reroll",
+                "comet:mj_turbo_shorten",
+                "comet:mj_turbo_upload",
+                "comet:mj_turbo_upscale",
+                "comet:mj_turbo_upscale_creative",
+                "comet:mj_turbo_upscale_subtle",
+                "comet:mj_turbo_variation",
+                "comet:mj_turbo_zoom",
+                "comet:o1",
+                "comet:o1-2024-12-17",
+                "comet:o1-mini",
+                "comet:o1-mini-2024-09-12",
+                "comet:o1-preview",
+                "comet:o1-preview-2024-09-12",
+                "comet:o1-pro",
+                "comet:o1-pro-2025-03-19",
+                "comet:o1-pro-all",
+                "comet:o3",
+                "comet:o3-2025-04-16",
+                "comet:o3-deep-research",
+                "comet:o3-deep-research-2025-06-26",
+                "comet:o3-mini",
+                "comet:o3-mini-2025-01-31",
+                "comet:o3-mini-2025-01-31-high",
+                "comet:o3-mini-2025-01-31-low",
+                "comet:o3-mini-2025-01-31-medium",
+                "comet:o3-mini-all",
+                "comet:o3-mini-high",
+                "comet:o3-mini-high-2025-01-31",
+                "comet:o3-mini-high-all",
+                "comet:o3-mini-low",
+                "comet:o3-mini-medium",
+                "comet:o3-pro",
+                "comet:o3-pro-2025-06-10",
+                "comet:o4-mini",
+                "comet:o4-mini-2025-04-16",
+                "comet:o4-mini-deep-research",
+                "comet:o4-mini-deep-research-2025-06-26",
+                "comet:omni-moderation-2024-09-26",
+                "comet:omni-moderation-latest",
+                "comet:qwen-72b",
+                "comet:qwen-image",
+                "comet:qwen-image-edit",
+                "comet:qwen-long",
+                "comet:qwen-max",
+                "comet:qwen-max-2025-01-25",
+                "comet:qwen-max-latest",
+                "comet:qwen-plus",
+                "comet:qwen-plus-latest",
+                "comet:qwen-turbo",
+                "comet:qwen-turbo-1101",
+                "comet:qwen-turbo-2024-11-01",
+                "comet:qwen-turbo-latest",
+                "comet:qwen-vl-max",
+                "comet:qwen-vl-max-0201",
+                "comet:qwen-vl-max-0809",
+                "comet:qwen-vl-max-latest",
+                "comet:qwen-vl-ocr",
+                "comet:qwen-vl-plus",
+                "comet:qwen-vl-plus-latest",
+                "comet:qwen/qwq-32b",
+                "comet:qwen1.5-110b-chat",
+                "comet:qwen1.5-14b-chat",
+                "comet:qwen1.5-32b-chat",
+                "comet:qwen1.5-7b-chat",
+                "comet:qwen2-1.5b-instruct",
+                "comet:qwen2-57b-a14b-instruct",
+                "comet:qwen2-72b-instruct",
+                "comet:qwen2-7b-instruct",
+                "comet:qwen2-vl-72b-instruct",
+                "comet:qwen2-vl-7b-instruct",
+                "comet:qwen2.5-14b-instruct",
+                "comet:qwen2.5-32b-instruct",
+                "comet:qwen2.5-72b-instruct",
+                "comet:qwen2.5-7b-instruct",
+                "comet:qwen2.5-coder-32b-instruct",
+                "comet:qwen2.5-coder-7b-instruct",
+                "comet:qwen2.5-math-72b-instruct",
+                "comet:qwen2.5-omni-7b",
+                "comet:qwen2.5-vl-32b-instruct",
+                "comet:qwen2.5-vl-72b",
+                "comet:qwen2.5-vl-72b-instruct",
+                "comet:qwen3-14b",
+                "comet:qwen3-235b-a22b",
+                "comet:qwen3-30b-a3b",
+                "comet:qwen3-32b",
+                "comet:qwen3-8b",
+                "comet:qwen3-coder",
+                "comet:qwen3-coder-480b-a35b-instruct",
+                "comet:qwen3-coder-plus",
+                "comet:qwen3-coder-plus-2025-07-22",
+                "comet:qwen3-max-preview",
+                "comet:qwq-32b",
+                "comet:recraft-ai/recraft-v3",
+                "comet:recraft-ai/recraft-v3-svg",
+                "comet:recraft-api",
+                "comet:recraftv3",
+                "comet:runway_act_one",
+                "comet:runway_video",
+                "comet:runway_video2video",
+                "comet:runwayml_character_performance",
+                "comet:runwayml_control_character",
+                "comet:runwayml_image_to_video",
+                "comet:runwayml_text_to_image",
+                "comet:runwayml_upscale_video",
+                "comet:runwayml_video_to_video",
+                "comet:sora-2",
+                "comet:sora-2-all",
+                "comet:sora-2-pro",
+                "comet:sora-2-pro-all",
+                "comet:stability-ai/sdxl",
+                "comet:stability-ai/stable-diffusion",
+                "comet:stability-ai/stable-diffusion-3",
+                "comet:stability-ai/stable-diffusion-3.5-large",
+                "comet:stability-ai/stable-diffusion-3.5-large-turbo",
+                "comet:stability-ai/stable-diffusion-3.5-medium",
+                "comet:suno_act_create_project",
+                "comet:suno_act_midi",
+                "comet:suno_act_mp4",
+                "comet:suno_act_stems",
+                "comet:suno_act_tags",
+                "comet:suno_act_timing",
+                "comet:suno_act_wav",
+                "comet:suno_concat",
+                "comet:suno_lyrics",
+                "comet:suno_music",
+                "comet:suno_persona_create",
+                "comet:suno_render",
+                "comet:suno_uploads",
+                "comet:suno_uploads_audio",
+                "comet:suno_uploads_audio_finish",
+                "comet:suno_uploads_audio_initialize_clip",
+                "comet:tts",
+                "comet:tts-1",
+                "comet:tts-1-1106",
+                "comet:tts-1-hd",
+                "comet:tts-1-hd-1106",
+                "comet:tts-hd",
+                "comet:veo-3.1-generate-preview",
+                "comet:veo3",
+                "comet:veo3-fast",
+                "comet:veo3-fast-frames",
+                "comet:veo3-frames",
+                "comet:veo3-pro",
+                "comet:veo3-pro-frames",
+                "comet:veo3.1",
+                "comet:veo3.1-pro",
+                "comet:whisper-1"
+              ],
+              "type": "string"
+            },
+            {
+              "enum": [
+                "copilot:claude-haiku-4.5",
+                "copilot:claude-opus-4.5",
+                "copilot:claude-sonnet-4",
+                "copilot:claude-sonnet-4.5",
+                "copilot:gemini-2.5-pro",
+                "copilot:gemini-3-pro-preview",
+                "copilot:gpt-4.1",
+                "copilot:gpt-4o",
+                "copilot:gpt-5",
+                "copilot:gpt-5-codex",
+                "copilot:gpt-5-mini",
+                "copilot:gpt-5.1",
+                "copilot:gpt-5.1-codex",
+                "copilot:gpt-5.1-codex-max",
+                "copilot:gpt-5.1-codex-mini",
+                "copilot:gpt-5.2",
+                "copilot:grok-code-fast-1",
+                "copilot:oswe-vscode-prime"
+              ],
+              "type": "string"
+            },
+            {
+              "enum": [
+                "deepseek:deepseek-chat",
+                "deepseek:deepseek-reasoner"
+              ],
+              "type": "string"
+            },
+            {
+              "enum": [
+                "gemini:aqa",
+                "gemini:deep-research-pro-preview-12-2025",
+                "gemini:gemini-2.0-flash",
+                "gemini:gemini-2.0-flash-001",
+                "gemini:gemini-2.0-flash-exp",
+                "gemini:gemini-2.0-flash-lite",
+                "gemini:gemini-2.0-flash-lite-001",
+                "gemini:gemini-2.0-flash-lite-preview",
+                "gemini:gemini-2.0-flash-lite-preview-02-05",
+                "gemini:gemini-2.5-computer-use-preview-10-2025",
+                "gemini:gemini-2.5-flash",
+                "gemini:gemini-2.5-flash-image",
+                "gemini:gemini-2.5-flash-image-preview",
+                "gemini:gemini-2.5-flash-lite",
+                "gemini:gemini-2.5-flash-lite-preview-09-2025",
+                "gemini:gemini-2.5-flash-native-audio-latest",
+                "gemini:gemini-2.5-flash-native-audio-preview-09-2025",
+                "gemini:gemini-2.5-flash-native-audio-preview-12-2025",
+                "gemini:gemini-2.5-flash-preview-09-2025",
+                "gemini:gemini-2.5-flash-preview-tts",
+                "gemini:gemini-2.5-pro",
+                "gemini:gemini-2.5-pro-preview-tts",
+                "gemini:gemini-3-pro-image-preview",
+                "gemini:gemini-3-pro-preview",
+                "gemini:gemini-exp-1206",
+                "gemini:gemini-flash-latest",
+                "gemini:gemini-flash-lite-latest",
+                "gemini:gemini-pro-latest",
+                "gemini:gemini-robotics-er-1.5-preview",
+                "gemini:gemma-3-12b-it",
+                "gemini:gemma-3-1b-it",
+                "gemini:gemma-3-27b-it",
+                "gemini:gemma-3-4b-it",
+                "gemini:gemma-3n-e2b-it",
+                "gemini:gemma-3n-e4b-it",
+                "gemini:imagen-4.0-fast-generate-001",
+                "gemini:imagen-4.0-generate-001",
+                "gemini:imagen-4.0-generate-preview-06-06",
+                "gemini:imagen-4.0-ultra-generate-001",
+                "gemini:imagen-4.0-ultra-generate-preview-06-06",
+                "gemini:nano-banana-pro-preview",
+                "gemini:veo-2.0-generate-001",
+                "gemini:veo-3.0-fast-generate-001",
+                "gemini:veo-3.0-generate-001",
+                "gemini:veo-3.1-fast-generate-preview",
+                "gemini:veo-3.1-generate-preview"
+              ],
+              "type": "string"
+            },
+            {
+              "enum": [
+                "github:AI21-Jamba-1.5-Large",
+                "github:AI21-Jamba-1.5-Mini",
+                "github:Aurora",
+                "github:BioEmu",
+                "github:Codestral-2501",
+                "github:Cohere-command-r",
+                "github:Cohere-command-r-08-2024",
+                "github:Cohere-command-r-plus",
+                "github:Cohere-command-r-plus-08-2024",
+                "github:Cohere-embed-v3-english",
+                "github:Cohere-embed-v3-multilingual",
+                "github:DeepSeek-R1",
+                "github:DeepSeek-R1-0528",
+                "github:DeepSeek-V3",
+                "github:DeepSeek-V3-0324",
+                "github:DeepSeek-V3.1",
+                "github:DeepSeek-V3.2",
+                "github:DeepSeek-V3.2-Speciale",
+                "github:EvoDiff",
+                "github:FLUX.2-pro",
+                "github:Flux-1.1-Pro",
+                "github:Flux.1-Kontext-pro",
+                "github:Llama-3.2-11B-Vision-Instruct",
+                "github:Llama-3.2-90B-Vision-Instruct",
+                "github:Llama-3.3-70B-Instruct",
+                "github:Llama-4-Maverick-17B-128E-Instruct-FP8",
+                "github:Llama-4-Scout-17B-16E",
+                "github:Llama-4-Scout-17B-16E-Instruct",
+                "github:MAI-DS-R1",
+                "github:MatterGen",
+                "github:Meta-Llama-3-70B-Instruct",
+                "github:Meta-Llama-3-8B-Instruct",
+                "github:Meta-Llama-3.1-405B-Instruct",
+                "github:Meta-Llama-3.1-70B-Instruct",
+                "github:Meta-Llama-3.1-8B-Instruct",
+                "github:Ministral-3B",
+                "github:Ministral-8B",
+                "github:Mistral-Large-2411",
+                "github:Mistral-Large-3",
+                "github:Mistral-Nemo",
+                "github:Mistral-large-2407",
+                "github:Mistral-small",
+                "github:Muse",
+                "github:Phi-4-mini-flash-reasoning",
+                "github:Phi-4-reasoning-plus",
+                "github:codex-mini",
+                "github:cohere-command-a",
+                "github:computer-use-preview",
+                "github:embed-v-4-0",
+                "github:financial-reports-analysis-v2",
+                "github:gpt-4.1",
+                "github:gpt-4.1-mini",
+                "github:gpt-4.1-nano",
+                "github:gpt-4.5-preview",
+                "github:gpt-4o",
+                "github:gpt-4o-mini",
+                "github:gpt-4o-mini-transcribe",
+                "github:gpt-4o-mini-tts",
+                "github:gpt-4o-transcribe",
+                "github:gpt-4o-transcribe-diarize",
+                "github:gpt-5",
+                "github:gpt-5-chat",
+                "github:gpt-5-codex",
+                "github:gpt-5-mini",
+                "github:gpt-5.1-codex",
+                "github:gpt-5.1-codex-max",
+                "github:gpt-5.1-codex-mini",
+                "github:gpt-image-1",
+                "github:gpt-image-1-mini",
+                "github:grok-3",
+                "github:grok-3-mini",
+                "github:jais-30b-chat",
+                "github:mistral-document-ai-2505",
+                "github:mistral-medium-2505",
+                "github:mistral-ocr-2503",
+                "github:mistral-small-2503",
+                "github:model-router",
+                "github:o3-deep-research",
+                "github:o3-pro",
+                "github:retrochimera",
+                "github:sora",
+                "github:sora-2",
+                "github:supply-chain-trade-regulations-v2"
+              ],
+              "type": "string"
+            },
+            {
+              "enum": [
+                "groq:allam-2-7b",
+                "groq:groq/compound",
+                "groq:groq/compound-mini",
+                "groq:llama-3.1-8b-instant",
+                "groq:llama-3.3-70b-versatile",
+                "groq:meta-llama/llama-4-maverick-17b-128e-instruct",
+                "groq:meta-llama/llama-4-scout-17b-16e-instruct",
+                "groq:meta-llama/llama-guard-4-12b",
+                "groq:meta-llama/llama-prompt-guard-2-22m",
+                "groq:meta-llama/llama-prompt-guard-2-86m",
+                "groq:moonshotai/kimi-k2-instruct",
+                "groq:moonshotai/kimi-k2-instruct-0905",
+                "groq:openai/gpt-oss-120b",
+                "groq:openai/gpt-oss-20b",
+                "groq:openai/gpt-oss-safeguard-20b",
+                "groq:playai-tts",
+                "groq:playai-tts-arabic",
+                "groq:qwen/qwen3-32b",
+                "groq:whisper-large-v3",
+                "groq:whisper-large-v3-turbo"
+              ],
+              "type": "string"
+            },
+            {
+              "enum": [
+                "mistral:codestral-2508",
+                "mistral:codestral-latest",
+                "mistral:devstral-2512",
+                "mistral:devstral-latest",
+                "mistral:devstral-medium-2507",
+                "mistral:devstral-medium-latest",
+                "mistral:devstral-small-2507",
+                "mistral:devstral-small-latest",
+                "mistral:labs-devstral-small-2512",
+                "mistral:labs-mistral-small-creative",
+                "mistral:magistral-medium-2509",
+                "mistral:magistral-medium-latest",
+                "mistral:magistral-small-2509",
+                "mistral:magistral-small-latest",
+                "mistral:ministral-14b-2512",
+                "mistral:ministral-14b-latest",
+                "mistral:ministral-3b-2512",
+                "mistral:ministral-3b-latest",
+                "mistral:ministral-8b-2512",
+                "mistral:ministral-8b-latest",
+                "mistral:mistral-large-2411",
+                "mistral:mistral-large-2512",
+                "mistral:mistral-large-latest",
+                "mistral:mistral-large-pixtral-2411",
+                "mistral:mistral-medium",
+                "mistral:mistral-medium-2505",
+                "mistral:mistral-medium-2508",
+                "mistral:mistral-medium-latest",
+                "mistral:mistral-ocr-2505",
+                "mistral:mistral-ocr-2512",
+                "mistral:mistral-ocr-latest",
+                "mistral:mistral-small-2506",
+                "mistral:mistral-small-latest",
+                "mistral:mistral-tiny-2407",
+                "mistral:mistral-tiny-latest",
+                "mistral:mistral-vibe-cli-latest",
+                "mistral:open-mistral-nemo",
+                "mistral:open-mistral-nemo-2407",
+                "mistral:pixtral-large-2411",
+                "mistral:pixtral-large-latest",
+                "mistral:voxtral-mini-2507",
+                "mistral:voxtral-mini-latest",
+                "mistral:voxtral-mini-transcribe-2507",
+                "mistral:voxtral-small-2507",
+                "mistral:voxtral-small-latest"
+              ],
+              "type": "string"
+            },
+            {
+              "enum": [
+                "moonshotai:kimi-k2-0711-preview",
+                "moonshotai:kimi-k2-0905-preview",
+                "moonshotai:kimi-k2-thinking",
+                "moonshotai:kimi-k2-thinking-turbo",
+                "moonshotai:kimi-k2-turbo-preview"
+              ],
+              "type": "string"
+            },
+            {
+              "enum": [
+                "openai:gpt-5",
+                "openai:gpt-5-chat-latest",
+                "openai:gpt-5-codex",
+                "openai:gpt-5-mini",
+                "openai:gpt-5-nano",
+                "openai:gpt-5-pro",
+                "openai:gpt-5.1",
+                "openai:gpt-5.1-chat-latest",
+                "openai:gpt-5.1-codex",
+                "openai:gpt-5.1-codex-max",
+                "openai:gpt-5.1-codex-mini",
+                "openai:gpt-5.2",
+                "openai:gpt-5.2-chat-latest",
+                "openai:gpt-5.2-pro",
+                "openai:o3-pro"
+              ],
+              "type": "string"
+            },
+            {
+              "enum": [
+                "openrouter:ai21/jamba-large-1.7",
+                "openrouter:ai21/jamba-mini-1.7",
+                "openrouter:alibaba/tongyi-deepresearch-30b-a3b",
+                "openrouter:alibaba/tongyi-deepresearch-30b-a3b:free",
+                "openrouter:allenai/olmo-3-32b-think:free",
+                "openrouter:allenai/olmo-3-7b-instruct",
+                "openrouter:allenai/olmo-3-7b-think",
+                "openrouter:allenai/olmo-3.1-32b-think:free",
+                "openrouter:amazon/nova-2-lite-v1",
+                "openrouter:amazon/nova-2-lite-v1:free",
+                "openrouter:amazon/nova-premier-v1",
+                "openrouter:anthropic/claude-haiku-4.5",
+                "openrouter:anthropic/claude-opus-4.1",
+                "openrouter:anthropic/claude-opus-4.5",
+                "openrouter:anthropic/claude-sonnet-4.5",
+                "openrouter:arcee-ai/trinity-mini",
+                "openrouter:arcee-ai/trinity-mini:free",
+                "openrouter:baidu/ernie-4.5-21b-a3b",
+                "openrouter:baidu/ernie-4.5-21b-a3b-thinking",
+                "openrouter:baidu/ernie-4.5-300b-a47b",
+                "openrouter:baidu/ernie-4.5-vl-28b-a3b",
+                "openrouter:baidu/ernie-4.5-vl-424b-a47b",
+                "openrouter:bytedance/ui-tars-1.5-7b",
+                "openrouter:cognitivecomputations/dolphin-mistral-24b-venice-edition:free",
+                "openrouter:deepcogito/cogito-v2-preview-llama-109b-moe",
+                "openrouter:deepcogito/cogito-v2-preview-llama-405b",
+                "openrouter:deepcogito/cogito-v2-preview-llama-70b",
+                "openrouter:deepcogito/cogito-v2.1-671b",
+                "openrouter:deepseek/deepseek-chat-v3.1",
+                "openrouter:deepseek/deepseek-v3.1-terminus",
+                "openrouter:deepseek/deepseek-v3.1-terminus:exacto",
+                "openrouter:deepseek/deepseek-v3.2",
+                "openrouter:deepseek/deepseek-v3.2-exp",
+                "openrouter:deepseek/deepseek-v3.2-speciale",
+                "openrouter:essentialai/rnj-1-instruct",
+                "openrouter:google/gemini-2.5-flash",
+                "openrouter:google/gemini-2.5-flash-image",
+                "openrouter:google/gemini-2.5-flash-image-preview",
+                "openrouter:google/gemini-2.5-flash-lite",
+                "openrouter:google/gemini-2.5-flash-lite-preview-09-2025",
+                "openrouter:google/gemini-2.5-flash-preview-09-2025",
+                "openrouter:google/gemini-2.5-pro",
+                "openrouter:google/gemini-2.5-pro-preview",
+                "openrouter:google/gemini-3-pro-image-preview",
+                "openrouter:google/gemini-3-pro-preview",
+                "openrouter:google/gemma-3n-e2b-it:free",
+                "openrouter:ibm-granite/granite-4.0-h-micro",
+                "openrouter:inception/mercury",
+                "openrouter:kwaipilot/kat-coder-pro:free",
+                "openrouter:liquid/lfm-2.2-6b",
+                "openrouter:liquid/lfm2-8b-a1b",
+                "openrouter:meituan/longcat-flash-chat",
+                "openrouter:minimax/minimax-m1",
+                "openrouter:minimax/minimax-m2",
+                "openrouter:mistralai/codestral-2508",
+                "openrouter:mistralai/devstral-2512",
+                "openrouter:mistralai/devstral-2512:free",
+                "openrouter:mistralai/devstral-medium",
+                "openrouter:mistralai/devstral-small",
+                "openrouter:mistralai/ministral-14b-2512",
+                "openrouter:mistralai/ministral-3b-2512",
+                "openrouter:mistralai/ministral-8b-2512",
+                "openrouter:mistralai/mistral-large-2512",
+                "openrouter:mistralai/mistral-medium-3.1",
+                "openrouter:mistralai/mistral-small-3.2-24b-instruct",
+                "openrouter:mistralai/mistral-small-creative",
+                "openrouter:mistralai/voxtral-small-24b-2507",
+                "openrouter:moonshotai/kimi-dev-72b",
+                "openrouter:moonshotai/kimi-k2",
+                "openrouter:moonshotai/kimi-k2-0905",
+                "openrouter:moonshotai/kimi-k2-0905:exacto",
+                "openrouter:moonshotai/kimi-k2-thinking",
+                "openrouter:moonshotai/kimi-k2:free",
+                "openrouter:morph/morph-v3-fast",
+                "openrouter:morph/morph-v3-large",
+                "openrouter:nex-agi/deepseek-v3.1-nex-n1:free",
+                "openrouter:nousresearch/hermes-4-405b",
+                "openrouter:nousresearch/hermes-4-70b",
+                "openrouter:nvidia/llama-3.3-nemotron-super-49b-v1.5",
+                "openrouter:nvidia/nemotron-3-nano-30b-a3b:free",
+                "openrouter:nvidia/nemotron-nano-12b-v2-vl",
+                "openrouter:nvidia/nemotron-nano-12b-v2-vl:free",
+                "openrouter:nvidia/nemotron-nano-9b-v2",
+                "openrouter:nvidia/nemotron-nano-9b-v2:free",
+                "openrouter:openai/gpt-4o-audio-preview",
+                "openrouter:openai/gpt-5",
+                "openrouter:openai/gpt-5-chat",
+                "openrouter:openai/gpt-5-codex",
+                "openrouter:openai/gpt-5-image",
+                "openrouter:openai/gpt-5-image-mini",
+                "openrouter:openai/gpt-5-mini",
+                "openrouter:openai/gpt-5-nano",
+                "openrouter:openai/gpt-5-pro",
+                "openrouter:openai/gpt-5.1",
+                "openrouter:openai/gpt-5.1-chat",
+                "openrouter:openai/gpt-5.1-codex",
+                "openrouter:openai/gpt-5.1-codex-max",
+                "openrouter:openai/gpt-5.1-codex-mini",
+                "openrouter:openai/gpt-5.2",
+                "openrouter:openai/gpt-5.2-chat",
+                "openrouter:openai/gpt-5.2-pro",
+                "openrouter:openai/gpt-oss-120b",
+                "openrouter:openai/gpt-oss-120b:exacto",
+                "openrouter:openai/gpt-oss-120b:free",
+                "openrouter:openai/gpt-oss-20b",
+                "openrouter:openai/gpt-oss-20b:free",
+                "openrouter:openai/gpt-oss-safeguard-20b",
+                "openrouter:openai/o3-deep-research",
+                "openrouter:openai/o3-pro",
+                "openrouter:openai/o4-mini-deep-research",
+                "openrouter:opengvlab/internvl3-78b",
+                "openrouter:openrouter/bodybuilder",
+                "openrouter:perplexity/sonar-pro-search",
+                "openrouter:prime-intellect/intellect-3",
+                "openrouter:qwen/qwen-plus-2025-07-28",
+                "openrouter:qwen/qwen-plus-2025-07-28:thinking",
+                "openrouter:qwen/qwen3-235b-a22b-2507",
+                "openrouter:qwen/qwen3-235b-a22b-thinking-2507",
+                "openrouter:qwen/qwen3-30b-a3b-instruct-2507",
+                "openrouter:qwen/qwen3-30b-a3b-thinking-2507",
+                "openrouter:qwen/qwen3-coder",
+                "openrouter:qwen/qwen3-coder-30b-a3b-instruct",
+                "openrouter:qwen/qwen3-coder-flash",
+                "openrouter:qwen/qwen3-coder-plus",
+                "openrouter:qwen/qwen3-coder:exacto",
+                "openrouter:qwen/qwen3-coder:free",
+                "openrouter:qwen/qwen3-max",
+                "openrouter:qwen/qwen3-next-80b-a3b-instruct",
+                "openrouter:qwen/qwen3-next-80b-a3b-thinking",
+                "openrouter:qwen/qwen3-vl-235b-a22b-instruct",
+                "openrouter:qwen/qwen3-vl-235b-a22b-thinking",
+                "openrouter:qwen/qwen3-vl-30b-a3b-instruct",
+                "openrouter:qwen/qwen3-vl-30b-a3b-thinking",
+                "openrouter:qwen/qwen3-vl-8b-instruct",
+                "openrouter:qwen/qwen3-vl-8b-thinking",
+                "openrouter:relace/relace-apply-3",
+                "openrouter:relace/relace-search",
+                "openrouter:stepfun-ai/step3",
+                "openrouter:switchpoint/router",
+                "openrouter:tencent/hunyuan-a13b-instruct",
+                "openrouter:thedrummer/cydonia-24b-v4.1",
+                "openrouter:thudm/glm-4.1v-9b-thinking",
+                "openrouter:tngtech/deepseek-r1t2-chimera",
+                "openrouter:tngtech/deepseek-r1t2-chimera:free",
+                "openrouter:tngtech/tng-r1t-chimera",
+                "openrouter:tngtech/tng-r1t-chimera:free",
+                "openrouter:x-ai/grok-3",
+                "openrouter:x-ai/grok-3-mini",
+                "openrouter:x-ai/grok-4",
+                "openrouter:x-ai/grok-4-fast",
+                "openrouter:x-ai/grok-4.1-fast",
+                "openrouter:x-ai/grok-code-fast-1",
+                "openrouter:xiaomi/mimo-v2-flash:free",
+                "openrouter:z-ai/glm-4-32b",
+                "openrouter:z-ai/glm-4.5",
+                "openrouter:z-ai/glm-4.5-air",
+                "openrouter:z-ai/glm-4.5-air:free",
+                "openrouter:z-ai/glm-4.5v",
+                "openrouter:z-ai/glm-4.6",
+                "openrouter:z-ai/glm-4.6:exacto",
+                "openrouter:z-ai/glm-4.6v"
+              ],
+              "type": "string"
+            },
+            {
+              "enum": [
+                "requesty:alibaba/qwen3-30b-a3b-instruct-2507",
+                "requesty:alibaba/qwen3-coder-flash",
+                "requesty:alibaba/qwen3-coder-plus",
+                "requesty:alibaba/qwen3-max",
+                "requesty:anthropic/claude-haiku-4-5",
+                "requesty:anthropic/claude-opus-4-1",
+                "requesty:anthropic/claude-opus-4-5",
+                "requesty:anthropic/claude-sonnet-4-5",
+                "requesty:azure/gpt-5.1",
+                "requesty:azure/gpt-5.1@swedencentral",
+                "requesty:bedrock/claude-haiku-4-5",
+                "requesty:bedrock/claude-haiku-4-5@eu-central-1",
+                "requesty:bedrock/claude-haiku-4-5@eu-north-1",
+                "requesty:bedrock/claude-haiku-4-5@eu-west-1",
+                "requesty:bedrock/claude-haiku-4-5@eu-west-3",
+                "requesty:bedrock/claude-haiku-4-5@us-east-1",
+                "requesty:bedrock/claude-haiku-4-5@us-east-2",
+                "requesty:bedrock/claude-haiku-4-5@us-west-2",
+                "requesty:bedrock/claude-opus-4-5",
+                "requesty:deepinfra/Qwen/Qwen3-Coder-480B-A35B-Instruct",
+                "requesty:deepinfra/deepseek-ai/DeepSeek-V3.1",
+                "requesty:deepinfra/zai-org/GLM-4.5",
+                "requesty:deepinfra/zai-org/GLM-4.5-Air",
+                "requesty:groq/moonshotai/Kimi-K2-Instruct-0905",
+                "requesty:groq/moonshotai/kimi-k2-instruct",
+                "requesty:groq/openai/gpt-oss-120b",
+                "requesty:groq/openai/gpt-oss-20b",
+                "requesty:minimaxi/MiniMax-M2",
+                "requesty:mistral/devstral-latest",
+                "requesty:moonshot/kimi-k2-0711-preview",
+                "requesty:moonshot/kimi-k2-0905-preview",
+                "requesty:moonshot/kimi-k2-thinking",
+                "requesty:moonshot/kimi-k2-thinking-turbo",
+                "requesty:moonshot/kimi-k2-turbo-preview",
+                "requesty:nebius/Qwen/Qwen3-Coder-480B-A35B-Instruct",
+                "requesty:nebius/deepseek-ai/DeepSeek-V3-0324-fast",
+                "requesty:nebius/moonshotai/Kimi-K2-Instruct",
+                "requesty:nebius/zai-org/GLM-4.5",
+                "requesty:novita/deepseek/deepseek-v3-0324",
+                "requesty:novita/deepseek/deepseek-v3-turbo",
+                "requesty:novita/deepseek/deepseek_v3",
+                "requesty:novita/moonshotai/kimi-k2-instruct",
+                "requesty:novita/zai-org/glm-4.5",
+                "requesty:novita/zai-org/glm-4.6",
+                "requesty:openai-responses/gpt-5",
+                "requesty:openai-responses/gpt-5-codex",
+                "requesty:openai-responses/gpt-5-mini",
+                "requesty:openai-responses/gpt-5-nano",
+                "requesty:openai-responses/gpt-5-pro",
+                "requesty:openai-responses/gpt-5.1-codex",
+                "requesty:openai-responses/o3-pro",
+                "requesty:openai/gpt-5",
+                "requesty:openai/gpt-5-chat",
+                "requesty:openai/gpt-5-mini",
+                "requesty:openai/gpt-5-mini:flex",
+                "requesty:openai/gpt-5-mini:priority",
+                "requesty:openai/gpt-5-nano",
+                "requesty:openai/gpt-5-nano:flex",
+                "requesty:openai/gpt-5.1",
+                "requesty:openai/gpt-5.1-chat",
+                "requesty:openai/gpt-5.2",
+                "requesty:openai/gpt-5:flex",
+                "requesty:openai/gpt-5:priority",
+                "requesty:openai/o3-deep-research",
+                "requesty:openai/o4-mini-deep-research",
+                "requesty:parasail/parasail-deepseek-v3-0324",
+                "requesty:parasail/parasail-kimi-k2-instruct",
+                "requesty:parasail/parasail-qwen3-235b-a22b-instruct-2507",
+                "requesty:together/deepseek-ai/DeepSeek-R1",
+                "requesty:together/deepseek-ai/DeepSeek-V3",
+                "requesty:vertex/claude-opus-4-5",
+                "requesty:vertex/claude-opus-4-5@europe-west1",
+                "requesty:vertex/claude-opus-4-5@us-east5",
+                "requesty:vertex/gemini-2.5-flash-image-preview",
+                "requesty:xai/grok-2-1212",
+                "requesty:xai/grok-3",
+                "requesty:xai/grok-3-mini",
+                "requesty:xai/grok-3-mini:high",
+                "requesty:xai/grok-3-mini:low",
+                "requesty:xai/grok-4",
+                "requesty:xai/grok-4-1-fast-non-reasoning",
+                "requesty:xai/grok-4-1-fast-reasoning",
+                "requesty:xai/grok-4-fast",
+                "requesty:xai/grok-4-fast-non-reasoning",
+                "requesty:xai/grok-code-fast-1",
+                "requesty:zai/GLM-4.5",
+                "requesty:zai/GLM-4.6"
+              ],
+              "type": "string"
+            },
+            {
+              "enum": [
+                "vercel-gateway:alibaba/qwen-3-14b",
+                "vercel-gateway:alibaba/qwen-3-235b",
+                "vercel-gateway:alibaba/qwen-3-30b",
+                "vercel-gateway:alibaba/qwen-3-32b",
+                "vercel-gateway:alibaba/qwen3-235b-a22b-thinking",
+                "vercel-gateway:alibaba/qwen3-coder",
+                "vercel-gateway:alibaba/qwen3-coder-30b-a3b",
+                "vercel-gateway:alibaba/qwen3-coder-plus",
+                "vercel-gateway:alibaba/qwen3-max",
+                "vercel-gateway:alibaba/qwen3-max-preview",
+                "vercel-gateway:alibaba/qwen3-next-80b-a3b-instruct",
+                "vercel-gateway:alibaba/qwen3-next-80b-a3b-thinking",
+                "vercel-gateway:alibaba/qwen3-vl-instruct",
+                "vercel-gateway:alibaba/qwen3-vl-thinking",
+                "vercel-gateway:amazon/nova-2-lite",
+                "vercel-gateway:amazon/nova-lite",
+                "vercel-gateway:amazon/nova-micro",
+                "vercel-gateway:amazon/nova-pro",
+                "vercel-gateway:anthropic/claude-3-haiku",
+                "vercel-gateway:anthropic/claude-3-opus",
+                "vercel-gateway:anthropic/claude-3.5-haiku",
+                "vercel-gateway:anthropic/claude-3.5-sonnet",
+                "vercel-gateway:anthropic/claude-3.5-sonnet-20240620",
+                "vercel-gateway:anthropic/claude-3.7-sonnet",
+                "vercel-gateway:anthropic/claude-haiku-4.5",
+                "vercel-gateway:anthropic/claude-opus-4",
+                "vercel-gateway:anthropic/claude-opus-4.1",
+                "vercel-gateway:anthropic/claude-opus-4.5",
+                "vercel-gateway:anthropic/claude-sonnet-4",
+                "vercel-gateway:anthropic/claude-sonnet-4.5",
+                "vercel-gateway:arcee-ai/trinity-mini",
+                "vercel-gateway:bfl/flux-kontext-max",
+                "vercel-gateway:bfl/flux-kontext-pro",
+                "vercel-gateway:bfl/flux-pro-1.0-fill",
+                "vercel-gateway:bfl/flux-pro-1.1",
+                "vercel-gateway:bfl/flux-pro-1.1-ultra",
+                "vercel-gateway:cohere/command-a",
+                "vercel-gateway:deepseek/deepseek-r1",
+                "vercel-gateway:deepseek/deepseek-v3",
+                "vercel-gateway:deepseek/deepseek-v3.1",
+                "vercel-gateway:deepseek/deepseek-v3.1-terminus",
+                "vercel-gateway:deepseek/deepseek-v3.2",
+                "vercel-gateway:deepseek/deepseek-v3.2-exp",
+                "vercel-gateway:deepseek/deepseek-v3.2-thinking",
+                "vercel-gateway:google/gemini-2.0-flash",
+                "vercel-gateway:google/gemini-2.0-flash-lite",
+                "vercel-gateway:google/gemini-2.5-flash",
+                "vercel-gateway:google/gemini-2.5-flash-image",
+                "vercel-gateway:google/gemini-2.5-flash-image-preview",
+                "vercel-gateway:google/gemini-2.5-flash-lite",
+                "vercel-gateway:google/gemini-2.5-flash-lite-preview-09-2025",
+                "vercel-gateway:google/gemini-2.5-flash-preview-09-2025",
+                "vercel-gateway:google/gemini-2.5-pro",
+                "vercel-gateway:google/gemini-3-pro-image",
+                "vercel-gateway:google/gemini-3-pro-preview",
+                "vercel-gateway:google/imagen-4.0-fast-generate-001",
+                "vercel-gateway:google/imagen-4.0-generate-001",
+                "vercel-gateway:google/imagen-4.0-ultra-generate-001",
+                "vercel-gateway:inception/mercury-coder-small",
+                "vercel-gateway:kwaipilot/kat-coder-pro-v1",
+                "vercel-gateway:meituan/longcat-flash-chat",
+                "vercel-gateway:meituan/longcat-flash-thinking",
+                "vercel-gateway:meta/llama-3.1-70b",
+                "vercel-gateway:meta/llama-3.1-8b",
+                "vercel-gateway:meta/llama-3.2-11b",
+                "vercel-gateway:meta/llama-3.2-1b",
+                "vercel-gateway:meta/llama-3.2-3b",
+                "vercel-gateway:meta/llama-3.2-90b",
+                "vercel-gateway:meta/llama-3.3-70b",
+                "vercel-gateway:meta/llama-4-maverick",
+                "vercel-gateway:meta/llama-4-scout",
+                "vercel-gateway:minimax/minimax-m2",
+                "vercel-gateway:mistral/codestral",
+                "vercel-gateway:mistral/devstral-2",
+                "vercel-gateway:mistral/devstral-small",
+                "vercel-gateway:mistral/devstral-small-2",
+                "vercel-gateway:mistral/magistral-medium",
+                "vercel-gateway:mistral/magistral-small",
+                "vercel-gateway:mistral/ministral-14b",
+                "vercel-gateway:mistral/ministral-3b",
+                "vercel-gateway:mistral/ministral-8b",
+                "vercel-gateway:mistral/mistral-large",
+                "vercel-gateway:mistral/mistral-large-3",
+                "vercel-gateway:mistral/mistral-medium",
+                "vercel-gateway:mistral/mistral-nemo",
+                "vercel-gateway:mistral/mistral-small",
+                "vercel-gateway:mistral/mixtral-8x22b-instruct",
+                "vercel-gateway:mistral/pixtral-12b",
+                "vercel-gateway:mistral/pixtral-large",
+                "vercel-gateway:moonshotai/kimi-k2",
+                "vercel-gateway:moonshotai/kimi-k2-0905",
+                "vercel-gateway:moonshotai/kimi-k2-thinking",
+                "vercel-gateway:moonshotai/kimi-k2-thinking-turbo",
+                "vercel-gateway:moonshotai/kimi-k2-turbo",
+                "vercel-gateway:morph/morph-v3-fast",
+                "vercel-gateway:morph/morph-v3-large",
+                "vercel-gateway:nvidia/nemotron-nano-12b-v2-vl",
+                "vercel-gateway:nvidia/nemotron-nano-9b-v2",
+                "vercel-gateway:openai/codex-mini",
+                "vercel-gateway:openai/gpt-3.5-turbo",
+                "vercel-gateway:openai/gpt-3.5-turbo-instruct",
+                "vercel-gateway:openai/gpt-4-turbo",
+                "vercel-gateway:openai/gpt-4.1",
+                "vercel-gateway:openai/gpt-4.1-mini",
+                "vercel-gateway:openai/gpt-4.1-nano",
+                "vercel-gateway:openai/gpt-4o",
+                "vercel-gateway:openai/gpt-4o-mini",
+                "vercel-gateway:openai/gpt-5",
+                "vercel-gateway:openai/gpt-5-chat",
+                "vercel-gateway:openai/gpt-5-codex",
+                "vercel-gateway:openai/gpt-5-mini",
+                "vercel-gateway:openai/gpt-5-nano",
+                "vercel-gateway:openai/gpt-5-pro",
+                "vercel-gateway:openai/gpt-5.1-codex",
+                "vercel-gateway:openai/gpt-5.1-codex-max",
+                "vercel-gateway:openai/gpt-5.1-codex-mini",
+                "vercel-gateway:openai/gpt-5.1-instant",
+                "vercel-gateway:openai/gpt-5.1-thinking",
+                "vercel-gateway:openai/gpt-5.2",
+                "vercel-gateway:openai/gpt-5.2-chat",
+                "vercel-gateway:openai/gpt-5.2-pro",
+                "vercel-gateway:openai/gpt-oss-120b",
+                "vercel-gateway:openai/gpt-oss-20b",
+                "vercel-gateway:openai/gpt-oss-safeguard-20b",
+                "vercel-gateway:openai/o1",
+                "vercel-gateway:openai/o3",
+                "vercel-gateway:openai/o3-deep-research",
+                "vercel-gateway:openai/o3-mini",
+                "vercel-gateway:openai/o3-pro",
+                "vercel-gateway:openai/o4-mini",
+                "vercel-gateway:perplexity/sonar",
+                "vercel-gateway:perplexity/sonar-pro",
+                "vercel-gateway:perplexity/sonar-reasoning",
+                "vercel-gateway:perplexity/sonar-reasoning-pro",
+                "vercel-gateway:prime-intellect/intellect-3",
+                "vercel-gateway:stealth/sonoma-dusk-alpha",
+                "vercel-gateway:stealth/sonoma-sky-alpha",
+                "vercel-gateway:vercel/v0-1.0-md",
+                "vercel-gateway:vercel/v0-1.5-md",
+                "vercel-gateway:xai/grok-2",
+                "vercel-gateway:xai/grok-2-vision",
+                "vercel-gateway:xai/grok-3",
+                "vercel-gateway:xai/grok-3-fast",
+                "vercel-gateway:xai/grok-3-mini",
+                "vercel-gateway:xai/grok-3-mini-fast",
+                "vercel-gateway:xai/grok-4",
+                "vercel-gateway:xai/grok-4-fast-non-reasoning",
+                "vercel-gateway:xai/grok-4-fast-reasoning",
+                "vercel-gateway:xai/grok-4.1-fast-non-reasoning",
+                "vercel-gateway:xai/grok-4.1-fast-reasoning",
+                "vercel-gateway:xai/grok-code-fast-1",
+                "vercel-gateway:zai/glm-4.5",
+                "vercel-gateway:zai/glm-4.5-air",
+                "vercel-gateway:zai/glm-4.5v",
+                "vercel-gateway:zai/glm-4.6",
+                "vercel-gateway:zai/glm-4.6v",
+                "vercel-gateway:zai/glm-4.6v-flash"
+              ],
+              "type": "string"
+            },
+            {
+              "enum": [
+                "xai:grok-4-0709",
+                "xai:grok-4-1-fast-non-reasoning",
+                "xai:grok-4-1-fast-reasoning",
+                "xai:grok-4-fast-non-reasoning",
+                "xai:grok-4-fast-reasoning",
+                "xai:grok-code-fast-1"
+              ],
+              "type": "string"
+            },
+            {
+              "enum": [
+                "zai:glm-4.5",
+                "zai:glm-4.5-air",
+                "zai:glm-4.5-flash",
+                "zai:glm-4.5v",
+                "zai:glm-4.6",
+                "zai:glm-4.6v"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The model to use for this agent. Can be either a simple model name\nstring (e.g. 'openai:gpt-5') or a structured model definition.\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/model_configuration/",
+          "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/model_configuration/",
+          "examples": [
+            "openai:gpt-5-nano"
+          ],
+          "title": "Model configuration or name"
+        },
+        "tools": {
+          "description": "A list of tools to register with this agent.\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/tool_configuration/",
+          "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/tool_configuration/",
+          "examples": [
+            [
+              "webbrowser:open",
+              "builtins:print"
+            ],
+            [
+              {
+                "import_path": "webbrowser:open",
+                "name": "web_browser",
+                "type": "import"
+              }
+            ]
+          ],
+          "items": {
+            "anyOf": [
+              {
+                "discriminator": {
+                  "mapping": {
+                    "import": "#/$defs/ImportToolConfig"
+                  },
+                  "propertyName": "type"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/ImportToolConfig"
+                  }
+                ]
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "title": "Tool configurations",
+          "type": "array"
+        },
+        "toolsets": {
+          "description": "Toolset configurations for extensible tool collections.\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/toolset_configuration/",
+          "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/toolset_configuration/",
+          "examples": [
+            [
+              {
+                "namespace": "api",
+                "spec": "https://api.example.com/openapi.json",
+                "type": "openapi"
+              },
+              {
+                "type": "file_access"
+              },
+              {
+                "toolsets": [
+                  "github",
+                  "slack"
+                ],
+                "type": "composio",
+                "user_id": "user123@example.com"
+              }
+            ]
+          ],
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "agent_management": "#/$defs/AgentManagementToolsetConfig",
+                "code": "#/$defs/CodeToolsetConfig",
+                "code_mode": "#/$defs/CodeModeToolsetConfig",
+                "composio": "#/$defs/ComposioToolSetConfig",
+                "config_creation": "#/$defs/ConfigCreationToolsetConfig",
+                "custom": "#/$defs/CustomToolsetConfig",
+                "entry_points": "#/$defs/EntryPointToolsetConfig",
+                "execution": "#/$defs/ExecutionEnvironmentToolsetConfig",
+                "file_access": "#/$defs/FSSpecToolsetConfig",
+                "history": "#/$defs/HistoryToolsetConfig",
+                "import_tools": "#/$defs/ImportToolsToolsetConfig",
+                "integrations": "#/$defs/IntegrationToolsetConfig",
+                "notifications": "#/$defs/NotificationsToolsetConfig",
+                "openapi": "#/$defs/OpenAPIToolsetConfig",
+                "remote_code_mode": "#/$defs/RemoteCodeModeToolsetConfig",
+                "search": "#/$defs/SearchToolsetConfig",
+                "semantic_memory": "#/$defs/SemanticMemoryToolsetConfig",
+                "skills": "#/$defs/SkillsToolsetConfig",
+                "subagent": "#/$defs/SubagentToolsetConfig",
+                "tool_management": "#/$defs/ToolManagementToolsetConfig",
+                "user_interaction": "#/$defs/UserInteractionToolsetConfig",
+                "vfs": "#/$defs/VFSToolsetConfig",
+                "workers": "#/$defs/WorkersToolsetConfig"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/OpenAPIToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/EntryPointToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/ComposioToolSetConfig"
+              },
+              {
+                "$ref": "#/$defs/AgentManagementToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/ExecutionEnvironmentToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/ToolManagementToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/UserInteractionToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/HistoryToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/SkillsToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/IntegrationToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/CodeToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/FSSpecToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/VFSToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/SubagentToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/WorkersToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/CodeModeToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/RemoteCodeModeToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/SearchToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/NotificationsToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/SemanticMemoryToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/ConfigCreationToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/ImportToolsToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/CustomToolsetConfig"
+              }
+            ]
+          },
+          "title": "Toolset configurations",
+          "type": "array"
+        },
+        "session": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "$ref": "#/$defs/SessionQuery"
+            },
+            {
+              "$ref": "#/$defs/MemoryConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Session configuration for conversation recovery.\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/session_configuration/",
+          "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/session_configuration/",
+          "examples": [
+            "main_session",
+            "user_123"
+          ],
+          "title": "Session configuration"
+        },
+        "output_type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "$ref": "#/$defs/StructuredResponseConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Name of the response definition to use.\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/response_configuration/",
+          "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/response_configuration/",
+          "examples": [
+            "json_response",
+            "code_output"
+          ],
+          "title": "Response type"
+        },
+        "retries": {
+          "default": 1,
+          "description": "Number of retries for failed operations (maps to pydantic-ai's retries)",
+          "examples": [
+            1,
+            3
+          ],
+          "minimum": 0,
+          "title": "Model retries",
+          "type": "integer"
+        },
+        "output_retries": {
+          "default": null,
+          "description": "Max retries for result validation",
+          "examples": [
+            1,
+            3
+          ],
+          "title": "Output retries",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "end_strategy": {
+          "default": "early",
+          "description": "The strategy for handling multiple tool calls when a final result is found",
+          "enum": [
+            "early",
+            "exhaustive"
+          ],
+          "examples": [
+            "early",
+            "exhaust"
+          ],
+          "title": "Tool execution strategy",
+          "type": "string"
+        },
+        "avatar": {
+          "default": null,
+          "description": "URL or path to agent's avatar image",
+          "examples": [
+            "https://example.com/avatar.png",
+            "/assets/robot.jpg"
+          ],
+          "title": "Avatar image",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "system_prompts": {
+          "description": "System prompts for the agent. Can be strings or structured prompt configs.\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/system_prompts_configuration/",
+          "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/system_prompts_configuration/",
+          "examples": [
+            [
+              "You are an AI assistant."
+            ]
+          ],
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "discriminator": {
+                  "mapping": {
+                    "file": "#/$defs/FilePromptConfig",
+                    "function": "#/$defs/FunctionPromptConfig",
+                    "library": "#/$defs/LibraryPromptConfig",
+                    "static": "#/$defs/StaticPromptConfig"
+                  },
+                  "propertyName": "type"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/StaticPromptConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/FilePromptConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/LibraryPromptConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/FunctionPromptConfig"
+                  }
+                ]
+              }
+            ]
+          },
+          "title": "System prompts",
+          "type": "array"
+        },
+        "knowledge": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Knowledge"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Knowledge sources for this agent.\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/knowledge_configuration/",
+          "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/knowledge_configuration/",
+          "title": "Knowledge sources"
+        },
+        "workers": {
+          "description": "Worker agents which will be available as tools.\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/worker_configuration/",
+          "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/worker_configuration/",
+          "examples": [
+            [
+              {
+                "name": "web_agent",
+                "reset_history_on_run": true,
+                "type": "agent"
+              }
+            ],
+            [
+              {
+                "name": "analysis_team",
+                "type": "team"
+              }
+            ]
+          ],
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "acp_agent": "#/$defs/ACPAgentWorkerConfig",
+                "agent": "#/$defs/AgentWorkerConfig",
+                "agui_agent": "#/$defs/AGUIAgentWorkerConfig",
+                "team": "#/$defs/TeamWorkerConfig"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/TeamWorkerConfig"
+              },
+              {
+                "$ref": "#/$defs/AgentWorkerConfig"
+              },
+              {
+                "$ref": "#/$defs/ACPAgentWorkerConfig"
+              },
+              {
+                "$ref": "#/$defs/AGUIAgentWorkerConfig"
+              }
+            ]
+          },
+          "title": "Worker agents",
+          "type": "array"
+        },
+        "requires_tool_confirmation": {
+          "default": "per_tool",
+          "description": "How to handle tool confirmation:\n- \"always\": Always require confirmation for all tools\n- \"never\": Never require confirmation (ignore tool settings)\n- \"per_tool\": Use individual tool settings",
+          "enum": [
+            "always",
+            "never",
+            "per_tool"
+          ],
+          "examples": [
+            "always",
+            "never",
+            "per_tool"
+          ],
+          "title": "Tool confirmation mode",
+          "type": "string"
+        },
+        "debug": {
+          "default": false,
+          "description": "Enable debug output for this agent.",
+          "title": "Debug mode",
+          "type": "boolean"
+        },
+        "environment": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "beam": "#/$defs/BeamExecutionEnvironmentConfig",
+                  "daytona": "#/$defs/DaytonaExecutionEnvironmentConfig",
+                  "docker": "#/$defs/DockerExecutionEnvironmentConfig",
+                  "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
+                  "local": "#/$defs/LocalExecutionEnvironmentConfig",
+                  "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "modal": "#/$defs/ModalExecutionEnvironmentConfig",
+                  "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
+                  "srt": "#/$defs/SRTExecutionEnvironmentConfig",
+                  "ssh": "#/$defs/SshExecutionEnvironmentConfig",
+                  "vercel": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/LocalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DockerExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/E2bExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/BeamExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SshExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/PyodideExecutionEnvironmentConfig"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Execution environment configuration for this agent.",
+          "title": "Execution environment"
+        },
+        "usage_limits": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/UsageLimits"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Usage limits for this agent.",
+          "title": "Usage limits"
+        },
+        "tool_mode": {
+          "anyOf": [
+            {
+              "const": "codemode",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Tool execution mode:\n- None: Default mode - tools are called directly\n- \"codemode\": Tools are wrapped in a Python execution environment",
+          "examples": [
+            "codemode"
+          ],
+          "title": "Tool execution mode"
+        },
+        "auto_cache": {
+          "default": "off",
+          "description": "Automatic prompt caching configuration:\n- \"off\": No automatic caching\n- \"5m\": Add cache point with 5 minute TTL\n- \"1h\": Add cache point with 1 hour TTL",
+          "enum": [
+            "off",
+            "5m",
+            "1h"
+          ],
+          "examples": [
+            "off",
+            "5m",
+            "1h"
+          ],
+          "title": "Automatic caching",
+          "type": "string"
+        },
+        "hooks": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HooksConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Hooks for intercepting and customizing agent behavior at key lifecycle points.\n\nAllows adding context, blocking operations, modifying inputs, or triggering\nside effects during session start/end, run execution, tool usage, and delegation.",
+          "title": "Lifecycle hooks"
+        }
+      },
+      "title": "NativeAgentConfig",
+      "type": "object",
+      "x-doc-title": "Agent Configuration",
+      "x-icon": "octicon:hubot-16"
+    },
+    "NativeFileAgentConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for a native format agent file.\n\nNative agents use markdown files with YAML frontmatter containing\nfull NativeAgentConfig fields (model, toolsets, knowledge, etc.).\n\nExample:\n    ```yaml\n    file_agents:\n      assistant:\n        type: native\n        path: ./agents/assistant.md\n    ```",
+      "properties": {
+        "type": {
+          "const": "native",
+          "default": "native",
+          "description": "Discriminator for native format",
+          "title": "Type",
+          "type": "string"
+        },
+        "path": {
+          "description": "Path to the agent markdown file",
+          "examples": [
+            "./agents/assistant.md"
+          ],
+          "title": "Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "title": "NativeFileAgentConfig",
+      "type": "object"
+    },
     "NodeConnectionConfig": {
       "additionalProperties": false,
       "description": "Forward messages to another node.\n\nThis configuration defines how messages should flow from one node to another,\nincluding:\n- Basic routing (which node, what type of connection)\n- Message queueing and processing strategies\n- Timing controls (priority, delay)\n- Execution behavior (wait for completion)",
@@ -27252,6 +27272,32 @@
         }
       },
       "title": "OpenCode ACP Agent Configuration",
+      "type": "object"
+    },
+    "OpenCodeFileAgentConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for an OpenCode format agent file.\n\nOpenCode agents use markdown files with YAML frontmatter containing\nfields like `model`, `tools`, `description`, etc.\n\nExample:\n    ```yaml\n    file_agents:\n      debugger:\n        type: opencode\n        path: ./agents/debugger.md\n    ```",
+      "properties": {
+        "type": {
+          "const": "opencode",
+          "default": "opencode",
+          "description": "Discriminator for OpenCode format",
+          "title": "Type",
+          "type": "string"
+        },
+        "path": {
+          "description": "Path to the agent markdown file",
+          "examples": [
+            "./agents/debugger.md"
+          ],
+          "title": "Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "title": "OpenCodeFileAgentConfig",
       "type": "object"
     },
     "OpenHandsACPAgentConfig": {
@@ -42168,7 +42214,7 @@
     },
     "agents": {
       "additionalProperties": {
-        "$ref": "#/$defs/AgentConfig"
+        "$ref": "#/$defs/NativeAgentConfig"
       },
       "description": "Mapping of agent IDs to their configurations.\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/agent_configuration/",
       "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/agent_configuration/",
@@ -42182,17 +42228,23 @@
             "type": "string"
           },
           {
-            "$ref": "#/$defs/FileAgentConfig"
+            "$ref": "#/$defs/ClaudeFileAgentConfig"
+          },
+          {
+            "$ref": "#/$defs/OpenCodeFileAgentConfig"
+          },
+          {
+            "$ref": "#/$defs/NativeFileAgentConfig"
           }
         ]
       },
-      "description": "Mapping of agent IDs to file-based agent definitions.\n\nSupports both simple path strings (auto-detect format) and explicit config.\nFiles must have YAML frontmatter in Claude Code, OpenCode, or LLMling format.\nThe markdown body becomes the system prompt.\n\nFormats:\n  - Claude Code: name, description, tools (comma-separated), model, permissionMode\n  - OpenCode: description, mode, model, temperature, maxSteps, tools (dict)\n  - LLMling: Full AgentConfig fields in frontmatter\n\nExample:\n    ```yaml\n    file_agents:\n      reviewer: .claude/agents/reviewer.md  # auto-detect\n      debugger:\n        path: ./agents/debugger.md\n        format: opencode  # explicit format\n    ```",
+      "description": "Mapping of agent IDs to file-based agent definitions.\n\nSupports both simple path strings (auto-detect format) and explicit config\nwith type discriminator.\nFiles must have YAML frontmatter in Claude Code, OpenCode, or LLMling format.\nThe markdown body becomes the system prompt.\n\nFormats:\n  - claude: name, description, tools (comma-separated), model, permissionMode\n  - opencode: description, mode, model, temperature, maxSteps, tools (dict)\n  - native: Full NativeAgentConfig fields in frontmatter\n\nExample:\n    ```yaml\n    file_agents:\n      reviewer: .claude/agents/reviewer.md  # auto-detect\n      debugger:\n        type: opencode  # explicit type\n        path: ./agents/debugger.md\n    ```",
       "examples": [
         {
           "code_reviewer": ".claude/agents/reviewer.md",
           "custom": {
-            "format": "opencode",
-            "path": "./agents/custom.md"
+            "path": "./agents/custom.md",
+            "type": "opencode"
           },
           "debugger": "https://example.com/agents/debugger.md"
         }

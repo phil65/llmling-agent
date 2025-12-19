@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from importlib.metadata import version
 
-from llmling_agent.models.agents import AgentConfig
+from llmling_agent.models.agents import NativeAgentConfig
 from llmling_agent.models.manifest import AgentsManifest
 
 # Builtin toolsets imports removed to avoid circular dependency
@@ -41,7 +41,6 @@ load_dotenv()
 
 __all__ = [
     "Agent",
-    "AgentConfig",
     "AgentContext",
     "AgentPool",
     "AgentsManifest",
@@ -53,6 +52,7 @@ __all__ = [
     "DocumentUrl",
     "ImageUrl",
     "MessageNode",
+    "NativeAgentConfig",
     "Team",
     "TeamRun",
     "Tool",

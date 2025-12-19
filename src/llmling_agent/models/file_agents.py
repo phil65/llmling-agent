@@ -3,7 +3,7 @@
 Supports loading agents from markdown files with YAML frontmatter in various formats:
 - Claude Code: https://code.claude.com/docs/en/sub-agents.md
 - OpenCode: https://github.com/sst/opencode
-- LLMling (native): Full AgentConfig fields in frontmatter
+- LLMling (native): Full NativeAgentConfig fields in frontmatter
 """
 
 from __future__ import annotations
@@ -72,7 +72,7 @@ class NativeFileAgentConfig(Schema):
     """Configuration for a native format agent file.
 
     Native agents use markdown files with YAML frontmatter containing
-    full AgentConfig fields (model, toolsets, knowledge, etc.).
+    full NativeAgentConfig fields (model, toolsets, knowledge, etc.).
 
     Example:
         ```yaml

@@ -9,7 +9,7 @@ from pydantic_ai.models.test import TestModel
 import pytest
 
 from llmling_agent import AgentPool
-from llmling_agent.models.agents import AgentConfig
+from llmling_agent.models.agents import NativeAgentConfig
 from llmling_agent.models.manifest import AgentsManifest
 from llmling_agent.sessions import SessionData, SessionManager
 from llmling_agent.storage.manager import StorageManager
@@ -44,7 +44,7 @@ async def pool_with_storage(storage_config: StorageConfig):
     """Create agent pool with storage configured."""
     manifest = AgentsManifest(
         agents={
-            "test_agent": AgentConfig(
+            "test_agent": NativeAgentConfig(
                 name="test_agent",
                 model="test",
                 system_prompts=["You are a test agent"],

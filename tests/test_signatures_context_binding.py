@@ -71,11 +71,11 @@ class TestContextBoundCallable:
     @pytest.fixture
     def mock_agent_context(self):
         """Create a mock AgentContext for testing."""
-        from llmling_agent.models.agents import AgentConfig
+        from llmling_agent.models.agents import NativeAgentConfig
         from llmling_agent.models.manifest import AgentsManifest
 
         # Create minimal config objects
-        config = AgentConfig(name="test_agent")
+        config = NativeAgentConfig(name="test_agent")
         manifest = AgentsManifest()
         return AgentContext(node=Agent(name="test_agent"), config=config, definition=manifest)
 
@@ -186,12 +186,12 @@ class TestCodeModeIntegration:
     @pytest.fixture
     def mock_agent_context(self):
         """Create a mock AgentContext for testing."""
-        from llmling_agent.models.agents import AgentConfig
+        from llmling_agent.models.agents import NativeAgentConfig
         from llmling_agent.models.manifest import AgentsManifest
         from llmling_agent_config.nodes import NodeConfig
 
         # Create minimal config objects
-        config = AgentConfig(name="test_agent")
+        config = NativeAgentConfig(name="test_agent")
         NodeConfig()
         manifest = AgentsManifest()
 

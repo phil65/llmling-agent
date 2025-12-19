@@ -12,7 +12,7 @@ import pytest
 
 from llmling_agent import Agent, AgentContext
 from llmling_agent.agents.events import ToolCallProgressEvent
-from llmling_agent.models.agents import AgentConfig
+from llmling_agent.models.agents import NativeAgentConfig
 from llmling_agent.models.manifest import AgentsManifest
 from llmling_agent_toolsets.builtin.execution_environment import ExecutionEnvironmentTools
 
@@ -49,7 +49,7 @@ def agent_ctx(test_agent: Agent[None]) -> AgentContext:
     """Create a real AgentContext for testing."""
     return AgentContext(
         node=test_agent,
-        config=AgentConfig(name="test_agent"),
+        config=NativeAgentConfig(name="test_agent"),
         definition=AgentsManifest(),
         tool_call_id="test_call_123",
         tool_name="test_tool",

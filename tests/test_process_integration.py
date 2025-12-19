@@ -7,7 +7,7 @@ import platform
 import pytest
 
 from llmling_agent.delegation.pool import AgentPool
-from llmling_agent.models.agents import AgentConfig
+from llmling_agent.models.agents import NativeAgentConfig
 from llmling_agent.models.manifest import AgentsManifest
 from llmling_agent_config.toolsets import (
     ExecutionEnvironmentToolsetConfig,
@@ -46,7 +46,7 @@ def get_temp_dir() -> str:
 @pytest.fixture
 def process_manifest():
     """Create manifest with execution environment toolsets."""
-    agent_cfg = AgentConfig(
+    agent_cfg = NativeAgentConfig(
         name="ProcessAgent",
         model="test",
         toolsets=[ExecutionEnvironmentToolsetConfig(), FSSpecToolsetConfig()],
@@ -112,7 +112,7 @@ async def test_pool_cleanup_kills_processes(process_manifest):
 async def test_toolset_requirement_enforcement():
     """Test that tools are not available without proper toolsets."""
     # Create agent without execution environment toolset
-    agent_config = AgentConfig(name="LimitedAgent", model="test")
+    agent_config = NativeAgentConfig(name="LimitedAgent", model="test")
     manifest = AgentsManifest(agents={"limited_agent": agent_config})
 
     async with AgentPool(manifest) as pool:

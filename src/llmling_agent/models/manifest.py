@@ -12,7 +12,7 @@ from upathtools.configs.base import URIFileSystemConfig
 
 from llmling_agent import log
 from llmling_agent.models.acp_agents import ACPAgentConfigTypes
-from llmling_agent.models.agents import AgentConfig
+from llmling_agent.models.agents import NativeAgentConfig
 from llmling_agent.models.agui_agents import AGUIAgentConfig
 from llmling_agent.models.file_agents import FileAgentConfig
 from llmling_agent_config.commands import CommandConfig, StaticCommandConfig
@@ -93,7 +93,7 @@ class AgentsManifest(Schema):
             cached: true
     """
 
-    agents: dict[str, AgentConfig] = Field(
+    agents: dict[str, NativeAgentConfig] = Field(
         default_factory=dict,
         json_schema_extra={
             "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/agent_configuration/"
@@ -124,7 +124,7 @@ class AgentsManifest(Schema):
     Formats:
       - claude: name, description, tools (comma-separated), model, permissionMode
       - opencode: description, mode, model, temperature, maxSteps, tools (dict)
-      - native: Full AgentConfig fields in frontmatter
+      - native: Full NativeAgentConfig fields in frontmatter
 
     Example:
         ```yaml
@@ -453,15 +453,15 @@ class AgentsManifest(Schema):
         return data
 
     @cached_property
-    def _loaded_file_agents(self) -> dict[str, AgentConfig]:
+    def _loaded_file_agents(self) -> dict[str, NativeAgentConfig]:
         """Load and cache file-based agent configurations.
 
         Parses markdown files in Claude Code, OpenCode, or LLMling format
-        and converts them to AgentConfig. Results are cached.
+        and converts them to NativeAgentConfig. Results are cached.
         """
         from llmling_agent.models.file_parsing import parse_file_agent_reference
 
-        loaded: dict[str, AgentConfig] = {}
+        loaded: dict[str, NativeAgentConfig] = {}
         for name, reference in self.file_agents.items():
             try:
                 config = parse_file_agent_reference(reference)
@@ -611,6 +611,6 @@ if __name__ == "__main__":
     from llmling_models.configs import InputModelConfig
 
     model = InputModelConfig()
-    agent_cfg = AgentConfig(name="test_agent", model=model)
+    agent_cfg = NativeAgentConfig(name="test_agent", model=model)
     manifest = AgentsManifest(agents=dict(test_agent=agent_cfg))
     print(AgentsManifest.generate_test_data(mode="maximal").model_dump_yaml())

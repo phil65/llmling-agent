@@ -78,7 +78,12 @@ if TYPE_CHECKING:
     )
     from llmling_agent.delegation import AgentPool, Team, TeamRun
     from llmling_agent.hooks import AgentHooks
-    from llmling_agent.models.agents import AgentConfig, AutoCache, ToolConfirmationMode, ToolMode
+    from llmling_agent.models.agents import (
+        AutoCache,
+        NativeAgentConfig,
+        ToolConfirmationMode,
+        ToolMode,
+    )
     from llmling_agent.prompts.prompts import PromptType
     from llmling_agent.resource_providers import ResourceProvider
     from llmling_agent.ui.base import InputProvider
@@ -162,7 +167,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         agent_pool: AgentPool[Any] | None = None,
         tool_mode: ToolMode | None = None,
         knowledge: Knowledge | None = None,
-        agent_config: AgentConfig | None = None,
+        agent_config: NativeAgentConfig | None = None,
         env: ExecutionEnvironment | None = None,
         auto_cache: AutoCache = "off",
         hooks: AgentHooks | None = None,
@@ -211,7 +216,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         from llmling_agent.agents import AgentContext
         from llmling_agent.agents.interactions import Interactions
         from llmling_agent.agents.sys_prompts import SystemPrompts
-        from llmling_agent.models.agents import AgentConfig
+        from llmling_agent.models.agents import NativeAgentConfig
         from llmling_agent.models.manifest import AgentsManifest
         from llmling_agent.prompts.conversion_manager import ConversionManager
         from llmling_agent_config.session import MemoryConfig
@@ -223,7 +228,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         ctx = AgentContext[TDeps](
             node=self,
             definition=self._manifest,
-            config=agent_config or AgentConfig(name=name),
+            config=agent_config or NativeAgentConfig(name=name),
             input_provider=input_provider,
             pool=agent_pool,
         )

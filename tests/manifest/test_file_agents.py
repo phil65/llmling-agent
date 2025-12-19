@@ -273,14 +273,14 @@ def test_manifest_file_agents_name_override(tmp_path: Path):
 
 def test_manifest_file_agents_mixed(tmp_path: Path):
     """Test manifest with both inline and file agents."""
-    from llmling_agent.models.agents import AgentConfig
+    from llmling_agent.models.agents import NativeAgentConfig
 
     agent_file = tmp_path / "file_agent.md"
     agent_file.write_text(MINIMAL_CLAUDE_AGENT)
 
     manifest = AgentsManifest(
         agents={
-            "inline_agent": AgentConfig(
+            "inline_agent": NativeAgentConfig(
                 description="Inline agent",
                 system_prompts=["You are inline"],
             ),

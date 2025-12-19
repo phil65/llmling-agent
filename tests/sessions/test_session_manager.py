@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from llmling_agent.delegation.pool import AgentPool
-from llmling_agent.models.agents import AgentConfig
+from llmling_agent.models.agents import NativeAgentConfig
 from llmling_agent.models.manifest import AgentsManifest
 from llmling_agent.sessions import ClientSession, SessionData, SessionManager
 from llmling_agent.sessions.store import MemorySessionStore
@@ -30,12 +30,12 @@ async def agent_pool():
     """Create a real agent pool for testing."""
     manifest = AgentsManifest(
         agents={
-            "test_agent": AgentConfig(
+            "test_agent": NativeAgentConfig(
                 name="test_agent",
                 model="test",
                 system_prompts=["You are a test agent"],
             ),
-            "other_agent": AgentConfig(
+            "other_agent": NativeAgentConfig(
                 name="other_agent",
                 model="test",
                 system_prompts=["You are another test agent"],

@@ -80,7 +80,7 @@ LLMling-agent excels at static definition of agents using a YAML configuration:
 ```yaml
 # agents.yml (AgentsManifest)
 agents:
-  analyzer:    # AgentConfig
+  analyzer:    # NativeAgentConfig
     analyzer:
         model: "openai:gpt-5"
         system_prompts: [...]
