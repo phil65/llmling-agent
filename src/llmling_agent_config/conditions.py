@@ -52,14 +52,14 @@ class Jinja2Condition(ConnectionCondition):
     )
     """Jinja2 template to evaluate."""
 
-    async def check(self, ctx: EventContext[Any]) -> bool:
+    async def check(self, context: EventContext[Any]) -> bool:
         from jinjarope import Environment
 
         from llmling_agent.utils.now import get_now
 
         env = Environment(trim_blocks=True, lstrip_blocks=True, enable_async=True)
         template = env.from_string(self.template)
-        result = await template.render_async(ctx=ctx, now=get_now())
+        result = await template.render_async(ctx=context, now=get_now())
         return result.strip().lower() == "true" or bool(result)
 
 

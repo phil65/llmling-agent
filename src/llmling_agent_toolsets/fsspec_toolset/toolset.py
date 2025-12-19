@@ -72,9 +72,7 @@ class FSSpecTools(ResourceProvider):
             use_subprocess_grep: Use ripgrep/grep subprocess if available (default: True)
         """
         from fsspec.asyn import AsyncFileSystem
-        from fsspec.implementations.asyn_wrapper import (
-            AsyncFileSystemWrapper,
-        )
+        from fsspec.implementations.asyn_wrapper import AsyncFileSystemWrapper
 
         if source is None:
             self._fs: AsyncFileSystem | None = None

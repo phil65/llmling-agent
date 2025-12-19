@@ -45,10 +45,10 @@ class MCPMessageHandler:
         await self.on_message(message)
         match message:
             # requests
-            case RequestResponder():
-                await self.on_request(message)
+            case RequestResponder() as responder:
+                await self.on_request(responder)
                 # Handle specific requests
-                root = message.request.root
+                root = responder.request.root
                 match root:
                     case mcp.types.PingRequest():
                         await self.on_ping(root)
@@ -57,25 +57,26 @@ class MCPMessageHandler:
                     case mcp.types.CreateMessageRequest():
                         await self.on_create_message(root)
 
-            case mcp.types.ServerNotification():
-                await self.on_notification(message)
-                match message.root:
+            case mcp.types.ServerNotification() as notification:
+                await self.on_notification(notification)
+                root = notification.root
+                match root:
                     case mcp.types.CancelledNotification():
-                        await self.on_cancelled(message.root)
+                        await self.on_cancelled(root)
                     case mcp.types.ProgressNotification():
-                        await self.on_progress(message.root)
+                        await self.on_progress(root)
                     case mcp.types.LoggingMessageNotification():
-                        await self.on_logging_message(message.root)
+                        await self.on_logging_message(root)
                     case mcp.types.ToolListChangedNotification():
-                        await self.on_tool_list_changed(message.root)
+                        await self.on_tool_list_changed(root)
                     case mcp.types.ResourceListChangedNotification():
-                        await self.on_resource_list_changed(message.root)
+                        await self.on_resource_list_changed(root)
                     case mcp.types.PromptListChangedNotification():
-                        await self.on_prompt_list_changed(message.root)
+                        await self.on_prompt_list_changed(root)
                     case mcp.types.ResourceUpdatedNotification():
-                        await self.on_resource_updated(message.root)
+                        await self.on_resource_updated(root)
                     case mcp.types.ElicitCompleteNotification():
-                        await self.on_elicit_complete(message.root)
+                        await self.on_elicit_complete(root)
 
             case Exception():
                 await self.on_exception(message)

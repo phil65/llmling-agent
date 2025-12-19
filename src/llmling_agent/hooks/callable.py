@@ -81,7 +81,7 @@ class CallableHook(Hook):
             kwargs = {**dict(input_data), **self.arguments}
             # Execute with timeout
             if asyncio.iscoroutinefunction(fn):
-                result = await asyncio.wait_for(fn(**kwargs), timeout=self.timeout)
+                result = await asyncio.wait_for(fn(**kwargs), timeout=self.timeout)  # ty: ignore
             else:
                 # Run sync function in executor
                 loop = asyncio.get_event_loop()

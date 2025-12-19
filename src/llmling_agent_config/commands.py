@@ -141,7 +141,7 @@ class CallableCommandConfig(BaseCommandConfig):
 
         # Set name if provided and function has __name__
         if self.name and hasattr(func, "__name__"):
-            func.__name__ = self.name
+            func.__name__ = self.name  # ty: ignore
 
         # Set description as docstring if provided
         if self.description and not func.__doc__:
