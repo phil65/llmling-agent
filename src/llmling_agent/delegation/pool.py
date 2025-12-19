@@ -484,9 +484,9 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         print("Active nodes: ", ", ".join(list(self.nodes.keys())))
         print("Press Ctrl+C to stop")
 
+        shutdown_event = asyncio.Event()
         with suppress(KeyboardInterrupt):
-            while True:
-                await asyncio.sleep(1)
+            await shutdown_event.wait()
 
     @property
     def agents(self) -> dict[str, Agent[Any, Any]]:
