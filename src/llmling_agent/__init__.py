@@ -19,6 +19,7 @@ from dotenv import load_dotenv
 from llmling_agent.messaging.messages import ChatMessage
 from llmling_agent.tools import Tool, ToolCallInfo
 from llmling_agent.messaging.messagenode import MessageNode
+from llmling_agent.testing import acp_test_session
 from pydantic_ai import (
     AudioUrl,
     BinaryContent,
@@ -58,4 +59,5 @@ __all__ = [
     "ToolCallInfo",
     "VideoUrl",
     "__version__",
+    "acp_test_session",
 ]
