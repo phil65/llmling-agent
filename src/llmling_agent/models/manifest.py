@@ -12,8 +12,9 @@ from upathtools.configs.base import URIFileSystemConfig
 
 from llmling_agent import log
 from llmling_agent.models.acp_agents import ACPAgentConfigTypes
-from llmling_agent.models.agents import AgentConfig, parse_agent_file
+from llmling_agent.models.agents import AgentConfig
 from llmling_agent.models.agui_agents import AGUIAgentConfig
+from llmling_agent.models.file_agents import FileAgentConfig
 from llmling_agent_config.commands import CommandConfig, StaticCommandConfig
 from llmling_agent_config.converters import ConversionConfig
 from llmling_agent_config.mcp_server import BaseMCPServerConfig, MCPServerConfig
@@ -103,30 +104,34 @@ class AgentsManifest(Schema):
     Docs: https://phil65.github.io/llmling-agent/YAML%20Configuration/agent_configuration/
     """
 
-    file_agents: dict[str, str] = Field(
+    file_agents: dict[str, str | FileAgentConfig] = Field(
         default_factory=dict,
         examples=[
             {
                 "code_reviewer": ".claude/agents/reviewer.md",
                 "debugger": "https://example.com/agents/debugger.md",
+                "custom": {"path": "./agents/custom.md", "format": "opencode"},
             }
         ],
     )
-    """Mapping of agent IDs to Claude Code style subagent file paths.
+    """Mapping of agent IDs to file-based agent definitions.
 
-    Supports local and remote paths via UPath. Files must have YAML frontmatter
-    with Claude Code subagent format (name, description, tools, model, etc.).
+    Supports both simple path strings (auto-detect format) and explicit config.
+    Files must have YAML frontmatter in Claude Code, OpenCode, or LLMling format.
     The markdown body becomes the system prompt.
 
-    Example file format:
-        ```markdown
-        ---
-        name: code-reviewer
-        description: Expert code reviewer
-        model: sonnet
-        ---
+    Formats:
+      - Claude Code: name, description, tools (comma-separated), model, permissionMode
+      - OpenCode: description, mode, model, temperature, maxSteps, tools (dict)
+      - LLMling: Full AgentConfig fields in frontmatter
 
-        You are a senior code reviewer...
+    Example:
+        ```yaml
+        file_agents:
+          reviewer: .claude/agents/reviewer.md  # auto-detect
+          debugger:
+            path: ./agents/debugger.md
+            format: opencode  # explicit format
         ```
     """
 
@@ -450,20 +455,23 @@ class AgentsManifest(Schema):
     def _loaded_file_agents(self) -> dict[str, AgentConfig]:
         """Load and cache file-based agent configurations.
 
-        Parses Claude Code style markdown files and converts them to AgentConfig.
-        Results are cached to avoid repeated file reads.
+        Parses markdown files in Claude Code, OpenCode, or LLMling format
+        and converts them to AgentConfig. Results are cached.
         """
+        from llmling_agent.models.file_parsing import parse_file_agent_reference
+
         loaded: dict[str, AgentConfig] = {}
-        for name, file_path in self.file_agents.items():
+        for name, reference in self.file_agents.items():
             try:
-                config = parse_agent_file(file_path)
+                config = parse_file_agent_reference(reference)
                 # Ensure name is set from the key
                 if config.name is None:
                     config = config.model_copy(update={"name": name})
                 loaded[name] = config
             except Exception as e:
-                logger.exception("Failed to load file agent %r from %s", name, file_path)
-                msg = f"Failed to load file agent {name!r} from {file_path}: {e}"
+                path = reference if isinstance(reference, str) else reference.path
+                logger.exception("Failed to load file agent %r from %s", name, path)
+                msg = f"Failed to load file agent {name!r} from {path}: {e}"
                 raise ValueError(msg) from e
         return loaded
 

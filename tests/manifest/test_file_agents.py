@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from llmling_agent import AgentsManifest
-from llmling_agent.models.agents import (
+from llmling_agent.models.file_parsing import (
     CLAUDE_MODEL_ALIASES,
     PERMISSION_MODE_MAP,
     parse_agent_file,
