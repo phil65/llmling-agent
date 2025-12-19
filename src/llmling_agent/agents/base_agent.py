@@ -67,6 +67,9 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
     env: ExecutionEnvironment
     """Execution environment for running code/commands."""
 
+    _output_type: type = str
+    """Output type for this agent (default: str)."""
+
     def __init__(
         self,
         name: str,

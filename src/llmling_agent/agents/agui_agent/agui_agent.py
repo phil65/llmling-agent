@@ -164,6 +164,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         self._thread_id: str | None = None
         self._run_id: str | None = None
         self._message_count = 0
+        self._output_type = str
         self.conversation = MessageHistory()
         self._total_tokens = 0
         self._event_queue: asyncio.Queue[RichAgentStreamEvent[Any]] = asyncio.Queue()
