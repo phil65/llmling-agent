@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from enum import StrEnum, auto
 import re
-import shutil
 from typing import TYPE_CHECKING, Any
 
 from llmling_agent.log import get_logger
@@ -55,16 +54,32 @@ DEFAULT_EXCLUDE_PATTERNS = [
 ]
 
 
-def detect_grep_backend() -> GrepBackend:
-    """Detect available grep backend.
+async def detect_grep_backend(env: ExecutionEnvironment) -> GrepBackend:
+    """Detect available grep backend in the execution environment.
+
+    Args:
+        env: ExecutionEnvironment to check for available tools
 
     Returns:
         Best available backend (ripgrep > GNU grep > Python)
     """
-    if shutil.which("rg"):
+    from anyenv.os_commands import get_os_command_provider
+
+    provider = get_os_command_provider(env.os_type)
+    which_cmd = provider.get_command("which")
+
+    # Try ripgrep first
+    cmd = which_cmd.create_command("rg")
+    result = await env.execute_command(cmd)
+    if which_cmd.parse_command(result.stdout or "", result.exit_code or 0):
         return GrepBackend.RIPGREP
-    if shutil.which("grep"):
+
+    # Try GNU grep
+    cmd = which_cmd.create_command("grep")
+    result = await env.execute_command(cmd)
+    if which_cmd.parse_command(result.stdout or "", result.exit_code or 0):
         return GrepBackend.GNU_GREP
+
     return GrepBackend.PYTHON
 
 
@@ -99,7 +114,7 @@ async def grep_with_subprocess(
         Dictionary with matches, match_count, and was_truncated flag
     """
     if backend is None:
-        backend = detect_grep_backend()
+        backend = await detect_grep_backend(env)
 
     if backend == GrepBackend.PYTHON:
         msg = "Subprocess grep requested but no grep/ripgrep found"

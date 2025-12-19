@@ -18,6 +18,7 @@ from llmling_agent.agents.context import AgentContext  # noqa: TC001
 from llmling_agent.log import get_logger
 from llmling_agent.resource_providers import ResourceProvider
 from llmling_agent_toolsets.builtin.file_edit import replace_content
+from llmling_agent_toolsets.fsspec_toolset.grep import GrepBackend
 from llmling_agent_toolsets.fsspec_toolset.helpers import (
     apply_structured_edits,
     format_directory_listing,
@@ -94,6 +95,7 @@ class FSSpecTools(ResourceProvider):
         self.max_grep_output = max_grep_output_kb * 1024  # Convert KB to bytes
         self.use_subprocess_grep = use_subprocess_grep
         self._tools: list[Tool] | None = None
+        self._grep_backend: GrepBackend | None = None
 
     def get_fs(self, agent_ctx: AgentContext) -> AsyncFileSystem:
         """Get filesystem, falling back to agent's env if not set.
@@ -580,7 +582,6 @@ class FSSpecTools(ResourceProvider):
         """
         from llmling_agent_toolsets.fsspec_toolset.grep import (
             DEFAULT_EXCLUDE_PATTERNS,
-            GrepBackend,
             detect_grep_backend,
             grep_with_fsspec,
             grep_with_subprocess,
@@ -594,19 +595,19 @@ class FSSpecTools(ResourceProvider):
         try:
             # Try subprocess grep if configured and available
             if self.use_subprocess_grep:
-                backend = detect_grep_backend()
-                if backend != GrepBackend.PYTHON:
-                    # Get execution environment for running grep command
-                    env = self.execution_env or agent_ctx.agent.env
-                    if env is None:
-                        # Fallback to fsspec grep if no execution environment
-                        pass
-                    else:
+                # Get execution environment for running grep command
+                env = self.execution_env or agent_ctx.agent.env
+                if env is not None:
+                    # Detect and cache grep backend
+                    if self._grep_backend is None:
+                        self._grep_backend = await detect_grep_backend(env)
+                    # Only use subprocess if we have a real grep backend
+                    if self._grep_backend != GrepBackend.PYTHON:
                         result = await grep_with_subprocess(
                             env=env,
                             pattern=pattern,
                             path=resolved_path,
-                            backend=backend,
+                            backend=self._grep_backend,
                             case_sensitive=case_sensitive,
                             max_matches=max_matches,
                             max_output_bytes=self.max_grep_output,

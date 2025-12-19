@@ -1300,7 +1300,7 @@ wheels = [
 
 [[package]]
 name = "exxec"
-version = "0.1.4"
+version = "0.1.5"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyenv" },
@@ -1308,9 +1308,9 @@ dependencies = [
     { name = "schemez" },
     { name = "upathtools" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/2b/a5/eb7761172fa63ee51b1b248305ad7cffb03fb07fdb96c96c7866e75d3978/exxec-0.1.4.tar.gz", hash = "sha256:216e1a6de4b90d28b99348cf654e1a920a55e2161b45fb515605cb9dbbcf6df1", size = 68316, upload-time = "2025-12-17T12:25:10.198Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/7f/b0/52923339be2696f08bb4bfbdb0aa3097db52c717368c2183f6cfad6b9af2/exxec-0.1.5.tar.gz", hash = "sha256:b59b2be6247a03bbef66d174bd33dde684dad56ddb8a757d1a46325f08bc636f", size = 68991, upload-time = "2025-12-19T15:11:37.3Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/51/15/2749e5719501b2e619b7a9d5b601fbd1502daf37f08e1a64ecd6a81cb733/exxec-0.1.4-py3-none-any.whl", hash = "sha256:ea605fb8e48eeb993d332641a59b2dc1bd229ff0345a87e51509988dff3416a9", size = 94262, upload-time = "2025-12-17T12:25:08.553Z" },
+    { url = "https://files.pythonhosted.org/packages/f8/38/ef4126eea3e4d6a581df5a8d354fed95f3de347a2d66d12d2ffc73deac87/exxec-0.1.5-py3-none-any.whl", hash = "sha256:cface43809362f4e8f695a06a3ea38cf173544826352c93fedd1c4fb9dae773b", size = 94967, upload-time = "2025-12-19T15:11:35.87Z" },
 ]
 
 [[package]]
@@ -2203,7 +2203,7 @@ wheels = [
 
 [[package]]
 name = "langfuse"
-version = "3.11.0"
+version = "3.11.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "backoff" },
@@ -2217,9 +2217,9 @@ dependencies = [
     { name = "requests" },
     { name = "wrapt" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/15/6d/f381dd6f89f95dccbe194dcf3203a964a8fb6e17a681356da6d85e5de5aa/langfuse-3.11.0.tar.gz", hash = "sha256:61b0a5e67512c7521a113bbcd2536b566b5517ab0e9933899de5214ad3851364", size = 224002, upload-time = "2025-12-17T10:29:29.517Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/70/a4/f7c5919a1e7c26904dd0caa52dc90b75e616d94bece157429169ffce264a/langfuse-3.11.1.tar.gz", hash = "sha256:52bdb5bae2bb7c2add22777a0f88a1a5c96f90ec994935b773992153e57e94f8", size = 230854, upload-time = "2025-12-19T14:31:11.372Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d8/06/0946bca555a0e8f74393d08d4d37c0b1aab21cbc5109ec96074f1a7690ec/langfuse-3.11.0-py3-none-any.whl", hash = "sha256:a11322d49c674ea9ca7951dd02b0e8b73b5cfd158c94d8d0f220546529b8986f", size = 399616, upload-time = "2025-12-17T10:29:27.681Z" },
+    { url = "https://files.pythonhosted.org/packages/3a/ff/256e5814227373179e6c70c05ecead72b19dcda3cd2e0004bd643f64c70e/langfuse-3.11.1-py3-none-any.whl", hash = "sha256:f489c97fb2231b14e75383100158cdd6a158b87c1e9c9f96b2cdcbc015c48319", size = 413776, upload-time = "2025-12-19T14:31:10.166Z" },
 ]
 
 [[package]]
@@ -2664,7 +2664,7 @@ name = "macholib"
 version = "1.16.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "altgraph", marker = "sys_platform != 'win32'" },
+    { name = "altgraph" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/10/2f/97589876ea967487978071c9042518d28b958d87b17dceb7cdc1d881f963/macholib-1.16.4.tar.gz", hash = "sha256:f408c93ab2e995cd2c46e34fe328b130404be143469e41bc366c807448979362", size = 59427, upload-time = "2025-11-22T08:28:38.373Z" }
 wheels = [
@@ -5217,8 +5217,8 @@ name = "secretstorage"
 version = "3.5.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "cryptography", marker = "sys_platform != 'win32'" },
-    { name = "jeepney", marker = "sys_platform != 'win32'" },
+    { name = "cryptography" },
+    { name = "jeepney" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/1c/03/e834bcd866f2f8a49a85eaff47340affa3bfa391ee9912a952a1faa68c7b/secretstorage-3.5.0.tar.gz", hash = "sha256:f04b8e4689cbce351744d5537bf6b1329c6fc68f91fa666f60a380edddcd11be", size = 19884, upload-time = "2025-11-23T19:02:53.191Z" }
 wheels = [
