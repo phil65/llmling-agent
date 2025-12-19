@@ -12,12 +12,10 @@ from uuid import uuid4
 from genai_prices import calc_price
 from pydantic import BaseModel
 from pydantic_ai import (
-    AudioUrl,
     BaseToolReturnPart,
     BinaryContent,
-    DocumentUrl,
     FilePart,
-    ImageUrl,
+    FileUrl,
     ModelRequest,
     ModelResponse,
     RequestUsage,
@@ -25,7 +23,6 @@ from pydantic_ai import (
     ToolCallPart,
     UserContent,
     UserPromptPart,
-    VideoUrl,
 )
 import tokonomics
 
@@ -441,36 +438,20 @@ class ChatMessage[TContent]:
         user_content: list[UserContent] = []  # Convert response parts to user content
         for part in self.parts:
             match part:
-                case TextPart(content=text_content):
-                    # Text parts become user content strings
-                    user_content.append(text_content)
-                case FilePart(content=binary_content):
-                    # File parts (images, etc.) become user content directly
-                    user_content.append(binary_content)
-                case BaseToolReturnPart(
-                    content=(
-                        ImageUrl()
-                        | AudioUrl()
-                        | DocumentUrl()
-                        | VideoUrl()
-                        | BinaryContent()
-                        | str(),
-                    ) as content
-                ):
-                    user_content.extend(content)
-                case BaseToolReturnPart(
-                    content=(
-                        str()
-                        | ImageUrl()
-                        | AudioUrl()
-                        | DocumentUrl()
-                        | VideoUrl()
-                        | BinaryContent()
-                    ) as content
-                ):
+                case TextPart(content=content) | FilePart(content=content):
+                    # Text & File parts (images, etc.) become user content directly
                     user_content.append(content)
+                case BaseToolReturnPart(content=(str() | FileUrl() | BinaryContent()) as content):
+                    user_content.append(content)
+                case BaseToolReturnPart(content=list() as content_list):
+                    # Handle sequence of content items
+                    for item in content_list:
+                        if isinstance(item, str | FileUrl | BinaryContent):
+                            user_content.append(item)
+                        else:
+                            user_content.append(str(item))
                 case BaseToolReturnPart():
-                    # Tool return parts become user content strings
+                    # Other tool return parts become user content strings
                     user_content.append(part.model_response_str())
                 case ToolCallPart():
                     # Tool return parts become user content strings
