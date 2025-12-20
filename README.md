@@ -30,14 +30,14 @@ LLMling Agent is a framework for creating and managing LLM-powered agents. It in
 ## ✨ Features
 
 - 🔄 Modern python written from ground up with Python 3.13
-- 🤝 Integrate multiple external ACP agents (Claude Code, Codex, Goose, etc.) into a single pool where they can cooperate on tasks
+- 🤝 Integrate multiple external ACP agents (Claude Code, Codex, Goose, etc.), AGUI Agents as well as native Pydantic-AI based agents into a single pool where they can cooperate, interact and delegate.
 - 🛡️ Complete (multi-)agent pool setup via YAML files including extensive JSON schema to help with creating configurations.
 - 🔌 Extensive MCP support including elicitation, sampling, progress reporting, multi-modality, including bridging to ACP / AG-UI protocols.
-- 💾 Storage providers to allow writing to local files, databases, etc. with many customizable backends. Log to SQL databases and pretty-print to a file according to your own wishes.
-- 🛜 Comletely UPath backed. All file operations (& Code execution) by agents are abstrated in a way that agents can operate directly on remote sources.
-- Composable virtual filesystems for agents
-- 👥 Easy human-in-the-loop interactions
-
+- 🛜 Comletely UPath backed. All file operations (& Code execution) by agents are abstrated in a way that agents can operate directly on remote sources without having to install anything on the remote.
+- 🎤 Streaming TTS- support for all Agents
+- 📚 Improved aider-based RepoMap implementation for code exploration
+- 📂 Composable virtual filesystems for agents
+- 📝 CodeMode support
 
 ## Quick Start
 
@@ -51,7 +51,7 @@ llmling-agent supports the Agent Client Protocol for seamless integration with d
 
 ```bash
 # Start ACP server
-llmling-agent serve-acp [path/to/config.yml]
+llmling-agent[default,coding] serve-acp [path/to/config.yml]
 ```
 
 Compatible with ACP-enabled Clients like Zed. See the [ACP Integration documentation](https://phil65.github.io/llmling-agent/advanced/acp_integration/) for setup instructions.
