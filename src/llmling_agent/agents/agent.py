@@ -291,9 +291,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         self.hooks = hooks
 
         # Store auto_cache setting
-        self._auto_cache: AutoCache = auto_cache or (
-            ctx.config.auto_cache if ctx and ctx.config else "off"
-        )
+        self._auto_cache: AutoCache = auto_cache
 
     def __repr__(self) -> str:
         desc = f", {self.description!r}" if self.description else ""
