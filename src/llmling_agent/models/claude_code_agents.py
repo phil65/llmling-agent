@@ -2,12 +2,17 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 from pydantic import ConfigDict, Field
 
 from llmling_agent_config.nodes import BaseAgentConfig
 from llmling_agent_config.output_types import StructuredResponseConfig  # noqa: TC001
+from llmling_agent_config.toolsets import ToolsetConfig
+
+
+if TYPE_CHECKING:
+    from llmling_agent.resource_providers import ResourceProvider
 
 
 PermissionMode = Literal["default", "acceptEdits", "plan", "bypassPermissions"]
@@ -134,3 +139,31 @@ class ClaudeCodeAgentConfig(BaseAgentConfig):
     Can be either a reference to a response defined in manifest.responses,
     or an inline StructuredResponseConfig.
     """
+
+    toolsets: list[ToolsetConfig] = Field(
+        default_factory=list,
+        title="Toolsets",
+        examples=[
+            [
+                {"type": "subagent"},
+                {"type": "agent_management"},
+            ],
+        ],
+    )
+    """Toolsets to expose to this Claude Code agent via MCP bridge.
+
+    These toolsets will be started as an in-process MCP server and made
+    available to Claude Code. This allows Claude Code to use internal
+    llmling-agent toolsets like subagent delegation, agent management, etc.
+
+    The toolsets are exposed using the Claude SDK's native MCP support,
+    which passes the FastMCP server instance directly without HTTP overhead.
+    """
+
+    def get_toolset_providers(self) -> list[ResourceProvider]:
+        """Get resource providers for all configured toolsets.
+
+        Returns:
+            List of initialized ResourceProvider instances
+        """
+        return [toolset.get_provider() for toolset in self.toolsets]

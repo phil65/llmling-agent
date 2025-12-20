@@ -166,6 +166,33 @@ class ToolManagerBridge:
             return SseMcpServer(name=self.config.server_name, url=url, headers=[])
         return HttpMcpServer(name=self.config.server_name, url=url, headers=[])
 
+    def get_claude_mcp_server_config(self) -> dict[str, dict[str, Any]]:
+        """Get Claude Agent SDK-compatible MCP server configuration.
+
+        Returns a dict suitable for passing to ClaudeAgentOptions.mcp_servers.
+        Uses the SDK transport type which passes the FastMCP server instance
+        directly, avoiding HTTP overhead.
+
+        Returns:
+            Dict mapping server name to McpSdkServerConfig
+
+        Raises:
+            RuntimeError: If bridge not started (no FastMCP instance)
+        """
+        if not self._mcp:
+            msg = "Bridge not started - call start() first"
+            raise RuntimeError(msg)
+
+        # Use SDK transport - passes FastMCP instance directly
+        # This avoids HTTP overhead entirely
+        return {
+            self.config.server_name: {
+                "type": "sdk",
+                "name": self.config.server_name,
+                "instance": self._mcp._mcp_server,  # The underlying mcp.server.Server
+            }
+        }
+
     async def _register_tools(self) -> None:
         """Register all node tools with the FastMCP server."""
         if not self._mcp:

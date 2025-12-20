@@ -236,11 +236,11 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         port: int = 0,
         transport: str = "sse",
     ) -> ToolManagerBridge:
-        """Create and start a tool bridge for exposing tools to ACP agents.
+        """Create and start a tool bridge for exposing tools to external agents.
 
         This creates an in-process MCP server that exposes the given node's
-        tools. The returned bridge can be added to ACP agents to give them access
-        to internal toolsets.
+        tools. The returned bridge can be added to ACP agents or Claude Code
+        agents to give them access to internal toolsets.
 
         Args:
             node: The agent node whose tools to expose
@@ -262,6 +262,8 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
                 )
                 # Add to ACP agent
                 await pool.acp_agents["claude"].add_tool_bridge(bridge)
+                # Or add to Claude Code agent
+                await pool.claude_code_agents["coder"].add_tool_bridge(bridge)
             ```
         """
         from llmling_agent.mcp_server.tool_bridge import BridgeConfig, ToolManagerBridge

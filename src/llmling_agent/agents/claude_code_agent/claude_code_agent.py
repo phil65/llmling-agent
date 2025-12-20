@@ -70,6 +70,7 @@ if TYPE_CHECKING:
         PromptCompatible,
     )
     from llmling_agent.delegation import AgentPool
+    from llmling_agent.mcp_server.tool_bridge import ToolManagerBridge
     from llmling_agent.messaging import MessageHistory
     from llmling_agent.talk.stats import MessageStats
     from llmling_agent.ui.base import InputProvider
@@ -189,6 +190,12 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         self._current_model: str | None = self._model
         self.deps_type = type(None)
 
+        # ToolBridge state for exposing toolsets via MCP
+
+        self._tool_bridge: ToolManagerBridge | None = None
+        self._owns_bridge = False  # Track if we created the bridge (for cleanup)
+        self._mcp_servers: dict[str, dict[str, Any]] = {}  # Claude SDK MCP server configs
+
     @property
     def context(self) -> AgentContext:
         """Get node context."""
@@ -197,6 +204,61 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
 
         defn = self.agent_pool.manifest if self.agent_pool else AgentsManifest()
         return AgentContext(node=self, pool=self.agent_pool, config=self._config, definition=defn)
+
+    async def _setup_toolsets(self) -> None:
+        """Initialize toolsets from config and create bridge if needed.
+
+        Creates providers from toolset configs, adds them to the tool manager,
+        and starts an MCP bridge to expose them to Claude Code via the SDK's
+        native MCP support.
+        """
+        from llmling_agent.mcp_server.tool_bridge import BridgeConfig, ToolManagerBridge
+
+        if not self._config.toolsets:
+            return
+
+        # Create providers from toolset configs and add to tool manager
+        for toolset_config in self._config.toolsets:
+            provider = toolset_config.get_provider()
+            self.tools.add_provider(provider)
+
+        # Auto-create bridge to expose tools via MCP
+        config = BridgeConfig(transport="sse", server_name=f"llmling-{self.name}-tools")
+        self._tool_bridge = ToolManagerBridge(node=self, config=config)
+        await self._tool_bridge.start()
+        self._owns_bridge = True
+
+        # Get Claude SDK-compatible MCP config and merge into our servers dict
+        mcp_config = self._tool_bridge.get_claude_mcp_server_config()
+        self._mcp_servers.update(mcp_config)
+        self.log.info("Toolsets initialized", toolset_count=len(self._config.toolsets))
+
+    async def add_tool_bridge(self, bridge: ToolManagerBridge) -> None:
+        """Add an external tool bridge to expose its tools via MCP.
+
+        The bridge must already be started. Its MCP server config will be
+        added to the Claude SDK options. Use this for bridges created externally
+        (e.g., from AgentPool). For toolsets defined in config, bridges
+        are created automatically.
+
+        Args:
+            bridge: Started ToolManagerBridge instance
+        """
+        if self._tool_bridge is None:  # Don't replace our own bridge
+            self._tool_bridge = bridge
+
+        # Get Claude SDK-compatible config and merge
+        mcp_config = bridge.get_claude_mcp_server_config()
+        self._mcp_servers.update(mcp_config)
+        self.log.info("Added external tool bridge", server_name=bridge.config.server_name)
+
+    async def _cleanup_bridge(self) -> None:
+        """Clean up tool bridge resources."""
+        if self._tool_bridge and self._owns_bridge:
+            await self._tool_bridge.stop()
+        self._tool_bridge = None
+        self._owns_bridge = False
+        self._mcp_servers.clear()
 
     @property
     def model_name(self) -> str | None:
@@ -237,6 +299,10 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             adapter = TypeAdapter(self._output_type)
             schema = adapter.json_schema()
             options_kwargs["output_format"] = {"type": "json_schema", "schema": schema}
+
+        # Add MCP servers from tool bridges (uses SDK transport for direct instance passing)
+        if self._mcp_servers:
+            options_kwargs["mcp_servers"] = self._mcp_servers
 
         return ClaudeAgentOptions(**options_kwargs)
 
@@ -296,6 +362,9 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         """Connect to Claude Code."""
         await super().__aenter__()
 
+        # Setup toolsets before building options (they add MCP servers)
+        await self._setup_toolsets()
+
         from claude_agent_sdk import ClaudeSDKClient
 
         options = self._build_options()
@@ -312,6 +381,9 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         exc_tb: TracebackType | None,
     ) -> None:
         """Disconnect from Claude Code."""
+        # Clean up tool bridge first
+        await self._cleanup_bridge()
+
         if self._client:
             try:
                 await self._client.disconnect()
