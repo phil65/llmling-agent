@@ -101,10 +101,7 @@ STOP_REASON_MAP: dict[StopReason, FinishReason] = {
 }
 
 
-def extract_file_path_from_tool_call(
-    tool_name: str,
-    raw_input: dict[str, Any],
-) -> str | None:
+def extract_file_path_from_tool_call(tool_name: str, raw_input: dict[str, Any]) -> str | None:
     """Extract file path from a tool call if it's a file-writing tool.
 
     Uses simple heuristics by default:
@@ -666,7 +663,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             return self._state.current_model_id
         if self._init_response and self._init_response.agent_info:
             return self._init_response.agent_info.name
-        return self.config.get_command()
+        return None
 
     async def set_model(self, model: str) -> None:
         """Update the model and restart the ACP agent process.
