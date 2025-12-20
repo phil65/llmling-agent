@@ -602,7 +602,6 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         # Ensure we catch any exceptions from the prompt task
         response = await prompt_task
         self._state.stop_reason = response.stop_reason
-        self._message_count += 1
 
         # Flush response parts to model_messages
         if current_response_parts:
