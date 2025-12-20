@@ -7,6 +7,7 @@ from typing import Literal
 from pydantic import ConfigDict, Field
 
 from llmling_agent_config.nodes import BaseAgentConfig
+from llmling_agent_config.output_types import StructuredResponseConfig  # noqa: TC001
 
 
 PermissionMode = Literal["default", "acceptEdits", "plan", "bypassPermissions"]
@@ -44,6 +45,9 @@ class ClaudeCodeAgentConfig(BaseAgentConfig):
             "x-icon": "simple-icons:anthropic",
         }
     )
+
+    type: Literal["claude_code"] = Field(default="claude_code", init=False)
+    """Top-level discriminator for agent type."""
 
     cwd: str | None = Field(
         default=None,
@@ -118,4 +122,15 @@ class ClaudeCodeAgentConfig(BaseAgentConfig):
     - "acceptEdits": Auto-accept file edits but ask for other operations
     - "plan": Plan-only mode, no execution
     - "bypassPermissions": Skip all permission checks (use with caution)
+    """
+
+    output_type: str | StructuredResponseConfig | None = Field(
+        default=None,
+        examples=["json_response", "code_output"],
+        title="Response type",
+    )
+    """Optional structured output type for responses.
+
+    Can be either a reference to a response defined in manifest.responses,
+    or an inline StructuredResponseConfig.
     """

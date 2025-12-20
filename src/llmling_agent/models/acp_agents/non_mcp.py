@@ -52,7 +52,7 @@ class CodexACPAgentConfig(BaseACPAgentConfig):
 
     model_config = ConfigDict(json_schema_extra={"title": "Codex ACP Agent Configuration"})
 
-    type: Literal["codex"] = Field("codex", init=False)
+    provider: Literal["codex"] = Field("codex", init=False)
     """Discriminator for Codex ACP agent."""
 
     model: str | None = Field(
@@ -121,7 +121,7 @@ class OpenCodeACPAgentConfig(BaseACPAgentConfig):
 
     model_config = ConfigDict(json_schema_extra={"title": "OpenCode ACP Agent Configuration"})
 
-    type: Literal["opencode"] = Field("opencode", init=False)
+    provider: Literal["opencode"] = Field("opencode", init=False)
     """Discriminator for OpenCode ACP agent."""
 
     def get_command(self) -> str:
@@ -158,7 +158,7 @@ class GooseACPAgentConfig(BaseACPAgentConfig):
 
     model_config = ConfigDict(json_schema_extra={"title": "Goose ACP Agent Configuration"})
 
-    type: Literal["goose"] = Field("goose", init=False)
+    provider: Literal["goose"] = Field("goose", init=False)
     """Discriminator for Goose ACP agent."""
 
     def get_command(self) -> str:
@@ -189,7 +189,7 @@ class MistralACPAgentConfig(BaseACPAgentConfig):
 
     model_config = ConfigDict(json_schema_extra={"title": "Mistral ACP Agent Configuration"})
 
-    type: Literal["mistral"] = Field("mistral", init=False)
+    provider: Literal["mistral"] = Field("mistral", init=False)
     """Discriminator for Mistral ACP agent."""
 
     def get_command(self) -> str:
@@ -222,7 +222,7 @@ class OpenHandsACPAgentConfig(BaseACPAgentConfig):
 
     model_config = ConfigDict(json_schema_extra={"title": "OpenHands ACP Agent Configuration"})
 
-    type: Literal["openhands"] = Field("openhands", init=False)
+    provider: Literal["openhands"] = Field("openhands", init=False)
     """Discriminator for OpenHands ACP agent."""
 
     def get_command(self) -> str:
@@ -271,7 +271,7 @@ class AmpACPAgentConfig(BaseACPAgentConfig):
 
     model_config = ConfigDict(json_schema_extra={"title": "Amp ACP Agent Configuration"})
 
-    type: Literal["amp"] = Field("amp", init=False)
+    provider: Literal["amp"] = Field("amp", init=False)
     """Discriminator for Amp ACP agent."""
 
     def get_command(self) -> str:
@@ -307,7 +307,7 @@ class CagentACPAgentConfig(BaseACPAgentConfig):
 
     model_config = ConfigDict(json_schema_extra={"title": "Cagent ACP Agent Configuration"})
 
-    type: Literal["cagent"] = Field("cagent", init=False)
+    provider: Literal["cagent"] = Field("cagent", init=False)
     """Discriminator for Docker cagent ACP agent."""
 
     agent_file: str | None = Field(
@@ -407,7 +407,7 @@ class StakpakACPAgentConfig(BaseACPAgentConfig):
 
     model_config = ConfigDict(json_schema_extra={"title": "Stakpak ACP Agent Configuration"})
 
-    type: Literal["stakpak"] = Field("stakpak", init=False)
+    provider: Literal["stakpak"] = Field("stakpak", init=False)
     """Discriminator for Stakpak ACP agent."""
 
     workdir: str | None = Field(
@@ -543,19 +543,20 @@ class VTCodeACPAgentConfig(BaseACPAgentConfig):
 
     Example:
         ```yaml
-        acp_agents:
+        agents:
           vtcode:
-            type: vtcode
+            type: acp
+            provider: vtcode
             cwd: /path/to/project
             model: gemini-2.5-flash-preview-05-20
-            provider: gemini
+            model_provider: gemini
             workspace: /path/to/workspace
         ```
     """
 
     model_config = ConfigDict(json_schema_extra={"title": "VTCode ACP Agent Configuration"})
 
-    type: Literal["vtcode"] = Field("vtcode", init=False)
+    provider: Literal["vtcode"] = Field("vtcode", init=False)
     """Discriminator for VT Code ACP agent."""
 
     model: str | None = Field(
@@ -565,12 +566,12 @@ class VTCodeACPAgentConfig(BaseACPAgentConfig):
     )
     """LLM Model ID."""
 
-    provider: Literal["gemini", "openai", "anthropic", "deepseek", "openrouter", "xai"] | None = (
-        Field(
-            default=None,
-            title="Provider",
-            examples=["gemini", "openai"],
-        )
+    model_provider: (
+        Literal["gemini", "openai", "anthropic", "deepseek", "openrouter", "xai"] | None
+    ) = Field(
+        default=None,
+        title="Model Provider",
+        examples=["gemini", "openai"],
     )
     """LLM Provider."""
 
@@ -651,8 +652,8 @@ class VTCodeACPAgentConfig(BaseACPAgentConfig):
 
         if self.model:
             args.extend(["--model", self.model])
-        if self.provider:
-            args.extend(["--provider", self.provider])
+        if self.model_provider:
+            args.extend(["--provider", self.model_provider])
         if self.api_key_env:
             args.extend(["--api-key-env", self.api_key_env])
         if self.workspace:
@@ -707,7 +708,7 @@ class CursorACPAgentConfig(BaseACPAgentConfig):
 
     model_config = ConfigDict(json_schema_extra={"title": "Cursor ACP Agent Configuration"})
 
-    type: Literal["cursor"] = Field("cursor", init=False)
+    provider: Literal["cursor"] = Field("cursor", init=False)
     """Discriminator for Cursor ACP agent."""
 
     config: str | None = Field(

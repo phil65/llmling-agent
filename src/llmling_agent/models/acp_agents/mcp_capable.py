@@ -144,7 +144,7 @@ class ClaudeACPAgentConfig(MCPCapableACPAgentConfig):
 
     model_config = ConfigDict(json_schema_extra={"title": "Claude ACP Agent Configuration"})
 
-    type: Literal["claude"] = Field("claude", init=False)
+    provider: Literal["claude"] = Field("claude", init=False)
     """Discriminator for Claude ACP agent."""
 
     system_prompt: str | None = Field(
@@ -315,7 +315,7 @@ class GeminiACPAgentConfig(MCPCapableACPAgentConfig):
 
     model_config = ConfigDict(json_schema_extra={"title": "Gemini ACP Agent Configuration"})
 
-    type: Literal["gemini"] = Field("gemini", init=False)
+    provider: Literal["gemini"] = Field("gemini", init=False)
     """Discriminator for Gemini ACP agent."""
 
     model: str | None = Field(
@@ -434,7 +434,7 @@ class FastAgentACPAgentConfig(MCPCapableACPAgentConfig):
 
     model_config = ConfigDict(json_schema_extra={"title": "FastAgent ACP Agent Configuration"})
 
-    type: Literal["fast-agent"] = Field("fast-agent", init=False)
+    provider: Literal["fast-agent"] = Field("fast-agent", init=False)
     """Discriminator for fast-agent ACP agent."""
 
     model: str = Field(
@@ -536,7 +536,7 @@ class AuggieACPAgentConfig(MCPCapableACPAgentConfig):
 
     model_config = ConfigDict(json_schema_extra={"title": "Auggie ACP Agent Configuration"})
 
-    type: Literal["auggie"] = Field("auggie", init=False)
+    provider: Literal["auggie"] = Field("auggie", init=False)
     """Discriminator for Auggie ACP agent."""
 
     model: str | None = Field(
@@ -697,7 +697,7 @@ class KimiACPAgentConfig(MCPCapableACPAgentConfig):
 
     model_config = ConfigDict(json_schema_extra={"title": "Kimi ACP Agent Configuration"})
 
-    type: Literal["kimi"] = Field("kimi", init=False)
+    provider: Literal["kimi"] = Field("kimi", init=False)
     """Discriminator for Kimi CLI ACP agent."""
 
     verbose: bool = Field(default=False, title="Verbose")

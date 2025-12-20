@@ -211,24 +211,28 @@ Define external ACP agents in your manifest:
 
 ```yaml
 # agents.yml
-acp_agents:
+agents:
   claude:
-    type: claude
+    type: acp
+    provider: claude
     display_name: "Claude Code"
     description: "Claude Code through ACP"
   
   codex:
-    type: codex
+    type: acp
+    provider: codex
     display_name: "Codex"
     description: "Codex Code through ACP"
   
   goose:
-    type: goose
+    type: acp
+    provider: goose
     display_name: "Goose"
     description: "Block's Goose agent through ACP"
   
   fast-agent:
-    type: fast-agent
+    type: acp
+    provider: fast-agent
     display_name: "Fast Agent"
     description: "fast-agent through ACP"
     model: openai.gpt-4o
@@ -342,25 +346,29 @@ ACP agents in llmling-agent follow this execution model:
 ACP agents can run in different environments based on configuration:
 
 ```yaml
-acp_agents:
+agents:
   claude_local:
-    type: claude
+    type: acp
+    provider: claude
     execution_environment: local  # Default
     
   claude_docker:
-    type: claude
+    type: acp
+    provider: claude
     execution_environment:
       type: docker
       image: python:3.13-slim
       
   claude_e2b:
-    type: claude
+    type: acp
+    provider: claude
     execution_environment:
       type: e2b
       template: python-sandbox
       
   claude_remote:
-    type: claude
+    type: acp
+    provider: claude
     execution_environment:
       type: srt  # Secure Remote Terminal
       host: remote-server.com
@@ -387,9 +395,10 @@ The execution environment handles:
 ACP agents have fine-grained permission controls:
 
 ```yaml
-acp_agents:
+agents:
   restricted_claude:
-    type: claude
+    type: acp
+    provider: claude
     allow_file_operations: false  # Disable file read/write
     allow_terminal: false         # Disable terminal access
     auto_grant_permissions: false # Require user confirmation
@@ -422,9 +431,10 @@ The bridge runs **in-process** on the same event loop as the agent pool, providi
 ### Configuration Example
 
 ```yaml
-acp_agents:
+agents:
   claude_orchestrator:
-    type: claude
+    type: acp
+    provider: claude
     description: "Claude with delegation capabilities"
     permission_mode: acceptEdits
     toolsets:
@@ -438,13 +448,13 @@ acp_agents:
       - type: custom
         tools:
           - my_custom_tool
-          
-agents:
   specialist_a:
+    type: native
     model: openai:gpt-4
     system_prompt: "Expert in data processing"
     
   specialist_b:
+    type: native
     model: anthropic:claude-sonnet-4
     system_prompt: "Expert in API design"
 ```
@@ -522,9 +532,10 @@ graph TB
 For more control over the bridge:
 
 ```yaml
-acp_agents:
+agents:
   claude_advanced:
-    type: claude
+    type: acp
+    provider: claude
     toolsets:
       - type: subagent
         # Toolset-specific config here

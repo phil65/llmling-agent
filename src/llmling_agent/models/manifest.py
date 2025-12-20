@@ -53,6 +53,12 @@ _FileSystemConfigUnion = Annotated[
 # Final type allowing models or URI shorthand string
 ResourceConfig = _FileSystemConfigUnion | str
 
+# Unified agent config type with top-level discriminator
+AnyAgentConfig = Annotated[
+    NativeAgentConfig | AGUIAgentConfig | ClaudeCodeAgentConfig | ACPAgentConfigTypes,
+    Field(discriminator="type"),
+]
+
 
 class AgentsManifest(Schema):
     """Complete agent configuration manifest defining all available agents.
@@ -94,13 +100,43 @@ class AgentsManifest(Schema):
             cached: true
     """
 
-    agents: dict[str, NativeAgentConfig] = Field(
+    agents: dict[str, AnyAgentConfig] = Field(
         default_factory=dict,
         json_schema_extra={
             "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/agent_configuration/"
         },
     )
     """Mapping of agent IDs to their configurations.
+
+    All agent types are unified under this single dict, discriminated by the 'type' field:
+    - type: "native" (default) - pydantic-ai based agents
+    - type: "agui" - AG-UI protocol agents
+    - type: "claude_code" - Claude Agent SDK agents
+    - type: "acp" - ACP protocol agents (further discriminated by 'provider')
+
+    Example:
+        ```yaml
+        agents:
+          assistant:
+            type: native
+            model: openai:gpt-4
+            system_prompts:
+              - "You are a helpful assistant."
+
+          coder:
+            type: claude_code
+            cwd: /path/to/project
+            model: claude-sonnet-4-5
+
+          orchestrator:
+            type: acp
+            provider: claude
+            model: sonnet
+
+          remote:
+            type: agui
+            endpoint: http://localhost:8000/agent/run
+        ```
 
     Docs: https://phil65.github.io/llmling-agent/YAML%20Configuration/agent_configuration/
     """
@@ -146,47 +182,6 @@ class AgentsManifest(Schema):
     """Mapping of team IDs to their configurations.
 
     Docs: https://phil65.github.io/llmling-agent/YAML%20Configuration/team_configuration/
-    """
-
-    acp_agents: dict[str, ACPAgentConfigTypes] = Field(
-        default_factory=dict,
-        json_schema_extra={
-            "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/acp_configuration/"
-        },
-    )
-    """Mapping of ACP agent IDs to their configurations.
-
-    ACP agents are external agents that communicate via the Agent Client Protocol.
-    Supports custom ACP servers and pre-configured presets (claude, etc.).
-
-    Docs: https://phil65.github.io/llmling-agent/YAML%20Configuration/acp_configuration/
-    """
-
-    agui_agents: dict[str, AGUIAgentConfig] = Field(
-        default_factory=dict,
-        json_schema_extra={
-            "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/agui_configuration/"
-        },
-    )
-    """Mapping of AG-UI agent IDs to their configurations.
-
-    AG-UI agents connect to remote HTTP endpoints implementing the AG-UI protocol.
-
-    Docs: https://phil65.github.io/llmling-agent/YAML%20Configuration/agui_configuration/
-    """
-
-    claude_code_agents: dict[str, ClaudeCodeAgentConfig] = Field(
-        default_factory=dict,
-        json_schema_extra={
-            "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/claude_code_configuration/"
-        },
-    )
-    """Mapping of Claude Code agent IDs to their configurations.
-
-    Claude Code agents use the Claude Agent SDK for native integration with Claude Code CLI,
-    enabling file operations, terminal access, and code editing capabilities.
-
-    Docs: https://phil65.github.io/llmling-agent/YAML%20Configuration/claude_code_configuration/
     """
 
     storage: StorageConfig = Field(
@@ -287,36 +282,52 @@ class AgentsManifest(Schema):
 
     @model_validator(mode="before")
     @classmethod
+    def set_default_agent_type(cls, data: dict[str, Any]) -> dict[str, Any]:
+        """Set default type='native' for agents without a type field."""
+        agents = data.get("agents", {})
+        for config in agents.values():
+            if isinstance(config, dict) and "type" not in config:
+                config["type"] = "native"
+        return data
+
+    @model_validator(mode="before")
+    @classmethod
     def normalize_workers(cls, data: dict[str, Any]) -> dict[str, Any]:  # noqa: PLR0915
         """Convert string workers to appropriate WorkerConfig for all agents."""
         teams = data.get("teams", {})
         agents = data.get("agents", {})
-        acp_agents = data.get("acp_agents", {})
-        agui_agents = data.get("agui_agents", {})
 
-        # Process workers for all agents that have them
+        def get_agent_type(name: str) -> str | None:
+            """Get the type of an agent by name from the unified agents dict."""
+            if name not in agents:
+                return None
+            agent_cfg = agents[name]
+            if isinstance(agent_cfg, dict):
+                return str(agent_cfg.get("type", "native"))
+            return str(getattr(agent_cfg, "type", "native"))
+
+        # Process workers for all agents that have them (only dict configs need processing)
         for agent_name, agent_config in agents.items():
-            if isinstance(agent_config, dict):
-                workers = agent_config.get("workers", [])
-            else:
-                workers = agent_config.workers
-
+            if not isinstance(agent_config, dict):
+                continue  # Already a model instance, skip
+            workers = agent_config.get("workers", [])
             if workers:
                 normalized: list[BaseWorkerConfig] = []
 
                 for worker in workers:
                     match worker:
                         case str() as name if name in teams:
-                            # Determine type based on presence in teams/agents/acp_agents
                             normalized.append(TeamWorkerConfig(name=name))
-                        case str() as name if name in acp_agents:
-                            normalized.append(ACPAgentWorkerConfig(name=name))
-                        case str() as name if name in agui_agents:
-                            normalized.append(AGUIAgentWorkerConfig(name=name))
-                        case str() as name if name in agents:
-                            normalized.append(AgentWorkerConfig(name=name))
-                        case str():  # Default to agent if type can't be determined
-                            normalized.append(AgentWorkerConfig(name=name))
+                        case str() as name:
+                            # Determine worker config based on agent type
+                            agent_type = get_agent_type(name)
+                            match agent_type:
+                                case "acp":
+                                    normalized.append(ACPAgentWorkerConfig(name=name))
+                                case "agui":
+                                    normalized.append(AGUIAgentWorkerConfig(name=name))
+                                case _:  # native, claude_code, or unknown
+                                    normalized.append(AgentWorkerConfig(name=name))
 
                         case dict() as config:
                             # If type is explicitly specified, use it
@@ -342,12 +353,15 @@ class AgentsManifest(Schema):
 
                                 if worker_name in teams:
                                     normalized.append(TeamWorkerConfig(**config))
-                                elif worker_name in acp_agents:
-                                    normalized.append(ACPAgentWorkerConfig(**config))
-                                elif worker_name in agui_agents:
-                                    normalized.append(AGUIAgentWorkerConfig(**config))
                                 else:
-                                    normalized.append(AgentWorkerConfig(**config))
+                                    agent_type = get_agent_type(worker_name)
+                                    match agent_type:
+                                        case "acp":
+                                            normalized.append(ACPAgentWorkerConfig(**config))
+                                        case "agui":
+                                            normalized.append(AGUIAgentWorkerConfig(**config))
+                                        case _:
+                                            normalized.append(AgentWorkerConfig(**config))
 
                         case BaseWorkerConfig():  # Already normalized
                             normalized.append(worker)
@@ -431,34 +445,36 @@ class AgentsManifest(Schema):
         resolved: dict[str, dict[str, Any]] = {}
         seen: set[str] = set()
 
-        def resolve_node(name: str) -> dict[str, Any]:
+        def resolve_node(name: str) -> dict[str, Any] | Any:
             if name in resolved:
                 return resolved[name]
+
+            node = nodes[name]
+            # Skip model instances - they're already validated
+            if not isinstance(node, dict):
+                return node
 
             if name in seen:
                 msg = f"Circular inheritance detected: {name}"
                 raise ValueError(msg)
 
             seen.add(name)
-            config = (
-                nodes[name].model_copy()
-                if hasattr(nodes[name], "model_copy")
-                else nodes[name].copy()
-            )
-            inherit = config.get("inherits") if isinstance(config, dict) else config.inherits
+            config = node.copy()
+            inherit = config.get("inherits")
             if inherit:
                 if inherit not in nodes:
                     msg = f"Parent agent {inherit} not found"
                     raise ValueError(msg)
 
                 parent = resolve_node(inherit)  # Get resolved parent config
-                merged = parent.copy()
-                merged.update(config)  # Merge parent with child (child overrides parent)
-                config = merged
+                if isinstance(parent, dict):
+                    merged = parent.copy()
+                    merged.update(config)
+                    config = merged
 
             seen.remove(name)
             resolved[name] = config
-            return config  # type: ignore[no-any-return]
+            return config
 
         for name in nodes:
             resolved[name] = resolve_node(name)
@@ -493,25 +509,37 @@ class AgentsManifest(Schema):
 
     @property
     def node_names(self) -> list[str]:
-        """Get list of all agent, ACP agent, AG-UI agent, and team names."""
-        return (
-            list(self.agents.keys())
-            + list(self.file_agents.keys())
-            + list(self.acp_agents.keys())
-            + list(self.agui_agents.keys())
-            + list(self.teams.keys())
-        )
+        """Get list of all agent and team names."""
+        return list(self.agents.keys()) + list(self.file_agents.keys()) + list(self.teams.keys())
 
     @property
     def nodes(self) -> dict[str, Any]:
-        """Get all agent, ACP agent, AG-UI agent, and team configurations."""
+        """Get all agent and team configurations."""
         return {
             **self.agents,
             **self._loaded_file_agents,
-            **self.acp_agents,
-            **self.agui_agents,
             **self.teams,
         }
+
+    @property
+    def acp_agents(self) -> dict[str, Any]:
+        """Get ACP agents filtered from unified agents dict."""
+        return {k: v for k, v in self.agents.items() if getattr(v, "type", None) == "acp"}
+
+    @property
+    def agui_agents(self) -> dict[str, Any]:
+        """Get AG-UI agents filtered from unified agents dict."""
+        return {k: v for k, v in self.agents.items() if getattr(v, "type", None) == "agui"}
+
+    @property
+    def claude_code_agents(self) -> dict[str, Any]:
+        """Get Claude Code agents filtered from unified agents dict."""
+        return {k: v for k, v in self.agents.items() if getattr(v, "type", None) == "claude_code"}
+
+    @property
+    def native_agents(self) -> dict[str, NativeAgentConfig]:
+        """Get native agents filtered from unified agents dict."""
+        return {k: v for k, v in self.agents.items() if isinstance(v, NativeAgentConfig)}
 
     def get_mcp_servers(self) -> list[MCPServerConfig]:
         """Get processed MCP server configurations.
@@ -599,8 +627,6 @@ class AgentsManifest(Schema):
                 update={
                     "agents": update_with_path(agent_def.agents),
                     "teams": update_with_path(agent_def.teams),
-                    "acp_agents": update_with_path(agent_def.acp_agents),
-                    "agui_agents": update_with_path(agent_def.agui_agents),
                 }
             )
         except Exception as exc:
@@ -610,9 +636,12 @@ class AgentsManifest(Schema):
     def get_output_type(self, agent_name: str) -> type[Any] | None:
         """Get the resolved result type for an agent.
 
-        Returns None if no result type is configured.
+        Returns None if no result type is configured or agent doesn't support output_type.
         """
         agent_config = self.agents[agent_name]
+        # Only NativeAgentConfig and ClaudeCodeAgentConfig have output_type
+        if not isinstance(agent_config, NativeAgentConfig | ClaudeCodeAgentConfig):
+            return None
         if not agent_config.output_type:
             return None
         logger.debug("Building response model", type=agent_config.output_type)

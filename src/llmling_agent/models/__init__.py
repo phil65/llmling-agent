@@ -6,7 +6,7 @@ from llmling_agent.models.acp_agents import ACPAgentConfig, ACPAgentConfigTypes,
 from llmling_agent.models.agents import NativeAgentConfig
 from llmling_agent.models.agui_agents import AGUIAgentConfig
 from llmling_agent.models.claude_code_agents import ClaudeCodeAgentConfig
-from llmling_agent.models.manifest import AgentsManifest
+from llmling_agent.models.manifest import AgentsManifest, AnyAgentConfig
 
 
 __all__ = [
@@ -14,6 +14,7 @@ __all__ = [
     "ACPAgentConfigTypes",
     "AGUIAgentConfig",
     "AgentsManifest",
+    "AnyAgentConfig",
     "BaseACPAgentConfig",
     "ClaudeCodeAgentConfig",
     "NativeAgentConfig",

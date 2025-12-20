@@ -53,6 +53,12 @@ if TYPE_CHECKING:
     )
     from llmling_agent.delegation.base_team import BaseTeam
     from llmling_agent.mcp_server.tool_bridge import ToolManagerBridge
+    from llmling_agent.models import (
+        AGUIAgentConfig,
+        AnyAgentConfig,
+        BaseACPAgentConfig,
+        ClaudeCodeAgentConfig,
+    )
     from llmling_agent.models.manifest import AgentsManifest
     from llmling_agent.ui.base import InputProvider
     from llmling_agent_config.session import SessionQuery
@@ -140,34 +146,16 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
             self._tasks.register(name, task)
         self.process_manager = ProcessManager()
         self.pool_talk = TeamTalk[Any].from_nodes(list(self.nodes.values()))
-        # Create requested agents immediately
-        for name in self.manifest.agents:
-            agent = self.create_agent(
+
+        # Create all agents from unified manifest.agents dict
+        for name, config in self.manifest.agents.items():
+            agent = self._create_agent_from_config(
                 name,
+                config,
                 deps_type=shared_deps_type,
-                input_provider=self._input_provider,
-                pool=self,
-                event_handlers=self.event_handlers,
             )
+            agent.agent_pool = self
             self.register(name, agent)
-
-        # Create ACP agents
-        for name in self.manifest.acp_agents:
-            acp_agent = self.create_acp_agent(name, deps_type=shared_deps_type)
-            acp_agent.agent_pool = self
-            self.register(name, acp_agent)
-
-        # Create AG-UI agents
-        for name in self.manifest.agui_agents:
-            agui_agent = self.create_agui_agent(name, deps_type=shared_deps_type)
-            agui_agent.agent_pool = self
-            self.register(name, agui_agent)
-
-        # Create Claude Code agents
-        for name in self.manifest.claude_code_agents:
-            claude_code_agent = self.create_claude_code_agent(name, deps_type=shared_deps_type)
-            claude_code_agent.agent_pool = self
-            self.register(name, claude_code_agent)
 
         self._create_teams()
         if connect_nodes:
@@ -781,7 +769,120 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
 
         return "\n".join(lines)
 
-    def create_agent[TAgentDeps](
+    def _create_agent_from_config[TAgentDeps](
+        self,
+        name: str,
+        config: AnyAgentConfig,
+        deps_type: type[TAgentDeps] | None = None,
+    ) -> BaseAgent[TAgentDeps, Any]:
+        """Create an agent from a unified config, dispatching by type.
+
+        Args:
+            name: Agent name
+            config: Agent configuration (any type)
+            deps_type: Optional dependency type
+
+        Returns:
+            Configured agent instance
+        """
+        from llmling_agent.models.acp_agents import BaseACPAgentConfig
+        from llmling_agent.models.agents import NativeAgentConfig
+        from llmling_agent.models.agui_agents import AGUIAgentConfig
+        from llmling_agent.models.claude_code_agents import ClaudeCodeAgentConfig
+
+        # Ensure name is set on config
+        if config.name is None:
+            config = config.model_copy(update={"name": name})
+
+        match config:
+            case NativeAgentConfig():
+                return self.create_agent(
+                    name,
+                    deps_type=deps_type,
+                    input_provider=self._input_provider,
+                    pool=self,
+                    event_handlers=self.event_handlers,
+                )
+            case AGUIAgentConfig():
+                return self._create_agui_agent_from_config(config, deps_type)
+            case ClaudeCodeAgentConfig():
+                return self._create_claude_code_agent_from_config(config, deps_type)
+            case BaseACPAgentConfig():
+                return self._create_acp_agent_from_config(config, deps_type)
+            case _:
+                msg = f"Unknown agent config type: {type(config)}"
+                raise TypeError(msg)
+
+    def _create_acp_agent_from_config[TDeps](
+        self,
+        config: BaseACPAgentConfig,
+        deps_type: type[TDeps] | None = None,
+    ) -> ACPAgent[TDeps]:
+        """Create an ACPAgent from config object."""
+        from llmling_agent.agents.acp_agent import ACPAgent
+
+        config_handlers = config.get_event_handlers()
+        merged_handlers: list[IndividualEventHandler | BuiltinEventHandlerType] = [
+            *config_handlers,
+            *self.event_handlers,
+        ]
+        return ACPAgent(config=config, event_handlers=merged_handlers or None)
+
+    def _create_agui_agent_from_config[TDeps](
+        self,
+        config: AGUIAgentConfig,
+        deps_type: type[TDeps] | None = None,
+    ) -> AGUIAgent[TDeps]:
+        """Create an AGUIAgent from config object."""
+        from llmling_agent.agents.agui_agent import AGUIAgent
+
+        config_handlers = config.get_event_handlers()
+        merged_handlers: list[IndividualEventHandler | BuiltinEventHandlerType] = [
+            *config_handlers,
+            *self.event_handlers,
+        ]
+        return AGUIAgent(
+            endpoint=config.endpoint,
+            name=config.name or "agui-agent",
+            description=config.description,
+            display_name=config.display_name,
+            event_handlers=merged_handlers or None,
+            timeout=config.timeout,
+            headers=config.headers,
+            startup_command=config.startup_command,
+            startup_delay=config.startup_delay,
+            tools=[tool_config.get_tool() for tool_config in config.tools],
+            mcp_servers=config.mcp_servers,
+            tool_confirmation_mode=config.requires_tool_confirmation,
+        )
+
+    def _create_claude_code_agent_from_config[TDeps, TResult](
+        self,
+        config: ClaudeCodeAgentConfig,
+        deps_type: type[TDeps] | None = None,
+    ) -> ClaudeCodeAgent[TDeps, TResult]:
+        """Create a ClaudeCodeAgent from config object."""
+        from llmling_agent.agents.claude_code_agent import ClaudeCodeAgent
+        from llmling_agent.utils.result_utils import to_type
+
+        config_handlers = config.get_event_handlers()
+        merged_handlers: list[IndividualEventHandler | BuiltinEventHandlerType] = [
+            *config_handlers,
+            *self.event_handlers,
+        ]
+        # Resolve output type if configured
+        output_type: type | None = None
+        if config.output_type:
+            output_type = to_type(config.output_type, self.manifest.responses)
+        return ClaudeCodeAgent(
+            config=config,
+            event_handlers=merged_handlers or None,
+            input_provider=self._input_provider,
+            tool_confirmation_mode=config.requires_tool_confirmation,
+            output_type=output_type,
+        )
+
+    def create_agent[TAgentDeps](  # noqa: PLR0915
         self,
         name: str,
         deps_type: type[TAgentDeps] | None = None,
@@ -790,6 +891,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         event_handlers: list[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
     ) -> Agent[TAgentDeps, Any]:
         from llmling_agent import Agent
+        from llmling_agent.models.agents import NativeAgentConfig
         from llmling_agent.utils.result_utils import to_type
         from llmling_agent_config.system_prompts import (
             FilePromptConfig,
@@ -802,6 +904,9 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         # Get config from inline agents or file agents
         if name in manifest.agents:
             config = manifest.agents[name]
+            if not isinstance(config, NativeAgentConfig):
+                msg = f"Agent {name!r} is not a native agent, use appropriate create method"
+                raise TypeError(msg)
         elif name in manifest.file_agents:
             config = manifest._loaded_file_agents[name]
         else:

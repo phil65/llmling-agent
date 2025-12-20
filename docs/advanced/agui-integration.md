@@ -70,8 +70,9 @@ async def main():
 Define AG-UI agents in your configuration:
 
 ```yaml title="agents.yml"
-agui_agents:
+agents:
   remote_assistant:
+    type: agui
     endpoint: http://localhost:8000/agent/run
     timeout: 60.0
     headers:
@@ -79,6 +80,7 @@ agui_agents:
     description: External AG-UI powered agent
     
   managed_agent:
+    type: agui
     endpoint: http://localhost:8765/agent/run
     startup_command: "uv run ag-ui-server config.yml"
     startup_delay: 3.0
@@ -128,38 +130,10 @@ sequenceDiagram
 
 ### Registering Tools
 
-#### In Code
-
-```python
-from llmling_agent.agents import AGUIAgent
-
-def user_confirmation(action: str, importance: str = "medium") -> bool:
-    """Ask user to confirm an action."""
-    print(f"[{importance.upper()}] Confirm: {action}")
-    response = input("Approve? (y/n): ")
-    return response.lower() == "y"
-
-def fetch_user_data(user_id: str) -> dict:
-    """Retrieve user data from local database."""
-    # Access local database
-    return {"id": user_id, "name": "John Doe", "role": "admin"}
-
-async def main():
-    async with AGUIAgent(
-        endpoint="http://localhost:8000/agent/run",
-        name="remote-agent",
-        tools=[user_confirmation, fetch_user_data],
-    ) as agent:
-        # Agent can now request these tools
-        result = await agent.run("Deploy to production")
-        # Will prompt for user confirmation
-```
-
-#### In Configuration
-
 ```yaml title="agents.yml"
-agui_agents:
+agents:
   tool_enabled_agent:
+    type: agui
     endpoint: http://localhost:8000/agent/run
     tools:
       - import_path: myapp.tools.confirm_action
@@ -170,22 +144,6 @@ agui_agents:
         description: Retrieve data from local sources
 ```
 
-#### Dynamic Registration
-
-```python
-async with AGUIAgent(
-    endpoint="http://localhost:8000/agent/run",
-    name="agent",
-) as agent:
-    # Register tools dynamically
-    @agent.register_tool
-    def new_tool(x: int) -> int:
-        """Process a number."""
-        return x * 2
-    
-    # Tool is now available
-    result = await agent.run("Use the new tool on 5")
-```
 
 ### Tool Execution
 
@@ -198,83 +156,6 @@ When the remote agent calls a tool:
 
 All of this is automatic - you just register tools and they work.
 
-### Error Handling
-
-Tool execution errors are caught and sent back to the agent:
-
-```python
-def risky_operation() -> str:
-    """An operation that might fail."""
-    raise ValueError("Something went wrong")
-
-async with AGUIAgent(
-    endpoint="http://localhost:8000/agent/run",
-    tools=[risky_operation],
-) as agent:
-    # Error is caught and sent to remote agent as tool error
-    result = await agent.run("Try the risky operation")
-    # Agent receives error message and can adapt
-```
-
-### Tool Examples
-
-#### User Confirmation
-
-```python
-def confirm_deployment(
-    environment: str,
-    changes: list[str],
-    risk_level: str = "medium"
-) -> bool:
-    """Ask user to confirm deployment."""
-    print(f"\n{'='*50}")
-    print(f"DEPLOYMENT TO {environment.upper()}")
-    print(f"Risk Level: {risk_level}")
-    print(f"\nChanges:")
-    for change in changes:
-        print(f"  - {change}")
-    print('='*50)
-    
-    response = input("\nProceed with deployment? (yes/no): ")
-    return response.lower() in ("yes", "y")
-```
-
-#### Data Retrieval
-
-```python
-import sqlite3
-
-def query_database(query: str, params: dict | None = None) -> list[dict]:
-    """Execute a SQL query against local database."""
-    conn = sqlite3.connect("local.db")
-    cursor = conn.cursor()
-    
-    if params:
-        cursor.execute(query, params)
-    else:
-        cursor.execute(query)
-    
-    columns = [desc[0] for desc in cursor.description]
-    results = [dict(zip(columns, row)) for row in cursor.fetchall()]
-    
-    conn.close()
-    return results
-```
-
-#### UI Navigation
-
-```python
-from typing import Literal
-
-def navigate_to(
-    page: Literal["home", "dashboard", "settings", "profile"],
-    params: dict | None = None
-) -> str:
-    """Navigate to a different page in the application."""
-    # In a real app, this would trigger navigation
-    print(f"Navigating to {page} with params: {params}")
-    return f"Navigated to {page}"
-```
 
 ## Agent Pool Integration
 
@@ -283,11 +164,11 @@ AG-UI agents work seamlessly with the agent pool:
 ```yaml title="agents.yml"
 agents:
   local_assistant:
+    type: native
     model: openai:gpt-4
     system_prompt: You are a helpful assistant
-    
-agui_agents:
   remote_specialist:
+    type: agui
     endpoint: http://specialist-server.com/agent/run
     tools:
       - import_path: tools.confirm
@@ -318,8 +199,9 @@ async with AgentPool("agents.yml") as pool:
 ### Basic Options
 
 ```yaml
-agui_agents:
+agents:
   my_agent:
+    type: agui
     endpoint: http://localhost:8000/agent/run  # Required
     name: my_agent                              # Optional, defaults to key
     description: Agent description              # Optional
@@ -330,8 +212,9 @@ agui_agents:
 ### Authentication
 
 ```yaml
-agui_agents:
+agents:
   authenticated_agent:
+    type: agui
     endpoint: https://api.example.com/agent/run
     headers:
       Authorization: Bearer ${API_TOKEN}
@@ -343,8 +226,9 @@ agui_agents:
 For testing, have AGUIAgent start and manage the server:
 
 ```yaml
-agui_agents:
+agents:
   test_agent:
+    type: agui
     endpoint: http://localhost:8765/agent/run
     startup_command: "uv run ag-ui-server config.yml"
     startup_delay: 2.0  # Wait 2 seconds after starting
@@ -355,8 +239,9 @@ The server is automatically started on context entry and stopped on exit.
 ### With Tools
 
 ```yaml
-agui_agents:
+agents:
   tool_agent:
+    type: agui
     endpoint: http://localhost:8000/agent/run
     tools:
       - import_path: mypackage.tools.tool_one
@@ -371,8 +256,9 @@ agui_agents:
 AG-UI agents can use MCP servers for additional capabilities:
 
 ```yaml
-agui_agents:
+agents:
   enhanced_agent:
+    type: agui
     endpoint: http://localhost:8000/agent/run
     mcp_servers:
       - name: filesystem
@@ -433,42 +319,6 @@ async with AGUIAgent(
 
 ## Troubleshooting
 
-### Connection Issues
-
-```python
-import httpx
-
-async with AGUIAgent(
-    endpoint="http://localhost:8000/agent/run",
-    timeout=120.0,  # Increase timeout
-    headers={"Connection": "keep-alive"},
-) as agent:
-    result = await agent.run("prompt")
-```
-
-### Tool Not Called
-
-Check tool definition and schema:
-
-```python
-tools = await agent.tools.get_tools()
-for tool in tools:
-    print(f"Tool: {tool.name}")
-    print(f"Schema: {tool.schema}")
-```
-
-### Event Stream Parsing
-
-Enable debug logging:
-
-```python
-import logging
-logging.basicConfig(level=logging.DEBUG)
-
-async with AGUIAgent(...) as agent:
-    # Will log SSE parsing details
-    result = await agent.run("prompt")
-```
 
 ## Future: AG-UI Server Support
 

@@ -58,6 +58,9 @@ class NativeAgentConfig(BaseAgentConfig):
         }
     )
 
+    type: Literal["native"] = Field(default="native", init=False)
+    """Top-level discriminator for agent type."""
+
     inherits: str | None = Field(default=None, title="Inheritance source")
     """Name of agent config to inherit from"""
 

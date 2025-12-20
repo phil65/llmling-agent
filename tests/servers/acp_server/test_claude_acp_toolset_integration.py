@@ -46,7 +46,7 @@ def claude_config_with_subagent() -> ClaudeACPAgentConfig:
 def manifest_with_claude(claude_config_with_subagent: ClaudeACPAgentConfig) -> AgentsManifest:
     """Create manifest with Claude ACP agent."""
     return AgentsManifest(
-        acp_agents={"claude_orchestrator": claude_config_with_subagent},
+        agents={"claude_orchestrator": claude_config_with_subagent},
     )
 
 

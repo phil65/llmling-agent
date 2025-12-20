@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import ConfigDict, Field
 
 from llmling_agent_config.nodes import BaseAgentConfig
@@ -38,6 +40,9 @@ class AGUIAgentConfig(BaseAgentConfig):
     model_config = ConfigDict(
         json_schema_extra={"title": "AG-UI Agent Configuration", "x-icon": "mdi:api"}
     )
+
+    type: Literal["agui"] = Field(default="agui", init=False)
+    """Top-level discriminator for agent type."""
 
     endpoint: str = Field(
         ...,

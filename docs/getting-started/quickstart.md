@@ -49,9 +49,10 @@ Your agents now appear as modes in Zed's agent panel - switch between them mid-c
 Integrate existing ACP-compatible agents (Claude Code, Goose, Codex, fast-agent) into your pool:
 
 ```yaml
-acp_agents:
+agents:
   claude:
-    type: claude
+    type: acp
+    provider: claude
     cwd: /path/to/project
   goose:
     type: goose

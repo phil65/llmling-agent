@@ -32,6 +32,9 @@ class BaseACPAgentConfig(NodeConfig):
         }
     )
 
+    type: Literal["acp"] = Field("acp", init=False)
+    """Top-level discriminator for agent type."""
+
     cwd: str | None = Field(
         default=None,
         title="Working Directory",
@@ -113,7 +116,7 @@ class ACPAgentConfig(BaseACPAgentConfig):
 
     model_config = ConfigDict(json_schema_extra={"title": "Custom ACP Agent Configuration"})
 
-    type: Literal["acp"] = Field("acp", init=False)
+    provider: Literal["acp"] = Field("acp", init=False)
     """Discriminator for custom ACP agent."""
 
     command: str = Field(

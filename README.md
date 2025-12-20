@@ -68,6 +68,7 @@ This is the extended version
 # agents.yml
 agents:
   analyzer:
+    type: native
     name: "Code Analyzer"  # Display name
     inherits: "base_agent"  # Optional parent config to inherit from
     description: "Code analysis specialist"
@@ -238,6 +239,7 @@ The `AgentPool` allows multiple agents to work together on tasks, including exte
 # agents.yml
 agents:
   file_getter:
+    type: native
     model: openai:gpt-5-mini
     toolsets:
       - type: file_access  # includes download_file, read_file, list_directory
@@ -247,6 +249,7 @@ agents:
         and report its results. No explanations needed.
 
   overseer:
+    type: native
     toolsets:
       - type: agent_management  # Enables delegation and agent discovery tools
     model: openai:gpt-5-mini
@@ -285,18 +288,19 @@ You can also integrate external ACP-enabled agents into your pool via YAML confi
 
 ```yaml
 # agents.yml
-acp_agents:
+agents:
   claude:
-    type: claude
+    type: acp
+    provider: claude
     display_name: "Claude Code"
     description: "Claude Code through ACP"
   goose:
-    type: goose
+    type: acp
+    provider: goose
     display_name: "Goose"
     description: "Block's Goose agent through ACP"
-
-agents:
   coordinator:
+    type: native
     model: openai:gpt-5-mini
     toolsets:
       - type: agent_management  # Enables delegation to ACP agents
@@ -521,23 +525,3 @@ llmling-agent history stats  # Basic stats
 llmling-agent history stats --group-by model  # Model usage
 llmling-agent history stats --group-by day    # Daily breakdown
 ```
-
-## 📚 MkDocs Integration
-
-In combination with [MkNodes](https://github.com/phil65/mknodes) and the [MkDocs plugin](https://github.com/phil65/mkdocs_mknodes),
-you can easily generate static documentation for websites with a few lines of code.
-
-```python
-
-@nav.route.page("Feature XYZ", icon="oui:documentation", hide="toc")
-def gen_docs(page: mk.MkPage):
-    """Generate docs using agents."""
-    agent = Agent(model="openai:gpt-5-nano")
-    page += mk.MkAdmonition("MkNodes includes all kinds of Markdown objects to generate docs!")
-    source_code = load_source_code_from_folder(...)
-    page += mk.MkCode() # if you want to display source code
-    result = agent.run.sync("Describle Feature XYZ in MkDocs compatible markdown including examples.", content)
-    page += result.content
-```
-
-### [Read the documentation for further info!](https://phil65.github.io/llmling-agent/)

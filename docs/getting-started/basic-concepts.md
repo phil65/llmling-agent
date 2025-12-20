@@ -43,9 +43,10 @@ Agents are the most flexible nodes - they support tools, structured output, conv
 External coding agents integrated via the [Agent Client Protocol](https://agentclientprotocol.com/). These wrap tools like Claude Code, Goose, Codex, or fast-agent as nodes:
 
 ```yaml
-acp_agents:
+agents:
   claude:
-    type: claude
+    type: acp
+    provider: claude
     cwd: /path/to/project
   goose:
     type: goose

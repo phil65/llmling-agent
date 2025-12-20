@@ -1,8 +1,9 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/phil65/llmling-agent/refs/heads/main/schema/config-schema.json
-acp_agents:
+agents:
   # ACP-enabled agent with terminal and file access
   claude:
-    type: claude
+    type: acp
+    provider: claude
     display_name: "Claude Code"
     description: "Claude Code through ACP"
     env: # override to make sure subscription is used
@@ -12,53 +13,65 @@ acp_agents:
       - type: code
       - type: subagent
   codex:
-    type: codex
+    type: acp
+    provider: codex
     display_name: "Codex"
     description: "Codex Code through ACP"
   # opencode:
-  #   type: opencode
+  #   type: acp
+  #   provider: opencode
   #   display_name: "OpenCode"
   #   description: "OpenCode through ACP"
   # goose:
-  #   type: goose
+  #   type: acp
+  #   provider: goose
   #   display_name: "Goose"
   #   description: "Block's Goose agent through ACP"
   # fast-agent:
-  #   type: fast-agent
+  #   type: acp
+  #   provider: fast-agent
   #   display_name: "Fast Agent"
   #   description: "fast-agent through ACP"
   #   model: openai.gpt-4o
   # amp:
-  #   type: amp
+  #   type: acp
+  #   provider: amp
   #   display_name: "Amp (AmpCode)"
   #   description: "Open-source ACP adapter for Amp CLI through ACP"
   # auggie:
-  #   type: auggie
+  #   type: acp
+  #   provider: auggie
   #   display_name: "Auggie (Augment Code)"
   #   description: "Augment Code's AI agent through ACP"
   # kimi:
-  #   type: kimi
+  #   type: acp
+  #   provider: kimi
   #   display_name: "Kimi CLI"
   #   description: "Moonshot AI's Kimi agent through ACP"
   # stakpak:
-  #   type: stakpak
+  #   type: acp
+  #   provider: stakpak
   #   display_name: "Stakpak Agent"
   #   description: "Terminal-native DevOps Agent through ACP"
 
   # cagent:
-  #   type: cagent
+  #   type: acp
+  #   provider: cagent
   #   display_name: "Docker cagent"
   #   description: "Docker's Agent Builder and Runtime through ACP"
   # vtcode:
-  #   type: vtcode
+  #   type: acp
+  #   provider: vtcode
   #   display_name: "VT Code"
   #   description: "Rust-based semantic coding agent through ACP"
   # openhands:
-  #   type: openhands
+  #   type: acp
+  #   provider: openhands
   #   display_name: "OpenHands"
   #   description: "OpenHands (formerly OpenDevin) through ACP"
   # gemini:
-  #   type: gemini
+  #   type: acp
+  #   provider: gemini
   #   display_name: "Gemini"
   #   description: "Gemini Code through ACP"
   #   # Note: --experimental-acp flag appears non-functional as of v0.19.3
