@@ -61,11 +61,7 @@ def messages_with_tools() -> list[ModelRequest | ModelResponse]:
         ModelRequest(parts=[UserPromptPart(content="Search for Python docs")]),
         ModelResponse(
             parts=[
-                ToolCallPart(
-                    tool_name="search",
-                    args={"query": "python"},
-                    tool_call_id="call_1",
-                )
+                ToolCallPart(tool_name="search", args={"query": "python"}, tool_call_id="call_1")
             ]
         ),
         ModelRequest(

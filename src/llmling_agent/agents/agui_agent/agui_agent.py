@@ -416,7 +416,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         while True:
             request_data = RunAgentInput(
                 thread_id=self._thread_id or self.conversation_id,
-                run_id=self._run_id,  # pyright: ignore[reportArgumentType]
+                run_id=self._run_id,
                 state={},
                 messages=messages,
                 tools=agui_tools,
