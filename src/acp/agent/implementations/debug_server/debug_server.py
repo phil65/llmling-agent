@@ -26,6 +26,7 @@ from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 import uvicorn
 
+from acp import AgentSideConnection
 from acp.agent.protocol import Agent
 from acp.schema import (
     AgentMessageChunk,
@@ -47,6 +48,7 @@ from acp.schema import (
     PromptResponse,
     ReadTextFileResponse,
     ResumeSessionResponse,
+    SessionInfo,
     SessionNotification,
     ToolCallProgress,
     ToolCallStart,
@@ -138,11 +140,8 @@ class MockAgent(Agent):
     async def new_session(self, params: NewSessionRequest) -> NewSessionResponse:
         """Create new debug session."""
         session_id = str(uuid.uuid4())
-        session = DebugSession(
-            session_id=session_id,
-            created_at=asyncio.get_event_loop().time(),
-            cwd=params.cwd,
-        )
+        created = asyncio.get_event_loop().time()
+        session = DebugSession(session_id=session_id, created_at=created, cwd=params.cwd)
         self.debug_state.sessions[session_id] = session
         self.debug_state.active_session_id = session_id
         return NewSessionResponse(session_id=session_id)
@@ -202,8 +201,6 @@ class MockAgent(Agent):
     async def list_sessions(self, params: ListSessionsRequest) -> ListSessionsResponse:
         """Mock list sessions."""
         session_ids = list(self.debug_state.sessions.keys())
-        from acp.schema import SessionInfo
-
         sessions = [SessionInfo(session_id=sid, cwd="/mock/cwd") for sid in session_ids]
         return ListSessionsResponse(sessions=sessions)
 
@@ -293,22 +290,15 @@ async def send_notification(request: NotificationRequest) -> dict[str, Any]:
         raise HTTPException(status_code=404, detail="Session not found")
 
     try:
-        # Create notification based on type
         update = await _create_notification_update(request.notification_type, request.data)
-
         notification = SessionNotification(session_id=request.session_id, update=update)
-
-        # Send through ACP connection
         await state.client_connection.session_update(notification)
-
-        # Track notification
         record = NotificationRecord(
             notification_type=request.notification_type,
             session_id=request.session_id,
             timestamp=asyncio.get_event_loop().time(),
         )
         state.notifications_sent.append(record)
-
         logger.info(
             "Sent notification to session",
             notification_type=request.notification_type,
@@ -350,24 +340,13 @@ async def _create_notification_update(  # noqa: PLR0911
             )
         case "plan_update":
             entries = [
-                PlanEntry(
-                    content="Mock Plan Entry 1",
-                    priority="high",
-                    status="completed",
-                ),
-                PlanEntry(
-                    content="Mock Plan Entry 2",
-                    priority="medium",
-                    status="in_progress",
-                ),
+                PlanEntry(content="Mock Plan Entry 1", priority="high", status="completed"),
+                PlanEntry(content="Mock Plan Entry 2", priority="medium", status="in_progress"),
             ]
             return AgentPlanUpdate(entries=entries)
         case "commands_update":
             commands = [
-                AvailableCommand(
-                    name="mock-command",
-                    description="A mock command for testing",
-                ),
+                AvailableCommand(name="mock-command", description="A mock command for testing"),
             ]
             return AvailableCommandsUpdate(available_commands=commands)
         case "mode_update":
@@ -412,7 +391,6 @@ class ACPDebugServer:
         self._running = False
         self._shutdown_event: asyncio.Event | None = None
         self._fastapi_thread: threading.Thread | None = None
-
         # Set global reference for FastAPI endpoints
         _set_debug_state(self.debug_state)
 
@@ -426,10 +404,8 @@ class ACPDebugServer:
         logger.info("Starting ACP Debug Server")
 
         try:
-            # Start FastAPI server in background thread
-            self._start_fastapi()
-            # Start ACP server on stdio
-            await self._run_acp_server()
+            self._start_fastapi()  # Start FastAPI server in background thread
+            await self._run_acp_server()  # Start ACP server on stdio
         except Exception:
             logger.exception("Error running debug server")
             raise
@@ -440,12 +416,7 @@ class ACPDebugServer:
         """Start FastAPI server in a separate thread."""
 
         def run_fastapi() -> None:
-            uvicorn.run(
-                app,
-                host=self.fastapi_host,
-                port=self.fastapi_port,
-                log_level="info",
-            )
+            uvicorn.run(app, host=self.fastapi_host, port=self.fastapi_port, log_level="info")
 
         self._fastapi_thread = threading.Thread(target=run_fastapi, daemon=True)
         self._fastapi_thread.start()
@@ -454,8 +425,6 @@ class ACPDebugServer:
 
     async def _run_acp_server(self) -> None:
         """Run ACP server on stdio."""
-        from acp import AgentSideConnection
-
         try:
             logger.info("Starting ACP server on stdio")
             reader, writer = await stdio_streams()
@@ -473,7 +442,6 @@ class ACPDebugServer:
             logger.info("Web interface", url=url)
             assert self._shutdown_event is not None
             await self._shutdown_event.wait()
-
         except Exception:
             logger.exception("ACP server error")
             raise
@@ -487,7 +455,6 @@ class ACPDebugServer:
         if self._shutdown_event:
             self._shutdown_event.set()
         logger.info("Shutting down ACP Debug Server")
-
         # Clean up connection
         if self.debug_state.client_connection:
             try:
@@ -506,9 +473,7 @@ async def main() -> None:
     parser.add_argument("--port", type=int, default=7777, help="FastAPI port")
     parser.add_argument("--host", default="127.0.0.1", help="FastAPI host")
     parser.add_argument("--log-level", default="info", help="Logging level")
-
     args = parser.parse_args()
-
     # Configure logging
     level = getattr(logging, args.log_level.upper())
     logging.basicConfig(
@@ -517,7 +482,6 @@ async def main() -> None:
     )
 
     server = ACPDebugServer(fastapi_port=args.port, fastapi_host=args.host)
-
     try:
         await server.run()
     except KeyboardInterrupt:

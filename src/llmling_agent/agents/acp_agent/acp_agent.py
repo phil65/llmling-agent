@@ -45,7 +45,7 @@ from pydantic_ai.messages import (
 )
 
 from acp.client.connection import ClientSideConnection
-from acp.schema import InitializeRequest, NewSessionRequest, PromptRequest
+from acp.schema import InitializeRequest, NewSessionRequest, PromptRequest, SetSessionModeRequest
 from acp.utils import to_acp_content_blocks
 from llmling_agent.agents.acp_agent.acp_converters import convert_to_acp_content, mcp_configs_to_acp
 from llmling_agent.agents.acp_agent.client_handler import ACPClientHandler
@@ -516,10 +516,8 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         user_msg, processed_prompts, _original_message = await prepare_prompts(*prompts)
         run_id = str(uuid.uuid4())
         self._state.clear()  # Reset state
-
         # Track messages in pydantic-ai format: ModelRequest -> ModelResponse -> ...
         # This mirrors pydantic-ai's new_messages() which includes the initial user request.
-
         model_messages: list[ModelResponse | ModelRequest] = []
         # Start with the user's request (same as pydantic-ai's new_messages())
         initial_request = ModelRequest(parts=[UserPromptPart(content=processed_prompts)])
@@ -721,17 +719,12 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
 
         # Forward mode change to remote ACP server if connected
         if self._connection and self._session_id:
-            from acp.schema import SetSessionModeRequest
-
             mode_id = confirmation_mode_to_mode_id(mode)
             request = SetSessionModeRequest(session_id=self._session_id, mode_id=mode_id)
             try:
                 await self._connection.set_session_mode(request)
-                self.log.info(
-                    "Forwarded mode change to remote ACP server",
-                    mode=mode,
-                    mode_id=mode_id,
-                )
+                msg = "Forwarded mode change to remote ACP server"
+                self.log.info(msg, mode=mode, mode_id=mode_id)
             except Exception:
                 self.log.exception("Failed to forward mode change to remote ACP server")
         else:

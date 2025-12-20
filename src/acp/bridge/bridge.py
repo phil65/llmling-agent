@@ -112,14 +112,8 @@ class ACPBridge:
             return JSONResponse({"jsonrpc": "2.0", "id": request_id, "result": result})
         except Exception as exc:
             logger.exception("Error dispatching request to agent")
-            return JSONResponse(
-                {
-                    "jsonrpc": "2.0",
-                    "id": request_id,
-                    "error": {"code": -32603, "message": str(exc)},
-                },
-                status_code=500,
-            )
+            err = {"code": -32603, "message": str(exc)}
+            return JSONResponse({"jsonrpc": "2.0", "id": request_id, "error": err}, status_code=500)
 
     async def _dispatch_to_agent(  # noqa: PLR0911
         self,

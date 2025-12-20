@@ -25,11 +25,7 @@ class ServerBridge(abc.ABC):
     to external protocols (ACP, OpenAI API, MCP, etc.).
     """
 
-    def __init__(
-        self,
-        pool: AgentPool[Any],
-        **kwargs: Any,
-    ) -> None:
+    def __init__(self, pool: AgentPool[Any], **kwargs: Any) -> None:
         """Initialize the server bridge.
 
         Args:

@@ -92,9 +92,7 @@ def convert_acp_content(content: list[ToolCallContent] | None) -> list[ToolCallC
     return result
 
 
-def convert_to_acp_content(
-    prompts: Sequence[UserContent],
-) -> list[ContentBlock]:
+def convert_to_acp_content(prompts: Sequence[UserContent]) -> list[ContentBlock]:
     """Convert pydantic-ai UserContent to ACP ContentBlock format.
 
     Handles text, images, audio, video, and document content types.
@@ -139,19 +137,15 @@ def convert_to_acp_content(
                     )
                     content_blocks.append(EmbeddedResourceContentBlock(resource=blob_resource))
 
-            case ImageUrl(url=url, media_type=media_type):
+            case ImageUrl(url=url, media_type=typ):
                 content_blocks.append(
-                    ResourceContentBlock(
-                        uri=str(url),
-                        name="Image",
-                        mime_type=media_type or "image/jpeg",
-                    )
+                    ResourceContentBlock(uri=url, name="Image", mime_type=typ or "image/jpeg")
                 )
 
             case AudioUrl(url=url, media_type=media_type):
                 content_blocks.append(
                     ResourceContentBlock(
-                        uri=str(url),
+                        uri=url,
                         name="Audio",
                         mime_type=media_type or "audio/wav",
                         description="Audio content",
@@ -161,7 +155,7 @@ def convert_to_acp_content(
             case DocumentUrl(url=url, media_type=media_type):
                 content_blocks.append(
                     ResourceContentBlock(
-                        uri=str(url),
+                        uri=url,
                         name="Document",
                         mime_type=media_type or "application/pdf",
                         description="Document",
@@ -171,7 +165,7 @@ def convert_to_acp_content(
             case VideoUrl(url=url, media_type=media_type):
                 content_blocks.append(
                     ResourceContentBlock(
-                        uri=str(url),
+                        uri=url,
                         name="Video",
                         mime_type=media_type or "video/mp4",
                         description="Video content",
@@ -194,15 +188,12 @@ def acp_to_native_event(update: SessionUpdate) -> RichAgentStreamEvent[Any] | No
         # Text message chunks -> PartDeltaEvent with TextPartDelta
         case AgentMessageChunk(content=TextContentBlock(text=text)):
             return PartDeltaEvent(index=0, delta=TextPartDelta(content_delta=text))
-
         # Thought chunks -> PartDeltaEvent with ThinkingPartDelta
         case AgentThoughtChunk(content=TextContentBlock(text=text)):
             return PartDeltaEvent(index=0, delta=ThinkingPartDelta(content_delta=text))
-
         # User message echo - could emit as PartStartEvent if needed
         case UserMessageChunk():
             return None  # Usually ignored
-
         # Tool call start -> ToolCallStartEvent
         case ToolCallStart() as tc:
             return ToolCallStartEvent(
@@ -218,7 +209,6 @@ def acp_to_native_event(update: SessionUpdate) -> RichAgentStreamEvent[Any] | No
         # Tool call progress -> ToolCallProgressEvent
         case ToolCallProgress() as tc:
             items = convert_acp_content(list(tc.content) if tc.content else None)
-
             return ToolCallProgressEvent(
                 tool_call_id=tc.tool_call_id,
                 status=tc.status or "in_progress",
@@ -239,29 +229,6 @@ def acp_to_native_event(update: SessionUpdate) -> RichAgentStreamEvent[Any] | No
 
         case _:
             return None
-
-
-def extract_text_from_update(update: SessionUpdate) -> str | None:
-    """Extract plain text content from an ACP session update.
-
-    Args:
-        update: ACP SessionUpdate
-
-    Returns:
-        Text content if this is a text-bearing update, None otherwise
-    """
-    match update:
-        case AgentMessageChunk(content=TextContentBlock(text=text)):
-            return text
-        case AgentThoughtChunk(content=TextContentBlock(text=text)):
-            return text
-        case _:
-            return None
-
-
-def is_text_update(update: SessionUpdate) -> bool:
-    """Check if this update contains text content."""
-    return extract_text_from_update(update) is not None
 
 
 @overload
@@ -289,8 +256,6 @@ def mcp_config_to_acp(config: MCPServerConfig) -> McpServer | None:
     Returns:
         ACP-compatible McpServer instance, or None if conversion not possible
     """
-    from pydantic import HttpUrl
-
     from acp.schema.common import EnvVariable
     from acp.schema.mcp import HttpMcpServer, SseMcpServer, StdioMcpServer
     from llmling_agent_config.mcp_server import (
@@ -309,17 +274,9 @@ def mcp_config_to_acp(config: MCPServerConfig) -> McpServer | None:
                 env=[EnvVariable(name=k, value=v) for k, v in env_vars.items()],
             )
         case SSEMCPServerConfig(url=url):
-            return SseMcpServer(
-                name=config.name or str(url),
-                url=HttpUrl(str(url)),
-                headers=[],
-            )
+            return SseMcpServer(name=config.name or str(url), url=url, headers=[])
         case StreamableHTTPMCPServerConfig(url=url):
-            return HttpMcpServer(
-                name=config.name or str(url),
-                url=HttpUrl(str(url)),
-                headers=[],
-            )
+            return HttpMcpServer(name=config.name or str(url), url=url, headers=[])
         case _:
             return None
 

@@ -45,22 +45,20 @@ class VFSRegistry:
         """Check if registry has any resources."""
         return len(self._union_fs.filesystems) == 0
 
-    def register(
-        self, name: str, filesystem: AbstractFileSystem | str, *, replace: bool = False
-    ) -> None:
+    def register(self, name: str, fs: AbstractFileSystem | str, *, replace: bool = False) -> None:
         """Register a filesystem resource.
 
         Args:
             name: Resource name to use as mount point
-            filesystem: Filesystem instance or URI string
+            fs: Filesystem instance or URI string
             replace: Whether to replace existing resource
 
         Raises:
             ValueError: If resource exists and replace=False
         """
-        logger.debug("Registering resource", name=name, type=type(filesystem).__name__)
+        logger.debug("Registering resource", name=name, type=type(fs).__name__)
         try:
-            self._union_fs.register(name, filesystem, replace=replace)
+            self._union_fs.register(name, fs, replace=replace)
         except ValueError as e:
             raise LLMLingError(str(e)) from e
 
