@@ -67,11 +67,17 @@ if TYPE_CHECKING:
 
     from evented.configs import EventConfig
     from exxec import ExecutionEnvironment
+    from pydantic_ai import FinishReason
     from tokonomics.model_discovery import ProviderType
 
     from acp.agent.protocol import Agent as ACPAgentProtocol
     from acp.client.protocol import Client
-    from acp.schema import InitializeResponse, RequestPermissionRequest, RequestPermissionResponse
+    from acp.schema import (
+        InitializeResponse,
+        RequestPermissionRequest,
+        RequestPermissionResponse,
+        StopReason,
+    )
     from acp.schema.mcp import McpServer
     from llmling_agent.agents.events import RichAgentStreamEvent
     from llmling_agent.common_types import BuiltinEventHandlerType, PromptCompatible, SimpleJsonType
@@ -85,6 +91,14 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 PROTOCOL_VERSION = 1
+
+STOP_REASON_MAP: dict[StopReason, FinishReason] = {
+    "end_turn": "stop",
+    "max_tokens": "length",
+    "max_turn_requests": "length",
+    "refusal": "content_filter",
+    "cancelled": "error",
+}
 
 
 def extract_file_path_from_tool_call(
@@ -601,7 +615,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             last_idx += 1
         # Ensure we catch any exceptions from the prompt task
         response = await prompt_task
-
+        finish_reason: FinishReason = STOP_REASON_MAP.get(response.stop_reason, "stop")
         # Flush response parts to model_messages
         if current_response_parts:
             model_messages.append(ModelResponse(parts=current_response_parts))
@@ -620,6 +634,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             model_name=self.model_name,
             messages=model_messages,
             metadata=metadata,
+            finish_reason=finish_reason,
         )
         complete_event = StreamCompleteEvent(message=message)
         for handler in self.event_handler._wrapped_handlers:
