@@ -104,7 +104,6 @@ src/
 ```python
 # Absolute imports
 from llmling_agent import Agent
-from llmling_agent_config import AgentsManifest
 ```
 
 
