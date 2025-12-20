@@ -239,6 +239,13 @@
           "title": "Event handlers",
           "type": "array"
         },
+        "type": {
+          "const": "acp",
+          "default": "acp",
+          "description": "Top-level discriminator for agent type.",
+          "title": "Type",
+          "type": "string"
+        },
         "cwd": {
           "default": null,
           "description": "Working directory for the session.",
@@ -377,11 +384,11 @@
           "title": "Tool confirmation mode",
           "type": "string"
         },
-        "type": {
+        "provider": {
           "const": "acp",
           "default": "acp",
           "description": "Discriminator for custom ACP agent.",
-          "title": "Type",
+          "title": "Provider",
           "type": "string"
         },
         "command": {
@@ -743,6 +750,13 @@
             "per_tool"
           ],
           "title": "Tool confirmation mode",
+          "type": "string"
+        },
+        "type": {
+          "const": "agui",
+          "default": "agui",
+          "description": "Top-level discriminator for agent type.",
+          "title": "Type",
           "type": "string"
         },
         "endpoint": {
@@ -1354,6 +1368,13 @@
           "title": "Event handlers",
           "type": "array"
         },
+        "type": {
+          "const": "acp",
+          "default": "acp",
+          "description": "Top-level discriminator for agent type.",
+          "title": "Type",
+          "type": "string"
+        },
         "cwd": {
           "default": null,
           "description": "Working directory for the session.",
@@ -1492,11 +1513,11 @@
           "title": "Tool confirmation mode",
           "type": "string"
         },
-        "type": {
+        "provider": {
           "const": "amp",
           "default": "amp",
           "description": "Discriminator for Amp ACP agent.",
-          "title": "Type",
+          "title": "Provider",
           "type": "string"
         }
       },
@@ -2399,6 +2420,13 @@
           "title": "Event handlers",
           "type": "array"
         },
+        "type": {
+          "const": "acp",
+          "default": "acp",
+          "description": "Top-level discriminator for agent type.",
+          "title": "Type",
+          "type": "string"
+        },
         "cwd": {
           "default": null,
           "description": "Working directory for the session.",
@@ -2653,11 +2681,11 @@
           "title": "Toolsets",
           "type": "array"
         },
-        "type": {
+        "provider": {
           "const": "auggie",
           "default": "auggie",
           "description": "Discriminator for Auggie ACP agent.",
-          "title": "Type",
+          "title": "Provider",
           "type": "string"
         },
         "model": {
@@ -5218,6 +5246,13 @@
           "title": "Event handlers",
           "type": "array"
         },
+        "type": {
+          "const": "acp",
+          "default": "acp",
+          "description": "Top-level discriminator for agent type.",
+          "title": "Type",
+          "type": "string"
+        },
         "cwd": {
           "default": null,
           "description": "Working directory for the session.",
@@ -5356,11 +5391,11 @@
           "title": "Tool confirmation mode",
           "type": "string"
         },
-        "type": {
+        "provider": {
           "const": "cagent",
           "default": "cagent",
           "description": "Discriminator for Docker cagent ACP agent.",
-          "title": "Type",
+          "title": "Provider",
           "type": "string"
         },
         "agent_file": {
@@ -6195,6 +6230,13 @@
           "title": "Event handlers",
           "type": "array"
         },
+        "type": {
+          "const": "acp",
+          "default": "acp",
+          "description": "Top-level discriminator for agent type.",
+          "title": "Type",
+          "type": "string"
+        },
         "cwd": {
           "default": null,
           "description": "Working directory for the session.",
@@ -6449,11 +6491,11 @@
           "title": "Toolsets",
           "type": "array"
         },
-        "type": {
+        "provider": {
           "const": "claude",
           "default": "claude",
           "description": "Discriminator for Claude ACP agent.",
-          "title": "Type",
+          "title": "Provider",
           "type": "string"
         },
         "system_prompt": {
@@ -6777,6 +6819,449 @@
       },
       "title": "Claude ACP Agent Configuration",
       "type": "object"
+    },
+    "ClaudeCodeAgentConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for Claude Code agents.\n\nClaude Code agents use the Claude Agent SDK to interact with Claude Code CLI,\nenabling file operations, terminal access, and code editing capabilities.\n\nExample:\n    ```yaml\n    claude_code_agents:\n      coder:\n        cwd: /path/to/project\n        model: claude-sonnet-4-5\n        allowed_tools:\n          - Read\n          - Write\n          - Bash\n        system_prompt: \"You are a helpful coding assistant.\"\n        max_turns: 10\n\n      planner:\n        cwd: /path/to/project\n        permission_mode: plan\n        max_thinking_tokens: 10000\n    ```",
+      "properties": {
+        "name": {
+          "default": null,
+          "description": "Identifier for the node. Set from dict key, not from YAML.",
+          "title": "Name",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "config_file_path": {
+          "default": null,
+          "description": "Config file path for resolving relative paths.",
+          "examples": [
+            "/path/to/config.yml",
+            "configs/agent.yaml"
+          ],
+          "title": "Configuration file path",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "display_name": {
+          "default": null,
+          "description": "Human-readable display name for the node.",
+          "examples": [
+            "Main Agent",
+            "Web Searcher",
+            "Code Assistant"
+          ],
+          "title": "Display name",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "default": null,
+          "description": "Optional description of the agent / team.",
+          "examples": [
+            "Main conversation agent",
+            "Handles web search requests"
+          ],
+          "title": "Node description",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "triggers": {
+          "description": "Event sources that activate this agent / team",
+          "examples": [
+            [
+              {
+                "name": "daily_check",
+                "prompt": "Daily status update",
+                "schedule": "0 9 * * *",
+                "type": "time"
+              }
+            ],
+            [
+              {
+                "extensions": [
+                  ".py"
+                ],
+                "name": "code_watcher",
+                "paths": [
+                  "./src"
+                ],
+                "type": "file"
+              }
+            ]
+          ],
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "email": "#/$defs/EmailConfig",
+                "file": "#/$defs/FileWatchConfig",
+                "time": "#/$defs/TimeEventConfig",
+                "webhook": "#/$defs/WebhookConfig"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/FileWatchConfig"
+              },
+              {
+                "$ref": "#/$defs/WebhookConfig"
+              },
+              {
+                "$ref": "#/$defs/EmailConfig"
+              },
+              {
+                "$ref": "#/$defs/TimeEventConfig"
+              }
+            ]
+          },
+          "title": "Event triggers",
+          "type": "array"
+        },
+        "connections": {
+          "description": "Targets to forward results to.",
+          "examples": [
+            [
+              {
+                "connection_type": "run",
+                "name": "output_agent",
+                "type": "node",
+                "wait_for_completion": true
+              }
+            ],
+            [
+              {
+                "path": "logs/messages.txt",
+                "template": "{{ message.content }}",
+                "type": "file"
+              }
+            ]
+          ],
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "callable": "#/$defs/CallableConnectionConfig",
+                "file": "#/$defs/FileConnectionConfig",
+                "node": "#/$defs/NodeConnectionConfig"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/NodeConnectionConfig"
+              },
+              {
+                "$ref": "#/$defs/FileConnectionConfig"
+              },
+              {
+                "$ref": "#/$defs/CallableConnectionConfig"
+              }
+            ]
+          },
+          "title": "Message forwarding targets",
+          "type": "array"
+        },
+        "mcp_servers": {
+          "description": "List of MCP server configurations:\n- str entries are converted to StdioMCPServerConfig\n- MCPServerConfig for full server configuration",
+          "examples": [
+            [
+              "uvx some-server"
+            ],
+            [
+              {
+                "type": "streamable-http",
+                "url": "http://mcp.example.com"
+              }
+            ]
+          ],
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "discriminator": {
+                  "mapping": {
+                    "sse": "#/$defs/SSEMCPServerConfig",
+                    "stdio": "#/$defs/StdioMCPServerConfig",
+                    "streamable-http": "#/$defs/StreamableHTTPMCPServerConfig"
+                  },
+                  "propertyName": "type"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/StdioMCPServerConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/SSEMCPServerConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/StreamableHTTPMCPServerConfig"
+                  }
+                ]
+              }
+            ]
+          },
+          "title": "MCP servers",
+          "type": "array"
+        },
+        "input_provider": {
+          "default": null,
+          "description": "Provider for human-input-handling.",
+          "title": "Input provider",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "event_handlers": {
+          "description": "Event handlers for processing agent stream events.\n\nSupports:\n- builtin: Simple/detailed console output\n- tts: Text-to-speech synthesis\n- callback: Custom handler via import path",
+          "examples": [
+            [
+              {
+                "handler": "simple",
+                "type": "builtin"
+              }
+            ]
+          ],
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "builtin": "#/$defs/StdoutEventHandlerConfig",
+                "callback": "#/$defs/CallbackEventHandlerConfig",
+                "edge-tts": "#/$defs/EdgeTTSEventHandlerConfig",
+                "tts": "#/$defs/TTSEventHandlerConfig"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/StdoutEventHandlerConfig"
+              },
+              {
+                "$ref": "#/$defs/CallbackEventHandlerConfig"
+              },
+              {
+                "$ref": "#/$defs/TTSEventHandlerConfig"
+              },
+              {
+                "$ref": "#/$defs/EdgeTTSEventHandlerConfig"
+              }
+            ]
+          },
+          "title": "Event handlers",
+          "type": "array"
+        },
+        "requires_tool_confirmation": {
+          "default": "per_tool",
+          "description": "How to handle tool confirmation:\n- \"always\": Always require confirmation for all tools\n- \"never\": Never require confirmation (ignore tool settings)\n- \"per_tool\": Use individual tool settings",
+          "enum": [
+            "always",
+            "never",
+            "per_tool"
+          ],
+          "examples": [
+            "always",
+            "never",
+            "per_tool"
+          ],
+          "title": "Tool confirmation mode",
+          "type": "string"
+        },
+        "type": {
+          "const": "claude_code",
+          "default": "claude_code",
+          "description": "Top-level discriminator for agent type.",
+          "title": "Type",
+          "type": "string"
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for Claude Code operations.",
+          "examples": [
+            "/path/to/project",
+            ".",
+            "/home/user/myproject"
+          ],
+          "title": "Working Directory",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "model": {
+          "default": null,
+          "description": "Model to use for this agent. Defaults to Claude's default model.",
+          "examples": [
+            "claude-sonnet-4-5",
+            "claude-opus-4",
+            "claude-haiku-3-5"
+          ],
+          "title": "Model",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "allowed_tools": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "List of tool names the agent is allowed to use.\n\nIf not specified, all tools are available (subject to permission_mode).\nCommon tools: Read, Write, Edit, Bash, Glob, Grep, Task, WebFetch, etc.",
+          "examples": [
+            [
+              "Read",
+              "Write",
+              "Bash"
+            ],
+            [
+              "Read",
+              "Grep",
+              "Glob"
+            ]
+          ],
+          "title": "Allowed Tools"
+        },
+        "disallowed_tools": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "List of tool names the agent is NOT allowed to use.\n\nTakes precedence over allowed_tools if both are specified.",
+          "examples": [
+            [
+              "Bash",
+              "Write"
+            ],
+            [
+              "Task"
+            ]
+          ],
+          "title": "Disallowed Tools"
+        },
+        "system_prompt": {
+          "default": null,
+          "description": "Custom system prompt to use instead of the default.",
+          "examples": [
+            "You are a helpful coding assistant focused on Python."
+          ],
+          "title": "System Prompt",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "max_turns": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Maximum number of conversation turns before stopping.",
+          "examples": [
+            5,
+            10,
+            20
+          ],
+          "title": "Max Turns"
+        },
+        "max_thinking_tokens": {
+          "anyOf": [
+            {
+              "minimum": 1000,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Maximum tokens for extended thinking mode.\n\nWhen set, enables Claude's extended thinking capability for more\ncomplex reasoning tasks.",
+          "examples": [
+            5000,
+            10000,
+            50000
+          ],
+          "title": "Max Thinking Tokens"
+        },
+        "permission_mode": {
+          "anyOf": [
+            {
+              "enum": [
+                "default",
+                "acceptEdits",
+                "plan",
+                "bypassPermissions"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Permission handling mode:\n\n- \"default\": Ask for permission on each tool use\n- \"acceptEdits\": Auto-accept file edits but ask for other operations\n- \"plan\": Plan-only mode, no execution\n- \"bypassPermissions\": Skip all permission checks (use with caution)",
+          "examples": [
+            "default",
+            "acceptEdits",
+            "plan",
+            "bypassPermissions"
+          ],
+          "title": "Permission Mode"
+        },
+        "output_type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "$ref": "#/$defs/StructuredResponseConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional structured output type for responses.\n\nCan be either a reference to a response defined in manifest.responses,\nor an inline StructuredResponseConfig.",
+          "examples": [
+            "json_response",
+            "code_output"
+          ],
+          "title": "Response type"
+        }
+      },
+      "title": "Claude Code Agent Configuration",
+      "type": "object",
+      "x-icon": "simple-icons:anthropic"
     },
     "ClaudeCodeModelConfig": {
       "additionalProperties": false,
@@ -7472,6 +7957,13 @@
           "title": "Event handlers",
           "type": "array"
         },
+        "type": {
+          "const": "acp",
+          "default": "acp",
+          "description": "Top-level discriminator for agent type.",
+          "title": "Type",
+          "type": "string"
+        },
         "cwd": {
           "default": null,
           "description": "Working directory for the session.",
@@ -7610,11 +8102,11 @@
           "title": "Tool confirmation mode",
           "type": "string"
         },
-        "type": {
+        "provider": {
           "const": "codex",
           "default": "codex",
           "description": "Discriminator for Codex ACP agent.",
-          "title": "Type",
+          "title": "Provider",
           "type": "string"
         },
         "model": {
@@ -8334,6 +8826,13 @@
           "title": "Event handlers",
           "type": "array"
         },
+        "type": {
+          "const": "acp",
+          "default": "acp",
+          "description": "Top-level discriminator for agent type.",
+          "title": "Type",
+          "type": "string"
+        },
         "cwd": {
           "default": null,
           "description": "Working directory for the session.",
@@ -8472,11 +8971,11 @@
           "title": "Tool confirmation mode",
           "type": "string"
         },
-        "type": {
+        "provider": {
           "const": "cursor",
           "default": "cursor",
           "description": "Discriminator for Cursor ACP agent.",
-          "title": "Type",
+          "title": "Provider",
           "type": "string"
         },
         "config": {
@@ -16562,6 +17061,13 @@
           "title": "Event handlers",
           "type": "array"
         },
+        "type": {
+          "const": "acp",
+          "default": "acp",
+          "description": "Top-level discriminator for agent type.",
+          "title": "Type",
+          "type": "string"
+        },
         "cwd": {
           "default": null,
           "description": "Working directory for the session.",
@@ -16816,11 +17322,11 @@
           "title": "Toolsets",
           "type": "array"
         },
-        "type": {
+        "provider": {
           "const": "fast-agent",
           "default": "fast-agent",
           "description": "Discriminator for fast-agent ACP agent.",
-          "title": "Type",
+          "title": "Provider",
           "type": "string"
         },
         "model": {
@@ -18173,6 +18679,13 @@
           "title": "Event handlers",
           "type": "array"
         },
+        "type": {
+          "const": "acp",
+          "default": "acp",
+          "description": "Top-level discriminator for agent type.",
+          "title": "Type",
+          "type": "string"
+        },
         "cwd": {
           "default": null,
           "description": "Working directory for the session.",
@@ -18427,11 +18940,11 @@
           "title": "Toolsets",
           "type": "array"
         },
-        "type": {
+        "provider": {
           "const": "gemini",
           "default": "gemini",
           "description": "Discriminator for Gemini ACP agent.",
-          "title": "Type",
+          "title": "Provider",
           "type": "string"
         },
         "model": {
@@ -19666,6 +20179,13 @@
           "title": "Event handlers",
           "type": "array"
         },
+        "type": {
+          "const": "acp",
+          "default": "acp",
+          "description": "Top-level discriminator for agent type.",
+          "title": "Type",
+          "type": "string"
+        },
         "cwd": {
           "default": null,
           "description": "Working directory for the session.",
@@ -19804,11 +20324,11 @@
           "title": "Tool confirmation mode",
           "type": "string"
         },
-        "type": {
+        "provider": {
           "const": "goose",
           "default": "goose",
           "description": "Discriminator for Goose ACP agent.",
-          "title": "Type",
+          "title": "Provider",
           "type": "string"
         }
       },
@@ -21473,6 +21993,13 @@
           "title": "Event handlers",
           "type": "array"
         },
+        "type": {
+          "const": "acp",
+          "default": "acp",
+          "description": "Top-level discriminator for agent type.",
+          "title": "Type",
+          "type": "string"
+        },
         "cwd": {
           "default": null,
           "description": "Working directory for the session.",
@@ -21727,11 +22254,11 @@
           "title": "Toolsets",
           "type": "array"
         },
-        "type": {
+        "provider": {
           "const": "kimi",
           "default": "kimi",
           "description": "Discriminator for Kimi CLI ACP agent.",
-          "title": "Type",
+          "title": "Provider",
           "type": "string"
         },
         "verbose": {
@@ -24032,6 +24559,13 @@
           "title": "Event handlers",
           "type": "array"
         },
+        "type": {
+          "const": "acp",
+          "default": "acp",
+          "description": "Top-level discriminator for agent type.",
+          "title": "Type",
+          "type": "string"
+        },
         "cwd": {
           "default": null,
           "description": "Working directory for the session.",
@@ -24170,11 +24704,11 @@
           "title": "Tool confirmation mode",
           "type": "string"
         },
-        "type": {
+        "provider": {
           "const": "mistral",
           "default": "mistral",
           "description": "Discriminator for Mistral ACP agent.",
-          "title": "Type",
+          "title": "Provider",
           "type": "string"
         }
       },
@@ -24779,6 +25313,13 @@
             "per_tool"
           ],
           "title": "Tool confirmation mode",
+          "type": "string"
+        },
+        "type": {
+          "const": "native",
+          "default": "native",
+          "description": "Top-level discriminator for agent type.",
+          "title": "Type",
           "type": "string"
         },
         "inherits": {
@@ -26571,12 +27112,6 @@
           "title": "Worker agents",
           "type": "array"
         },
-        "debug": {
-          "default": false,
-          "description": "Enable debug output for this agent.",
-          "title": "Debug mode",
-          "type": "boolean"
-        },
         "environment": {
           "anyOf": [
             {
@@ -27980,6 +28515,13 @@
           "title": "Event handlers",
           "type": "array"
         },
+        "type": {
+          "const": "acp",
+          "default": "acp",
+          "description": "Top-level discriminator for agent type.",
+          "title": "Type",
+          "type": "string"
+        },
         "cwd": {
           "default": null,
           "description": "Working directory for the session.",
@@ -28118,11 +28660,11 @@
           "title": "Tool confirmation mode",
           "type": "string"
         },
-        "type": {
+        "provider": {
           "const": "opencode",
           "default": "opencode",
           "description": "Discriminator for OpenCode ACP agent.",
-          "title": "Type",
+          "title": "Provider",
           "type": "string"
         }
       },
@@ -28394,6 +28936,13 @@
           "title": "Event handlers",
           "type": "array"
         },
+        "type": {
+          "const": "acp",
+          "default": "acp",
+          "description": "Top-level discriminator for agent type.",
+          "title": "Type",
+          "type": "string"
+        },
         "cwd": {
           "default": null,
           "description": "Working directory for the session.",
@@ -28532,11 +29081,11 @@
           "title": "Tool confirmation mode",
           "type": "string"
         },
-        "type": {
+        "provider": {
           "const": "openhands",
           "default": "openhands",
           "description": "Discriminator for OpenHands ACP agent.",
-          "title": "Type",
+          "title": "Provider",
           "type": "string"
         }
       },
@@ -34514,6 +35063,13 @@
           "title": "Event handlers",
           "type": "array"
         },
+        "type": {
+          "const": "acp",
+          "default": "acp",
+          "description": "Top-level discriminator for agent type.",
+          "title": "Type",
+          "type": "string"
+        },
         "cwd": {
           "default": null,
           "description": "Working directory for the session.",
@@ -34652,11 +35208,11 @@
           "title": "Tool confirmation mode",
           "type": "string"
         },
-        "type": {
+        "provider": {
           "const": "stakpak",
           "default": "stakpak",
           "description": "Discriminator for Stakpak ACP agent.",
-          "title": "Type",
+          "title": "Provider",
           "type": "string"
         },
         "workdir": {
@@ -41372,7 +41928,7 @@
     },
     "VTCodeACPAgentConfig": {
       "additionalProperties": false,
-      "description": "Configuration for VT Code via ACP.\n\nRust-based terminal coding agent with semantic code intelligence.\n\nExample:\n    ```yaml\n    acp_agents:\n      vtcode:\n        type: vtcode\n        cwd: /path/to/project\n        model: gemini-2.5-flash-preview-05-20\n        provider: gemini\n        workspace: /path/to/workspace\n    ```",
+      "description": "Configuration for VT Code via ACP.\n\nRust-based terminal coding agent with semantic code intelligence.\n\nExample:\n    ```yaml\n    agents:\n      vtcode:\n        type: acp\n        provider: vtcode\n        cwd: /path/to/project\n        model: gemini-2.5-flash-preview-05-20\n        model_provider: gemini\n        workspace: /path/to/workspace\n    ```",
       "properties": {
         "name": {
           "default": null,
@@ -41609,6 +42165,13 @@
           "title": "Event handlers",
           "type": "array"
         },
+        "type": {
+          "const": "acp",
+          "default": "acp",
+          "description": "Top-level discriminator for agent type.",
+          "title": "Type",
+          "type": "string"
+        },
         "cwd": {
           "default": null,
           "description": "Working directory for the session.",
@@ -41747,11 +42310,11 @@
           "title": "Tool confirmation mode",
           "type": "string"
         },
-        "type": {
+        "provider": {
           "const": "vtcode",
           "default": "vtcode",
           "description": "Discriminator for VT Code ACP agent.",
-          "title": "Type",
+          "title": "Provider",
           "type": "string"
         },
         "model": {
@@ -41768,7 +42331,7 @@
             "null"
           ]
         },
-        "provider": {
+        "model_provider": {
           "anyOf": [
             {
               "enum": [
@@ -41791,7 +42354,7 @@
             "gemini",
             "openai"
           ],
-          "title": "Provider"
+          "title": "Model Provider"
         },
         "api_key_env": {
           "default": null,
@@ -43243,9 +43806,173 @@
     },
     "agents": {
       "additionalProperties": {
-        "$ref": "#/$defs/NativeAgentConfig"
+        "discriminator": {
+          "mapping": {
+            "acp": {
+              "discriminator": {
+                "mapping": {
+                  "acp": "#/$defs/ACPAgentConfig",
+                  "amp": "#/$defs/AmpACPAgentConfig",
+                  "auggie": "#/$defs/AuggieACPAgentConfig",
+                  "cagent": "#/$defs/CagentACPAgentConfig",
+                  "claude": "#/$defs/ClaudeACPAgentConfig",
+                  "codex": "#/$defs/CodexACPAgentConfig",
+                  "cursor": "#/$defs/CursorACPAgentConfig",
+                  "fast-agent": "#/$defs/FastAgentACPAgentConfig",
+                  "gemini": "#/$defs/GeminiACPAgentConfig",
+                  "goose": "#/$defs/GooseACPAgentConfig",
+                  "kimi": "#/$defs/KimiACPAgentConfig",
+                  "mistral": "#/$defs/MistralACPAgentConfig",
+                  "opencode": "#/$defs/OpenCodeACPAgentConfig",
+                  "openhands": "#/$defs/OpenHandsACPAgentConfig",
+                  "stakpak": "#/$defs/StakpakACPAgentConfig",
+                  "vtcode": "#/$defs/VTCodeACPAgentConfig"
+                },
+                "propertyName": "provider"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/ACPAgentConfig"
+                },
+                {
+                  "$ref": "#/$defs/CodexACPAgentConfig"
+                },
+                {
+                  "$ref": "#/$defs/OpenCodeACPAgentConfig"
+                },
+                {
+                  "$ref": "#/$defs/GooseACPAgentConfig"
+                },
+                {
+                  "$ref": "#/$defs/OpenHandsACPAgentConfig"
+                },
+                {
+                  "$ref": "#/$defs/AmpACPAgentConfig"
+                },
+                {
+                  "$ref": "#/$defs/CagentACPAgentConfig"
+                },
+                {
+                  "$ref": "#/$defs/StakpakACPAgentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MistralACPAgentConfig"
+                },
+                {
+                  "$ref": "#/$defs/VTCodeACPAgentConfig"
+                },
+                {
+                  "$ref": "#/$defs/CursorACPAgentConfig"
+                },
+                {
+                  "$ref": "#/$defs/ClaudeACPAgentConfig"
+                },
+                {
+                  "$ref": "#/$defs/GeminiACPAgentConfig"
+                },
+                {
+                  "$ref": "#/$defs/FastAgentACPAgentConfig"
+                },
+                {
+                  "$ref": "#/$defs/AuggieACPAgentConfig"
+                },
+                {
+                  "$ref": "#/$defs/KimiACPAgentConfig"
+                }
+              ]
+            },
+            "agui": "#/$defs/AGUIAgentConfig",
+            "claude_code": "#/$defs/ClaudeCodeAgentConfig",
+            "native": "#/$defs/NativeAgentConfig"
+          },
+          "propertyName": "type"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/$defs/NativeAgentConfig"
+          },
+          {
+            "$ref": "#/$defs/AGUIAgentConfig"
+          },
+          {
+            "$ref": "#/$defs/ClaudeCodeAgentConfig"
+          },
+          {
+            "discriminator": {
+              "mapping": {
+                "acp": "#/$defs/ACPAgentConfig",
+                "amp": "#/$defs/AmpACPAgentConfig",
+                "auggie": "#/$defs/AuggieACPAgentConfig",
+                "cagent": "#/$defs/CagentACPAgentConfig",
+                "claude": "#/$defs/ClaudeACPAgentConfig",
+                "codex": "#/$defs/CodexACPAgentConfig",
+                "cursor": "#/$defs/CursorACPAgentConfig",
+                "fast-agent": "#/$defs/FastAgentACPAgentConfig",
+                "gemini": "#/$defs/GeminiACPAgentConfig",
+                "goose": "#/$defs/GooseACPAgentConfig",
+                "kimi": "#/$defs/KimiACPAgentConfig",
+                "mistral": "#/$defs/MistralACPAgentConfig",
+                "opencode": "#/$defs/OpenCodeACPAgentConfig",
+                "openhands": "#/$defs/OpenHandsACPAgentConfig",
+                "stakpak": "#/$defs/StakpakACPAgentConfig",
+                "vtcode": "#/$defs/VTCodeACPAgentConfig"
+              },
+              "propertyName": "provider"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/ACPAgentConfig"
+              },
+              {
+                "$ref": "#/$defs/CodexACPAgentConfig"
+              },
+              {
+                "$ref": "#/$defs/OpenCodeACPAgentConfig"
+              },
+              {
+                "$ref": "#/$defs/GooseACPAgentConfig"
+              },
+              {
+                "$ref": "#/$defs/OpenHandsACPAgentConfig"
+              },
+              {
+                "$ref": "#/$defs/AmpACPAgentConfig"
+              },
+              {
+                "$ref": "#/$defs/CagentACPAgentConfig"
+              },
+              {
+                "$ref": "#/$defs/StakpakACPAgentConfig"
+              },
+              {
+                "$ref": "#/$defs/MistralACPAgentConfig"
+              },
+              {
+                "$ref": "#/$defs/VTCodeACPAgentConfig"
+              },
+              {
+                "$ref": "#/$defs/CursorACPAgentConfig"
+              },
+              {
+                "$ref": "#/$defs/ClaudeACPAgentConfig"
+              },
+              {
+                "$ref": "#/$defs/GeminiACPAgentConfig"
+              },
+              {
+                "$ref": "#/$defs/FastAgentACPAgentConfig"
+              },
+              {
+                "$ref": "#/$defs/AuggieACPAgentConfig"
+              },
+              {
+                "$ref": "#/$defs/KimiACPAgentConfig"
+              }
+            ]
+          }
+        ]
       },
-      "description": "Mapping of agent IDs to their configurations.\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/agent_configuration/",
+      "description": "Mapping of agent IDs to their configurations.\n\nAll agent types are unified under this single dict, discriminated by the 'type' field:\n- type: \"native\" (default) - pydantic-ai based agents\n- type: \"agui\" - AG-UI protocol agents\n- type: \"claude_code\" - Claude Agent SDK agents\n- type: \"acp\" - ACP protocol agents (further discriminated by 'provider')\n\nExample:\n    ```yaml\n    agents:\n      assistant:\n        type: native\n        model: openai:gpt-4\n        system_prompts:\n          - \"You are a helpful assistant.\"\n\n      coder:\n        type: claude_code\n        cwd: /path/to/project\n        model: claude-sonnet-4-5\n\n      orchestrator:\n        type: acp\n        provider: claude\n        model: sonnet\n\n      remote:\n        type: agui\n        endpoint: http://localhost:8000/agent/run\n    ```\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/agent_configuration/",
       "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/agent_configuration/",
       "title": "Agents",
       "type": "object"
@@ -43288,94 +44015,6 @@
       "description": "Mapping of team IDs to their configurations.\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/team_configuration/",
       "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/team_configuration/",
       "title": "Teams",
-      "type": "object"
-    },
-    "acp_agents": {
-      "additionalProperties": {
-        "discriminator": {
-          "mapping": {
-            "acp": "#/$defs/ACPAgentConfig",
-            "amp": "#/$defs/AmpACPAgentConfig",
-            "auggie": "#/$defs/AuggieACPAgentConfig",
-            "cagent": "#/$defs/CagentACPAgentConfig",
-            "claude": "#/$defs/ClaudeACPAgentConfig",
-            "codex": "#/$defs/CodexACPAgentConfig",
-            "cursor": "#/$defs/CursorACPAgentConfig",
-            "fast-agent": "#/$defs/FastAgentACPAgentConfig",
-            "gemini": "#/$defs/GeminiACPAgentConfig",
-            "goose": "#/$defs/GooseACPAgentConfig",
-            "kimi": "#/$defs/KimiACPAgentConfig",
-            "mistral": "#/$defs/MistralACPAgentConfig",
-            "opencode": "#/$defs/OpenCodeACPAgentConfig",
-            "openhands": "#/$defs/OpenHandsACPAgentConfig",
-            "stakpak": "#/$defs/StakpakACPAgentConfig",
-            "vtcode": "#/$defs/VTCodeACPAgentConfig"
-          },
-          "propertyName": "type"
-        },
-        "oneOf": [
-          {
-            "$ref": "#/$defs/ACPAgentConfig"
-          },
-          {
-            "$ref": "#/$defs/CodexACPAgentConfig"
-          },
-          {
-            "$ref": "#/$defs/OpenCodeACPAgentConfig"
-          },
-          {
-            "$ref": "#/$defs/GooseACPAgentConfig"
-          },
-          {
-            "$ref": "#/$defs/OpenHandsACPAgentConfig"
-          },
-          {
-            "$ref": "#/$defs/AmpACPAgentConfig"
-          },
-          {
-            "$ref": "#/$defs/CagentACPAgentConfig"
-          },
-          {
-            "$ref": "#/$defs/StakpakACPAgentConfig"
-          },
-          {
-            "$ref": "#/$defs/MistralACPAgentConfig"
-          },
-          {
-            "$ref": "#/$defs/VTCodeACPAgentConfig"
-          },
-          {
-            "$ref": "#/$defs/CursorACPAgentConfig"
-          },
-          {
-            "$ref": "#/$defs/ClaudeACPAgentConfig"
-          },
-          {
-            "$ref": "#/$defs/GeminiACPAgentConfig"
-          },
-          {
-            "$ref": "#/$defs/FastAgentACPAgentConfig"
-          },
-          {
-            "$ref": "#/$defs/AuggieACPAgentConfig"
-          },
-          {
-            "$ref": "#/$defs/KimiACPAgentConfig"
-          }
-        ]
-      },
-      "description": "Mapping of ACP agent IDs to their configurations.\n\nACP agents are external agents that communicate via the Agent Client Protocol.\nSupports custom ACP servers and pre-configured presets (claude, etc.).\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/acp_configuration/",
-      "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/acp_configuration/",
-      "title": "Acp Agents",
-      "type": "object"
-    },
-    "agui_agents": {
-      "additionalProperties": {
-        "$ref": "#/$defs/AGUIAgentConfig"
-      },
-      "description": "Mapping of AG-UI agent IDs to their configurations.\n\nAG-UI agents connect to remote HTTP endpoints implementing the AG-UI protocol.\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/agui_configuration/",
-      "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/agui_configuration/",
-      "title": "Agui Agents",
       "type": "object"
     },
     "storage": {
