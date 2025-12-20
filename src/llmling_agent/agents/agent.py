@@ -285,7 +285,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             all_prompts.extend(system_prompt)
         elif system_prompt:
             all_prompts.append(system_prompt)
-        self.sys_prompts = SystemPrompts(all_prompts, prompt_manager=ctx.prompt_manager)
+        self.sys_prompts = SystemPrompts(all_prompts, prompt_manager=self._manifest.prompt_manager)
 
         # Store hooks
         self.hooks = hooks
