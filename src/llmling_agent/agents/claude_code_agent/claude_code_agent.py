@@ -45,6 +45,7 @@ from llmling_agent.log import get_logger
 from llmling_agent.messaging import ChatMessage
 from llmling_agent.messaging.messages import TokenCost
 from llmling_agent.messaging.processing import prepare_prompts
+from llmling_agent.models.claude_code_agents import ClaudeCodeAgentConfig
 
 
 if TYPE_CHECKING:
@@ -61,6 +62,7 @@ if TYPE_CHECKING:
     from evented.configs import EventConfig
     from exxec import ExecutionEnvironment
 
+    from llmling_agent.agents.context import AgentContext
     from llmling_agent.agents.events import RichAgentStreamEvent
     from llmling_agent.common_types import (
         BuiltinEventHandlerType,
@@ -69,7 +71,6 @@ if TYPE_CHECKING:
     )
     from llmling_agent.delegation import AgentPool
     from llmling_agent.messaging import MessageHistory
-    from llmling_agent.messaging.context import NodeContext
     from llmling_agent.talk.stats import MessageStats
     from llmling_agent.ui.base import InputProvider
     from llmling_agent_config.nodes import ToolConfirmationMode
@@ -95,6 +96,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
     def __init__(
         self,
         *,
+        config: ClaudeCodeAgentConfig | None = None,
         name: str | None = None,
         description: str | None = None,
         display_name: str | None = None,
@@ -118,6 +120,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         """Initialize ClaudeCodeAgent.
 
         Args:
+            config: Configuration object (alternative to individual kwargs)
             name: Agent name
             description: Agent description
             display_name: Display name for UI
@@ -138,13 +141,29 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             tool_confirmation_mode: Tool confirmation behavior
             output_type: Type for structured output (uses JSON schema)
         """
+        # Build config from kwargs if not provided
+        if config is None:
+            config = ClaudeCodeAgentConfig(  # type: ignore[call-arg]
+                name=name or "claude_code",
+                description=description,
+                display_name=display_name,
+                cwd=cwd,
+                model=model,
+                allowed_tools=allowed_tools,
+                disallowed_tools=disallowed_tools,
+                system_prompt=system_prompt,
+                max_turns=max_turns,
+                max_thinking_tokens=max_thinking_tokens,
+                permission_mode=permission_mode,
+            )
+
         super().__init__(
-            name=name or "claude_code",
-            description=description,
-            display_name=display_name,
+            name=name or config.name or "claude_code",
+            description=description or config.description,
+            display_name=display_name or config.display_name,
             agent_pool=agent_pool,
             enable_logging=enable_logging,
-            event_configs=event_configs or [],
+            event_configs=event_configs or list(config.triggers),
             env=env,
             input_provider=input_provider,
             output_type=output_type or str,  # type: ignore[arg-type]
@@ -152,31 +171,32 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             event_handlers=event_handlers,
         )
 
-        # Store Claude Code-specific configuration
-        self._cwd = cwd
-        self._allowed_tools = allowed_tools
-        self._disallowed_tools = disallowed_tools
-        self._system_prompt = system_prompt
-        self._model = model
-        self._max_turns = max_turns
-        self._max_thinking_tokens = max_thinking_tokens
-        self._permission_mode = permission_mode
+        # Store config for context property
+        self._config = config
+
+        # Extract runtime state from config
+        self._cwd = cwd or config.cwd
+        self._allowed_tools = allowed_tools or config.allowed_tools
+        self._disallowed_tools = disallowed_tools or config.disallowed_tools
+        self._system_prompt = system_prompt or config.system_prompt
+        self._model = model or config.model
+        self._max_turns = max_turns or config.max_turns
+        self._max_thinking_tokens = max_thinking_tokens or config.max_thinking_tokens
+        self._permission_mode = permission_mode or config.permission_mode
 
         # Client state
         self._client: ClaudeSDKClient | None = None
-        self._current_model: str | None = model
+        self._current_model: str | None = self._model
         self.deps_type = type(None)
 
     @property
-    def context(self) -> NodeContext:
+    def context(self) -> AgentContext:
         """Get node context."""
-        from llmling_agent.messaging.context import NodeContext
+        from llmling_agent.agents.context import AgentContext
         from llmling_agent.models.manifest import AgentsManifest
-        from llmling_agent_config.nodes import NodeConfig
 
-        cfg = NodeConfig(name=self.name, description=self.description)
         defn = self.agent_pool.manifest if self.agent_pool else AgentsManifest()
-        return NodeContext(node=self, pool=self.agent_pool, config=cfg, definition=defn)
+        return AgentContext(node=self, pool=self.agent_pool, config=self._config, definition=defn)
 
     @property
     def model_name(self) -> str | None:
@@ -184,7 +204,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         return self._current_model
 
     def _build_options(self) -> ClaudeAgentOptions:
-        """Build ClaudeAgentOptions from configuration."""
+        """Build ClaudeAgentOptions from runtime state."""
         from claude_agent_sdk import ClaudeAgentOptions
 
         options_kwargs: dict[str, Any] = {}

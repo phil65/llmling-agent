@@ -21,10 +21,10 @@ if TYPE_CHECKING:
     from evented.configs import EventConfig
     from exxec import ExecutionEnvironment
 
+    from llmling_agent.agents.context import AgentContext
     from llmling_agent.agents.events import RichAgentStreamEvent
     from llmling_agent.common_types import BuiltinEventHandlerType, IndividualEventHandler
     from llmling_agent.delegation import AgentPool
-    from llmling_agent.messaging.context import NodeContext
     from llmling_agent.ui.base import InputProvider
     from llmling_agent_config.mcp_server import MCPServerConfig
 
@@ -106,7 +106,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
 
     @property
     @abstractmethod
-    def context(self) -> NodeContext[Any]:
+    def context(self) -> AgentContext[Any]:
         """Get agent context."""
         ...
 

@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from llmling_agent.models.acp_agents.base import BaseACPAgentConfig
     from llmling_agent.models.agents import NativeAgentConfig
     from llmling_agent.models.agui_agents import AGUIAgentConfig
+    from llmling_agent.models.claude_code_agents import ClaudeCodeAgentConfig
     from llmling_agent.tools.base import Tool
 
 
@@ -32,7 +33,7 @@ class AgentContext[TDeps = Any](NodeContext[TDeps]):
     Generically typed with AgentContext[Type of Dependencies]
     """
 
-    config: NativeAgentConfig | BaseACPAgentConfig | AGUIAgentConfig
+    config: NativeAgentConfig | BaseACPAgentConfig | AGUIAgentConfig | ClaudeCodeAgentConfig
     """Current agent's specific configuration."""
 
     tool_name: str | None = None

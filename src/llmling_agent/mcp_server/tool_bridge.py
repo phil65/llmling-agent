@@ -38,8 +38,8 @@ if TYPE_CHECKING:
     from uvicorn import Server
 
     from acp.schema.mcp import HttpMcpServer, SseMcpServer
+    from llmling_agent.agents import AgentContext
     from llmling_agent.agents.base_agent import BaseAgent
-    from llmling_agent.messaging.context import NodeContext
     from llmling_agent.tools.base import Tool
 
 
@@ -187,7 +187,7 @@ class ToolManagerBridge:
     async def invoke_tool_with_context(
         self,
         tool: Tool,
-        ctx: NodeContext[Any],
+        ctx: AgentContext[Any],
         kwargs: dict[str, Any],
     ) -> Any:
         """Invoke a tool with proper context injection.
@@ -263,20 +263,14 @@ class _BridgeTool(FastMCPTool):
 
     async def run(self, arguments: dict[str, Any], context: Context | None = None) -> ToolResult:
         """Execute the wrapped tool with context bridging."""
+        from dataclasses import replace
+
         from fastmcp.tools.tool import ToolResult
 
-        from llmling_agent.agents.context import AgentContext
-
         tool_call_id = str(uuid4())
-        node_ctx = self._bridge.node.context
-        # Create AgentContext with tool-specific metadata
-        ctx = AgentContext(
-            node=node_ctx.node,
-            pool=node_ctx.pool,
-            config=node_ctx.config,  # type: ignore[arg-type]
-            definition=node_ctx.definition,
-            input_provider=node_ctx.input_provider,
-            data=node_ctx.data,
+        # Create context with tool-specific metadata from node's context
+        ctx = replace(
+            self._bridge.node.context,
             tool_name=self._tool.name,
             tool_call_id=tool_call_id,
             tool_input=arguments,
@@ -325,11 +319,7 @@ class ToolBridgeRegistry:
         self._bridges: dict[str, ToolManagerBridge] = {}
         self._port_counter = 18000  # Start port range for auto-allocation
 
-    async def create_bridge(
-        self,
-        name: str,
-        node: BaseAgent[Any, Any],
-    ) -> ToolManagerBridge:
+    async def create_bridge(self, name: str, node: BaseAgent[Any, Any]) -> ToolManagerBridge:
         """Create and register a new bridge.
 
         Args:
