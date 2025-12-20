@@ -14,6 +14,7 @@ from llmling_agent import log
 from llmling_agent.models.acp_agents import ACPAgentConfigTypes
 from llmling_agent.models.agents import NativeAgentConfig
 from llmling_agent.models.agui_agents import AGUIAgentConfig
+from llmling_agent.models.claude_code_agents import ClaudeCodeAgentConfig
 from llmling_agent.models.file_agents import FileAgentConfig
 from llmling_agent_config.commands import CommandConfig, StaticCommandConfig
 from llmling_agent_config.converters import ConversionConfig
@@ -172,6 +173,20 @@ class AgentsManifest(Schema):
     AG-UI agents connect to remote HTTP endpoints implementing the AG-UI protocol.
 
     Docs: https://phil65.github.io/llmling-agent/YAML%20Configuration/agui_configuration/
+    """
+
+    claude_code_agents: dict[str, ClaudeCodeAgentConfig] = Field(
+        default_factory=dict,
+        json_schema_extra={
+            "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/claude_code_configuration/"
+        },
+    )
+    """Mapping of Claude Code agent IDs to their configurations.
+
+    Claude Code agents use the Claude Agent SDK for native integration with Claude Code CLI,
+    enabling file operations, terminal access, and code editing capabilities.
+
+    Docs: https://phil65.github.io/llmling-agent/YAML%20Configuration/claude_code_configuration/
     """
 
     storage: StorageConfig = Field(

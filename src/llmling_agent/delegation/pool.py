@@ -43,6 +43,7 @@ if TYPE_CHECKING:
     from llmling_agent.agents.agent import AgentKwargs
     from llmling_agent.agents.agui_agent import AGUIAgent
     from llmling_agent.agents.base_agent import BaseAgent
+    from llmling_agent.agents.claude_code_agent import ClaudeCodeAgent
     from llmling_agent.common_types import (
         AgentName,
         BuiltinEventHandlerType,
@@ -161,6 +162,12 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
             agui_agent = self.create_agui_agent(name, deps_type=shared_deps_type)
             agui_agent.agent_pool = self
             self.register(name, agui_agent)
+
+        # Create Claude Code agents
+        for name in self.manifest.claude_code_agents:
+            claude_code_agent = self.create_claude_code_agent(name, deps_type=shared_deps_type)
+            claude_code_agent.agent_pool = self
+            self.register(name, claude_code_agent)
 
         self._create_teams()
         if connect_nodes:
@@ -506,6 +513,13 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         from llmling_agent.agents.agui_agent import AGUIAgent
 
         return {i.name: i for i in self._items.values() if isinstance(i, AGUIAgent)}
+
+    @property
+    def claude_code_agents(self) -> dict[str, ClaudeCodeAgent]:
+        """Get Claude Code agents dict."""
+        from llmling_agent.agents.claude_code_agent import ClaudeCodeAgent
+
+        return {i.name: i for i in self._items.values() if isinstance(i, ClaudeCodeAgent)}
 
     @property
     def all_agents(self) -> dict[str, BaseAgent[Any, Any]]:
@@ -937,6 +951,39 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
             startup_delay=config.startup_delay,
             tools=[tool_config.get_tool() for tool_config in config.tools],
             mcp_servers=config.mcp_servers,
+            tool_confirmation_mode=config.requires_tool_confirmation,
+        )
+
+    def create_claude_code_agent[TDeps](
+        self,
+        name: str,
+        deps_type: type[TDeps] | None = None,
+    ) -> ClaudeCodeAgent[TDeps, str]:
+        """Create a ClaudeCodeAgent from configuration.
+
+        Args:
+            name: Name of the Claude Code agent in the manifest
+            deps_type: Optional dependency type (not used by Claude Code agents currently)
+
+        Returns:
+            Configured ClaudeCodeAgent instance
+        """
+        from llmling_agent.agents.claude_code_agent import ClaudeCodeAgent
+
+        config = self.manifest.claude_code_agents[name]
+        # Ensure name is set on config
+        if config.name is None:
+            config = config.model_copy(update={"name": name})
+        # Merge pool-level handlers with config-level handlers
+        config_handlers = config.get_event_handlers()
+        merged_handlers: list[IndividualEventHandler | BuiltinEventHandlerType] = [
+            *config_handlers,
+            *self.event_handlers,
+        ]
+        return ClaudeCodeAgent(
+            config=config,
+            event_handlers=merged_handlers or None,
+            input_provider=self._input_provider,
             tool_confirmation_mode=config.requires_tool_confirmation,
         )
 
