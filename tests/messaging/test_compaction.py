@@ -20,13 +20,17 @@ from llmling_agent.messaging.compaction import (
     FilterEmptyMessages,
     FilterRetryPrompts,
     FilterThinking,
+    FilterThinkingConfig,
     FilterToolCalls,
     KeepFirstAndLast,
     KeepFirstMessages,
     KeepLastMessages,
+    KeepLastMessagesConfig,
     TruncateTextParts,
     TruncateToolOutputs,
+    TruncateToolOutputsConfig,
     WhenMessageCountExceeds,
+    WhenMessageCountExceedsConfig,
     balanced_context,
     minimal_context,
 )
@@ -81,7 +85,6 @@ async def test_filter_thinking(sample_messages):
     """Test that thinking parts are filtered out."""
     step = FilterThinking()
     result = await step.apply(sample_messages)
-
     # Check no thinking parts remain
     for msg in result:
         if isinstance(msg, ModelResponse):
@@ -109,7 +112,6 @@ async def test_filter_retry_prompts():
 
     step = FilterRetryPrompts()
     result = await step.apply(messages)
-
     # Check no retry prompts remain
     for msg in result:
         if isinstance(msg, ModelRequest):
@@ -126,7 +128,6 @@ async def test_filter_tool_calls_exclude(messages_with_tools):
     """Test filtering specific tool calls by name."""
     step = FilterToolCalls(exclude_tools=["search"])
     result = await step.apply(messages_with_tools)
-
     # Check search tool calls are removed
     for msg in result:
         if isinstance(msg, ModelResponse):
@@ -143,7 +144,6 @@ async def test_filter_tool_calls_include_only(messages_with_tools):
     """Test keeping only specific tools."""
     step = FilterToolCalls(include_only=["other_tool"])
     result = await step.apply(messages_with_tools)
-
     # Search tool should be filtered out
     for msg in result:
         if isinstance(msg, ModelResponse):
@@ -158,10 +158,8 @@ async def test_filter_empty_messages():
         ModelRequest(parts=[UserPromptPart(content="World")]),
         ModelResponse(parts=[TextPart(content="Response")]),
     ]
-
     step = FilterEmptyMessages()
     result = await step.apply(messages)
-
     # Empty response should be removed
     assert len(result) == 3  # noqa: PLR2004
 
@@ -169,15 +167,10 @@ async def test_filter_empty_messages():
 async def test_truncate_tool_outputs():
     """Test truncation of tool outputs."""
     long_content = "x" * 5000
-    messages = [
-        ModelRequest(
-            parts=[ToolReturnPart(tool_name="get_file", content=long_content, tool_call_id="1")]
-        ),
-    ]
-
+    part = ToolReturnPart(tool_name="get_file", content=long_content, tool_call_id="1")
+    messages = [ModelRequest(parts=[part])]
     step = TruncateToolOutputs(max_length=100)
     result = await step.apply(messages)
-
     # Content should be truncated
     request = result[0]
     assert isinstance(request, ModelRequest)
@@ -190,13 +183,9 @@ async def test_truncate_tool_outputs():
 async def test_truncate_text_parts():
     """Test truncation of text parts in responses."""
     long_content = "y" * 10000
-    messages = [
-        ModelResponse(parts=[TextPart(content=long_content)]),
-    ]
-
+    messages = [ModelResponse(parts=[TextPart(content=long_content)])]
     step = TruncateTextParts(max_length=200)
     result = await step.apply(messages)
-
     response = result[0]
     assert isinstance(response, ModelResponse)
     text_part = response.parts[0]
@@ -209,7 +198,6 @@ async def test_keep_last_messages(sample_messages):
     """Test keeping only last N messages."""
     step = KeepLastMessages(count=2, count_pairs=False)
     result = await step.apply(sample_messages)
-
     assert len(result) == 2  # noqa: PLR2004
     # Should be the last two messages
     assert isinstance(result[0], ModelRequest)
@@ -220,7 +208,6 @@ async def test_keep_last_messages_pairs(sample_messages):
     """Test keeping last N message pairs."""
     step = KeepLastMessages(count=2, count_pairs=True)
     result = await step.apply(sample_messages)
-
     # 2 pairs = 4 messages (request + response each)
     assert len(result) == 4  # noqa: PLR2004
 
@@ -229,7 +216,6 @@ async def test_keep_first_messages(sample_messages):
     """Test keeping only first N messages."""
     step = KeepFirstMessages(count=2)
     result = await step.apply(sample_messages)
-
     assert len(result) == 2  # noqa: PLR2004
     # Should be the first two messages
     assert isinstance(result[0], ModelRequest)
@@ -240,7 +226,6 @@ async def test_keep_first_and_last(sample_messages):
     """Test keeping first and last messages."""
     step = KeepFirstAndLast(first_count=1, last_count=1)
     result = await step.apply(sample_messages)
-
     assert len(result) == 2  # noqa: PLR2004
     # First should be initial request
     assert isinstance(result[0], ModelRequest)
@@ -254,12 +239,10 @@ async def test_when_message_count_exceeds():
         ModelRequest(parts=[UserPromptPart(content="1")]),
         ModelResponse(parts=[TextPart(content="1")]),
     ]
-
     # Should not apply when below threshold
     step = WhenMessageCountExceeds(step=KeepLastMessages(count=1), threshold=5)
     result = await step.apply(messages)
     assert len(result) == 2  # noqa: PLR2004
-
     # Should apply when above threshold
     many_messages = messages * 10  # 20 messages
     result = await step.apply(many_messages)
@@ -269,14 +252,9 @@ async def test_when_message_count_exceeds():
 async def test_pipeline_composition(sample_messages):
     """Test composing steps into a pipeline."""
     pipeline = CompactionPipeline(
-        steps=[
-            FilterThinking(),
-            KeepLastMessages(count=2, count_pairs=True),
-        ]
+        steps=[FilterThinking(), KeepLastMessages(count=2, count_pairs=True)]
     )
-
     result = await pipeline.apply(sample_messages)
-
     # Should have no thinking and only last 2 pairs
     assert len(result) == 4  # noqa: PLR2004
     for msg in result:
@@ -288,9 +266,7 @@ async def test_pipeline_operator_composition():
     """Test using | operator to compose steps."""
     step1 = FilterThinking()
     step2 = KeepLastMessages(count=2)
-
     pipeline = step1 | step2
-
     assert isinstance(pipeline, CompactionPipeline)
     assert len(pipeline.steps) == 2  # noqa: PLR2004
 
@@ -299,9 +275,9 @@ async def test_config_roundtrip():
     """Test building pipeline from config."""
     config = CompactionPipelineConfig(
         steps=[
-            {"type": "filter_thinking"},
-            {"type": "truncate_tool_outputs", "max_length": 500},
-            {"type": "keep_last", "count": 5},
+            FilterThinkingConfig(),
+            TruncateToolOutputsConfig(max_length=500),
+            KeepLastMessagesConfig(count=5),
         ]
     )
 
@@ -316,7 +292,6 @@ async def test_preset_minimal_context(sample_messages):
     """Test minimal context preset."""
     pipeline = minimal_context()
     result = await pipeline.apply(sample_messages)
-
     # Should be compacted
     assert len(result) <= len(sample_messages)
     # No thinking parts
@@ -329,7 +304,6 @@ async def test_preset_balanced_context(sample_messages):
     """Test balanced context preset."""
     pipeline = balanced_context()
     result = await pipeline.apply(sample_messages)
-
     # Should process without errors
     assert len(result) <= len(sample_messages)
 
@@ -343,16 +317,8 @@ async def test_empty_messages_handling():
 
 async def test_config_with_nested_conditional():
     """Test config with nested conditional step."""
-    config = CompactionPipelineConfig(
-        steps=[
-            {
-                "type": "when_count_exceeds",
-                "threshold": 10,
-                "step": {"type": "keep_last", "count": 5},
-            }
-        ]
-    )
-
+    step = WhenMessageCountExceedsConfig(threshold=10, step=KeepLastMessagesConfig(count=5))
+    config = CompactionPipelineConfig(steps=[step])
     pipeline = config.build()
     assert len(pipeline.steps) == 1
     assert isinstance(pipeline.steps[0], WhenMessageCountExceeds)
