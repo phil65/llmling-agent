@@ -27,9 +27,6 @@ class ACPSessionState:
     events: list[RichAgentStreamEvent[Any]] = dataclass_field(default_factory=list)
     """Queue of native events converted from ACP updates."""
 
-    stop_reason: str | None = None
-    """Reason processing stopped."""
-
     current_model_id: str | None = None
     """Current model ID from session state."""
 
@@ -44,5 +41,4 @@ class ACPSessionState:
 
     def clear(self) -> None:
         self.events.clear()
-        self.stop_reason = None
         # Note: Don't clear current_model_id or models - those persist across prompts
