@@ -216,17 +216,6 @@ class SlashedAgent[TDeps, OutputDataT]:
         # If we only had commands and no regular content, we're done
         # (no additional events needed)
 
-    def __getattr__(self, name: str) -> Any:
-        """Delegate attribute access to wrapped agent.
-
-        Args:
-            name: Attribute name
-
-        Returns:
-            Attribute value from wrapped agent
-        """
-        return getattr(self.agent, name)
-
 
 if __name__ == "__main__":
     import asyncio
