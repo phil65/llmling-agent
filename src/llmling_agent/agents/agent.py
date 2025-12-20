@@ -48,7 +48,6 @@ from llmling_agent.utils.inspection import call_with_context, get_argument_key
 from llmling_agent.utils.now import get_now
 from llmling_agent.utils.result_utils import to_type
 from llmling_agent.utils.streams import merge_queue_into_iterator
-from llmling_agent.utils.tasks import TaskManager
 
 
 TResult = TypeVar("TResult")
@@ -221,7 +220,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         from llmling_agent.prompts.conversion_manager import ConversionManager
         from llmling_agent_config.session import MemoryConfig
 
-        self.task_manager = TaskManager()
         self._infinite = False
         self.deps_type = deps_type
         self._manifest = agent_pool.manifest if agent_pool else AgentsManifest()
