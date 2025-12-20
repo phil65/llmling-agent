@@ -46,6 +46,7 @@ if TYPE_CHECKING:
     from evented.configs import EventConfig
 
     from llmling_agent.agents.base_agent import ToolConfirmationMode
+    from llmling_agent.agents.context import AgentContext
     from llmling_agent.agents.events import RichAgentStreamEvent
     from llmling_agent.common_types import (
         BuiltinEventHandlerType,
@@ -55,7 +56,6 @@ if TYPE_CHECKING:
     )
     from llmling_agent.delegation import AgentPool
     from llmling_agent.messaging import MessageHistory
-    from llmling_agent.messaging.context import NodeContext
     from llmling_agent.tools import Tool
     from llmling_agent.ui.base import InputProvider
     from llmling_agent_config.mcp_server import MCPServerConfig
@@ -187,15 +187,25 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         self._chunk_transformer = ChunkTransformer()
 
     @property
-    def context(self) -> NodeContext:
+    def context(self) -> AgentContext:
         """Get node context."""
-        from llmling_agent.messaging.context import NodeContext
+        from llmling_agent.agents.context import AgentContext
+        from llmling_agent.models.agui_agents import AGUIAgentConfig
         from llmling_agent.models.manifest import AgentsManifest
-        from llmling_agent_config.nodes import NodeConfig
 
-        cfg = NodeConfig(name=self.name, description=self.description)
+        cfg = AGUIAgentConfig(  # type: ignore[call-arg]
+            name=self.name,
+            description=self.description,
+            display_name=self.display_name,
+            endpoint=self.endpoint,
+            timeout=self.timeout,
+            headers=self.headers,
+            input_provider=self._input_provider,
+            startup_command=self._startup_command,
+            startup_delay=self._startup_delay,
+        )
         defn = self.agent_pool.manifest if self.agent_pool else AgentsManifest()
-        return NodeContext(node=self, pool=self.agent_pool, config=cfg, definition=defn)
+        return AgentContext(node=self, pool=self.agent_pool, config=cfg, definition=defn)
 
     async def __aenter__(self) -> Self:
         """Enter async context - initialize client and base resources."""

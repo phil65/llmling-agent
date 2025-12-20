@@ -78,6 +78,7 @@ if TYPE_CHECKING:
         StopReason,
     )
     from acp.schema.mcp import McpServer
+    from llmling_agent.agents import AgentContext
     from llmling_agent.agents.events import RichAgentStreamEvent
     from llmling_agent.common_types import (
         BuiltinEventHandlerType,
@@ -88,7 +89,6 @@ if TYPE_CHECKING:
     from llmling_agent.delegation import AgentPool
     from llmling_agent.mcp_server.tool_bridge import ToolManagerBridge
     from llmling_agent.messaging import MessageHistory
-    from llmling_agent.messaging.context import NodeContext
     from llmling_agent.models.acp_agents import BaseACPAgentConfig
     from llmling_agent.ui.base import InputProvider
     from llmling_agent_config.nodes import ToolConfirmationMode
@@ -242,7 +242,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
 
         super().__init__(
             name=name or config.name or config.get_command(),
-            description=description,
+            description=description or config.description,
             display_name=display_name,
             mcp_servers=config.mcp_servers,
             agent_pool=agent_pool,
@@ -271,15 +271,13 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         self._owns_bridge = False  # Track if we created the bridge (for cleanup)
 
     @property
-    def context(self) -> NodeContext:
+    def context(self) -> AgentContext:
         """Get node context."""
-        from llmling_agent.messaging.context import NodeContext
+        from llmling_agent.agents.context import AgentContext
         from llmling_agent.models.manifest import AgentsManifest
-        from llmling_agent_config.nodes import NodeConfig
 
-        cfg = NodeConfig(name=self.name, description=self.description)
         defn = self.agent_pool.manifest if self.agent_pool else AgentsManifest()
-        return NodeContext(node=self, pool=self.agent_pool, config=cfg, definition=defn)
+        return AgentContext(node=self, pool=self.agent_pool, config=self.config, definition=defn)
 
     async def _setup_toolsets(self) -> None:
         """Initialize toolsets from config and create bridge if needed."""

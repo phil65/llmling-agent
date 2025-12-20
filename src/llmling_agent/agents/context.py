@@ -14,7 +14,9 @@ if TYPE_CHECKING:
 
     from llmling_agent import Agent
     from llmling_agent.agents.events import StreamEventEmitter
+    from llmling_agent.models.acp_agents.base import BaseACPAgentConfig
     from llmling_agent.models.agents import NativeAgentConfig
+    from llmling_agent.models.agui_agents import AGUIAgentConfig
     from llmling_agent.tools.base import Tool
 
 
@@ -30,7 +32,7 @@ class AgentContext[TDeps = Any](NodeContext[TDeps]):
     Generically typed with AgentContext[Type of Dependencies]
     """
 
-    config: NativeAgentConfig
+    config: NativeAgentConfig | BaseACPAgentConfig | AGUIAgentConfig
     """Current agent's specific configuration."""
 
     tool_name: str | None = None
