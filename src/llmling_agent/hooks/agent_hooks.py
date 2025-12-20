@@ -157,10 +157,7 @@ class AgentHooks:
         return await self._run_hooks(self.post_tool_use, input_data)
 
     @staticmethod
-    async def _run_hooks(
-        hooks: list[Hook],
-        input_data: HookInput,
-    ) -> HookResult:
+    async def _run_hooks(hooks: list[Hook], input_data: HookInput) -> HookResult:
         """Run a list of hooks and combine their results.
 
         Hooks are run in parallel. Results are combined:

@@ -211,6 +211,8 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             hooks: AgentHooks instance for intercepting agent behavior at run and tool events
             tool_confirmation_mode: Tool confirmation mode
         """
+        from exxec import LocalExecutionEnvironment
+
         from llmling_agent.agents import AgentContext
         from llmling_agent.agents.interactions import Interactions
         from llmling_agent.agents.sys_prompts import SystemPrompts
@@ -223,7 +225,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         self._infinite = False
         self.deps_type = deps_type
         self._manifest = agent_pool.manifest if agent_pool else AgentsManifest()
-        ctx = AgentContext[TDeps](
+        ctx = AgentContext(
             node=self,
             definition=self._manifest,
             config=agent_config or NativeAgentConfig(name=name),
@@ -298,10 +300,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         self._name = name
         self._background_task: asyncio.Task[ChatMessage[Any]] | None = None
         self.talk = Interactions(self)
-        from exxec import LocalExecutionEnvironment
-
         self.env = env or LocalExecutionEnvironment()
-
         # Set up system prompts
         all_prompts: list[AnyPromptType] = []
         if isinstance(system_prompt, (list, tuple)):

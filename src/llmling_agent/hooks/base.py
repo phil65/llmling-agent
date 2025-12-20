@@ -11,12 +11,7 @@ from llmling_agent.log import get_logger
 
 logger = get_logger(__name__)
 
-HookEvent = Literal[
-    "pre_run",
-    "post_run",
-    "pre_tool_use",
-    "post_tool_use",
-]
+HookEvent = Literal["pre_run", "post_run", "pre_tool_use", "post_tool_use"]
 
 
 class HookInput(TypedDict, total=False):
@@ -66,7 +61,7 @@ class Hook(ABC):
         matcher: str | None = None,
         timeout: float = 60.0,
         enabled: bool = True,
-    ):
+    ) -> None:
         """Initialize hook.
 
         Args:

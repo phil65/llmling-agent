@@ -6,7 +6,8 @@ import json
 from string import Template
 from typing import TYPE_CHECKING, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import Field
+from schemez import Schema
 
 from llmling_agent.hooks.base import Hook, HookResult
 from llmling_agent.log import get_logger
@@ -22,14 +23,14 @@ logger = get_logger(__name__)
 DEFAULT_HOOK_MODEL = "openai:gpt-4o-mini"
 
 
-class HookDecision(BaseModel):
+class HookDecision(Schema):
     """Structured response from LLM hook evaluation."""
 
-    decision: Literal["allow", "deny"] = Field(description="Whether to allow or deny the action")
-    reason: str = Field(
-        default="",
-        description="Explanation for the decision",
-    )
+    decision: Literal["allow", "deny"]
+    """Whether to allow or deny the action"""
+
+    reason: str = Field(default="")
+    """Explanation for the decision"""
 
 
 class PromptHook(Hook):
