@@ -739,7 +739,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
 
     async def get_stats(self) -> MessageStats:
         """Get message statistics."""
-        return MessageStats()
+        return MessageStats(messages=list(self.conversation.chat_messages))
 
 
 if __name__ == "__main__":
