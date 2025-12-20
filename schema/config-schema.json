@@ -273,30 +273,84 @@
               "enum": [
                 "local",
                 "docker",
+                "ssh",
+                "daytona",
                 "e2b",
                 "beam",
-                "daytona",
-                "srt"
+                "vercel",
+                "microsandbox",
+                "modal",
+                "srt",
+                "pyodide"
               ],
               "type": "string"
             },
             {
-              "additionalProperties": true,
-              "type": "object"
+              "discriminator": {
+                "mapping": {
+                  "beam": "#/$defs/BeamExecutionEnvironmentConfig",
+                  "daytona": "#/$defs/DaytonaExecutionEnvironmentConfig",
+                  "docker": "#/$defs/DockerExecutionEnvironmentConfig",
+                  "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
+                  "local": "#/$defs/LocalExecutionEnvironmentConfig",
+                  "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "modal": "#/$defs/ModalExecutionEnvironmentConfig",
+                  "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
+                  "srt": "#/$defs/SRTExecutionEnvironmentConfig",
+                  "ssh": "#/$defs/SshExecutionEnvironmentConfig",
+                  "vercel": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/LocalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DockerExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/E2bExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/BeamExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SshExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/PyodideExecutionEnvironmentConfig"
+                }
+              ]
             }
           ],
           "default": "local",
           "description": "Execution environment config for ACP client operations (filesystem, terminals).",
           "examples": [
-            "local",
             "docker",
             {
+              "cwd": null,
+              "dependencies": null,
+              "keep_alive": false,
+              "language": "python",
               "template": "python-sandbox",
+              "timeout": 60.0,
               "type": "e2b"
-            },
-            {
-              "image": "python:3.13-slim",
-              "type": "docker"
             }
           ],
           "title": "Execution Environment"
@@ -313,11 +367,15 @@
           "title": "Allow Terminal",
           "type": "boolean"
         },
-        "auto_grant_permissions": {
-          "default": true,
+        "requires_tool_confirmation": {
+          "default": "always",
           "description": "Whether to automatically grant all permission requests.",
-          "title": "Auto-Grant Permissions",
-          "type": "boolean"
+          "enum": [
+            "never",
+            "always"
+          ],
+          "title": "Tool confirmation mode",
+          "type": "string"
         },
         "type": {
           "const": "acp",
@@ -670,6 +728,22 @@
           },
           "title": "Event handlers",
           "type": "array"
+        },
+        "requires_tool_confirmation": {
+          "default": "per_tool",
+          "description": "How to handle tool confirmation:\n- \"always\": Always require confirmation for all tools\n- \"never\": Never require confirmation (ignore tool settings)\n- \"per_tool\": Use individual tool settings",
+          "enum": [
+            "always",
+            "never",
+            "per_tool"
+          ],
+          "examples": [
+            "always",
+            "never",
+            "per_tool"
+          ],
+          "title": "Tool confirmation mode",
+          "type": "string"
         },
         "endpoint": {
           "description": "HTTP endpoint for the AG-UI agent server.",
@@ -1314,30 +1388,84 @@
               "enum": [
                 "local",
                 "docker",
+                "ssh",
+                "daytona",
                 "e2b",
                 "beam",
-                "daytona",
-                "srt"
+                "vercel",
+                "microsandbox",
+                "modal",
+                "srt",
+                "pyodide"
               ],
               "type": "string"
             },
             {
-              "additionalProperties": true,
-              "type": "object"
+              "discriminator": {
+                "mapping": {
+                  "beam": "#/$defs/BeamExecutionEnvironmentConfig",
+                  "daytona": "#/$defs/DaytonaExecutionEnvironmentConfig",
+                  "docker": "#/$defs/DockerExecutionEnvironmentConfig",
+                  "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
+                  "local": "#/$defs/LocalExecutionEnvironmentConfig",
+                  "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "modal": "#/$defs/ModalExecutionEnvironmentConfig",
+                  "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
+                  "srt": "#/$defs/SRTExecutionEnvironmentConfig",
+                  "ssh": "#/$defs/SshExecutionEnvironmentConfig",
+                  "vercel": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/LocalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DockerExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/E2bExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/BeamExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SshExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/PyodideExecutionEnvironmentConfig"
+                }
+              ]
             }
           ],
           "default": "local",
           "description": "Execution environment config for ACP client operations (filesystem, terminals).",
           "examples": [
-            "local",
             "docker",
             {
+              "cwd": null,
+              "dependencies": null,
+              "keep_alive": false,
+              "language": "python",
               "template": "python-sandbox",
+              "timeout": 60.0,
               "type": "e2b"
-            },
-            {
-              "image": "python:3.13-slim",
-              "type": "docker"
             }
           ],
           "title": "Execution Environment"
@@ -1354,11 +1482,15 @@
           "title": "Allow Terminal",
           "type": "boolean"
         },
-        "auto_grant_permissions": {
-          "default": true,
+        "requires_tool_confirmation": {
+          "default": "always",
           "description": "Whether to automatically grant all permission requests.",
-          "title": "Auto-Grant Permissions",
-          "type": "boolean"
+          "enum": [
+            "never",
+            "always"
+          ],
+          "title": "Tool confirmation mode",
+          "type": "string"
         },
         "type": {
           "const": "amp",
@@ -2301,30 +2433,84 @@
               "enum": [
                 "local",
                 "docker",
+                "ssh",
+                "daytona",
                 "e2b",
                 "beam",
-                "daytona",
-                "srt"
+                "vercel",
+                "microsandbox",
+                "modal",
+                "srt",
+                "pyodide"
               ],
               "type": "string"
             },
             {
-              "additionalProperties": true,
-              "type": "object"
+              "discriminator": {
+                "mapping": {
+                  "beam": "#/$defs/BeamExecutionEnvironmentConfig",
+                  "daytona": "#/$defs/DaytonaExecutionEnvironmentConfig",
+                  "docker": "#/$defs/DockerExecutionEnvironmentConfig",
+                  "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
+                  "local": "#/$defs/LocalExecutionEnvironmentConfig",
+                  "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "modal": "#/$defs/ModalExecutionEnvironmentConfig",
+                  "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
+                  "srt": "#/$defs/SRTExecutionEnvironmentConfig",
+                  "ssh": "#/$defs/SshExecutionEnvironmentConfig",
+                  "vercel": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/LocalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DockerExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/E2bExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/BeamExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SshExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/PyodideExecutionEnvironmentConfig"
+                }
+              ]
             }
           ],
           "default": "local",
           "description": "Execution environment config for ACP client operations (filesystem, terminals).",
           "examples": [
-            "local",
             "docker",
             {
+              "cwd": null,
+              "dependencies": null,
+              "keep_alive": false,
+              "language": "python",
               "template": "python-sandbox",
+              "timeout": 60.0,
               "type": "e2b"
-            },
-            {
-              "image": "python:3.13-slim",
-              "type": "docker"
             }
           ],
           "title": "Execution Environment"
@@ -2341,11 +2527,15 @@
           "title": "Allow Terminal",
           "type": "boolean"
         },
-        "auto_grant_permissions": {
-          "default": true,
+        "requires_tool_confirmation": {
+          "default": "always",
           "description": "Whether to automatically grant all permission requests.",
-          "title": "Auto-Grant Permissions",
-          "type": "boolean"
+          "enum": [
+            "never",
+            "always"
+          ],
+          "title": "Tool confirmation mode",
+          "type": "string"
         },
         "toolsets": {
           "description": "Toolsets to expose to this ACP agent via MCP bridge.\n\nThese toolsets will be started as an in-process MCP server and made\navailable to the external ACP agent. This allows ACP agents to use\ninternal llmling-agent toolsets like subagent delegation.",
@@ -5062,30 +5252,84 @@
               "enum": [
                 "local",
                 "docker",
+                "ssh",
+                "daytona",
                 "e2b",
                 "beam",
-                "daytona",
-                "srt"
+                "vercel",
+                "microsandbox",
+                "modal",
+                "srt",
+                "pyodide"
               ],
               "type": "string"
             },
             {
-              "additionalProperties": true,
-              "type": "object"
+              "discriminator": {
+                "mapping": {
+                  "beam": "#/$defs/BeamExecutionEnvironmentConfig",
+                  "daytona": "#/$defs/DaytonaExecutionEnvironmentConfig",
+                  "docker": "#/$defs/DockerExecutionEnvironmentConfig",
+                  "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
+                  "local": "#/$defs/LocalExecutionEnvironmentConfig",
+                  "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "modal": "#/$defs/ModalExecutionEnvironmentConfig",
+                  "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
+                  "srt": "#/$defs/SRTExecutionEnvironmentConfig",
+                  "ssh": "#/$defs/SshExecutionEnvironmentConfig",
+                  "vercel": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/LocalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DockerExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/E2bExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/BeamExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SshExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/PyodideExecutionEnvironmentConfig"
+                }
+              ]
             }
           ],
           "default": "local",
           "description": "Execution environment config for ACP client operations (filesystem, terminals).",
           "examples": [
-            "local",
             "docker",
             {
+              "cwd": null,
+              "dependencies": null,
+              "keep_alive": false,
+              "language": "python",
               "template": "python-sandbox",
+              "timeout": 60.0,
               "type": "e2b"
-            },
-            {
-              "image": "python:3.13-slim",
-              "type": "docker"
             }
           ],
           "title": "Execution Environment"
@@ -5102,11 +5346,15 @@
           "title": "Allow Terminal",
           "type": "boolean"
         },
-        "auto_grant_permissions": {
-          "default": true,
+        "requires_tool_confirmation": {
+          "default": "always",
           "description": "Whether to automatically grant all permission requests.",
-          "title": "Auto-Grant Permissions",
-          "type": "boolean"
+          "enum": [
+            "never",
+            "always"
+          ],
+          "title": "Tool confirmation mode",
+          "type": "string"
         },
         "type": {
           "const": "cagent",
@@ -5981,30 +6229,84 @@
               "enum": [
                 "local",
                 "docker",
+                "ssh",
+                "daytona",
                 "e2b",
                 "beam",
-                "daytona",
-                "srt"
+                "vercel",
+                "microsandbox",
+                "modal",
+                "srt",
+                "pyodide"
               ],
               "type": "string"
             },
             {
-              "additionalProperties": true,
-              "type": "object"
+              "discriminator": {
+                "mapping": {
+                  "beam": "#/$defs/BeamExecutionEnvironmentConfig",
+                  "daytona": "#/$defs/DaytonaExecutionEnvironmentConfig",
+                  "docker": "#/$defs/DockerExecutionEnvironmentConfig",
+                  "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
+                  "local": "#/$defs/LocalExecutionEnvironmentConfig",
+                  "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "modal": "#/$defs/ModalExecutionEnvironmentConfig",
+                  "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
+                  "srt": "#/$defs/SRTExecutionEnvironmentConfig",
+                  "ssh": "#/$defs/SshExecutionEnvironmentConfig",
+                  "vercel": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/LocalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DockerExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/E2bExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/BeamExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SshExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/PyodideExecutionEnvironmentConfig"
+                }
+              ]
             }
           ],
           "default": "local",
           "description": "Execution environment config for ACP client operations (filesystem, terminals).",
           "examples": [
-            "local",
             "docker",
             {
+              "cwd": null,
+              "dependencies": null,
+              "keep_alive": false,
+              "language": "python",
               "template": "python-sandbox",
+              "timeout": 60.0,
               "type": "e2b"
-            },
-            {
-              "image": "python:3.13-slim",
-              "type": "docker"
             }
           ],
           "title": "Execution Environment"
@@ -6021,11 +6323,15 @@
           "title": "Allow Terminal",
           "type": "boolean"
         },
-        "auto_grant_permissions": {
-          "default": true,
+        "requires_tool_confirmation": {
+          "default": "always",
           "description": "Whether to automatically grant all permission requests.",
-          "title": "Auto-Grant Permissions",
-          "type": "boolean"
+          "enum": [
+            "never",
+            "always"
+          ],
+          "title": "Tool confirmation mode",
+          "type": "string"
         },
         "toolsets": {
           "description": "Toolsets to expose to this ACP agent via MCP bridge.\n\nThese toolsets will be started as an in-process MCP server and made\navailable to the external ACP agent. This allows ACP agents to use\ninternal llmling-agent toolsets like subagent delegation.",
@@ -6857,6 +7163,69 @@
           "default": null,
           "description": "Optional tool filter to enable/disable specific tools.",
           "title": "Tool filter"
+        },
+        "environment": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "beam": "#/$defs/BeamExecutionEnvironmentConfig",
+                  "daytona": "#/$defs/DaytonaExecutionEnvironmentConfig",
+                  "docker": "#/$defs/DockerExecutionEnvironmentConfig",
+                  "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
+                  "local": "#/$defs/LocalExecutionEnvironmentConfig",
+                  "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "modal": "#/$defs/ModalExecutionEnvironmentConfig",
+                  "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
+                  "srt": "#/$defs/SRTExecutionEnvironmentConfig",
+                  "ssh": "#/$defs/SshExecutionEnvironmentConfig",
+                  "vercel": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/LocalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DockerExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/E2bExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/BeamExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SshExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/PyodideExecutionEnvironmentConfig"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional execution environment. If None, falls back to agent's env at runtime.",
+          "title": "Execution environment"
         }
       },
       "title": "CodeToolsetConfig",
@@ -7137,30 +7506,84 @@
               "enum": [
                 "local",
                 "docker",
+                "ssh",
+                "daytona",
                 "e2b",
                 "beam",
-                "daytona",
-                "srt"
+                "vercel",
+                "microsandbox",
+                "modal",
+                "srt",
+                "pyodide"
               ],
               "type": "string"
             },
             {
-              "additionalProperties": true,
-              "type": "object"
+              "discriminator": {
+                "mapping": {
+                  "beam": "#/$defs/BeamExecutionEnvironmentConfig",
+                  "daytona": "#/$defs/DaytonaExecutionEnvironmentConfig",
+                  "docker": "#/$defs/DockerExecutionEnvironmentConfig",
+                  "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
+                  "local": "#/$defs/LocalExecutionEnvironmentConfig",
+                  "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "modal": "#/$defs/ModalExecutionEnvironmentConfig",
+                  "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
+                  "srt": "#/$defs/SRTExecutionEnvironmentConfig",
+                  "ssh": "#/$defs/SshExecutionEnvironmentConfig",
+                  "vercel": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/LocalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DockerExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/E2bExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/BeamExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SshExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/PyodideExecutionEnvironmentConfig"
+                }
+              ]
             }
           ],
           "default": "local",
           "description": "Execution environment config for ACP client operations (filesystem, terminals).",
           "examples": [
-            "local",
             "docker",
             {
+              "cwd": null,
+              "dependencies": null,
+              "keep_alive": false,
+              "language": "python",
               "template": "python-sandbox",
+              "timeout": 60.0,
               "type": "e2b"
-            },
-            {
-              "image": "python:3.13-slim",
-              "type": "docker"
             }
           ],
           "title": "Execution Environment"
@@ -7177,11 +7600,15 @@
           "title": "Allow Terminal",
           "type": "boolean"
         },
-        "auto_grant_permissions": {
-          "default": true,
+        "requires_tool_confirmation": {
+          "default": "always",
           "description": "Whether to automatically grant all permission requests.",
-          "title": "Auto-Grant Permissions",
-          "type": "boolean"
+          "enum": [
+            "never",
+            "always"
+          ],
+          "title": "Tool confirmation mode",
+          "type": "string"
         },
         "type": {
           "const": "codex",
@@ -7941,30 +8368,84 @@
               "enum": [
                 "local",
                 "docker",
+                "ssh",
+                "daytona",
                 "e2b",
                 "beam",
-                "daytona",
-                "srt"
+                "vercel",
+                "microsandbox",
+                "modal",
+                "srt",
+                "pyodide"
               ],
               "type": "string"
             },
             {
-              "additionalProperties": true,
-              "type": "object"
+              "discriminator": {
+                "mapping": {
+                  "beam": "#/$defs/BeamExecutionEnvironmentConfig",
+                  "daytona": "#/$defs/DaytonaExecutionEnvironmentConfig",
+                  "docker": "#/$defs/DockerExecutionEnvironmentConfig",
+                  "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
+                  "local": "#/$defs/LocalExecutionEnvironmentConfig",
+                  "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "modal": "#/$defs/ModalExecutionEnvironmentConfig",
+                  "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
+                  "srt": "#/$defs/SRTExecutionEnvironmentConfig",
+                  "ssh": "#/$defs/SshExecutionEnvironmentConfig",
+                  "vercel": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/LocalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DockerExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/E2bExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/BeamExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SshExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/PyodideExecutionEnvironmentConfig"
+                }
+              ]
             }
           ],
           "default": "local",
           "description": "Execution environment config for ACP client operations (filesystem, terminals).",
           "examples": [
-            "local",
             "docker",
             {
+              "cwd": null,
+              "dependencies": null,
+              "keep_alive": false,
+              "language": "python",
               "template": "python-sandbox",
+              "timeout": 60.0,
               "type": "e2b"
-            },
-            {
-              "image": "python:3.13-slim",
-              "type": "docker"
             }
           ],
           "title": "Execution Environment"
@@ -7981,11 +8462,15 @@
           "title": "Allow Terminal",
           "type": "boolean"
         },
-        "auto_grant_permissions": {
-          "default": true,
+        "requires_tool_confirmation": {
+          "default": "always",
           "description": "Whether to automatically grant all permission requests.",
-          "title": "Auto-Grant Permissions",
-          "type": "boolean"
+          "enum": [
+            "never",
+            "always"
+          ],
+          "title": "Tool confirmation mode",
+          "type": "string"
         },
         "type": {
           "const": "cursor",
@@ -14256,6 +14741,28 @@
           "description": "Use ripgrep/grep subprocess if available (faster than Python regex).",
           "title": "Use subprocess grep",
           "type": "boolean"
+        },
+        "enable_diagnostics": {
+          "default": false,
+          "description": "Run LSP CLI diagnostics (type checking, linting) after file writes.",
+          "title": "Enable diagnostics",
+          "type": "boolean"
+        },
+        "large_file_tokens": {
+          "default": 12000,
+          "description": "Token threshold for switching to structure map instead of full content.",
+          "maximum": 100000,
+          "minimum": 1000,
+          "title": "Large file threshold",
+          "type": "integer"
+        },
+        "map_max_tokens": {
+          "default": 2048,
+          "description": "Maximum tokens for structure map output when reading large files.",
+          "maximum": 16000,
+          "minimum": 256,
+          "title": "Structure map max tokens",
+          "type": "integer"
         }
       },
       "title": "FSSpecToolsetConfig",
@@ -16089,30 +16596,84 @@
               "enum": [
                 "local",
                 "docker",
+                "ssh",
+                "daytona",
                 "e2b",
                 "beam",
-                "daytona",
-                "srt"
+                "vercel",
+                "microsandbox",
+                "modal",
+                "srt",
+                "pyodide"
               ],
               "type": "string"
             },
             {
-              "additionalProperties": true,
-              "type": "object"
+              "discriminator": {
+                "mapping": {
+                  "beam": "#/$defs/BeamExecutionEnvironmentConfig",
+                  "daytona": "#/$defs/DaytonaExecutionEnvironmentConfig",
+                  "docker": "#/$defs/DockerExecutionEnvironmentConfig",
+                  "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
+                  "local": "#/$defs/LocalExecutionEnvironmentConfig",
+                  "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "modal": "#/$defs/ModalExecutionEnvironmentConfig",
+                  "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
+                  "srt": "#/$defs/SRTExecutionEnvironmentConfig",
+                  "ssh": "#/$defs/SshExecutionEnvironmentConfig",
+                  "vercel": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/LocalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DockerExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/E2bExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/BeamExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SshExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/PyodideExecutionEnvironmentConfig"
+                }
+              ]
             }
           ],
           "default": "local",
           "description": "Execution environment config for ACP client operations (filesystem, terminals).",
           "examples": [
-            "local",
             "docker",
             {
+              "cwd": null,
+              "dependencies": null,
+              "keep_alive": false,
+              "language": "python",
               "template": "python-sandbox",
+              "timeout": 60.0,
               "type": "e2b"
-            },
-            {
-              "image": "python:3.13-slim",
-              "type": "docker"
             }
           ],
           "title": "Execution Environment"
@@ -16129,11 +16690,15 @@
           "title": "Allow Terminal",
           "type": "boolean"
         },
-        "auto_grant_permissions": {
-          "default": true,
+        "requires_tool_confirmation": {
+          "default": "always",
           "description": "Whether to automatically grant all permission requests.",
-          "title": "Auto-Grant Permissions",
-          "type": "boolean"
+          "enum": [
+            "never",
+            "always"
+          ],
+          "title": "Tool confirmation mode",
+          "type": "string"
         },
         "toolsets": {
           "description": "Toolsets to expose to this ACP agent via MCP bridge.\n\nThese toolsets will be started as an in-process MCP server and made\navailable to the external ACP agent. This allows ACP agents to use\ninternal llmling-agent toolsets like subagent delegation.",
@@ -17642,30 +18207,84 @@
               "enum": [
                 "local",
                 "docker",
+                "ssh",
+                "daytona",
                 "e2b",
                 "beam",
-                "daytona",
-                "srt"
+                "vercel",
+                "microsandbox",
+                "modal",
+                "srt",
+                "pyodide"
               ],
               "type": "string"
             },
             {
-              "additionalProperties": true,
-              "type": "object"
+              "discriminator": {
+                "mapping": {
+                  "beam": "#/$defs/BeamExecutionEnvironmentConfig",
+                  "daytona": "#/$defs/DaytonaExecutionEnvironmentConfig",
+                  "docker": "#/$defs/DockerExecutionEnvironmentConfig",
+                  "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
+                  "local": "#/$defs/LocalExecutionEnvironmentConfig",
+                  "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "modal": "#/$defs/ModalExecutionEnvironmentConfig",
+                  "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
+                  "srt": "#/$defs/SRTExecutionEnvironmentConfig",
+                  "ssh": "#/$defs/SshExecutionEnvironmentConfig",
+                  "vercel": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/LocalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DockerExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/E2bExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/BeamExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SshExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/PyodideExecutionEnvironmentConfig"
+                }
+              ]
             }
           ],
           "default": "local",
           "description": "Execution environment config for ACP client operations (filesystem, terminals).",
           "examples": [
-            "local",
             "docker",
             {
+              "cwd": null,
+              "dependencies": null,
+              "keep_alive": false,
+              "language": "python",
               "template": "python-sandbox",
+              "timeout": 60.0,
               "type": "e2b"
-            },
-            {
-              "image": "python:3.13-slim",
-              "type": "docker"
             }
           ],
           "title": "Execution Environment"
@@ -17682,11 +18301,15 @@
           "title": "Allow Terminal",
           "type": "boolean"
         },
-        "auto_grant_permissions": {
-          "default": true,
+        "requires_tool_confirmation": {
+          "default": "always",
           "description": "Whether to automatically grant all permission requests.",
-          "title": "Auto-Grant Permissions",
-          "type": "boolean"
+          "enum": [
+            "never",
+            "always"
+          ],
+          "title": "Tool confirmation mode",
+          "type": "string"
         },
         "toolsets": {
           "description": "Toolsets to expose to this ACP agent via MCP bridge.\n\nThese toolsets will be started as an in-process MCP server and made\navailable to the external ACP agent. This allows ACP agents to use\ninternal llmling-agent toolsets like subagent delegation.",
@@ -19077,30 +19700,84 @@
               "enum": [
                 "local",
                 "docker",
+                "ssh",
+                "daytona",
                 "e2b",
                 "beam",
-                "daytona",
-                "srt"
+                "vercel",
+                "microsandbox",
+                "modal",
+                "srt",
+                "pyodide"
               ],
               "type": "string"
             },
             {
-              "additionalProperties": true,
-              "type": "object"
+              "discriminator": {
+                "mapping": {
+                  "beam": "#/$defs/BeamExecutionEnvironmentConfig",
+                  "daytona": "#/$defs/DaytonaExecutionEnvironmentConfig",
+                  "docker": "#/$defs/DockerExecutionEnvironmentConfig",
+                  "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
+                  "local": "#/$defs/LocalExecutionEnvironmentConfig",
+                  "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "modal": "#/$defs/ModalExecutionEnvironmentConfig",
+                  "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
+                  "srt": "#/$defs/SRTExecutionEnvironmentConfig",
+                  "ssh": "#/$defs/SshExecutionEnvironmentConfig",
+                  "vercel": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/LocalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DockerExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/E2bExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/BeamExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SshExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/PyodideExecutionEnvironmentConfig"
+                }
+              ]
             }
           ],
           "default": "local",
           "description": "Execution environment config for ACP client operations (filesystem, terminals).",
           "examples": [
-            "local",
             "docker",
             {
+              "cwd": null,
+              "dependencies": null,
+              "keep_alive": false,
+              "language": "python",
               "template": "python-sandbox",
+              "timeout": 60.0,
               "type": "e2b"
-            },
-            {
-              "image": "python:3.13-slim",
-              "type": "docker"
             }
           ],
           "title": "Execution Environment"
@@ -19117,11 +19794,15 @@
           "title": "Allow Terminal",
           "type": "boolean"
         },
-        "auto_grant_permissions": {
-          "default": true,
+        "requires_tool_confirmation": {
+          "default": "always",
           "description": "Whether to automatically grant all permission requests.",
-          "title": "Auto-Grant Permissions",
-          "type": "boolean"
+          "enum": [
+            "never",
+            "always"
+          ],
+          "title": "Tool confirmation mode",
+          "type": "string"
         },
         "type": {
           "const": "goose",
@@ -20826,30 +21507,84 @@
               "enum": [
                 "local",
                 "docker",
+                "ssh",
+                "daytona",
                 "e2b",
                 "beam",
-                "daytona",
-                "srt"
+                "vercel",
+                "microsandbox",
+                "modal",
+                "srt",
+                "pyodide"
               ],
               "type": "string"
             },
             {
-              "additionalProperties": true,
-              "type": "object"
+              "discriminator": {
+                "mapping": {
+                  "beam": "#/$defs/BeamExecutionEnvironmentConfig",
+                  "daytona": "#/$defs/DaytonaExecutionEnvironmentConfig",
+                  "docker": "#/$defs/DockerExecutionEnvironmentConfig",
+                  "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
+                  "local": "#/$defs/LocalExecutionEnvironmentConfig",
+                  "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "modal": "#/$defs/ModalExecutionEnvironmentConfig",
+                  "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
+                  "srt": "#/$defs/SRTExecutionEnvironmentConfig",
+                  "ssh": "#/$defs/SshExecutionEnvironmentConfig",
+                  "vercel": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/LocalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DockerExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/E2bExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/BeamExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SshExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/PyodideExecutionEnvironmentConfig"
+                }
+              ]
             }
           ],
           "default": "local",
           "description": "Execution environment config for ACP client operations (filesystem, terminals).",
           "examples": [
-            "local",
             "docker",
             {
+              "cwd": null,
+              "dependencies": null,
+              "keep_alive": false,
+              "language": "python",
               "template": "python-sandbox",
+              "timeout": 60.0,
               "type": "e2b"
-            },
-            {
-              "image": "python:3.13-slim",
-              "type": "docker"
             }
           ],
           "title": "Execution Environment"
@@ -20866,11 +21601,15 @@
           "title": "Allow Terminal",
           "type": "boolean"
         },
-        "auto_grant_permissions": {
-          "default": true,
+        "requires_tool_confirmation": {
+          "default": "always",
           "description": "Whether to automatically grant all permission requests.",
-          "title": "Auto-Grant Permissions",
-          "type": "boolean"
+          "enum": [
+            "never",
+            "always"
+          ],
+          "title": "Tool confirmation mode",
+          "type": "string"
         },
         "toolsets": {
           "description": "Toolsets to expose to this ACP agent via MCP bridge.\n\nThese toolsets will be started as an in-process MCP server and made\navailable to the external ACP agent. This allows ACP agents to use\ninternal llmling-agent toolsets like subagent delegation.",
@@ -23327,30 +24066,84 @@
               "enum": [
                 "local",
                 "docker",
+                "ssh",
+                "daytona",
                 "e2b",
                 "beam",
-                "daytona",
-                "srt"
+                "vercel",
+                "microsandbox",
+                "modal",
+                "srt",
+                "pyodide"
               ],
               "type": "string"
             },
             {
-              "additionalProperties": true,
-              "type": "object"
+              "discriminator": {
+                "mapping": {
+                  "beam": "#/$defs/BeamExecutionEnvironmentConfig",
+                  "daytona": "#/$defs/DaytonaExecutionEnvironmentConfig",
+                  "docker": "#/$defs/DockerExecutionEnvironmentConfig",
+                  "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
+                  "local": "#/$defs/LocalExecutionEnvironmentConfig",
+                  "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "modal": "#/$defs/ModalExecutionEnvironmentConfig",
+                  "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
+                  "srt": "#/$defs/SRTExecutionEnvironmentConfig",
+                  "ssh": "#/$defs/SshExecutionEnvironmentConfig",
+                  "vercel": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/LocalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DockerExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/E2bExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/BeamExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SshExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/PyodideExecutionEnvironmentConfig"
+                }
+              ]
             }
           ],
           "default": "local",
           "description": "Execution environment config for ACP client operations (filesystem, terminals).",
           "examples": [
-            "local",
             "docker",
             {
+              "cwd": null,
+              "dependencies": null,
+              "keep_alive": false,
+              "language": "python",
               "template": "python-sandbox",
+              "timeout": 60.0,
               "type": "e2b"
-            },
-            {
-              "image": "python:3.13-slim",
-              "type": "docker"
             }
           ],
           "title": "Execution Environment"
@@ -23367,11 +24160,15 @@
           "title": "Allow Terminal",
           "type": "boolean"
         },
-        "auto_grant_permissions": {
-          "default": true,
+        "requires_tool_confirmation": {
+          "default": "always",
           "description": "Whether to automatically grant all permission requests.",
-          "title": "Auto-Grant Permissions",
-          "type": "boolean"
+          "enum": [
+            "never",
+            "always"
+          ],
+          "title": "Tool confirmation mode",
+          "type": "string"
         },
         "type": {
           "const": "mistral",
@@ -23967,6 +24764,22 @@
           },
           "title": "Event handlers",
           "type": "array"
+        },
+        "requires_tool_confirmation": {
+          "default": "per_tool",
+          "description": "How to handle tool confirmation:\n- \"always\": Always require confirmation for all tools\n- \"never\": Never require confirmation (ignore tool settings)\n- \"per_tool\": Use individual tool settings",
+          "enum": [
+            "always",
+            "never",
+            "per_tool"
+          ],
+          "examples": [
+            "always",
+            "never",
+            "per_tool"
+          ],
+          "title": "Tool confirmation mode",
+          "type": "string"
         },
         "inherits": {
           "default": null,
@@ -25758,22 +26571,6 @@
           "title": "Worker agents",
           "type": "array"
         },
-        "requires_tool_confirmation": {
-          "default": "per_tool",
-          "description": "How to handle tool confirmation:\n- \"always\": Always require confirmation for all tools\n- \"never\": Never require confirmation (ignore tool settings)\n- \"per_tool\": Use individual tool settings",
-          "enum": [
-            "always",
-            "never",
-            "per_tool"
-          ],
-          "examples": [
-            "always",
-            "never",
-            "per_tool"
-          ],
-          "title": "Tool confirmation mode",
-          "type": "string"
-        },
         "debug": {
           "default": false,
           "description": "Enable debug output for this agent.",
@@ -27217,30 +28014,84 @@
               "enum": [
                 "local",
                 "docker",
+                "ssh",
+                "daytona",
                 "e2b",
                 "beam",
-                "daytona",
-                "srt"
+                "vercel",
+                "microsandbox",
+                "modal",
+                "srt",
+                "pyodide"
               ],
               "type": "string"
             },
             {
-              "additionalProperties": true,
-              "type": "object"
+              "discriminator": {
+                "mapping": {
+                  "beam": "#/$defs/BeamExecutionEnvironmentConfig",
+                  "daytona": "#/$defs/DaytonaExecutionEnvironmentConfig",
+                  "docker": "#/$defs/DockerExecutionEnvironmentConfig",
+                  "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
+                  "local": "#/$defs/LocalExecutionEnvironmentConfig",
+                  "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "modal": "#/$defs/ModalExecutionEnvironmentConfig",
+                  "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
+                  "srt": "#/$defs/SRTExecutionEnvironmentConfig",
+                  "ssh": "#/$defs/SshExecutionEnvironmentConfig",
+                  "vercel": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/LocalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DockerExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/E2bExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/BeamExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SshExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/PyodideExecutionEnvironmentConfig"
+                }
+              ]
             }
           ],
           "default": "local",
           "description": "Execution environment config for ACP client operations (filesystem, terminals).",
           "examples": [
-            "local",
             "docker",
             {
+              "cwd": null,
+              "dependencies": null,
+              "keep_alive": false,
+              "language": "python",
               "template": "python-sandbox",
+              "timeout": 60.0,
               "type": "e2b"
-            },
-            {
-              "image": "python:3.13-slim",
-              "type": "docker"
             }
           ],
           "title": "Execution Environment"
@@ -27257,11 +28108,15 @@
           "title": "Allow Terminal",
           "type": "boolean"
         },
-        "auto_grant_permissions": {
-          "default": true,
+        "requires_tool_confirmation": {
+          "default": "always",
           "description": "Whether to automatically grant all permission requests.",
-          "title": "Auto-Grant Permissions",
-          "type": "boolean"
+          "enum": [
+            "never",
+            "always"
+          ],
+          "title": "Tool confirmation mode",
+          "type": "string"
         },
         "type": {
           "const": "opencode",
@@ -27573,30 +28428,84 @@
               "enum": [
                 "local",
                 "docker",
+                "ssh",
+                "daytona",
                 "e2b",
                 "beam",
-                "daytona",
-                "srt"
+                "vercel",
+                "microsandbox",
+                "modal",
+                "srt",
+                "pyodide"
               ],
               "type": "string"
             },
             {
-              "additionalProperties": true,
-              "type": "object"
+              "discriminator": {
+                "mapping": {
+                  "beam": "#/$defs/BeamExecutionEnvironmentConfig",
+                  "daytona": "#/$defs/DaytonaExecutionEnvironmentConfig",
+                  "docker": "#/$defs/DockerExecutionEnvironmentConfig",
+                  "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
+                  "local": "#/$defs/LocalExecutionEnvironmentConfig",
+                  "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "modal": "#/$defs/ModalExecutionEnvironmentConfig",
+                  "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
+                  "srt": "#/$defs/SRTExecutionEnvironmentConfig",
+                  "ssh": "#/$defs/SshExecutionEnvironmentConfig",
+                  "vercel": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/LocalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DockerExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/E2bExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/BeamExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SshExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/PyodideExecutionEnvironmentConfig"
+                }
+              ]
             }
           ],
           "default": "local",
           "description": "Execution environment config for ACP client operations (filesystem, terminals).",
           "examples": [
-            "local",
             "docker",
             {
+              "cwd": null,
+              "dependencies": null,
+              "keep_alive": false,
+              "language": "python",
               "template": "python-sandbox",
+              "timeout": 60.0,
               "type": "e2b"
-            },
-            {
-              "image": "python:3.13-slim",
-              "type": "docker"
             }
           ],
           "title": "Execution Environment"
@@ -27613,11 +28522,15 @@
           "title": "Allow Terminal",
           "type": "boolean"
         },
-        "auto_grant_permissions": {
-          "default": true,
+        "requires_tool_confirmation": {
+          "default": "always",
           "description": "Whether to automatically grant all permission requests.",
-          "title": "Auto-Grant Permissions",
-          "type": "boolean"
+          "enum": [
+            "never",
+            "always"
+          ],
+          "title": "Tool confirmation mode",
+          "type": "string"
         },
         "type": {
           "const": "openhands",
@@ -33635,30 +34548,84 @@
               "enum": [
                 "local",
                 "docker",
+                "ssh",
+                "daytona",
                 "e2b",
                 "beam",
-                "daytona",
-                "srt"
+                "vercel",
+                "microsandbox",
+                "modal",
+                "srt",
+                "pyodide"
               ],
               "type": "string"
             },
             {
-              "additionalProperties": true,
-              "type": "object"
+              "discriminator": {
+                "mapping": {
+                  "beam": "#/$defs/BeamExecutionEnvironmentConfig",
+                  "daytona": "#/$defs/DaytonaExecutionEnvironmentConfig",
+                  "docker": "#/$defs/DockerExecutionEnvironmentConfig",
+                  "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
+                  "local": "#/$defs/LocalExecutionEnvironmentConfig",
+                  "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "modal": "#/$defs/ModalExecutionEnvironmentConfig",
+                  "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
+                  "srt": "#/$defs/SRTExecutionEnvironmentConfig",
+                  "ssh": "#/$defs/SshExecutionEnvironmentConfig",
+                  "vercel": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/LocalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DockerExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/E2bExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/BeamExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SshExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/PyodideExecutionEnvironmentConfig"
+                }
+              ]
             }
           ],
           "default": "local",
           "description": "Execution environment config for ACP client operations (filesystem, terminals).",
           "examples": [
-            "local",
             "docker",
             {
+              "cwd": null,
+              "dependencies": null,
+              "keep_alive": false,
+              "language": "python",
               "template": "python-sandbox",
+              "timeout": 60.0,
               "type": "e2b"
-            },
-            {
-              "image": "python:3.13-slim",
-              "type": "docker"
             }
           ],
           "title": "Execution Environment"
@@ -33675,11 +34642,15 @@
           "title": "Allow Terminal",
           "type": "boolean"
         },
-        "auto_grant_permissions": {
-          "default": true,
+        "requires_tool_confirmation": {
+          "default": "always",
           "description": "Whether to automatically grant all permission requests.",
-          "title": "Auto-Grant Permissions",
-          "type": "boolean"
+          "enum": [
+            "never",
+            "always"
+          ],
+          "title": "Tool confirmation mode",
+          "type": "string"
         },
         "type": {
           "const": "stakpak",
@@ -40672,30 +41643,84 @@
               "enum": [
                 "local",
                 "docker",
+                "ssh",
+                "daytona",
                 "e2b",
                 "beam",
-                "daytona",
-                "srt"
+                "vercel",
+                "microsandbox",
+                "modal",
+                "srt",
+                "pyodide"
               ],
               "type": "string"
             },
             {
-              "additionalProperties": true,
-              "type": "object"
+              "discriminator": {
+                "mapping": {
+                  "beam": "#/$defs/BeamExecutionEnvironmentConfig",
+                  "daytona": "#/$defs/DaytonaExecutionEnvironmentConfig",
+                  "docker": "#/$defs/DockerExecutionEnvironmentConfig",
+                  "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
+                  "local": "#/$defs/LocalExecutionEnvironmentConfig",
+                  "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "modal": "#/$defs/ModalExecutionEnvironmentConfig",
+                  "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
+                  "srt": "#/$defs/SRTExecutionEnvironmentConfig",
+                  "ssh": "#/$defs/SshExecutionEnvironmentConfig",
+                  "vercel": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/LocalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DockerExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/E2bExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/BeamExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SshExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/PyodideExecutionEnvironmentConfig"
+                }
+              ]
             }
           ],
           "default": "local",
           "description": "Execution environment config for ACP client operations (filesystem, terminals).",
           "examples": [
-            "local",
             "docker",
             {
+              "cwd": null,
+              "dependencies": null,
+              "keep_alive": false,
+              "language": "python",
               "template": "python-sandbox",
+              "timeout": 60.0,
               "type": "e2b"
-            },
-            {
-              "image": "python:3.13-slim",
-              "type": "docker"
             }
           ],
           "title": "Execution Environment"
@@ -40712,11 +41737,15 @@
           "title": "Allow Terminal",
           "type": "boolean"
         },
-        "auto_grant_permissions": {
-          "default": true,
+        "requires_tool_confirmation": {
+          "default": "always",
           "description": "Whether to automatically grant all permission requests.",
-          "title": "Auto-Grant Permissions",
-          "type": "boolean"
+          "enum": [
+            "never",
+            "always"
+          ],
+          "title": "Tool confirmation mode",
+          "type": "string"
         },
         "type": {
           "const": "vtcode",
