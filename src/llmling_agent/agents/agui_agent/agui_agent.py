@@ -174,10 +174,8 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         # Session tracking (inline, no separate state object for uniformity)
         self._thread_id: str | None = None
         self._run_id: str | None = None
-        self._message_count = 0
         self._output_type = str
         self.conversation = MessageHistory()
-        self._total_tokens = 0
         self._event_queue: asyncio.Queue[RichAgentStreamEvent[Any]] = asyncio.Queue()
         resolved_handlers = resolve_event_handlers(event_handlers)
         self.event_handler = MultiEventHandler[IndividualEventHandler](resolved_handlers)
