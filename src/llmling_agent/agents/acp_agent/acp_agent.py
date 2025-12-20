@@ -44,9 +44,6 @@ from pydantic_ai.messages import (
     UserPromptPart,
 )
 
-from acp.client.connection import ClientSideConnection
-from acp.schema import InitializeRequest, NewSessionRequest, PromptRequest, SetSessionModeRequest
-from acp.utils import to_acp_content_blocks
 from llmling_agent.agents.acp_agent.acp_converters import convert_to_acp_content, mcp_configs_to_acp
 from llmling_agent.agents.acp_agent.client_handler import ACPClientHandler
 from llmling_agent.agents.acp_agent.session_state import ACPSessionState
@@ -70,6 +67,7 @@ if TYPE_CHECKING:
     from tokonomics.model_discovery import ProviderType
 
     from acp.agent.protocol import Agent as ACPAgentProtocol
+    from acp.client.connection import ClientSideConnection
     from acp.client.protocol import Client
     from acp.schema import (
         InitializeResponse,
@@ -336,6 +334,9 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
 
     async def _initialize(self) -> None:
         """Initialize the ACP connection."""
+        from acp.client.connection import ClientSideConnection
+        from acp.schema import InitializeRequest
+
         if not self._process or not self._process.stdin or not self._process.stdout:
             msg = "Process not started"
             raise RuntimeError(msg)
@@ -365,6 +366,8 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
 
     async def _create_session(self) -> None:
         """Create a new ACP session with configured MCP servers."""
+        from acp.schema import NewSessionRequest
+
         if not self._connection:
             msg = "Connection not initialized"
             raise RuntimeError(msg)
@@ -496,6 +499,9 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         Yields:
             RichAgentStreamEvent instances converted from ACP session updates
         """
+        from acp.schema import PromptRequest
+        from acp.utils import to_acp_content_blocks
+
         # Update input provider if provided
         if input_provider is not None:
             self._input_provider = input_provider
@@ -704,6 +710,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         Args:
             mode: Tool confirmation mode
         """
+        from acp.schema import SetSessionModeRequest
         from llmling_agent_server.acp_server.converters import confirmation_mode_to_mode_id
 
         self.tool_confirmation_mode = mode
