@@ -213,13 +213,11 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         from llmling_agent.agents.interactions import Interactions
         from llmling_agent.agents.sys_prompts import SystemPrompts
         from llmling_agent.models.agents import NativeAgentConfig
-        from llmling_agent.models.manifest import AgentsManifest
         from llmling_agent.prompts.conversion_manager import ConversionManager
         from llmling_agent_config.session import MemoryConfig
 
         self._infinite = False
         self.deps_type = deps_type
-        self._manifest = agent_pool.manifest if agent_pool else AgentsManifest()
         memory_cfg = (
             session if isinstance(session, MemoryConfig) else MemoryConfig.from_value(session)
         )

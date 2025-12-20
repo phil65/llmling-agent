@@ -67,6 +67,7 @@ class MessageNode[TDeps, TResult](ABC):
         from llmling_agent.mcp_server.manager import MCPManager
         from llmling_agent.messaging import EventManager
         from llmling_agent.messaging.connection_manager import ConnectionManager
+        from llmling_agent.models.manifest import AgentsManifest
 
         async def _event_handler(event: EventData) -> None:
             if prompt := event.to_prompt():
@@ -77,6 +78,7 @@ class MessageNode[TDeps, TResult](ABC):
         self._display_name = display_name
         self.log = logger.bind(agent_name=self._name)
         self.agent_pool = agent_pool
+        self._manifest = agent_pool.manifest if agent_pool else AgentsManifest()
         self.description = description
         self.connections = ConnectionManager(self)
         cfgs = list(event_configs) if event_configs else None
