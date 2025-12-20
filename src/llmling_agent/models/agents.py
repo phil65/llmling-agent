@@ -216,9 +216,6 @@ class NativeAgentConfig(BaseAgentConfig):
     Docs: https://phil65.github.io/llmling-agent/YAML%20Configuration/worker_configuration/
     """
 
-    debug: bool = Field(default=False, title="Debug mode")
-    """Enable debug output for this agent."""
-
     environment: ExecutionEnvironmentConfig | None = Field(
         default=None, title="Execution environment"
     )

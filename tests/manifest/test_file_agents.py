@@ -61,7 +61,6 @@ name: extended-agent
 description: Agent with llmling-specific fields
 model: opus
 retries: 3
-debug: true
 avatar: https://example.com/avatar.png
 ---
 
@@ -174,7 +173,6 @@ def test_parse_agent_with_llmling_extensions():
         assert config.description == "Agent with llmling-specific fields"
         assert get_model_identifier(config.model) == CLAUDE_MODEL_ALIASES["opus"]
         assert config.retries == 3  # noqa: PLR2004
-        assert config.debug is True
         assert config.avatar == "https://example.com/avatar.png"
 
 

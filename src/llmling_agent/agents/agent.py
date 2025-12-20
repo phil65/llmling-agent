@@ -10,7 +10,7 @@ import time
 from typing import TYPE_CHECKING, Any, Self, TypedDict, TypeVar, overload
 from uuid import uuid4
 
-from anyenv import MultiEventHandler, method_spawner
+from anyenv import method_spawner
 from llmling_models import function_to_model, infer_model
 import logfire
 from psygnal import Signal
@@ -30,12 +30,10 @@ from pydantic_ai.models import Model
 
 from llmling_agent.agents.base_agent import BaseAgent
 from llmling_agent.agents.events import (
-    RichAgentStreamEvent,
     RunStartedEvent,
     StreamCompleteEvent,
     ToolCallCompleteEvent,
 )
-from llmling_agent.common_types import IndividualEventHandler
 from llmling_agent.log import get_logger
 from llmling_agent.messaging import ChatMessage, MessageHistory, MessageNode
 from llmling_agent.messaging.processing import prepare_prompts
@@ -65,10 +63,14 @@ if TYPE_CHECKING:
     from upathtools import JoinablePathLike
 
     from llmling_agent.agents import AgentContext
+    from llmling_agent.agents.events import (
+        RichAgentStreamEvent,
+    )
     from llmling_agent.common_types import (
         AgentName,
         BuiltinEventHandlerType,
         EndStrategy,
+        IndividualEventHandler,
         ModelType,
         ProcessorCallback,
         PromptCompatible,
@@ -109,7 +111,6 @@ class AgentKwargs(TypedDict, total=False):
     # context: AgentContext[Any] | None  # x
     session: SessionIdType | SessionQuery | MemoryConfig | bool | int
     input_provider: InputProvider | None
-    debug: bool
     event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None
     env: ExecutionEnvironment | None
     auto_cache: AutoCache
@@ -134,7 +135,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
     run_failed = Signal(str, Exception)
     agent_reset = Signal(AgentReset)
 
-    def __init__(  # noqa: PLR0915
+    def __init__(
         # we dont use AgentKwargs here so that we can work with explicit ones in the ctor
         self,
         name: str = "llmling-agent",
@@ -157,7 +158,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         end_strategy: EndStrategy = "early",
         input_provider: InputProvider | None = None,
         parallel_init: bool = True,
-        debug: bool = False,
         event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
         agent_pool: AgentPool[Any] | None = None,
         tool_mode: ToolMode | None = None,
@@ -199,7 +199,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                           a final result
             input_provider: Provider for human input (tool confirmation / HumanProviders)
             parallel_init: Whether to initialize resources in parallel
-            debug: Whether to enable debug mode
             event_handlers: Sequence of event handlers to register with the agent
             agent_pool: AgentPool instance for managing agent resources
             tool_mode: Tool execution mode (None or "codemode")
@@ -210,8 +209,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             hooks: AgentHooks instance for intercepting agent behavior at run and tool events
             tool_confirmation_mode: Tool confirmation mode
         """
-        from exxec import LocalExecutionEnvironment
-
         from llmling_agent.agents import AgentContext
         from llmling_agent.agents.interactions import Interactions
         from llmling_agent.agents.sys_prompts import SystemPrompts
@@ -223,6 +220,31 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         self._infinite = False
         self.deps_type = deps_type
         self._manifest = agent_pool.manifest if agent_pool else AgentsManifest()
+        memory_cfg = (
+            session if isinstance(session, MemoryConfig) else MemoryConfig.from_value(session)
+        )
+        # Collect MCP servers from config
+        all_mcp_servers = list(mcp_servers) if mcp_servers else []
+        if agent_config and agent_config.mcp_servers:
+            all_mcp_servers.extend(agent_config.get_mcp_servers())
+
+        # Call base class with shared parameters
+        super().__init__(
+            name=name,
+            description=description,
+            display_name=display_name,
+            enable_logging=memory_cfg.enable,
+            mcp_servers=all_mcp_servers,
+            agent_pool=agent_pool,
+            event_configs=agent_config.triggers if agent_config else [],
+            env=env,
+            input_provider=input_provider,
+            output_type=to_type(output_type),  # type: ignore[arg-type]
+            tool_confirmation_mode=tool_confirmation_mode,
+            event_handlers=event_handlers,
+        )
+
+        # Set up Agent-specific context (needs self to exist)
         ctx = AgentContext(
             node=self,
             definition=self._manifest,
@@ -231,53 +253,16 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             pool=agent_pool,
         )
         self._context = ctx
-        # TODO: use to_structured with tool_name / description?
-        self._output_type = to_type(output_type)
-        memory_cfg = (
-            session if isinstance(session, MemoryConfig) else MemoryConfig.from_value(session)
-        )
-        # Initialize progress queue before super().__init__()
-        self._event_queue = asyncio.Queue[RichAgentStreamEvent[Any]]()
-        mcp_servers = list(mcp_servers) if mcp_servers else []
-        if ctx and (cfg := ctx.config) and cfg.mcp_servers:
-            mcp_servers.extend(cfg.get_mcp_servers())
-        super().__init__(
-            name=name,
-            description=description,
-            display_name=display_name,
-            enable_logging=memory_cfg.enable,
-            mcp_servers=mcp_servers,
-            agent_pool=agent_pool,
-            event_configs=agent_config.triggers if agent_config else [],
-        )
 
-        from llmling_agent.agents.events import resolve_event_handlers
-
-        resolved_handlers = resolve_event_handlers(event_handlers)
-        self.event_handler = MultiEventHandler[IndividualEventHandler](resolved_handlers)
+        # Override tools with Agent-specific ToolManager (with tools and tool_mode)
         all_tools = list(tools or [])
-        effective_tool_mode = tool_mode
-        self.tools = ToolManager(all_tools, tool_mode=effective_tool_mode)
-        # MCP manager will be initialized in __aenter__ and providers added there
+        self.tools = ToolManager(all_tools, tool_mode=tool_mode)
         for toolset_provider in toolsets or []:
             self.tools.add_provider(toolset_provider)
         aggregating_provider = self.mcp.get_aggregating_provider()
         self.tools.add_provider(aggregating_provider)
-        # # Add local skills provider if directories specified
-        # if skills_paths:
-        #     from llmling_agent.resource_providers.skills import SkillsResourceProvider
 
-        #     skills_paths = [
-        #         Path(d) if isinstance(d, str) else d for d in skills_paths
-        #     ]
-        #     local_skills_provider = SkillsResourceProvider(
-        #         skills_dirs=skills_paths,
-        #         name=f"{name}_local_skills",
-        #         owner=name,
-        #     )
-        #     self.tools.add_provider(local_skills_provider)
-
-        # Initialize conversation manager
+        # Override conversation with Agent-specific MessageHistory (with storage, etc.)
         resources = list(resources)
         if knowledge:
             resources.extend(knowledge.get_resources())
@@ -292,13 +277,10 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         self._retries = retries
         self._end_strategy: EndStrategy = end_strategy
         self._output_retries = output_retries
-        # init variables
-        self._debug = debug
         self.parallel_init = parallel_init
-        self._name = name
         self._background_task: asyncio.Task[ChatMessage[Any]] | None = None
         self.talk = Interactions(self)
-        self.env = env or LocalExecutionEnvironment()
+
         # Set up system prompts
         all_prompts: list[AnyPromptType] = []
         if isinstance(system_prompt, (list, tuple)):
@@ -314,9 +296,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         self._auto_cache: AutoCache = auto_cache or (
             ctx.config.auto_cache if ctx and ctx.config else "off"
         )
-
-        # Copy tool confirmation mode from config
-        self.tool_confirmation_mode: ToolConfirmationMode = tool_confirmation_mode
 
     def __repr__(self) -> str:
         desc = f", {self.description!r}" if self.description else ""
@@ -497,7 +476,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             Typed Agent
         """
         self.log.debug("Setting result type", output_type=output_type)
-        self._output_type = to_type(output_type)
+        self._output_type = to_type(output_type)  # type: ignore[assignment]
         return self  # type: ignore
 
     def is_busy(self) -> bool:

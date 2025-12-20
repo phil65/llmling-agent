@@ -43,13 +43,8 @@ class ChunkTransformer:
     Same applies for TOOL_CALL_CHUNK events.
     """
 
-    def __init__(self, debug: bool = False) -> None:
-        """Initialize transformer.
-
-        Args:
-            debug: Enable debug logging
-        """
-        self._debug = debug
+    def __init__(self) -> None:
+        """Initialize transformer."""
         # Track active text message: message_id -> role
         self._active_text: dict[str, str] | None = None
         # Track active tool call: tool_call_id -> (name, parent_message_id)
@@ -109,8 +104,6 @@ class ChunkTransformer:
                 role=role,
             )
             result.append(start_event)
-            if self._debug:
-                logger.debug("Chunk transformer: TEXT_MESSAGE_START", message_id=message_id)
 
         # Emit content if we have delta and active message
         if delta and self._active_text:
@@ -148,12 +141,6 @@ class ChunkTransformer:
                 parent_message_id=parent_id,
             )
             result.append(start_event)
-            if self._debug:
-                logger.debug(
-                    "Chunk transformer: TOOL_CALL_START",
-                    tool_call_id=tool_call_id,
-                    tool_name=tool_name,
-                )
 
         # Emit args if we have delta and active tool call
         if delta and self._active_tool:
@@ -179,8 +166,7 @@ class ChunkTransformer:
             type=EventType.TEXT_MESSAGE_END,
             message_id=message_id,
         )
-        if self._debug:
-            logger.debug("Chunk transformer: TEXT_MESSAGE_END", message_id=message_id)
+        logger.debug("Chunk transformer: TEXT_MESSAGE_END", message_id=message_id)
         return [end_event]
 
     def _close_tool_call(self) -> list[BaseEvent]:
@@ -195,8 +181,7 @@ class ChunkTransformer:
             type=EventType.TOOL_CALL_END,
             tool_call_id=tool_call_id,
         )
-        if self._debug:
-            logger.debug("Chunk transformer: TOOL_CALL_END", tool_call_id=tool_call_id)
+        logger.debug("Chunk transformer: TOOL_CALL_END", tool_call_id=tool_call_id)
         return [end_event]
 
     def _close_all_pending(self) -> list[BaseEvent]:

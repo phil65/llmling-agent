@@ -27,7 +27,6 @@ from decimal import Decimal
 from typing import TYPE_CHECKING, Any, Self
 import uuid
 
-from anyenv import MultiEventHandler
 from pydantic_ai.messages import (
     ModelRequest,
     ModelResponse,
@@ -42,9 +41,8 @@ from pydantic_ai.usage import RunUsage
 from llmling_agent.agents.base_agent import BaseAgent
 from llmling_agent.agents.claude_code_agent.converters import claude_message_to_events
 from llmling_agent.agents.events import RunErrorEvent, RunStartedEvent, StreamCompleteEvent
-from llmling_agent.common_types import IndividualEventHandler
 from llmling_agent.log import get_logger
-from llmling_agent.messaging import ChatMessage, MessageHistory
+from llmling_agent.messaging import ChatMessage
 from llmling_agent.messaging.messages import TokenCost
 from llmling_agent.messaging.processing import prepare_prompts
 
@@ -64,8 +62,13 @@ if TYPE_CHECKING:
     from exxec import ExecutionEnvironment
 
     from llmling_agent.agents.events import RichAgentStreamEvent
-    from llmling_agent.common_types import BuiltinEventHandlerType, PromptCompatible
+    from llmling_agent.common_types import (
+        BuiltinEventHandlerType,
+        IndividualEventHandler,
+        PromptCompatible,
+    )
     from llmling_agent.delegation import AgentPool
+    from llmling_agent.messaging import MessageHistory
     from llmling_agent.messaging.context import NodeContext
     from llmling_agent.talk.stats import MessageStats
     from llmling_agent.ui.base import InputProvider
@@ -135,11 +138,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             tool_confirmation_mode: Tool confirmation behavior
             output_type: Type for structured output (uses JSON schema)
         """
-        from exxec import LocalExecutionEnvironment
-
-        from llmling_agent.agents.events import resolve_event_handlers
-        from llmling_agent.tools.manager import ToolManager
-
         super().__init__(
             name=name or "claude_code",
             description=description,
@@ -147,9 +145,14 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             agent_pool=agent_pool,
             enable_logging=enable_logging,
             event_configs=event_configs or [],
+            env=env,
+            input_provider=input_provider,
+            output_type=output_type or str,  # type: ignore[arg-type]
+            tool_confirmation_mode=tool_confirmation_mode,
+            event_handlers=event_handlers,
         )
 
-        # Store configuration
+        # Store Claude Code-specific configuration
         self._cwd = cwd
         self._allowed_tools = allowed_tools
         self._disallowed_tools = disallowed_tools
@@ -158,20 +161,11 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         self._max_turns = max_turns
         self._max_thinking_tokens = max_thinking_tokens
         self._permission_mode = permission_mode
+
         # Client state
         self._client: ClaudeSDKClient | None = None
         self._current_model: str | None = model
-        # Infrastructure
-        self.env = env or LocalExecutionEnvironment()
-        self._input_provider = input_provider
-        self._output_type: type[TResult] = output_type or str  # type: ignore[assignment]
-        self.conversation = MessageHistory()
         self.deps_type = type(None)
-        self._event_queue: asyncio.Queue[RichAgentStreamEvent[Any]] = asyncio.Queue()
-        resolved_handlers = resolve_event_handlers(event_handlers)
-        self.event_handler = MultiEventHandler[IndividualEventHandler](resolved_handlers)
-        self.tools = ToolManager()
-        self.tool_confirmation_mode: ToolConfirmationMode = tool_confirmation_mode
 
     @property
     def context(self) -> NodeContext:

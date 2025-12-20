@@ -31,7 +31,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Self, overload
 import uuid
 
-from anyenv import MultiEventHandler, create_process
+from anyenv import create_process
 from pydantic_ai import PartDeltaEvent
 from pydantic_ai.messages import (
     ModelRequest,
@@ -52,9 +52,8 @@ from llmling_agent.agents.acp_agent.client_handler import ACPClientHandler
 from llmling_agent.agents.acp_agent.session_state import ACPSessionState
 from llmling_agent.agents.base_agent import BaseAgent
 from llmling_agent.agents.events import RunStartedEvent, StreamCompleteEvent, ToolCallStartEvent
-from llmling_agent.common_types import IndividualEventHandler
 from llmling_agent.log import get_logger
-from llmling_agent.messaging import ChatMessage, MessageHistory
+from llmling_agent.messaging import ChatMessage
 from llmling_agent.messaging.processing import prepare_prompts
 from llmling_agent.models.acp_agents import ACPAgentConfig, MCPCapableACPAgentConfig
 from llmling_agent.talk.stats import MessageStats
@@ -80,9 +79,15 @@ if TYPE_CHECKING:
     )
     from acp.schema.mcp import McpServer
     from llmling_agent.agents.events import RichAgentStreamEvent
-    from llmling_agent.common_types import BuiltinEventHandlerType, PromptCompatible, SimpleJsonType
+    from llmling_agent.common_types import (
+        BuiltinEventHandlerType,
+        IndividualEventHandler,
+        PromptCompatible,
+        SimpleJsonType,
+    )
     from llmling_agent.delegation import AgentPool
     from llmling_agent.mcp_server.tool_bridge import ToolManagerBridge
+    from llmling_agent.messaging import MessageHistory
     from llmling_agent.messaging.context import NodeContext
     from llmling_agent.models.acp_agents import BaseACPAgentConfig
     from llmling_agent.ui.base import InputProvider
@@ -216,9 +221,6 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
         tool_confirmation_mode: ToolConfirmationMode = "always",
     ) -> None:
-        from llmling_agent.agents.events import resolve_event_handlers
-        from llmling_agent.tools.manager import ToolManager
-
         # Build config from kwargs if not provided
         if config is None:
             if command is None:
@@ -237,6 +239,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
                 requires_tool_confirmation=tool_confirmation_mode,
                 providers=list(providers) if providers else [],
             )
+
         super().__init__(
             name=name or config.name or config.get_command(),
             description=description,
@@ -245,34 +248,27 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             agent_pool=agent_pool,
             enable_logging=enable_logging,
             event_configs=event_configs or list(config.triggers),
+            env=env or config.get_execution_environment(),
+            input_provider=input_provider,
+            tool_confirmation_mode=tool_confirmation_mode,
+            event_handlers=event_handlers,
         )
+
+        # ACP-specific state
         self.acp_permission_callback: (
             Callable[[RequestPermissionRequest], Awaitable[RequestPermissionResponse]] | None
         ) = None
         self.config = config
-        self.env = env or config.get_execution_environment()
-        self._input_provider = input_provider
         self._process: Process | None = None
         self._connection: ClientSideConnection | None = None
         self._client_handler: ACPClientHandler | None = None
         self._init_response: InitializeResponse | None = None
         self._session_id: str | None = None
         self._state: ACPSessionState | None = None
-        self._output_type = str
-        self.conversation = MessageHistory()
         self.deps_type = type(None)
-        self._event_queue: asyncio.Queue[RichAgentStreamEvent[Any]] = asyncio.Queue()
-        resolved_handlers = resolve_event_handlers(event_handlers)
-        self.event_handler = MultiEventHandler[IndividualEventHandler](resolved_handlers)
         self._extra_mcp_servers: list[McpServer] = []
-        # Initialize ToolManager for toolsets (read-only, for bridge exposure)
-        self.tools = ToolManager()
         self._tool_bridge: ToolManagerBridge | None = None
         self._owns_bridge = False  # Track if we created the bridge (for cleanup)
-
-        # Copy tool confirmation mode from config (aligned with Agent class)
-        # auto_grant_permissions=True maps to "never", False maps to "always"
-        self.tool_confirmation_mode: ToolConfirmationMode = tool_confirmation_mode
 
     @property
     def context(self) -> NodeContext:

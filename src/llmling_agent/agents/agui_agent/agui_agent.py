@@ -14,7 +14,6 @@ import asyncio
 from typing import TYPE_CHECKING, Any, Self
 from uuid import uuid4
 
-from anyenv import MultiEventHandler
 from anyenv.processes import hard_kill
 import httpx
 from pydantic_ai.messages import (
@@ -30,10 +29,9 @@ from pydantic_ai.messages import (
 from llmling_agent.agents.agui_agent.chunk_transformer import ChunkTransformer
 from llmling_agent.agents.agui_agent.helpers import execute_tool_calls, parse_sse_stream
 from llmling_agent.agents.base_agent import BaseAgent
-from llmling_agent.agents.events import RunStartedEvent, StreamCompleteEvent, resolve_event_handlers
-from llmling_agent.common_types import IndividualEventHandler
+from llmling_agent.agents.events import RunStartedEvent, StreamCompleteEvent
 from llmling_agent.log import get_logger
-from llmling_agent.messaging import ChatMessage, MessageHistory
+from llmling_agent.messaging import ChatMessage
 from llmling_agent.messaging.processing import prepare_prompts
 from llmling_agent.talk.stats import MessageStats
 from llmling_agent.tools import ToolManager
@@ -49,8 +47,14 @@ if TYPE_CHECKING:
 
     from llmling_agent.agents.base_agent import ToolConfirmationMode
     from llmling_agent.agents.events import RichAgentStreamEvent
-    from llmling_agent.common_types import BuiltinEventHandlerType, PromptCompatible, ToolType
+    from llmling_agent.common_types import (
+        BuiltinEventHandlerType,
+        IndividualEventHandler,
+        PromptCompatible,
+        ToolType,
+    )
     from llmling_agent.delegation import AgentPool
+    from llmling_agent.messaging import MessageHistory
     from llmling_agent.messaging.context import NodeContext
     from llmling_agent.tools import Tool
     from llmling_agent.ui.base import InputProvider
@@ -126,7 +130,6 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         enable_logging: bool = True,
         event_configs: Sequence[EventConfig] | None = None,
         event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
-        debug: bool = False,
         tool_confirmation_mode: ToolConfirmationMode = "per_tool",
     ) -> None:
         """Initialize AG-UI agent client.
@@ -148,11 +151,8 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             enable_logging: Whether to enable database logging
             event_configs: Event trigger configurations
             event_handlers: Sequence of event handlers to register
-            debug: Enable debug logging for chunk transformer
             tool_confirmation_mode: Tool confirmation mode
         """
-        from exxec import LocalExecutionEnvironment
-
         super().__init__(
             name=name,
             description=description,
@@ -161,31 +161,30 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             agent_pool=agent_pool,
             enable_logging=enable_logging,
             event_configs=event_configs,
+            tool_confirmation_mode=tool_confirmation_mode,
+            event_handlers=event_handlers,
         )
+
+        # AG-UI specific configuration
         self.endpoint = endpoint
         self.timeout = timeout
         self.headers = headers or {}
-        self._debug = debug
+
         # Startup command configuration
         self._startup_command = startup_command
         self._startup_delay = startup_delay
         self._startup_process: Process | None = None
+
+        # Client state
         self._client: httpx.AsyncClient | None = None
-        # Session tracking (inline, no separate state object for uniformity)
         self._thread_id: str | None = None
         self._run_id: str | None = None
-        self._output_type = str
-        self.conversation = MessageHistory()
-        self._event_queue: asyncio.Queue[RichAgentStreamEvent[Any]] = asyncio.Queue()
-        resolved_handlers = resolve_event_handlers(event_handlers)
-        self.event_handler = MultiEventHandler[IndividualEventHandler](resolved_handlers)
+
+        # Override tools with provided tools
         self.tools = ToolManager(tools)
-        # Tool confirmation mode - defaults to "per_tool" like Agent class
-        self.tool_confirmation_mode: ToolConfirmationMode = tool_confirmation_mode
-        self._input_provider: InputProvider | None = None
-        self.env = LocalExecutionEnvironment()
+
         # Chunk transformer for normalizing CHUNK events
-        self._chunk_transformer = ChunkTransformer(debug=debug)
+        self._chunk_transformer = ChunkTransformer()
 
     @property
     def context(self) -> NodeContext:
