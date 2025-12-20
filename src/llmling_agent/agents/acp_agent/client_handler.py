@@ -91,11 +91,6 @@ class ACPClientHandler(Client):
     def allow_terminal(self) -> bool:
         return self._agent.config.allow_terminal
 
-    @property
-    def auto_grant_permissions(self) -> bool:
-        """Check if permissions should be auto-granted based on tool_confirmation_mode."""
-        return self.tool_confirmation_mode == "never"
-
     async def session_update(self, params: SessionNotification[Any]) -> None:
         """Handle session update notifications from the agent."""
         from llmling_agent.agents.acp_agent.acp_converters import acp_to_native_event
@@ -112,9 +107,15 @@ class ACPClientHandler(Client):
         """Handle permission requests via InputProvider."""
         name = params.tool_call.title or "operation"
         logger.info("Permission requested", tool_name=name)
-        # Try callback first (forwards to parent session for nested ACP agents)
-        # # TODO: perhaps an alternative would be to always return yes here?
-        # # or to add acp_agent.requires_tool_confirmation?
+
+        # Check tool_confirmation_mode FIRST, before any forwarding
+        # This ensures "bypass permissions" mode works even for nested ACP agents
+        if self.tool_confirmation_mode == "never" and params.options:
+            option_id = params.options[0].option_id
+            logger.debug("Auto-granting permission (tool_confirmation_mode=never)", tool_name=name)
+            return RequestPermissionResponse.allowed(option_id)
+
+        # Try callback second (forwards to parent session for nested ACP agents)
         if self._agent.acp_permission_callback:
             # return RequestPermissionResponse.allowed(option_id=params.options[0].option_id) # "acceptEdits"  # noqa: E501
             try:
@@ -128,11 +129,6 @@ class ACPClientHandler(Client):
                 # Fall through to old logic
             else:
                 return response
-
-        if self.auto_grant_permissions and params.options:
-            option_id = params.options[0].option_id
-            logger.debug("Auto-granting permission", tool_name=name)
-            return RequestPermissionResponse.allowed(option_id)
 
         if self._input_provider:
             ctx = self._agent.context  # Use the agent's existing NodeContext
