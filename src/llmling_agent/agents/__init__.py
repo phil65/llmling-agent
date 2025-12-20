@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from llmling_agent.agents.agent import Agent
 from llmling_agent.agents.agui_agent import AGUIAgent
+from llmling_agent.agents.claude_code_agent import ClaudeCodeAgent
 from llmling_agent.agents.events import (
     detailed_print_handler,
     resolve_event_handlers,
@@ -19,6 +20,7 @@ __all__ = [
     "AGUIAgent",
     "Agent",
     "AgentContext",
+    "ClaudeCodeAgent",
     "Interactions",
     "SlashedAgent",
     "SystemPrompts",

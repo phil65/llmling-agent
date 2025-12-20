@@ -92,6 +92,7 @@ acp = "acp.filesystem:ACPPath"
 a2a = ["fasta2a", "starlette"]  # A2A Server
 ag-ui = ["ag-ui-protocol>=0.1.10"]  # Ag-UI Agents
 braintrust = ["braintrust", "autoevals"]  # Braintrust Prompt Hub
+claude = ["claude-agent-sdk>=0.1.18"]
 clipboard = ["clipman"]  # Clipboard functionality
 coding = ["ast-grep-py>=0.40.0"]  # Packages to allow coding functionality
 composio = ["composio"]  # Composio toolsets
