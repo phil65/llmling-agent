@@ -209,7 +209,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             hooks: AgentHooks instance for intercepting agent behavior at run and tool events
             tool_confirmation_mode: Tool confirmation mode
         """
-        from llmling_agent.agents import AgentContext
         from llmling_agent.agents.interactions import Interactions
         from llmling_agent.agents.sys_prompts import SystemPrompts
         from llmling_agent.models.agents import NativeAgentConfig
@@ -242,15 +241,8 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             event_handlers=event_handlers,
         )
 
-        # Set up Agent-specific context (needs self to exist)
-        ctx = AgentContext(
-            node=self,
-            definition=self._manifest,
-            config=agent_config or NativeAgentConfig(name=name),
-            input_provider=input_provider,
-            pool=agent_pool,
-        )
-        self._context = ctx
+        # Store config for context creation
+        self._agent_config = agent_config or NativeAgentConfig(name=name)
 
         # Override tools with Agent-specific ToolManager (with tools and tool_mode)
         all_tools = list(tools or [])
@@ -443,15 +435,18 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         """Set agent name."""
         self._name = value
 
-    @property  # type: ignore[override]
-    def context(self) -> AgentContext[TDeps]:
+    @property
+    def context(self) -> AgentContext[TDeps]:  # type: ignore[override]
         """Get agent context."""
-        return self._context
+        from llmling_agent.agents import AgentContext
 
-    @context.setter
-    def context(self, value: AgentContext[TDeps]) -> None:
-        """Set agent context and propagate to provider."""
-        self._context = value
+        return AgentContext(
+            node=self,
+            definition=self._manifest,
+            config=self._agent_config,
+            input_provider=self._input_provider,
+            pool=self.agent_pool,
+        )
 
     def to_structured[NewOutputDataT](
         self,

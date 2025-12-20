@@ -160,6 +160,7 @@ class Talk[TTransmittedData = Any]:
             case Callable():
                 other = Agent.from_callback(other)
                 if pool := self.source.context.pool:
+                    other.agent_pool = pool
                     pool.register(other.name, other)
                 return self.__rshift__(other)
             case Sequence():
@@ -525,6 +526,7 @@ class TeamTalk[TTransmittedData = Any](list["Talk | TeamTalk"]):
                 other = Agent.from_callback(other)
                 for talk_ in self.iter_talks():
                     if pool := talk_.source.context.pool:
+                        other.agent_pool = pool
                         pool.register(other.name, other)
                         break
                 return self.__rshift__(other)
