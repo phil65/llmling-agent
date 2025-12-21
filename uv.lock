@@ -2221,14 +2221,14 @@ wheels = [
 
 [[package]]
 name = "importlib-metadata"
-version = "8.7.0"
+version = "8.7.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "zipp" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/76/66/650a33bd90f786193e4de4b3ad86ea60b53c89b669a5c7be931fac31cdb0/importlib_metadata-8.7.0.tar.gz", hash = "sha256:d13b81ad223b890aa16c5471f2ac3056cf76c5f10f82d6f9292f0b415f389000", size = 56641, upload-time = "2025-04-27T15:29:01.736Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/f3/49/3b30cad09e7771a4982d9975a8cbf64f00d4a1ececb53297f1d9a7be1b10/importlib_metadata-8.7.1.tar.gz", hash = "sha256:49fef1ae6440c182052f407c8d34a68f72efc36db9ca90dc0113398f2fdde8bb", size = 57107, upload-time = "2025-12-21T10:00:19.278Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/20/b0/36bd937216ec521246249be3bf9855081de4c5e06a0c9b4219dbeda50373/importlib_metadata-8.7.0-py3-none-any.whl", hash = "sha256:e5dd1551894c77868a30651cef00984d50e1002d06942a7101d34870c5f02afd", size = 27656, upload-time = "2025-04-27T15:29:00.214Z" },
+    { url = "https://files.pythonhosted.org/packages/fa/5e/f8e9a1d23b9c20a551a8a02ea3637b4642e22c2626e3a13a9a29cdea99eb/importlib_metadata-8.7.1-py3-none-any.whl", hash = "sha256:5a1f80bf1daa489495071efbb095d75a634cf28a8bc299581244063b53176151", size = 27865, upload-time = "2025-12-21T10:00:18.329Z" },
 ]
 
 [[package]]
@@ -2294,14 +2294,14 @@ wheels = [
 
 [[package]]
 name = "jaraco-functools"
-version = "4.3.0"
+version = "4.4.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "more-itertools" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/f7/ed/1aa2d585304ec07262e1a83a9889880701079dde796ac7b1d1826f40c63d/jaraco_functools-4.3.0.tar.gz", hash = "sha256:cfd13ad0dd2c47a3600b439ef72d8615d482cedcff1632930d6f28924d92f294", size = 19755, upload-time = "2025-08-18T20:05:09.91Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/0f/27/056e0638a86749374d6f57d0b0db39f29509cce9313cf91bdc0ac4d91084/jaraco_functools-4.4.0.tar.gz", hash = "sha256:da21933b0417b89515562656547a77b4931f98176eb173644c0d35032a33d6bb", size = 19943, upload-time = "2025-12-21T09:29:43.6Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b4/09/726f168acad366b11e420df31bf1c702a54d373a83f968d94141a8c3fde0/jaraco_functools-4.3.0-py3-none-any.whl", hash = "sha256:227ff8ed6f7b8f62c56deff101545fa7543cf2c8e7b82a7c2116e672f29c26e8", size = 10408, upload-time = "2025-08-18T20:05:08.69Z" },
+    { url = "https://files.pythonhosted.org/packages/fd/c4/813bb09f0985cb21e959f21f2464169eca882656849adf727ac7bb7e1767/jaraco_functools-4.4.0-py3-none-any.whl", hash = "sha256:9eec1e36f45c818d9bf307c8948eb03b2b56cd44087b3cdc989abca1f20b9176", size = 10481, upload-time = "2025-12-21T09:29:42.27Z" },
 ]
 
 [[package]]
@@ -2586,7 +2586,7 @@ wheels = [
 
 [[package]]
 name = "llmling-agent"
-version = "1.16.2"
+version = "1.17.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyenv", extra = ["httpx"] },
@@ -2622,9 +2622,9 @@ dependencies = [
     { name = "upathtools" },
     { name = "yamling" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/79/82/d40aa3b626380367f7074f6ab148936f85ef1c8cd959e44077e151d0d11f/llmling_agent-1.16.2.tar.gz", hash = "sha256:1ed30eefe674a8a555900dbdc2154714ce9c4e14fe994c722d349758124622a6", size = 544394, upload-time = "2025-12-20T11:04:03.018Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/f4/76/f79f5239781c68bfbb8603a9dc80059d49864b201f9330cea40a2ad91f40/llmling_agent-1.17.0.tar.gz", hash = "sha256:5ffc3bc885ac874a84990445580c8e19032d8da9fbdc91ed8ce26f55f514d7ea", size = 548545, upload-time = "2025-12-21T08:21:50.014Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/09/86/b3f23fe20f97086dd38da399b391d712cb3b1fe0b6a2df8168512e63a951/llmling_agent-1.16.2-py3-none-any.whl", hash = "sha256:de6b7b948c3d9760fa1ff62e9b5f542645432d708e8252c5408ab761074e5eb3", size = 764682, upload-time = "2025-12-20T11:04:00.592Z" },
+    { url = "https://files.pythonhosted.org/packages/0f/d6/fb301ff147edfa46c9bdd6ed376087f014eaa8c76a4c160654d7d4817ff4/llmling_agent-1.17.0-py3-none-any.whl", hash = "sha256:c76e0bd53f9885637f6fe94e8a6615885f9dd505dbeef43bfadb52baba99cfb1", size = 769870, upload-time = "2025-12-21T08:21:48.095Z" },
 ]
 
 [package.optional-dependencies]
