@@ -12,6 +12,7 @@ import mknodes as mk
 DocStyle = Literal["simple", "full"]
 EXAMPLES_DIR = Path("src/llmling_agent_docs/examples")
 
+
 def create_example_doc(name: str, *, style: DocStyle = "full") -> mk.MkContainer:
     """Create documentation for an example file.
 
