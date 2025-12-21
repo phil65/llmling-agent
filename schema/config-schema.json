@@ -2594,6 +2594,7 @@
                 "integrations": "#/$defs/IntegrationToolsetConfig",
                 "notifications": "#/$defs/NotificationsToolsetConfig",
                 "openapi": "#/$defs/OpenAPIToolsetConfig",
+                "plan": "#/$defs/PlanToolsetConfig",
                 "remote_code_mode": "#/$defs/RemoteCodeModeToolsetConfig",
                 "search": "#/$defs/SearchToolsetConfig",
                 "semantic_memory": "#/$defs/SemanticMemoryToolsetConfig",
@@ -2672,6 +2673,9 @@
               },
               {
                 "$ref": "#/$defs/ImportToolsToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/PlanToolsetConfig"
               },
               {
                 "$ref": "#/$defs/CustomToolsetConfig"
@@ -6404,6 +6408,7 @@
                 "integrations": "#/$defs/IntegrationToolsetConfig",
                 "notifications": "#/$defs/NotificationsToolsetConfig",
                 "openapi": "#/$defs/OpenAPIToolsetConfig",
+                "plan": "#/$defs/PlanToolsetConfig",
                 "remote_code_mode": "#/$defs/RemoteCodeModeToolsetConfig",
                 "search": "#/$defs/SearchToolsetConfig",
                 "semantic_memory": "#/$defs/SemanticMemoryToolsetConfig",
@@ -6482,6 +6487,9 @@
               },
               {
                 "$ref": "#/$defs/ImportToolsToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/PlanToolsetConfig"
               },
               {
                 "$ref": "#/$defs/CustomToolsetConfig"
@@ -7390,6 +7398,7 @@
                 "integrations": "#/$defs/IntegrationToolsetConfig",
                 "notifications": "#/$defs/NotificationsToolsetConfig",
                 "openapi": "#/$defs/OpenAPIToolsetConfig",
+                "plan": "#/$defs/PlanToolsetConfig",
                 "remote_code_mode": "#/$defs/RemoteCodeModeToolsetConfig",
                 "search": "#/$defs/SearchToolsetConfig",
                 "semantic_memory": "#/$defs/SemanticMemoryToolsetConfig",
@@ -7468,6 +7477,9 @@
               },
               {
                 "$ref": "#/$defs/ImportToolsToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/PlanToolsetConfig"
               },
               {
                 "$ref": "#/$defs/CustomToolsetConfig"
@@ -7726,6 +7738,7 @@
                 "integrations": "#/$defs/IntegrationToolsetConfig",
                 "notifications": "#/$defs/NotificationsToolsetConfig",
                 "openapi": "#/$defs/OpenAPIToolsetConfig",
+                "plan": "#/$defs/PlanToolsetConfig",
                 "remote_code_mode": "#/$defs/RemoteCodeModeToolsetConfig",
                 "search": "#/$defs/SearchToolsetConfig",
                 "semantic_memory": "#/$defs/SemanticMemoryToolsetConfig",
@@ -7804,6 +7817,9 @@
               },
               {
                 "$ref": "#/$defs/ImportToolsToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/PlanToolsetConfig"
               },
               {
                 "$ref": "#/$defs/CustomToolsetConfig"
@@ -17454,6 +17470,7 @@
                 "integrations": "#/$defs/IntegrationToolsetConfig",
                 "notifications": "#/$defs/NotificationsToolsetConfig",
                 "openapi": "#/$defs/OpenAPIToolsetConfig",
+                "plan": "#/$defs/PlanToolsetConfig",
                 "remote_code_mode": "#/$defs/RemoteCodeModeToolsetConfig",
                 "search": "#/$defs/SearchToolsetConfig",
                 "semantic_memory": "#/$defs/SemanticMemoryToolsetConfig",
@@ -17532,6 +17549,9 @@
               },
               {
                 "$ref": "#/$defs/ImportToolsToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/PlanToolsetConfig"
               },
               {
                 "$ref": "#/$defs/CustomToolsetConfig"
@@ -19072,6 +19092,7 @@
                 "integrations": "#/$defs/IntegrationToolsetConfig",
                 "notifications": "#/$defs/NotificationsToolsetConfig",
                 "openapi": "#/$defs/OpenAPIToolsetConfig",
+                "plan": "#/$defs/PlanToolsetConfig",
                 "remote_code_mode": "#/$defs/RemoteCodeModeToolsetConfig",
                 "search": "#/$defs/SearchToolsetConfig",
                 "semantic_memory": "#/$defs/SemanticMemoryToolsetConfig",
@@ -19150,6 +19171,9 @@
               },
               {
                 "$ref": "#/$defs/ImportToolsToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/PlanToolsetConfig"
               },
               {
                 "$ref": "#/$defs/CustomToolsetConfig"
@@ -22386,6 +22410,7 @@
                 "integrations": "#/$defs/IntegrationToolsetConfig",
                 "notifications": "#/$defs/NotificationsToolsetConfig",
                 "openapi": "#/$defs/OpenAPIToolsetConfig",
+                "plan": "#/$defs/PlanToolsetConfig",
                 "remote_code_mode": "#/$defs/RemoteCodeModeToolsetConfig",
                 "search": "#/$defs/SearchToolsetConfig",
                 "semantic_memory": "#/$defs/SemanticMemoryToolsetConfig",
@@ -22464,6 +22489,9 @@
               },
               {
                 "$ref": "#/$defs/ImportToolsToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/PlanToolsetConfig"
               },
               {
                 "$ref": "#/$defs/CustomToolsetConfig"
@@ -22552,7 +22580,7 @@
     },
     "Knowledge": {
       "additionalProperties": false,
-      "description": "Collection of context sources for an agent.\n\nSupports both simple paths and rich resource types for content loading,\nplus LLMling's prompt system for dynamic content generation.\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/knowledge_configuration/",
+      "description": "Collection of context sources for an agent.\n\nSupports both simple paths and rich resource types for content loading,\nplus AgentPool's prompt system for dynamic content generation.\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/knowledge_configuration/",
       "properties": {
         "paths": {
           "description": "Quick access to files and URLs.",
@@ -27045,6 +27073,7 @@
                 "integrations": "#/$defs/IntegrationToolsetConfig",
                 "notifications": "#/$defs/NotificationsToolsetConfig",
                 "openapi": "#/$defs/OpenAPIToolsetConfig",
+                "plan": "#/$defs/PlanToolsetConfig",
                 "remote_code_mode": "#/$defs/RemoteCodeModeToolsetConfig",
                 "search": "#/$defs/SearchToolsetConfig",
                 "semantic_memory": "#/$defs/SemanticMemoryToolsetConfig",
@@ -27123,6 +27152,9 @@
               },
               {
                 "$ref": "#/$defs/ImportToolsToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/PlanToolsetConfig"
               },
               {
                 "$ref": "#/$defs/CustomToolsetConfig"
@@ -29452,6 +29484,60 @@
       "title": "Package Configuration",
       "type": "object"
     },
+    "PlanToolsetConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for plan management toolset.\n\nProvides tools for managing agent execution plans and task tracking.\nAgents can create, update, and track progress on plan entries.",
+      "properties": {
+        "namespace": {
+          "default": null,
+          "description": "Optional namespace prefix for tool names",
+          "examples": [
+            "web",
+            "files"
+          ],
+          "title": "Tool namespace",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "type": {
+          "const": "plan",
+          "default": "plan",
+          "description": "Plan toolset.",
+          "title": "Type",
+          "type": "string"
+        },
+        "tools": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "boolean"
+              },
+              "propertyNames": {
+                "enum": [
+                  "get_plan",
+                  "add_plan_entry",
+                  "update_plan_entry",
+                  "remove_plan_entry"
+                ]
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional tool filter to enable/disable specific tools.",
+          "title": "Tool filter"
+        }
+      },
+      "title": "PlanToolsetConfig",
+      "type": "object",
+      "x-doc-title": "Plan Toolset",
+      "x-icon": "octicon:tasklist-16"
+    },
     "PrePostPromptConfig": {
       "additionalProperties": false,
       "description": "Configuration for pre/post prompts.",
@@ -31347,6 +31433,7 @@
                 "integrations": "#/$defs/IntegrationToolsetConfig",
                 "notifications": "#/$defs/NotificationsToolsetConfig",
                 "openapi": "#/$defs/OpenAPIToolsetConfig",
+                "plan": "#/$defs/PlanToolsetConfig",
                 "remote_code_mode": "#/$defs/RemoteCodeModeToolsetConfig",
                 "search": "#/$defs/SearchToolsetConfig",
                 "semantic_memory": "#/$defs/SemanticMemoryToolsetConfig",
@@ -31425,6 +31512,9 @@
               },
               {
                 "$ref": "#/$defs/ImportToolsToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/PlanToolsetConfig"
               },
               {
                 "$ref": "#/$defs/CustomToolsetConfig"
@@ -44213,7 +44303,7 @@
           }
         ]
       },
-      "description": "Mapping of agent IDs to file-based agent definitions.\n\nSupports both simple path strings (auto-detect format) and explicit config\nwith type discriminator.\nFiles must have YAML frontmatter in Claude Code, OpenCode, or LLMling format.\nThe markdown body becomes the system prompt.\n\nFormats:\n  - claude: name, description, tools (comma-separated), model, permissionMode\n  - opencode: description, mode, model, temperature, maxSteps, tools (dict)\n  - native: Full NativeAgentConfig fields in frontmatter\n\nExample:\n    ```yaml\n    file_agents:\n      reviewer: .claude/agents/reviewer.md  # auto-detect\n      debugger:\n        type: opencode  # explicit type\n        path: ./agents/debugger.md\n    ```",
+      "description": "Mapping of agent IDs to file-based agent definitions.\n\nSupports both simple path strings (auto-detect format) and explicit config\nwith type discriminator.\nFiles must have YAML frontmatter in Claude Code, OpenCode, or AgentPool format.\nThe markdown body becomes the system prompt.\n\nFormats:\n  - claude: name, description, tools (comma-separated), model, permissionMode\n  - opencode: description, mode, model, temperature, maxSteps, tools (dict)\n  - native: Full NativeAgentConfig fields in frontmatter\n\nExample:\n    ```yaml\n    file_agents:\n      reviewer: .claude/agents/reviewer.md  # auto-detect\n      debugger:\n        type: opencode  # explicit type\n        path: ./agents/debugger.md\n    ```",
       "examples": [
         {
           "code_reviewer": ".claude/agents/reviewer.md",
