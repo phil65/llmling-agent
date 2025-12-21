@@ -29,9 +29,9 @@ The SQLite database is stored using platformdirs:
 
 ```python
 # Default location:
-# Linux: ~/.local/share/llmling/history.db
-# Windows: %LOCALAPPDATA%\llmling\history.db
-# macOS: ~/Library/Application Support/llmling/history.db
+# Linux: ~/.local/share/agentpool/history.db
+# Windows: %LOCALAPPDATA%\agentpool\history.db
+# macOS: ~/Library/Application Support/agentpool/history.db
 ```
 
 ## Memory Configuration

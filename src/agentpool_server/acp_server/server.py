@@ -1,6 +1,6 @@
 """ACP (Agent Client Protocol) server implementation for agentpool.
 
-This module provides the main server class for exposing llmling agents via
+This module provides the main server class for exposing AgentPool agents via
 the Agent Client Protocol.
 """
 

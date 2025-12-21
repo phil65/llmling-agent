@@ -6,7 +6,7 @@ icon: material/robot
 
 # Agent
 
-AgentPool provides an agent implementation based on pydantic-ai that integrates with the [LLMling](https://gitub.com/phil65/llmling) resource and tool system. The agent can be used standalone or as part of a larger application.
+AgentPool provides multiple agent implementations with a shared interface. These Agents include a native Pydantic-AI based agent, ACP Agents, a "native" Claude code agent as well as AGUI Agents.
 
 ## Basic Usage
 

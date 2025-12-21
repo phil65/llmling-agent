@@ -64,7 +64,7 @@ class BridgeConfig:
     transport: str = "sse"
     """Transport protocol: 'sse' or 'streamable-http'."""
 
-    server_name: str = "llmling-toolmanager"
+    server_name: str = "agentpool-toolmanager"
     """Name for the MCP server."""
 
 
@@ -360,7 +360,7 @@ class ToolBridgeRegistry:
             msg = f"Bridge {name!r} already exists"
             raise ValueError(msg)
 
-        config = BridgeConfig(port=self._port_counter, server_name=f"llmling-{name}")
+        config = BridgeConfig(port=self._port_counter, server_name=f"agentpool-{name}")
         self._port_counter += 1
 
         bridge = ToolManagerBridge(node=node, config=config)

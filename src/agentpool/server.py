@@ -21,7 +21,7 @@ class ServerBridge(abc.ABC):
     """Base class for AgentPool bridge servers.
 
     Provides common lifecycle management, context manager protocol,
-    and running state handling for servers that bridge llmling agents
+    and running state handling for servers that bridge AgentPool agents
     to external protocols (ACP, OpenAI API, MCP, etc.).
     """
 

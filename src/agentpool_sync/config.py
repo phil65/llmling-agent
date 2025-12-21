@@ -81,8 +81,8 @@ class SyncConfig(BaseModel):
     urls: list[UrlSyncConfig] = Field(default_factory=list)
     """URL resources to track centrally."""
 
-    registry_path: str = ".llmling/resources.yml"
+    registry_path: str = ".agentpool/resources.yml"
     """Path to the resource registry file."""
 
-    packages_registry_path: str = ".llmling/packages.yml"
+    packages_registry_path: str = ".agentpool/packages.yml"
     """Path to the packages registry file."""

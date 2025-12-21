@@ -20,7 +20,7 @@ logger = get_logger(__name__)
 class GetSourceCommand(NodeCommand):
     """Get Python source code using dot notation.
 
-    Uses the llmling importing.py utility to fetch source code
+    Uses the AgentPool importing.py utility to fetch source code
     for any Python object accessible via dot notation.
     """
 

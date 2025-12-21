@@ -55,10 +55,10 @@ description: A minimal agent
 Just a simple system prompt.
 """
 
-AGENT_WITH_LLMLING_EXTENSIONS = """\
+AGENT_WITH_AGENTPOOL_EXTENSIONS = """\
 ---
 name: extended-agent
-description: Agent with llmling-specific fields
+description: Agent with agentpool-specific fields
 model: opus
 retries: 3
 avatar: https://example.com/avatar.png
@@ -165,7 +165,7 @@ def test_parse_minimal_agent():
 def test_parse_agent_with_llmling_extensions():
     """Test that llmling-specific fields are passed through."""
     with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
-        f.write(AGENT_WITH_LLMLING_EXTENSIONS)
+        f.write(AGENT_WITH_AGENTPOOL_EXTENSIONS)
         f.flush()
 
         config = parse_agent_file(f.name)

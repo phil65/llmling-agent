@@ -55,19 +55,19 @@ class SyncManager:
 
         Args:
             root: Repository root path
-            registry_file: Path to resource registry (default: .llmling/resources.yml)
-            packages_file: Path to packages registry (default: .llmling/packages.yml)
+            registry_file: Path to resource registry (default: .agentpool/resources.yml)
+            packages_file: Path to packages registry (default: .agentpool/packages.yml)
         """
         self.root = Path(root).resolve()
         self.git = GitRepo(self.root)
 
         registry_path = (
-            Path(registry_file) if registry_file else self.root / ".llmling" / "resources.yml"
+            Path(registry_file) if registry_file else self.root / ".agentpool" / "resources.yml"
         )
         self.resources = ResourceRegistry(registry_file=registry_path)
 
         packages_path = (
-            Path(packages_file) if packages_file else self.root / ".llmling" / "packages.yml"
+            Path(packages_file) if packages_file else self.root / ".agentpool" / "packages.yml"
         )
         self.packages = PackageRegistry(registry_file=packages_path)
 

@@ -23,7 +23,7 @@ LogFormat = Literal["chronological", "conversations"]
 FilterMode = Literal["and", "override"]
 
 APP_NAME: Final = "agentpool"
-APP_AUTHOR: Final = "llmling"
+APP_AUTHOR: Final = "agentpool"
 DATA_DIR: Final = Path(user_data_dir(APP_NAME, APP_AUTHOR))
 DEFAULT_DB_NAME: Final = "history.db"
 DEFAULT_TITLE_PROMPT: Final = """\

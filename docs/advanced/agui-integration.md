@@ -293,7 +293,7 @@ async with AGUIAgent(
 | **Transport** | HTTP + SSE | stdio + JSON-RPC |
 | **Tools** | Frontend-defined (client-side) | Agent-defined (server-side) |
 | **Use Case** | Chat UIs, web apps | Code editors, terminals |
-| **llmling Role** | Client (consumer) | Both client & server |
+| **AgentPool Role** | Client (consumer) | Both client & server |
 
 ## Best Practices
 

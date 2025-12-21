@@ -19,7 +19,7 @@ TKey = TypeVar("TKey", str, int)
 
 
 class AgentPoolError(Exception):
-    """Base exception for all llmling errors."""
+    """Base exception for all AgentPool errors."""
 
 
 class BaseRegistry[TKey, TItem](MutableMapping[TKey, TItem], ABC):

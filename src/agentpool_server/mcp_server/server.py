@@ -38,9 +38,9 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-llmling_dir = platformdirs.user_config_dir("agentpool")
+agentpool_dir = platformdirs.user_config_dir("agentpool")
 
-store = DiskStore(directory=llmling_dir)
+store = DiskStore(directory=agentpool_dir)
 middleware = ResponseCachingMiddleware(cache_storage=store)
 
 
@@ -58,7 +58,7 @@ class MCPServer(BaseServer):
         config: MCPPoolServerConfig,
         lifespan: LifespanHandler | None = None,
         instructions: str | None = None,
-        name: str = "llmling-server",
+        name: str = "agentpool-server",
         raise_exceptions: bool = False,
     ) -> None:
         """Initialize server with agent pool.

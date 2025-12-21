@@ -29,9 +29,9 @@ VERBOSE_HELP = "Enable debug logging"
 OUTPUT_FORMAT_CMDS = "-o", "--output-format"
 VERBOSE_CMDS = "-v", "--verbose"
 
-LOG_DIR = Path(platformdirs.user_log_dir("llmling", "llmling"))
+LOG_DIR = Path(platformdirs.user_log_dir("agentpool", "agentpool"))
 TIMESTAMP = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-LOG_FILE = LOG_DIR / f"llmling_{TIMESTAMP}.log"
+LOG_FILE = LOG_DIR / f"agentpool_{TIMESTAMP}.log"
 
 # Maximum log file size in bytes (10MB)
 MAX_LOG_SIZE = 10 * 1024 * 1024
@@ -54,7 +54,7 @@ def setup_logging(
         format_string: Optional custom format string
         log_to_file: Whether to log to file in addition to stdout
     """
-    logger = logging.getLogger("llmling")
+    logger = logging.getLogger("agentpool")
     logger.setLevel(logging.DEBUG)
 
     if not format_string:

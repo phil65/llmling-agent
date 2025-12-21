@@ -26,7 +26,7 @@ class OpenAIModelInfo(Schema):
 
     id: str
     object: str = "model"
-    owned_by: str = "llmling"
+    owned_by: str = "agentpool"
     created: int
     description: str | None = None
     permissions: list[str] = Field(default_factory=list)

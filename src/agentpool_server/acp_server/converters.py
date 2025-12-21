@@ -69,7 +69,7 @@ def convert_acp_mcp_server_to_config(acp_server: McpServer) -> MCPServerConfig: 
 
 
 def convert_acp_mcp_server_to_config(acp_server: McpServer) -> MCPServerConfig:
-    """Convert ACP McpServer to llmling MCPServerConfig.
+    """Convert ACP McpServer to native MCPServerConfig.
 
     Args:
         acp_server: ACP McpServer object from session/new request

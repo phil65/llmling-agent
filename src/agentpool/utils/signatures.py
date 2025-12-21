@@ -246,7 +246,7 @@ def create_bound_callable(  # noqa: PLR0915
     wrapper.__doc__ = getattr(original_callable, "__doc__", None)
     wrapper.__module__ = getattr(original_callable, "__module__", None)  # type: ignore[assignment]
     wrapper.__wrapped__ = original_callable  # type: ignore[attr-defined]
-    wrapper.__llmling_wrapped__ = original_callable  # type: ignore[attr-defined]
+    wrapper.__agentpool_wrapped__ = original_callable  # type: ignore[attr-defined]
 
     # Create modified signature without context parameters
     try:

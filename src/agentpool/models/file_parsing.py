@@ -101,7 +101,7 @@ def detect_format(metadata: dict[str, Any]) -> Literal["claude", "opencode", "na
         metadata: Parsed YAML frontmatter
 
     Returns:
-        Detected format: "claude", "opencode", or "llmling"
+        Detected format: "claude", "opencode", or "agentpool"
     """
     # OpenCode indicators
     is_opencode = (

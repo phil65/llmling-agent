@@ -25,7 +25,7 @@ class EntryPointTools(ResourceProvider):
         super().__init__(name=module)
         self.module = module
         self._tools: list[Tool] | None = None
-        self.registry = EntryPointRegistry[Callable[..., Any]]("llmling")
+        self.registry = EntryPointRegistry[Callable[..., Any]]("agentpool")
 
     async def get_tools(self) -> list[Tool]:
         """Get tools from entry points."""
