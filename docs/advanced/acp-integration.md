@@ -6,7 +6,7 @@ icon: material/desktop-tower
 
 ## What is ACP?
 
-The Agent Client Protocol (ACP) is a standardized JSON-RPC 2.0 protocol that enables communication between code editors and AI agents. It allows agentpool to integrate seamlessly with desktop applications and IDEs that support the protocol.
+The Agent Client Protocol (ACP) is a standardized JSON-RPC 2.0 protocol that enables communication between code editors and AI agents. It allows AgentPool to integrate seamlessly with desktop applications and IDEs that support the protocol.
 
 ACP provides:
 
@@ -15,17 +15,15 @@ ACP provides:
 - File system operations with permission handling
 - Terminal integration for command execution
 - Tool confirmation mode switching for different workflows
-- MCP (Model Context Protocol) server integration
 
 ## ACP Agents as First-Class Citizens
 
-In agentpool, external ACP agents are **first-class citizens** in the agent ecosystem. They:
+In AgentPool, external ACP agents are **first-class citizens** in the agent ecosystem. They:
 
 - ✅ **Participate fully in the agent pool** - Can be discovered, delegated to, and coordinated with
-- ✅ **Support most regular agent features** - Tools, contexts, delegation, state management
+- ✅ **Support most features of "native" Pydantic-AI based agents** - Tools, contexts, delegation, state management
 - ✅ **Run in configurable environments** - Local, Docker, E2B, remote sandboxes
 - ✅ **Access internal toolsets** - Via automatic MCP bridge for supported agents
-- ✅ **Maintain type safety** - Full Pydantic validation and typed configurations
 - ✅ **Auto-managed lifecycle** - Automatic spawn, cleanup, and error handling
 
 The key difference is that ACP agents run as **separate processes** communicating via the ACP protocol, while still appearing as integrated members of the pool to other agents.
@@ -71,7 +69,7 @@ Add this configuration to your Zed `settings.json`:
       "args": [
         "--python",
         "3.13",
-        "agentpool[default]@latest",
+        "agentpool[default,coding]@latest",
         "serve-acp",
         "https://raw.githubusercontent.com/phil65/agentpool/refs/heads/main/docs/examples/pick_experts/config.yml", # <- insert your agent config here
         "--model-provider",
@@ -104,9 +102,9 @@ For IDEs that support ACP, the general pattern is:
 
 ## The ACP Bridge Concept
 
-### agentpool as Both Server AND Client
+### AgentPool as Both Server AND Client
 
-Understanding agentpool's ACP integration requires grasping a key architectural concept: **agentpool acts as BOTH an ACP server AND an ACP client simultaneously**. This dual role is what makes the integration so powerful.
+Understanding AgentPool's ACP integration requires grasping a key architectural concept: **AgentPool acts as BOTH an ACP server AND an ACP client simultaneously**. This dual role is what makes the integration so powerful.
 
 #### As an ACP Server (IDE Integration)
 
@@ -117,7 +115,7 @@ graph LR
     A["IDE (Zed)<br/>ACP Client"] <-->|ACP Protocol| B["agentpool<br/>ACP Server<br/>(serve-acp command)"]
 ```
 
-In this mode, agentpool:
+In this mode, AgentPool:
 
 - Receives prompts from the IDE
 - Sends back agent responses
@@ -127,14 +125,14 @@ In this mode, agentpool:
 
 #### As an ACP Client (External Agent Integration)
 
-At the same time, agentpool can act as an **ACP client** to integrate external ACP agents:
+At the same time, AgentPool can act as an **ACP client** to integrate external ACP agents:
 
 ```mermaid
 graph LR
     A["agentpool<br/>ACP Client<br/>(external agent)"] <-->|ACP Protocol| B["Claude Code<br/>ACP Server<br/>(subprocess)"]
 ```
 
-In this mode, agentpool:
+In this mode, AgentPool:
 
 - Spawns external ACP agent processes (Claude Code, Gemini CLI, etc.)
 - Sends prompts to those agents
@@ -160,15 +158,15 @@ graph TB
 
 #### Real-World Example
 
-When you configure Zed to use agentpool with external ACP agents:
+When you configure Zed to use AgentPool with external ACP agents:
 
-1. **Zed** connects to agentpool via ACP (IDE → Server)
-2. **agentpool** maintains an agent pool with both:
+1. **Zed** connects to AgentPool via ACP (IDE → Server)
+2. **AgentPool** maintains an agent pool with both:
    - Internal agents (regular Python-based agents)
    - External agents (spawned ACP processes like Claude Code)
 3. When you send a prompt through Zed:
-   - It goes to agentpool (Server role)
-   - agentpool routes it to the appropriate agent
+   - It goes to AgentPool (Server role)
+   - AgentPool routes it to the appropriate agent
    - If the agent is internal → direct execution
    - If the agent is external → ACP client call to that subprocess
 4. **Orchestration** becomes possible:
@@ -181,13 +179,13 @@ When you configure Zed to use agentpool with external ACP agents:
 This bridge architecture enables:
 
 - ✅ **Unified interface**: IDE sees one server, regardless of how many agents
-- ✅ **Heterogeneous agents**: Mix internal Python agents with external processes
+- ✅ **Heterogeneous agents**: Mix internal Python agents with external protocol-bridged agents
 - ✅ **Transparent delegation**: Agents can work together across process boundaries
 - ✅ **Toolset sharing**: External agents access internal capabilities via MCP bridge
 - ✅ **Environment flexibility**: External agents can run in Docker, E2B, remote servers
 - ✅ **Protocol translation**: IDE ↔ ACP ↔ Internal Pool ↔ ACP ↔ External Agents
 
-The key insight: **agentpool doesn't just implement ACP—it bridges multiple ACP worlds together into a unified orchestration layer**.
+The key insight: **AgentPool doesn't just implement ACP—it bridges multiple ACP worlds together into a unified orchestration layer**.
 
 ## Tool Confirmation Modes
 
@@ -203,7 +201,7 @@ The mode affects tool confirmation, not agent selection. To work with different 
 
 ## External ACP Agents
 
-agentpool can integrate external ACP-enabled agents (like Claude Code, Codex, Goose, etc.) into your agent pool through YAML configuration. This allows you to delegate tasks to specialized external agents while maintaining a unified interface.
+AgentPool can integrate external ACP-enabled agents (like Claude Code, Codex, Goose, etc.) into your agent pool through YAML configuration. This allows you to delegate tasks to specialized external agents while maintaining a unified interface.
 
 ### Configuration
 
@@ -248,7 +246,7 @@ agents:
 
 #### MCP-Capable Agents (with Toolset Bridging)
 
-These agents support MCP servers and can use internal agentpool toolsets:
+These agents support MCP servers and can use internal AgentPool toolsets:
 
 - **claude**: Claude Code (Anthropic's coding assistant)
   - Full MCP support via `--mcp-config`
@@ -314,7 +312,7 @@ The external agents are spawned as subprocess instances and communicate via the 
 
 ### How ACP Agents Operate
 
-ACP agents in agentpool follow this execution model:
+ACP agents in AgentPool follow this execution model:
 
 1. **Process Spawning**
    - Agent configuration defines command and arguments
@@ -407,7 +405,7 @@ agents:
 
 Permissions are enforced at multiple levels:
 
-- **Client side**: agentpool's ACPClientHandler validates requests
+- **Client side**: AgentPool's ACPClientHandler validates requests
 - **Agent side**: External agent's own permission system
 - **Environment side**: Execution environment provides isolation
 
