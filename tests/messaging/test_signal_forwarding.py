@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from llmling_agent import AgentPool, AgentsManifest
+from agentpool import AgentPool, AgentsManifest
 
 
 if TYPE_CHECKING:

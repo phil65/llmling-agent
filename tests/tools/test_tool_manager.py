@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from llmling_agent.tools import Tool, ToolError, ToolManager
+from agentpool.tools import Tool, ToolError, ToolManager
 
 
 async def test_basic_tool_management():
@@ -53,7 +53,7 @@ async def test_invalid_tool_operations():
 
 async def test_providers_property():
     """Test that providers property returns all providers."""
-    from llmling_agent.resource_providers import StaticResourceProvider
+    from agentpool.resource_providers import StaticResourceProvider
 
     tool1 = Tool.from_callable(lambda x: x, name_override="tool1")
     manager = ToolManager([tool1])
@@ -79,7 +79,7 @@ async def test_providers_property():
 
 async def test_enabled_state_preservation():
     """Test that enabled states are preserved when tools change."""
-    from llmling_agent.tools.base import Tool
+    from agentpool.tools.base import Tool
 
     # Create a mock MCP provider with some tools
     class MockMCPProvider:

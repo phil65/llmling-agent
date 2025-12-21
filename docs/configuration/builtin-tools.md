@@ -2,7 +2,7 @@
 sync:
   agent: doc_sync_agent
   dependencies:
-    - src/llmling_agent_config/builtin_tools.py
+    - src/agentpool_config/builtin_tools.py
 title: Built-in Tools
 description: PydanticAI built-in tool configuration
 icon: material/wrench
@@ -12,7 +12,7 @@ Built-in tools are native tools provided by LLM providers that can be used to en
 
 ## Overview
 
-LLMling-Agent supports the following PydanticAI built-in tools:
+AgentPool supports the following PydanticAI built-in tools:
 
 - **Web Search**: Search the web using various providers
 - **Code Execution**: Execute code in a sandboxed environment
@@ -26,5 +26,5 @@ These tools integrate seamlessly with the agent's capability system and can be c
 ## Configuration Reference
 
 /// mknodes
-{{ "llmling_agent_config.builtin_tools.BuiltinToolConfig" | union_to_markdown(display_mode="yaml", header_style="pymdownx") }}
+{{ "agentpool_config.builtin_tools.BuiltinToolConfig" | union_to_markdown(display_mode="yaml", header_style="pymdownx") }}
 ///

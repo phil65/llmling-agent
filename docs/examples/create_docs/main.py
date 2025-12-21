@@ -1,5 +1,5 @@
 # /// script
-# dependencies = ["llmling-agent", "mypy"]
+# dependencies = ["agentpool", "mypy"]
 # ///
 
 
@@ -19,8 +19,8 @@ from pathlib import Path
 from mypy import api
 import rich
 
-from llmling_agent import AgentPool, AgentsManifest
-from llmling_agent.docs.utils import run
+from agentpool import AgentPool, AgentsManifest
+from agentpool.docs.utils import run
 
 
 # set your OpenAI API key here
@@ -51,11 +51,11 @@ async def main() -> None:
         scanner.connect_to(writer)
 
         # Start async docs generation (the writer will start working in async fashion)
-        await scanner.run('List all Python files in "src/llmling_agent/agent"')
+        await scanner.run('List all Python files in "src/agentpool/agent"')
 
         # Use error checker as tool (this blocks until complete)
         scanner.register_worker(checker)
-        prompt = 'Check types for all Python files in "src/llmling_agent/agent"'
+        prompt = 'Check types for all Python files in "src/agentpool/agent"'
         result = await scanner.run(prompt)
         rich.print(f"Type checking result:\n{result.data}")
 

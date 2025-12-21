@@ -1,5 +1,5 @@
 # /// script
-# dependencies = ["llmling-agent"]
+# dependencies = ["agentpool"]
 # ///
 
 
@@ -17,8 +17,8 @@ import os
 import time
 from typing import Any
 
-from llmling_agent import Agent, AgentPool, AgentsManifest
-from llmling_agent.docs.utils import get_config_path, is_pyodide, run
+from agentpool import Agent, AgentPool, AgentsManifest
+from agentpool.docs.utils import get_config_path, is_pyodide, run
 
 
 PROMPT = "Download this file using both agent tools available to you: http://speedtest.tele2.net/10MB.zip"

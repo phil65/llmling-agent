@@ -7,10 +7,10 @@ import re
 from pydantic_ai import RunContext  # noqa: TC002
 import pytest
 
-from llmling_agent import AgentContext  # noqa: TC001
-from llmling_agent.resource_providers import StaticResourceProvider
-from llmling_agent.resource_providers.codemode.provider import CodeModeResourceProvider
-from llmling_agent.tools.base import Tool
+from agentpool import AgentContext  # noqa: TC001
+from agentpool.resource_providers import StaticResourceProvider
+from agentpool.resource_providers.codemode.provider import CodeModeResourceProvider
+from agentpool.tools.base import Tool
 
 
 async def tool_with_run_context(ctx: RunContext[None], message: str) -> str:

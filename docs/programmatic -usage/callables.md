@@ -84,7 +84,7 @@ This seamless integration of callables allows you to:
 
 ## Callables for prompts
 
-LLMling-Agent also allows to pass Callables for system and user prompts which can get re-evaluted
+AgentPool also allows to pass Callables for system and user prompts which can get re-evaluted
 for each run.
 
 ```python

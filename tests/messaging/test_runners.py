@@ -7,11 +7,11 @@ from typing import TYPE_CHECKING
 from pydantic import BaseModel
 import pytest
 
-from llmling_agent import AgentPool, AgentsManifest
+from agentpool import AgentPool, AgentsManifest
 
 
 if TYPE_CHECKING:
-    from llmling_agent import ChatMessage
+    from agentpool import ChatMessage
 
 
 class ConversationOutput(BaseModel):

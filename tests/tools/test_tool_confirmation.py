@@ -3,8 +3,8 @@ from __future__ import annotations
 from pydantic_ai.models.test import TestModel
 import pytest
 
-from llmling_agent import Agent, Tool
-from llmling_agent.ui.mock_provider import MockInputProvider
+from agentpool import Agent, Tool
+from agentpool.ui.mock_provider import MockInputProvider
 
 
 async def test_tool_confirmation():

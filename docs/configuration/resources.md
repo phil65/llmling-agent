@@ -2,7 +2,7 @@
 sync:
   agent: doc_sync_agent
   dependencies:
-    - src/llmling_agent_config/loaders.py
+    - src/agentpool_config/loaders.py
 title: Resources
 description: Resource loader configuration
 icon: material/file-document
@@ -12,7 +12,7 @@ Resources provide dynamic content that can be accessed by agents during executio
 
 ## Overview
 
-LLMling-Agent supports multiple resource types:
+AgentPool supports multiple resource types:
 
 - **Path**: Load content from file paths with pattern matching
 - **Text**: Static text content with optional templating
@@ -26,7 +26,7 @@ Resources are loaded on-demand when agents request them, supporting parameteriza
 ## Configuration Reference
 
 /// mknodes
-{{ "llmling_agent_config.loaders.Resource" | union_to_markdown(display_mode="yaml", header_style="pymdownx") }}
+{{ "agentpool_config.loaders.Resource" | union_to_markdown(display_mode="yaml", header_style="pymdownx") }}
 ///
 
 ## Key Features

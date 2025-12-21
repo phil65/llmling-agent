@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from llmling_agent.skills.registry import SkillsRegistry
+from agentpool.skills.registry import SkillsRegistry
 
 
 if TYPE_CHECKING:

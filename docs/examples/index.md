@@ -1,13 +1,13 @@
 ---
 title: Examples
-description: Example configurations and usage patterns for LLMling-Agent
+description: Example configurations and usage patterns for AgentPool
 icon: material/code-braces-box
 order: 5
 ---
 
 # Examples
 
-This section contains practical examples demonstrating various features and patterns in LLMling-Agent.
+This section contains practical examples demonstrating various features and patterns in AgentPool.
 
 ## Agent Patterns
 
@@ -79,4 +79,4 @@ Each example includes:
 - **Code examples**: Python code demonstrating usage patterns
 - **Explanations**: Detailed descriptions of concepts and approaches
 
-You can find the full source code for these examples in the [GitHub repository](https://github.com/phil65/llmling-agent/tree/main/examples).
+You can find the full source code for these examples in the [GitHub repository](https://github.com/phil65/agentpool/tree/main/examples).

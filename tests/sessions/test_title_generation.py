@@ -8,17 +8,17 @@ from typing import TYPE_CHECKING
 from pydantic_ai.models.test import TestModel
 import pytest
 
-from llmling_agent import AgentPool
-from llmling_agent.models.agents import NativeAgentConfig
-from llmling_agent.models.manifest import AgentsManifest
-from llmling_agent.sessions import SessionData, SessionManager
-from llmling_agent.storage.manager import StorageManager
-from llmling_agent_config.storage import MemoryStorageConfig, StorageConfig
+from agentpool import AgentPool
+from agentpool.models.agents import NativeAgentConfig
+from agentpool.models.manifest import AgentsManifest
+from agentpool.sessions import SessionData, SessionManager
+from agentpool.storage.manager import StorageManager
+from agentpool_config.storage import MemoryStorageConfig, StorageConfig
 
 
 if TYPE_CHECKING:
-    from llmling_agent_config.storage import SQLStorageConfig
-    from llmling_agent_storage.models import ConversationData
+    from agentpool_config.storage import SQLStorageConfig
+    from agentpool_storage.models import ConversationData
 
 
 GENERATED_TITLE = "Test Conversation Title"
@@ -103,7 +103,7 @@ class TestStorageManagerTitleGeneration:
 
     async def test_generate_title_stores_title(self) -> None:
         """Test that generate_conversation_title generates and stores a title."""
-        from llmling_agent.messaging import ChatMessage
+        from agentpool.messaging import ChatMessage
 
         config = StorageConfig(
             providers=[MemoryStorageConfig()],
@@ -139,7 +139,7 @@ class TestStorageManagerTitleGeneration:
 
     async def test_generate_title_disabled(self) -> None:
         """Test that title generation is skipped when model is None."""
-        from llmling_agent.messaging import ChatMessage
+        from agentpool.messaging import ChatMessage
 
         config = StorageConfig(
             providers=[MemoryStorageConfig()],
@@ -162,7 +162,7 @@ class TestStorageManagerTitleGeneration:
 
     async def test_generate_title_already_exists(self) -> None:
         """Test that existing title is returned without regenerating."""
-        from llmling_agent.messaging import ChatMessage
+        from agentpool.messaging import ChatMessage
 
         config = StorageConfig(
             providers=[MemoryStorageConfig()],
@@ -286,7 +286,7 @@ class TestClientSessionTitleGeneration:
 
     async def test_generate_title_method_directly(self) -> None:
         """Test the _generate_title method directly via StorageManager."""
-        from llmling_agent.messaging import ChatMessage
+        from agentpool.messaging import ChatMessage
 
         config = StorageConfig(
             providers=[MemoryStorageConfig()],
@@ -323,8 +323,8 @@ class TestMemoryProviderTitleSupport:
 
     async def test_memory_provider_title_operations(self) -> None:
         """Test title update and get on memory provider."""
-        from llmling_agent_config.storage import MemoryStorageConfig
-        from llmling_agent_storage.memory_provider import MemoryStorageProvider
+        from agentpool_config.storage import MemoryStorageConfig
+        from agentpool_storage.memory_provider import MemoryStorageProvider
 
         config = MemoryStorageConfig()
         provider = MemoryStorageProvider(config)
@@ -348,8 +348,8 @@ class TestMemoryProviderTitleSupport:
 
     async def test_memory_provider_title_nonexistent_conv(self) -> None:
         """Test getting title for non-existent conversation."""
-        from llmling_agent_config.storage import MemoryStorageConfig
-        from llmling_agent_storage.memory_provider import MemoryStorageProvider
+        from agentpool_config.storage import MemoryStorageConfig
+        from agentpool_storage.memory_provider import MemoryStorageProvider
 
         config = MemoryStorageConfig()
         provider = MemoryStorageProvider(config)
@@ -364,14 +364,14 @@ class TestSQLProviderTitleSupport:
     @pytest.fixture
     def sql_config(self, tmp_path) -> SQLStorageConfig:
         """Create SQL config with temp database."""
-        from llmling_agent_config.storage import SQLStorageConfig
+        from agentpool_config.storage import SQLStorageConfig
 
         db_path = tmp_path / "test_titles.db"
         return SQLStorageConfig(url=f"sqlite:///{db_path}")
 
     async def test_sql_provider_title_operations(self, sql_config) -> None:
         """Test title update and get on SQL provider."""
-        from llmling_agent_storage.sql_provider import SQLModelProvider
+        from agentpool_storage.sql_provider import SQLModelProvider
 
         async with SQLModelProvider(sql_config) as provider:
             conv_id = "sql_conv_123"
@@ -393,7 +393,7 @@ class TestSQLProviderTitleSupport:
 
     async def test_sql_provider_title_nonexistent_conv(self, sql_config) -> None:
         """Test getting title for non-existent conversation."""
-        from llmling_agent_storage.sql_provider import SQLModelProvider
+        from agentpool_storage.sql_provider import SQLModelProvider
 
         async with SQLModelProvider(sql_config) as provider:
             title = await provider.get_conversation_title("nonexistent")
@@ -401,7 +401,7 @@ class TestSQLProviderTitleSupport:
 
     async def test_sql_provider_title_update_overwrites(self, sql_config) -> None:
         """Test that updating title overwrites previous value."""
-        from llmling_agent_storage.sql_provider import SQLModelProvider
+        from agentpool_storage.sql_provider import SQLModelProvider
 
         async with SQLModelProvider(sql_config) as provider:
             conv_id = "sql_conv_overwrite"
@@ -422,8 +422,8 @@ class TestFileProviderTitleSupport:
 
     async def test_file_provider_title_operations(self, tmp_path) -> None:
         """Test title update and get on file provider."""
-        from llmling_agent_config.storage import FileStorageConfig
-        from llmling_agent_storage.file_provider import FileProvider
+        from agentpool_config.storage import FileStorageConfig
+        from agentpool_storage.file_provider import FileProvider
 
         storage_file = tmp_path / "storage.json"
         config = FileStorageConfig(path=str(storage_file))

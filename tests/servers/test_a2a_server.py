@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from llmling_agent import Agent, AgentPool
-from llmling_agent_server.a2a_server import A2AServer
+from agentpool import Agent, AgentPool
+from agentpool_server.a2a_server import A2AServer
 
 
 # Test constants
@@ -116,7 +116,7 @@ async def test_a2a_server_from_config(tmp_path):
     environments:
       test:
         type: inline
-        module_path: llmling_agent
+        module_path: agentpool
         class_name: Agent
 
     agents:

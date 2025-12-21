@@ -8,13 +8,13 @@ import tempfile
 import pytest
 
 from acp import EnvVariable, StdioMcpServer
-from llmling_agent import Agent
-from llmling_agent.delegation import AgentPool
-from llmling_agent.log import get_logger
-from llmling_agent.tools.base import Tool
-from llmling_agent_server.acp_server.converters import convert_acp_mcp_server_to_config
-from llmling_agent_server.acp_server.session import ACPSession
-from llmling_agent_server.acp_server.session_manager import ACPSessionManager
+from agentpool import Agent
+from agentpool.delegation import AgentPool
+from agentpool.log import get_logger
+from agentpool.tools.base import Tool
+from agentpool_server.acp_server.converters import convert_acp_mcp_server_to_config
+from agentpool_server.acp_server.session import ACPSession
+from agentpool_server.acp_server.session_manager import ACPSessionManager
 
 
 logger = get_logger(__name__)

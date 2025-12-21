@@ -5,8 +5,8 @@ from __future__ import annotations
 from exxec import MockExecutionEnvironment
 import pytest
 
-from llmling_agent import Agent, AgentContext, AgentsManifest, NativeAgentConfig
-from llmling_agent_toolsets.fsspec_toolset import FSSpecTools
+from agentpool import Agent, AgentContext, AgentsManifest, NativeAgentConfig
+from agentpool_toolsets.fsspec_toolset import FSSpecTools
 
 
 @pytest.fixture

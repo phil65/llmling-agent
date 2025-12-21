@@ -1,6 +1,6 @@
-# Database Migrations for llmling-agent
+# Database Migrations for agentpool
 
-This directory contains Alembic migrations for the llmling-agent database schema.
+This directory contains Alembic migrations for the agentpool database schema.
 
 ## Overview
 
@@ -73,7 +73,7 @@ alembic downgrade -1
 ### Database URL
 The migration system uses the database URL from:
 1. `DATABASE_URL` environment variable
-2. Default: `sqlite:///./llmling_agent.db` (configured in `alembic.ini`)
+2. Default: `sqlite:///./agentpool.db` (configured in `alembic.ini`)
 
 ### Environment Setup
 The `migrations/env.py` file is configured to:
@@ -105,7 +105,7 @@ The initial migration (`5ffc5f0266a1`) already includes these new field names. I
 
 ### Model Changes
 When modifying SQLModel models:
-1. Make the change in `src/llmling_agent_storage/sql_provider/models.py`
+1. Make the change in `src/agentpool_storage/sql_provider/models.py`
 2. Create a migration: `python scripts/db_migrate.py create "Description" --autogenerate`
 3. Review the generated migration file
 4. Test the migration locally

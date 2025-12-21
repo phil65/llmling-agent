@@ -2,7 +2,7 @@
 sync:
   agent: doc_sync_agent
   dependencies:
-    - src/llmling_agent_config/system_prompts.py
+    - src/agentpool_config/system_prompts.py
 title: System Prompts
 description: System prompt configuration and library
 icon: material/text-box
@@ -37,7 +37,7 @@ System prompts can be categorized by their purpose:
 ## Configuration Reference
 
 /// mknodes
-{{ "llmling_agent_config.system_prompts.PromptConfig" | union_to_markdown(display_mode="yaml", header_style="pymdownx") }}
+{{ "agentpool_config.system_prompts.PromptConfig" | union_to_markdown(display_mode="yaml", header_style="pymdownx") }}
 ///
 
 ## Complete Example

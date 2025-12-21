@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from pydantic_ai.models.test import TestModel
 import pytest
 
-from llmling_agent import Agent, AgentPool, AgentsManifest
+from agentpool import Agent, AgentPool, AgentsManifest
 
 
 if TYPE_CHECKING:

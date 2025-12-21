@@ -3,7 +3,7 @@ from __future__ import annotations
 from pydantic import BaseModel
 import pytest
 
-from llmling_agent import Agent
+from agentpool import Agent
 
 
 def add(a: int, b: int) -> int:

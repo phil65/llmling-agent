@@ -3,7 +3,7 @@ from __future__ import annotations
 from pydantic_ai.models.test import TestModel
 import pytest
 
-from llmling_agent import AgentPool
+from agentpool import AgentPool
 
 
 @pytest.fixture

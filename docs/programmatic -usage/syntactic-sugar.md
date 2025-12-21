@@ -4,9 +4,9 @@ description: Syntactic conveniences and shortcuts
 icon: material/code-block-braces
 ---
 
-# Syntactic Sugar in LLMling-Agent
+# Syntactic Sugar in AgentPool
 
-LLMling-agent provides three operators for composing and connecting agents: `&`, `|`, and `>>`. These operators enable intuitive composition of agent workflows.
+AgentPool provides three operators for composing and connecting agents: `&`, `|`, and `>>`. These operators enable intuitive composition of agent workflows.
 
 ## Operators Overview
 

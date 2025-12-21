@@ -1,5 +1,5 @@
 # /// script
-# dependencies = ["llmling-agent"]
+# dependencies = ["agentpool"]
 # ///
 
 """Run round-robin example demonstrating cyclic communication pattern."""
@@ -8,8 +8,8 @@ from __future__ import annotations
 
 import os
 
-from llmling_agent.__main__ import run_command  # type: ignore[attr-defined]
-from llmling_agent.docs.utils import get_config_path, is_pyodide
+from agentpool.__main__ import run_command  # type: ignore[attr-defined]
+from agentpool.docs.utils import get_config_path, is_pyodide
 
 
 # set your OpenAI API key here

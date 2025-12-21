@@ -10,7 +10,7 @@ import asyncio
 from pydantic_ai import PartDeltaEvent
 from pydantic_ai.messages import TextPartDelta
 
-from llmling_agent.agents import AGUIAgent
+from agentpool.agents import AGUIAgent
 
 
 endpoint = "http://localhost:8000/agent/run"

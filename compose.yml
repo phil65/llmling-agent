@@ -1,7 +1,7 @@
 version: "3.8"
 
 services:
-  llmling-agent:
+  agentpool:
     build:
       context: .
       dockerfile: Dockerfile

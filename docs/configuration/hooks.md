@@ -18,13 +18,13 @@ Hooks allow you to intercept and customize agent behavior at key lifecycle point
 ## Configuration Reference
 
 /// mknodes
-{{ "llmling_agent_config.hooks.HooksConfig" | schema_to_markdown(display_mode="yaml", header_style="pymdownx") }}
+{{ "agentpool_config.hooks.HooksConfig" | schema_to_markdown(display_mode="yaml", header_style="pymdownx") }}
 ///
 
 ## Hook Types
 
 /// mknodes
-{{ "llmling_agent_config.hooks.HookConfig" | union_to_markdown(display_mode="yaml", header_style="pymdownx") }}
+{{ "agentpool_config.hooks.HookConfig" | union_to_markdown(display_mode="yaml", header_style="pymdownx") }}
 ///
 
 ## Command Hook
@@ -178,8 +178,8 @@ agents:
 ## Programmatic Usage
 
 ```python
-from llmling_agent import Agent
-from llmling_agent.hooks import AgentHooks, CallableHook
+from agentpool import Agent
+from agentpool.hooks import AgentHooks, CallableHook
 
 def my_pre_tool_hook(tool_name: str, tool_input: dict, **kwargs):
     if tool_name == "Bash" and "rm" in tool_input.get("command", ""):

@@ -3,7 +3,7 @@ from __future__ import annotations
 from pydantic_ai import ImageUrl
 import pytest
 
-from llmling_agent import Agent
+from agentpool import Agent
 
 
 @pytest.mark.flaky(reruns=2)

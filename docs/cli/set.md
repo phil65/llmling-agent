@@ -5,5 +5,5 @@ icon: lucide/settings
 ---
 
 /// mknodes
-{{ "llmling_agent.__main__:cli"| MkCliDoc(prog_name="set") }}
+{{ "agentpool.__main__:cli"| MkCliDoc(prog_name="set") }}
 ///

@@ -2,7 +2,7 @@
 sync:
   agent: doc_sync_agent
   dependencies:
-    - src/llmling_agent_config/mcp_server.py
+    - src/agentpool_config/mcp_server.py
 title: MCP Servers
 description: MCP server configuration and integration
 icon: material/server
@@ -12,7 +12,7 @@ MCP (Model Control Protocol) servers allow agents to use external tools through 
 
 ## Overview
 
-MCP servers provide a standardized way to expose tools and resources to agents. LLMling-Agent supports multiple server types:
+MCP servers provide a standardized way to expose tools and resources to agents. AgentPool supports multiple server types:
 
 - **Stdio**: Command-line servers using standard input/output
 - **SSE**: Server-Sent Events based servers
@@ -31,7 +31,7 @@ Servers can use simple string syntax (e.g., `"python -m mcp_server"`) or detaile
 ## Configuration Reference
 
 /// mknodes
-{{ "llmling_agent_config.mcp_server.MCPServerConfig" | union_to_markdown(display_mode="yaml", header_style="pymdownx") }}
+{{ "agentpool_config.mcp_server.MCPServerConfig" | union_to_markdown(display_mode="yaml", header_style="pymdownx") }}
 ///
 
 ## Configuration Notes

@@ -2,7 +2,7 @@
 sync:
   agent: doc_sync_agent
   dependencies:
-    - src/llmling_agent_config/forward_targets.py
+    - src/agentpool_config/forward_targets.py
 title: Connections 
 description: Message routing and forwarding configuration
 icon: material/arrow-right
@@ -20,7 +20,7 @@ Connections allow you to:
 - Create agent pipelines and workflows
 - Implement complex message routing patterns
 
-LLMling-Agent supports three connection types:
+AgentPool supports three connection types:
 
 - **Node Connection**: Forward to another agent, team, or node
 - **File Connection**: Save messages to files with templating
@@ -29,7 +29,7 @@ LLMling-Agent supports three connection types:
 ## Configuration Reference
 
 /// mknodes
-{{ "llmling_agent_config.forward_targets.ForwardingTarget" | union_to_markdown(display_mode="yaml", header_style="pymdownx") }}
+{{ "agentpool_config.forward_targets.ForwardingTarget" | union_to_markdown(display_mode="yaml", header_style="pymdownx") }}
 ///
 
 ## Connection Types

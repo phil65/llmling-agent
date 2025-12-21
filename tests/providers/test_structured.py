@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel
 
-from llmling_agent import AgentPool, AgentsManifest
+from agentpool import AgentPool, AgentsManifest
 
 
 class Result(BaseModel):

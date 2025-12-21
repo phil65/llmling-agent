@@ -22,7 +22,7 @@ First-class support for the Agent Client Protocol (ACP):
 
 ### 📝 Easy Agent Configuration
 
-LLMling-agent excels at static YAML-based agent configuration:
+AgentPool excels at static YAML-based agent configuration:
 
 - Define agents with extreme detail in pure YAML (Pydantic-backed)
 - Expansive JSON schema for IDE autocompletion and validation, backed by an extremely detailed schema.
@@ -44,12 +44,12 @@ Everything is a MessageNode - enabling seamless composition:
 ## Dependencies
 
 /// mknodes
-{{ "llmling_agent"| MkDependencyTable }}
+{{ "agentpool"| MkDependencyTable }}
 ///
 
 ## License
 
-MIT License - see [LICENSE](https://github.com/phil65/llmling-agent/blob/main/LICENSE) for details.
+MIT License - see [LICENSE](https://github.com/phil65/agentpool/blob/main/LICENSE) for details.
 
 ## Quick Start
 
@@ -70,7 +70,7 @@ agents:
 ### Python Usage
 
 ```python
-from llmling_agent import AgentPool
+from agentpool import AgentPool
 
 async def main():
     async with AgentPool("agents.yml") as pool:

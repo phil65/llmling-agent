@@ -5,9 +5,9 @@ import logging
 
 import pytest
 
-from llmling_agent import Agent
-from llmling_agent.messaging import AgentResponse
-from llmling_agent.talk.talk import Talk
+from agentpool import Agent
+from agentpool.messaging import AgentResponse
+from agentpool.talk.talk import Talk
 
 
 async def test_agent_piping():

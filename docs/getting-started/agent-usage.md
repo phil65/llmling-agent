@@ -6,14 +6,14 @@ icon: material/robot
 
 # Agent
 
-LLMling-agent provides an agent implementation based on pydantic-ai that integrates with the [LLMling](https://gitub.com/phil65/llmling) resource and tool system. The agent can be used standalone or as part of a larger application.
+AgentPool provides an agent implementation based on pydantic-ai that integrates with the [LLMling](https://gitub.com/phil65/llmling) resource and tool system. The agent can be used standalone or as part of a larger application.
 
 ## Basic Usage
 
 Create and use an agent:
 
 ```python
-from llmling_agent import Agent
+from agentpool import Agent
 from pydantic import BaseModel
 
 

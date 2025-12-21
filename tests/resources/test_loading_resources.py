@@ -5,7 +5,7 @@ import pytest
 from upathtools import UnionFileSystem
 import yamling
 
-from llmling_agent.models import AgentsManifest
+from agentpool.models import AgentsManifest
 
 
 fsspec.register_implementation("union", UnionFileSystem, clobber=True)

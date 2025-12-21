@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Any
 
 from acp.client import Client
 from acp.schema import ReadTextFileResponse, RequestPermissionResponse, WriteTextFileResponse
-from llmling_agent import log
+from agentpool import log
 
 
 if TYPE_CHECKING:

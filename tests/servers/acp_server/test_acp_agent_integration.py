@@ -1,6 +1,6 @@
-"""Integration tests for ACPAgent connecting to real llmling-agent ACP server.
+"""Integration tests for ACPAgent connecting to real agentpool ACP server.
 
-These tests spawn an actual llmling-agent serve-acp process with a TestModel
+These tests spawn an actual agentpool serve-acp process with a TestModel
 and connect to it using ACPAgent, testing the full roundtrip.
 
 Note: These are slow integration tests that spawn real subprocesses.
@@ -16,12 +16,12 @@ from typing import TYPE_CHECKING, Any
 from exxec import LocalExecutionEnvironment
 import pytest
 
-from llmling_agent.agents.acp_agent import ACPAgent
-from llmling_agent.models.acp_agents import ACPAgentConfig
+from agentpool.agents.acp_agent import ACPAgent
+from agentpool.models.acp_agents import ACPAgentConfig
 
 
 if TYPE_CHECKING:
-    from llmling_agent.agents.events import RichAgentStreamEvent
+    from agentpool.agents.events import RichAgentStreamEvent
 
 
 # Mark all tests in this module as slow/integration
@@ -48,12 +48,12 @@ def test_config_file(test_agent_config_yaml: str, tmp_path: Path) -> Path:
 
 @pytest.fixture
 def acp_agent_config(test_config_file: Path) -> ACPAgentConfig:
-    """Create ACPAgentConfig that spawns llmling-agent serve-acp."""
+    """Create ACPAgentConfig that spawns agentpool serve-acp."""
     return ACPAgentConfig(
         command="uv",
         args=[
             "run",
-            "llmling-agent",
+            "agentpool",
             "serve-acp",
             str(test_config_file),
             "--agent",
@@ -131,7 +131,7 @@ async def test_acp_agent_file_operations(tmp_path: Path, test_config_file: Path)
         command="uv",
         args=[
             "run",
-            "llmling-agent",
+            "agentpool",
             "serve-acp",
             str(test_config_file),
             "--agent",
@@ -155,7 +155,7 @@ async def test_acp_agent_terminal_operations(tmp_path: Path, test_config_file: P
         command="uv",
         args=[
             "run",
-            "llmling-agent",
+            "agentpool",
             "serve-acp",
             str(test_config_file),
             "--agent",
@@ -178,7 +178,7 @@ async def test_acp_agent_with_custom_execution_environment(test_config_file: Pat
         command="uv",
         args=[
             "run",
-            "llmling-agent",
+            "agentpool",
             "serve-acp",
             str(test_config_file),
             "--agent",
@@ -231,7 +231,7 @@ async def test_acp_agent_stats(acp_agent_config: ACPAgentConfig):
 
 async def test_acp_agent_with_input_provider(acp_agent_config: ACPAgentConfig):
     """Test ACPAgent with custom input provider."""
-    from llmling_agent.ui.stdlib_provider import StdlibInputProvider
+    from agentpool.ui.stdlib_provider import StdlibInputProvider
 
     input_provider = StdlibInputProvider()
 
@@ -254,7 +254,7 @@ async def test_acp_agent_with_input_provider(acp_agent_config: ACPAgentConfig):
 
 async def test_acp_agent_input_provider_in_run_stream(acp_agent_config: ACPAgentConfig):
     """Test input_provider parameter in run_stream method."""
-    from llmling_agent.ui.stdlib_provider import StdlibInputProvider
+    from agentpool.ui.stdlib_provider import StdlibInputProvider
 
     input_provider = StdlibInputProvider()
 

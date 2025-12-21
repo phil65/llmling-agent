@@ -6,7 +6,7 @@ icon: material/cpu-64-bit
 
 ## Overview
 
-LLMling-Agent supports a wide range of model types thanks to `Pydantic-AI`. In the simplest form, models are defined by their "identifier", which is defined as `PROVIDER_NAME:MODEL_NAME` (example: `"openai:gpt-5-nano"`).
+AgentPool supports a wide range of model types thanks to `Pydantic-AI`. In the simplest form, models are defined by their "identifier", which is defined as `PROVIDER_NAME:MODEL_NAME` (example: `"openai:gpt-5-nano"`).
 
 For more advanced scenarios, it is also possible to assign a more detailed model config including model settings like `temperature` etc.
 

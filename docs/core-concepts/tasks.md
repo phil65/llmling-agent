@@ -29,7 +29,7 @@ agent = Agent()
 job = Job(agent, **task_kwargs)
 ```
 
-### LLMling-Agents's Approach
+### AgentPools's Approach
 
 LLMling separates task definitions from execution:
 

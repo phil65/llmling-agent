@@ -4,8 +4,8 @@ from evented.configs import TimeEventConfig
 from evented.event_data import EventData
 import pytest
 
-from llmling_agent.messaging import EventManager
-from llmling_agent.utils.now import get_now
+from agentpool.messaging import EventManager
+from agentpool.utils.now import get_now
 
 
 @pytest.fixture

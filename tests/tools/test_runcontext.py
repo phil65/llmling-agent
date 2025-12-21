@@ -4,8 +4,8 @@ from pydantic_ai import RunContext
 from pydantic_ai.models.test import TestModel
 import pytest
 
-from llmling_agent import Agent, AgentContext, AgentPool
-from llmling_agent_config.toolsets import AgentManagementToolsetConfig, SubagentToolsetConfig
+from agentpool import Agent, AgentContext, AgentPool
+from agentpool_config.toolsets import AgentManagementToolsetConfig, SubagentToolsetConfig
 
 
 async def run_ctx_tool(ctx: RunContext) -> str:

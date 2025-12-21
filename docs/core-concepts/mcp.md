@@ -38,7 +38,7 @@ agents:
 ### In Agent Constructor
 
 ```python
-from llmling_agent import Agent, StdioMCPServerConfig
+from agentpool import Agent, StdioMCPServerConfig
 
 # Create agent with MCP servers
 agent = Agent(

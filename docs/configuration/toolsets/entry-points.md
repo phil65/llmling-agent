@@ -32,5 +32,5 @@ The toolset then discovers and loads these tools automatically.
 ## Configuration Reference
 
 /// mknodes
-{{ "llmling_agent_config.toolsets.EntryPointToolsetConfig" | schema_to_markdown(display_mode="yaml", header_style="pymdownx", wrapped_in="toolsets") }}
+{{ "agentpool_config.toolsets.EntryPointToolsetConfig" | schema_to_markdown(display_mode="yaml", header_style="pymdownx", wrapped_in="toolsets") }}
 ///

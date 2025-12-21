@@ -38,6 +38,274 @@ wheels = [
 ]
 
 [[package]]
+name = "agentpool"
+version = "1.16.2"
+source = { editable = "." }
+dependencies = [
+    { name = "anyenv", extra = ["httpx"] },
+    { name = "docler" },
+    { name = "docstring-parser" },
+    { name = "epregistry" },
+    { name = "evented" },
+    { name = "exxec" },
+    { name = "fastmcp" },
+    { name = "fsspec" },
+    { name = "httpx" },
+    { name = "jinja2" },
+    { name = "jinjarope" },
+    { name = "llmling-models" },
+    { name = "logfire" },
+    { name = "mcp" },
+    { name = "platformdirs" },
+    { name = "promptantic" },
+    { name = "psygnal" },
+    { name = "pydantic" },
+    { name = "pydantic-ai-slim" },
+    { name = "python-dotenv" },
+    { name = "rich" },
+    { name = "schemez", extra = ["codegen"] },
+    { name = "searchly", extra = ["all"] },
+    { name = "slashed" },
+    { name = "sqlalchemy", extra = ["aiosqlite"] },
+    { name = "sqlmodel" },
+    { name = "structlog" },
+    { name = "tokonomics" },
+    { name = "toprompt" },
+    { name = "typer" },
+    { name = "upathtools" },
+    { name = "yamling" },
+]
+
+[package.optional-dependencies]
+a2a = [
+    { name = "fasta2a" },
+    { name = "starlette" },
+]
+ag-ui = [
+    { name = "ag-ui-protocol" },
+]
+braintrust = [
+    { name = "autoevals" },
+    { name = "braintrust" },
+]
+claude = [
+    { name = "claude-agent-sdk" },
+]
+clipboard = [
+    { name = "clipman" },
+]
+coding = [
+    { name = "ast-grep-py" },
+    { name = "grep-ast" },
+    { name = "rustworkx" },
+    { name = "tree-sitter" },
+    { name = "tree-sitter-c" },
+    { name = "tree-sitter-cpp" },
+    { name = "tree-sitter-go" },
+    { name = "tree-sitter-javascript" },
+    { name = "tree-sitter-json" },
+    { name = "tree-sitter-python" },
+    { name = "tree-sitter-rust" },
+    { name = "tree-sitter-typescript" },
+    { name = "tree-sitter-yaml" },
+]
+composio = [
+    { name = "composio" },
+]
+default = [
+    { name = "pydantic-ai-slim", extra = ["anthropic", "google", "mistral", "openai", "retries"] },
+]
+events = [
+    { name = "evented", extra = ["all"] },
+]
+git = [
+    { name = "fsspec", extra = ["git"] },
+]
+langfuse = [
+    { name = "langfuse" },
+]
+markitdown = [
+    { name = "markitdown", marker = "python_full_version < '3.14'" },
+]
+mcp-run = [
+    { name = "mcpx-py" },
+]
+memory = [
+    { name = "typeagent" },
+]
+notifications = [
+    { name = "apprise" },
+]
+oauth = [
+    { name = "keyring" },
+]
+promptlayer = [
+    { name = "promptlayer" },
+]
+server = [
+    { name = "fastapi" },
+    { name = "logfire", extra = ["fastapi"] },
+    { name = "uvicorn", extra = ["standard"] },
+]
+textual = [
+    { name = "textual" },
+]
+tiktoken = [
+    { name = "tiktoken" },
+]
+tts = [
+    { name = "numpy" },
+    { name = "openai" },
+    { name = "sounddevice" },
+]
+tts-edge = [
+    { name = "edge-tts" },
+    { name = "miniaudio" },
+    { name = "sounddevice" },
+]
+
+[package.dev-dependencies]
+benchmark = [
+    { name = "pyinstrument" },
+]
+dev = [
+    { name = "alembic" },
+    { name = "check-jsonschema" },
+    { name = "devtools" },
+    { name = "openapi-spec-validator" },
+    { name = "pyinstaller" },
+    { name = "pyreadline3" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "pytest-cov" },
+    { name = "pytest-rerunfailures" },
+    { name = "pytest-xdist" },
+    { name = "syrupy" },
+]
+docs = [
+    { name = "beautifulsoup4" },
+    { name = "json-schema-for-humans" },
+    { name = "mkdocs-material" },
+    { name = "mknodes" },
+]
+lint = [
+    { name = "mypy", extra = ["faster-cache"] },
+    { name = "ruff" },
+    { name = "types-jsonschema" },
+    { name = "types-pygments" },
+    { name = "types-pyyaml" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "ag-ui-protocol", marker = "extra == 'ag-ui'", specifier = ">=0.1.10" },
+    { name = "anyenv", extras = ["httpx"], specifier = ">=0.3.0" },
+    { name = "apprise", marker = "extra == 'notifications'", specifier = ">=1.9.5" },
+    { name = "ast-grep-py", marker = "extra == 'coding'", specifier = ">=0.40.0" },
+    { name = "autoevals", marker = "extra == 'braintrust'" },
+    { name = "braintrust", marker = "extra == 'braintrust'" },
+    { name = "claude-agent-sdk", marker = "extra == 'claude'", specifier = ">=0.1.18" },
+    { name = "clipman", marker = "extra == 'clipboard'" },
+    { name = "composio", marker = "extra == 'composio'" },
+    { name = "docler", specifier = ">=1.0.3" },
+    { name = "docstring-parser", specifier = ">=0.17.0" },
+    { name = "edge-tts", marker = "extra == 'tts-edge'", specifier = ">=7.0.0" },
+    { name = "epregistry" },
+    { name = "evented", specifier = ">=1.0.5" },
+    { name = "evented", extras = ["all"], marker = "extra == 'events'" },
+    { name = "exxec", specifier = ">=0.1.0" },
+    { name = "fasta2a", marker = "extra == 'a2a'" },
+    { name = "fastapi", marker = "extra == 'server'" },
+    { name = "fastmcp", specifier = ">=2.12.4" },
+    { name = "fsspec" },
+    { name = "fsspec", extras = ["git"], marker = "extra == 'git'" },
+    { name = "grep-ast", marker = "extra == 'coding'" },
+    { name = "httpx" },
+    { name = "jinja2" },
+    { name = "jinjarope" },
+    { name = "keyring", marker = "extra == 'oauth'", specifier = ">=25.6.0" },
+    { name = "langfuse", marker = "extra == 'langfuse'" },
+    { name = "llmling-models", specifier = ">=0.2.0" },
+    { name = "logfire" },
+    { name = "logfire", extras = ["fastapi"], marker = "extra == 'server'" },
+    { name = "markitdown", marker = "python_full_version < '3.14' and extra == 'markitdown'" },
+    { name = "mcp", specifier = ">=1.2.0" },
+    { name = "mcpx-py", marker = "extra == 'mcp-run'", specifier = ">=0.7.0" },
+    { name = "miniaudio", marker = "extra == 'tts-edge'", specifier = ">=1.60" },
+    { name = "numpy", marker = "extra == 'tts'", specifier = ">=1.24.0" },
+    { name = "openai", marker = "extra == 'tts'", specifier = ">=1.0.0" },
+    { name = "platformdirs" },
+    { name = "promptantic", specifier = ">=0.4.5" },
+    { name = "promptlayer", marker = "extra == 'promptlayer'" },
+    { name = "psygnal", specifier = ">=0.11.1" },
+    { name = "pydantic", specifier = ">=2.10.0" },
+    { name = "pydantic-ai-slim", specifier = ">=1.0.0" },
+    { name = "pydantic-ai-slim", extras = ["openai", "google", "anthropic", "mistral", "retries"], marker = "extra == 'default'", specifier = ">=1.0.0" },
+    { name = "python-dotenv", specifier = ">=1.0.1" },
+    { name = "rich" },
+    { name = "rustworkx", marker = "extra == 'coding'", specifier = ">=0.17.1" },
+    { name = "schemez", extras = ["codegen"] },
+    { name = "searchly", extras = ["all"], specifier = ">=2.0.1" },
+    { name = "slashed", specifier = ">=0.1.0" },
+    { name = "sounddevice", marker = "extra == 'tts'", specifier = ">=0.5.0" },
+    { name = "sounddevice", marker = "extra == 'tts-edge'", specifier = ">=0.5.0" },
+    { name = "sqlalchemy", extras = ["aiosqlite"] },
+    { name = "sqlmodel", specifier = ">=0.0.22" },
+    { name = "starlette", marker = "extra == 'a2a'" },
+    { name = "structlog", specifier = ">=25.5.0" },
+    { name = "textual", marker = "extra == 'textual'", specifier = ">=1.0.0" },
+    { name = "tiktoken", marker = "extra == 'tiktoken'" },
+    { name = "tokonomics", specifier = ">=0.1.2" },
+    { name = "toprompt", specifier = ">=0.0.1" },
+    { name = "tree-sitter", marker = "extra == 'coding'", specifier = ">=0.25.2" },
+    { name = "tree-sitter-c", marker = "extra == 'coding'", specifier = ">=0.24.1" },
+    { name = "tree-sitter-cpp", marker = "extra == 'coding'", specifier = ">=0.23.0" },
+    { name = "tree-sitter-go", marker = "extra == 'coding'", specifier = ">=0.23.0" },
+    { name = "tree-sitter-javascript", marker = "extra == 'coding'", specifier = ">=0.25.0" },
+    { name = "tree-sitter-json", marker = "extra == 'coding'", specifier = ">=0.24.0" },
+    { name = "tree-sitter-python", marker = "extra == 'coding'", specifier = ">=0.25.0" },
+    { name = "tree-sitter-rust", marker = "extra == 'coding'", specifier = ">=0.23.0" },
+    { name = "tree-sitter-typescript", marker = "extra == 'coding'", specifier = ">=0.23.0" },
+    { name = "tree-sitter-yaml", marker = "extra == 'coding'", specifier = ">=0.6.0" },
+    { name = "typeagent", marker = "extra == 'memory'", specifier = ">=0.3.3" },
+    { name = "typer" },
+    { name = "upathtools", specifier = ">=0.1.0" },
+    { name = "uvicorn", extras = ["standard"], marker = "extra == 'server'" },
+    { name = "yamling", specifier = ">=2.0.2" },
+]
+provides-extras = ["a2a", "ag-ui", "braintrust", "claude", "clipboard", "coding", "composio", "default", "events", "git", "langfuse", "markitdown", "mcp-run", "memory", "notifications", "oauth", "promptlayer", "server", "textual", "tiktoken", "tts", "tts-edge"]
+
+[package.metadata.requires-dev]
+benchmark = [{ name = "pyinstrument" }]
+dev = [
+    { name = "alembic", specifier = ">=1.16.5" },
+    { name = "check-jsonschema", specifier = ">=0.35.0" },
+    { name = "devtools" },
+    { name = "openapi-spec-validator" },
+    { name = "pyinstaller", specifier = ">=6.17.0" },
+    { name = "pyreadline3" },
+    { name = "pytest" },
+    { name = "pytest-asyncio", specifier = ">=0.24.0" },
+    { name = "pytest-cov" },
+    { name = "pytest-rerunfailures", specifier = ">=16.1" },
+    { name = "pytest-xdist" },
+    { name = "syrupy", specifier = ">=4.0.0" },
+]
+docs = [
+    { name = "beautifulsoup4", specifier = ">=4.14.3" },
+    { name = "json-schema-for-humans", specifier = ">=1.0.0" },
+    { name = "mkdocs-material" },
+    { name = "mknodes" },
+]
+lint = [
+    { name = "mypy", extras = ["faster-cache"] },
+    { name = "ruff" },
+    { name = "types-jsonschema", specifier = ">=4.25.1.20251009" },
+    { name = "types-pygments" },
+    { name = "types-pyyaml" },
+]
+
+[[package]]
 name = "aiofile"
 version = "3.9.0"
 source = { registry = "https://pypi.org/simple" }
@@ -2319,7 +2587,7 @@ wheels = [
 [[package]]
 name = "llmling-agent"
 version = "1.16.2"
-source = { editable = "." }
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyenv", extra = ["httpx"] },
     { name = "docler" },
@@ -2354,234 +2622,14 @@ dependencies = [
     { name = "upathtools" },
     { name = "yamling" },
 ]
+sdist = { url = "https://files.pythonhosted.org/packages/79/82/d40aa3b626380367f7074f6ab148936f85ef1c8cd959e44077e151d0d11f/llmling_agent-1.16.2.tar.gz", hash = "sha256:1ed30eefe674a8a555900dbdc2154714ce9c4e14fe994c722d349758124622a6", size = 544394, upload-time = "2025-12-20T11:04:03.018Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/09/86/b3f23fe20f97086dd38da399b391d712cb3b1fe0b6a2df8168512e63a951/llmling_agent-1.16.2-py3-none-any.whl", hash = "sha256:de6b7b948c3d9760fa1ff62e9b5f542645432d708e8252c5408ab761074e5eb3", size = 764682, upload-time = "2025-12-20T11:04:00.592Z" },
+]
 
 [package.optional-dependencies]
-a2a = [
-    { name = "fasta2a" },
-    { name = "starlette" },
-]
-ag-ui = [
-    { name = "ag-ui-protocol" },
-]
-braintrust = [
-    { name = "autoevals" },
-    { name = "braintrust" },
-]
-claude = [
-    { name = "claude-agent-sdk" },
-]
-clipboard = [
-    { name = "clipman" },
-]
-coding = [
-    { name = "ast-grep-py" },
-    { name = "grep-ast" },
-    { name = "rustworkx" },
-    { name = "tree-sitter" },
-    { name = "tree-sitter-c" },
-    { name = "tree-sitter-cpp" },
-    { name = "tree-sitter-go" },
-    { name = "tree-sitter-javascript" },
-    { name = "tree-sitter-json" },
-    { name = "tree-sitter-python" },
-    { name = "tree-sitter-rust" },
-    { name = "tree-sitter-typescript" },
-    { name = "tree-sitter-yaml" },
-]
-composio = [
-    { name = "composio" },
-]
 default = [
     { name = "pydantic-ai-slim", extra = ["anthropic", "google", "mistral", "openai", "retries"] },
-]
-events = [
-    { name = "evented", extra = ["all"] },
-]
-git = [
-    { name = "fsspec", extra = ["git"] },
-]
-langfuse = [
-    { name = "langfuse" },
-]
-markitdown = [
-    { name = "markitdown", marker = "python_full_version < '3.14'" },
-]
-mcp-run = [
-    { name = "mcpx-py" },
-]
-memory = [
-    { name = "typeagent" },
-]
-notifications = [
-    { name = "apprise" },
-]
-oauth = [
-    { name = "keyring" },
-]
-promptlayer = [
-    { name = "promptlayer" },
-]
-server = [
-    { name = "fastapi" },
-    { name = "logfire", extra = ["fastapi"] },
-    { name = "uvicorn", extra = ["standard"] },
-]
-textual = [
-    { name = "textual" },
-]
-tiktoken = [
-    { name = "tiktoken" },
-]
-tts = [
-    { name = "numpy" },
-    { name = "openai" },
-    { name = "sounddevice" },
-]
-tts-edge = [
-    { name = "edge-tts" },
-    { name = "miniaudio" },
-    { name = "sounddevice" },
-]
-
-[package.dev-dependencies]
-benchmark = [
-    { name = "pyinstrument" },
-]
-dev = [
-    { name = "alembic" },
-    { name = "check-jsonschema" },
-    { name = "devtools" },
-    { name = "openapi-spec-validator" },
-    { name = "pyinstaller" },
-    { name = "pyreadline3" },
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-    { name = "pytest-cov" },
-    { name = "pytest-rerunfailures" },
-    { name = "pytest-xdist" },
-    { name = "syrupy" },
-]
-docs = [
-    { name = "beautifulsoup4" },
-    { name = "json-schema-for-humans" },
-    { name = "mkdocs-material" },
-    { name = "mknodes" },
-]
-lint = [
-    { name = "mypy", extra = ["faster-cache"] },
-    { name = "ruff" },
-    { name = "types-jsonschema" },
-    { name = "types-pygments" },
-    { name = "types-pyyaml" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "ag-ui-protocol", marker = "extra == 'ag-ui'", specifier = ">=0.1.10" },
-    { name = "anyenv", extras = ["httpx"], specifier = ">=0.3.0" },
-    { name = "apprise", marker = "extra == 'notifications'", specifier = ">=1.9.5" },
-    { name = "ast-grep-py", marker = "extra == 'coding'", specifier = ">=0.40.0" },
-    { name = "autoevals", marker = "extra == 'braintrust'" },
-    { name = "braintrust", marker = "extra == 'braintrust'" },
-    { name = "claude-agent-sdk", marker = "extra == 'claude'", specifier = ">=0.1.18" },
-    { name = "clipman", marker = "extra == 'clipboard'" },
-    { name = "composio", marker = "extra == 'composio'" },
-    { name = "docler", specifier = ">=1.0.3" },
-    { name = "docstring-parser", specifier = ">=0.17.0" },
-    { name = "edge-tts", marker = "extra == 'tts-edge'", specifier = ">=7.0.0" },
-    { name = "epregistry" },
-    { name = "evented", specifier = ">=1.0.5" },
-    { name = "evented", extras = ["all"], marker = "extra == 'events'" },
-    { name = "exxec", specifier = ">=0.1.0" },
-    { name = "fasta2a", marker = "extra == 'a2a'" },
-    { name = "fastapi", marker = "extra == 'server'" },
-    { name = "fastmcp", specifier = ">=2.12.4" },
-    { name = "fsspec" },
-    { name = "fsspec", extras = ["git"], marker = "extra == 'git'" },
-    { name = "grep-ast", marker = "extra == 'coding'" },
-    { name = "httpx" },
-    { name = "jinja2" },
-    { name = "jinjarope" },
-    { name = "keyring", marker = "extra == 'oauth'", specifier = ">=25.6.0" },
-    { name = "langfuse", marker = "extra == 'langfuse'" },
-    { name = "llmling-models", specifier = ">=0.2.0" },
-    { name = "logfire" },
-    { name = "logfire", extras = ["fastapi"], marker = "extra == 'server'" },
-    { name = "markitdown", marker = "python_full_version < '3.14' and extra == 'markitdown'" },
-    { name = "mcp", specifier = ">=1.2.0" },
-    { name = "mcpx-py", marker = "extra == 'mcp-run'", specifier = ">=0.7.0" },
-    { name = "miniaudio", marker = "extra == 'tts-edge'", specifier = ">=1.60" },
-    { name = "numpy", marker = "extra == 'tts'", specifier = ">=1.24.0" },
-    { name = "openai", marker = "extra == 'tts'", specifier = ">=1.0.0" },
-    { name = "platformdirs" },
-    { name = "promptantic", specifier = ">=0.4.5" },
-    { name = "promptlayer", marker = "extra == 'promptlayer'" },
-    { name = "psygnal", specifier = ">=0.11.1" },
-    { name = "pydantic", specifier = ">=2.10.0" },
-    { name = "pydantic-ai-slim", specifier = ">=1.0.0" },
-    { name = "pydantic-ai-slim", extras = ["openai", "google", "anthropic", "mistral", "retries"], marker = "extra == 'default'", specifier = ">=1.0.0" },
-    { name = "python-dotenv", specifier = ">=1.0.1" },
-    { name = "rich" },
-    { name = "rustworkx", marker = "extra == 'coding'", specifier = ">=0.17.1" },
-    { name = "schemez", extras = ["codegen"] },
-    { name = "searchly", extras = ["all"], specifier = ">=2.0.1" },
-    { name = "slashed", specifier = ">=0.1.0" },
-    { name = "sounddevice", marker = "extra == 'tts'", specifier = ">=0.5.0" },
-    { name = "sounddevice", marker = "extra == 'tts-edge'", specifier = ">=0.5.0" },
-    { name = "sqlalchemy", extras = ["aiosqlite"] },
-    { name = "sqlmodel", specifier = ">=0.0.22" },
-    { name = "starlette", marker = "extra == 'a2a'" },
-    { name = "structlog", specifier = ">=25.5.0" },
-    { name = "textual", marker = "extra == 'textual'", specifier = ">=1.0.0" },
-    { name = "tiktoken", marker = "extra == 'tiktoken'" },
-    { name = "tokonomics", specifier = ">=0.1.2" },
-    { name = "toprompt", specifier = ">=0.0.1" },
-    { name = "tree-sitter", marker = "extra == 'coding'", specifier = ">=0.25.2" },
-    { name = "tree-sitter-c", marker = "extra == 'coding'", specifier = ">=0.24.1" },
-    { name = "tree-sitter-cpp", marker = "extra == 'coding'", specifier = ">=0.23.0" },
-    { name = "tree-sitter-go", marker = "extra == 'coding'", specifier = ">=0.23.0" },
-    { name = "tree-sitter-javascript", marker = "extra == 'coding'", specifier = ">=0.25.0" },
-    { name = "tree-sitter-json", marker = "extra == 'coding'", specifier = ">=0.24.0" },
-    { name = "tree-sitter-python", marker = "extra == 'coding'", specifier = ">=0.25.0" },
-    { name = "tree-sitter-rust", marker = "extra == 'coding'", specifier = ">=0.23.0" },
-    { name = "tree-sitter-typescript", marker = "extra == 'coding'", specifier = ">=0.23.0" },
-    { name = "tree-sitter-yaml", marker = "extra == 'coding'", specifier = ">=0.6.0" },
-    { name = "typeagent", marker = "extra == 'memory'", specifier = ">=0.3.3" },
-    { name = "typer" },
-    { name = "upathtools", specifier = ">=0.1.0" },
-    { name = "uvicorn", extras = ["standard"], marker = "extra == 'server'" },
-    { name = "yamling", specifier = ">=2.0.2" },
-]
-provides-extras = ["a2a", "ag-ui", "braintrust", "claude", "clipboard", "coding", "composio", "default", "events", "git", "langfuse", "markitdown", "mcp-run", "memory", "notifications", "oauth", "promptlayer", "server", "textual", "tiktoken", "tts", "tts-edge"]
-
-[package.metadata.requires-dev]
-benchmark = [{ name = "pyinstrument" }]
-dev = [
-    { name = "alembic", specifier = ">=1.16.5" },
-    { name = "check-jsonschema", specifier = ">=0.35.0" },
-    { name = "devtools" },
-    { name = "openapi-spec-validator" },
-    { name = "pyinstaller", specifier = ">=6.17.0" },
-    { name = "pyreadline3" },
-    { name = "pytest" },
-    { name = "pytest-asyncio", specifier = ">=0.24.0" },
-    { name = "pytest-cov" },
-    { name = "pytest-rerunfailures", specifier = ">=16.1" },
-    { name = "pytest-xdist" },
-    { name = "syrupy", specifier = ">=4.0.0" },
-]
-docs = [
-    { name = "beautifulsoup4", specifier = ">=4.14.3" },
-    { name = "json-schema-for-humans", specifier = ">=1.0.0" },
-    { name = "mkdocs-material" },
-    { name = "mknodes" },
-]
-lint = [
-    { name = "mypy", extras = ["faster-cache"] },
-    { name = "ruff" },
-    { name = "types-jsonschema", specifier = ">=4.25.1.20251009" },
-    { name = "types-pygments" },
-    { name = "types-pyyaml" },
 ]
 
 [[package]]

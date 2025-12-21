@@ -15,7 +15,7 @@ First-class support for the Agent Client Protocol (ACP):
 [step_2]
 label = "Easy Agent Configuration"
 content = """
-LLMling-agent excels at static YAML-based agent configuration:
+AgentPool excels at static YAML-based agent configuration:
 
 - Define agents with unprecedented detail in pure YAML (Pydantic-backed)
 - Expansive JSON schema for IDE autocompletion and validation

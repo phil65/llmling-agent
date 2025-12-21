@@ -33,7 +33,7 @@ from acp.schema import (
 from acp.schema.tool_call import ToolCallLocation
 from acp.tool_call_reporter import ToolCallReporter
 from acp.utils import generate_tool_title, infer_tool_kind, to_acp_content_blocks
-from llmling_agent.log import get_logger
+from agentpool.log import get_logger
 
 
 if TYPE_CHECKING:

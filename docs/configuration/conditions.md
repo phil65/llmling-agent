@@ -2,7 +2,7 @@
 sync:
   agent: doc_sync_agent
   dependencies:
-    - src/llmling_agent_config/conditions.py
+    - src/agentpool_config/conditions.py
 title: Conditions
 description: Conditional logic for message flow and lifecycle control
 icon: material/source-branch
@@ -18,7 +18,7 @@ Conditions can be used at three control levels:
 - **Stop Condition**: Triggers disconnection of a specific connection
 - **Exit Condition**: Stops the entire process (raises SystemExit)
 
-LLMling-Agent supports various condition types:
+AgentPool supports various condition types:
 
 - **Word Match**: Check for specific words or phrases in messages
 - **Message Count**: Control based on number of messages processed
@@ -32,7 +32,7 @@ LLMling-Agent supports various condition types:
 ## Configuration Reference
 
 /// mknodes
-{{ "llmling_agent_config.conditions.Condition" | union_to_markdown(display_mode="yaml", header_style="pymdownx") }}
+{{ "agentpool_config.conditions.Condition" | union_to_markdown(display_mode="yaml", header_style="pymdownx") }}
 ///
 
 ## Control Levels

@@ -1,6 +1,6 @@
 ---
 title: Basic Concepts
-description: Core concepts and architecture overview of LLMling-Agent
+description: Core concepts and architecture overview of AgentPool
 icon: material/book
 ---
 
@@ -8,11 +8,11 @@ icon: material/book
 
 ## Node Hierarchy
 
-LLMling-agent uses a unified **node** abstraction for all message-processing entities. This enables seamless composition and communication between different types of agents.
+AgentPool uses a unified **node** abstraction for all message-processing entities. This enables seamless composition and communication between different types of agents.
 
 
 ````python exec="true"
-from llmling_agent.messaging import MessageNode
+from agentpool.messaging import MessageNode
 node = mk.MkClassDiagram(MessageNode, mode="subclasses")
 print(node)
 ````
@@ -76,7 +76,7 @@ The unified node model means you can:
 
 ### Configuration and YAML
 
-LLMling-agent excels at static definition of agents using a YAML configuration:
+AgentPool excels at static definition of agents using a YAML configuration:
 
 ```yaml
 # agents.yml (AgentsManifest)
@@ -105,7 +105,7 @@ It is possible to:
 - Assign agents to other agents for agent-as-a-tool-usage
 
 
-LLMling-Agent is built around the idea that AI agents should be:
+AgentPool is built around the idea that AI agents should be:
 
 - Easily configurable through YAML
 - Fully reproducible

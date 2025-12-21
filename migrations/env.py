@@ -10,7 +10,7 @@ from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import async_engine_from_config
 from sqlmodel import SQLModel
 
-from llmling_agent_storage.sql_provider.models import *  # noqa: F403
+from agentpool_storage.sql_provider.models import *  # noqa: F403
 
 
 if TYPE_CHECKING:
@@ -32,7 +32,7 @@ target_metadata = SQLModel.metadata
 
 # Set database URL from environment variable if available
 if not config.get_main_option("sqlalchemy.url"):
-    database_url = os.getenv("DATABASE_URL", "sqlite:///./llmling_agent.db")
+    database_url = os.getenv("DATABASE_URL", "sqlite:///./agentpool.db")
     config.set_main_option("sqlalchemy.url", database_url)
 
 

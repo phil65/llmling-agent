@@ -14,7 +14,7 @@ and IDE support for YAML linters by providing an extensive, detailed schema.
 Here's the complete manifest structure with all available top-level sections:
 
 /// mknodes
-{{ "llmling_agent.AgentsManifest" | schema_to_markdown(display_mode="yaml", header_style="pymdownx", as_listitem=False) }}
+{{ "agentpool.AgentsManifest" | schema_to_markdown(display_mode="yaml", header_style="pymdownx", as_listitem=False) }}
 ///
 
 ## Top-Level Sections
@@ -108,14 +108,14 @@ The manifest supports YAML inheritance using the `INHERIT` key at the top level,
     ```
 
 
-LLMling-Agent supports UPaths (universal-pathlib) for `INHERIT`, allowing pointing to remote configurations (`http://path/to/config.yml`).
+AgentPool supports UPaths (universal-pathlib) for `INHERIT`, allowing pointing to remote configurations (`http://path/to/config.yml`).
 
 ## Schema Validation
 
 You can get IDE linter support by adding this line at the top of your YAML:
 
 ```yaml
-# yaml-language-server: $schema=https://raw.githubusercontent.com/phil65/llmling-agent/refs/heads/main/schema/config-schema.json
+# yaml-language-server: $schema=https://raw.githubusercontent.com/phil65/agentpool/refs/heads/main/schema/config-schema.json
 ```
 
 !!! note
@@ -126,7 +126,7 @@ You can get IDE linter support by adding this line at the top of your YAML:
 Load a manifest in your code:
 
 ```python
-from llmling_agent import AgentPool
+from agentpool import AgentPool
 
 async with AgentPool("agents.yml") as pool:
     agent = pool.get_agent("analyzer")

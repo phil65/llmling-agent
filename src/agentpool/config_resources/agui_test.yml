@@ -1,0 +1,18 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/phil65/agentpool/refs/heads/main/schema/config-schema.json
+#
+# Test configuration for AG-UI agent.
+#
+# Usage:
+#   from agentpool import AgentPool
+#   async with AgentPool("src/agentpool/config_resources/agui_test.yml") as pool:
+#       agent = pool.get_agent("test_agui")
+#       result = await agent.run("Hello!")
+
+agents:
+  test_agui:
+    type: agui
+    endpoint: http://127.0.0.1:8765/agent/run
+    description: "AG-UI test client with auto-started server"
+    startup_command: "uv run python tests/test_server_agui.py --port 8765 --with-tools"
+    startup_delay: 3.0
+    timeout: 60.0

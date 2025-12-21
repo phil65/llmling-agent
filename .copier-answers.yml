@@ -4,19 +4,18 @@ _src_path: https://github.com/phil65/copier-phil65.git
 author_email: philipptemminghoff@googlemail.com
 author_fullname: Philipp Temminghoff
 author_username: phil65
-copyright_date: '2025'
+copyright_date: "2025"
 copyright_holder: Philipp Temminghoff
 copyright_holder_email: philipptemminghoff@googlemail.com
 libraries_use_pydantic: true
 libraries_use_qt: false
 project_description: Pydantic-AI based Multi-Agent Framework with YAML-based Agents,
-    Teams, Workflows & Extended ACP / AGUI integration
-project_name: LLMling-Agent
-python_minimum_version: '3.13'
-python_package_command_line_name: llmling-agent
-python_package_distribution_name: llmling-agent
-python_package_import_name: llmling_agent
-repository_name: llmling-agent
+  Teams, Workflows & Extended ACP / AGUI integration
+project_name: AgentPool
+python_minimum_version: "3.13"
+python_package_command_line_name: agentpool
+python_package_distribution_name: agentpool
+python_package_import_name: agentpool
+repository_name: agentpool
 repository_namespace: phil65
 repository_provider: github.com
-

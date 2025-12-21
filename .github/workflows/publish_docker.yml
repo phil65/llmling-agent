@@ -33,7 +33,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository }}/llmling-agent
+          images: ghcr.io/${{ github.repository }}/agentpool
           tags: |
             type=semver,pattern={{version}}
             type=ref,event=branch

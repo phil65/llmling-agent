@@ -39,7 +39,7 @@ Each tool supports these options:
 ## Configuration Reference
 
 /// mknodes
-{{ "llmling_agent_config.toolsets.ImportToolsToolsetConfig" | schema_to_markdown(display_mode="yaml", header_style="pymdownx", wrapped_in="toolsets") }}
+{{ "agentpool_config.toolsets.ImportToolsToolsetConfig" | schema_to_markdown(display_mode="yaml", header_style="pymdownx", wrapped_in="toolsets") }}
 ///
 
 ## Use Cases

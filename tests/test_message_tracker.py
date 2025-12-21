@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from llmling_agent import AgentPool
+from agentpool import AgentPool
 
 
 async def test_simple_sequential_chain():

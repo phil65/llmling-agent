@@ -9,10 +9,10 @@ import asyncio
 
 from exxec.configs import LocalExecutionEnvironmentConfig
 
-from llmling_agent.resource_providers.codemode.remote_mcp_execution import (
+from agentpool.resource_providers.codemode.remote_mcp_execution import (
     RemoteMCPExecutor,
 )
-from llmling_agent.tools.base import Tool
+from agentpool.tools.base import Tool
 
 
 def add_numbers(x: int, y: int) -> int:

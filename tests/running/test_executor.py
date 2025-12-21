@@ -5,9 +5,9 @@ from typing import Any
 
 import pytest
 
-from llmling_agent import Agent  # noqa: TC001
-from llmling_agent.running.discovery import node_function
-from llmling_agent.running.executor import (
+from agentpool import Agent  # noqa: TC001
+from agentpool.running.discovery import node_function
+from agentpool.running.executor import (
     ExecutionError,
     _group_parallel,
     _sort_functions,

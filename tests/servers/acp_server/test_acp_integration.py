@@ -10,10 +10,10 @@ import pytest
 from acp import ClientCapabilities
 
 # Add another agent to the pool for switching
-from llmling_agent import Agent
-from llmling_agent.delegation import AgentPool
-from llmling_agent_server.acp_server import ACPServer
-from llmling_agent_server.acp_server.session import ACPSession
+from agentpool import Agent
+from agentpool.delegation import AgentPool
+from agentpool_server.acp_server import ACPServer
+from agentpool_server.acp_server.session import ACPSession
 
 
 @pytest.fixture

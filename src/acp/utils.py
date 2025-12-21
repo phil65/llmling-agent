@@ -16,7 +16,7 @@ from acp.schema import (
     ResourceContentBlock,
     TextContentBlock,
 )
-from llmling_agent.log import get_logger
+from agentpool.log import get_logger
 
 
 if TYPE_CHECKING:

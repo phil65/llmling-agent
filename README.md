@@ -1,27 +1,27 @@
-# LLMling-Agent
+# AgentPool
 
-[![PyPI License](https://img.shields.io/pypi/l/llmling-agent.svg)](https://pypi.org/project/llmling-agent/)
-[![Package status](https://img.shields.io/pypi/status/llmling-agent.svg)](https://pypi.org/project/llmling-agent/)
-[![Monthly downloads](https://img.shields.io/pypi/dm/llmling-agent.svg)](https://pypi.org/project/llmling-agent/)
-[![Distribution format](https://img.shields.io/pypi/format/llmling-agent.svg)](https://pypi.org/project/llmling-agent/)
-[![Wheel availability](https://img.shields.io/pypi/wheel/llmling-agent.svg)](https://pypi.org/project/llmling-agent/)
-[![Python version](https://img.shields.io/pypi/pyversions/llmling-agent.svg)](https://pypi.org/project/llmling-agent/)
-[![Implementation](https://img.shields.io/pypi/implementation/llmling-agent.svg)](https://pypi.org/project/llmling-agent/)
-[![Releases](https://img.shields.io/github/downloads/phil65/llmling-agent/total.svg)](https://github.com/phil65/llmling-agent/releases)
-[![Github Contributors](https://img.shields.io/github/contributors/phil65/llmling-agent)](https://github.com/phil65/llmling-agent/graphs/contributors)
-[![Github Discussions](https://img.shields.io/github/discussions/phil65/llmling-agent)](https://github.com/phil65/llmling-agent/discussions)
-[![Github Forks](https://img.shields.io/github/forks/phil65/llmling-agent)](https://github.com/phil65/llmling-agent/forks)
-[![Github Issues](https://img.shields.io/github/issues/phil65/llmling-agent)](https://github.com/phil65/llmling-agent/issues)
-[![Github Watchers](https://img.shields.io/github/watchers/phil65/llmling-agent)](https://github.com/phil65/llmling-agent/watchers)
-[![Github Stars](https://img.shields.io/github/stars/phil65/llmling-agent)](https://github.com/phil65/llmling-agent/stars)
-[![Github last commit](https://img.shields.io/github/last-commit/phil65/llmling-agent)](https://github.com/phil65/llmling-agent/commits)
-[![Github release date](https://img.shields.io/github/release-date/phil65/llmling-agent)](https://github.com/phil65/llmling-agent/releases)
-[![Github language count](https://img.shields.io/github/languages/count/phil65/llmling-agent)](https://github.com/phil65/llmling-agent)
-[![Github commits this year](https://img.shields.io/github/commit-activity/y/phil65/llmling-agent)](https://github.com/phil65/llmling-agent)
-[![Package status](https://codecov.io/gh/phil65/llmling-agent/branch/main/graph/badge.svg)](https://codecov.io/gh/phil65/llmling-agent/)
-[![PyUp](https://pyup.io/repos/github/phil65/llmling-agent/shield.svg)](https://pyup.io/repos/github/phil65/llmling-agent/)
+[![PyPI License](https://img.shields.io/pypi/l/agentpool.svg)](https://pypi.org/project/agentpool/)
+[![Package status](https://img.shields.io/pypi/status/agentpool.svg)](https://pypi.org/project/agentpool/)
+[![Monthly downloads](https://img.shields.io/pypi/dm/agentpool.svg)](https://pypi.org/project/agentpool/)
+[![Distribution format](https://img.shields.io/pypi/format/agentpool.svg)](https://pypi.org/project/agentpool/)
+[![Wheel availability](https://img.shields.io/pypi/wheel/agentpool.svg)](https://pypi.org/project/agentpool/)
+[![Python version](https://img.shields.io/pypi/pyversions/agentpool.svg)](https://pypi.org/project/agentpool/)
+[![Implementation](https://img.shields.io/pypi/implementation/agentpool.svg)](https://pypi.org/project/agentpool/)
+[![Releases](https://img.shields.io/github/downloads/phil65/agentpool/total.svg)](https://github.com/phil65/agentpool/releases)
+[![Github Contributors](https://img.shields.io/github/contributors/phil65/agentpool)](https://github.com/phil65/agentpool/graphs/contributors)
+[![Github Discussions](https://img.shields.io/github/discussions/phil65/agentpool)](https://github.com/phil65/agentpool/discussions)
+[![Github Forks](https://img.shields.io/github/forks/phil65/agentpool)](https://github.com/phil65/agentpool/forks)
+[![Github Issues](https://img.shields.io/github/issues/phil65/agentpool)](https://github.com/phil65/agentpool/issues)
+[![Github Watchers](https://img.shields.io/github/watchers/phil65/agentpool)](https://github.com/phil65/agentpool/watchers)
+[![Github Stars](https://img.shields.io/github/stars/phil65/agentpool)](https://github.com/phil65/agentpool/stars)
+[![Github last commit](https://img.shields.io/github/last-commit/phil65/agentpool)](https://github.com/phil65/agentpool/commits)
+[![Github release date](https://img.shields.io/github/release-date/phil65/agentpool)](https://github.com/phil65/agentpool/releases)
+[![Github language count](https://img.shields.io/github/languages/count/phil65/agentpool)](https://github.com/phil65/agentpool)
+[![Github commits this year](https://img.shields.io/github/commit-activity/y/phil65/agentpool)](https://github.com/phil65/agentpool)
+[![Package status](https://codecov.io/gh/phil65/agentpool/branch/main/graph/badge.svg)](https://codecov.io/gh/phil65/agentpool/)
+[![PyUp](https://pyup.io/repos/github/phil65/agentpool/shield.svg)](https://pyup.io/repos/github/phil65/agentpool/)
 
-### [Read the documentation!](https://phil65.github.io/llmling-agent/)
+### [Read the documentation!](https://phil65.github.io/agentpool/)
 
 # 🚀 Getting Started
 
@@ -45,16 +45,16 @@ LLMling Agent is a framework for creating and managing LLM-powered agents. It in
 
 The fastest way to start chatting with an AI:
 
-llmling-agent supports the Agent Client Protocol for seamless integration with desktop applications and IDEs. Run your agents as ACP servers to enable bidirectional communication, session management, and file operations through JSON-RPC 2.0 over stdio.
+agentpool supports the Agent Client Protocol for seamless integration with desktop applications and IDEs. Run your agents as ACP servers to enable bidirectional communication, session management, and file operations through JSON-RPC 2.0 over stdio.
 
 *The recommended client is Zed IDE (& soon Toad, a python client based on Textual)*
 
 ```bash
 # Start ACP server
-llmling-agent[default,coding] serve-acp [path/to/config.yml]
+agentpool[default,coding] serve-acp [path/to/config.yml]
 ```
 
-Compatible with ACP-enabled Clients like Zed. See the [ACP Integration documentation](https://phil65.github.io/llmling-agent/advanced/acp_integration/) for setup instructions.
+Compatible with ACP-enabled Clients like Zed. See the [ACP Integration documentation](https://phil65.github.io/agentpool/advanced/acp_integration/) for setup instructions.
 
 Run `/help` in the chat to see what commands are at your disposal.
 
@@ -221,13 +221,13 @@ You can use an Agents manifest in multiple ways:
 - Run it using the CLI
 
 ```bash
-llmling-agent run --config agents.yml my_agent "Some prompt"
+agentpool run --config agents.yml my_agent "Some prompt"
 ```
 
 - Start *watch mode* and only react to triggers
 
 ```bash
-llmling-agent watch --config agents.yml
+agentpool watch --config agents.yml
 ```
 
 
@@ -264,7 +264,7 @@ agents:
 Programmatic Usage:
 
 ```python
-from llmling_agent.delegation import AgentPool
+from agentpool.delegation import AgentPool
 
 async def main():
     async with AgentPool("agents.yml") as pool:
@@ -313,7 +313,7 @@ async with AgentPool("agents.yml") as pool:
     result = await claude.run("Refactor this code")
 ```
 
-See the [ACP Integration documentation](https://phil65.github.io/llmling-agent/advanced/acp_integration/#external-acp-agents) for supported agents and configuration options.
+See the [ACP Integration documentation](https://phil65.github.io/agentpool/advanced/acp_integration/#external-acp-agents) for supported agents and configuration options.
 
 
 The framework provides three types of message nodes:
@@ -488,7 +488,7 @@ You can also use LLMling-models for more sophisticated human-in-the-loop integra
 Handle images and PDFs alongside text (depends on provider / model support)
 
 ```python
-from llmling_agent import Agent
+from agentpool import Agent
 
 async with Agent(...) as agent:
     result = await agent.run("What's in this image?", pathlib.Path("image.jpg"))
@@ -516,12 +516,12 @@ Information can get fetched  via CLI.
 
 ```bash
 # View recent conversations
-llmling-agent history show
-llmling-agent history show --period 24h  # Last 24 hours
-llmling-agent history show --query "database"  # Search content
+agentpool history show
+agentpool history show --period 24h  # Last 24 hours
+agentpool history show --query "database"  # Search content
 
 # View usage statistics
-llmling-agent history stats  # Basic stats
-llmling-agent history stats --group-by model  # Model usage
-llmling-agent history stats --group-by day    # Daily breakdown
+agentpool history stats  # Basic stats
+agentpool history stats --group-by model  # Model usage
+agentpool history stats --group-by day    # Daily breakdown
 ```

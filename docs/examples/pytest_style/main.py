@@ -1,5 +1,5 @@
 # /// script
-# dependencies = ["llmling-agent"]
+# dependencies = ["agentpool"]
 # ///
 
 
@@ -18,12 +18,12 @@ from __future__ import annotations
 import os
 from typing import TYPE_CHECKING
 
-from llmling_agent.docs.utils import get_config_path, is_pyodide, run
-from llmling_agent.running import node_function, run_nodes_async
+from agentpool.docs.utils import get_config_path, is_pyodide, run
+from agentpool.running import node_function, run_nodes_async
 
 
 if TYPE_CHECKING:
-    from llmling_agent import Agent
+    from agentpool import Agent
 
 # set your OpenAI API key here
 os.environ["OPENAI_API_KEY"] = os.environ.get("OPENAI_API_KEY", "your_api_key_here")

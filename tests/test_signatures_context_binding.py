@@ -5,9 +5,9 @@ from typing import TypeVar
 
 import pytest
 
-from llmling_agent import Agent
-from llmling_agent.agents.context import AgentContext
-from llmling_agent.utils.signatures import create_bound_callable
+from agentpool import Agent
+from agentpool.agents.context import AgentContext
+from agentpool.utils.signatures import create_bound_callable
 
 
 # Mock RunContext for testing
@@ -71,8 +71,8 @@ class TestContextBoundCallable:
     @pytest.fixture
     def mock_agent_context(self):
         """Create a mock AgentContext for testing."""
-        from llmling_agent.models.agents import NativeAgentConfig
-        from llmling_agent.models.manifest import AgentsManifest
+        from agentpool.models.agents import NativeAgentConfig
+        from agentpool.models.manifest import AgentsManifest
 
         # Create minimal config objects
         config = NativeAgentConfig(name="test_agent")
@@ -186,9 +186,9 @@ class TestCodeModeIntegration:
     @pytest.fixture
     def mock_agent_context(self):
         """Create a mock AgentContext for testing."""
-        from llmling_agent.models.agents import NativeAgentConfig
-        from llmling_agent.models.manifest import AgentsManifest
-        from llmling_agent_config.nodes import NodeConfig
+        from agentpool.models.agents import NativeAgentConfig
+        from agentpool.models.manifest import AgentsManifest
+        from agentpool_config.nodes import NodeConfig
 
         # Create minimal config objects
         config = NativeAgentConfig(name="test_agent")
@@ -328,7 +328,7 @@ class TestCodeModeIntegration:
 
         with (
             patch(
-                "llmling_agent.utils.signatures.inspect.signature",
+                "agentpool.utils.signatures.inspect.signature",
                 side_effect=ValueError("no signature"),
             ),
             pytest.raises(ValueError, match="Cannot inspect signature"),

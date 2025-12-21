@@ -2,7 +2,7 @@
 sync:
   agent: doc_sync_agent
   dependencies:
-    - src/llmling_agent_config/teams.py
+    - src/agentpool_config/teams.py
 title: Teams
 description: Team configuration and setup
 icon: lucide/users
@@ -10,7 +10,7 @@ icon: lucide/users
 
 # Team Configuration
 
-Teams and sequential chains in LLMling-agent allow you to create sophisticated message flows by composing message nodes. Any node (Agent, Team, or TeamRun) can be part of a team or chain, allowing for arbitrarily complex nested structures.
+Teams and sequential chains in AgentPool allow you to create sophisticated message flows by composing message nodes. Any node (Agent, Team, or TeamRun) can be part of a team or chain, allowing for arbitrarily complex nested structures.
 
 ## Example Configuration
 

@@ -5,11 +5,11 @@ from typing import TYPE_CHECKING, Any
 from pydantic_ai.models.test import TestModel
 import pytest
 
-from llmling_agent import Agent
+from agentpool import Agent
 
 
 if TYPE_CHECKING:
-    from llmling_agent import ChatMessage
+    from agentpool import ChatMessage
 
 
 async def test_message_chain():

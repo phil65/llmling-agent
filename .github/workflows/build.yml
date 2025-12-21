@@ -50,7 +50,7 @@ jobs:
       - name: Run tests
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: uv run --no-group docs pytest --cov-report=xml --cov=src/llmling_agent/ --cov-report=term-missing
+        run: uv run --no-group docs pytest --cov-report=xml --cov=src/agentpool/ --cov-report=term-missing
 
       - name: Upload test results to Codecov
         uses: codecov/codecov-action@v5
@@ -139,7 +139,7 @@ jobs:
         run: uv sync --all-extras
 
       - name: Build with PyInstaller
-        run: uv run pyinstaller llmling-agent.spec
+        run: uv run pyinstaller agentpool.spec
 
       - name: Get package version (Unix)
         id: get_version_unix
@@ -160,23 +160,23 @@ jobs:
         if: ${{ matrix.os != 'windows' }}
         run: |
           cd dist
-          zip llmling-agent-${{ matrix.os }}-${{ matrix.arch }}-${{ steps.get_version_unix.outputs.version }}.zip llmling-agent
+          zip agentpool-${{ matrix.os }}-${{ matrix.arch }}-${{ steps.get_version_unix.outputs.version }}.zip agentpool
 
       - name: Zip binary (Windows)
         if: ${{ matrix.os == 'windows' }}
         shell: pwsh
         run: |
           cd dist
-          Compress-Archive -Path llmling-agent.exe -DestinationPath llmling-agent-${{ matrix.os }}-${{ matrix.arch }}-${{ steps.get_version_windows.outputs.version }}.zip
+          Compress-Archive -Path agentpool.exe -DestinationPath agentpool-${{ matrix.os }}-${{ matrix.arch }}-${{ steps.get_version_windows.outputs.version }}.zip
 
       - name: Upload binary to release (Unix)
         if: ${{ matrix.os != 'windows' }}
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/llmling-agent-${{ matrix.os }}-${{ matrix.arch }}-${{ steps.get_version_unix.outputs.version }}.zip
+          files: dist/agentpool-${{ matrix.os }}-${{ matrix.arch }}-${{ steps.get_version_unix.outputs.version }}.zip
 
       - name: Upload binary to release (Windows)
         if: ${{ matrix.os == 'windows' }}
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/llmling-agent-${{ matrix.os }}-${{ matrix.arch }}-${{ steps.get_version_windows.outputs.version }}.zip
+          files: dist/agentpool-${{ matrix.os }}-${{ matrix.arch }}-${{ steps.get_version_windows.outputs.version }}.zip

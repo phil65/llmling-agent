@@ -499,7 +499,7 @@
     },
     "AGUIAgentConfig": {
       "additionalProperties": false,
-      "description": "Configuration for AG-UI protocol agents.\n\nAG-UI agents connect to remote HTTP endpoints that implement the AG-UI protocol,\nenabling integration of any AG-UI compatible server into the llmling-agent pool.\n\nExample:\n    ```yaml\n    agents:\n      remote_assistant:\n        type: agui\n        endpoint: http://localhost:8000/agent/run\n        timeout: 30.0\n        headers:\n          X-API-Key: ${API_KEY}\n        tools:\n          - import_path: mymodule.my_tool_function\n\n      managed_agent:\n        endpoint: http://localhost:8765/agent/run\n        startup_command: \"uv run ag-ui-server config.yml\"\n        startup_delay: 3.0\n        tools:\n          - import_path: package.tool_one\n          - import_path: package.tool_two\n    ```",
+      "description": "Configuration for AG-UI protocol agents.\n\nAG-UI agents connect to remote HTTP endpoints that implement the AG-UI protocol,\nenabling integration of any AG-UI compatible server into the agentpool pool.\n\nExample:\n    ```yaml\n    agents:\n      remote_assistant:\n        type: agui\n        endpoint: http://localhost:8000/agent/run\n        timeout: 30.0\n        headers:\n          X-API-Key: ${API_KEY}\n        tools:\n          - import_path: mymodule.my_tool_function\n\n      managed_agent:\n        endpoint: http://localhost:8765/agent/run\n        startup_command: \"uv run ag-ui-server config.yml\"\n        startup_delay: 3.0\n        tools:\n          - import_path: package.tool_one\n          - import_path: package.tool_two\n    ```",
       "properties": {
         "name": {
           "default": null,
@@ -941,7 +941,7 @@
         "service_name": {
           "default": null,
           "examples": [
-            "llmling-agent",
+            "agentpool",
             "my-ai-service",
             "production-bot"
           ],
@@ -2019,7 +2019,7 @@
         "service_name": {
           "default": null,
           "examples": [
-            "llmling-agent",
+            "agentpool",
             "my-ai-service",
             "production-bot"
           ],
@@ -2566,7 +2566,7 @@
           "type": "string"
         },
         "toolsets": {
-          "description": "Toolsets to expose to this ACP agent via MCP bridge.\n\nThese toolsets will be started as an in-process MCP server and made\navailable to the external ACP agent. This allows ACP agents to use\ninternal llmling-agent toolsets like subagent delegation.",
+          "description": "Toolsets to expose to this ACP agent via MCP bridge.\n\nThese toolsets will be started as an in-process MCP server and made\navailable to the external ACP agent. This allows ACP agents to use\ninternal agentpool toolsets like subagent delegation.",
           "examples": [
             [
               {
@@ -6376,7 +6376,7 @@
           "type": "string"
         },
         "toolsets": {
-          "description": "Toolsets to expose to this ACP agent via MCP bridge.\n\nThese toolsets will be started as an in-process MCP server and made\navailable to the external ACP agent. This allows ACP agents to use\ninternal llmling-agent toolsets like subagent delegation.",
+          "description": "Toolsets to expose to this ACP agent via MCP bridge.\n\nThese toolsets will be started as an in-process MCP server and made\navailable to the external ACP agent. This allows ACP agents to use\ninternal agentpool toolsets like subagent delegation.",
           "examples": [
             [
               {
@@ -7362,7 +7362,7 @@
           "type": "boolean"
         },
         "toolsets": {
-          "description": "Toolsets to expose to this Claude Code agent via MCP bridge.\n\nThese toolsets will be started as an in-process MCP server and made\navailable to Claude Code. This allows Claude Code to use internal\nllmling-agent toolsets like subagent delegation, agent management, etc.\n\nThe toolsets are exposed using the Claude SDK's native MCP support,\nwhich passes the FastMCP server instance directly without HTTP overhead.",
+          "description": "Toolsets to expose to this Claude Code agent via MCP bridge.\n\nThese toolsets will be started as an in-process MCP server and made\navailable to Claude Code. This allows Claude Code to use internal\nagentpool toolsets like subagent delegation, agent management, etc.\n\nThe toolsets are exposed using the Claude SDK's native MCP support,\nwhich passes the FastMCP server instance directly without HTTP overhead.",
           "examples": [
             [
               {
@@ -9360,7 +9360,7 @@
         "service_name": {
           "default": null,
           "examples": [
-            "llmling-agent",
+            "agentpool",
             "my-ai-service",
             "production-bot"
           ],
@@ -17043,7 +17043,7 @@
     },
     "FastAgentACPAgentConfig": {
       "additionalProperties": false,
-      "description": "Configuration for fast-agent via ACP.\n\nRobust LLM agent with comprehensive MCP support.\n\nSupports MCP server integration via:\n- Internal bridge: Use `toolsets` field to expose llmling-agent toolsets\n- External servers: Use `url` field to connect to external MCP servers\n- Skills: Use `skills_dir` to specify custom skills directory\n\nExample:\n    ```yaml\n    agents:\n      coder:\n        type: acp\n        provider: fast-agent\n        cwd: /path/to/project\n        model: claude-3.5-sonnet-20241022\n        toolsets:\n          - type: subagent\n          - type: agent_management\n        skills_dir: ./my-skills\n    ```",
+      "description": "Configuration for fast-agent via ACP.\n\nRobust LLM agent with comprehensive MCP support.\n\nSupports MCP server integration via:\n- Internal bridge: Use `toolsets` field to expose agentpool toolsets\n- External servers: Use `url` field to connect to external MCP servers\n- Skills: Use `skills_dir` to specify custom skills directory\n\nExample:\n    ```yaml\n    agents:\n      coder:\n        type: acp\n        provider: fast-agent\n        cwd: /path/to/project\n        model: claude-3.5-sonnet-20241022\n        toolsets:\n          - type: subagent\n          - type: agent_management\n        skills_dir: ./my-skills\n    ```",
       "properties": {
         "name": {
           "default": null,
@@ -17426,7 +17426,7 @@
           "type": "string"
         },
         "toolsets": {
-          "description": "Toolsets to expose to this ACP agent via MCP bridge.\n\nThese toolsets will be started as an in-process MCP server and made\navailable to the external ACP agent. This allows ACP agents to use\ninternal llmling-agent toolsets like subagent delegation.",
+          "description": "Toolsets to expose to this ACP agent via MCP bridge.\n\nThese toolsets will be started as an in-process MCP server and made\navailable to the external ACP agent. This allows ACP agents to use\ninternal agentpool toolsets like subagent delegation.",
           "examples": [
             [
               {
@@ -19044,7 +19044,7 @@
           "type": "string"
         },
         "toolsets": {
-          "description": "Toolsets to expose to this ACP agent via MCP bridge.\n\nThese toolsets will be started as an in-process MCP server and made\navailable to the external ACP agent. This allows ACP agents to use\ninternal llmling-agent toolsets like subagent delegation.",
+          "description": "Toolsets to expose to this ACP agent via MCP bridge.\n\nThese toolsets will be started as an in-process MCP server and made\navailable to the external ACP agent. This allows ACP agents to use\ninternal agentpool toolsets like subagent delegation.",
           "examples": [
             [
               {
@@ -21639,7 +21639,7 @@
           "description": "The task instruction/prompt.",
           "examples": [
             "Analyze the following code",
-            "llmling_agent.prompts.prompts:BasePrompt"
+            "agentpool.prompts.prompts:BasePrompt"
           ],
           "title": "Task prompt"
         },
@@ -21658,7 +21658,7 @@
           "default": null,
           "description": "Dependencies or context data needed for task execution",
           "examples": [
-            "llmling_agent.agents.context:AgentContext"
+            "agentpool.agents.context:AgentContext"
           ],
           "title": "Required dependencies",
           "type": [
@@ -22358,7 +22358,7 @@
           "type": "string"
         },
         "toolsets": {
-          "description": "Toolsets to expose to this ACP agent via MCP bridge.\n\nThese toolsets will be started as an in-process MCP server and made\navailable to the external ACP agent. This allows ACP agents to use\ninternal llmling-agent toolsets like subagent delegation.",
+          "description": "Toolsets to expose to this ACP agent via MCP bridge.\n\nThese toolsets will be started as an in-process MCP server and made\navailable to the external ACP agent. This allows ACP agents to use\ninternal agentpool toolsets like subagent delegation.",
           "examples": [
             [
               {
@@ -22552,7 +22552,7 @@
     },
     "Knowledge": {
       "additionalProperties": false,
-      "description": "Collection of context sources for an agent.\n\nSupports both simple paths and rich resource types for content loading,\nplus LLMling's prompt system for dynamic content generation.\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/knowledge_configuration/",
+      "description": "Collection of context sources for an agent.\n\nSupports both simple paths and rich resource types for content loading,\nplus LLMling's prompt system for dynamic content generation.\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/knowledge_configuration/",
       "properties": {
         "paths": {
           "description": "Quick access to files and URLs.",
@@ -22774,7 +22774,7 @@
         "service_name": {
           "default": null,
           "examples": [
-            "llmling-agent",
+            "agentpool",
             "my-ai-service",
             "production-bot"
           ],
@@ -23394,7 +23394,7 @@
         "service_name": {
           "default": null,
           "examples": [
-            "llmling-agent",
+            "agentpool",
             "my-ai-service",
             "production-bot"
           ],
@@ -25281,7 +25281,7 @@
     },
     "NativeAgentConfig": {
       "additionalProperties": false,
-      "description": "Configuration for a single agent in the system.\n\nDefines an agent's complete configuration including its model, environment,\nand behavior settings.\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/agent_configuration/",
+      "description": "Configuration for a single agent in the system.\n\nDefines an agent's complete configuration including its model, environment,\nand behavior settings.\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/agent_configuration/",
       "properties": {
         "name": {
           "default": null,
@@ -26959,16 +26959,16 @@
             }
           ],
           "default": null,
-          "description": "The model to use for this agent. Can be either a simple model name\nstring (e.g. 'openai:gpt-5') or a structured model definition.\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/model_configuration/",
-          "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/model_configuration/",
+          "description": "The model to use for this agent. Can be either a simple model name\nstring (e.g. 'openai:gpt-5') or a structured model definition.\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/model_configuration/",
+          "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/model_configuration/",
           "examples": [
             "openai:gpt-5-nano"
           ],
           "title": "Model configuration or name"
         },
         "tools": {
-          "description": "A list of tools to register with this agent.\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/tool_configuration/",
-          "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/tool_configuration/",
+          "description": "A list of tools to register with this agent.\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/tool_configuration/",
+          "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/tool_configuration/",
           "examples": [
             [
               "webbrowser:open",
@@ -27006,8 +27006,8 @@
           "type": "array"
         },
         "toolsets": {
-          "description": "Toolset configurations for extensible tool collections.\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/toolset_configuration/",
-          "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/toolset_configuration/",
+          "description": "Toolset configurations for extensible tool collections.\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/toolset_configuration/",
+          "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/toolset_configuration/",
           "examples": [
             [
               {
@@ -27148,8 +27148,8 @@
             }
           ],
           "default": null,
-          "description": "Session configuration for conversation recovery.\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/session_configuration/",
-          "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/session_configuration/",
+          "description": "Session configuration for conversation recovery.\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/session_configuration/",
+          "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/session_configuration/",
           "examples": [
             "main_session",
             "user_123"
@@ -27169,8 +27169,8 @@
             }
           ],
           "default": null,
-          "description": "Name of the response definition to use.\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/response_configuration/",
-          "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/response_configuration/",
+          "description": "Name of the response definition to use.\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/response_configuration/",
+          "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/response_configuration/",
           "examples": [
             "json_response",
             "code_output"
@@ -27229,8 +27229,8 @@
           ]
         },
         "system_prompts": {
-          "description": "System prompts for the agent. Can be strings or structured prompt configs.\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/system_prompts_configuration/",
-          "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/system_prompts_configuration/",
+          "description": "System prompts for the agent. Can be strings or structured prompt configs.\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
+          "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
           "examples": [
             [
               "You are an AI assistant."
@@ -27281,13 +27281,13 @@
             }
           ],
           "default": null,
-          "description": "Knowledge sources for this agent.\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/knowledge_configuration/",
-          "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/knowledge_configuration/",
+          "description": "Knowledge sources for this agent.\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/knowledge_configuration/",
+          "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/knowledge_configuration/",
           "title": "Knowledge sources"
         },
         "workers": {
-          "description": "Worker agents which will be available as tools.\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/worker_configuration/",
-          "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/worker_configuration/",
+          "description": "Worker agents which will be available as tools.\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/worker_configuration/",
+          "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/worker_configuration/",
           "examples": [
             [
               {
@@ -30923,7 +30923,7 @@
     },
     "PromptLibraryConfig": {
       "additionalProperties": false,
-      "description": "Complete prompt configuration.\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/prompt_configuration/",
+      "description": "Complete prompt configuration.\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/prompt_configuration/",
       "properties": {
         "system_prompts": {
           "additionalProperties": {
@@ -35907,7 +35907,7 @@
     },
     "StorageConfig": {
       "additionalProperties": false,
-      "description": "Global storage configuration.\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/storage_configuration/",
+      "description": "Global storage configuration.\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/storage_configuration/",
       "properties": {
         "providers": {
           "anyOf": [
@@ -39087,7 +39087,7 @@
     },
     "StructuredResponseConfig": {
       "additionalProperties": false,
-      "description": "Base class for response definitions.\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/response_configuration/",
+      "description": "Base class for response definitions.\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/response_configuration/",
       "properties": {
         "response_schema": {
           "description": "A model describing the response schema.",
@@ -39553,7 +39553,7 @@
     },
     "TeamConfig": {
       "additionalProperties": false,
-      "description": "Configuration for a team or chain of message nodes.\n\nTeams can be either parallel execution groups or sequential chains.\nThey can contain both agents and other teams as members.\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/team_configuration/",
+      "description": "Configuration for a team or chain of message nodes.\n\nTeams can be either parallel execution groups or sequential chains.\nThey can contain both agents and other teams as members.\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/team_configuration/",
       "properties": {
         "name": {
           "default": null,
@@ -43748,7 +43748,7 @@
   },
   "additionalProperties": false,
   "description": "Complete agent configuration manifest defining all available agents.\n\nThis is the root configuration that:\n- Defines available response types (both inline and imported)\n- Configures all agent instances and their settings\n- Sets up custom role definitions and capabilities\n- Manages environment configurations\n\nA single manifest can define multiple agents that can work independently\nor collaborate through the orchestrator.",
-  "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/manifest_configuration/",
+  "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/manifest_configuration/",
   "properties": {
     "INHERIT": {
       "anyOf": [
@@ -44191,8 +44191,8 @@
           }
         ]
       },
-      "description": "Mapping of agent IDs to their configurations.\n\nAll agent types are unified under this single dict, discriminated by the 'type' field:\n- type: \"native\" (default) - pydantic-ai based agents\n- type: \"agui\" - AG-UI protocol agents\n- type: \"claude_code\" - Claude Agent SDK agents\n- type: \"acp\" - ACP protocol agents (further discriminated by 'provider')\n\nExample:\n    ```yaml\n    agents:\n      assistant:\n        type: native\n        model: openai:gpt-4\n        system_prompts:\n          - \"You are a helpful assistant.\"\n\n      coder:\n        type: claude_code\n        cwd: /path/to/project\n        model: claude-sonnet-4-5\n\n      orchestrator:\n        type: acp\n        provider: claude\n        model: sonnet\n\n      remote:\n        type: agui\n        endpoint: http://localhost:8000/agent/run\n    ```\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/agent_configuration/",
-      "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/agent_configuration/",
+      "description": "Mapping of agent IDs to their configurations.\n\nAll agent types are unified under this single dict, discriminated by the 'type' field:\n- type: \"native\" (default) - pydantic-ai based agents\n- type: \"agui\" - AG-UI protocol agents\n- type: \"claude_code\" - Claude Agent SDK agents\n- type: \"acp\" - ACP protocol agents (further discriminated by 'provider')\n\nExample:\n    ```yaml\n    agents:\n      assistant:\n        type: native\n        model: openai:gpt-4\n        system_prompts:\n          - \"You are a helpful assistant.\"\n\n      coder:\n        type: claude_code\n        cwd: /path/to/project\n        model: claude-sonnet-4-5\n\n      orchestrator:\n        type: acp\n        provider: claude\n        model: sonnet\n\n      remote:\n        type: agui\n        endpoint: http://localhost:8000/agent/run\n    ```\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/agent_configuration/",
+      "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/agent_configuration/",
       "title": "Agents",
       "type": "object"
     },
@@ -44231,15 +44231,15 @@
       "additionalProperties": {
         "$ref": "#/$defs/TeamConfig"
       },
-      "description": "Mapping of team IDs to their configurations.\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/team_configuration/",
-      "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/team_configuration/",
+      "description": "Mapping of team IDs to their configurations.\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/team_configuration/",
+      "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/team_configuration/",
       "title": "Teams",
       "type": "object"
     },
     "storage": {
       "$ref": "#/$defs/StorageConfig",
-      "description": "Storage provider configuration.\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/storage_configuration/",
-      "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/storage_configuration/"
+      "description": "Storage provider configuration.\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/storage_configuration/",
+      "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/storage_configuration/"
     },
     "observability": {
       "$ref": "#/$defs/ObservabilityConfig",
@@ -44253,8 +44253,8 @@
       "additionalProperties": {
         "$ref": "#/$defs/StructuredResponseConfig"
       },
-      "description": "Mapping of response names to their definitions.\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/response_configuration/",
-      "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/response_configuration/",
+      "description": "Mapping of response names to their definitions.\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/response_configuration/",
+      "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/response_configuration/",
       "title": "Responses",
       "type": "object"
     },
@@ -44267,8 +44267,8 @@
       "type": "object"
     },
     "mcp_servers": {
-      "description": "List of MCP server configurations:\n\nThese MCP servers are used to provide tools and other resources to the nodes.\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/mcp_configuration/",
-      "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/mcp_configuration/",
+      "description": "List of MCP server configurations:\n\nThese MCP servers are used to provide tools and other resources to the nodes.\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/mcp_configuration/",
+      "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/mcp_configuration/",
       "examples": [
         [
           "uvx some-server"
@@ -44317,8 +44317,8 @@
     },
     "prompts": {
       "$ref": "#/$defs/PromptLibraryConfig",
-      "description": "Prompt library configuration.\n\nThis configuration defines the prompt library, which is used to provide prompts to the nodes.\n\nDocs: https://phil65.github.io/llmling-agent/YAML%20Configuration/prompt_configuration/",
-      "documentation_url": "https://phil65.github.io/llmling-agent/YAML%20Configuration/prompt_configuration/"
+      "description": "Prompt library configuration.\n\nThis configuration defines the prompt library, which is used to provide prompts to the nodes.\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/prompt_configuration/",
+      "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/prompt_configuration/"
     },
     "commands": {
       "additionalProperties": {

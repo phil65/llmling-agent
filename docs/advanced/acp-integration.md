@@ -6,7 +6,7 @@ icon: material/desktop-tower
 
 ## What is ACP?
 
-The Agent Client Protocol (ACP) is a standardized JSON-RPC 2.0 protocol that enables communication between code editors and AI agents. It allows llmling-agent to integrate seamlessly with desktop applications and IDEs that support the protocol.
+The Agent Client Protocol (ACP) is a standardized JSON-RPC 2.0 protocol that enables communication between code editors and AI agents. It allows agentpool to integrate seamlessly with desktop applications and IDEs that support the protocol.
 
 ACP provides:
 
@@ -19,7 +19,7 @@ ACP provides:
 
 ## ACP Agents as First-Class Citizens
 
-In llmling-agent, external ACP agents are **first-class citizens** in the agent ecosystem. They:
+In agentpool, external ACP agents are **first-class citizens** in the agent ecosystem. They:
 
 - ✅ **Participate fully in the agent pool** - Can be discovered, delegated to, and coordinated with
 - ✅ **Support most regular agent features** - Tools, contexts, delegation, state management
@@ -35,7 +35,7 @@ The key difference is that ACP agents run as **separate processes** communicatin
 Using uvx for one-off usage:
 
 ```bash
-uvx --python 3.13 llmling-agent[default]@latest serve-acp --help
+uvx --python 3.13 agentpool[default]@latest serve-acp --help
 ```
 
 ## CLI Usage
@@ -45,7 +45,7 @@ uvx --python 3.13 llmling-agent[default]@latest serve-acp --help
 Start an ACP server from a configuration file:
 
 ```bash
-llmling-agent serve-acp agents.yml
+agentpool serve-acp agents.yml
 ```
 
 ### Available Options
@@ -71,9 +71,9 @@ Add this configuration to your Zed `settings.json`:
       "args": [
         "--python",
         "3.13",
-        "llmling-agent[default]@latest",
+        "agentpool[default]@latest",
         "serve-acp",
-        "https://raw.githubusercontent.com/phil65/llmling-agent/refs/heads/main/docs/examples/pick_experts/config.yml", # <- insert your agent config here
+        "https://raw.githubusercontent.com/phil65/agentpool/refs/heads/main/docs/examples/pick_experts/config.yml", # <- insert your agent config here
         "--model-provider",
         "openai"
       ],
@@ -96,7 +96,7 @@ This configuration:
 
 For IDEs that support ACP, the general pattern is:
 
-1. Set the command to `llmling-agent` (or `uvx llmling-agent[default]@latest`)
+1. Set the command to `agentpool` (or `uvx agentpool[default]@latest`)
 2. Add `serve-acp` as the first argument
 3. Specify your configuration file path
 4. Add any desired CLI options
@@ -104,20 +104,20 @@ For IDEs that support ACP, the general pattern is:
 
 ## The ACP Bridge Concept
 
-### llmling-agent as Both Server AND Client
+### agentpool as Both Server AND Client
 
-Understanding llmling-agent's ACP integration requires grasping a key architectural concept: **llmling-agent acts as BOTH an ACP server AND an ACP client simultaneously**. This dual role is what makes the integration so powerful.
+Understanding agentpool's ACP integration requires grasping a key architectural concept: **agentpool acts as BOTH an ACP server AND an ACP client simultaneously**. This dual role is what makes the integration so powerful.
 
 #### As an ACP Server (IDE Integration)
 
-When you run `llmling-agent serve-acp`, it becomes an **ACP server** that IDEs can connect to:
+When you run `agentpool serve-acp`, it becomes an **ACP server** that IDEs can connect to:
 
 ```mermaid
 graph LR
-    A["IDE (Zed)<br/>ACP Client"] <-->|ACP Protocol| B["llmling-agent<br/>ACP Server<br/>(serve-acp command)"]
+    A["IDE (Zed)<br/>ACP Client"] <-->|ACP Protocol| B["agentpool<br/>ACP Server<br/>(serve-acp command)"]
 ```
 
-In this mode, llmling-agent:
+In this mode, agentpool:
 
 - Receives prompts from the IDE
 - Sends back agent responses
@@ -127,14 +127,14 @@ In this mode, llmling-agent:
 
 #### As an ACP Client (External Agent Integration)
 
-At the same time, llmling-agent can act as an **ACP client** to integrate external ACP agents:
+At the same time, agentpool can act as an **ACP client** to integrate external ACP agents:
 
 ```mermaid
 graph LR
-    A["llmling-agent<br/>ACP Client<br/>(external agent)"] <-->|ACP Protocol| B["Claude Code<br/>ACP Server<br/>(subprocess)"]
+    A["agentpool<br/>ACP Client<br/>(external agent)"] <-->|ACP Protocol| B["Claude Code<br/>ACP Server<br/>(subprocess)"]
 ```
 
-In this mode, llmling-agent:
+In this mode, agentpool:
 
 - Spawns external ACP agent processes (Claude Code, Gemini CLI, etc.)
 - Sends prompts to those agents
@@ -149,7 +149,7 @@ The real power comes when **both roles work together**:
 ```mermaid
 graph TB
     IDE["IDE (Zed)<br/>ACP Client"]
-    LLM["llmling-agent<br/>Server ↔ Pool ↔ Client"]
+    LLM["agentpool<br/>Server ↔ Pool ↔ Client"]
     Claude["Claude Code<br/>ACP Server"]
     Pool["Agent Pool<br/>• Internal Agents<br/>• Teams<br/>• Resources<br/>• Tools"]
     
@@ -160,15 +160,15 @@ graph TB
 
 #### Real-World Example
 
-When you configure Zed to use llmling-agent with external ACP agents:
+When you configure Zed to use agentpool with external ACP agents:
 
-1. **Zed** connects to llmling-agent via ACP (IDE → Server)
-2. **llmling-agent** maintains an agent pool with both:
+1. **Zed** connects to agentpool via ACP (IDE → Server)
+2. **agentpool** maintains an agent pool with both:
    - Internal agents (regular Python-based agents)
    - External agents (spawned ACP processes like Claude Code)
 3. When you send a prompt through Zed:
-   - It goes to llmling-agent (Server role)
-   - llmling-agent routes it to the appropriate agent
+   - It goes to agentpool (Server role)
+   - agentpool routes it to the appropriate agent
    - If the agent is internal → direct execution
    - If the agent is external → ACP client call to that subprocess
 4. **Orchestration** becomes possible:
@@ -187,7 +187,7 @@ This bridge architecture enables:
 - ✅ **Environment flexibility**: External agents can run in Docker, E2B, remote servers
 - ✅ **Protocol translation**: IDE ↔ ACP ↔ Internal Pool ↔ ACP ↔ External Agents
 
-The key insight: **llmling-agent doesn't just implement ACP—it bridges multiple ACP worlds together into a unified orchestration layer**.
+The key insight: **agentpool doesn't just implement ACP—it bridges multiple ACP worlds together into a unified orchestration layer**.
 
 ## Tool Confirmation Modes
 
@@ -203,7 +203,7 @@ The mode affects tool confirmation, not agent selection. To work with different 
 
 ## External ACP Agents
 
-llmling-agent can integrate external ACP-enabled agents (like Claude Code, Codex, Goose, etc.) into your agent pool through YAML configuration. This allows you to delegate tasks to specialized external agents while maintaining a unified interface.
+agentpool can integrate external ACP-enabled agents (like Claude Code, Codex, Goose, etc.) into your agent pool through YAML configuration. This allows you to delegate tasks to specialized external agents while maintaining a unified interface.
 
 ### Configuration
 
@@ -248,7 +248,7 @@ agents:
 
 #### MCP-Capable Agents (with Toolset Bridging)
 
-These agents support MCP servers and can use internal llmling-agent toolsets:
+These agents support MCP servers and can use internal agentpool toolsets:
 
 - **claude**: Claude Code (Anthropic's coding assistant)
   - Full MCP support via `--mcp-config`
@@ -289,7 +289,7 @@ These agents use ACP protocol but don't support MCP toolset bridging:
 Once configured, external ACP agents are automatically available in the agent pool:
 
 ```python
-from llmling_agent.delegation import AgentPool
+from agentpool.delegation import AgentPool
 
 async def main():
     async with AgentPool("agents.yml") as pool:
@@ -314,7 +314,7 @@ The external agents are spawned as subprocess instances and communicate via the 
 
 ### How ACP Agents Operate
 
-ACP agents in llmling-agent follow this execution model:
+ACP agents in agentpool follow this execution model:
 
 1. **Process Spawning**
    - Agent configuration defines command and arguments
@@ -407,7 +407,7 @@ agents:
 
 Permissions are enforced at multiple levels:
 
-- **Client side**: llmling-agent's ACPClientHandler validates requests
+- **Client side**: agentpool's ACPClientHandler validates requests
 - **Agent side**: External agent's own permission system
 - **Environment side**: Execution environment provides isolation
 
@@ -415,7 +415,7 @@ Permissions are enforced at multiple levels:
 
 ### Overview
 
-For MCP-capable ACP agents (Claude, Gemini, Auggie, Kimi), llmling-agent can automatically expose internal toolsets via an in-process MCP server bridge. This allows external agents to use powerful internal capabilities like subagent delegation, agent management, and custom tools.
+For MCP-capable ACP agents (Claude, Gemini, Auggie, Kimi), agentpool can automatically expose internal toolsets via an in-process MCP server bridge. This allows external agents to use powerful internal capabilities like subagent delegation, agent management, and custom tools.
 
 ### How It Works
 
@@ -587,7 +587,7 @@ Best practices:
 You can reference remote configuration files directly:
 
 ```bash
-llmling-agent serve-acp https://example.com/config.yml
+agentpool serve-acp https://example.com/config.yml
 ```
 
 ### Provider Selection
@@ -595,7 +595,7 @@ llmling-agent serve-acp https://example.com/config.yml
 Limit which providers are searched for models:
 
 ```bash
-llmling-agent serve-acp config.yml --model-provider openai --model-provider anthropic
+agentpool serve-acp config.yml --model-provider openai --model-provider anthropic
 ```
 
 If not provider is passed, OpenRouter is used.

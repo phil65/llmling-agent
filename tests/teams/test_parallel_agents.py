@@ -7,11 +7,11 @@ from typing import TYPE_CHECKING, Any
 from pydantic import BaseModel
 import pytest
 
-from llmling_agent import AgentPool, AgentsManifest
+from agentpool import AgentPool, AgentsManifest
 
 
 if TYPE_CHECKING:
-    from llmling_agent import Team, TeamRun
+    from agentpool import Team, TeamRun
 
 
 class _TestOutput(BaseModel):

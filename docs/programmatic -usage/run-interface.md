@@ -6,7 +6,7 @@ icon: lucide/play-circle
 
 # Run Interface
 
-The run interface provides a consistent way to interact with all message handlers (Agents, Teams, TeamRuns) in llmling-agent.
+The run interface provides a consistent way to interact with all message handlers (Agents, Teams, TeamRuns) in agentpool.
 It serves both as a messaging protocol and a public API.
 
 ## Core Methods

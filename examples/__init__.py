@@ -1,1 +1,1 @@
-"""Examples demonstrating llmling-agent features and usage patterns."""
+"""Examples demonstrating agentpool features and usage patterns."""

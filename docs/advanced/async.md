@@ -110,7 +110,7 @@ await agent.stop()
 LLMling supports event-driven agent operation through file watchers and other triggers. The simplest way to start event-based mode is through the CLI:
 
 ```bash
-llmling-agent watch --config agents.yml
+agentpool watch --config agents.yml
 ```
 
 This command:

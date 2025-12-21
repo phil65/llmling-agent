@@ -7,7 +7,7 @@ from unittest import mock
 import pytest
 from typer.testing import CliRunner
 
-from llmling_agent_cli.agent import agent_cli
+from agentpool_cli.agent import agent_cli
 
 
 if TYPE_CHECKING:
@@ -39,11 +39,11 @@ agents:
 def setup_environment():
     """Disable logging and mock config store for all tests."""
     # Disable logging
-    logging.getLogger("llmling_agent").setLevel(logging.CRITICAL)
+    logging.getLogger("agentpool").setLevel(logging.CRITICAL)
     logging.getLogger("yamling").setLevel(logging.CRITICAL)
 
     # Mock ConfigStore
-    with mock.patch("llmling_agent_cli.agent.agent_store") as mock_store:
+    with mock.patch("agentpool_cli.agent.agent_store") as mock_store:
         # Setup basic mock behavior
         mock_store.get_active.return_value = None
         mock_store.get_config.side_effect = KeyError("Not found")
@@ -66,7 +66,7 @@ def test_list_agents_command(config_file: Path):
     assert "test_agent" in result.stdout
 
 
-@mock.patch("llmling_agent_cli.agent.agent_store")
+@mock.patch("agentpool_cli.agent.agent_store")
 def test_add_agent_command(mock_store: mock.MagicMock, tmp_path: Path, config_file: Path):
     """Test that add command runs successfully."""
     result = runner.invoke(agent_cli, ["add", "test", str(config_file)])
@@ -75,7 +75,7 @@ def test_add_agent_command(mock_store: mock.MagicMock, tmp_path: Path, config_fi
     mock_store.add_config.assert_called_once_with("test", str(config_file))
 
 
-@mock.patch("llmling_agent_cli.agent.agent_store")
+@mock.patch("agentpool_cli.agent.agent_store")
 def test_set_agent_command(mock_store: mock.MagicMock, config_file: Path):
     """Test that set command runs."""
     # Configure mock to simulate existing config

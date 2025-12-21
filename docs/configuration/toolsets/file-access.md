@@ -77,7 +77,7 @@ The toolset provides these tools to agents:
 ## Configuration Reference
 
 /// mknodes
-{{ "llmling_agent_config.toolsets.FSSpecToolsetConfig" | schema_to_markdown(display_mode="yaml", header_style="pymdownx", wrapped_in="toolsets") }}
+{{ "agentpool_config.toolsets.FSSpecToolsetConfig" | schema_to_markdown(display_mode="yaml", header_style="pymdownx", wrapped_in="toolsets") }}
 ///
 
 ## Examples

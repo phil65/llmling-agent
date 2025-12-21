@@ -1,13 +1,13 @@
 # /// script
-# dependencies = ["llmling-agent"]
+# dependencies = ["agentpool"]
 # ///
 
 """Example demonstrating team agent picking functionality."""
 
 from __future__ import annotations
 
-from llmling_agent import Agent, Team
-from llmling_agent.docs.utils import run
+from agentpool import Agent, Team
+from agentpool.docs.utils import run
 
 
 async def main() -> None:

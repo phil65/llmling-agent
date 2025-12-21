@@ -7,7 +7,7 @@ import pytest
 from schemez import InlineSchemaDef
 import yamling
 
-from llmling_agent import AgentsManifest
+from agentpool import AgentsManifest
 
 
 VALID_AGENT_CONFIG = """\

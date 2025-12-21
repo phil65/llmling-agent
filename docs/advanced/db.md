@@ -6,7 +6,7 @@ icon: material/database
 
 # Agent Logging & Memory Management
 
-LLMling-agent provides flexible storage and memory management for agent interactions through SQLModel with SQLite.
+AgentPool provides flexible storage and memory management for agent interactions through SQLModel with SQLite.
 
 ## Storage System
 
@@ -45,7 +45,7 @@ Agents can be configured with sophisticated memory management:
 Or via code:
 
 ```python
-from llmling_agent_config.session import MemoryConfig, SessionQuery
+from agentpool_config.session import MemoryConfig, SessionQuery
 
 # Configure memory management
 memory_cfg = MemoryConfig(

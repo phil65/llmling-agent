@@ -5,5 +5,5 @@ icon: lucide/list
 ---
 
 /// mknodes
-{{ "llmling_agent.__main__:cli"| MkCliDoc(prog_name="list") }}
+{{ "agentpool.__main__:cli"| MkCliDoc(prog_name="list") }}
 ///

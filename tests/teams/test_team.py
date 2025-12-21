@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from llmling_agent import Agent, AgentPool, ChatMessage, Team, TeamRun
+from agentpool import Agent, AgentPool, ChatMessage, Team, TeamRun
 
 
 async def test_team_parallel_execution():

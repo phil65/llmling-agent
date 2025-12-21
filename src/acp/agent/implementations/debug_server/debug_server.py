@@ -56,7 +56,7 @@ from acp.schema import (
     WriteTextFileResponse,
 )
 from acp.stdio import stdio_streams
-from llmling_agent.log import get_logger
+from agentpool.log import get_logger
 
 
 if TYPE_CHECKING:

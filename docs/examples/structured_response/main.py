@@ -1,5 +1,5 @@
 # /// script
-# dependencies = ["llmling-agent"]
+# dependencies = ["agentpool"]
 # ///
 
 """Example of structured responses defined both in code and YAML."""
@@ -8,8 +8,8 @@ import os
 
 from schemez import Schema
 
-from llmling_agent import Agent, AgentPool, AgentsManifest
-from llmling_agent.docs.utils import get_config_path, is_pyodide, run
+from agentpool import Agent, AgentPool, AgentsManifest
+from agentpool.docs.utils import get_config_path, is_pyodide, run
 
 
 # set your OpenAI API key here

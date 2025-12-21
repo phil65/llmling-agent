@@ -8,7 +8,7 @@ import tempfile
 
 import pytest
 
-from llmling_agent_config.commands import (
+from agentpool_config.commands import (
     CallableCommandConfig,
     FileCommandConfig,
     StaticCommandConfig,

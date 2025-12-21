@@ -5,7 +5,7 @@ icon: material/broadcast
 ---
 
 Events allow agents to respond to external changes and automate actions based on various triggers.
-LLMling-agent supports different types of triggers that can activate agents automatically.
+AgentPool supports different types of triggers that can activate agents automatically.
 
 - File system changes
 - Webhook calls
@@ -180,10 +180,10 @@ Run agents in event-watching mode to handle events:
 
 ```bash
 # Start watching with default configuration
-llmling-agent watch agents.yml
+agentpool watch agents.yml
 
 # With specific log level
-llmling-agent watch agents.yml --log-level DEBUG
+agentpool watch agents.yml --log-level DEBUG
 ```
 
 The agents will:

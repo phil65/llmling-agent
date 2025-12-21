@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from llmling_agent import Agent
+from agentpool import Agent
 
 
 async def test_pick_from_options(default_model: str):

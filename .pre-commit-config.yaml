@@ -54,7 +54,7 @@ repos:
         name: check-jsonschema
         entry: uv run check-jsonschema --schemafile schema/config-schema.json
         language: system
-        files: ^src/llmling_agent/config_resources/.*\.yml$|^docs/examples/.*/config\.yml$
+        files: ^src/agentpool/config_resources/.*\.yml$|^docs/examples/.*/config\.yml$
         require_serial: true
       - id: mypy
         name: mypy

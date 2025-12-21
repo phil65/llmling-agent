@@ -21,7 +21,7 @@ agents:
 ## Creating a Custom Toolset
 
 ```python
-from llmling_agent.resource_providers import ResourceProvider
+from agentpool.resource_providers import ResourceProvider
 
 class MyCustomToolset(ResourceProvider):
     async def get_tools(self):
@@ -37,5 +37,5 @@ class MyCustomToolset(ResourceProvider):
 ## Configuration Reference
 
 /// mknodes
-{{ "llmling_agent_config.toolsets.CustomToolsetConfig" | schema_to_markdown(display_mode="yaml", header_style="pymdownx", wrapped_in="toolsets") }}
+{{ "agentpool_config.toolsets.CustomToolsetConfig" | schema_to_markdown(display_mode="yaml", header_style="pymdownx", wrapped_in="toolsets") }}
 ///

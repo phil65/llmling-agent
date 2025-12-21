@@ -5,5 +5,5 @@ icon: lucide/play
 ---
 
 /// mknodes
-{{ "llmling_agent.__main__:cli"| MkCliDoc(prog_name="run") }}
+{{ "agentpool.__main__:cli"| MkCliDoc(prog_name="run") }}
 ///

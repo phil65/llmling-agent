@@ -5,5 +5,5 @@ icon: lucide/server
 ---
 
 /// mknodes
-{{ "llmling_agent.__main__:cli"| MkCliDoc(prog_name="serve-mcp") }}
+{{ "agentpool.__main__:cli"| MkCliDoc(prog_name="serve-mcp") }}
 ///

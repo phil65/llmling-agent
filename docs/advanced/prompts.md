@@ -4,9 +4,9 @@ description: Advanced prompt handling
 icon: material/comment-multiple
 ---
 
-# Prompts in LLMling-Agent
+# Prompts in AgentPool
 
-LLMling-Agent provides a flexible system for handling different types of prompts, allowing seamless conversion of various data types into prompt text.
+AgentPool provides a flexible system for handling different types of prompts, allowing seamless conversion of various data types into prompt text.
 
 ## Prompt Types
 
@@ -16,7 +16,7 @@ The following types can be used as prompts:
 - Objects implementing `__prompt__`: Dynamic content providers
 - Types implementing `__prompt_type__`: Type-level information
 - Pydantic models: Structured data
-- Base prompts: LLMling-Agent prompt types (Static, Dynamic, File)
+- Base prompts: AgentPool prompt types (Static, Dynamic, File)
 - Dictionaries: Key-value representations
 - Lists/Tuples: Sequences of prompts
 - Callables: Functions returning prompts
@@ -83,9 +83,9 @@ await agent.run([
 
 All components are combined into a single coherent prompt.
 
-## Supported in LLMling-Agent
+## Supported in AgentPool
 
-The prompt system is used throughout LLMling-Agent:
+The prompt system is used throughout AgentPool:
 
 - Agent.run() accepts any prompt type
 - Agent instances implement `__prompt__`

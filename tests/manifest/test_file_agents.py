@@ -7,8 +7,8 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from llmling_agent import AgentsManifest
-from llmling_agent.models.file_parsing import (
+from agentpool import AgentsManifest
+from agentpool.models.file_parsing import (
     CLAUDE_MODEL_ALIASES,
     PERMISSION_MODE_MAP,
     parse_agent_file,
@@ -271,7 +271,7 @@ def test_manifest_file_agents_name_override(tmp_path: Path):
 
 def test_manifest_file_agents_mixed(tmp_path: Path):
     """Test manifest with both inline and file agents."""
-    from llmling_agent.models.agents import NativeAgentConfig
+    from agentpool.models.agents import NativeAgentConfig
 
     agent_file = tmp_path / "file_agent.md"
     agent_file.write_text(MINIMAL_CLAUDE_AGENT)

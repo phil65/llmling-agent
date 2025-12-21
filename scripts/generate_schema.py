@@ -16,8 +16,8 @@ from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic.json_schema import GenerateJsonSchema
 
-from llmling_agent import AgentsManifest
-from llmling_agent.log import configure_logging, get_logger
+from agentpool import AgentsManifest
+from agentpool.log import configure_logging, get_logger
 
 
 if TYPE_CHECKING:

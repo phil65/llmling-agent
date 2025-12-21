@@ -10,14 +10,14 @@ from exxec.mock_provider import MockExecutionEnvironment
 from exxec.models import ExecutionResult
 import pytest
 
-from llmling_agent import Agent, AgentContext, NativeAgentConfig
-from llmling_agent.agents.events import ToolCallProgressEvent
-from llmling_agent.models.manifest import AgentsManifest
-from llmling_agent_toolsets.builtin.execution_environment import ExecutionEnvironmentTools
+from agentpool import Agent, AgentContext, NativeAgentConfig
+from agentpool.agents.events import ToolCallProgressEvent
+from agentpool.models.manifest import AgentsManifest
+from agentpool_toolsets.builtin.execution_environment import ExecutionEnvironmentTools
 
 
 if TYPE_CHECKING:
-    from llmling_agent.agents.events import RichAgentStreamEvent
+    from agentpool.agents.events import RichAgentStreamEvent
 
 
 def drain_event_queue(agent: Agent) -> list[RichAgentStreamEvent]:

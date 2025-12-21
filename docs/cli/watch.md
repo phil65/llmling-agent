@@ -5,5 +5,5 @@ icon: lucide/eye
 ---
 
 /// mknodes
-{{ "llmling_agent.__main__:cli"| MkCliDoc(prog_name="watch") }}
+{{ "agentpool.__main__:cli"| MkCliDoc(prog_name="watch") }}
 ///

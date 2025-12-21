@@ -2,7 +2,7 @@
 sync:
   agent: doc_sync_agent
   dependencies:
-    - src/llmling_agent_config/events.py
+    - src/agentpool_config/events.py
 title: Event Sources
 description: Event source configuration for triggering agent actions
 icon: material/bell-alert
@@ -12,7 +12,7 @@ Event sources define external triggers that can start agent tasks or workflows. 
 
 ## Overview
 
-LLMling-Agent supports multiple event source types that enable reactive agent workflows:
+AgentPool supports multiple event source types that enable reactive agent workflows:
 
 - **File Watch**: Trigger on file system changes
 - **Webhook**: HTTP endpoint for external triggers  
@@ -27,7 +27,7 @@ Event sources are typically used with task configurations to create event-driven
 ### Event Sources
 
 /// mknodes
-{{ "llmling_agent_config.events.EventConfig" | union_to_markdown(display_mode="yaml", header_style="pymdownx") }}
+{{ "agentpool_config.events.EventConfig" | union_to_markdown(display_mode="yaml", header_style="pymdownx") }}
 ///
 
 ### Connection Event Conditions
@@ -35,7 +35,7 @@ Event sources are typically used with task configurations to create event-driven
 Connection events can be filtered using conditions:
 
 /// mknodes
-{{ "llmling_agent_config.events.ConnectionEventConditionType" | union_to_markdown(display_mode="yaml", header_style="pymdownx") }}
+{{ "agentpool_config.events.ConnectionEventConditionType" | union_to_markdown(display_mode="yaml", header_style="pymdownx") }}
 ///
 
 ## Usage with Tasks

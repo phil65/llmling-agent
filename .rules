@@ -44,7 +44,7 @@ The project follows a modular architecture with separate packages for each major
 
 ```
 src/
-├── llmling_agent/              # Core agent framework
+├── agentpool/              # Core agent framework
 │   ├── agent/                  # Agent implementation
 │   ├── config/                 # Configuration management
 │   ├── delegation/             # Multi-agent coordination (AgentPool, Teams)
@@ -55,15 +55,15 @@ src/
 │   ├── tasks/                  # Task execution
 │   ├── tools/                  # Tool system
 │   └── utils/                  # Shared utilities
-├── llmling_agent_cli/          # Command-line interface
-├── llmling_agent_commands/     # Slash command system
-├── llmling_agent_config/       # Configuration schemas and loaders
-├── llmling_agent_docs/         # Documentation generation + examples
-├── llmling_agent_prompts/      # Prompt hub integrations
-├── llmling_agent_resources/    # Resource management
-├── llmling_agent_server/       # Web server and API
-├── llmling_agent_storage/      # Storage providers (SQL, file, memory)
-└── llmling_agent_toolsets/     # Tool collections (Composio, MCP, etc.)
+├── agentpool_cli/          # Command-line interface
+├── agentpool_commands/     # Slash command system
+├── agentpool_config/       # Configuration schemas and loaders
+├── agentpool_docs/         # Documentation generation + examples
+├── agentpool_prompts/      # Prompt hub integrations
+├── agentpool_resources/    # Resource management
+├── agentpool_server/       # Web server and API
+├── agentpool_storage/      # Storage providers (SQL, file, memory)
+└── agentpool_toolsets/     # Tool collections (Composio, MCP, etc.)
 ```
 
 ## Key Architectural Patterns
@@ -103,7 +103,7 @@ src/
 ## Import Patterns
 ```python
 # Absolute imports
-from llmling_agent import Agent
+from agentpool import Agent
 ```
 
 

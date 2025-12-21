@@ -7,13 +7,13 @@ order: 0
 
 # Node Types
 
-Nodes are the core building blocks of LLMling-Agent. This section covers the different types of nodes you can configure: agents (individual AI workers) and teams (coordinated groups).
+Nodes are the core building blocks of AgentPool. This section covers the different types of nodes you can configure: agents (individual AI workers) and teams (coordinated groups).
 
 ## Agents
 
 ### Standard Agents
 
-[Standard agents](agent.md) are the primary node type in LLMling-Agent. They are fully configured within your manifest and support:
+[Standard agents](agent.md) are the primary node type in AgentPool. They are fully configured within your manifest and support:
 
 - Model selection and configuration
 - System prompts and knowledge sources

@@ -2,7 +2,7 @@
 sync:
   agent: doc_sync_agent
   dependencies:
-    - src/llmling_agent_config/commands.py
+    - src/agentpool_config/commands.py
 title: Commands
 description: Slash command configuration
 icon: material/slash-forward
@@ -23,7 +23,7 @@ Commands are invoked with `/command-name` syntax and support parameter substitut
 ## Configuration Reference
 
 /// mknodes
-{{ "llmling_agent_config.commands.CommandConfig" | union_to_markdown(display_mode="yaml", header_style="pymdownx") }}
+{{ "agentpool_config.commands.CommandConfig" | union_to_markdown(display_mode="yaml", header_style="pymdownx") }}
 ///
 
 ## Usage Notes

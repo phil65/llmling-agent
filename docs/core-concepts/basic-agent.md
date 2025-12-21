@@ -80,7 +80,7 @@ await agent.run_in_background(get_prompt)
 ## Agents with output types
 
 ```python
-from llmling_agent import Agent
+from agentpool import Agent
 from pydantic import BaseModel
 
 class AnalysisResult(BaseModel):

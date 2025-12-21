@@ -135,7 +135,7 @@ def generate_context_prompt(user_id: str, session_type: str) -> str:
 System prompts can be dynamic, either evaluating once on first run or for each interaction:
 
 ```python
-from llmling_agent import Agent
+from agentpool import Agent
 
 async def get_weather_context():
     weather = await fetch_weather()
@@ -321,7 +321,7 @@ In the global spacename, you will have
 For further information, check out agent/sys_prompts.py in the codebase.
 
 !!! info "About Prompt Engineering"
-    By default, LLMling-Agent does not engage in prompt engineering or manipulation. The features described
+    By default, AgentPool does not engage in prompt engineering or manipulation. The features described
     above (tool injection, strict mode, etc.) are strictly opt-in. We believe in transparency and
     explicit control - any modifications to system prompts are clearly visible and configurable.
     We do include agent name and description though because we consider this essential

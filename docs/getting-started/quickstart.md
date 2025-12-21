@@ -1,6 +1,6 @@
 ---
 title: Quickstart
-description: Quick introduction to using LLMling-Agent
+description: Quick introduction to using AgentPool
 icon: material/rocket-launch
 ---
 
@@ -8,14 +8,14 @@ icon: material/rocket-launch
 
 ## ACP Integration (Recommended)
 
-The fastest way to get started is through the **Agent Client Protocol (ACP)**, which integrates llmling-agent directly into your IDE.
+The fastest way to get started is through the **Agent Client Protocol (ACP)**, which integrates agentpool directly into your IDE.
 
 ### One-Line Setup
 
 No installation needed - run directly with uvx:
 
 ```bash
-uvx --python 3.13 llmling-agent[default]@latest serve-acp agents.yml
+uvx --python 3.13 agentpool[default]@latest serve-acp agents.yml
 ```
 
 ### IDE Configuration (Zed)
@@ -29,7 +29,7 @@ Add to your Zed `settings.json`:
       "command": "uvx",
       "args": [
         "--python", "3.13",
-        "llmling-agent[default]@latest",
+        "agentpool[default]@latest",
         "serve-acp",
         "path/to/your/agents.yml",
         "--model-provider", "openai"
@@ -66,13 +66,13 @@ Initialize and manage configurations:
 
 ```bash
 # Create starter configuration
-llmling-agent init agents.yml
+agentpool init agents.yml
 
 # Add to your configurations
-llmling-agent add agents.yml
+agentpool add agents.yml
 
 # Start chatting
-llmling-agent chat assistant
+agentpool chat assistant
 ```
 
 ## Configured Agents
@@ -94,7 +94,7 @@ agents:
 Use it in code:
 
 ```python
-from llmling_agent import AgentPool
+from agentpool import AgentPool
 
 async def main():
     async with AgentPool("agents.yml") as pool:
@@ -112,7 +112,7 @@ if __name__ == "__main__":
 Quick model interactions without configuration:
 
 ```python
-from llmling_agent import run_with_model, run_with_model_sync
+from agentpool import run_with_model, run_with_model_sync
 
 # Async usage
 async def main():

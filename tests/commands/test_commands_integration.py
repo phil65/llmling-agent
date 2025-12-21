@@ -5,8 +5,8 @@ from __future__ import annotations
 import pytest
 from slashed import CommandStore
 
-from llmling_agent import AgentsManifest
-from llmling_agent_commands.prompts import ShowPromptCommand
+from agentpool import AgentsManifest
+from agentpool_commands.prompts import ShowPromptCommand
 
 
 TEST_CONFIG = """

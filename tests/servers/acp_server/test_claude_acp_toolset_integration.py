@@ -15,11 +15,11 @@ import shutil
 
 import pytest
 
-from llmling_agent import AgentPool
-from llmling_agent.agents.acp_agent import ACPAgent
-from llmling_agent.models.acp_agents.mcp_capable import ClaudeACPAgentConfig
-from llmling_agent.models.manifest import AgentsManifest
-from llmling_agent_config.toolsets import SubagentToolsetConfig
+from agentpool import AgentPool
+from agentpool.agents.acp_agent import ACPAgent
+from agentpool.models.acp_agents.mcp_capable import ClaudeACPAgentConfig
+from agentpool.models.manifest import AgentsManifest
+from agentpool_config.toolsets import SubagentToolsetConfig
 
 
 if not shutil.which("claude-code-acp"):
@@ -107,7 +107,7 @@ async def test_claude_acp_tool_bridge_mcp_config(claude_config_with_subagent: Cl
 
 async def test_claude_acp_multiple_toolsets():
     """Test Claude ACP agent with multiple toolsets."""
-    from llmling_agent_config.toolsets import AgentManagementToolsetConfig
+    from agentpool_config.toolsets import AgentManagementToolsetConfig
 
     config = ClaudeACPAgentConfig(
         name="claude_multi",

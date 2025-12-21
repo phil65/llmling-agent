@@ -11,13 +11,13 @@ import httpx
 from pydantic_ai import PartDeltaEvent
 import pytest
 
-from llmling_agent.agents.agui_agent import AGUIAgent
-from llmling_agent.agents.agui_agent.agui_converters import (
+from agentpool.agents.agui_agent import AGUIAgent
+from agentpool.agents.agui_agent.agui_converters import (
     agui_to_native_event,
 )
-from llmling_agent.agents.events import ToolCallStartEvent as NativeToolCallStart
-from llmling_agent.messaging import ChatMessage
-from llmling_agent.talk.stats import MessageStats
+from agentpool.agents.events import ToolCallStartEvent as NativeToolCallStart
+from agentpool.messaging import ChatMessage
+from agentpool.talk.stats import MessageStats
 
 
 if TYPE_CHECKING:
@@ -79,7 +79,7 @@ async def test_agui_agent_run_stream(mock_sse_response):
 
     mock_response = mock_sse_response(events)
 
-    with patch("llmling_agent.agents.agui_agent.agui_agent.httpx.AsyncClient") as mock_client_class:
+    with patch("agentpool.agents.agui_agent.agui_agent.httpx.AsyncClient") as mock_client_class:
         mock_client = AsyncMock()
         mock_client_class.return_value = mock_client
         # stream() should return an async context manager
@@ -106,7 +106,7 @@ async def test_agui_agent_run(mock_sse_response):
     ]
 
     mock_response = mock_sse_response(events)
-    with patch("llmling_agent.agents.agui_agent.agui_agent.httpx.AsyncClient") as mock_client_class:
+    with patch("agentpool.agents.agui_agent.agui_agent.httpx.AsyncClient") as mock_client_class:
         mock_client = AsyncMock()
         mock_client_class.return_value = mock_client
         # stream() should return an async context manager
@@ -148,7 +148,7 @@ async def test_agui_agent_to_tool():
         'data: {"type":"TEXT_MESSAGE_CONTENT","messageId":"msg1","delta":"Answer"}\n\n',
     ]
 
-    with patch("llmling_agent.agents.agui_agent.agui_agent.httpx.AsyncClient") as mock_client_class:
+    with patch("agentpool.agents.agui_agent.agui_agent.httpx.AsyncClient") as mock_client_class:
         mock_client = AsyncMock()
         mock_client_class.return_value = mock_client
 
@@ -191,7 +191,7 @@ async def test_agui_agent_get_stats():
 @pytest.mark.skipif(sys.platform == "win32", reason="Hangs on Windows CI")
 async def test_agui_agent_error_handling(mock_sse_response):
     """Test error handling in AGUIAgent."""
-    with patch("llmling_agent.agents.agui_agent.agui_agent.httpx.AsyncClient") as mock_client_class:
+    with patch("agentpool.agents.agui_agent.agui_agent.httpx.AsyncClient") as mock_client_class:
         mock_client = AsyncMock()
         mock_client_class.return_value = mock_client
 
@@ -240,7 +240,7 @@ async def test_agui_agent_with_tools(mock_sse_response):
         'data: {"type":"TEXT_MESSAGE_END","messageId":"msg2"}\n\n',
     ]
 
-    with patch("llmling_agent.agents.agui_agent.agui_agent.httpx.AsyncClient") as mock_client_class:
+    with patch("agentpool.agents.agui_agent.agui_agent.httpx.AsyncClient") as mock_client_class:
         mock_client = AsyncMock()
         mock_client_class.return_value = mock_client
 
@@ -317,7 +317,7 @@ async def test_agui_tool_execution_error(mock_sse_response):
         'data: {"type":"TEXT_MESSAGE_CONTENT","messageId":"msg1","delta":"Tool failed"}\n\n',
     ]
 
-    with patch("llmling_agent.agents.agui_agent.agui_agent.httpx.AsyncClient") as mock_client_class:
+    with patch("agentpool.agents.agui_agent.agui_agent.httpx.AsyncClient") as mock_client_class:
         mock_client = AsyncMock()
         mock_client_class.return_value = mock_client
 
@@ -351,7 +351,7 @@ async def test_agui_tool_execution_error(mock_sse_response):
 
 def test_tool_call_accumulator():
     """Test ToolCallAccumulator for streaming tool arguments."""
-    from llmling_agent.agents.agui_agent.agui_converters import ToolCallAccumulator
+    from agentpool.agents.agui_agent.agui_converters import ToolCallAccumulator
 
     accumulator = ToolCallAccumulator()
 
@@ -376,7 +376,7 @@ def test_tool_call_accumulator():
 
 def test_tool_call_accumulator_invalid_json():
     """Test ToolCallAccumulator with invalid JSON."""
-    from llmling_agent.agents.agui_agent.agui_converters import ToolCallAccumulator
+    from agentpool.agents.agui_agent.agui_converters import ToolCallAccumulator
 
     accumulator = ToolCallAccumulator()
     accumulator.start("call1", "test_tool")
@@ -392,7 +392,7 @@ def test_tool_call_accumulator_invalid_json():
 
 def test_tool_call_accumulator_multiple_calls():
     """Test ToolCallAccumulator with multiple concurrent tool calls."""
-    from llmling_agent.agents.agui_agent.agui_converters import ToolCallAccumulator
+    from agentpool.agents.agui_agent.agui_converters import ToolCallAccumulator
 
     accumulator = ToolCallAccumulator()
 
@@ -428,8 +428,8 @@ def test_tool_call_accumulator_multiple_calls():
 
 def test_to_agui_tool():
     """Test converting llmling Tool to AG-UI Tool format."""
-    from llmling_agent.agents.agui_agent.agui_converters import to_agui_tool
-    from llmling_agent.tools import Tool
+    from agentpool.agents.agui_agent.agui_converters import to_agui_tool
+    from agentpool.tools import Tool
 
     def example_tool(name: str, count: int = 1) -> str:
         """Process a name with count."""
@@ -461,9 +461,9 @@ async def test_agui_server_and_client_e2e():
 
     from pydantic_ai.models.test import TestModel
 
-    from llmling_agent import Agent, AgentPool
-    from llmling_agent.agents.agui_agent import AGUIAgent
-    from llmling_agent_server.agui_server import AGUIServer
+    from agentpool import Agent, AgentPool
+    from agentpool.agents.agui_agent import AGUIAgent
+    from agentpool_server.agui_server import AGUIServer
 
     # Find an available port
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -512,9 +512,9 @@ async def test_agui_server_and_client_with_tools():
 
     from pydantic_ai.models.test import TestModel
 
-    from llmling_agent import Agent, AgentPool
-    from llmling_agent.agents.agui_agent import AGUIAgent
-    from llmling_agent_server.agui_server import AGUIServer
+    from agentpool import Agent, AgentPool
+    from agentpool.agents.agui_agent import AGUIAgent
+    from agentpool_server.agui_server import AGUIServer
 
     # Find an available port
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:

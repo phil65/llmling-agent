@@ -10,8 +10,8 @@ from __future__ import annotations
 
 import asyncio
 
-from llmling_agent import Agent, AgentPool
-from llmling_agent_server.a2a_server import A2AServer
+from agentpool import Agent, AgentPool
+from agentpool_server.a2a_server import A2AServer
 
 
 async def main() -> None:

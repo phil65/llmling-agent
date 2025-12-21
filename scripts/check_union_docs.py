@@ -9,13 +9,13 @@ from __future__ import annotations
 from pathlib import Path
 import sys
 
-from llmling_agent.docs.utils import check_docs_for_union, discriminator_to_filename
+from agentpool.docs.utils import check_docs_for_union, discriminator_to_filename
 
 
 def main() -> int:
     """Run checks for known union types."""
     # Import here to avoid import errors if dependencies missing
-    from llmling_agent_config.toolsets import ToolsetConfig
+    from agentpool_config.toolsets import ToolsetConfig
 
     checks = [
         (ToolsetConfig, Path("docs/configuration/toolsets"), "Toolsets"),
@@ -46,7 +46,7 @@ def main() -> int:
                     print(f"    - {filename}.md")
 
             if not missing and not extra:
-                from llmling_agent.docs.utils import get_discriminator_values
+                from agentpool.docs.utils import get_discriminator_values
 
                 count = len(get_discriminator_values(union_type))
                 print(f"  All {count} types documented")

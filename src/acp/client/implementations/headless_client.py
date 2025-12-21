@@ -24,7 +24,7 @@ from acp.schema import (
     WaitForTerminalExitResponse,
     WriteTextFileResponse,
 )
-from llmling_agent.log import get_logger
+from agentpool.log import get_logger
 
 
 if TYPE_CHECKING:

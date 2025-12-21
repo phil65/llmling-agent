@@ -1,5 +1,5 @@
 # /// script
-# dependencies = ["llmling-agent"]
+# dependencies = ["agentpool"]
 # ///
 
 """Example: Using pick() and pick_multiple() for expert selection."""
@@ -8,8 +8,8 @@ from __future__ import annotations
 
 import os
 
-from llmling_agent import AgentPool
-from llmling_agent.docs.utils import get_config_path, is_pyodide, run
+from agentpool import AgentPool
+from agentpool.docs.utils import get_config_path, is_pyodide, run
 
 
 # set your OpenAI API key here

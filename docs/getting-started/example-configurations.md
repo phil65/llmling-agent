@@ -21,7 +21,7 @@ Use the agent via an ACP client of your choice.
 Or programmatically:
 
 ```python
-from llmling_agent import AgentPool
+from agentpool import AgentPool
 
 async with AgentPool("agents.yml") as pool:
     agent = pool.get_agent("url_opener")
@@ -48,7 +48,7 @@ Create an agent that interacts with the file system:
 Use the file manager:
 
 ```python
-from llmling_agent import Agent
+from agentpool import Agent
 
 async with AgentPool("agents.yml" as pool:
     agent = pool.get_agent("file_manager")

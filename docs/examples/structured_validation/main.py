@@ -1,5 +1,5 @@
 # /// script
-# dependencies = ["llmling-agent"]
+# dependencies = ["agentpool"]
 # ///
 
 """Example showing structured agent output validation using movie reviews."""
@@ -11,8 +11,8 @@ from typing import Literal
 from pydantic import Field
 from schemez import Schema
 
-from llmling_agent import Agent
-from llmling_agent.docs.utils import run
+from agentpool import Agent
+from agentpool.docs.utils import run
 
 
 class MovieReview(Schema):

@@ -13,8 +13,8 @@ from llmling_models import infer_model
 from pydantic_ai import BinaryContent, RunContext, RunUsage, ToolReturn
 import pytest
 
-from llmling_agent.mcp_server import MCPClient
-from llmling_agent_config.mcp_server import StdioMCPServerConfig
+from agentpool.mcp_server import MCPClient
+from agentpool_config.mcp_server import StdioMCPServerConfig
 
 
 @pytest.fixture

@@ -55,13 +55,13 @@ def serve(ctx, *args: str):
         ctx.run("uv run zensical build")
         ctx.run("uv run python scripts/reorder_nav.py")
         # Serve the static site directly (zensical serve would rebuild and undo reorder)
-        # Create a temp structure to match zensical's URL scheme: /llmling-agent/
+        # Create a temp structure to match zensical's URL scheme: /agentpool/
         import tempfile
 
         with tempfile.TemporaryDirectory() as tmpdir:
             tmp_path = Path(tmpdir)
-            (tmp_path / "llmling-agent").symlink_to(Path("site").resolve())
-            print(f"Serving at http://localhost:{port}/llmling-agent/")
+            (tmp_path / "agentpool").symlink_to(Path("site").resolve())
+            print(f"Serving at http://localhost:{port}/agentpool/")
             ctx.run(f"uv run python -m http.server {port} -d {tmpdir} -b localhost")
     else:
         args_str = " " + " ".join(args) if args else ""
@@ -97,7 +97,7 @@ def lint(ctx):
     ctx.run("uv run mypy src/ --fixed-format-cache")
     ctx.run(
         "uv run check-jsonschema --schemafile schema/config-schema.json "
-        "src/llmling_agent/config_resources/*.yml "
+        "src/agentpool/config_resources/*.yml "
         "docs/examples/**/config.yml"
     )
 
@@ -107,10 +107,10 @@ def lint_check(ctx):
     """Lint the code."""
     ctx.run("uv run ruff check .")
     ctx.run("uv run ruff format --check .")
-    ctx.run("uv run mypy src/llmling_agent/ --fixed-format-cache")
+    ctx.run("uv run mypy src/agentpool/ --fixed-format-cache")
     ctx.run(
         "uv run check-jsonschema --schemafile schema/config-schema.json "
-        "src/llmling_agent/config_resources/*.yml "
+        "src/agentpool/config_resources/*.yml "
         "docs/examples/**/config.yml"
     )
 
@@ -159,7 +159,7 @@ def ui(ctx, *args: str):
     args_str = " " + " ".join(args) if args else ""
     cmd_parts = [
         "uvx --from batrachian-toad@latest toad acp",
-        f'"uv run --python 3.13 llmling-agent serve-acp --model-provider openai{args_str}"',
+        f'"uv run --python 3.13 agentpool serve-acp --model-provider openai{args_str}"',
     ]
     ctx.run(" ".join(cmd_parts))
 

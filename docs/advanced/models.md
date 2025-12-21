@@ -7,7 +7,7 @@ icon: material/cpu-64-bit
 # Provider models
 
 In addition to the regular pydantic-ai models,
-LLMling-agent supports all model types from [llmling-models](https://github.com/phil65/llmling-models) through YAML configuration. Each model is identified by its `type` field.
+AgentPool supports all model types from [llmling-models](https://github.com/phil65/llmling-models) through YAML configuration. Each model is identified by its `type` field.
 These models often are some kind of "meta-models", allowing model selection patterns as well
 as human-in-the-loop interactions.
 
@@ -37,7 +37,7 @@ All settings are optional and providers will use their defaults if not specified
 
 ## Setting pydantic-ai models by identifier
 
-LLMling-agent also extends pydantic-ai functionality by allowing to define more models via simple
+AgentPool also extends pydantic-ai functionality by allowing to define more models via simple
 string identifiers. These providers are
 
 - OpenRouter (`openrouter:provider/model-name`, requires `OPENROUTER_API_KEY` env var)

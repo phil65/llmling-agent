@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from llmling_agent import AgentsManifest
+from agentpool import AgentsManifest
 
 
 def test_schema_generation():

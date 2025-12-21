@@ -7,12 +7,12 @@ from uuid import uuid4
 from pydantic_ai import RunUsage
 import pytest
 
-from llmling_agent.messaging import TokenCost
-from llmling_agent.utils.now import get_now
-from llmling_agent.utils.parse_time import parse_time_period
-from llmling_agent_config.storage import SQLStorageConfig
-from llmling_agent_storage.models import QueryFilters, StatsFilters
-from llmling_agent_storage.sql_provider import SQLModelProvider
+from agentpool.messaging import TokenCost
+from agentpool.utils.now import get_now
+from agentpool.utils.parse_time import parse_time_period
+from agentpool_config.storage import SQLStorageConfig
+from agentpool_storage.models import QueryFilters, StatsFilters
+from agentpool_storage.sql_provider import SQLModelProvider
 
 
 # Reference time for all tests

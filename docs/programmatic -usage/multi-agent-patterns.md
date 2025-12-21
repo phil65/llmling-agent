@@ -6,7 +6,7 @@ icon: material/sitemap
 
 # Multi-Agent Orchestration Patterns
 
-LLMling-agent offers several patterns for coordinating multiple agents. Each pattern has its strengths and is suited for different use cases.
+AgentPool offers several patterns for coordinating multiple agents. Each pattern has its strengths and is suited for different use cases.
 
 ## Quick Reference
 

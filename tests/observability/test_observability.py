@@ -6,8 +6,8 @@ from unittest.mock import patch
 from pydantic import SecretStr
 import pytest
 
-from llmling_agent.observability.observability_registry import ObservabilityRegistry
-from llmling_agent_config.observability import (
+from agentpool.observability.observability_registry import ObservabilityRegistry
+from agentpool_config.observability import (
     CustomObservabilityConfig,
     LangsmithObservabilityConfig,
     LogfireObservabilityConfig,

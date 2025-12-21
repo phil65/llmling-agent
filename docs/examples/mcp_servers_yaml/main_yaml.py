@@ -1,5 +1,5 @@
 # /// script
-# dependencies = ["llmling-agent"]
+# dependencies = ["agentpool"]
 # ///
 
 
@@ -16,8 +16,8 @@ from __future__ import annotations
 
 import os
 
-from llmling_agent import AgentPool, AgentsManifest
-from llmling_agent.docs.utils import get_config_path, is_pyodide, run
+from agentpool import AgentPool, AgentsManifest
+from agentpool.docs.utils import get_config_path, is_pyodide, run
 
 
 PROMPT = "Get the latest commit hash!"

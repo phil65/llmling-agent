@@ -2,7 +2,7 @@
 sync:
   agent: doc_sync_agent
   dependencies:
-    - src/llmling_agent_config/durable.py
+    - src/agentpool_config/durable.py
 title: Durable Execution Configuration
 description: Workflow orchestration and durable execution
 icon: material/repeat
@@ -14,7 +14,7 @@ Durable execution provides workflow orchestration with automatic retries, state 
 
 ## Overview
 
-LLMling-Agent integrates with popular workflow orchestration platforms:
+AgentPool integrates with popular workflow orchestration platforms:
 
 - **Temporal**: Industry-standard workflow engine with strong durability guarantees
 - **Prefect**: Modern workflow orchestration with excellent observability
@@ -25,7 +25,7 @@ These integrations wrap agent execution in durable workflows, ensuring that agen
 ## Configuration Reference
 
 /// mknodes
-{{ "llmling_agent_config.durable.DurableExecutionConfig" | union_to_markdown(display_mode="yaml", header_style="pymdownx") }}
+{{ "agentpool_config.durable.DurableExecutionConfig" | union_to_markdown(display_mode="yaml", header_style="pymdownx") }}
 ///
 
 ## Use Cases

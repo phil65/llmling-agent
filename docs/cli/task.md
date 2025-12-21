@@ -5,5 +5,5 @@ icon: lucide/clipboard-check
 ---
 
 /// mknodes
-{{ "llmling_agent.__main__:cli"| MkCliDoc(prog_name="task") }}
+{{ "agentpool.__main__:cli"| MkCliDoc(prog_name="task") }}
 ///

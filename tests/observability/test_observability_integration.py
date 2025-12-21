@@ -4,8 +4,8 @@ import os
 
 import pytest
 
-from llmling_agent import AgentPool, AgentsManifest
-from llmling_agent.observability import registry
+from agentpool import AgentPool, AgentsManifest
+from agentpool.observability import registry
 
 
 @pytest.fixture(autouse=True)

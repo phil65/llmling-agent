@@ -2,7 +2,7 @@
 sync:
   agent: doc_sync_agent
   dependencies:
-    - src/llmling_agent_config/storage.py
+    - src/agentpool_config/storage.py
 title: Storage 
 description: Database and storage setup
 icon: material/database
@@ -13,7 +13,7 @@ The storage configuration defines how agent interactions, messages, and tool usa
 ## Configuration Reference
 
 /// mknodes
-{{ "llmling_agent_config.storage.StorageProviderConfig" | union_to_markdown(display_mode="yaml", header_style="pymdownx") }}
+{{ "agentpool_config.storage.StorageProviderConfig" | union_to_markdown(display_mode="yaml", header_style="pymdownx") }}
 ///
 
 ## Overview

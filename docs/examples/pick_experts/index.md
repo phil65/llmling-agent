@@ -12,7 +12,7 @@ hide:
 
 with pick() and pick_multiple()
 
-This example demonstrates LLMling-agent's type-safe selection methods:
+This example demonstrates AgentPool's type-safe selection methods:
 
 - Using pick() for single expert selection
 - Using pick_multiple() for team selection

@@ -15,15 +15,15 @@ from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic_ai import PartDeltaEvent, PartStartEvent, TextPart, TextPartDelta
 
-from llmling_agent import Agent
-from llmling_agent_config.event_handlers import EdgeTTSEventHandlerConfig, TTSEventHandlerConfig
+from agentpool import Agent
+from agentpool_config.event_handlers import EdgeTTSEventHandlerConfig, TTSEventHandlerConfig
 
 
 if TYPE_CHECKING:
     from pydantic_ai import RunContext
 
-    from llmling_agent.agents.events import RichAgentStreamEvent
-    from llmling_agent_config.event_handlers import (
+    from agentpool.agents.events import RichAgentStreamEvent
+    from agentpool_config.event_handlers import (
         TTSMode,
     )
 

@@ -1,7 +1,7 @@
-site_name: "LLMling-Agent"
+site_name: "AgentPool"
 site_description: "Pydantic-AI based Multi-Agent Framework with YAML-based Agents, Teams, Workflows & Extended ACP / AGUI integration"
-repo_url: "https://github.com/phil65/llmling-agent/"
-site_url: https://phil65.github.io/llmling-agent/
+repo_url: "https://github.com/phil65/agentpool/"
+site_url: https://phil65.github.io/agentpool/
 site_author: "Philipp Temminghoff"
 copyright: Copyright &copy; 2025 Philipp Temminghoff
 edit_uri: edit/main/docs/
@@ -131,4 +131,4 @@ extra:
     - icon: fontawesome/brands/github
       link: https://github.com/phil65
     - icon: fontawesome/brands/python
-      link: https://pypi.org/project/llmling-agent/
+      link: https://pypi.org/project/agentpool/

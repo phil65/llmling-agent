@@ -6,7 +6,7 @@ icon: material/source-merge
 
 # Agent Injection and Execution Patterns
 
-LLMling-agent provides a clean, pytest-inspired way to work with agents. Instead of complex decorators
+AgentPool provides a clean, pytest-inspired way to work with agents. Instead of complex decorators
 or string-based configurations, agents are automatically injected as function parameters.
 
 ## Basic Agent Injection
@@ -232,7 +232,7 @@ async def shared_analysis(
 The connection between your YAML manifest and the injection system is made through the AgentPool:
 
 ```python
-from llmling_agent import AgentPool, AgentsManifest
+from agentpool import AgentPool, AgentsManifest
 
 # 1. Define your agents in YAML
 manifest = """

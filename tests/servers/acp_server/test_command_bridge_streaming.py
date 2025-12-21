@@ -9,8 +9,8 @@ from unittest.mock import AsyncMock
 import pytest
 
 from acp import ClientCapabilities
-from llmling_agent import Agent, AgentPool
-from llmling_agent_server.acp_server.session import ACPSession
+from agentpool import Agent, AgentPool
+from agentpool_server.acp_server.session import ACPSession
 
 
 if TYPE_CHECKING:

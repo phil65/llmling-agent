@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from llmling_agent import Agent, AgentPool
-from llmling_agent_server.agui_server import AGUIServer
+from agentpool import Agent, AgentPool
+from agentpool_server.agui_server import AGUIServer
 
 
 # Test constants
@@ -104,7 +104,7 @@ async def test_agui_server_from_config(tmp_path):
     environments:
       test:
         type: inline
-        module_path: llmling_agent
+        module_path: agentpool
         class_name: Agent
 
     agents:

@@ -4,7 +4,7 @@ from PyInstaller.utils.hooks import collect_data_files, copy_metadata
 datas = []
 # Collect package metadata for packages that use importlib.metadata
 metadata_packages = [
-    'llmling-agent',
+    'agentpool',
     'llmling-models',
     'pydantic-ai-slim',
     'genai_prices',
@@ -48,19 +48,19 @@ except Exception:
 
 
 a = Analysis(
-    ['src/llmling_agent/__main__.py'],
+    ['src/agentpool/__main__.py'],
     pathex=[],
     binaries=[],
     datas=datas,
     hiddenimports=[
-        'llmling_agent',
-        'llmling_agent_cli',
-        'llmling_agent_config',
-        'llmling_agent_commands',
-        'llmling_agent_storage',
-        'llmling_agent_prompts',
-        'llmling_agent_server',
-        'llmling_agent_toolsets',
+        'agentpool',
+        'agentpool_cli',
+        'agentpool_config',
+        'agentpool_commands',
+        'agentpool_storage',
+        'agentpool_prompts',
+        'agentpool_server',
+        'agentpool_toolsets',
         'acp',
         'acp.bridge',
     ],
@@ -79,7 +79,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='llmling-agent',
+    name='agentpool',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

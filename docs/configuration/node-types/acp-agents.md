@@ -2,17 +2,17 @@
 sync:
   agent: doc_sync_agent
   dependencies:
-    - src/llmling_agent/models/acp_agents.py
+    - src/agentpool/models/acp_agents.py
 title: ACP Agents
 description: External ACP agent integration
 icon: material/connection
 ---
 
-ACP (Agent Communication Protocol) agents allow integration of external coding agents and AI assistants into the LLMling-Agent pool. These agents run as separate processes and communicate via the ACP protocol.
+ACP (Agent Communication Protocol) agents allow integration of external coding agents and AI assistants into the AgentPool pool. These agents run as separate processes and communicate via the ACP protocol.
 
 ## Overview
 
-LLMling-Agent supports integration with many popular coding agents:
+AgentPool supports integration with many popular coding agents:
 
 - **Claude Code**: Anthropic's Claude-based coding agent
 - **Gemini CLI**: Google's Gemini-based coding agent
@@ -34,12 +34,12 @@ These agents can be configured to work alongside LLMling agents, enabling hybrid
 ## Configuration Reference
 
 /// mknodes
-{{ "llmling_agent.models.acp_agents.ACPAgentConfigTypes" | union_to_markdown(display_mode="yaml", header_style="pymdownx", as_listitem=False, wrapped_in="agentname") }}
+{{ "agentpool.models.acp_agents.ACPAgentConfigTypes" | union_to_markdown(display_mode="yaml", header_style="pymdownx", as_listitem=False, wrapped_in="agentname") }}
 ///
 
 ## Configuration Notes
 
-- ACP agents run as separate processes managed by LLMling-Agent
+- ACP agents run as separate processes managed by AgentPool
 - Each agent type has specific configuration options for its underlying tool
 - Model selection depends on what the external agent supports
 - MCP servers can be attached to capable agents for extended functionality

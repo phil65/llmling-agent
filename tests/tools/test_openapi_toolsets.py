@@ -7,7 +7,7 @@ import anyenv
 from openapi_spec_validator import validate
 import pytest
 
-from llmling_agent_toolsets.openapi import OpenAPITools
+from agentpool_toolsets.openapi import OpenAPITools
 
 
 if TYPE_CHECKING:

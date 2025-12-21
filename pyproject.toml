@@ -1,7 +1,7 @@
 #:tombi schema.strict = false
 
 [project]
-name = "llmling-agent"
+name = "agentpool"
 version = "1.16.2"
 description = "Pydantic-AI based Multi-Agent Framework with YAML-based Agents, Teams, Workflows & Extended ACP / AGUI integration"
 readme = "README.md"
@@ -68,22 +68,22 @@ dependencies = [
 ]
 
 [project.urls]
-"Code coverage" = "https://app.codecov.io/gh/phil65/llmling-agent"
-Discussions = "https://github.com/phil65/llmling-agent/discussions"
-Documentation = "https://phil65.github.io/llmling-agent/"
-Issues = "https://github.com/phil65/llmling-agent/issues"
-Source = "https://github.com/phil65/llmling-agent"
+"Code coverage" = "https://app.codecov.io/gh/phil65/agentpool"
+Discussions = "https://github.com/phil65/agentpool/discussions"
+Documentation = "https://phil65.github.io/agentpool/"
+Issues = "https://github.com/phil65/agentpool/issues"
+Source = "https://github.com/phil65/agentpool"
 
 [project.scripts]
 acp-bridge = "acp.bridge.__main__:main"
-llmling-agent = "llmling_agent.__main__:cli"
-llmling-agent-db = "llmling_agent_storage.sql_provider.cli:main"
+agentpool = "agentpool.__main__:cli"
+agentpool-db = "agentpool_storage.sql_provider.cli:main"
 
 [project.entry-points."fsspec.specs"]
 acp = "acp.filesystem:ACPFileSystem"
 
 [project.entry-points."jinjarope.environment"]
-llmling_agent = "llmling_agent.utils:setup_env"
+agentpool = "agentpool.utils:setup_env"
 
 [project.entry-points."universal_pathlib.implementations"]
 acp = "acp.filesystem:ACPPath"
@@ -431,14 +431,14 @@ constraint-dependencies = ["extism-sys<1.13.0"]
 
 [tool.uv.build-backend]
 module-name = [
-  "llmling_agent",
-  "llmling_agent_config",
-  "llmling_agent_cli",
-  "llmling_agent_commands",
-  "llmling_agent_storage",
-  "llmling_agent_prompts",
-  "llmling_agent_server",
-  "llmling_agent_toolsets",
+  "agentpool",
+  "agentpool_config",
+  "agentpool_cli",
+  "agentpool_commands",
+  "agentpool_storage",
+  "agentpool_prompts",
+  "agentpool_server",
+  "agentpool_toolsets",
   "acp",
 ]
 wheel-exclude = [

@@ -2,7 +2,7 @@
 sync:
   agent: doc_sync_agent
   dependencies:
-    - src/llmling_agent_config/observability.py
+    - src/agentpool_config/observability.py
 title: Observability
 description: Monitoring and tracing configuration
 icon: material/monitor-eye
@@ -12,7 +12,7 @@ Observability providers enable monitoring, tracing, and logging of agent operati
 
 ## Overview
 
-LLMling-Agent integrates with leading observability platforms:
+AgentPool integrates with leading observability platforms:
 
 - **Logfire**: Pydantic's observability platform with native support for structured logging
 - **Langsmith**: LangChain's tracing and evaluation platform
@@ -25,7 +25,7 @@ These integrations provide automatic instrumentation of agent operations, captur
 ## Configuration Reference
 
 /// mknodes
-{{ "llmling_agent_config.observability.ObservabilityProviderConfig" | union_to_markdown(display_mode="yaml", header_style="pymdownx") }}
+{{ "agentpool_config.observability.ObservabilityProviderConfig" | union_to_markdown(display_mode="yaml", header_style="pymdownx") }}
 ///
 
 ## Key Features

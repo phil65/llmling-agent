@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from llmling_agent import Agent, AgentPool
-from llmling_agent_server import A2AServer, AggregatingServer, AGUIServer
+from agentpool import Agent, AgentPool
+from agentpool_server import A2AServer, AggregatingServer, AGUIServer
 
 
 # Test constants

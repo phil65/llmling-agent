@@ -96,7 +96,7 @@ result = await agent.run_job("analyze_code")
 You can also use the Job directly:
 
 ```python
-from llmling_agent import AgentPool
+from agentpool import AgentPool
 
 # Get job definition
 job = pool.get_job("analyze_code")
@@ -149,7 +149,7 @@ All tasks are available through the agent pool:
 job = pool.get_job("analyze_code")
 
 # Register new task 
-from llmling_agent_config.task import Job
+from agentpool_config.task import Job
 job = Job(
     name="new_task",
     description="A new task",

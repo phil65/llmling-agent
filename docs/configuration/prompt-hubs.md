@@ -2,17 +2,17 @@
 sync:
   agent: doc_sync_agent
   dependencies:
-    - src/llmling_agent_config/prompt_hubs.py
+    - src/agentpool_config/prompt_hubs.py
 title: Prompt Hubs
 description: External prompt hub integration
 icon: material/hub
 ---
 
-Prompt hubs are external platforms for managing, versioning, and sharing prompts. LLMling-Agent integrates with popular prompt management platforms to leverage curated prompt libraries and collaborative prompt development.
+Prompt hubs are external platforms for managing, versioning, and sharing prompts. AgentPool integrates with popular prompt management platforms to leverage curated prompt libraries and collaborative prompt development.
 
 ## Overview
 
-LLMling-Agent supports integration with leading prompt hub platforms:
+AgentPool supports integration with leading prompt hub platforms:
 
 - **PromptLayer**: Comprehensive prompt management with versioning and analytics
 - **Langfuse**: Open-source LLM engineering platform with prompt management
@@ -24,7 +24,7 @@ These integrations allow you to fetch prompts from these services by identifiers
 ## Configuration Reference
 
 /// mknodes
-{{ "llmling_agent_config.prompt_hubs.PromptHubConfig" | union_to_markdown(display_mode="yaml", header_style="pymdownx") }}
+{{ "agentpool_config.prompt_hubs.PromptHubConfig" | union_to_markdown(display_mode="yaml", header_style="pymdownx") }}
 ///
 
 ## Configuration Notes

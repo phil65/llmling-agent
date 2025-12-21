@@ -1,41 +1,41 @@
-id = "llmling-agent"
+id = "agentpool"
 name = "LLMling Agent"
 description = "Pydantic-AI based Multi-Agent Framework with YAML-based Agents, Teams, Workflows & Extended ACP / AGUI integration"
 version = "1.15.12"
 schema_version = 1
 authors = ["Philipp Temminghoff"]
-repository = "https://github.com/phil65/llmling-agent"
+repository = "https://github.com/phil65/agentpool"
 
-[agent_servers.llmling-agent]
+[agent_servers.agentpool]
 name = "LLMling Agent"
-icon = "./icons/llmling_agent.svg"
+icon = "./icons/agentpool.svg"
 
-[agent_servers.llmling-agent.targets.darwin-aarch64]
-archive = "https://github.com/phil65/llmling-agent/releases/download/v1.16.2/llmling-agent-darwin-aarch64-1.15.12.zip"
-cmd = "./llmling-agent"
+[agent_servers.agentpool.targets.darwin-aarch64]
+archive = "https://github.com/phil65/agentpool/releases/download/v1.16.2/agentpool-darwin-aarch64-1.15.12.zip"
+cmd = "./agentpool"
 args = ["serve-acp"]
 
-[agent_servers.llmling-agent.targets.darwin-x86_64]
-archive = "https://github.com/phil65/llmling-agent/releases/download/v1.16.2/llmling-agent-darwin-x86_64-1.15.12.zip"
-cmd = "./llmling-agent"
+[agent_servers.agentpool.targets.darwin-x86_64]
+archive = "https://github.com/phil65/agentpool/releases/download/v1.16.2/agentpool-darwin-x86_64-1.15.12.zip"
+cmd = "./agentpool"
 args = ["serve-acp"]
 
-# [agent_servers.llmling-agent.targets.linux-aarch64]
-# archive = "https://github.com/phil65/llmling-agent/releases/download/v1.16.2/llmling-agent-linux-aarch64-1.15.12.zip"
-# cmd = "./llmling-agent"
+# [agent_servers.agentpool.targets.linux-aarch64]
+# archive = "https://github.com/phil65/agentpool/releases/download/v1.16.2/agentpool-linux-aarch64-1.15.12.zip"
+# cmd = "./agentpool"
 # args = ["serve-acp"]
 
-[agent_servers.llmling-agent.targets.linux-x86_64]
-archive = "https://github.com/phil65/llmling-agent/releases/download/v1.16.2/llmling-agent-linux-x86_64-1.15.12.zip"
-cmd = "./llmling-agent"
+[agent_servers.agentpool.targets.linux-x86_64]
+archive = "https://github.com/phil65/agentpool/releases/download/v1.16.2/agentpool-linux-x86_64-1.15.12.zip"
+cmd = "./agentpool"
 args = ["serve-acp"]
 
-# [agent_servers.llmling-agent.targets.windows-aarch64]
-# archive = "https://github.com/phil65/llmling-agent/releases/download/v1.16.2/llmling-agent-windows-aarch64-1.15.12.zip"
-# cmd = "./llmling-agent.exe"
+# [agent_servers.agentpool.targets.windows-aarch64]
+# archive = "https://github.com/phil65/agentpool/releases/download/v1.16.2/agentpool-windows-aarch64-1.15.12.zip"
+# cmd = "./agentpool.exe"
 # args = ["serve-acp"]
 
-[agent_servers.llmling-agent.targets.windows-x86_64]
-archive = "https://github.com/phil65/llmling-agent/releases/download/v1.16.2/llmling-agent-windows-x86_64-1.15.12.zip"
-cmd = "./llmling-agent.exe"
+[agent_servers.agentpool.targets.windows-x86_64]
+archive = "https://github.com/phil65/agentpool/releases/download/v1.16.2/agentpool-windows-x86_64-1.15.12.zip"
+cmd = "./agentpool.exe"
 args = ["serve-acp"]

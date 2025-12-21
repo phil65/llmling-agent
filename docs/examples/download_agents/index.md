@@ -14,7 +14,7 @@ hide:
 
 ## Multi-Agent Download System with Cheerleader
 
-This example demonstrates several advanced features of LLMling-agent:
+This example demonstrates several advanced features of AgentPool:
 
 - Continuous repetitive tasks
 - Async parallel execution of LLM calls

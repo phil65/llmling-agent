@@ -7,9 +7,9 @@ icon: lucide/database
 # Dependencies
 
 /// mknodes
-{{ "llmling_agent"| MkDependencyTable(layout="badge") }}
+{{ "agentpool"| MkDependencyTable(layout="badge") }}
 ///
 
 /// mknodes
-{{ "llmling_agent"| MkPipDepTree(direction="LR") }}
+{{ "agentpool"| MkPipDepTree(direction="LR") }}
 ///

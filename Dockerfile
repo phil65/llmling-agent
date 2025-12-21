@@ -9,5 +9,5 @@ RUN pip install --no-cache-dir ".[default,server]"
 EXPOSE 8000
 
 # Run the server
-ENTRYPOINT ["llmling-agent", "serve-api"]
+ENTRYPOINT ["agentpool", "serve-api"]
 CMD ["--auto-discover"]

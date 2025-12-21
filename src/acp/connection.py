@@ -29,7 +29,7 @@ from acp.task import (
     RpcTaskKind,
     TaskSupervisor,
 )
-from llmling_agent import log
+from agentpool import log
 
 
 if TYPE_CHECKING:

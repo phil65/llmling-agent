@@ -36,7 +36,7 @@ This creates tools `ask_code_reviewer` and `ask_researcher` for the manager agen
 ## Toolset Configuration
 
 /// mknodes
-{{ "llmling_agent_config.toolsets.WorkersToolsetConfig" | schema_to_markdown(display_mode="yaml", header_style="pymdownx", wrapped_in="toolsets") }}
+{{ "agentpool_config.toolsets.WorkersToolsetConfig" | schema_to_markdown(display_mode="yaml", header_style="pymdownx", wrapped_in="toolsets") }}
 ///
 
 ## Worker Types
@@ -101,7 +101,7 @@ toolsets:
 ## Worker Configuration Reference
 
 /// mknodes
-{{ "llmling_agent_config.workers.WorkerConfig" | union_to_markdown(display_mode="yaml", header_style="pymdownx") }}
+{{ "agentpool_config.workers.WorkerConfig" | union_to_markdown(display_mode="yaml", header_style="pymdownx") }}
 ///
 
 ## Example: Manager with Specialized Workers

@@ -19,7 +19,7 @@ Teams in LLMling allow you to organize and orchestrate multiple agents as a grou
 ### Direct Creation
 
 ```python
-from llmling_agent.delegation import Team
+from agentpool.delegation import Team
 
 team = Team(
     agents=[agent1, agent2, agent3],

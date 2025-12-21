@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from llmling_agent.running import node_function
+from agentpool.running import node_function
 
 
 async def test_basic_decoration():

@@ -6,13 +6,13 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from llmling_agent.delegation.pool import AgentPool
-from llmling_agent.models.agents import NativeAgentConfig
-from llmling_agent.models.manifest import AgentsManifest
-from llmling_agent.sessions import ClientSession, SessionData, SessionManager
-from llmling_agent.sessions.store import MemorySessionStore
-from llmling_agent_config.storage import SQLStorageConfig
-from llmling_agent_storage.session_store import SQLSessionStore
+from agentpool.delegation.pool import AgentPool
+from agentpool.models.agents import NativeAgentConfig
+from agentpool.models.manifest import AgentsManifest
+from agentpool.sessions import ClientSession, SessionData, SessionManager
+from agentpool.sessions.store import MemorySessionStore
+from agentpool_config.storage import SQLStorageConfig
+from agentpool_storage.session_store import SQLSessionStore
 
 
 if TYPE_CHECKING:

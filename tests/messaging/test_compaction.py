@@ -14,7 +14,7 @@ from pydantic_ai.messages import (
 )
 import pytest
 
-from llmling_agent.messaging.compaction import (
+from agentpool.messaging.compaction import (
     CompactionPipeline,
     CompactionPipelineConfig,
     FilterEmptyMessages,

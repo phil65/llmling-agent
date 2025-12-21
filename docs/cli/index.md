@@ -14,9 +14,9 @@ This avoids the need to pass the config file path each time you want to run a co
 The CLI maintains an "active agent file" setting which determines which agents are available for commands like `run`, `task`, or `watch`.
 You can:
 
-- Add agent files with `llmling-agent add <name> <path>`
-- Set the active file with `llmling-agent set <name>`
-- List agents from the active config with `llmling-agent list`
+- Add agent files with `agentpool add <name> <path>`
+- Set the active file with `agentpool set <name>`
+- List agents from the active config with `agentpool list`
 
 Most commands will use the currently active agent file by default, but can be overridden with the `--config` option.
 
@@ -59,20 +59,20 @@ Most commands will use the currently active agent file by default, but can be ov
 1. Add and activate an agent configuration:
 
    ```bash
-   llmling-agent add myconfig agents.yml
-   llmling-agent set myconfig
+   agentpool add myconfig agents.yml
+   agentpool set myconfig
    ```
 
 2. List available agents:
 
    ```bash
-   llmling-agent list
+   agentpool list
    ```
 
 3. Run a prompt with an agent:
 
    ```bash
-   llmling-agent run analyzer "Analyze this text"
+   agentpool run analyzer "Analyze this text"
    ```
 
 ## Command Examples
@@ -81,55 +81,55 @@ Most commands will use the currently active agent file by default, but can be ov
 
 ```bash
 # Run a single agent with a prompt
-llmling-agent run myagent "Analyze this"
+agentpool run myagent "Analyze this"
 
 # Run a team
-llmling-agent run myteam "Process this"
+agentpool run myteam "Process this"
 
 # Show detailed output with costs
-llmling-agent run myagent "Hello" --detail full --costs
+agentpool run myagent "Hello" --detail full --costs
 ```
 
 ### Executing Tasks
 
 ```bash
 # Execute a defined task
-llmling-agent task docs write_api_docs
+agentpool task docs write_api_docs
 
 # Execute with additional prompt
-llmling-agent task docs write_api_docs --prompt "Include code examples"
+agentpool task docs write_api_docs --prompt "Include code examples"
 ```
 
 ### Server Commands
 
 ```bash
 # Run as MCP server (stdio transport)
-llmling-agent serve-mcp config.yml
+agentpool serve-mcp config.yml
 
 # Run as MCP server with SSE transport
-llmling-agent serve-mcp config.yml --transport sse --port 3001
+agentpool serve-mcp config.yml --transport sse --port 3001
 
 # Run as ACP server for desktop integration
-llmling-agent serve-acp config.yml
+agentpool serve-acp config.yml
 
 # Run as OpenAI-compatible API server
-llmling-agent serve-api config.yml --port 8000
+agentpool serve-api config.yml --port 8000
 ```
 
 ### History Commands
 
 ```bash
 # Show last 5 conversations
-llmling-agent history show -n 5
+agentpool history show -n 5
 
 # Show conversations from last 24 hours
-llmling-agent history show --period 24h
+agentpool history show --period 24h
 
 # Show stats grouped by model
-llmling-agent history stats --period 1w --group-by model
+agentpool history stats --period 1w --group-by model
 
 # Clear history for specific agent
-llmling-agent history reset --agent myagent
+agentpool history reset --agent myagent
 ```
 
 ## Global Options

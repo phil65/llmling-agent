@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from llmling_agent.utils.dag import DAGNode, dag_iterator, dag_to_list
+from agentpool.utils.dag import DAGNode, dag_iterator, dag_to_list
 
 
 def test_dag_node_creation():

@@ -7,7 +7,7 @@ behavior, and edge cases.
 
 import pytest
 
-from llmling_agent_toolsets.builtin.file_edit.fuzzy_matcher import (
+from agentpool_toolsets.builtin.file_edit.fuzzy_matcher import (
     Range,
     StreamingFuzzyMatcher,
 )

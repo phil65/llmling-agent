@@ -1,5 +1,5 @@
 # /// script
-# dependencies = ["llmling-agent"]
+# dependencies = ["agentpool"]
 # ///
 
 
@@ -20,9 +20,9 @@ from dataclasses import dataclass
 import os
 from typing import TYPE_CHECKING, Any
 
-from llmling_agent import AgentPool, AgentsManifest
-from llmling_agent.agents.events import RichAgentStreamEvent
-from llmling_agent.docs.utils import get_config_path, is_pyodide, run
+from agentpool import AgentPool, AgentsManifest
+from agentpool.agents.events import RichAgentStreamEvent
+from agentpool.docs.utils import get_config_path, is_pyodide, run
 
 
 if TYPE_CHECKING:
@@ -69,7 +69,7 @@ async def run_example() -> None:
     manifest = AgentsManifest.from_file(config_path)
 
     async def event_handler(ctx: RunContext, event: RichAgentStreamEvent[Any]) -> None:
-        from llmling_agent.agents.events import ToolCallProgressEvent
+        from agentpool.agents.events import ToolCallProgressEvent
 
         if isinstance(event, ToolCallProgressEvent):
             print(f"Progress: {event.progress}/{event.total} - {event.message}")

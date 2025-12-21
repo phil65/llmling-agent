@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from llmling_agent_config.toolsets import (
+from agentpool_config.toolsets import (
     AgentManagementToolsetConfig,
     CodeToolsetConfig,
     ExecutionEnvironmentToolsetConfig,

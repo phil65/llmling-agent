@@ -9,7 +9,7 @@ from pydantic_ai import FunctionToolCallEvent, FunctionToolResultEvent, PartStar
 from pydantic_ai.messages import TextPart, ToolCallPart, ToolReturnPart
 import pytest
 
-from llmling_agent.agents.events import (
+from agentpool.agents.events import (
     RunErrorEvent,
     StreamCompleteEvent,
     ToolCallStartEvent,
@@ -144,7 +144,7 @@ async def test_detailed_print_handler_truncates_long_output(mock_run_context):
 @pytest.mark.asyncio
 async def test_stream_complete_adds_newline(mock_run_context):
     """Test both handlers add final newline on stream complete."""
-    from llmling_agent.messaging import ChatMessage
+    from agentpool.messaging import ChatMessage
 
     for handler in [simple_print_handler, detailed_print_handler]:
         output = StringIO()

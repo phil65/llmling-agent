@@ -1,5 +1,5 @@
 # /// script
-# dependencies = ["llmling-agent"]
+# dependencies = ["agentpool"]
 # ///
 
 """Demo: Agent using MCP server with code fixer (sampling + elicitation)."""
@@ -9,8 +9,8 @@ from __future__ import annotations
 import asyncio
 from pathlib import Path
 
-from llmling_agent import Agent
-from llmling_agent_config.mcp_server import StdioMCPServerConfig
+from agentpool import Agent
+from agentpool_config.mcp_server import StdioMCPServerConfig
 
 
 async def main() -> None:

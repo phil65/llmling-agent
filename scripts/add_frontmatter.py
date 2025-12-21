@@ -8,7 +8,7 @@ from typing import Any
 
 
 # Root paths
-DOCS_CODE_DIR = Path("src/llmling_agent_docs")
+DOCS_CODE_DIR = Path("src/agentpool_docs")
 DOCS_DIR = Path("docs")
 
 

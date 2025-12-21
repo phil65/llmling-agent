@@ -20,5 +20,5 @@ agents:
 ## Configuration Reference
 
 /// mknodes
-{{ "llmling_agent_config.toolsets.IntegrationToolsetConfig" | schema_to_markdown(display_mode="yaml", header_style="pymdownx", wrapped_in="toolsets") }}
+{{ "agentpool_config.toolsets.IntegrationToolsetConfig" | schema_to_markdown(display_mode="yaml", header_style="pymdownx", wrapped_in="toolsets") }}
 ///

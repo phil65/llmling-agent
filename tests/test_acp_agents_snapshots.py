@@ -13,12 +13,12 @@ from typing import TYPE_CHECKING, get_args
 
 import pytest
 
-from llmling_agent.models.acp_agents.mcp_capable import MCPCapableACPAgentConfigTypes
-from llmling_agent.models.acp_agents.non_mcp import RegularACPAgentConfigTypes
+from agentpool.models.acp_agents.mcp_capable import MCPCapableACPAgentConfigTypes
+from agentpool.models.acp_agents.non_mcp import RegularACPAgentConfigTypes
 
 
 if TYPE_CHECKING:
-    from llmling_agent.models.acp_agents.base import BaseACPAgentConfig
+    from agentpool.models.acp_agents.base import BaseACPAgentConfig
 
 
 def get_concrete_agent_classes() -> list[type[BaseACPAgentConfig]]:

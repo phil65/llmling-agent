@@ -8,7 +8,7 @@ LLMling's messaging system provides a unified way to handle communication betwee
 
 ## Message Flow
 
-Messages in LLMling-Agent can flow between:
+Messages in AgentPool can flow between:
 
 - Individual agents
 - Teams of agents

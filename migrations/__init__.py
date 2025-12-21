@@ -1,1 +1,1 @@
-"""Database migrations for llmling-agent."""
+"""Database migrations for agentpool."""

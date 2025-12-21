@@ -6,10 +6,10 @@ import platform
 
 import pytest
 
-from llmling_agent.delegation.pool import AgentPool
-from llmling_agent.models.agents import NativeAgentConfig
-from llmling_agent.models.manifest import AgentsManifest
-from llmling_agent_config.toolsets import (
+from agentpool.delegation.pool import AgentPool
+from agentpool.models.agents import NativeAgentConfig
+from agentpool.models.manifest import AgentsManifest
+from agentpool_config.toolsets import (
     ExecutionEnvironmentToolsetConfig,
     FSSpecToolsetConfig,
 )

@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from llmling_agent import Agent
-from llmling_agent.hooks import AgentHooks, CallableHook
+from agentpool import Agent
+from agentpool.hooks import AgentHooks, CallableHook
 
 
 # Hook state for testing

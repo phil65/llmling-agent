@@ -6,8 +6,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from llmling_agent_config.toolsets import NotificationsToolsetConfig
-from llmling_agent_toolsets.notifications import NotificationsTools
+from agentpool_config.toolsets import NotificationsToolsetConfig
+from agentpool_toolsets.notifications import NotificationsTools
 
 
 @pytest.fixture

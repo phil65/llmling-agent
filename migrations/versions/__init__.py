@@ -1,1 +1,1 @@
-"""Migration versions for llmling-agent database schema."""
+"""Migration versions for agentpool database schema."""
