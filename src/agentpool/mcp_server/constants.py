@@ -3,16 +3,12 @@
 from __future__ import annotations
 
 import logging
-import sys
 from typing import TYPE_CHECKING
 
 
 if TYPE_CHECKING:
     import mcp
 
-
-SERVER_NAME = "agentpool-server"
-SERVER_CMD = [sys.executable, "-m", "mcp_server_llmling", "start"]
 
 MCP_TO_LOGGING: dict[mcp.LoggingLevel, int] = {
     "debug": logging.DEBUG,
