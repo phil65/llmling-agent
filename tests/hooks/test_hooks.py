@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
 
 from llmling_agent import Agent
@@ -21,25 +23,25 @@ def reset_hook_state():
 # Hook functions
 
 
-def allow_hook(**kwargs) -> dict:
+def allow_hook(**kwargs) -> dict[str, Any]:
     """Hook that allows the action."""
     hook_state["calls"].append(("allow", kwargs.get("event")))
     return {"decision": "allow"}
 
 
-def deny_hook(**kwargs) -> dict:
+def deny_hook(**kwargs) -> dict[str, Any]:
     """Hook that denies the action."""
     hook_state["calls"].append(("deny", kwargs.get("event")))
     return {"decision": "deny", "reason": "Denied by test hook"}
 
 
-def record_result_hook(**kwargs) -> dict:
+def record_result_hook(**kwargs) -> dict[str, Any]:
     """Hook that records data passed to it."""
     hook_state["results"].append(kwargs)
     return {"decision": "allow"}
 
 
-def modify_input_hook(**kwargs) -> dict:
+def modify_input_hook(**kwargs) -> dict[str, Any]:
     """Hook that modifies tool input."""
     hook_state["calls"].append(("modify", kwargs.get("tool_input")))
     return {"decision": "allow", "modified_input": {"modified": True}}

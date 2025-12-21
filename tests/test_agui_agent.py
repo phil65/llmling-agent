@@ -15,7 +15,10 @@ from llmling_agent.agents.agui_agent import AGUIAgent
 from llmling_agent.agents.agui_agent.agui_converters import (
     agui_to_native_event,
 )
-from llmling_agent.agents.events import ToolCallStartEvent as NativeToolCallStart
+from llmling_agent.agents.events import (
+    StreamCompleteEvent,
+    ToolCallStartEvent as NativeToolCallStart,
+)
 from llmling_agent.messaging import ChatMessage
 from llmling_agent.talk.stats import MessageStats
 
@@ -93,6 +96,7 @@ async def test_agui_agent_run_stream(mock_sse_response):
             assert len(collected_events) > 0
             # Final event should be StreamCompleteEvent with ChatMessage
             final_event = collected_events[-1]
+            assert isinstance(final_event, StreamCompleteEvent)
             assert final_event.message.content == "Hello world"
 
 
