@@ -55,6 +55,7 @@ if TYPE_CHECKING:
     from claude_agent_sdk import (
         ClaudeAgentOptions,
         ClaudeSDKClient,
+        PermissionMode,
         PermissionResult,
         ToolPermissionContext,
         ToolUseBlock,
@@ -110,7 +111,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         model: str | None = None,
         max_turns: int | None = None,
         max_thinking_tokens: int | None = None,
-        permission_mode: str | None = None,
+        permission_mode: PermissionMode | None = None,
         mcp_servers: Sequence[MCPServerConfig] | None = None,
         environment: dict[str, str] | None = None,
         add_dir: list[str] | None = None,
