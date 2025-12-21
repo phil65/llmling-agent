@@ -34,8 +34,9 @@ AG-UI agents are useful for:
 ## Basic Usage
 
 ```yaml
-agui_agents:
+agents:
   remote_assistant:
+    type: agui
     endpoint: http://localhost:8000/agent/run
     timeout: 30.0
     headers:

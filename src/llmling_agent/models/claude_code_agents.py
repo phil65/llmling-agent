@@ -8,11 +8,11 @@ from pydantic import ConfigDict, Field
 
 from llmling_agent_config.nodes import BaseAgentConfig
 from llmling_agent_config.output_types import StructuredResponseConfig  # noqa: TC001
+from llmling_agent_config.toolsets import ToolsetConfig  # noqa: TC001
 
 
 if TYPE_CHECKING:
     from llmling_agent.resource_providers import ResourceProvider
-    from llmling_agent_config.toolsets import ToolsetConfig
 
 
 PermissionMode = Literal["default", "acceptEdits", "plan", "bypassPermissions"]

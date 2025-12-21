@@ -108,6 +108,7 @@ class ACPAgentConfig(BaseACPAgentConfig):
         agents:
           custom_agent:
             type: acp
+            provider: custom
             command: my-acp-server
             args: ["--mode", "coding"]
             cwd: /path/to/project
@@ -116,7 +117,7 @@ class ACPAgentConfig(BaseACPAgentConfig):
 
     model_config = ConfigDict(json_schema_extra={"title": "Custom ACP Agent Configuration"})
 
-    provider: Literal["acp"] = Field("acp", init=False)
+    provider: Literal["custom"] = Field("custom", init=False)
     """Discriminator for custom ACP agent."""
 
     command: str = Field(

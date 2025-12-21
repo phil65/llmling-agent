@@ -2,7 +2,7 @@
   "$defs": {
     "ACPAgentConfig": {
       "additionalProperties": false,
-      "description": "Configuration for a custom ACP agent with explicit command.\n\nUse this for ACP servers that don't have a preset, or when you need\nfull control over the command and arguments.\n\nExample:\n    ```yaml\n    agents:\n      custom_agent:\n        type: acp\n        command: my-acp-server\n        args: [\"--mode\", \"coding\"]\n        cwd: /path/to/project\n    ```",
+      "description": "Configuration for a custom ACP agent with explicit command.\n\nUse this for ACP servers that don't have a preset, or when you need\nfull control over the command and arguments.\n\nExample:\n    ```yaml\n    agents:\n      custom_agent:\n        type: acp\n        provider: custom\n        command: my-acp-server\n        args: [\"--mode\", \"coding\"]\n        cwd: /path/to/project\n    ```",
       "properties": {
         "name": {
           "default": null,
@@ -385,8 +385,8 @@
           "type": "string"
         },
         "provider": {
-          "const": "acp",
-          "default": "acp",
+          "const": "custom",
+          "default": "custom",
           "description": "Discriminator for custom ACP agent.",
           "title": "Provider",
           "type": "string"
@@ -499,7 +499,7 @@
     },
     "AGUIAgentConfig": {
       "additionalProperties": false,
-      "description": "Configuration for AG-UI protocol agents.\n\nAG-UI agents connect to remote HTTP endpoints that implement the AG-UI protocol,\nenabling integration of any AG-UI compatible server into the llmling-agent pool.\n\nExample:\n    ```yaml\n    agui_agents:\n      remote_assistant:\n        endpoint: http://localhost:8000/agent/run\n        timeout: 30.0\n        headers:\n          X-API-Key: ${API_KEY}\n        tools:\n          - import_path: mymodule.my_tool_function\n\n      managed_agent:\n        endpoint: http://localhost:8765/agent/run\n        startup_command: \"uv run ag-ui-server config.yml\"\n        startup_delay: 3.0\n        tools:\n          - import_path: package.tool_one\n          - import_path: package.tool_two\n    ```",
+      "description": "Configuration for AG-UI protocol agents.\n\nAG-UI agents connect to remote HTTP endpoints that implement the AG-UI protocol,\nenabling integration of any AG-UI compatible server into the llmling-agent pool.\n\nExample:\n    ```yaml\n    agents:\n      remote_assistant:\n        type: agui\n        endpoint: http://localhost:8000/agent/run\n        timeout: 30.0\n        headers:\n          X-API-Key: ${API_KEY}\n        tools:\n          - import_path: mymodule.my_tool_function\n\n      managed_agent:\n        endpoint: http://localhost:8765/agent/run\n        startup_command: \"uv run ag-ui-server config.yml\"\n        startup_delay: 3.0\n        tools:\n          - import_path: package.tool_one\n          - import_path: package.tool_two\n    ```",
       "properties": {
         "name": {
           "default": null,
@@ -1131,7 +1131,7 @@
     },
     "AmpACPAgentConfig": {
       "additionalProperties": false,
-      "description": "Configuration for Amp (AmpCode) via ACP.\n\nACP bridge adapter that spawns the Amp CLI internally. The amp-acp bridge\nitself has no CLI configuration options. It spawns `amp --no-notifications`\nand bridges the communication to ACP protocol.\n\nConfiguration is done via environment variables:\n- AMP_EXECUTABLE: Path to amp binary (default: 'amp' from PATH)\n- AMP_PREFER_SYSTEM_PATH: Set to '1' to use system amp instead of npx version\n- AMP_API_KEY: API key for Amp service\n- AMP_URL: URL for Amp service (default: https://ampcode.com/)\n- AMP_SETTINGS_FILE: Path to settings file\n\nFor amp CLI configuration (permissions, MCP servers, etc.), use the amp\nsettings file at ~/.config/amp/settings.json\n\nExample:\n    ```yaml\n    acp_agents:\n      amp:\n        type: amp\n        cwd: /path/to/project\n        env:\n          AMP_EXECUTABLE: /usr/local/bin/amp\n          AMP_PREFER_SYSTEM_PATH: \"1\"\n          AMP_API_KEY: your-api-key\n    ```",
+      "description": "Configuration for Amp (AmpCode) via ACP.\n\nACP bridge adapter that spawns the Amp CLI internally. The amp-acp bridge\nitself has no CLI configuration options. It spawns `amp --no-notifications`\nand bridges the communication to ACP protocol.\n\nConfiguration is done via environment variables:\n- AMP_EXECUTABLE: Path to amp binary (default: 'amp' from PATH)\n- AMP_PREFER_SYSTEM_PATH: Set to '1' to use system amp instead of npx version\n- AMP_API_KEY: API key for Amp service\n- AMP_URL: URL for Amp service (default: https://ampcode.com/)\n- AMP_SETTINGS_FILE: Path to settings file\n\nFor amp CLI configuration (permissions, MCP servers, etc.), use the amp\nsettings file at ~/.config/amp/settings.json\n\nExample:\n    ```yaml\n    agents:\n      amp:\n        type: acp\n        provider: amp\n        cwd: /path/to/project\n        env:\n          AMP_EXECUTABLE: /usr/local/bin/amp\n          AMP_PREFER_SYSTEM_PATH: \"1\"\n          AMP_API_KEY: your-api-key\n    ```",
       "properties": {
         "name": {
           "default": null,
@@ -2183,7 +2183,7 @@
     },
     "AuggieACPAgentConfig": {
       "additionalProperties": false,
-      "description": "Configuration for Auggie (Augment Code) via ACP.\n\nAI agent that brings Augment Code's power to the terminal.\n\nExample:\n    ```yaml\n    acp_agents:\n      auggie:\n        type: auggie\n        cwd: /path/to/project\n        model: auggie-sonnet\n        workspace_root: /path/to/workspace\n        rules: [rules.md]\n        shell: bash\n    ```",
+      "description": "Configuration for Auggie (Augment Code) via ACP.\n\nAI agent that brings Augment Code's power to the terminal.\n\nExample:\n    ```yaml\n    agents:\n      auggie:\n        type: acp\n        provider: auggie\n        cwd: /path/to/project\n        model: auggie-sonnet\n        workspace_root: /path/to/workspace\n        rules: [rules.md]\n        shell: bash\n    ```",
       "properties": {
         "name": {
           "default": null,
@@ -5009,7 +5009,7 @@
     },
     "CagentACPAgentConfig": {
       "additionalProperties": false,
-      "description": "Configuration for Docker cagent via ACP.\n\nAgent Builder and Runtime by Docker Engineering.\n\nExample:\n    ```yaml\n    acp_agents:\n      cagent:\n        type: cagent\n        cwd: /path/to/project\n        agent_file: ./agent.yaml\n        code_mode_tools: true\n        working_dir: /path/to/work\n    ```",
+      "description": "Configuration for Docker cagent via ACP.\n\nAgent Builder and Runtime by Docker Engineering.\n\nExample:\n    ```yaml\n    agents:\n      cagent:\n        type: acp\n        provider: cagent\n        cwd: /path/to/project\n        agent_file: ./agent.yaml\n        code_mode_tools: true\n        working_dir: /path/to/work\n    ```",
       "properties": {
         "name": {
           "default": null,
@@ -5993,7 +5993,7 @@
     },
     "ClaudeACPAgentConfig": {
       "additionalProperties": false,
-      "description": "Configuration for Claude Code via ACP.\n\nProvides typed settings for the claude-code-acp server.\n\nNote:\n    If ANTHROPIC_API_KEY is set in your environment, Claude Code will use it\n    directly instead of the subscription. To force subscription usage, set\n    `env: {\"ANTHROPIC_API_KEY\": \"\"}` in the config.\n\nExample:\n    ```yaml\n    agents:\n      coder:\n        type: claude\n        cwd: /path/to/project\n        model: sonnet\n        permission_mode: acceptEdits\n        env:\n          ANTHROPIC_API_KEY: \"\"  # Use subscription instead of API key\n        allowed_tools:\n          - Read\n          - Write\n          - Bash(git:*)\n    ```",
+      "description": "Configuration for Claude Code via ACP.\n\nProvides typed settings for the claude-code-acp server.\n\nNote:\n    If ANTHROPIC_API_KEY is set in your environment, Claude Code will use it\n    directly instead of the subscription. To force subscription usage, set\n    `env: {\"ANTHROPIC_API_KEY\": \"\"}` in the config.\n\nExample:\n    ```yaml\n    agents:\n      coder:\n        type: acp\n        provider: claude\n        cwd: /path/to/project\n        model: sonnet\n        permission_mode: acceptEdits\n        env:\n          ANTHROPIC_API_KEY: \"\"  # Use subscription instead of API key\n        allowed_tools:\n          - Read\n          - Write\n          - Bash(git:*)\n    ```",
       "properties": {
         "name": {
           "default": null,
@@ -7257,6 +7257,225 @@
             "code_output"
           ],
           "title": "Response type"
+        },
+        "append_system_prompt": {
+          "default": null,
+          "description": "Text to append to the default system prompt.\n\nNote: External MCP servers can be configured via the inherited `mcp_servers` field\nfrom BaseAgentConfig. They will be converted to Claude SDK format at runtime.",
+          "examples": [
+            "Always write tests.",
+            "Prefer functional programming."
+          ],
+          "title": "Append System Prompt",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "env": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Environment variables to set for the agent process.\n\nNote: Set ANTHROPIC_API_KEY to empty string to force subscription usage.",
+          "examples": [
+            {
+              "ANTHROPIC_API_KEY": "",
+              "DEBUG": "1"
+            }
+          ],
+          "title": "Environment Variables"
+        },
+        "add_dir": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Additional directories to allow tool access to.",
+          "examples": [
+            [
+              "/tmp",
+              "/var/log"
+            ],
+            [
+              "/home/user/data"
+            ]
+          ],
+          "title": "Additional Directories"
+        },
+        "builtin_tools": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Available tools from Claude Code's built-in set.\n\nEmpty list disables all tools. If not specified, all tools are available.\nDifferent from allowed_tools which filters an already-available set.",
+          "examples": [
+            [
+              "Bash",
+              "Edit",
+              "Read"
+            ],
+            []
+          ],
+          "title": "Built-in Tools"
+        },
+        "fallback_model": {
+          "default": null,
+          "description": "Fallback model when default is overloaded.",
+          "examples": [
+            "claude-sonnet-4-5",
+            "claude-haiku-3-5"
+          ],
+          "title": "Fallback Model",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "dangerously_skip_permissions": {
+          "default": false,
+          "description": "Bypass all permission checks. Only for sandboxed environments.",
+          "title": "Dangerously Skip Permissions",
+          "type": "boolean"
+        },
+        "toolsets": {
+          "description": "Toolsets to expose to this Claude Code agent via MCP bridge.\n\nThese toolsets will be started as an in-process MCP server and made\navailable to Claude Code. This allows Claude Code to use internal\nllmling-agent toolsets like subagent delegation, agent management, etc.\n\nThe toolsets are exposed using the Claude SDK's native MCP support,\nwhich passes the FastMCP server instance directly without HTTP overhead.",
+          "examples": [
+            [
+              {
+                "type": "subagent"
+              },
+              {
+                "type": "agent_management"
+              }
+            ]
+          ],
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "agent_management": "#/$defs/AgentManagementToolsetConfig",
+                "code": "#/$defs/CodeToolsetConfig",
+                "code_mode": "#/$defs/CodeModeToolsetConfig",
+                "composio": "#/$defs/ComposioToolSetConfig",
+                "config_creation": "#/$defs/ConfigCreationToolsetConfig",
+                "custom": "#/$defs/CustomToolsetConfig",
+                "entry_points": "#/$defs/EntryPointToolsetConfig",
+                "execution": "#/$defs/ExecutionEnvironmentToolsetConfig",
+                "file_access": "#/$defs/FSSpecToolsetConfig",
+                "history": "#/$defs/HistoryToolsetConfig",
+                "import_tools": "#/$defs/ImportToolsToolsetConfig",
+                "integrations": "#/$defs/IntegrationToolsetConfig",
+                "notifications": "#/$defs/NotificationsToolsetConfig",
+                "openapi": "#/$defs/OpenAPIToolsetConfig",
+                "remote_code_mode": "#/$defs/RemoteCodeModeToolsetConfig",
+                "search": "#/$defs/SearchToolsetConfig",
+                "semantic_memory": "#/$defs/SemanticMemoryToolsetConfig",
+                "skills": "#/$defs/SkillsToolsetConfig",
+                "subagent": "#/$defs/SubagentToolsetConfig",
+                "tool_management": "#/$defs/ToolManagementToolsetConfig",
+                "user_interaction": "#/$defs/UserInteractionToolsetConfig",
+                "vfs": "#/$defs/VFSToolsetConfig",
+                "workers": "#/$defs/WorkersToolsetConfig"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/OpenAPIToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/EntryPointToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/ComposioToolSetConfig"
+              },
+              {
+                "$ref": "#/$defs/AgentManagementToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/ExecutionEnvironmentToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/ToolManagementToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/UserInteractionToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/HistoryToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/SkillsToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/IntegrationToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/CodeToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/FSSpecToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/VFSToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/SubagentToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/WorkersToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/CodeModeToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/RemoteCodeModeToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/SearchToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/NotificationsToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/SemanticMemoryToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/ConfigCreationToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/ImportToolsToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/CustomToolsetConfig"
+              }
+            ]
+          },
+          "title": "Toolsets",
+          "type": "array"
         }
       },
       "title": "Claude Code Agent Configuration",
@@ -7720,7 +7939,7 @@
     },
     "CodexACPAgentConfig": {
       "additionalProperties": false,
-      "description": "Configuration for Zed Codex via ACP.\n\nProvides typed settings for the codex-acp server.\n\nExample:\n    ```yaml\n    acp_agents:\n      coder:\n        type: codex\n        cwd: /path/to/project\n        model: o3\n        sandbox_permissions:\n          - disk-full-read-access\n    ```",
+      "description": "Configuration for Zed Codex via ACP.\n\nProvides typed settings for the codex-acp server.\n\nExample:\n    ```yaml\n    agents:\n      coder:\n        type: acp\n        provider: codex\n        cwd: /path/to/project\n        model: o3\n        sandbox_permissions:\n          - disk-full-read-access\n    ```",
       "properties": {
         "name": {
           "default": null,
@@ -8589,7 +8808,7 @@
     },
     "CursorACPAgentConfig": {
       "additionalProperties": false,
-      "description": "Configuration for Cursor via ACP.\n\nCursor CLI agent with filesystem and terminal capabilities.\nSee https://github.com/blowmage/cursor-agent-acp-npm\n\nExample:\n    ```yaml\n    acp_agents:\n      coder:\n        type: cursor\n        cwd: /path/to/project\n        session_dir: ~/.cursor-sessions\n        timeout: 30000\n    ```",
+      "description": "Configuration for Cursor via ACP.\n\nCursor CLI agent with filesystem and terminal capabilities.\nSee https://github.com/blowmage/cursor-agent-acp-npm\n\nExample:\n    ```yaml\n    agents:\n      coder:\n        type: acp\n        provider: cursor\n        cwd: /path/to/project\n        session_dir: ~/.cursor-sessions\n        timeout: 30000\n    ```",
       "properties": {
         "name": {
           "default": null,
@@ -16824,7 +17043,7 @@
     },
     "FastAgentACPAgentConfig": {
       "additionalProperties": false,
-      "description": "Configuration for fast-agent via ACP.\n\nRobust LLM agent with comprehensive MCP support.\n\nSupports MCP server integration via:\n- Internal bridge: Use `toolsets` field to expose llmling-agent toolsets\n- External servers: Use `url` field to connect to external MCP servers\n- Skills: Use `skills_dir` to specify custom skills directory\n\nExample:\n    ```yaml\n    acp_agents:\n      coder:\n        type: fast-agent\n        cwd: /path/to/project\n        model: claude-3.5-sonnet-20241022\n        toolsets:\n          - type: subagent\n          - type: agent_management\n        skills_dir: ./my-skills\n    ```",
+      "description": "Configuration for fast-agent via ACP.\n\nRobust LLM agent with comprehensive MCP support.\n\nSupports MCP server integration via:\n- Internal bridge: Use `toolsets` field to expose llmling-agent toolsets\n- External servers: Use `url` field to connect to external MCP servers\n- Skills: Use `skills_dir` to specify custom skills directory\n\nExample:\n    ```yaml\n    agents:\n      coder:\n        type: acp\n        provider: fast-agent\n        cwd: /path/to/project\n        model: claude-3.5-sonnet-20241022\n        toolsets:\n          - type: subagent\n          - type: agent_management\n        skills_dir: ./my-skills\n    ```",
       "properties": {
         "name": {
           "default": null,
@@ -18442,7 +18661,7 @@
     },
     "GeminiACPAgentConfig": {
       "additionalProperties": false,
-      "description": "Configuration for Gemini CLI via ACP.\n\nProvides typed settings for the gemini CLI with ACP support.\n\nExample:\n    ```yaml\n    acp_agents:\n      coder:\n        type: gemini\n        cwd: /path/to/project\n        model: gemini-2.5-pro\n        approval_mode: auto_edit\n        allowed_tools:\n          - read_file\n          - write_file\n          - terminal\n    ```",
+      "description": "Configuration for Gemini CLI via ACP.\n\nProvides typed settings for the gemini CLI with ACP support.\n\nExample:\n    ```yaml\n    agents:\n      coder:\n        type: acp\n        provider: gemini\n        cwd: /path/to/project\n        model: gemini-2.5-pro\n        approval_mode: auto_edit\n        allowed_tools:\n          - read_file\n          - write_file\n          - terminal\n    ```",
       "properties": {
         "name": {
           "default": null,
@@ -19942,7 +20161,7 @@
     },
     "GooseACPAgentConfig": {
       "additionalProperties": false,
-      "description": "Configuration for Goose via ACP.\n\nBlock's open-source coding agent.\n\nExample:\n    ```yaml\n    acp_agents:\n      coder:\n        type: goose\n        cwd: /path/to/project\n    ```",
+      "description": "Configuration for Goose via ACP.\n\nBlock's open-source coding agent.\n\nExample:\n    ```yaml\n    agents:\n      coder:\n        type: acp\n        provider: goose\n        cwd: /path/to/project\n    ```",
       "properties": {
         "name": {
           "default": null,
@@ -21756,7 +21975,7 @@
     },
     "KimiACPAgentConfig": {
       "additionalProperties": false,
-      "description": "Configuration for Kimi CLI via ACP.\n\nCommand-line agent from Moonshot AI with ACP support.\n\nExample:\n    ```yaml\n    acp_agents:\n      kimi:\n        type: kimi\n        cwd: /path/to/project\n        model: kimi-v1\n        work_dir: /path/to/work\n        yolo: true\n    ```",
+      "description": "Configuration for Kimi CLI via ACP.\n\nCommand-line agent from Moonshot AI with ACP support.\n\nExample:\n    ```yaml\n    agents:\n      kimi:\n        type: acp\n        provider: kimi\n        cwd: /path/to/project\n        model: kimi-v1\n        work_dir: /path/to/work\n        yolo: true\n    ```",
       "properties": {
         "name": {
           "default": null,
@@ -24322,7 +24541,7 @@
     },
     "MistralACPAgentConfig": {
       "additionalProperties": false,
-      "description": "Configuration for Mistral Agent via ACP.\n\nExample:\n    ```yaml\n    acp_agents:\n      coder:\n        type: mistral\n        cwd: /path/to/project\n    ```",
+      "description": "Configuration for Mistral Agent via ACP.\n\nExample:\n    ```yaml\n    agents:\n      coder:\n        type: acp\n        provider: mistral\n        cwd: /path/to/project\n    ```",
       "properties": {
         "name": {
           "default": null,
@@ -28278,7 +28497,7 @@
     },
     "OpenCodeACPAgentConfig": {
       "additionalProperties": false,
-      "description": "Configuration for OpenCode via ACP.\n\nProvides typed settings for the opencode acp server.\n\nExample:\n    ```yaml\n    acp_agents:\n      coder:\n        type: opencode\n        cwd: /path/to/project\n        log_level: INFO\n    ```",
+      "description": "Configuration for OpenCode via ACP.\n\nProvides typed settings for the opencode acp server.\n\nExample:\n    ```yaml\n    agents:\n      coder:\n        type: acp\n        provider: opencode\n        cwd: /path/to/project\n        log_level: INFO\n    ```",
       "properties": {
         "name": {
           "default": null,
@@ -28699,7 +28918,7 @@
     },
     "OpenHandsACPAgentConfig": {
       "additionalProperties": false,
-      "description": "Configuration for OpenHands via ACP.\n\nOpen-source autonomous AI agent (formerly OpenDevin).\n\nExample:\n    ```yaml\n    acp_agents:\n      coder:\n        type: openhands\n        cwd: /path/to/project\n    ```",
+      "description": "Configuration for OpenHands via ACP.\n\nOpen-source autonomous AI agent (formerly OpenDevin).\n\nExample:\n    ```yaml\n    agents:\n      coder:\n        type: acp\n        provider: openhands\n        cwd: /path/to/project\n    ```",
       "properties": {
         "name": {
           "default": null,
@@ -34826,7 +35045,7 @@
     },
     "StakpakACPAgentConfig": {
       "additionalProperties": false,
-      "description": "Configuration for Stakpak Agent via ACP.\n\nTerminal-native DevOps Agent in Rust with enterprise-grade security.\n\nExample:\n    ```yaml\n    acp_agents:\n      stakpak:\n        type: stakpak\n        cwd: /path/to/project\n        model: smart\n        workdir: /path/to/work\n        verbose: true\n    ```",
+      "description": "Configuration for Stakpak Agent via ACP.\n\nTerminal-native DevOps Agent in Rust with enterprise-grade security.\n\nExample:\n    ```yaml\n    agents:\n      stakpak:\n        type: acp\n        provider: stakpak\n        cwd: /path/to/project\n        model: smart\n        workdir: /path/to/work\n        verbose: true\n    ```",
       "properties": {
         "name": {
           "default": null,
@@ -43811,13 +44030,13 @@
             "acp": {
               "discriminator": {
                 "mapping": {
-                  "acp": "#/$defs/ACPAgentConfig",
                   "amp": "#/$defs/AmpACPAgentConfig",
                   "auggie": "#/$defs/AuggieACPAgentConfig",
                   "cagent": "#/$defs/CagentACPAgentConfig",
                   "claude": "#/$defs/ClaudeACPAgentConfig",
                   "codex": "#/$defs/CodexACPAgentConfig",
                   "cursor": "#/$defs/CursorACPAgentConfig",
+                  "custom": "#/$defs/ACPAgentConfig",
                   "fast-agent": "#/$defs/FastAgentACPAgentConfig",
                   "gemini": "#/$defs/GeminiACPAgentConfig",
                   "goose": "#/$defs/GooseACPAgentConfig",
@@ -43900,13 +44119,13 @@
           {
             "discriminator": {
               "mapping": {
-                "acp": "#/$defs/ACPAgentConfig",
                 "amp": "#/$defs/AmpACPAgentConfig",
                 "auggie": "#/$defs/AuggieACPAgentConfig",
                 "cagent": "#/$defs/CagentACPAgentConfig",
                 "claude": "#/$defs/ClaudeACPAgentConfig",
                 "codex": "#/$defs/CodexACPAgentConfig",
                 "cursor": "#/$defs/CursorACPAgentConfig",
+                "custom": "#/$defs/ACPAgentConfig",
                 "fast-agent": "#/$defs/FastAgentACPAgentConfig",
                 "gemini": "#/$defs/GeminiACPAgentConfig",
                 "goose": "#/$defs/GooseACPAgentConfig",

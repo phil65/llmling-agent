@@ -40,9 +40,10 @@ class CodexACPAgentConfig(BaseACPAgentConfig):
 
     Example:
         ```yaml
-        acp_agents:
+        agents:
           coder:
-            type: codex
+            type: acp
+            provider: codex
             cwd: /path/to/project
             model: o3
             sandbox_permissions:
@@ -111,9 +112,10 @@ class OpenCodeACPAgentConfig(BaseACPAgentConfig):
 
     Example:
         ```yaml
-        acp_agents:
+        agents:
           coder:
-            type: opencode
+            type: acp
+            provider: opencode
             cwd: /path/to/project
             log_level: INFO
         ```
@@ -149,9 +151,10 @@ class GooseACPAgentConfig(BaseACPAgentConfig):
 
     Example:
         ```yaml
-        acp_agents:
+        agents:
           coder:
-            type: goose
+            type: acp
+            provider: goose
             cwd: /path/to/project
         ```
     """
@@ -180,9 +183,10 @@ class MistralACPAgentConfig(BaseACPAgentConfig):
 
     Example:
         ```yaml
-        acp_agents:
+        agents:
           coder:
-            type: mistral
+            type: acp
+            provider: mistral
             cwd: /path/to/project
         ```
     """
@@ -213,9 +217,10 @@ class OpenHandsACPAgentConfig(BaseACPAgentConfig):
 
     Example:
         ```yaml
-        acp_agents:
+        agents:
           coder:
-            type: openhands
+            type: acp
+            provider: openhands
             cwd: /path/to/project
         ```
     """
@@ -258,9 +263,10 @@ class AmpACPAgentConfig(BaseACPAgentConfig):
 
     Example:
         ```yaml
-        acp_agents:
+        agents:
           amp:
-            type: amp
+            type: acp
+            provider: amp
             cwd: /path/to/project
             env:
               AMP_EXECUTABLE: /usr/local/bin/amp
@@ -295,9 +301,10 @@ class CagentACPAgentConfig(BaseACPAgentConfig):
 
     Example:
         ```yaml
-        acp_agents:
+        agents:
           cagent:
-            type: cagent
+            type: acp
+            provider: cagent
             cwd: /path/to/project
             agent_file: ./agent.yaml
             code_mode_tools: true
@@ -395,9 +402,10 @@ class StakpakACPAgentConfig(BaseACPAgentConfig):
 
     Example:
         ```yaml
-        acp_agents:
+        agents:
           stakpak:
-            type: stakpak
+            type: acp
+            provider: stakpak
             cwd: /path/to/project
             model: smart
             workdir: /path/to/work
@@ -697,9 +705,10 @@ class CursorACPAgentConfig(BaseACPAgentConfig):
 
     Example:
         ```yaml
-        acp_agents:
+        agents:
           coder:
-            type: cursor
+            type: acp
+            provider: cursor
             cwd: /path/to/project
             session_dir: ~/.cursor-sessions
             timeout: 30000

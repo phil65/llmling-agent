@@ -129,7 +129,8 @@ class ClaudeACPAgentConfig(MCPCapableACPAgentConfig):
         ```yaml
         agents:
           coder:
-            type: claude
+            type: acp
+            provider: claude
             cwd: /path/to/project
             model: sonnet
             permission_mode: acceptEdits
@@ -300,9 +301,10 @@ class GeminiACPAgentConfig(MCPCapableACPAgentConfig):
 
     Example:
         ```yaml
-        acp_agents:
+        agents:
           coder:
-            type: gemini
+            type: acp
+            provider: gemini
             cwd: /path/to/project
             model: gemini-2.5-pro
             approval_mode: auto_edit
@@ -420,9 +422,10 @@ class FastAgentACPAgentConfig(MCPCapableACPAgentConfig):
 
     Example:
         ```yaml
-        acp_agents:
+        agents:
           coder:
-            type: fast-agent
+            type: acp
+            provider: fast-agent
             cwd: /path/to/project
             model: claude-3.5-sonnet-20241022
             toolsets:
@@ -523,9 +526,10 @@ class AuggieACPAgentConfig(MCPCapableACPAgentConfig):
 
     Example:
         ```yaml
-        acp_agents:
+        agents:
           auggie:
-            type: auggie
+            type: acp
+            provider: auggie
             cwd: /path/to/project
             model: auggie-sonnet
             workspace_root: /path/to/workspace
@@ -685,9 +689,10 @@ class KimiACPAgentConfig(MCPCapableACPAgentConfig):
 
     Example:
         ```yaml
-        acp_agents:
+        agents:
           kimi:
-            type: kimi
+            type: acp
+            provider: kimi
             cwd: /path/to/project
             model: kimi-v1
             work_dir: /path/to/work

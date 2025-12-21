@@ -124,8 +124,9 @@ event_handlers:
       - text_delta
 
 # Example: Production setup
-# agui_agents:
+# agents:
 #   production_agent:
+#     type: agui
 #     endpoint: https://prod-api.company.com/agent/run
 #     headers:
 #       Authorization: Bearer ${PROD_API_KEY}
@@ -138,8 +139,9 @@ event_handlers:
 #     description: Production AG-UI agent with audit tools
 
 # Example: Testing setup
-# agui_agents:
+# agents:
 #   test_agent:
+#     type: agui
 #     endpoint: http://localhost:8888/agent/run
 #     startup_command: "uv run pytest --ag-ui-server"
 #     startup_delay: 5.0
