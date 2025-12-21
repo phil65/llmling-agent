@@ -6,13 +6,13 @@ from typing import TYPE_CHECKING, Literal
 
 from pydantic import ConfigDict, Field
 
-from llmling_agent_config.nodes import BaseAgentConfig
-from llmling_agent_config.output_types import StructuredResponseConfig  # noqa: TC001
-from llmling_agent_config.toolsets import ToolsetConfig  # noqa: TC001
+from agentpool_config.nodes import BaseAgentConfig
+from agentpool_config.output_types import StructuredResponseConfig  # noqa: TC001
+from agentpool_config.toolsets import ToolsetConfig  # noqa: TC001
 
 
 if TYPE_CHECKING:
-    from llmling_agent.resource_providers import ResourceProvider
+    from agentpool.resource_providers import ResourceProvider
 
 
 PermissionMode = Literal["default", "acceptEdits", "plan", "bypassPermissions"]
@@ -206,7 +206,7 @@ class ClaudeCodeAgentConfig(BaseAgentConfig):
 
     These toolsets will be started as an in-process MCP server and made
     available to Claude Code. This allows Claude Code to use internal
-    llmling-agent toolsets like subagent delegation, agent management, etc.
+    agentpool toolsets like subagent delegation, agent management, etc.
 
     The toolsets are exposed using the Claude SDK's native MCP support,
     which passes the FastMCP server instance directly without HTTP overhead.

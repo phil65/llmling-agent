@@ -7,7 +7,7 @@ from typing import Literal
 from pydantic import ConfigDict, Field
 from tokonomics.model_discovery import ProviderType  # noqa: TC002
 
-from llmling_agent.models.acp_agents.base import BaseACPAgentConfig
+from agentpool.models.acp_agents.base import BaseACPAgentConfig
 
 
 ClaudeCodeModelName = Literal["default", "sonnet", "opus", "haiku", "sonnet[1m]", "opusplan"]

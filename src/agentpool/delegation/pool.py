@@ -950,7 +950,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
             toolsets_list.append(config_tool_provider)
         # Convert workers config to a toolset (backwards compatibility)
         if config.workers:
-            from agentpool_toolsetsltin.workers import WorkersTools
+            from agentpool_toolsets.builtin.workers import WorkersTools
 
             workers_provider = WorkersTools(workers=list(config.workers), name="workers")
             toolsets_list.append(workers_provider)

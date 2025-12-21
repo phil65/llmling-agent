@@ -12,7 +12,7 @@ from exxec.configs import (
 from pydantic import ConfigDict, Field
 from tokonomics.model_discovery import ProviderType  # noqa: TC002
 
-from llmling_agent_config.nodes import NodeConfig
+from agentpool_config.nodes import NodeConfig
 
 
 if TYPE_CHECKING:

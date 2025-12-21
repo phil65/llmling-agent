@@ -8,9 +8,9 @@ from typing import Any, Literal, assert_never, cast
 from pydantic import BaseModel, ConfigDict, Field
 from tokonomics.model_discovery import ProviderType  # noqa: TC002
 
-from llmling_agent.models.acp_agents.base import BaseACPAgentConfig
-from llmling_agent_config.output_types import StructuredResponseConfig  # noqa: TC001
-from llmling_agent_config.toolsets import ToolsetConfig  # noqa: TC001
+from agentpool.models.acp_agents.base import BaseACPAgentConfig
+from agentpool_config.output_types import StructuredResponseConfig  # noqa: TC001
+from agentpool_config.toolsets import ToolsetConfig  # noqa: TC001
 
 
 ClaudeCodeModelName = Literal["default", "sonnet", "opus", "haiku", "sonnet[1m]", "opusplan"]
@@ -57,7 +57,7 @@ class MCPCapableACPAgentConfig(BaseACPAgentConfig):
 
     These toolsets will be started as an in-process MCP server and made
     available to the external ACP agent. This allows ACP agents to use
-    internal llmling-agent toolsets like subagent delegation.
+    internal agentpool toolsets like subagent delegation.
     """
 
     def build_mcp_config_json(self) -> str | None:
@@ -70,7 +70,7 @@ class MCPCapableACPAgentConfig(BaseACPAgentConfig):
         """
         from urllib.parse import urlparse
 
-        from llmling_agent_config.mcp_server import (
+        from agentpool_config.mcp_server import (
             SSEMCPServerConfig,
             StdioMCPServerConfig,
             StreamableHTTPMCPServerConfig,
@@ -416,7 +416,7 @@ class FastAgentACPAgentConfig(MCPCapableACPAgentConfig):
     Robust LLM agent with comprehensive MCP support.
 
     Supports MCP server integration via:
-    - Internal bridge: Use `toolsets` field to expose llmling-agent toolsets
+    - Internal bridge: Use `toolsets` field to expose agentpool toolsets
     - External servers: Use `url` field to connect to external MCP servers
     - Skills: Use `skills_dir` to specify custom skills directory
 

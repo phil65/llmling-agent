@@ -11,8 +11,8 @@ from slashed.events import (
     CommandOutputEvent as SlashedCommandOutputEvent,
 )
 
-from llmling_agent.agents.events import CommandCompleteEvent, CommandOutputEvent
-from llmling_agent.log import get_logger
+from agentpool.agents.events import CommandCompleteEvent, CommandOutputEvent
+from agentpool.log import get_logger
 
 
 if TYPE_CHECKING:
@@ -21,9 +21,9 @@ if TYPE_CHECKING:
     from slashed import CommandContext, CommandStore
     from slashed.events import CommandStoreEvent
 
-    from llmling_agent.agents.base_agent import BaseAgent
-    from llmling_agent.agents.events import SlashedAgentStreamEvent
-    from llmling_agent.common_types import PromptCompatible
+    from agentpool.agents.base_agent import BaseAgent
+    from agentpool.agents.events import SlashedAgentStreamEvent
+    from agentpool.common_types import PromptCompatible
 
 
 logger = get_logger(__name__)
@@ -77,7 +77,7 @@ class SlashedAgent[TDeps, OutputDataT]:
         if command_store is None:
             from slashed import CommandStore
 
-            from llmling_agent_commands import get_commands
+            from agentpool_commands import get_commands
 
             cmds = get_commands()
             self.command_store = CommandStore(event_handler=self._emit_event, commands=cmds)
@@ -220,7 +220,7 @@ class SlashedAgent[TDeps, OutputDataT]:
 if __name__ == "__main__":
     import asyncio
 
-    from llmling_agent import Agent
+    from agentpool import Agent
 
     async def main() -> None:
         agent = Agent("test-agent", model="test", session=False)
