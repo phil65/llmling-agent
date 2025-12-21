@@ -203,7 +203,7 @@ class ACPBridge:
         if self.settings.allow_origins:
             middleware.append(
                 Middleware(
-                    CORSMiddleware,
+                    CORSMiddleware,  # ty: ignore[invalid-argument-type]
                     allow_origins=self.settings.allow_origins,
                     allow_methods=["*"],
                     allow_headers=["*"],

@@ -261,7 +261,7 @@ class ContentToolCallContent[TContentBlock: ContentBlock = ContentBlock](Schema)
         )
         contents = TextResourceContents(text=text, mime_type=mime_type, uri=uri)
         content = EmbeddedResourceContentBlock(annotations=annotations, resource=contents)
-        return cls(content=content)
+        return cls(content=content)  # ty: ignore[invalid-argument-type]
 
     @classmethod
     def embedded_blob_resource(
@@ -292,7 +292,7 @@ class ContentToolCallContent[TContentBlock: ContentBlock = ContentBlock](Schema)
         )
         resource = BlobResourceContents(blob=data, mime_type=mime_type, uri=uri)
         content = EmbeddedResourceContentBlock(annotations=annotations, resource=resource)
-        return cls(content=content)
+        return cls(content=content)  # ty: ignore[invalid-argument-type]
 
 
 class ToolCallLocation(AnnotatedObject):

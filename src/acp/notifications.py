@@ -230,7 +230,7 @@ class ACPNotifications:
             raw_input=raw_input,
         )
         notification = SessionNotification(session_id=self.id, update=start)
-        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]
+        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]  # ty: ignore[invalid-argument-type]
 
     async def tool_call_progress(
         self,
@@ -266,7 +266,7 @@ class ACPNotifications:
             ],
         )
         notification = SessionNotification(session_id=self.id, update=progress)
-        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]
+        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]  # ty: ignore[invalid-argument-type]
 
     async def file_edit_progress(
         self,
@@ -341,7 +341,7 @@ class ACPNotifications:
         """
         plan = AgentPlanUpdate(entries=entries)
         notification = SessionNotification(session_id=self.id, update=plan)
-        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]
+        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]  # ty: ignore[invalid-argument-type]
 
     async def update_commands(self, commands: list[AvailableCommand]) -> None:
         """Send a command update notification.
@@ -351,7 +351,7 @@ class ACPNotifications:
         """
         update = AvailableCommandsUpdate(available_commands=commands)
         notification = SessionNotification(session_id=self.id, update=update)
-        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]
+        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]  # ty: ignore[invalid-argument-type]
 
     async def send_agent_text(
         self,
@@ -376,7 +376,7 @@ class ACPNotifications:
             priority=priority,
         )
         notification = SessionNotification(session_id=self.id, update=update)
-        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]
+        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]  # ty: ignore[invalid-argument-type]
 
     async def send_agent_thought(
         self,
@@ -401,7 +401,7 @@ class ACPNotifications:
             priority=priority,
         )
         notification = SessionNotification(session_id=self.id, update=update)
-        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]
+        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]  # ty: ignore[invalid-argument-type]
 
     async def send_user_message(
         self,
@@ -426,7 +426,7 @@ class ACPNotifications:
             priority=priority,
         )
         notification = SessionNotification(session_id=self.id, update=update)
-        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]
+        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]  # ty: ignore[invalid-argument-type]
 
     async def send_user_image(
         self,
@@ -457,7 +457,7 @@ class ACPNotifications:
             priority=priority,
         )
         notification = SessionNotification(session_id=self.id, update=update)
-        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]
+        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]  # ty: ignore[invalid-argument-type]
 
     async def send_user_audio(
         self,
@@ -486,7 +486,7 @@ class ACPNotifications:
             priority=priority,
         )
         notification = SessionNotification(session_id=self.id, update=update)
-        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]
+        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]  # ty: ignore[invalid-argument-type]
 
     async def send_user_resource(
         self,
@@ -526,7 +526,7 @@ class ACPNotifications:
             priority=priority,
         )
         notification = SessionNotification(session_id=self.id, update=update)
-        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]
+        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]  # ty: ignore[invalid-argument-type]
 
     async def replay(self, messages: Sequence[ModelRequest | ModelResponse]) -> None:
         """Replay a sequence of model messages as notifications.
@@ -623,9 +623,9 @@ class ACPNotifications:
                                             msg = f"Embedded resource: {mime} ({size_mb:.2f} MB)"
                                             await self.send_user_message(msg)
                                         case _ as unreachable:
-                                            assert_never(unreachable)
+                                            assert_never(unreachable)  # ty: ignore[type-assertion-failure]
                                 case _ as unreachable:
-                                    assert_never(unreachable)
+                                    assert_never(unreachable)  # ty: ignore[type-assertion-failure]
 
                 case ToolReturnPart(
                     content=content, tool_name=tool_name, tool_call_id=tool_call_id
@@ -698,7 +698,7 @@ class ACPNotifications:
             priority=priority,
         )
         notification = SessionNotification(session_id=self.id, update=update)
-        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]
+        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]  # ty: ignore[invalid-argument-type]
 
     async def update_session_mode(self, mode_id: str) -> None:
         """Send a session mode update notification.
@@ -708,7 +708,7 @@ class ACPNotifications:
         """
         update = CurrentModeUpdate(current_mode_id=mode_id)
         notification = SessionNotification(session_id=self.id, update=update)
-        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]
+        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]  # ty: ignore[invalid-argument-type]
 
     # async def update_session_model(self, model_id: str) -> None:
     #     """Send a session model update notification.
@@ -746,7 +746,7 @@ class ACPNotifications:
             audience=audience,
         )
         notification = SessionNotification(session_id=self.id, update=update)
-        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]
+        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]  # ty: ignore[invalid-argument-type]
 
     async def send_agent_resource(
         self,
@@ -786,4 +786,4 @@ class ACPNotifications:
             priority=priority,
         )
         notification = SessionNotification(session_id=self.id, update=update)
-        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]
+        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]  # ty: ignore[invalid-argument-type]

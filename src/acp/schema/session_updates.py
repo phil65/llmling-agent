@@ -203,7 +203,7 @@ class BaseChunk(AnnotatedObject):
         )
         contents = TextResourceContents(text=text, mime_type=mime_type, uri=uri)
         content = EmbeddedResourceContentBlock(annotations=annotations, resource=contents)
-        return cls(content=content)  # pyright: ignore[reportArgumentType]
+        return cls(content=content)  # pyright: ignore[reportArgumentType]  # ty: ignore[invalid-argument-type]
 
     @classmethod
     def embedded_blob_resource(
@@ -234,7 +234,7 @@ class BaseChunk(AnnotatedObject):
         )
         resource = BlobResourceContents(blob=data, mime_type=mime_type, uri=uri)
         content = EmbeddedResourceContentBlock(annotations=annotations, resource=resource)
-        return cls(content=content)  # pyright: ignore[reportArgumentType]
+        return cls(content=content)  # pyright: ignore[reportArgumentType]  # ty: ignore[invalid-argument-type]
 
 
 class UserMessageChunk(BaseChunk):

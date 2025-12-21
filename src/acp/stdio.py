@@ -270,9 +270,9 @@ async def run_agent(
     else:
 
         def agent_factory(connection: AgentSideConnection) -> Agent:
-            return agent
+            return agent  # ty: ignore[invalid-return-type]
 
-    conn = AgentSideConnection(agent_factory, input_stream, output_stream, **connection_kwargs)
+    conn = AgentSideConnection(agent_factory, input_stream, output_stream, **connection_kwargs)  # ty: ignore[invalid-argument-type]
     shutdown_event = asyncio.Event()
     try:
         # Keep the connection alive until cancelled

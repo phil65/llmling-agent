@@ -129,7 +129,7 @@ class ToolCallState:
                 else:
                     self.content = [content]
             elif isinstance(content, Sequence):
-                self.content.extend(content)
+                self.content.extend(content)  # ty: ignore[invalid-argument-type]
             else:
                 self.content.append(content)
 
