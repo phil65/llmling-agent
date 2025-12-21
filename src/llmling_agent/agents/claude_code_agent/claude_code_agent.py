@@ -74,6 +74,7 @@ if TYPE_CHECKING:
     from llmling_agent.messaging import MessageHistory
     from llmling_agent.talk.stats import MessageStats
     from llmling_agent.ui.base import InputProvider
+    from llmling_agent_config.mcp_server import MCPServerConfig
     from llmling_agent_config.nodes import ToolConfirmationMode
 
 
@@ -105,10 +106,17 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         allowed_tools: list[str] | None = None,
         disallowed_tools: list[str] | None = None,
         system_prompt: str | None = None,
+        append_system_prompt: str | None = None,
         model: str | None = None,
         max_turns: int | None = None,
         max_thinking_tokens: int | None = None,
         permission_mode: str | None = None,
+        mcp_servers: Sequence[MCPServerConfig] | None = None,
+        environment: dict[str, str] | None = None,
+        add_dir: list[str] | None = None,
+        builtin_tools: list[str] | None = None,
+        fallback_model: str | None = None,
+        dangerously_skip_permissions: bool = False,
         env: ExecutionEnvironment | None = None,
         input_provider: InputProvider | None = None,
         agent_pool: AgentPool[Any] | None = None,
@@ -129,10 +137,17 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             allowed_tools: List of allowed tool names
             disallowed_tools: List of disallowed tool names
             system_prompt: Custom system prompt
+            append_system_prompt: Text to append to the default system prompt
             model: Model to use (e.g., "claude-sonnet-4-5")
             max_turns: Maximum conversation turns
             max_thinking_tokens: Max tokens for extended thinking
             permission_mode: Permission mode ("default", "acceptEdits", "plan", "bypassPermissions")
+            mcp_servers: External MCP servers to connect to (internal format, converted at runtime)
+            environment: Environment variables for the agent process
+            add_dir: Additional directories to allow tool access to
+            builtin_tools: Available tools from Claude Code's built-in set (empty list disables all)
+            fallback_model: Fallback model when default is overloaded
+            dangerously_skip_permissions: Bypass all permission checks (sandboxed only)
             env: Execution environment
             input_provider: Provider for user input/confirmations
             agent_pool: Agent pool for multi-agent coordination
@@ -144,7 +159,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         """
         # Build config from kwargs if not provided
         if config is None:
-            config = ClaudeCodeAgentConfig(  # type: ignore[call-arg]
+            config = ClaudeCodeAgentConfig(
                 name=name or "claude_code",
                 description=description,
                 display_name=display_name,
@@ -153,9 +168,16 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                 allowed_tools=allowed_tools,
                 disallowed_tools=disallowed_tools,
                 system_prompt=system_prompt,
+                append_system_prompt=append_system_prompt,
                 max_turns=max_turns,
                 max_thinking_tokens=max_thinking_tokens,
                 permission_mode=permission_mode,
+                mcp_servers=list(mcp_servers) if mcp_servers else [],
+                env=environment,
+                add_dir=add_dir,
+                builtin_tools=builtin_tools,
+                fallback_model=fallback_model,
+                dangerously_skip_permissions=dangerously_skip_permissions,
             )
 
         super().__init__(
@@ -180,10 +202,19 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         self._allowed_tools = allowed_tools or config.allowed_tools
         self._disallowed_tools = disallowed_tools or config.disallowed_tools
         self._system_prompt = system_prompt or config.system_prompt
+        self._append_system_prompt = append_system_prompt or config.append_system_prompt
         self._model = model or config.model
         self._max_turns = max_turns or config.max_turns
         self._max_thinking_tokens = max_thinking_tokens or config.max_thinking_tokens
         self._permission_mode = permission_mode or config.permission_mode
+        self._external_mcp_servers = list(mcp_servers) if mcp_servers else config.get_mcp_servers()
+        self._environment = environment or config.env
+        self._add_dir = add_dir or config.add_dir
+        self._builtin_tools = builtin_tools if builtin_tools is not None else config.builtin_tools
+        self._fallback_model = fallback_model or config.fallback_model
+        self._dangerously_skip_permissions = (
+            dangerously_skip_permissions or config.dangerously_skip_permissions
+        )
 
         # Client state
         self._client: ClaudeSDKClient | None = None
@@ -191,7 +222,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         self.deps_type = type(None)
 
         # ToolBridge state for exposing toolsets via MCP
-
         self._tool_bridge: ToolManagerBridge | None = None
         self._owns_bridge = False  # Track if we created the bridge (for cleanup)
         self._mcp_servers: dict[str, dict[str, Any]] = {}  # Claude SDK MCP server configs
@@ -205,14 +235,69 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         defn = self.agent_pool.manifest if self.agent_pool else AgentsManifest()
         return AgentContext(node=self, pool=self.agent_pool, config=self._config, definition=defn)
 
+    def _convert_mcp_servers_to_sdk_format(self) -> dict[str, dict[str, Any]]:
+        """Convert internal MCPServerConfig to Claude SDK format.
+
+        Returns:
+            Dict mapping server names to SDK-compatible config dicts
+        """
+        from llmling_agent_config.mcp_server import (
+            SSEMCPServerConfig,
+            StdioMCPServerConfig,
+            StreamableHTTPMCPServerConfig,
+        )
+
+        result: dict[str, dict[str, Any]] = {}
+
+        for idx, server in enumerate(self._external_mcp_servers):
+            # Determine server name
+            if server.name:
+                name = server.name
+            elif isinstance(server, StdioMCPServerConfig) and server.args:
+                name = server.args[-1].split("/")[-1].split("@")[0]
+            elif isinstance(server, StdioMCPServerConfig):
+                name = server.command
+            elif isinstance(server, SSEMCPServerConfig | StreamableHTTPMCPServerConfig):
+                from urllib.parse import urlparse
+
+                name = urlparse(str(server.url)).hostname or f"server_{idx}"
+            else:
+                name = f"server_{idx}"
+
+            # Build SDK-compatible config
+            config: dict[str, Any]
+            match server:
+                case StdioMCPServerConfig(command=command, args=args):
+                    config = {"type": "stdio", "command": command, "args": args}
+                    if server.env:
+                        config["env"] = server.get_env_vars()
+                case SSEMCPServerConfig(url=url):
+                    config = {"type": "sse", "url": str(url)}
+                    if server.headers:
+                        config["headers"] = server.headers
+                case StreamableHTTPMCPServerConfig(url=url):
+                    config = {"type": "http", "url": str(url)}
+                    if server.headers:
+                        config["headers"] = server.headers
+
+            result[name] = config
+
+        return result
+
     async def _setup_toolsets(self) -> None:
         """Initialize toolsets from config and create bridge if needed.
 
         Creates providers from toolset configs, adds them to the tool manager,
         and starts an MCP bridge to expose them to Claude Code via the SDK's
-        native MCP support.
+        native MCP support. Also converts external MCP servers to SDK format.
         """
         from llmling_agent.mcp_server.tool_bridge import BridgeConfig, ToolManagerBridge
+
+        # Convert external MCP servers to SDK format first
+        if self._external_mcp_servers:
+            external_configs = self._convert_mcp_servers_to_sdk_format()
+            self._mcp_servers.update(external_configs)
+            self.log.info("External MCP servers configured", server_count=len(external_configs))
 
         if not self._config.toolsets:
             return
@@ -279,6 +364,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             options_kwargs["disallowed_tools"] = self._disallowed_tools
         if self._system_prompt:
             options_kwargs["system_prompt"] = self._system_prompt
+        if self._append_system_prompt:
+            options_kwargs["append_system_prompt"] = self._append_system_prompt
         if self._model:
             options_kwargs["model"] = self._model
         if self._max_turns:
@@ -287,9 +374,20 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             options_kwargs["max_thinking_tokens"] = self._max_thinking_tokens
         if self._permission_mode:
             options_kwargs["permission_mode"] = self._permission_mode
+        if self._environment:
+            options_kwargs["env"] = self._environment
+        if self._add_dir:
+            options_kwargs["add_dir"] = self._add_dir
+        if self._builtin_tools is not None:
+            options_kwargs["tools"] = self._builtin_tools
+        if self._fallback_model:
+            options_kwargs["fallback_model"] = self._fallback_model
+        if self._dangerously_skip_permissions:
+            options_kwargs["dangerously_skip_permissions"] = True
 
         # Add tool permission callback if not in bypass mode
-        if self.tool_confirmation_mode != "never" and self._permission_mode != "bypassPermissions":
+        bypass = self._permission_mode == "bypassPermissions" or self._dangerously_skip_permissions
+        if self.tool_confirmation_mode != "never" and not bypass:
             options_kwargs["can_use_tool"] = self._can_use_tool
 
         # Add structured output schema if output_type is not str

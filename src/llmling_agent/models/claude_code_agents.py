@@ -8,11 +8,11 @@ from pydantic import ConfigDict, Field
 
 from llmling_agent_config.nodes import BaseAgentConfig
 from llmling_agent_config.output_types import StructuredResponseConfig  # noqa: TC001
-from llmling_agent_config.toolsets import ToolsetConfig
 
 
 if TYPE_CHECKING:
     from llmling_agent.resource_providers import ResourceProvider
+    from llmling_agent_config.toolsets import ToolsetConfig
 
 
 PermissionMode = Literal["default", "acceptEdits", "plan", "bypassPermissions"]
@@ -139,6 +139,58 @@ class ClaudeCodeAgentConfig(BaseAgentConfig):
     Can be either a reference to a response defined in manifest.responses,
     or an inline StructuredResponseConfig.
     """
+
+    append_system_prompt: str | None = Field(
+        default=None,
+        title="Append System Prompt",
+        examples=["Always write tests.", "Prefer functional programming."],
+    )
+    """Text to append to the default system prompt.
+
+    Note: External MCP servers can be configured via the inherited `mcp_servers` field
+    from BaseAgentConfig. They will be converted to Claude SDK format at runtime.
+    """
+
+    env: dict[str, str] | None = Field(
+        default=None,
+        title="Environment Variables",
+        examples=[{"ANTHROPIC_API_KEY": "", "DEBUG": "1"}],
+    )
+    """Environment variables to set for the agent process.
+
+    Note: Set ANTHROPIC_API_KEY to empty string to force subscription usage.
+    """
+
+    add_dir: list[str] | None = Field(
+        default=None,
+        title="Additional Directories",
+        examples=[["/tmp", "/var/log"], ["/home/user/data"]],
+    )
+    """Additional directories to allow tool access to."""
+
+    builtin_tools: list[str] | None = Field(
+        default=None,
+        title="Built-in Tools",
+        examples=[["Bash", "Edit", "Read"], []],
+    )
+    """Available tools from Claude Code's built-in set.
+
+    Empty list disables all tools. If not specified, all tools are available.
+    Different from allowed_tools which filters an already-available set.
+    """
+
+    fallback_model: str | None = Field(
+        default=None,
+        title="Fallback Model",
+        examples=["claude-sonnet-4-5", "claude-haiku-3-5"],
+    )
+    """Fallback model when default is overloaded."""
+
+    dangerously_skip_permissions: bool = Field(
+        default=False,
+        title="Dangerously Skip Permissions",
+    )
+    """Bypass all permission checks. Only for sandboxed environments."""
 
     toolsets: list[ToolsetConfig] = Field(
         default_factory=list,
