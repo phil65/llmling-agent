@@ -61,6 +61,7 @@ HistoryToolName = Literal["search_history", "show_statistics"]
 SkillsToolName = Literal["load_skill", "list_skills"]
 IntegrationToolName = Literal["add_local_mcp_server", "add_remote_mcp_server"]
 CodeToolName = Literal["format_code", "ast_grep"]
+PlanToolName = Literal["get_plan", "add_plan_entry", "update_plan_entry", "remove_plan_entry"]
 
 
 class BaseToolsetConfig(Schema):
@@ -931,6 +932,41 @@ class ConfigCreationToolsetConfig(BaseToolsetConfig):
         return ConfigCreationTools(schema_path=self.schema_path, markup=self.markup, name=name)
 
 
+class PlanToolsetConfig(BaseToolsetConfig):
+    """Configuration for plan management toolset.
+
+    Provides tools for managing agent execution plans and task tracking.
+    Agents can create, update, and track progress on plan entries.
+    """
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "x-icon": "octicon:tasklist-16",
+            "x-doc-title": "Plan Toolset",
+        }
+    )
+
+    type: Literal["plan"] = Field("plan", init=False)
+    """Plan toolset."""
+
+    tools: dict[PlanToolName, bool] | None = Field(
+        default=None,
+        title="Tool filter",
+    )
+    """Optional tool filter to enable/disable specific tools."""
+
+    def get_provider(self) -> ResourceProvider:
+        """Create plan tools provider."""
+        from llmling_agent.resource_providers import PlanProvider
+
+        provider = PlanProvider()
+        if self.tools is not None:
+            from llmling_agent.resource_providers import FilteringResourceProvider
+
+            return FilteringResourceProvider(provider, cast(dict[str, bool], self.tools))
+        return provider
+
+
 ToolsetConfig = Annotated[
     OpenAPIToolsetConfig
     | EntryPointToolsetConfig
@@ -954,6 +990,7 @@ ToolsetConfig = Annotated[
     | SemanticMemoryToolsetConfig
     | ConfigCreationToolsetConfig
     | ImportToolsToolsetConfig
+    | PlanToolsetConfig
     | CustomToolsetConfig,
     Field(discriminator="type"),
 ]
