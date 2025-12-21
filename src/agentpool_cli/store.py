@@ -43,8 +43,8 @@ class ConfigStore:
 
     def __init__(self, filename: str | None = None) -> None:
         """Initialize store with default paths."""
-        llmling_dir = platformdirs.user_config_dir("llmling")
-        self.config_dir = to_upath(llmling_dir)
+        agentpool_dir = platformdirs.user_config_dir("agentpool")
+        self.config_dir = to_upath(agentpool_dir)
         name = filename or "configs.json"
         self.config_file = self.config_dir / name
         self._ensure_config_dir()

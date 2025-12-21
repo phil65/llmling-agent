@@ -428,7 +428,7 @@ def test_tool_call_accumulator_multiple_calls():
 
 
 def test_to_agui_tool():
-    """Test converting llmling Tool to AG-UI Tool format."""
+    """Test converting native Tool to AG-UI Tool format."""
     from agentpool.agents.agui_agent.agui_converters import to_agui_tool
     from agentpool.tools import Tool
 

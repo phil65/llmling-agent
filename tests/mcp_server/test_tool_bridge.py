@@ -37,7 +37,7 @@ async def test_bridge_config_defaults():
     assert config.host == "127.0.0.1"
     assert config.port == 0  # Auto-select
     assert config.transport == "sse"
-    assert config.server_name == "llmling-toolmanager"
+    assert config.server_name == "agentpool-toolmanager"
 
 
 async def test_bridge_lifecycle():
@@ -104,7 +104,7 @@ async def test_get_mcp_server_config_sse():
         cfg = BridgeConfig(transport="sse")
         async with ToolManagerBridge(node=agent, config=cfg) as bridge:
             config = bridge.get_mcp_server_config()
-            assert config.name == "llmling-toolmanager"
+            assert config.name == "agentpool-toolmanager"
             assert str(config.url).startswith("http://")
             assert "/sse" in str(config.url)
 
@@ -117,7 +117,7 @@ async def test_get_mcp_server_config_http():
         cfg = BridgeConfig(transport="streamable-http")
         async with ToolManagerBridge(node=agent, config=cfg) as bridge:
             config = bridge.get_mcp_server_config()
-            assert config.name == "llmling-toolmanager"
+            assert config.name == "agentpool-toolmanager"
             assert str(config.url).startswith("http://")
             assert "/mcp" in str(config.url)
 

@@ -162,15 +162,15 @@ def test_parse_minimal_agent():
         assert "simple system prompt" in str(config.system_prompts[0])
 
 
-def test_parse_agent_with_llmling_extensions():
-    """Test that llmling-specific fields are passed through."""
+def test_parse_agent_with_agentpool_extensions():
+    """Test that agentpool-specific fields are passed through."""
     with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
         f.write(AGENT_WITH_AGENTPOOL_EXTENSIONS)
         f.flush()
 
         config = parse_agent_file(f.name)
 
-        assert config.description == "Agent with llmling-specific fields"
+        assert config.description == "Agent with agentpool-specific fields"
         assert get_model_identifier(config.model) == CLAUDE_MODEL_ALIASES["opus"]
         assert config.retries == 3  # noqa: PLR2004
         assert config.avatar == "https://example.com/avatar.png"
