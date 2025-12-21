@@ -8,7 +8,7 @@ import pytest
 
 from acp import ClientCapabilities, DefaultACPClient, FileSystemCapability
 from acp.agent.implementations import TestAgent
-from agentpool_server.acp_server.acp_agent import LLMlingACPAgent
+from agentpool_server.acp_server.acp_agent import AgentPoolACPAgent
 
 
 @pytest.fixture
@@ -55,4 +55,4 @@ def client_capabilities():
 @pytest.fixture
 def mock_acp_agent(mock_connection, mock_agent_pool, client_capabilities):
     """Create a mock ACP agent for testing."""
-    return LLMlingACPAgent(connection=mock_connection, agent_pool=mock_agent_pool)
+    return AgentPoolACPAgent(connection=mock_connection, agent_pool=mock_agent_pool)

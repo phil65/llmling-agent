@@ -6,7 +6,7 @@ icon: material/comment
 
 # System Prompts
 
-System prompts are a crucial part of agent configuration, defining the agent's role, behavior, and capabilities. LLMling provides flexible ways to manage and format system prompts.
+System prompts are a crucial part of agent configuration, defining the agent's role, behavior, and capabilities. AgentPool provides flexible ways to manage and format system prompts.
 
 ## Basic Usage
 
@@ -329,7 +329,7 @@ For further information, check out agent/sys_prompts.py in the codebase.
 
 ## Prompt Library
 
-LLMling includes a library of pre-defined system prompts that can be used across agents. These prompts are organized by type:
+AgentPool includes a library of pre-defined system prompts that can be used across agents. These prompts are organized by type:
 
 ### Prompt Types
 

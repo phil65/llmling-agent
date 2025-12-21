@@ -1,4 +1,4 @@
-"""OpenAI-compatible API server for LLMling agents."""
+"""OpenAI-compatible API server for AgentPool."""
 
 from __future__ import annotations
 

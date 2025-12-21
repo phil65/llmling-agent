@@ -6,7 +6,7 @@ icon: material/server
 
 ## Overview
 
-LLMling integrates with MCP (Model Context Protocol) servers to provide additional tools and functionality to agents.
+AgentPool integrates with MCP (Model Context Protocol) servers to provide additional tools and functionality to agents.
 
 ## Defining MCP Servers
 
@@ -92,7 +92,7 @@ async with Agent(mcp_servers=servers) as agent:
     """)
 ```
 
-Tools are automatically converted to LLMling's tool format with proper typing and documentation.
+Tools are automatically converted to AgentPool's tool format with proper typing and documentation.
 
 ## Configuration Options
 
@@ -126,4 +126,4 @@ class SSEMCPServerConfig:
     """Whether server is active"""
 ```
 
-MCP integration allows agents to seamlessly use tools from external services while maintaining LLMling's type safety and resource management.
+MCP integration allows agents to seamlessly use tools from external services while maintaining AgentPool's type safety and resource management.

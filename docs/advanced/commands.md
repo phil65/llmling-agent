@@ -6,7 +6,7 @@ icon: material/console
 
 # Commands
 
-LLMling Agent provides a consistent command system across both CLI and web interfaces. Commands are prefixed with `/` and can take arguments and options.
+AgentPool provides a consistent command system across both CLI and web interfaces. Commands are prefixed with `/` and can take arguments and options.
 
 ## Essential Commands
 

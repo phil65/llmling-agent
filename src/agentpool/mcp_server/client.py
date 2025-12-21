@@ -1,4 +1,4 @@
-"""FastMCP-based client implementation for LLMling agent.
+"""FastMCP-based client implementation for AgentPool.
 
 This module provides a client for communicating with MCP servers using FastMCP.
 It includes support for contextual progress handlers that extend FastMCP's

@@ -8,7 +8,7 @@ icon: material/source-branch
 
 ## Overview
 
-LLMling's message routing system provides a flexible and powerful way to control how messages flow between agents. Unlike simple point-to-point connections, the routing system allows for sophisticated decision-making based on message content, agent state, and historical statistics.
+AgentPool's message routing system provides a flexible and powerful way to control how messages flow between agents. Unlike simple point-to-point connections, the routing system allows for sophisticated decision-making based on message content, agent state, and historical statistics.
 
 ## Basic Concepts
 

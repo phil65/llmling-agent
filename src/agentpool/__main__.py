@@ -1,4 +1,4 @@
-"""CLI interface for LLMling agents."""
+"""CLI interface for AgentPool."""
 
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ from agentpool_cli.task import task_command
 from agentpool_cli.watch import watch_command
 
 
-MAIN_HELP = "🤖 LLMling Agent CLI - Run and manage LLM agents"
+MAIN_HELP = "🤖 AgentPool CLI - Run and manage LLM agents"
 
 
 def get_command_help(base_help: str) -> str:
@@ -32,7 +32,7 @@ def main(
     ctx: t.Context,
     log_level: LogLevel = t.Option("info", "--log-level", "-l", help="Log level"),  # noqa: B008
 ) -> None:
-    """🤖 LLMling Agent CLI - Run and manage LLM agents."""
+    """🤖 AgentPool CLI - Run and manage LLM agents."""
     # Configure logging globally
     log.configure_logging(level=log_level.upper())
 
@@ -43,7 +43,7 @@ def main(
 
 # Create CLI app
 help_text = get_command_help(MAIN_HELP)
-cli = t.Typer(name="LLMling Agent", help=help_text, no_args_is_help=True)
+cli = t.Typer(name="AgentPool", help=help_text, no_args_is_help=True)
 cli.callback()(main)
 
 cli.command(name="add")(add_agent_file)

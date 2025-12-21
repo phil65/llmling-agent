@@ -1,4 +1,4 @@
-"""Tests for the LLMling agent."""
+"""Tests for the native agent."""
 
 from __future__ import annotations
 

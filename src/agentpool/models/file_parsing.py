@@ -3,7 +3,7 @@
 Supports loading agents from markdown files with YAML frontmatter in various formats:
 - Claude Code: https://code.claude.com/docs/en/sub-agents.md
 - OpenCode: https://github.com/sst/opencode
-- LLMling (native): Full NativeAgentConfig fields in frontmatter
+- AgentPool (native): Full NativeAgentConfig fields in frontmatter
 """
 
 from __future__ import annotations

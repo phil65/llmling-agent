@@ -1,4 +1,4 @@
-"""Conversation management for LLMling agent."""
+"""Conversation management for AgentPool."""
 
 from __future__ import annotations
 
@@ -451,12 +451,12 @@ class MessageHistory:
         """Add rendered prompt content as context message.
 
         Args:
-            prompt: LLMling prompt (static, dynamic, or file-based)
+            prompt: AgentPool prompt (static, dynamic, or file-based)
             metadata: Additional metadata to include with the message
             kwargs: Optional kwargs for prompt formatting
         """
         try:
-            # Format the prompt using LLMling's prompt system
+            # Format the prompt using AgentPool's prompt system
             messages = await prompt.format(kwargs)
             # Extract text content from all messages
             content = "\n\n".join(msg.get_text_content() for msg in messages)

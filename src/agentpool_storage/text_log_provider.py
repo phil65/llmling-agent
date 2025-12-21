@@ -25,7 +25,7 @@ logger = get_logger(__name__)
 
 
 CONVERSATIONS_TEMPLATE = """\
-=== LLMling Agent Log ===
+=== AgentPool Log ===
 
 {%- for conv_id, conv in conversations.items() %}
 === Conversation {{ conv_id }} (agent: {{ conv.agent_name }}, started: {{ conv.start_time.strftime('%Y-%m-%d %H:%M:%S') }}) ===
@@ -58,7 +58,7 @@ Result: {{ tool.result }}
 """  # noqa: E501
 
 CHRONOLOGICAL_TEMPLATE = """\
-=== LLMling Agent Log ===
+=== AgentPool Log ===
 
 {%- for entry in entries|sort(attribute="timestamp") %}
 {%- if entry.type == "conversation_start" %}

@@ -1,4 +1,4 @@
-"""Core data models for LLMling agent."""
+"""Core data models for AgentPool."""
 
 from __future__ import annotations
 

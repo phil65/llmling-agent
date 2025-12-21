@@ -1,6 +1,6 @@
 """ACP (Agent Client Protocol) server implementation for agentpool.
 
-This module provides the main server class for exposing AgentPool agents via
+This module provides the main server class for exposing AgentPool via
 the Agent Client Protocol.
 """
 
@@ -19,7 +19,7 @@ from agentpool import AgentPool
 from agentpool.log import get_logger
 from agentpool.models.manifest import AgentsManifest
 from agentpool_server import BaseServer
-from agentpool_server.acp_server.acp_agent import LLMlingACPAgent
+from agentpool_server.acp_server.acp_agent import AgentPoolACPAgent
 
 
 if TYPE_CHECKING:
@@ -143,7 +143,7 @@ class ACPServer(BaseServer):
         self.log.info("Starting ACP server on stdio", agent_names=agent_names)
         await self._initialize_models()  # Initialize models on first run
         create_acp_agent = functools.partial(
-            LLMlingACPAgent,
+            AgentPoolACPAgent,
             agent_pool=self.pool,
             available_models=self._available_models,
             file_access=self.file_access,

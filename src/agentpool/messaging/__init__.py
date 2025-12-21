@@ -1,4 +1,4 @@
-"""Core messsaging classes for LLMling agent."""
+"""Core messsaging classes for AgentPool."""
 
 from agentpool.messaging.messages import ChatMessage, TokenCost, AgentResponse, TeamResponse
 from agentpool.messaging.message_container import ChatMessageList

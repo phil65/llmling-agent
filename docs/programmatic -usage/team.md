@@ -6,7 +6,7 @@ icon: material/account-group
 
 ## Overview
 
-Teams in LLMling allow you to organize and orchestrate multiple agents as a group. Teams provide:
+Teams in AgentPool allow you to organize and orchestrate multiple agents as a group. Teams provide:
 
 - Parallel and sequential execution
 - Shared contexts and prompts
@@ -91,7 +91,7 @@ async with team.chain_stream(initial_message) as stream:
 
 ## Team as a Target Container
 
-Teams are compatible with LLMling's routing patterns:
+Teams are compatible with AgentPool's routing patterns:
 
 ```python
 # Forward results from an agent to team

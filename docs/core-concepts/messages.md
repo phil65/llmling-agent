@@ -4,7 +4,7 @@ description: Message types and response handling
 icon: material/comment-multiple
 ---
 
-LLMling's messaging system provides a unified way to handle communication between agents and teams. The system is built around two core concepts:
+AgentPool's messaging system provides a unified way to handle communication between agents and teams. The system is built around two core concepts:
 
 ## Message Flow
 
@@ -61,7 +61,7 @@ Messages flowing through these connections maintain their metadata and can be:
 
 ### ChatMessage
 
-ChatMessage is LLMling's user-friendly message abstraction, providing a clean interface over the more technical implementation details of various AI libraries.
+ChatMessage is AgentPool's user-friendly message abstraction, providing a clean interface over the more technical implementation details of various AI libraries.
 
 ```python
 class ChatMessage[TContent]:

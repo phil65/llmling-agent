@@ -542,7 +542,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
             Validated Node
 
         Raises:
-            LLMlingError: If item is not a valid node
+            AgentPoolError: If item is not a valid node
         """
         if not isinstance(item, MessageNode):
             msg = f"Item must be Agent or Team, got {type(item)}"

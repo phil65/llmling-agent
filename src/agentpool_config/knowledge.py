@@ -12,7 +12,7 @@ class Knowledge(Schema):
     """Collection of context sources for an agent.
 
     Supports both simple paths and rich resource types for content loading,
-    plus LLMling's prompt system for dynamic content generation.
+    plus AgentPool's prompt system for dynamic content generation.
 
     Docs: https://phil65.github.io/agentpool/YAML%20Configuration/knowledge_configuration/
     """

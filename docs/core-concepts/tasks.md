@@ -6,9 +6,9 @@ icon: material/format-list-checks
 
 ## What are Agent Jobs?
 
-In LLMling, tasks are specifications of work that can be executed by agents.
+In AgentPool, tasks are specifications of work that can be executed by agents.
 Unlike other frameworks where tasks are tightly coupled with their executors,
-LLMling treats tasks as independent definitions that specify requirements and provide resources.
+AgentPool treats tasks as independent definitions that specify requirements and provide resources.
 
 A job defines:
 
@@ -31,7 +31,7 @@ job = Job(agent, **task_kwargs)
 
 ### AgentPools's Approach
 
-LLMling separates task definitions from execution:
+AgentPool separates task definitions from execution:
 
 ```python
 # Define what needs to be done and what's required

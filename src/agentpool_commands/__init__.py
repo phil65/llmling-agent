@@ -1,4 +1,4 @@
-"""Built-in commands for LLMling agent."""
+"""Built-in commands for AgentPool."""
 
 from __future__ import annotations
 

@@ -12,7 +12,7 @@ hide:
 {{ ['docs/examples/round_robin/main.py', 'docs/examples/round_robin/config.yml'] | pydantic_playground }}
 ///
 
-This example demonstrates how to set up a cyclic communication pattern between agents using LLMling's connection system.
+This example demonstrates how to set up a cyclic communication pattern between agents using AgentPool's connection system.
 
 !!! note
     Mermaid diagrams can be generated using pool.get_mermaid_diagram() for a whole pool, as well as

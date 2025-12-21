@@ -1,4 +1,4 @@
-"""Event sources for LLMling agent."""
+"""Event sources for AgentPool."""
 
 from __future__ import annotations
 

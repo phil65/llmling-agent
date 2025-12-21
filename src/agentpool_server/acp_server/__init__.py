@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from agentpool_server.acp_server.server import ACPServer
-from agentpool_server.acp_server.acp_agent import LLMlingACPAgent
+from agentpool_server.acp_server.acp_agent import AgentPoolACPAgent
 from agentpool_server.acp_server.session import ACPSession
 from agentpool_server.acp_server.session_manager import ACPSessionManager
 from agentpool_server.acp_server.converters import (
@@ -16,7 +16,7 @@ __all__ = [
     "ACPServer",
     "ACPSession",
     "ACPSessionManager",
-    "LLMlingACPAgent",
+    "AgentPoolACPAgent",
     "convert_acp_mcp_server_to_config",
     "from_acp_content",
 ]

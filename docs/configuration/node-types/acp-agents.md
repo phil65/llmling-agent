@@ -29,7 +29,7 @@ AgentPool supports integration with many popular coding agents:
 - **VTCode**: Visual Studio Code AI assistant
 - **Mistral**: Mistral AI's coding agent
 
-These agents can be configured to work alongside LLMling agents, enabling hybrid workflows that leverage specialized external tools.
+These agents can be configured to work alongside AgentPool agents, enabling hybrid workflows that leverage specialized external tools.
 
 ## Configuration Reference
 

@@ -73,7 +73,7 @@ triggers:
     enabled: true                    # Whether trigger is active
     knowledge:                       # Optional knowledge to load
       paths: ["context/*.md"]        # Files to load as context
-      resources:                     # LLMling resources
+      resources:                     # AgentPool resources
         - type: "cli"
           command: "git status"
       prompts:                       # Context prompts

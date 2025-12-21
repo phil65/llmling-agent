@@ -1,4 +1,4 @@
-"""MCP server management for LLMling agents."""
+"""MCP server management for AgentPool."""
 
 from __future__ import annotations
 

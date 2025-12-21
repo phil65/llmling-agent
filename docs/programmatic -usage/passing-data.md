@@ -6,7 +6,7 @@ icon: material/arrow-left-right
 
 # Passing Data to the Agent
 
-LLMling agents can handle various types of input data in their `run()` and `run_stream()` methods. The actual support depends on the model and provider capabilities.
+AgentPool agents can handle various types of input data in their `run()` and `run_stream()` methods. The actual support depends on the model and provider capabilities.
 
 ## Basic Text Input
 

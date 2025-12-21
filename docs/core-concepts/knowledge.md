@@ -6,7 +6,7 @@ icon: material/book
 
 ## Overview
 
-The Knowledge system in LLMling provides a way to give agents access to information sources. These can be files, resources, or prompts that provide context for the agent's operations.
+The Knowledge system in AgentPool provides a way to give agents access to information sources. These can be files, resources, or prompts that provide context for the agent's operations.
 The Resource types
 
 ## Structure

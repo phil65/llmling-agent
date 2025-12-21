@@ -1,4 +1,4 @@
-"""OpenAI-compatible API server for LLMling agents."""
+"""OpenAI-compatible API server for AgentPool."""
 
 from __future__ import annotations
 
@@ -31,7 +31,7 @@ logger = get_logger(__name__)
 
 
 class OpenAIAPIServer(BaseServer):
-    """OpenAI-compatible API server backed by LLMling agents.
+    """OpenAI-compatible API server backed by AgentPool.
 
     Provides both chat completions and responses endpoints.
     """

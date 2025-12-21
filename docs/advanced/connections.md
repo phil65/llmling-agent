@@ -8,7 +8,7 @@ icon: material/power-plug
 
 ## Overview
 
-LLMling provides a clean, object-oriented approach to message routing through a simple but powerful concept:
+AgentPool provides a clean, object-oriented approach to message routing through a simple but powerful concept:
 Every entity that can process messages is a message node and can be connected to other nodes.
 This creates a flexible and composable system for building complex message flows.
 

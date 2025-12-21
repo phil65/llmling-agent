@@ -6,7 +6,7 @@ icon: material/file-document
 
 # Document Conversion
 
-LLMling provides document conversion capabilities to transform various document formats (PDFs, Office documents, HTML, etc.)
+AgentPool provides document conversion capabilities to transform various document formats (PDFs, Office documents, HTML, etc.)
 into markdown text that can be processed by language models.
 
 ## Overview

@@ -6,7 +6,7 @@ icon: material/pulse
 
 # Team Execution and Monitoring
 
-LLMling provides two main classes for team operations:
+AgentPool provides two main classes for team operations:
 
 - `Team`: A group of agents that can work together
 - `TeamRun`: A sequential execution pipeline of agents

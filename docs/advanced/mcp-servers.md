@@ -8,7 +8,7 @@ icon: material/server
 
 ## Overview
 
-LLMling Agent supports integration with MCP (Model Control Protocol) servers to extend agent capabilities through standardized interfaces. Currently, we support tool integration with both stdio and SSE-based MCP servers.
+AgentPool supports integration with MCP (Model Control Protocol) servers to extend agent capabilities through standardized interfaces. Currently, we support tool integration with both stdio and SSE-based MCP servers.
 
 ## Configuration
 

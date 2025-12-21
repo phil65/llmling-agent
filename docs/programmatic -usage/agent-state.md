@@ -4,7 +4,7 @@ description: Agent state management
 icon: material/database
 ---
 
-# Managing Agent State in LLMling
+# Managing Agent State in AgentPool
 
 An agent maintains several types of state that influence its behavior. While some state is configured during initialization through YAML or constructor arguments, it is also possible to inspect and modify it during runtime.
 
@@ -37,7 +37,7 @@ async with Agent(...) as agent:
 
 ## Temporary State Changes
 
-LLMling's context managers allow temporary state modifications that automatically restore the original state:
+AgentPool's context managers allow temporary state modifications that automatically restore the original state:
 
 ```python
 async with agent.temporary_state(

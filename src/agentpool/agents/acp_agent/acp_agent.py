@@ -353,7 +353,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             output_stream=self._process.stdout,
         )
         init_request = InitializeRequest.create(
-            title="LLMling Agent",
+            title="AgentPool",
             version="0.1.0",
             name="agentpool",
             protocol_version=PROTOCOL_VERSION,

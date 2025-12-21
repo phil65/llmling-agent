@@ -1,4 +1,4 @@
-"""High-level functional interfaces for LLMling agent."""
+"""High-level functional interfaces for AgentPool."""
 
 from agentpool.functional.run import (
     run_agent,

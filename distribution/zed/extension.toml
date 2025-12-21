@@ -1,5 +1,5 @@
 id = "agentpool"
-name = "LLMling Agent"
+name = "AgentPool"
 description = "Pydantic-AI based Multi-Agent Framework with YAML-based Agents, Teams, Workflows & Extended ACP / AGUI integration"
 version = "1.15.12"
 schema_version = 1
@@ -7,7 +7,7 @@ authors = ["Philipp Temminghoff"]
 repository = "https://github.com/phil65/agentpool"
 
 [agent_servers.agentpool]
-name = "LLMling Agent"
+name = "AgentPool"
 icon = "./icons/agentpool.svg"
 
 [agent_servers.agentpool.targets.darwin-aarch64]

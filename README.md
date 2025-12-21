@@ -25,7 +25,7 @@
 
 # 🚀 Getting Started
 
-LLMling Agent is a framework for creating and managing LLM-powered agents. It integrates with LLMling's resource system and provides structured interactions with language models.
+AgentPool is a framework for creating and managing LLM-powered agents with structured interactions and a powerful resource system.
 
 ## ✨ Features
 

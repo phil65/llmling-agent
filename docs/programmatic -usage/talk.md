@@ -8,7 +8,7 @@ icon: material/comment-multiple
 
 ## Overview
 
-LLMling provides a robust, object-oriented approach to managing agent communications through dedicated connection objects. The system supports various connection patterns and offers fine-grained control over message flow and monitoring.
+AgentPool provides a robust, object-oriented approach to managing agent communications through dedicated connection objects. The system supports various connection patterns and offers fine-grained control over message flow and monitoring.
 
 ## Core Components
 

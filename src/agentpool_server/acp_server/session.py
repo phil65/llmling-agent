@@ -80,7 +80,7 @@ if TYPE_CHECKING:
     from agentpool.agents.events import RichAgentStreamEvent
     from agentpool.prompts.manager import PromptManager
     from agentpool.prompts.prompts import MCPClientPrompt
-    from agentpool_server.acp_server.acp_agent import LLMlingACPAgent
+    from agentpool_server.acp_server.acp_agent import AgentPoolACPAgent
     from agentpool_server.acp_server.session_manager import ACPSessionManager
 
 logger = get_logger(__name__)
@@ -136,7 +136,7 @@ class ACPSession:
     client: Client
     """External library Client interface for operations"""
 
-    acp_agent: LLMlingACPAgent
+    acp_agent: AgentPoolACPAgent
     """ACP agent instance for capability tools"""
 
     mcp_servers: Sequence[McpServer] | None = None

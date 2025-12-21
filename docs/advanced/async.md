@@ -4,9 +4,9 @@ description: Asynchronous operations and patterns
 icon: material/sync
 ---
 
-# Asynchronous Operations in LLMling
+# Asynchronous Operations in AgentPool
 
-LLMling is built with asyncio at its core to handle concurrent operations efficiently. This guide explains the async patterns and features in the library.
+AgentPool is built with asyncio at its core to handle concurrent operations efficiently. This guide explains the async patterns and features in the library.
 
 ## Basic Usage
 
@@ -107,7 +107,7 @@ await agent.stop()
 
 ## Event-Based Operations
 
-LLMling supports event-driven agent operation through file watchers and other triggers. The simplest way to start event-based mode is through the CLI:
+AgentPool supports event-driven agent operation through file watchers and other triggers. The simplest way to start event-based mode is through the CLI:
 
 ```bash
 agentpool watch --config agents.yml

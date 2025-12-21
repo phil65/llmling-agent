@@ -1,4 +1,4 @@
-"""Event handler configuration models for LLMling agent."""
+"""Event handler configuration models for AgentPool."""
 
 from __future__ import annotations
 

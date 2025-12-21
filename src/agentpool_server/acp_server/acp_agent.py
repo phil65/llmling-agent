@@ -107,11 +107,11 @@ def create_session_model_state(
 
 
 @dataclass
-class LLMlingACPAgent(ACPAgent):
-    """Implementation of ACP Agent protocol interface for AgentPool agents.
+class AgentPoolACPAgent(ACPAgent):
+    """Implementation of ACP Agent protocol interface for AgentPool.
 
     This class implements the external library's Agent protocol interface,
-    bridging AgentPool agents with the standard ACP JSON-RPC protocol.
+    bridging AgentPool with the standard ACP JSON-RPC protocol.
     """
 
     PROTOCOL_VERSION: ClassVar = 1

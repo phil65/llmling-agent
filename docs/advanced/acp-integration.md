@@ -66,7 +66,7 @@ Add this configuration to your Zed `settings.json`:
 ```json
 {
   "agent_servers": {
-    "LLMling": {
+    "AgentPool": {
       "command": "uvx",
       "args": [
         "--python",

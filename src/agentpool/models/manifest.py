@@ -155,7 +155,7 @@ class AgentsManifest(Schema):
 
     Supports both simple path strings (auto-detect format) and explicit config
     with type discriminator.
-    Files must have YAML frontmatter in Claude Code, OpenCode, or LLMling format.
+    Files must have YAML frontmatter in Claude Code, OpenCode, or AgentPool format.
     The markdown body becomes the system prompt.
 
     Formats:
@@ -487,7 +487,7 @@ class AgentsManifest(Schema):
     def _loaded_file_agents(self) -> dict[str, NativeAgentConfig]:
         """Load and cache file-based agent configurations.
 
-        Parses markdown files in Claude Code, OpenCode, or LLMling format
+        Parses markdown files in Claude Code, OpenCode, or AgentPool format
         and converts them to NativeAgentConfig. Results are cached.
         """
         from agentpool.models.file_parsing import parse_file_agent_reference

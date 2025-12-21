@@ -74,8 +74,8 @@ def vercel_command(  # noqa: PLR0915
 
     # Create FastAPI app
     app = FastAPI(
-        title="LLMling Agent - Vercel AI Server",
-        description="Vercel AI Data Stream Protocol server for LLMling agents",
+        title="AgentPool - Vercel AI Server",
+        description="Vercel AI Data Stream Protocol server for AgentPool",
     )
 
     if cors:

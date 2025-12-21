@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from acp.schema import McpServer
     from agentpool import AgentPool
     from agentpool.sessions import SessionManager
-    from agentpool_server.acp_server.acp_agent import LLMlingACPAgent
+    from agentpool_server.acp_server.acp_agent import AgentPoolACPAgent
 
 
 logger = get_logger(__name__)
@@ -56,7 +56,7 @@ class ACPSessionManager:
         default_agent_name: str,
         cwd: str,
         client: Client,
-        acp_agent: LLMlingACPAgent,
+        acp_agent: AgentPoolACPAgent,
         mcp_servers: Sequence[McpServer] | None = None,
         session_id: str | None = None,
         client_capabilities: ClientCapabilities | None = None,
@@ -135,7 +135,7 @@ class ACPSessionManager:
         self,
         session_id: str,
         client: Client,
-        acp_agent: LLMlingACPAgent,
+        acp_agent: AgentPoolACPAgent,
         client_capabilities: ClientCapabilities | None = None,
     ) -> ACPSession | None:
         """Resume a session from storage.

@@ -1,4 +1,4 @@
-"""Package resources for LLMling configuration."""
+"""Package resources for AgentPool configuration."""
 
 from __future__ import annotations
 

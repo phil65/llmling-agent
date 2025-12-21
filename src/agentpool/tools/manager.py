@@ -1,4 +1,4 @@
-"""Tool management for LLMling agents."""
+"""Tool management for AgentPool."""
 
 from __future__ import annotations
 

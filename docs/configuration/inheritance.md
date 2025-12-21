@@ -4,7 +4,7 @@ description: Configuration inheritance system
 icon: material/source-merge
 ---
 
-LLMling supports inheritance both for individual agents and entire YAML files, making configurations more reusable and maintainable.
+AgentPool supports inheritance both for individual agents and entire YAML files, making configurations more reusable and maintainable.
 
 ## Agent Inheritance
 
@@ -108,4 +108,4 @@ INHERIT:
    - Lists and dictionaries are merged
    - Complex fields use smart merging
 
-Inheritance in LLMling helps maintain DRY (Don't Repeat Yourself) configurations while allowing for flexible specialization at both the agent and file level.
+Inheritance in AgentPool helps maintain DRY (Don't Repeat Yourself) configurations while allowing for flexible specialization at both the agent and file level.

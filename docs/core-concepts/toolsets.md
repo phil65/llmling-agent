@@ -6,7 +6,7 @@ icon: material/shield-check
 
 ## What are Toolsets?
 
-Toolsets in LLMling define groups of related tools that agents can access. Rather than configuring individual tool permissions, you enable entire categories of functionality through toolset configurations.
+Toolsets in AgentPool define groups of related tools that agents can access. Rather than configuring individual tool permissions, you enable entire categories of functionality through toolset configurations.
 
 Think of toolsets as "skill packages" that give agents specific capabilities - from file operations to process management to agent coordination.
 
@@ -57,7 +57,7 @@ agents:
 
 ### Resource Access (`resource_access`)
 
-Access to LLMling resources and configurations:
+Access to AgentPool resources and configurations:
 
 ```yaml
 agents:

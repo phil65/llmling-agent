@@ -10,7 +10,7 @@ icon: material/text-box
 
 ## Overview
 
-LLMling's prompt library allows defining reusable system prompts that can be shared across agents. Prompts are defined in the `prompts` section of your configuration and can be referenced by name.
+AgentPool's prompt library allows defining reusable system prompts that can be shared across agents. Prompts are defined in the `prompts` section of your configuration and can be referenced by name.
 
 System prompts define agent behavior, personality, and methodology. You can configure prompts using:
 
