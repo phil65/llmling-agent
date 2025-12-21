@@ -47,6 +47,7 @@ class NodeConfig(Schema):
 
     config_file_path: str | None = Field(
         default=None,
+        exclude=True,
         examples=["/path/to/config.yml", "configs/agent.yaml"],
         title="Configuration file path",
     )
