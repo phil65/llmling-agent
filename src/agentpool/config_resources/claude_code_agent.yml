@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/phil65/llmling-agent/refs/heads/main/schema/config-schema.json
+# Default ACP assistant configuration
+# Used when starting ACP server without explicit config file
+
+agents:
+  claude:
+    type: claude_code
+    display_name: "AI Assistant"
+    builtin_tools: []
+    description: "Claude code agent with enhanced tools"
+    toolsets:
+      - type: execution
+      - type: file_access
+      - type: code
+      - type: search
+      - type: plan
