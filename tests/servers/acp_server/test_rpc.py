@@ -32,8 +32,7 @@ from acp import (
 
 if TYPE_CHECKING:
     from acp import DefaultACPClient
-
-    from .conftest import TestAgent
+    from acp.agent.implementations.testing import TestAgent
 
 
 class _Server:
