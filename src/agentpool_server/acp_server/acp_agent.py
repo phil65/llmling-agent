@@ -167,7 +167,7 @@ class AgentPoolACPAgent(ACPAgent):
         response = InitializeResponse.create(
             protocol_version=version,
             name="agentpool",
-            title="LLMLing-Agent",
+            title="AgentPool",
             version=_version("agentpool"),
             load_session=True,
             list_sessions=True,

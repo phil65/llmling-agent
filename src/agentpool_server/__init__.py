@@ -1,4 +1,4 @@
-"""LLMLing Agent Server implementations."""
+"""AgentPool Server implementations."""
 
 from agentpool_server.a2a_server import A2AServer
 from agentpool_server.aggregating_server import AggregatingServer

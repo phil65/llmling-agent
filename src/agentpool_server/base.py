@@ -1,4 +1,4 @@
-"""Base server class for LLMLing Agent servers."""
+"""Base server class for AgentPool servers."""
 
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ logger = get_logger(__name__)
 
 
 class BaseServer:
-    """Base class for all LLMLing Agent servers.
+    """Base class for all AgentPool servers.
 
     Provides standardized interface for server lifecycle management:
     - async def _start_async() - blocking server execution (implemented by subclasses)
