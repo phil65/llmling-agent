@@ -374,7 +374,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
                         team_config = shared_pool.manifest.teams.get(self.name)
         if not team_config:
             mode = "parallel" if isinstance(self, Team) else "sequential"
-            team_config = TeamConfig(name=self.name, mode=mode, members=[])  # type: ignore[call-arg]
+            team_config = TeamConfig(name=self.name, mode=mode, members=[])
         if not pool_ids:
             logger.debug("No pool found for team.", team=self.name)
             return TeamContext(

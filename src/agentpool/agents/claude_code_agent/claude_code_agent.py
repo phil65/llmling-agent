@@ -160,7 +160,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         """
         # Build config from kwargs if not provided
         if config is None:
-            config = ClaudeCodeAgentConfig(  # type: ignore[call-arg]
+            config = ClaudeCodeAgentConfig(
                 name=name or "claude_code",
                 description=description,
                 display_name=display_name,
