@@ -347,7 +347,7 @@
             }
           ],
           "default": "local",
-          "description": "Execution environment config for ACP client operations (filesystem, terminals).",
+          "description": "Execution environment config for the agent's own toolsets.",
           "examples": [
             "docker",
             {
@@ -361,6 +361,98 @@
             }
           ],
           "title": "Execution Environment"
+        },
+        "client_execution_environment": {
+          "anyOf": [
+            {
+              "enum": [
+                "local",
+                "docker",
+                "ssh",
+                "daytona",
+                "e2b",
+                "beam",
+                "vercel",
+                "microsandbox",
+                "modal",
+                "srt",
+                "pyodide"
+              ],
+              "type": "string"
+            },
+            {
+              "discriminator": {
+                "mapping": {
+                  "beam": "#/$defs/BeamExecutionEnvironmentConfig",
+                  "daytona": "#/$defs/DaytonaExecutionEnvironmentConfig",
+                  "docker": "#/$defs/DockerExecutionEnvironmentConfig",
+                  "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
+                  "local": "#/$defs/LocalExecutionEnvironmentConfig",
+                  "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "modal": "#/$defs/ModalExecutionEnvironmentConfig",
+                  "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
+                  "srt": "#/$defs/SRTExecutionEnvironmentConfig",
+                  "ssh": "#/$defs/SshExecutionEnvironmentConfig",
+                  "vercel": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/LocalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DockerExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/E2bExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/BeamExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SshExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/PyodideExecutionEnvironmentConfig"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Execution environment for handling subprocess requests (filesystem, terminals).\n\nWhen the ACP subprocess requests file/terminal operations, this environment\ndetermines where those operations execute. Falls back to execution_environment\nif not set.\n\nUse cases:\n- None (default): Use same env as toolsets (execution_environment)\n- \"local\": Subprocess operates on its own local filesystem\n- Remote config: Subprocess operates in a specific remote environment",
+          "examples": [
+            "local",
+            "docker",
+            {
+              "cwd": null,
+              "dependencies": null,
+              "keep_alive": false,
+              "language": "python",
+              "template": "python-sandbox",
+              "timeout": 60.0,
+              "type": "e2b"
+            }
+          ],
+          "title": "Client Execution Environment"
         },
         "allow_file_operations": {
           "default": true,
@@ -1476,7 +1568,7 @@
             }
           ],
           "default": "local",
-          "description": "Execution environment config for ACP client operations (filesystem, terminals).",
+          "description": "Execution environment config for the agent's own toolsets.",
           "examples": [
             "docker",
             {
@@ -1490,6 +1582,98 @@
             }
           ],
           "title": "Execution Environment"
+        },
+        "client_execution_environment": {
+          "anyOf": [
+            {
+              "enum": [
+                "local",
+                "docker",
+                "ssh",
+                "daytona",
+                "e2b",
+                "beam",
+                "vercel",
+                "microsandbox",
+                "modal",
+                "srt",
+                "pyodide"
+              ],
+              "type": "string"
+            },
+            {
+              "discriminator": {
+                "mapping": {
+                  "beam": "#/$defs/BeamExecutionEnvironmentConfig",
+                  "daytona": "#/$defs/DaytonaExecutionEnvironmentConfig",
+                  "docker": "#/$defs/DockerExecutionEnvironmentConfig",
+                  "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
+                  "local": "#/$defs/LocalExecutionEnvironmentConfig",
+                  "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "modal": "#/$defs/ModalExecutionEnvironmentConfig",
+                  "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
+                  "srt": "#/$defs/SRTExecutionEnvironmentConfig",
+                  "ssh": "#/$defs/SshExecutionEnvironmentConfig",
+                  "vercel": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/LocalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DockerExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/E2bExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/BeamExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SshExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/PyodideExecutionEnvironmentConfig"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Execution environment for handling subprocess requests (filesystem, terminals).\n\nWhen the ACP subprocess requests file/terminal operations, this environment\ndetermines where those operations execute. Falls back to execution_environment\nif not set.\n\nUse cases:\n- None (default): Use same env as toolsets (execution_environment)\n- \"local\": Subprocess operates on its own local filesystem\n- Remote config: Subprocess operates in a specific remote environment",
+          "examples": [
+            "local",
+            "docker",
+            {
+              "cwd": null,
+              "dependencies": null,
+              "keep_alive": false,
+              "language": "python",
+              "template": "python-sandbox",
+              "timeout": 60.0,
+              "type": "e2b"
+            }
+          ],
+          "title": "Client Execution Environment"
         },
         "allow_file_operations": {
           "default": true,
@@ -2528,7 +2712,7 @@
             }
           ],
           "default": "local",
-          "description": "Execution environment config for ACP client operations (filesystem, terminals).",
+          "description": "Execution environment config for the agent's own toolsets.",
           "examples": [
             "docker",
             {
@@ -2542,6 +2726,98 @@
             }
           ],
           "title": "Execution Environment"
+        },
+        "client_execution_environment": {
+          "anyOf": [
+            {
+              "enum": [
+                "local",
+                "docker",
+                "ssh",
+                "daytona",
+                "e2b",
+                "beam",
+                "vercel",
+                "microsandbox",
+                "modal",
+                "srt",
+                "pyodide"
+              ],
+              "type": "string"
+            },
+            {
+              "discriminator": {
+                "mapping": {
+                  "beam": "#/$defs/BeamExecutionEnvironmentConfig",
+                  "daytona": "#/$defs/DaytonaExecutionEnvironmentConfig",
+                  "docker": "#/$defs/DockerExecutionEnvironmentConfig",
+                  "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
+                  "local": "#/$defs/LocalExecutionEnvironmentConfig",
+                  "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "modal": "#/$defs/ModalExecutionEnvironmentConfig",
+                  "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
+                  "srt": "#/$defs/SRTExecutionEnvironmentConfig",
+                  "ssh": "#/$defs/SshExecutionEnvironmentConfig",
+                  "vercel": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/LocalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DockerExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/E2bExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/BeamExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SshExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/PyodideExecutionEnvironmentConfig"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Execution environment for handling subprocess requests (filesystem, terminals).\n\nWhen the ACP subprocess requests file/terminal operations, this environment\ndetermines where those operations execute. Falls back to execution_environment\nif not set.\n\nUse cases:\n- None (default): Use same env as toolsets (execution_environment)\n- \"local\": Subprocess operates on its own local filesystem\n- Remote config: Subprocess operates in a specific remote environment",
+          "examples": [
+            "local",
+            "docker",
+            {
+              "cwd": null,
+              "dependencies": null,
+              "keep_alive": false,
+              "language": "python",
+              "template": "python-sandbox",
+              "timeout": 60.0,
+              "type": "e2b"
+            }
+          ],
+          "title": "Client Execution Environment"
         },
         "allow_file_operations": {
           "default": true,
@@ -5358,7 +5634,7 @@
             }
           ],
           "default": "local",
-          "description": "Execution environment config for ACP client operations (filesystem, terminals).",
+          "description": "Execution environment config for the agent's own toolsets.",
           "examples": [
             "docker",
             {
@@ -5372,6 +5648,98 @@
             }
           ],
           "title": "Execution Environment"
+        },
+        "client_execution_environment": {
+          "anyOf": [
+            {
+              "enum": [
+                "local",
+                "docker",
+                "ssh",
+                "daytona",
+                "e2b",
+                "beam",
+                "vercel",
+                "microsandbox",
+                "modal",
+                "srt",
+                "pyodide"
+              ],
+              "type": "string"
+            },
+            {
+              "discriminator": {
+                "mapping": {
+                  "beam": "#/$defs/BeamExecutionEnvironmentConfig",
+                  "daytona": "#/$defs/DaytonaExecutionEnvironmentConfig",
+                  "docker": "#/$defs/DockerExecutionEnvironmentConfig",
+                  "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
+                  "local": "#/$defs/LocalExecutionEnvironmentConfig",
+                  "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "modal": "#/$defs/ModalExecutionEnvironmentConfig",
+                  "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
+                  "srt": "#/$defs/SRTExecutionEnvironmentConfig",
+                  "ssh": "#/$defs/SshExecutionEnvironmentConfig",
+                  "vercel": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/LocalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DockerExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/E2bExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/BeamExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SshExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/PyodideExecutionEnvironmentConfig"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Execution environment for handling subprocess requests (filesystem, terminals).\n\nWhen the ACP subprocess requests file/terminal operations, this environment\ndetermines where those operations execute. Falls back to execution_environment\nif not set.\n\nUse cases:\n- None (default): Use same env as toolsets (execution_environment)\n- \"local\": Subprocess operates on its own local filesystem\n- Remote config: Subprocess operates in a specific remote environment",
+          "examples": [
+            "local",
+            "docker",
+            {
+              "cwd": null,
+              "dependencies": null,
+              "keep_alive": false,
+              "language": "python",
+              "template": "python-sandbox",
+              "timeout": 60.0,
+              "type": "e2b"
+            }
+          ],
+          "title": "Client Execution Environment"
         },
         "allow_file_operations": {
           "default": true,
@@ -6342,7 +6710,7 @@
             }
           ],
           "default": "local",
-          "description": "Execution environment config for ACP client operations (filesystem, terminals).",
+          "description": "Execution environment config for the agent's own toolsets.",
           "examples": [
             "docker",
             {
@@ -6356,6 +6724,98 @@
             }
           ],
           "title": "Execution Environment"
+        },
+        "client_execution_environment": {
+          "anyOf": [
+            {
+              "enum": [
+                "local",
+                "docker",
+                "ssh",
+                "daytona",
+                "e2b",
+                "beam",
+                "vercel",
+                "microsandbox",
+                "modal",
+                "srt",
+                "pyodide"
+              ],
+              "type": "string"
+            },
+            {
+              "discriminator": {
+                "mapping": {
+                  "beam": "#/$defs/BeamExecutionEnvironmentConfig",
+                  "daytona": "#/$defs/DaytonaExecutionEnvironmentConfig",
+                  "docker": "#/$defs/DockerExecutionEnvironmentConfig",
+                  "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
+                  "local": "#/$defs/LocalExecutionEnvironmentConfig",
+                  "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "modal": "#/$defs/ModalExecutionEnvironmentConfig",
+                  "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
+                  "srt": "#/$defs/SRTExecutionEnvironmentConfig",
+                  "ssh": "#/$defs/SshExecutionEnvironmentConfig",
+                  "vercel": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/LocalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DockerExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/E2bExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/BeamExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SshExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/PyodideExecutionEnvironmentConfig"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Execution environment for handling subprocess requests (filesystem, terminals).\n\nWhen the ACP subprocess requests file/terminal operations, this environment\ndetermines where those operations execute. Falls back to execution_environment\nif not set.\n\nUse cases:\n- None (default): Use same env as toolsets (execution_environment)\n- \"local\": Subprocess operates on its own local filesystem\n- Remote config: Subprocess operates in a specific remote environment",
+          "examples": [
+            "local",
+            "docker",
+            {
+              "cwd": null,
+              "dependencies": null,
+              "keep_alive": false,
+              "language": "python",
+              "template": "python-sandbox",
+              "timeout": 60.0,
+              "type": "e2b"
+            }
+          ],
+          "title": "Client Execution Environment"
         },
         "allow_file_operations": {
           "default": true,
@@ -6830,7 +7290,7 @@
     },
     "ClaudeCodeAgentConfig": {
       "additionalProperties": false,
-      "description": "Configuration for Claude Code agents.\n\nClaude Code agents use the Claude Agent SDK to interact with Claude Code CLI,\nenabling file operations, terminal access, and code editing capabilities.\n\nExample:\n    ```yaml\n    claude_code_agents:\n      coder:\n        cwd: /path/to/project\n        model: claude-sonnet-4-5\n        allowed_tools:\n          - Read\n          - Write\n          - Bash\n        system_prompt: \"You are a helpful coding assistant.\"\n        max_turns: 10\n\n      planner:\n        cwd: /path/to/project\n        permission_mode: plan\n        max_thinking_tokens: 10000\n    ```",
+      "description": "Configuration for Claude Code agents.\n\nClaude Code agents use the Claude Agent SDK to interact with Claude Code CLI,\nenabling file operations, terminal access, and code editing capabilities.\n\nExample:\n    ```yaml\n    claude_code_agents:\n      coder:\n        cwd: /path/to/project\n        model: claude-sonnet-4-5\n        allowed_tools:\n          - Read\n          - Write\n          - Bash\n        system_prompt: \"You are a helpful coding assistant.\"\n        max_turns: 10\n\n      planner:\n        cwd: /path/to/project\n        permission_mode: plan\n        max_thinking_tokens: 10000\n        include_builtin_system_prompt: false\n        system_prompt:\n          - \"You are a planning-only assistant.\"\n          - \"Focus on architecture decisions.\"\n    ```",
       "properties": {
         "name": {
           "default": null,
@@ -7172,16 +7632,66 @@
           "title": "Disallowed Tools"
         },
         "system_prompt": {
-          "default": null,
-          "description": "Custom system prompt to use instead of the default.",
-          "examples": [
-            "You are a helpful coding assistant focused on Python."
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "discriminator": {
+                      "mapping": {
+                        "file": "#/$defs/FilePromptConfig",
+                        "function": "#/$defs/FunctionPromptConfig",
+                        "library": "#/$defs/LibraryPromptConfig",
+                        "static": "#/$defs/StaticPromptConfig"
+                      },
+                      "propertyName": "type"
+                    },
+                    "oneOf": [
+                      {
+                        "$ref": "#/$defs/StaticPromptConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/FilePromptConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/LibraryPromptConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/FunctionPromptConfig"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
           ],
-          "title": "System Prompt",
-          "type": [
-            "string",
-            "null"
-          ]
+          "default": null,
+          "description": "System prompt for the agent. Can be a string or list of strings/prompt configs.\n\nBy default, this is appended to Claude Code's builtin system prompt.\nSet `include_builtin_system_prompt: false` to use only your custom prompt.\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
+          "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
+          "examples": [
+            "You are a helpful coding assistant.",
+            [
+              "Always write tests.",
+              "Focus on Python."
+            ]
+          ],
+          "title": "System Prompt"
+        },
+        "include_builtin_system_prompt": {
+          "default": true,
+          "description": "Whether to include Claude Code's builtin system prompt.\n\n- true (default): `system_prompt` is appended to the builtin\n- false: Only use `system_prompt`, discard the builtin",
+          "title": "Include Builtin System Prompt",
+          "type": "boolean"
         },
         "max_turns": {
           "anyOf": [
@@ -7265,19 +7775,6 @@
             "code_output"
           ],
           "title": "Response type"
-        },
-        "append_system_prompt": {
-          "default": null,
-          "description": "Text to append to the default system prompt.\n\nNote: External MCP servers can be configured via the inherited `mcp_servers` field\nfrom BaseAgentConfig. They will be converted to Claude SDK format at runtime.",
-          "examples": [
-            "Always write tests.",
-            "Prefer functional programming."
-          ],
-          "title": "Append System Prompt",
-          "type": [
-            "string",
-            "null"
-          ]
         },
         "env": {
           "anyOf": [
@@ -8300,7 +8797,7 @@
             }
           ],
           "default": "local",
-          "description": "Execution environment config for ACP client operations (filesystem, terminals).",
+          "description": "Execution environment config for the agent's own toolsets.",
           "examples": [
             "docker",
             {
@@ -8314,6 +8811,98 @@
             }
           ],
           "title": "Execution Environment"
+        },
+        "client_execution_environment": {
+          "anyOf": [
+            {
+              "enum": [
+                "local",
+                "docker",
+                "ssh",
+                "daytona",
+                "e2b",
+                "beam",
+                "vercel",
+                "microsandbox",
+                "modal",
+                "srt",
+                "pyodide"
+              ],
+              "type": "string"
+            },
+            {
+              "discriminator": {
+                "mapping": {
+                  "beam": "#/$defs/BeamExecutionEnvironmentConfig",
+                  "daytona": "#/$defs/DaytonaExecutionEnvironmentConfig",
+                  "docker": "#/$defs/DockerExecutionEnvironmentConfig",
+                  "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
+                  "local": "#/$defs/LocalExecutionEnvironmentConfig",
+                  "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "modal": "#/$defs/ModalExecutionEnvironmentConfig",
+                  "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
+                  "srt": "#/$defs/SRTExecutionEnvironmentConfig",
+                  "ssh": "#/$defs/SshExecutionEnvironmentConfig",
+                  "vercel": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/LocalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DockerExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/E2bExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/BeamExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SshExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/PyodideExecutionEnvironmentConfig"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Execution environment for handling subprocess requests (filesystem, terminals).\n\nWhen the ACP subprocess requests file/terminal operations, this environment\ndetermines where those operations execute. Falls back to execution_environment\nif not set.\n\nUse cases:\n- None (default): Use same env as toolsets (execution_environment)\n- \"local\": Subprocess operates on its own local filesystem\n- Remote config: Subprocess operates in a specific remote environment",
+          "examples": [
+            "local",
+            "docker",
+            {
+              "cwd": null,
+              "dependencies": null,
+              "keep_alive": false,
+              "language": "python",
+              "template": "python-sandbox",
+              "timeout": 60.0,
+              "type": "e2b"
+            }
+          ],
+          "title": "Client Execution Environment"
         },
         "allow_file_operations": {
           "default": true,
@@ -9169,7 +9758,7 @@
             }
           ],
           "default": "local",
-          "description": "Execution environment config for ACP client operations (filesystem, terminals).",
+          "description": "Execution environment config for the agent's own toolsets.",
           "examples": [
             "docker",
             {
@@ -9183,6 +9772,98 @@
             }
           ],
           "title": "Execution Environment"
+        },
+        "client_execution_environment": {
+          "anyOf": [
+            {
+              "enum": [
+                "local",
+                "docker",
+                "ssh",
+                "daytona",
+                "e2b",
+                "beam",
+                "vercel",
+                "microsandbox",
+                "modal",
+                "srt",
+                "pyodide"
+              ],
+              "type": "string"
+            },
+            {
+              "discriminator": {
+                "mapping": {
+                  "beam": "#/$defs/BeamExecutionEnvironmentConfig",
+                  "daytona": "#/$defs/DaytonaExecutionEnvironmentConfig",
+                  "docker": "#/$defs/DockerExecutionEnvironmentConfig",
+                  "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
+                  "local": "#/$defs/LocalExecutionEnvironmentConfig",
+                  "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "modal": "#/$defs/ModalExecutionEnvironmentConfig",
+                  "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
+                  "srt": "#/$defs/SRTExecutionEnvironmentConfig",
+                  "ssh": "#/$defs/SshExecutionEnvironmentConfig",
+                  "vercel": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/LocalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DockerExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/E2bExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/BeamExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SshExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/PyodideExecutionEnvironmentConfig"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Execution environment for handling subprocess requests (filesystem, terminals).\n\nWhen the ACP subprocess requests file/terminal operations, this environment\ndetermines where those operations execute. Falls back to execution_environment\nif not set.\n\nUse cases:\n- None (default): Use same env as toolsets (execution_environment)\n- \"local\": Subprocess operates on its own local filesystem\n- Remote config: Subprocess operates in a specific remote environment",
+          "examples": [
+            "local",
+            "docker",
+            {
+              "cwd": null,
+              "dependencies": null,
+              "keep_alive": false,
+              "language": "python",
+              "template": "python-sandbox",
+              "timeout": 60.0,
+              "type": "e2b"
+            }
+          ],
+          "title": "Client Execution Environment"
         },
         "allow_file_operations": {
           "default": true,
@@ -17404,7 +18085,7 @@
             }
           ],
           "default": "local",
-          "description": "Execution environment config for ACP client operations (filesystem, terminals).",
+          "description": "Execution environment config for the agent's own toolsets.",
           "examples": [
             "docker",
             {
@@ -17418,6 +18099,98 @@
             }
           ],
           "title": "Execution Environment"
+        },
+        "client_execution_environment": {
+          "anyOf": [
+            {
+              "enum": [
+                "local",
+                "docker",
+                "ssh",
+                "daytona",
+                "e2b",
+                "beam",
+                "vercel",
+                "microsandbox",
+                "modal",
+                "srt",
+                "pyodide"
+              ],
+              "type": "string"
+            },
+            {
+              "discriminator": {
+                "mapping": {
+                  "beam": "#/$defs/BeamExecutionEnvironmentConfig",
+                  "daytona": "#/$defs/DaytonaExecutionEnvironmentConfig",
+                  "docker": "#/$defs/DockerExecutionEnvironmentConfig",
+                  "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
+                  "local": "#/$defs/LocalExecutionEnvironmentConfig",
+                  "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "modal": "#/$defs/ModalExecutionEnvironmentConfig",
+                  "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
+                  "srt": "#/$defs/SRTExecutionEnvironmentConfig",
+                  "ssh": "#/$defs/SshExecutionEnvironmentConfig",
+                  "vercel": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/LocalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DockerExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/E2bExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/BeamExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SshExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/PyodideExecutionEnvironmentConfig"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Execution environment for handling subprocess requests (filesystem, terminals).\n\nWhen the ACP subprocess requests file/terminal operations, this environment\ndetermines where those operations execute. Falls back to execution_environment\nif not set.\n\nUse cases:\n- None (default): Use same env as toolsets (execution_environment)\n- \"local\": Subprocess operates on its own local filesystem\n- Remote config: Subprocess operates in a specific remote environment",
+          "examples": [
+            "local",
+            "docker",
+            {
+              "cwd": null,
+              "dependencies": null,
+              "keep_alive": false,
+              "language": "python",
+              "template": "python-sandbox",
+              "timeout": 60.0,
+              "type": "e2b"
+            }
+          ],
+          "title": "Client Execution Environment"
         },
         "allow_file_operations": {
           "default": true,
@@ -19026,7 +19799,7 @@
             }
           ],
           "default": "local",
-          "description": "Execution environment config for ACP client operations (filesystem, terminals).",
+          "description": "Execution environment config for the agent's own toolsets.",
           "examples": [
             "docker",
             {
@@ -19040,6 +19813,98 @@
             }
           ],
           "title": "Execution Environment"
+        },
+        "client_execution_environment": {
+          "anyOf": [
+            {
+              "enum": [
+                "local",
+                "docker",
+                "ssh",
+                "daytona",
+                "e2b",
+                "beam",
+                "vercel",
+                "microsandbox",
+                "modal",
+                "srt",
+                "pyodide"
+              ],
+              "type": "string"
+            },
+            {
+              "discriminator": {
+                "mapping": {
+                  "beam": "#/$defs/BeamExecutionEnvironmentConfig",
+                  "daytona": "#/$defs/DaytonaExecutionEnvironmentConfig",
+                  "docker": "#/$defs/DockerExecutionEnvironmentConfig",
+                  "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
+                  "local": "#/$defs/LocalExecutionEnvironmentConfig",
+                  "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "modal": "#/$defs/ModalExecutionEnvironmentConfig",
+                  "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
+                  "srt": "#/$defs/SRTExecutionEnvironmentConfig",
+                  "ssh": "#/$defs/SshExecutionEnvironmentConfig",
+                  "vercel": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/LocalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DockerExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/E2bExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/BeamExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SshExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/PyodideExecutionEnvironmentConfig"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Execution environment for handling subprocess requests (filesystem, terminals).\n\nWhen the ACP subprocess requests file/terminal operations, this environment\ndetermines where those operations execute. Falls back to execution_environment\nif not set.\n\nUse cases:\n- None (default): Use same env as toolsets (execution_environment)\n- \"local\": Subprocess operates on its own local filesystem\n- Remote config: Subprocess operates in a specific remote environment",
+          "examples": [
+            "local",
+            "docker",
+            {
+              "cwd": null,
+              "dependencies": null,
+              "keep_alive": false,
+              "language": "python",
+              "template": "python-sandbox",
+              "timeout": 60.0,
+              "type": "e2b"
+            }
+          ],
+          "title": "Client Execution Environment"
         },
         "allow_file_operations": {
           "default": true,
@@ -20530,7 +21395,7 @@
             }
           ],
           "default": "local",
-          "description": "Execution environment config for ACP client operations (filesystem, terminals).",
+          "description": "Execution environment config for the agent's own toolsets.",
           "examples": [
             "docker",
             {
@@ -20544,6 +21409,98 @@
             }
           ],
           "title": "Execution Environment"
+        },
+        "client_execution_environment": {
+          "anyOf": [
+            {
+              "enum": [
+                "local",
+                "docker",
+                "ssh",
+                "daytona",
+                "e2b",
+                "beam",
+                "vercel",
+                "microsandbox",
+                "modal",
+                "srt",
+                "pyodide"
+              ],
+              "type": "string"
+            },
+            {
+              "discriminator": {
+                "mapping": {
+                  "beam": "#/$defs/BeamExecutionEnvironmentConfig",
+                  "daytona": "#/$defs/DaytonaExecutionEnvironmentConfig",
+                  "docker": "#/$defs/DockerExecutionEnvironmentConfig",
+                  "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
+                  "local": "#/$defs/LocalExecutionEnvironmentConfig",
+                  "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "modal": "#/$defs/ModalExecutionEnvironmentConfig",
+                  "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
+                  "srt": "#/$defs/SRTExecutionEnvironmentConfig",
+                  "ssh": "#/$defs/SshExecutionEnvironmentConfig",
+                  "vercel": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/LocalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DockerExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/E2bExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/BeamExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SshExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/PyodideExecutionEnvironmentConfig"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Execution environment for handling subprocess requests (filesystem, terminals).\n\nWhen the ACP subprocess requests file/terminal operations, this environment\ndetermines where those operations execute. Falls back to execution_environment\nif not set.\n\nUse cases:\n- None (default): Use same env as toolsets (execution_environment)\n- \"local\": Subprocess operates on its own local filesystem\n- Remote config: Subprocess operates in a specific remote environment",
+          "examples": [
+            "local",
+            "docker",
+            {
+              "cwd": null,
+              "dependencies": null,
+              "keep_alive": false,
+              "language": "python",
+              "template": "python-sandbox",
+              "timeout": 60.0,
+              "type": "e2b"
+            }
+          ],
+          "title": "Client Execution Environment"
         },
         "allow_file_operations": {
           "default": true,
@@ -22344,7 +23301,7 @@
             }
           ],
           "default": "local",
-          "description": "Execution environment config for ACP client operations (filesystem, terminals).",
+          "description": "Execution environment config for the agent's own toolsets.",
           "examples": [
             "docker",
             {
@@ -22358,6 +23315,98 @@
             }
           ],
           "title": "Execution Environment"
+        },
+        "client_execution_environment": {
+          "anyOf": [
+            {
+              "enum": [
+                "local",
+                "docker",
+                "ssh",
+                "daytona",
+                "e2b",
+                "beam",
+                "vercel",
+                "microsandbox",
+                "modal",
+                "srt",
+                "pyodide"
+              ],
+              "type": "string"
+            },
+            {
+              "discriminator": {
+                "mapping": {
+                  "beam": "#/$defs/BeamExecutionEnvironmentConfig",
+                  "daytona": "#/$defs/DaytonaExecutionEnvironmentConfig",
+                  "docker": "#/$defs/DockerExecutionEnvironmentConfig",
+                  "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
+                  "local": "#/$defs/LocalExecutionEnvironmentConfig",
+                  "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "modal": "#/$defs/ModalExecutionEnvironmentConfig",
+                  "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
+                  "srt": "#/$defs/SRTExecutionEnvironmentConfig",
+                  "ssh": "#/$defs/SshExecutionEnvironmentConfig",
+                  "vercel": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/LocalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DockerExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/E2bExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/BeamExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SshExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/PyodideExecutionEnvironmentConfig"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Execution environment for handling subprocess requests (filesystem, terminals).\n\nWhen the ACP subprocess requests file/terminal operations, this environment\ndetermines where those operations execute. Falls back to execution_environment\nif not set.\n\nUse cases:\n- None (default): Use same env as toolsets (execution_environment)\n- \"local\": Subprocess operates on its own local filesystem\n- Remote config: Subprocess operates in a specific remote environment",
+          "examples": [
+            "local",
+            "docker",
+            {
+              "cwd": null,
+              "dependencies": null,
+              "keep_alive": false,
+              "language": "python",
+              "template": "python-sandbox",
+              "timeout": 60.0,
+              "type": "e2b"
+            }
+          ],
+          "title": "Client Execution Environment"
         },
         "allow_file_operations": {
           "default": true,
@@ -24914,7 +25963,7 @@
             }
           ],
           "default": "local",
-          "description": "Execution environment config for ACP client operations (filesystem, terminals).",
+          "description": "Execution environment config for the agent's own toolsets.",
           "examples": [
             "docker",
             {
@@ -24928,6 +25977,98 @@
             }
           ],
           "title": "Execution Environment"
+        },
+        "client_execution_environment": {
+          "anyOf": [
+            {
+              "enum": [
+                "local",
+                "docker",
+                "ssh",
+                "daytona",
+                "e2b",
+                "beam",
+                "vercel",
+                "microsandbox",
+                "modal",
+                "srt",
+                "pyodide"
+              ],
+              "type": "string"
+            },
+            {
+              "discriminator": {
+                "mapping": {
+                  "beam": "#/$defs/BeamExecutionEnvironmentConfig",
+                  "daytona": "#/$defs/DaytonaExecutionEnvironmentConfig",
+                  "docker": "#/$defs/DockerExecutionEnvironmentConfig",
+                  "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
+                  "local": "#/$defs/LocalExecutionEnvironmentConfig",
+                  "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "modal": "#/$defs/ModalExecutionEnvironmentConfig",
+                  "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
+                  "srt": "#/$defs/SRTExecutionEnvironmentConfig",
+                  "ssh": "#/$defs/SshExecutionEnvironmentConfig",
+                  "vercel": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/LocalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DockerExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/E2bExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/BeamExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SshExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/PyodideExecutionEnvironmentConfig"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Execution environment for handling subprocess requests (filesystem, terminals).\n\nWhen the ACP subprocess requests file/terminal operations, this environment\ndetermines where those operations execute. Falls back to execution_environment\nif not set.\n\nUse cases:\n- None (default): Use same env as toolsets (execution_environment)\n- \"local\": Subprocess operates on its own local filesystem\n- Remote config: Subprocess operates in a specific remote environment",
+          "examples": [
+            "local",
+            "docker",
+            {
+              "cwd": null,
+              "dependencies": null,
+              "keep_alive": false,
+              "language": "python",
+              "template": "python-sandbox",
+              "timeout": 60.0,
+              "type": "e2b"
+            }
+          ],
+          "title": "Client Execution Environment"
         },
         "allow_file_operations": {
           "default": true,
@@ -27260,48 +28401,61 @@
             "null"
           ]
         },
-        "system_prompts": {
-          "description": "System prompts for the agent. Can be strings or structured prompt configs.\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
-          "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
-          "examples": [
-            [
-              "You are an AI assistant."
-            ]
-          ],
-          "items": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "discriminator": {
-                  "mapping": {
-                    "file": "#/$defs/FilePromptConfig",
-                    "function": "#/$defs/FunctionPromptConfig",
-                    "library": "#/$defs/LibraryPromptConfig",
-                    "static": "#/$defs/StaticPromptConfig"
-                  },
-                  "propertyName": "type"
-                },
-                "oneOf": [
+        "system_prompt": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "items": {
+                "anyOf": [
                   {
-                    "$ref": "#/$defs/StaticPromptConfig"
+                    "type": "string"
                   },
                   {
-                    "$ref": "#/$defs/FilePromptConfig"
-                  },
-                  {
-                    "$ref": "#/$defs/LibraryPromptConfig"
-                  },
-                  {
-                    "$ref": "#/$defs/FunctionPromptConfig"
+                    "discriminator": {
+                      "mapping": {
+                        "file": "#/$defs/FilePromptConfig",
+                        "function": "#/$defs/FunctionPromptConfig",
+                        "library": "#/$defs/LibraryPromptConfig",
+                        "static": "#/$defs/StaticPromptConfig"
+                      },
+                      "propertyName": "type"
+                    },
+                    "oneOf": [
+                      {
+                        "$ref": "#/$defs/StaticPromptConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/FilePromptConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/LibraryPromptConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/FunctionPromptConfig"
+                      }
+                    ]
                   }
                 ]
-              }
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "System prompt for the agent. Can be a string or list of strings/prompt configs.\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
+          "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
+          "examples": [
+            "You are a helpful assistant.",
+            [
+              "You are an AI assistant.",
+              "Always be concise."
             ]
-          },
-          "title": "System prompts",
-          "type": "array"
+          ],
+          "title": "System Prompt"
         },
         "knowledge": {
           "anyOf": [
@@ -28874,7 +30028,7 @@
             }
           ],
           "default": "local",
-          "description": "Execution environment config for ACP client operations (filesystem, terminals).",
+          "description": "Execution environment config for the agent's own toolsets.",
           "examples": [
             "docker",
             {
@@ -28888,6 +30042,98 @@
             }
           ],
           "title": "Execution Environment"
+        },
+        "client_execution_environment": {
+          "anyOf": [
+            {
+              "enum": [
+                "local",
+                "docker",
+                "ssh",
+                "daytona",
+                "e2b",
+                "beam",
+                "vercel",
+                "microsandbox",
+                "modal",
+                "srt",
+                "pyodide"
+              ],
+              "type": "string"
+            },
+            {
+              "discriminator": {
+                "mapping": {
+                  "beam": "#/$defs/BeamExecutionEnvironmentConfig",
+                  "daytona": "#/$defs/DaytonaExecutionEnvironmentConfig",
+                  "docker": "#/$defs/DockerExecutionEnvironmentConfig",
+                  "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
+                  "local": "#/$defs/LocalExecutionEnvironmentConfig",
+                  "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "modal": "#/$defs/ModalExecutionEnvironmentConfig",
+                  "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
+                  "srt": "#/$defs/SRTExecutionEnvironmentConfig",
+                  "ssh": "#/$defs/SshExecutionEnvironmentConfig",
+                  "vercel": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/LocalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DockerExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/E2bExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/BeamExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SshExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/PyodideExecutionEnvironmentConfig"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Execution environment for handling subprocess requests (filesystem, terminals).\n\nWhen the ACP subprocess requests file/terminal operations, this environment\ndetermines where those operations execute. Falls back to execution_environment\nif not set.\n\nUse cases:\n- None (default): Use same env as toolsets (execution_environment)\n- \"local\": Subprocess operates on its own local filesystem\n- Remote config: Subprocess operates in a specific remote environment",
+          "examples": [
+            "local",
+            "docker",
+            {
+              "cwd": null,
+              "dependencies": null,
+              "keep_alive": false,
+              "language": "python",
+              "template": "python-sandbox",
+              "timeout": 60.0,
+              "type": "e2b"
+            }
+          ],
+          "title": "Client Execution Environment"
         },
         "allow_file_operations": {
           "default": true,
@@ -29295,7 +30541,7 @@
             }
           ],
           "default": "local",
-          "description": "Execution environment config for ACP client operations (filesystem, terminals).",
+          "description": "Execution environment config for the agent's own toolsets.",
           "examples": [
             "docker",
             {
@@ -29309,6 +30555,98 @@
             }
           ],
           "title": "Execution Environment"
+        },
+        "client_execution_environment": {
+          "anyOf": [
+            {
+              "enum": [
+                "local",
+                "docker",
+                "ssh",
+                "daytona",
+                "e2b",
+                "beam",
+                "vercel",
+                "microsandbox",
+                "modal",
+                "srt",
+                "pyodide"
+              ],
+              "type": "string"
+            },
+            {
+              "discriminator": {
+                "mapping": {
+                  "beam": "#/$defs/BeamExecutionEnvironmentConfig",
+                  "daytona": "#/$defs/DaytonaExecutionEnvironmentConfig",
+                  "docker": "#/$defs/DockerExecutionEnvironmentConfig",
+                  "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
+                  "local": "#/$defs/LocalExecutionEnvironmentConfig",
+                  "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "modal": "#/$defs/ModalExecutionEnvironmentConfig",
+                  "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
+                  "srt": "#/$defs/SRTExecutionEnvironmentConfig",
+                  "ssh": "#/$defs/SshExecutionEnvironmentConfig",
+                  "vercel": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/LocalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DockerExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/E2bExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/BeamExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SshExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/PyodideExecutionEnvironmentConfig"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Execution environment for handling subprocess requests (filesystem, terminals).\n\nWhen the ACP subprocess requests file/terminal operations, this environment\ndetermines where those operations execute. Falls back to execution_environment\nif not set.\n\nUse cases:\n- None (default): Use same env as toolsets (execution_environment)\n- \"local\": Subprocess operates on its own local filesystem\n- Remote config: Subprocess operates in a specific remote environment",
+          "examples": [
+            "local",
+            "docker",
+            {
+              "cwd": null,
+              "dependencies": null,
+              "keep_alive": false,
+              "language": "python",
+              "template": "python-sandbox",
+              "timeout": 60.0,
+              "type": "e2b"
+            }
+          ],
+          "title": "Client Execution Environment"
         },
         "allow_file_operations": {
           "default": true,
@@ -35480,7 +36818,7 @@
             }
           ],
           "default": "local",
-          "description": "Execution environment config for ACP client operations (filesystem, terminals).",
+          "description": "Execution environment config for the agent's own toolsets.",
           "examples": [
             "docker",
             {
@@ -35494,6 +36832,98 @@
             }
           ],
           "title": "Execution Environment"
+        },
+        "client_execution_environment": {
+          "anyOf": [
+            {
+              "enum": [
+                "local",
+                "docker",
+                "ssh",
+                "daytona",
+                "e2b",
+                "beam",
+                "vercel",
+                "microsandbox",
+                "modal",
+                "srt",
+                "pyodide"
+              ],
+              "type": "string"
+            },
+            {
+              "discriminator": {
+                "mapping": {
+                  "beam": "#/$defs/BeamExecutionEnvironmentConfig",
+                  "daytona": "#/$defs/DaytonaExecutionEnvironmentConfig",
+                  "docker": "#/$defs/DockerExecutionEnvironmentConfig",
+                  "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
+                  "local": "#/$defs/LocalExecutionEnvironmentConfig",
+                  "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "modal": "#/$defs/ModalExecutionEnvironmentConfig",
+                  "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
+                  "srt": "#/$defs/SRTExecutionEnvironmentConfig",
+                  "ssh": "#/$defs/SshExecutionEnvironmentConfig",
+                  "vercel": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/LocalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DockerExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/E2bExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/BeamExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SshExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/PyodideExecutionEnvironmentConfig"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Execution environment for handling subprocess requests (filesystem, terminals).\n\nWhen the ACP subprocess requests file/terminal operations, this environment\ndetermines where those operations execute. Falls back to execution_environment\nif not set.\n\nUse cases:\n- None (default): Use same env as toolsets (execution_environment)\n- \"local\": Subprocess operates on its own local filesystem\n- Remote config: Subprocess operates in a specific remote environment",
+          "examples": [
+            "local",
+            "docker",
+            {
+              "cwd": null,
+              "dependencies": null,
+              "keep_alive": false,
+              "language": "python",
+              "template": "python-sandbox",
+              "timeout": 60.0,
+              "type": "e2b"
+            }
+          ],
+          "title": "Client Execution Environment"
         },
         "allow_file_operations": {
           "default": true,
@@ -42582,7 +44012,7 @@
             }
           ],
           "default": "local",
-          "description": "Execution environment config for ACP client operations (filesystem, terminals).",
+          "description": "Execution environment config for the agent's own toolsets.",
           "examples": [
             "docker",
             {
@@ -42596,6 +44026,98 @@
             }
           ],
           "title": "Execution Environment"
+        },
+        "client_execution_environment": {
+          "anyOf": [
+            {
+              "enum": [
+                "local",
+                "docker",
+                "ssh",
+                "daytona",
+                "e2b",
+                "beam",
+                "vercel",
+                "microsandbox",
+                "modal",
+                "srt",
+                "pyodide"
+              ],
+              "type": "string"
+            },
+            {
+              "discriminator": {
+                "mapping": {
+                  "beam": "#/$defs/BeamExecutionEnvironmentConfig",
+                  "daytona": "#/$defs/DaytonaExecutionEnvironmentConfig",
+                  "docker": "#/$defs/DockerExecutionEnvironmentConfig",
+                  "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
+                  "local": "#/$defs/LocalExecutionEnvironmentConfig",
+                  "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "modal": "#/$defs/ModalExecutionEnvironmentConfig",
+                  "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
+                  "srt": "#/$defs/SRTExecutionEnvironmentConfig",
+                  "ssh": "#/$defs/SshExecutionEnvironmentConfig",
+                  "vercel": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/LocalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DockerExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/E2bExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/BeamExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SshExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/PyodideExecutionEnvironmentConfig"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Execution environment for handling subprocess requests (filesystem, terminals).\n\nWhen the ACP subprocess requests file/terminal operations, this environment\ndetermines where those operations execute. Falls back to execution_environment\nif not set.\n\nUse cases:\n- None (default): Use same env as toolsets (execution_environment)\n- \"local\": Subprocess operates on its own local filesystem\n- Remote config: Subprocess operates in a specific remote environment",
+          "examples": [
+            "local",
+            "docker",
+            {
+              "cwd": null,
+              "dependencies": null,
+              "keep_alive": false,
+              "language": "python",
+              "template": "python-sandbox",
+              "timeout": 60.0,
+              "type": "e2b"
+            }
+          ],
+          "title": "Client Execution Environment"
         },
         "allow_file_operations": {
           "default": true,
@@ -44281,7 +45803,7 @@
           }
         ]
       },
-      "description": "Mapping of agent IDs to their configurations.\n\nAll agent types are unified under this single dict, discriminated by the 'type' field:\n- type: \"native\" (default) - pydantic-ai based agents\n- type: \"agui\" - AG-UI protocol agents\n- type: \"claude_code\" - Claude Agent SDK agents\n- type: \"acp\" - ACP protocol agents (further discriminated by 'provider')\n\nExample:\n    ```yaml\n    agents:\n      assistant:\n        type: native\n        model: openai:gpt-4\n        system_prompts:\n          - \"You are a helpful assistant.\"\n\n      coder:\n        type: claude_code\n        cwd: /path/to/project\n        model: claude-sonnet-4-5\n\n      orchestrator:\n        type: acp\n        provider: claude\n        model: sonnet\n\n      remote:\n        type: agui\n        endpoint: http://localhost:8000/agent/run\n    ```\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/agent_configuration/",
+      "description": "Mapping of agent IDs to their configurations.\n\nAll agent types are unified under this single dict, discriminated by the 'type' field:\n- type: \"native\" (default) - pydantic-ai based agents\n- type: \"agui\" - AG-UI protocol agents\n- type: \"claude_code\" - Claude Agent SDK agents\n- type: \"acp\" - ACP protocol agents (further discriminated by 'provider')\n\nExample:\n    ```yaml\n    agents:\n      assistant:\n        type: native\n        model: openai:gpt-4\n        system_prompt: \"You are a helpful assistant.\"\n\n      coder:\n        type: claude_code\n        cwd: /path/to/project\n        model: claude-sonnet-4-5\n\n      orchestrator:\n        type: acp\n        provider: claude\n        model: sonnet\n\n      remote:\n        type: agui\n        endpoint: http://localhost:8000/agent/run\n    ```\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/agent_configuration/",
       "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/agent_configuration/",
       "title": "Agents",
       "type": "object"
