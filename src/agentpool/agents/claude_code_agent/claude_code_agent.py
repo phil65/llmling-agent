@@ -27,7 +27,7 @@ from decimal import Decimal
 from typing import TYPE_CHECKING, Any, Self
 import uuid
 
-from pydantic_ai import PartDeltaEvent
+from pydantic_ai import PartDeltaEvent, PartEndEvent, PartStartEvent
 from pydantic_ai.messages import (
     ModelRequest,
     ModelResponse,
@@ -48,6 +48,7 @@ from agentpool.agents.events import (
     RunStartedEvent,
     StreamCompleteEvent,
     ToolCallCompleteEvent,
+    ToolCallStartEvent,
 )
 from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage
@@ -635,6 +636,17 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                         tool_name=name, args=input_data, tool_call_id=tc_id
                                     )
                                 )
+                                # Emit ToolCallStartEvent
+                                tool_start_event = ToolCallStartEvent(
+                                    tool_call_id=tc_id,
+                                    tool_name=name,
+                                    title=name,
+                                    kind="other",
+                                    raw_input=input_data,
+                                )
+                                for handler in self.event_handler._wrapped_handlers:
+                                    await handler(None, tool_start_event)
+                                yield tool_start_event
                             case ToolResultBlock(tool_use_id=tc_id, content=content):
                                 # Tool result received - flush response parts and add request
                                 if current_response_parts:
@@ -707,22 +719,49 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                             )
                             model_messages.append(ModelRequest(parts=[part]))
 
-                # Handle StreamEvent for real-time text deltas
+                # Handle StreamEvent for real-time streaming
                 elif isinstance(message, StreamEvent):
                     event_data = message.event
                     event_type = event_data.get("type")
+                    index = event_data.get("index", 0)
+
+                    # Handle content_block_start events
+                    if event_type == "content_block_start":
+                        content_block = event_data.get("content_block", {})
+                        block_type = content_block.get("type")
+
+                        if block_type == "text":
+                            start_event = PartStartEvent(
+                                index=index,
+                                part=TextPart(content=""),
+                            )
+                            for handler in self.event_handler._wrapped_handlers:
+                                await handler(None, start_event)
+                            yield start_event
+
+                        elif block_type == "thinking":
+                            start_event = PartStartEvent(
+                                index=index,
+                                part=ThinkingPart(content=""),
+                            )
+                            for handler in self.event_handler._wrapped_handlers:
+                                await handler(None, start_event)
+                            yield start_event
+
+                        elif block_type == "tool_use":
+                            # Tool use start is handled via AssistantMessage ToolUseBlock
+                            pass
 
                     # Handle content_block_delta events (text streaming)
-                    if event_type == "content_block_delta":
+                    elif event_type == "content_block_delta":
                         delta = event_data.get("delta", {})
                         delta_type = delta.get("type")
 
                         if delta_type == "text_delta":
                             text_delta = delta.get("text", "")
                             if text_delta:
-                                # Yield text delta event immediately
                                 delta_event = PartDeltaEvent(
-                                    index=event_data.get("index", 0),
+                                    index=index,
                                     delta=TextPartDelta(content_delta=text_delta),
                                 )
                                 for handler in self.event_handler._wrapped_handlers:
@@ -733,26 +772,40 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                             thinking_delta = delta.get("thinking", "")
                             if thinking_delta:
                                 delta_event = PartDeltaEvent(
-                                    index=event_data.get("index", 0),
+                                    index=index,
                                     delta=ThinkingPartDelta(content_delta=thinking_delta),
                                 )
                                 for handler in self.event_handler._wrapped_handlers:
                                     await handler(None, delta_event)
                                 yield delta_event
 
+                    # Handle content_block_stop events
+                    elif event_type == "content_block_stop":
+                        # We don't have the full part content here, emit with empty part
+                        # The actual content was accumulated via deltas
+                        end_event = PartEndEvent(
+                            index=index,
+                            part=TextPart(content=""),  # Content already streamed
+                        )
+                        for handler in self.event_handler._wrapped_handlers:
+                            await handler(None, end_event)
+                        yield end_event
+
                     # Skip further processing for StreamEvent - don't duplicate
                     continue
 
                 # Convert to events and yield
-                events = claude_message_to_events(
-                    message,
-                    agent_name=self.name,
-                    pending_tool_calls={},  # Already handled above
-                )
-                for event in events:
-                    for handler in self.event_handler._wrapped_handlers:
-                        await handler(None, event)
-                    yield event
+                # (skip AssistantMessage - already streamed via StreamEvent)
+                if not isinstance(message, AssistantMessage):
+                    events = claude_message_to_events(
+                        message,
+                        agent_name=self.name,
+                        pending_tool_calls={},  # Already handled above
+                    )
+                    for event in events:
+                        for handler in self.event_handler._wrapped_handlers:
+                            await handler(None, event)
+                        yield event
 
                 # Check for result (end of response) and capture usage info
                 if isinstance(message, ResultMessage):
