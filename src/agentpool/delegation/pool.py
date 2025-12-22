@@ -178,6 +178,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
                 agents = list(self.agents.values())
                 acp_agents = list(self.acp_agents.values())
                 agui_agents = list(self.agui_agents.values())
+                claude_code_agents = list(self.claude_code_agents.values())
                 teams = list(self.teams.values())
                 for agent in agents:
                     agent.tools.add_provider(aggregating_provider)
@@ -188,6 +189,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
                     *agents,
                     *acp_agents,
                     *agui_agents,
+                    *claude_code_agents,
                     *teams,
                 ]
                 # MCP server is now managed externally - removed from pool
