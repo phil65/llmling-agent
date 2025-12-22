@@ -3,23 +3,21 @@
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING, Annotated, Any
+from typing import TYPE_CHECKING, Annotated, Any, Literal
 
 import typer as t
 
-from agentpool import AgentPool, AgentsManifest
-from agentpool.log import get_logger
-from agentpool_config.pool_server import (
-    MCPPoolServerConfig,
-    TransportType,  # noqa: TC001
-)
+from agentpool_cli import log
 
+
+# Duplicated from agentpool_config.pool_server to avoid heavy imports at CLI startup
+TransportType = Literal["stdio", "sse", "streamable-http"]
 
 if TYPE_CHECKING:
     from agentpool import ChatMessage
 
 
-logger = get_logger(__name__)
+logger = log.get_logger(__name__)
 
 
 def serve_command(
@@ -44,6 +42,9 @@ def serve_command(
         print(message.format(style="simple"))
 
     async def run_server() -> None:
+        from agentpool import AgentPool, AgentsManifest
+        from agentpool_config.pool_server import MCPPoolServerConfig
+
         # Load manifest and create pool (without server config)
         manifest = AgentsManifest.from_file(config)
         pool = AgentPool(manifest)

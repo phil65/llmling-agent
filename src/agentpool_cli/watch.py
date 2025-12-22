@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Annotated, Any
 
 import typer as t
 
-from agentpool.log import get_logger
+from agentpool_cli import log
 from agentpool_cli.cli_types import DetailLevel  # noqa: TC001
 
 
@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from agentpool import ChatMessage
 
 
-logger = get_logger(__name__)
+logger = log.get_logger(__name__)
 
 
 def watch_command(

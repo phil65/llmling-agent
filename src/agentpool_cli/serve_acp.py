@@ -13,11 +13,10 @@ from typing import Annotated
 from platformdirs import user_log_path
 import typer as t
 
-from agentpool.log import get_logger
-from agentpool_cli import resolve_agent_config
+from agentpool_cli import log, resolve_agent_config
 
 
-logger = get_logger(__name__)
+logger = log.get_logger(__name__)
 
 
 def acp_command(

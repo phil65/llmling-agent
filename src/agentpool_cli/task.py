@@ -7,8 +7,7 @@ from typing import TYPE_CHECKING, Annotated
 
 import typer as t
 
-from agentpool import log
-from agentpool_cli import resolve_agent_config
+from agentpool_cli import log, resolve_agent_config
 
 
 if TYPE_CHECKING:

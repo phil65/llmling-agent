@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING, Annotated, Any
 
 import typer as t
 
-from agentpool import AgentPool
 from agentpool_cli import resolve_agent_config
 from agentpool_cli.cli_types import DetailLevel  # noqa: TC001
 from agentpool_cli.common import verbose_opt
@@ -44,6 +43,8 @@ def run_command(
             raise t.BadParameter(error_msg) from e
 
         async def run() -> None:
+            from agentpool import AgentPool
+
             async with AgentPool(config_path) as pool:
 
                 def on_message(chat_message: ChatMessage[Any]) -> None:

@@ -7,9 +7,8 @@ from typing import Annotated
 
 import typer as t
 
-from agentpool.utils.inspection import validate_import
 from agentpool_cli import agent_store, resolve_agent_config
-from agentpool_cli.common import OutputFormat, format_output, output_format_opt, verbose_opt
+from agentpool_cli.common import verbose_opt
 
 
 agent_cli = t.Typer(help="Agent management commands", no_args_is_help=True)
@@ -34,6 +33,8 @@ def init_agent_config(
     from pathlib import Path
 
     if interactive:
+        from agentpool.utils.inspection import validate_import
+
         validate_import("promptantic", "chat")
         from promptantic import ModelGenerator
 
@@ -86,7 +87,24 @@ def set_active_file(
         raise t.Exit(1) from e
 
 
-@agent_cli.command("list")
+def list_configs() -> None:
+    """List stored agent configurations."""
+    configs = agent_store.list_configs()
+    active = agent_store.get_active()
+    active_name = active.name if active else None
+
+    if not configs:
+        t.echo("No configurations stored. Use 'agentpool add' to add one.")
+        return
+
+    # Format as markdown table
+    t.echo("| Name | Path | Active |")
+    t.echo("|------|------|--------|")
+    for name, path in configs:
+        marker = "✓" if name == active_name else ""
+        t.echo(f"| {name} | {path} | {marker} |")
+
+
 def list_agents(
     config_name: Annotated[
         str | None,
@@ -96,11 +114,10 @@ def list_agents(
             help="Name of agent configuration to list (defaults to active)",
         ),
     ] = None,
-    output_format: OutputFormat = output_format_opt,
     verbose: bool = verbose_opt,
 ) -> None:
     """List agents from the active (or specified) configuration."""
-    from agentpool import AgentsManifest
+    import yaml
 
     try:
         try:
@@ -109,10 +126,26 @@ def list_agents(
             msg = str(e)
             raise t.BadParameter(msg) from e
 
-        agent_def = AgentsManifest.from_file(config_path)
-        # Set the name field from the dict key for each agent
-        agents = [ag.model_copy(update={"name": n}) for n, ag in agent_def.agents.items()]
-        format_output(agents, output_format)
+        # Parse YAML directly without loading full manifest
+        with open(config_path) as f:
+            data = yaml.safe_load(f)
+
+        agents = data.get("agents", {})
+        if not agents:
+            t.echo("No agents found in configuration.")
+            return
+
+        # Format as markdown table
+        t.echo("| Name | Type | Display Name | Description |")
+        t.echo("|------|------|--------------|-------------|")
+        for name, config in agents.items():
+            agent_type = config.get("type", "native")
+            display = config.get("display_name", name)
+            desc = config.get("description", "")
+            # Truncate long descriptions
+            if len(desc) > 50:
+                desc = desc[:47] + "..."
+            t.echo(f"| {name} | {agent_type} | {display} | {desc} |")
 
     except t.Exit:
         raise

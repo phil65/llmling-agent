@@ -8,9 +8,7 @@ from typing import TYPE_CHECKING, Annotated
 
 import typer as t
 
-from agentpool import AgentsManifest, log
-from agentpool.utils.parse_time import parse_time_period
-from agentpool_cli import resolve_agent_config
+from agentpool_cli import log, resolve_agent_config
 from agentpool_cli.cli_types import GroupBy
 from agentpool_cli.common import OutputFormat, format_output, output_format_opt
 
@@ -41,6 +39,7 @@ def get_history_provider(config_path: str) -> StorageProvider:
     Returns:
         Storage provider configured for history operations
     """
+    from agentpool import AgentsManifest
     from agentpool.storage import StorageManager
 
     manifest = AgentsManifest.from_file(config_path)
@@ -135,6 +134,7 @@ def show_stats(
         # Show model usage for last week
         agentpool history stats --period 1w --group-by model
     """
+    from agentpool.utils.parse_time import parse_time_period
     from agentpool_storage.formatters import format_stats
     from agentpool_storage.models import StatsFilters
 

@@ -76,7 +76,7 @@ Source = "https://github.com/phil65/agentpool"
 
 [project.scripts]
 acp-bridge = "acp.bridge.__main__:main"
-agentpool = "agentpool.__main__:cli"
+agentpool = "agentpool_cli.__main__:cli"
 agentpool-db = "agentpool_storage.sql_provider.cli:main"
 
 [project.entry-points."fsspec.specs"]

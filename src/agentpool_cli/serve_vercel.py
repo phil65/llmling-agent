@@ -7,8 +7,7 @@ from typing import TYPE_CHECKING, Annotated, Any
 
 import typer as t
 
-from agentpool.log import get_logger
-from agentpool_cli import resolve_agent_config
+from agentpool_cli import log, resolve_agent_config
 
 
 if TYPE_CHECKING:
@@ -17,7 +16,7 @@ if TYPE_CHECKING:
     from agentpool import ChatMessage
 
 
-logger = get_logger(__name__)
+logger = log.get_logger(__name__)
 
 
 def vercel_command(  # noqa: PLR0915

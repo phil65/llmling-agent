@@ -4,9 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Annotated, Any, ClassVar
 
-from pydantic import ValidationError
 import typer
-from upathtools import to_upath
 
 from agentpool_cli.cli_types import Provider  # noqa: TC001
 
@@ -114,6 +112,8 @@ def create(
             output_path: str | None = None,
             add_to_store: bool = False,
         ) -> None:
+            from upathtools import to_upath
+
             super().__init__()
             agent = Agent(output_type=YAMLCode)
             self.agent = agent
@@ -140,6 +140,7 @@ def create(
 
         async def on_input_submitted(self, message: Input.Submitted) -> None:
             """Generate config when user hits enter."""
+            from pydantic import ValidationError
             from yamling import YAMLError
 
             yaml = await self.agent.run(message.value)

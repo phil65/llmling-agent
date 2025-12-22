@@ -11,7 +11,6 @@ import sys
 from typing import TYPE_CHECKING, Any, Literal, assert_never
 
 import platformdirs
-from pydantic import TypeAdapter
 import typer as t
 
 
@@ -135,6 +134,8 @@ def format_output(
         output_format: One of: text, json, yaml
     """
     # Use TypeAdapter for consistent serialization
+    from pydantic import TypeAdapter
+
     adapter = TypeAdapter(type(result))
     data = adapter.dump_python(result)
 

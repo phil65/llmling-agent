@@ -5,14 +5,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, TypedDict
 
-import anyenv
-import platformdirs
-from upathtools import to_upath
-
-from agentpool.log import get_logger
+from agentpool_cli.log import get_logger
 
 
 if TYPE_CHECKING:
+    from upath import UPath
     from upathtools import JoinablePathLike
 
 
@@ -43,11 +40,20 @@ class ConfigStore:
 
     def __init__(self, filename: str | None = None) -> None:
         """Initialize store with default paths."""
-        agentpool_dir = platformdirs.user_config_dir("agentpool")
-        self.config_dir = to_upath(agentpool_dir)
-        name = filename or "configs.json"
-        self.config_file = self.config_dir / name
-        self._ensure_config_dir()
+        self._filename = filename or "configs.json"
+
+    @property
+    def config_dir(self) -> UPath:
+        """Get config directory."""
+        import platformdirs
+        from upathtools import to_upath
+
+        return to_upath(platformdirs.user_config_dir("agentpool"))
+
+    @property
+    def config_file(self) -> UPath:
+        """Get config file path."""
+        return self.config_dir / self._filename
 
     def _ensure_config_dir(self) -> None:
         """Create config directory if needed."""
@@ -58,6 +64,8 @@ class ConfigStore:
 
     def load_mapping(self) -> ConfigMapping:
         """Load config mapping from disk."""
+        import anyenv
+
         if not self.config_file.exists():
             return ConfigMapping(configs={}, active=None)
         try:
@@ -72,6 +80,8 @@ class ConfigStore:
 
     def save_mapping(self, mapping: ConfigMapping) -> None:
         """Save config mapping to disk."""
+        import anyenv
+
         try:
             self.config_file.write_text(anyenv.dump_json(mapping, indent=True))
         except Exception:
@@ -91,6 +101,7 @@ class ConfigStore:
             IsADirectoryError: If path points to a directory
         """
         # Basic validation
+        from upathtools import to_upath
 
         if not name.isidentifier():
             msg = f"Invalid config name: {name} (must be a valid Python identifier)"

@@ -6,9 +6,8 @@ from typing import TYPE_CHECKING, Annotated, Any
 
 import typer as t
 
-from agentpool.log import get_logger
 from agentpool_cli import resolve_agent_config
-from agentpool_server.openai_api_server.server import OpenAIAPIServer
+from agentpool_cli.log import get_logger
 
 
 if TYPE_CHECKING:
@@ -37,6 +36,7 @@ def api_command(
     import uvicorn
 
     from agentpool import AgentPool, AgentsManifest
+    from agentpool_server.openai_api_server.server import OpenAIAPIServer
 
     def on_message(message: ChatMessage[Any]) -> None:
         print(message.format(style="simple"))
