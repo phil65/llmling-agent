@@ -322,7 +322,7 @@ class _BridgeTool(FastMCPTool):
 
         # Create context with tool-specific metadata from node's context
         ctx = replace(
-            self._bridge.node.context,
+            self._bridge.node.get_context(),
             tool_name=self._tool.name,
             tool_call_id=tool_call_id,
             tool_input=arguments,

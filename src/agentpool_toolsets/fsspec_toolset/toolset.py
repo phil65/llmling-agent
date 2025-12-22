@@ -1056,7 +1056,7 @@ if __name__ == "__main__":
         tools = FSSpecTools(fs, name="local_fs")
         async with AgentPool() as pool:
             agent = await pool.add_agent("test", model="openai:gpt-5-nano")
-            ctx = agent.context
+            ctx = agent.get_context()
             result = await tools.list_directory(ctx, path="/")
             print(result)
 

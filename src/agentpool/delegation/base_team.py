@@ -80,7 +80,8 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
         self.nodes.events.removed.connect(self._on_node_removed)
         self.nodes.events.changed.connect(self._on_node_changed)
         mcp_servers = list(mcp_servers) if mcp_servers else []
-        if self.context and (cfg := self.context.config) and cfg.mcp_servers:
+        team_ctx = self.get_context()
+        if team_ctx and (cfg := team_ctx.config) and cfg.mcp_servers:
             mcp_servers.extend(cfg.get_mcp_servers())
         super().__init__(
             name=self._name,
@@ -174,7 +175,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
         # Handle conversion of callables first
         if callable(other):
             other = Agent.from_callback(other)
-            other.context.pool = self.context.pool
+            other.agent_pool = self.agent_pool
 
         # If we're already a TeamRun, extend it
         if isinstance(self, TeamRun):
@@ -208,7 +209,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
 
         if callable(other):
             other = Agent.from_callback(other)
-            other.context.pool = self.context.pool
+            other.agent_pool = self.agent_pool
 
         match other:
             case Team():
@@ -351,9 +352,14 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
                     msg = f"Invalid node type: {type(node)}"
                     raise ValueError(msg)
 
-    @property
-    def context(self) -> TeamContext:
-        """Get shared pool from team members.
+    def get_context(self, data: Any = None) -> TeamContext:
+        """Create a new context for this team.
+
+        Args:
+            data: Optional custom data to attach to the context
+
+        Returns:
+            A new TeamContext instance
 
         Raises:
             ValueError: If team members belong to different pools
@@ -365,11 +371,12 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
         team_config: TeamConfig | None = None
 
         for agent in self.iter_agents():
-            if agent.context.pool:
-                pool_id = id(agent.context.pool)
+            agent_ctx = agent.get_context()
+            if agent_ctx.pool:
+                pool_id = id(agent_ctx.pool)
                 if pool_id not in pool_ids:
                     pool_ids.add(pool_id)
-                    shared_pool = agent.context.pool
+                    shared_pool = agent_ctx.pool
                     if shared_pool.manifest.teams:
                         team_config = shared_pool.manifest.teams.get(self.name)
         if not team_config:
@@ -382,6 +389,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
                 pool=shared_pool,
                 config=team_config,
                 definition=shared_pool.manifest if shared_pool else AgentsManifest(),
+                data=data,
             )
 
         if len(pool_ids) > 1:
@@ -392,12 +400,8 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
             pool=shared_pool,
             config=team_config,
             definition=shared_pool.manifest if shared_pool else AgentsManifest(),
+            data=data,
         )
-
-    @context.setter
-    def context(self, value: NodeContext) -> None:
-        msg = "Cannot set context on BaseTeam"
-        raise RuntimeError(msg)
 
     async def distribute(
         self,

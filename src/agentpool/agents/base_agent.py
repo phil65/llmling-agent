@@ -104,10 +104,16 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
             resolved_handlers
         )
 
-    @property
     @abstractmethod
-    def context(self) -> AgentContext[Any]:
-        """Get agent context."""
+    def get_context(self, data: Any = None) -> AgentContext[Any]:
+        """Create a new context for this agent.
+
+        Args:
+            data: Optional custom data to attach to the context
+
+        Returns:
+            A new AgentContext instance
+        """
         ...
 
     @property

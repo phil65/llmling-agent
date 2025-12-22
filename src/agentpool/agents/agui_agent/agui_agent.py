@@ -186,9 +186,15 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         # Chunk transformer for normalizing CHUNK events
         self._chunk_transformer = ChunkTransformer()
 
-    @property
-    def context(self) -> AgentContext:
-        """Get node context."""
+    def get_context(self, data: Any = None) -> AgentContext:
+        """Create a new context for this agent.
+
+        Args:
+            data: Optional custom data to attach to the context
+
+        Returns:
+            A new AgentContext instance
+        """
         from agentpool.agents.context import AgentContext
         from agentpool.models.agui_agents import AGUIAgentConfig
         from agentpool.models.manifest import AgentsManifest
@@ -205,7 +211,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             startup_delay=self._startup_delay,
         )
         defn = self.agent_pool.manifest if self.agent_pool else AgentsManifest()
-        return AgentContext(node=self, pool=self.agent_pool, config=cfg, definition=defn)
+        return AgentContext(node=self, pool=self.agent_pool, config=cfg, definition=defn, data=data)
 
     async def __aenter__(self) -> Self:
         """Enter async context - initialize client and base resources."""
@@ -522,7 +528,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
                 tools_by_name,
                 confirmation_mode=self.tool_confirmation_mode,
                 input_provider=self._input_provider,
-                context=self.context,
+                context=self.get_context(),
             )
             # If no results (all tools were server-side), we're done
             if not pending_tool_results:

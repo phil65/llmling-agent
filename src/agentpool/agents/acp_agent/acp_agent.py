@@ -268,14 +268,22 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         self._tool_bridge: ToolManagerBridge | None = None
         self._owns_bridge = False  # Track if we created the bridge (for cleanup)
 
-    @property
-    def context(self) -> AgentContext:
-        """Get node context."""
+    def get_context(self, data: Any = None) -> AgentContext:
+        """Create a new context for this agent.
+
+        Args:
+            data: Optional custom data to attach to the context
+
+        Returns:
+            A new AgentContext instance
+        """
         from agentpool.agents.context import AgentContext
         from agentpool.models.manifest import AgentsManifest
 
         defn = self.agent_pool.manifest if self.agent_pool else AgentsManifest()
-        return AgentContext(node=self, pool=self.agent_pool, config=self.config, definition=defn)
+        return AgentContext(
+            node=self, pool=self.agent_pool, config=self.config, definition=defn, data=data
+        )
 
     async def _setup_toolsets(self) -> None:
         """Initialize toolsets from config and create bridge if needed."""

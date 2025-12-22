@@ -125,9 +125,15 @@ class MessageNode[TDeps, TResult](ABC):
         stats = [talk.stats for talk in self.connections.get_connections()]
         return AggregatedTalkStats(stats=stats)
 
-    @property
-    def context(self) -> NodeContext:
-        """Get node context."""
+    def get_context(self, data: Any = None) -> NodeContext:
+        """Create a new context for this node.
+
+        Args:
+            data: Optional custom data to attach to the context
+
+        Returns:
+            A new NodeContext instance
+        """
         raise NotImplementedError
 
     @property
@@ -298,7 +304,7 @@ class MessageNode[TDeps, TResult](ABC):
 
         if callable(target):
             target = Agent.from_callback(target)
-            if pool := self.context.pool:
+            if pool := self.get_context().pool:
                 target.agent_pool = pool
                 pool.register(target.name, target)
         # we are explicit here just to make disctinction clear, we only want sequences
@@ -309,7 +315,7 @@ class MessageNode[TDeps, TResult](ABC):
                 match t:
                     case _ if callable(t):
                         other = Agent.from_callback(t)
-                        if pool := self.context.pool:
+                        if pool := self.get_context().pool:
                             other.agent_pool = pool
                             pool.register(other.name, other)
                         targets.append(other)

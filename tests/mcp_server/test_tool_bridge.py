@@ -174,9 +174,9 @@ async def test_proxy_context_creation():
         agent.tools.register_tool(simple_add)
         cfg = BridgeConfig(port=0)
         ToolManagerBridge(node=agent, config=cfg)
-        # The bridge uses node.context and replaces tool fields
+        # The bridge uses node.get_context() and replaces tool fields
         # We verify the node's context has the right properties
-        ctx = agent.context
+        ctx = agent.get_context()
         assert ctx.node_name == "owner"
         assert ctx.pool is pool
 

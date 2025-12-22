@@ -759,9 +759,8 @@ class ACPSession:
                 await self.notifications.send_agent_text(error_msg)
                 return
 
-        # Get context once since it may be lazily generated (returns new instance each time)
-        agent_context = self.agent.context
-        agent_context.data = self
+        # Create context with session data
+        agent_context = self.agent.get_context(data=self)
         cmd_ctx = self.command_store.create_context(
             data=agent_context,
             output_writer=self.notifications.send_agent_text,

@@ -59,11 +59,12 @@ def get_model_names(ctx: CompletionContext[AgentContext[Any]]) -> list[str]:
     known_models = list(get_args(ModelName)) + list(get_args(AllModels))
 
     agent = ctx.command_context.context.agent
-    if not agent.context.definition:
+    agent_ctx = agent.get_context()
+    if not agent_ctx.definition:
         return known_models
 
     # Add any additional models from the current configuration (only native agents have model)
-    agents = agent.context.definition.native_agents
+    agents = agent_ctx.definition.native_agents
     config_models = {str(a.model) for a in agents.values() if a.model is not None}
 
     # Combine both sources, keeping order (known models first)

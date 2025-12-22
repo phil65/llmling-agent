@@ -159,7 +159,7 @@ class Talk[TTransmittedData = Any]:
         match other:
             case Callable():
                 other = Agent.from_callback(other)
-                if pool := self.source.context.pool:
+                if pool := self.source.get_context().pool:
                     other.agent_pool = pool
                     pool.register(other.name, other)
                 return self.__rshift__(other)
@@ -186,11 +186,8 @@ class Talk[TTransmittedData = Any]:
 
         if not condition:
             return default_return
-        registry = (
-            context.pool.connection_registry
-            if (context := self.source.context) and context.pool
-            else None
-        )
+        source_ctx = self.source.get_context()
+        registry = source_ctx.pool.connection_registry if source_ctx and source_ctx.pool else None
         ctx = EventContext(
             message=message,
             target=target,
@@ -231,7 +228,8 @@ class Talk[TTransmittedData = Any]:
             timestamp=get_now(),
         )
         # Propagate to all event managers through registry
-        if self.source.context and (pool := self.source.context.pool):
+        source_ctx = self.source.get_context()
+        if source_ctx and (pool := source_ctx.pool):
             for connection in pool.connection_registry.values():
                 await connection.source._events.emit_event(event)
 
@@ -525,7 +523,7 @@ class TeamTalk[TTransmittedData = Any](list["Talk | TeamTalk"]):
             case Callable():
                 other = Agent.from_callback(other)
                 for talk_ in self.iter_talks():
-                    if pool := talk_.source.context.pool:
+                    if pool := talk_.source.get_context().pool:
                         other.agent_pool = pool
                         pool.register(other.name, other)
                         break

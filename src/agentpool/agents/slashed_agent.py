@@ -122,7 +122,7 @@ class SlashedAgent[TDeps, OutputDataT]:
         # Set up event queue for this command execution
         self._event_queue = asyncio.Queue()
         context_data = (  # Create command context
-            self._context_data_factory() if self._context_data_factory else self.agent.context
+            self._context_data_factory() if self._context_data_factory else self.agent.get_context()
         )
 
         cmd_ctx = self.command_store.create_context(data=context_data)

@@ -232,14 +232,22 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         self._owns_bridge = False  # Track if we created the bridge (for cleanup)
         self._mcp_servers: dict[str, dict[str, Any]] = {}  # Claude SDK MCP server configs
 
-    @property
-    def context(self) -> AgentContext:
-        """Get node context."""
+    def get_context(self, data: Any = None) -> AgentContext:
+        """Create a new context for this agent.
+
+        Args:
+            data: Optional custom data to attach to the context
+
+        Returns:
+            A new AgentContext instance
+        """
         from agentpool.agents.context import AgentContext
         from agentpool.models.manifest import AgentsManifest
 
         defn = self.agent_pool.manifest if self.agent_pool else AgentsManifest()
-        return AgentContext(node=self, pool=self.agent_pool, config=self._config, definition=defn)
+        return AgentContext(
+            node=self, pool=self.agent_pool, config=self._config, definition=defn, data=data
+        )
 
     def _convert_mcp_servers_to_sdk_format(self) -> dict[str, dict[str, Any]]:
         """Convert internal MCPServerConfig to Claude SDK format.
@@ -451,7 +459,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             )
 
             result = await self._input_provider.get_tool_confirmation(
-                context=self.context,
+                context=self.get_context(),
                 tool=tool,
                 args=input_data,
             )

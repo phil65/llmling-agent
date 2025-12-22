@@ -435,9 +435,15 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         """Set agent name."""
         self._name = value
 
-    @property
-    def context(self) -> AgentContext[TDeps]:  # type: ignore[override]
-        """Get agent context."""
+    def get_context(self, data: TDeps | None = None) -> AgentContext[TDeps]:  # type: ignore[override]
+        """Create a new context for this agent.
+
+        Args:
+            data: Optional custom data to attach to the context
+
+        Returns:
+            A new AgentContext instance
+        """
         from agentpool.agents import AgentContext
 
         return AgentContext(
@@ -446,6 +452,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             config=self._agent_config,
             input_provider=self._input_provider,
             pool=self.agent_pool,
+            data=data,
         )
 
     def to_structured[NewOutputDataT](
@@ -566,10 +573,11 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             output_type=final_type,
         )
 
+        base_context = self.get_context()
         context_for_tools = (
-            self.context
+            base_context
             if input_provider is None
-            else replace(self.context, input_provider=input_provider)
+            else replace(base_context, input_provider=input_provider)
         )
 
         for tool in tools:
@@ -912,10 +920,11 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         """
         from agentpool.tasks import JobError
 
-        if job.required_dependency is not None:  # noqa: SIM102
-            if not isinstance(self.context.data, job.required_dependency):
+        if job.required_dependency is not None:
+            agent_ctx = self.get_context()
+            if not isinstance(agent_ctx.data, job.required_dependency):
                 msg = (
-                    f"Agent dependencies ({type(self.context.data)}) "
+                    f"Agent dependencies ({type(agent_ctx.data)}) "
                     f"don't match job requirement ({job.required_dependency})"
                 )
                 raise JobError(msg)
@@ -962,8 +971,9 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             latest = None
             while max_count is None or count < max_count:
                 try:
+                    agent_ctx = self.get_context()
                     current_prompts = [
-                        call_with_context(p, self.context, **kwargs) if callable(p) else p
+                        call_with_context(p, agent_ctx, **kwargs) if callable(p) else p
                         for p in prompt
                     ]
                     self.log.debug("Generated prompt", iteration=count)

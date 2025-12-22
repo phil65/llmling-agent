@@ -131,7 +131,7 @@ class ACPClientHandler(Client):
                 return response
 
         if self._input_provider:
-            ctx = self._agent.context  # Use the agent's existing NodeContext
+            ctx = self._agent.get_context()  # Use the agent's NodeContext
             # Create a dummy tool representation from ACP params
             tool = Tool(callable=lambda: None, name=params.tool_call.tool_call_id, description=name)
             # Extract arguments - ACP doesn't expose them in ToolCall

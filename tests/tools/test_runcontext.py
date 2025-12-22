@@ -151,7 +151,6 @@ async def test_context_sharing():
     shared_data = {"key": "value"}
     model = TestModel(call_tools=["data_with_run_ctx", "data_with_agent_ctx"])
     agent = Agent[dict[str, str]](name="test", model=model, deps_type=dict)
-    agent.context.data = shared_data
     agent.tools.register_tool(data_with_run_ctx)
     agent.tools.register_tool(data_with_agent_ctx)
 
