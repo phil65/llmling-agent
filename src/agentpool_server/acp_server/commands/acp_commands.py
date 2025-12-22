@@ -403,6 +403,183 @@ class DeleteSessionCommand(NodeCommand):
             await ctx.output.print(f"❌ **Error deleting session:** {e}")
 
 
+class ListPoolsCommand(NodeCommand):
+    """List available agent pool configurations.
+
+    Shows:
+    - Stored configurations from ConfigStore (name -> path mapping)
+    - Currently active pool configuration
+    - Available agents in the current pool
+
+    Examples:
+      /list-pools
+    """
+
+    name = "list-pools"
+    category = "acp"
+
+    async def execute_command(
+        self,
+        ctx: CommandContext[NodeContext[ACPSession]],
+    ) -> None:
+        """List available pool configurations.
+
+        Args:
+            ctx: Command context with ACP session
+        """
+        from agentpool_cli.store import config_store
+
+        session = ctx.context.data
+        if not session:
+            raise RuntimeError("Session not available in command context")
+
+        try:
+            output_lines = ["## 🏊 Agent Pool Configurations\n"]
+
+            # Show current pool info
+            output_lines.append("### 📍 Current Pool")
+            current_config = (
+                session.acp_agent.server.config_path if session.acp_agent.server else None
+            )
+            if current_config:
+                output_lines.append(f"**Config:** `{current_config}`")
+            else:
+                output_lines.append("**Config:** *(default/built-in)*")
+
+            # Show agents in current pool
+            agent_names = list(session.agent_pool.all_agents.keys())
+            output_lines.append(f"**Agents:** {', '.join(f'`{n}`' for n in agent_names)}")
+            output_lines.append(f"**Active agent:** `{session.current_agent_name}`")
+            output_lines.append("")
+
+            # Show stored configurations
+            output_lines.append("### 💾 Stored Configurations")
+            stored_configs = config_store.list_configs()
+            active_config = config_store.get_active()
+
+            if not stored_configs:
+                output_lines.append("*No stored configurations*")
+                output_lines.append("")
+                output_lines.append("Use `agentpool add <name> <path>` to add configurations.")
+            else:
+                for name, path in stored_configs:
+                    is_active = active_config and active_config.name == name
+                    is_current = current_config and path == current_config
+                    markers = []
+                    if is_active:
+                        markers.append("default")
+                    if is_current:
+                        markers.append("current")
+                    marker_text = f" *({', '.join(markers)})*" if markers else ""
+                    output_lines.append(f"- **{name}**{marker_text}")
+                    output_lines.append(f"  `{path}`")
+
+            output_lines.append("")
+            output_lines.append("*Use `/set-pool <name>` or `/set-pool <path>` to switch pools.*")
+
+            await ctx.output.print("\n".join(output_lines))
+
+        except Exception as e:  # noqa: BLE001
+            await ctx.output.print(f"❌ **Error listing pools:** {e}")
+
+
+class SetPoolCommand(NodeCommand):
+    """Switch to a different agent pool configuration.
+
+    This command will:
+    1. Close all active sessions
+    2. Load the new pool configuration
+    3. Initialize the new pool with all agents
+
+    The configuration can be specified as:
+    - A stored config name (from `agentpool add`)
+    - A direct path to a configuration file
+
+    Options:
+      --agent <name>   Specify which agent to use as default
+
+    Examples:
+      /set-pool prod
+      /set-pool /path/to/agents.yml
+      /set-pool dev --agent=coder
+    """
+
+    name = "set-pool"
+    category = "acp"
+
+    async def execute_command(
+        self,
+        ctx: CommandContext[NodeContext[ACPSession]],
+        config: str,
+        *,
+        agent: str | None = None,
+    ) -> None:
+        """Switch to a different agent pool.
+
+        Args:
+            ctx: Command context with ACP session
+            config: Config name (from store) or path to config file
+            agent: Optional specific agent to use as default
+        """
+        from pathlib import Path
+
+        from agentpool_cli.store import config_store
+
+        session = ctx.context.data
+        if not session:
+            raise RuntimeError("Session not available in command context")
+
+        if not session.acp_agent.server:
+            await ctx.output.print("❌ **Server reference not available - cannot switch pools**")
+            return
+
+        try:
+            # Resolve config path
+            config_path: str | None = None
+            config_name: str | None = None
+
+            # First try as stored config name
+            try:
+                config_path = config_store.get_config(config)
+                config_name = config
+            except KeyError:
+                # Not a stored config, try as direct path
+                path = Path(config)
+                if path.exists() and path.is_file():
+                    config_path = str(path.resolve())
+                else:
+                    await ctx.output.print(f"❌ **Config not found:** `{config}`")
+                    await ctx.output.print("Provide a stored config name or a valid file path.")
+                    return
+
+            # Show what we're doing
+            if config_name:
+                await ctx.output.print(f"🔄 **Switching pool to `{config_name}`...**")
+            else:
+                await ctx.output.print(f"🔄 **Switching pool to `{config_path}`...**")
+
+            # Perform the swap
+            agent_names = await session.acp_agent.swap_pool(config_path, agent)
+
+            # Report success
+            await ctx.output.print("✅ **Pool switched successfully**")
+            await ctx.output.print(f"**Agents:** {', '.join(f'`{n}`' for n in agent_names)}")
+            if agent:
+                await ctx.output.print(f"**Default agent:** `{agent}`")
+            else:
+                await ctx.output.print(f"**Default agent:** `{agent_names[0]}`")
+
+            await ctx.output.print("")
+            await ctx.output.print("*Note: A new session will be created on your next message.*")
+
+        except FileNotFoundError as e:
+            await ctx.output.print(f"❌ **Config file not found:** {e}")
+        except ValueError as e:
+            await ctx.output.print(f"❌ **Invalid configuration:** {e}")
+        except Exception as e:  # noqa: BLE001
+            await ctx.output.print(f"❌ **Error switching pool:** {e}")
+
+
 def get_acp_commands() -> list[type[NodeCommand]]:
     """Get all ACP-specific slash commands."""
     return [
@@ -410,4 +587,6 @@ def get_acp_commands() -> list[type[NodeCommand]]:
         LoadSessionCommand,
         SaveSessionCommand,
         DeleteSessionCommand,
+        ListPoolsCommand,
+        SetPoolCommand,
     ]

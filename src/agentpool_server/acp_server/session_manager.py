@@ -236,6 +236,32 @@ class ACPSessionManager:
 
         return await self.session_manager.store.list_sessions()
 
+    async def close_all_sessions(self) -> int:
+        """Close all active sessions.
+
+        This is used during pool hot-switching to cleanly shut down
+        all sessions before swapping the pool.
+
+        Returns:
+            Number of sessions that were closed
+        """
+        async with self._lock:
+            sessions = list(self._active.values())
+            self._active.clear()
+
+        closed_count = 0
+        for session in sessions:
+            try:
+                await session.close()
+                closed_count += 1
+            except Exception:
+                logger.exception(
+                    "Error closing session during pool swap", session=session.session_id
+                )
+
+        logger.info("Closed all sessions for pool swap", count=closed_count)
+        return closed_count
+
     async def __aenter__(self) -> Self:
         """Async context manager entry."""
         return self

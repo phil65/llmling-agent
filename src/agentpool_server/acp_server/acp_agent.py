@@ -56,6 +56,7 @@ if TYPE_CHECKING:
         SetSessionModeRequest,
     )
     from agentpool import AgentPool
+    from agentpool_server.acp_server.server import ACPServer
     from agentpool_server.acp_server.session import ACPSession
 
 logger = get_logger(__name__)
@@ -152,6 +153,9 @@ class AgentPoolACPAgent(ACPAgent):
 
     load_skills: bool = True
     """Whether to load client-side skills from .claude/skills directory."""
+
+    server: ACPServer | None = field(default=None)
+    """Reference to the ACPServer for pool hot-switching."""
 
     def __post_init__(self) -> None:
         """Initialize derived attributes and setup after field assignment."""
@@ -689,3 +693,47 @@ class AgentPoolACPAgent(ACPAgent):
         except Exception:
             logger.exception("Failed to set session model", session_id=params.session_id)
             return None
+
+    async def swap_pool(
+        self,
+        config_path: str,
+        agent: str | None = None,
+    ) -> list[str]:
+        """Swap the agent pool with a new one from configuration.
+
+        This coordinates the full pool swap:
+        1. Closes all active sessions
+        2. Delegates to server.swap_pool() for pool lifecycle
+        3. Updates internal references
+
+        Args:
+            config_path: Path to the new agent configuration file
+            agent: Optional specific agent to use as default
+
+        Returns:
+            List of agent names in the new pool
+
+        Raises:
+            RuntimeError: If server reference is not set
+            ValueError: If config is invalid or agent not found
+        """
+        if not self.server:
+            msg = "Server reference not set - cannot swap pool"
+            raise RuntimeError(msg)
+
+        logger.info("Swapping pool", config_path=config_path, agent=agent)
+
+        # 1. Close all active sessions
+        closed_count = await self.session_manager.close_all_sessions()
+        logger.info("Closed sessions before pool swap", count=closed_count)
+
+        # 2. Delegate to server for pool lifecycle management
+        agent_names = await self.server.swap_pool(config_path, agent)
+
+        # 3. Update internal references
+        self.agent_pool = self.server.pool
+        self.session_manager._pool = self.server.pool
+        self.default_agent = agent
+
+        logger.info("Pool swap complete", agent_names=agent_names)
+        return agent_names
