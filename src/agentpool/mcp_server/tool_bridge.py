@@ -51,6 +51,29 @@ def _get_context_param_names(fn: Callable[..., Any]) -> set[str]:
     return get_params_matching_predicate(fn, lambda p: is_context_type(p.annotation))
 
 
+def _extract_tool_call_id(context: Context | None) -> str:
+    """Extract Claude's original tool_call_id from request metadata.
+
+    Claude Code passes the tool_use_id via the _meta field as
+    'claudecode/toolUseId'. This allows us to maintain consistent
+    tool_call_ids across ToolCallStartEvent and ToolCallCompleteEvent.
+
+    Falls back to generating a UUID if not available.
+    """
+    if context is not None:
+        try:
+            request_ctx = context.request_context
+            if request_ctx and request_ctx.meta:
+                # Access extra fields on the Meta object (extra="allow" in pydantic)
+                meta_dict = request_ctx.meta.model_dump()
+                claude_tool_id = meta_dict.get("claudecode/toolUseId")
+                if isinstance(claude_tool_id, str):
+                    return claude_tool_id
+        except (AttributeError, LookupError):
+            pass
+    return str(uuid4())
+
+
 @dataclass
 class BridgeConfig:
     """Configuration for the ToolManager MCP bridge."""
@@ -294,7 +317,9 @@ class _BridgeTool(FastMCPTool):
 
         from fastmcp.tools.tool import ToolResult
 
-        tool_call_id = str(uuid4())
+        # Try to get Claude's original tool_call_id from request metadata
+        tool_call_id = _extract_tool_call_id(context)
+
         # Create context with tool-specific metadata from node's context
         ctx = replace(
             self._bridge.node.context,
