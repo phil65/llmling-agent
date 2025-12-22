@@ -634,7 +634,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                 tool_input = tool_use.input if tool_use else {}
 
                                 # Emit ToolCallCompleteEvent
-                                complete_event = ToolCallCompleteEvent(
+                                tool_done_event = ToolCallCompleteEvent(
                                     tool_name=tool_name,
                                     tool_call_id=tc_id,
                                     tool_input=tool_input,
@@ -643,8 +643,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                     message_id="",
                                 )
                                 for handler in self.event_handler._wrapped_handlers:
-                                    await handler(None, complete_event)
-                                yield complete_event
+                                    await handler(None, tool_done_event)
+                                yield tool_done_event
 
                                 # Add tool return as ModelRequest
                                 part = ToolReturnPart(
@@ -654,12 +654,12 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
 
                 # Process user messages - may contain tool results
                 elif isinstance(message, UserMessage):
-                    content = message.content
-                    blocks = [content] if isinstance(content, str) else content
-                    for block in blocks:
-                        if isinstance(block, ToolResultBlock):
-                            tc_id = block.tool_use_id
-                            result_content = block.content
+                    user_content = message.content
+                    user_blocks = [user_content] if isinstance(user_content, str) else user_content
+                    for user_block in user_blocks:
+                        if isinstance(user_block, ToolResultBlock):
+                            tc_id = user_block.tool_use_id
+                            result_content = user_block.content
 
                             # Flush response parts
                             if current_response_parts:
@@ -672,7 +672,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                             tool_input = tool_use.input if tool_use else {}
 
                             # Emit ToolCallCompleteEvent
-                            complete_event = ToolCallCompleteEvent(
+                            tool_complete_event = ToolCallCompleteEvent(
                                 tool_name=tool_name,
                                 tool_call_id=tc_id,
                                 tool_input=tool_input,
@@ -681,8 +681,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                 message_id="",
                             )
                             for handler in self.event_handler._wrapped_handlers:
-                                await handler(None, complete_event)
-                            yield complete_event
+                                await handler(None, tool_complete_event)
+                            yield tool_complete_event
 
                             # Add tool return as ModelRequest
                             part = ToolReturnPart(
