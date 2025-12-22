@@ -554,7 +554,7 @@ class AgentPoolACPAgent(ACPAgent):
                     )
                     if stored and stored.cwd:
                         cwd = stored.cwd
-                except Exception:
+                except Exception:  # noqa: BLE001
                     pass  # Use default cwd
 
                 # Recreate session with same ID

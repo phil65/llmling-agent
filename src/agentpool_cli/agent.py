@@ -127,8 +127,10 @@ def list_agents(
             raise t.BadParameter(msg) from e
 
         # Parse YAML directly without loading full manifest
-        with open(config_path) as f:
-            data = yaml.safe_load(f)
+        from upathtools import to_upath
+
+        text = to_upath(config_path).read_text()
+        data = yaml.safe_load(text)
 
         agents = data.get("agents", {})
         if not agents:
@@ -143,7 +145,7 @@ def list_agents(
             display = config.get("display_name", name)
             desc = config.get("description", "")
             # Truncate long descriptions
-            if len(desc) > 50:
+            if len(desc) > 50:  # noqa: PLR2004
                 desc = desc[:47] + "..."
             t.echo(f"| {name} | {agent_type} | {display} | {desc} |")
 

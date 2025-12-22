@@ -75,4 +75,4 @@ def get_logger(name: str) -> structlog.stdlib.BoundLogger:
     Returns:
         A structlog BoundLogger instance
     """
-    return structlog.get_logger(name)  # type: ignore[return-value]
+    return structlog.get_logger(name)  # type: ignore[no-any-return]
