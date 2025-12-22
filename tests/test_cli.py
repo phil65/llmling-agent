@@ -7,6 +7,7 @@ from unittest import mock
 import pytest
 from typer.testing import CliRunner
 
+from agentpool_cli.__main__ import cli
 from agentpool_cli.agent import agent_cli
 
 
@@ -61,7 +62,7 @@ def config_file(tmp_path: Path) -> Path:
 
 def test_list_agents_command(config_file: Path):
     """Test that list command runs and returns expected format."""
-    result = runner.invoke(agent_cli, ["list", "--config", str(config_file)])
+    result = runner.invoke(cli, ["list-agents", "--config", str(config_file)])
     assert result.exit_code == 0
     assert "test_agent" in result.stdout
 
