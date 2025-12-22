@@ -297,13 +297,9 @@ class ACPSession:
     @property
     def agent(self) -> Agent[ACPSession, str] | ACPAgent | AGUIAgent | ClaudeCodeAgent:
         """Get the currently active agent."""
-        if self.current_agent_name in self.agent_pool.acp_agents:
-            return self.agent_pool.acp_agents[self.current_agent_name]
-        if self.current_agent_name in self.agent_pool.agui_agents:
-            return self.agent_pool.agui_agents[self.current_agent_name]
-        if self.current_agent_name in self.agent_pool.claude_code_agents:
-            return self.agent_pool.claude_code_agents[self.current_agent_name]
-        return self.agent_pool.get_agent(self.current_agent_name, deps_type=ACPSession)
+        if self.current_agent_name in self.agent_pool.agents:
+            return self.agent_pool.get_agent(self.current_agent_name, deps_type=ACPSession)
+        return self.agent_pool.all_agents[self.current_agent_name]  # type: ignore[return-value]
 
     @property
     def slashed_agent(self) -> SlashedAgent[Any, str]:
