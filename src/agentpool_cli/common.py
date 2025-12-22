@@ -14,8 +14,6 @@ import platformdirs
 from pydantic import TypeAdapter
 import typer as t
 
-from agentpool_cli.store import config_store
-
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -100,7 +98,9 @@ def setup_logging(
 
 def complete_config_names() -> list[str]:
     """Complete stored config names."""
-    return [name for name, _ in config_store.list_configs()]
+    from agentpool_cli import agent_store
+
+    return [name for name, _ in agent_store.list_configs()]
 
 
 def complete_output_formats() -> list[str]:

@@ -158,6 +158,3 @@ class ConfigStore:
             msg = f"Config {name} not found"
             raise KeyError(msg)
         return mapping["configs"][name]
-
-
-config_store = ConfigStore()

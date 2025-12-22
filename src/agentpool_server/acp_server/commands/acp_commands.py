@@ -427,7 +427,7 @@ class ListPoolsCommand(NodeCommand):
         Args:
             ctx: Command context with ACP session
         """
-        from agentpool_cli.store import config_store
+        from agentpool_cli import agent_store
 
         session = ctx.context.data
         if not session:
@@ -454,8 +454,8 @@ class ListPoolsCommand(NodeCommand):
 
             # Show stored configurations
             output_lines.append("### 💾 Stored Configurations")
-            stored_configs = config_store.list_configs()
-            active_config = config_store.get_active()
+            stored_configs = agent_store.list_configs()
+            active_config = agent_store.get_active()
 
             if not stored_configs:
                 output_lines.append("*No stored configurations*")
@@ -523,7 +523,7 @@ class SetPoolCommand(NodeCommand):
         """
         from pathlib import Path
 
-        from agentpool_cli.store import config_store
+        from agentpool_cli import agent_store
 
         session = ctx.context.data
         if not session:
@@ -540,7 +540,7 @@ class SetPoolCommand(NodeCommand):
 
             # First try as stored config name
             try:
-                config_path = config_store.get_config(config)
+                config_path = agent_store.get_config(config)
                 config_name = config
             except KeyError:
                 # Not a stored config, try as direct path

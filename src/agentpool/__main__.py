@@ -13,17 +13,19 @@ from agentpool_cli.serve_acp import acp_command
 from agentpool_cli.serve_api import api_command
 from agentpool_cli.serve_mcp import serve_command
 from agentpool_cli.serve_vercel import vercel_command
-from agentpool_cli.store import config_store
+from agentpool_cli.store import ConfigStore
 from agentpool_cli.task import task_command
 from agentpool_cli.watch import watch_command
 
+
+agent_store = ConfigStore("agents.json")
 
 MAIN_HELP = "🤖 AgentPool CLI - Run and manage LLM agents"
 
 
 def get_command_help(base_help: str) -> str:
     """Get command help text with active config information."""
-    if active := config_store.get_active():
+    if active := agent_store.get_active():
         return f"{base_help}\n\n(Using config: {active})"
     return f"{base_help}\n\n(No active config set)"
 
