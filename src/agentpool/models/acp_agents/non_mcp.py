@@ -92,7 +92,6 @@ class CodexACPAgentConfig(BaseACPAgentConfig):
 
     async def get_args(self, prompt_manager: PromptManager | None = None) -> list[str]:
         """Build command arguments from settings."""
-        _ = prompt_manager  # Codex doesn't support custom system prompts via CLI
         args: list[str] = ["@zed-industries/codex-acp"]
 
         if self.model:
@@ -137,7 +136,6 @@ class OpenCodeACPAgentConfig(BaseACPAgentConfig):
 
     async def get_args(self, prompt_manager: PromptManager | None = None) -> list[str]:
         """Build command arguments from settings."""
-        _ = prompt_manager  # OpenCode doesn't support custom system prompts via CLI
         args: list[str] = ["acp"]
 
         if self.cwd:
@@ -176,7 +174,6 @@ class GooseACPAgentConfig(BaseACPAgentConfig):
 
     async def get_args(self, prompt_manager: PromptManager | None = None) -> list[str]:
         """Build command arguments from settings."""
-        _ = prompt_manager  # Goose doesn't support custom system prompts via CLI
         return ["acp"]
 
     @property
@@ -209,7 +206,6 @@ class MistralACPAgentConfig(BaseACPAgentConfig):
 
     async def get_args(self, prompt_manager: PromptManager | None = None) -> list[str]:
         """Build command arguments from settings."""
-        _ = prompt_manager  # Mistral doesn't support custom system prompts via CLI
         return []
 
     @property
@@ -244,7 +240,6 @@ class OpenHandsACPAgentConfig(BaseACPAgentConfig):
 
     async def get_args(self, prompt_manager: PromptManager | None = None) -> list[str]:
         """Build command arguments from settings."""
-        _ = prompt_manager  # OpenHands doesn't support custom system prompts via CLI
         return ["acp"]
 
     @property
@@ -295,7 +290,6 @@ class AmpACPAgentConfig(BaseACPAgentConfig):
 
     async def get_args(self, prompt_manager: PromptManager | None = None) -> list[str]:
         """Build command arguments for amp-acp bridge."""
-        _ = prompt_manager  # Amp doesn't support custom system prompts via CLI
         return ["-y", "amp-acp"]
 
     @property
@@ -377,7 +371,6 @@ class CagentACPAgentConfig(BaseACPAgentConfig):
 
     async def get_args(self, prompt_manager: PromptManager | None = None) -> list[str]:
         """Build command arguments from settings."""
-        _ = prompt_manager  # Cagent doesn't support custom system prompts via CLI
         args = ["acp"]
 
         if self.agent_file:
@@ -663,7 +656,6 @@ class VTCodeACPAgentConfig(BaseACPAgentConfig):
 
     async def get_args(self, prompt_manager: PromptManager | None = None) -> list[str]:
         """Build command arguments from settings."""
-        _ = prompt_manager  # VTCode doesn't support custom system prompts via CLI
         args = ["acp"]
 
         if self.model:
@@ -803,7 +795,6 @@ class CursorACPAgentConfig(BaseACPAgentConfig):
 
     async def get_args(self, prompt_manager: PromptManager | None = None) -> list[str]:
         """Build command arguments from settings."""
-        _ = prompt_manager  # Cursor doesn't support custom system prompts via CLI
         args: list[str] = []
 
         if self.config:

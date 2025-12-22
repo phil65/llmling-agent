@@ -386,7 +386,6 @@ class GeminiACPAgentConfig(MCPCapableACPAgentConfig):
 
     async def get_args(self, prompt_manager: PromptManager | None = None) -> list[str]:
         """Build command arguments from settings."""
-        _ = prompt_manager  # Gemini doesn't support custom system prompts via CLI
         args: list[str] = ["--experimental-acp"]
 
         if self.model:
@@ -482,7 +481,6 @@ class FastAgentACPAgentConfig(MCPCapableACPAgentConfig):
 
     async def get_args(self, prompt_manager: PromptManager | None = None) -> list[str]:
         """Build command arguments from settings."""
-        _ = prompt_manager  # fast-agent doesn't support custom system prompts via CLI
         args: list[str] = []
 
         if self.model:
@@ -751,7 +749,6 @@ class KimiACPAgentConfig(MCPCapableACPAgentConfig):
 
     async def get_args(self, prompt_manager: PromptManager | None = None) -> list[str]:
         """Build command arguments from settings."""
-        _ = prompt_manager  # Kimi doesn't support custom system prompts via CLI
         args = ["--acp"]
 
         if self.verbose:
