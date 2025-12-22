@@ -402,7 +402,12 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             options_kwargs["disallowed_tools"] = self._disallowed_tools
         if formatted_system_prompt:
             if self._include_builtin_system_prompt:
-                options_kwargs["append_system_prompt"] = formatted_system_prompt
+                # Use SystemPromptPreset to append to builtin prompt
+                options_kwargs["system_prompt"] = {
+                    "type": "preset",
+                    "preset": "claude_code",
+                    "append": formatted_system_prompt,
+                }
             else:
                 options_kwargs["system_prompt"] = formatted_system_prompt
         if self._model:
@@ -416,13 +421,14 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         if self._environment:
             options_kwargs["env"] = self._environment
         if self._add_dir:
-            options_kwargs["add_dir"] = self._add_dir
+            options_kwargs["add_dirs"] = self._add_dir
         if self._builtin_tools is not None:
             options_kwargs["tools"] = self._builtin_tools
         if self._fallback_model:
             options_kwargs["fallback_model"] = self._fallback_model
-        if self._dangerously_skip_permissions:
-            options_kwargs["dangerously_skip_permissions"] = True
+        # dangerously_skip_permissions is handled via permission_mode="bypassPermissions"
+        if self._dangerously_skip_permissions and not self._permission_mode:
+            options_kwargs["permission_mode"] = "bypassPermissions"
 
         # Add tool permission callback if not in bypass mode
         bypass = self._permission_mode == "bypassPermissions" or self._dangerously_skip_permissions
