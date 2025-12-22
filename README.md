@@ -3,525 +3,200 @@
 [![PyPI License](https://img.shields.io/pypi/l/agentpool.svg)](https://pypi.org/project/agentpool/)
 [![Package status](https://img.shields.io/pypi/status/agentpool.svg)](https://pypi.org/project/agentpool/)
 [![Monthly downloads](https://img.shields.io/pypi/dm/agentpool.svg)](https://pypi.org/project/agentpool/)
-[![Distribution format](https://img.shields.io/pypi/format/agentpool.svg)](https://pypi.org/project/agentpool/)
-[![Wheel availability](https://img.shields.io/pypi/wheel/agentpool.svg)](https://pypi.org/project/agentpool/)
 [![Python version](https://img.shields.io/pypi/pyversions/agentpool.svg)](https://pypi.org/project/agentpool/)
-[![Implementation](https://img.shields.io/pypi/implementation/agentpool.svg)](https://pypi.org/project/agentpool/)
-[![Releases](https://img.shields.io/github/downloads/phil65/agentpool/total.svg)](https://github.com/phil65/agentpool/releases)
-[![Github Contributors](https://img.shields.io/github/contributors/phil65/agentpool)](https://github.com/phil65/agentpool/graphs/contributors)
-[![Github Discussions](https://img.shields.io/github/discussions/phil65/agentpool)](https://github.com/phil65/agentpool/discussions)
-[![Github Forks](https://img.shields.io/github/forks/phil65/agentpool)](https://github.com/phil65/agentpool/forks)
-[![Github Issues](https://img.shields.io/github/issues/phil65/agentpool)](https://github.com/phil65/agentpool/issues)
-[![Github Watchers](https://img.shields.io/github/watchers/phil65/agentpool)](https://github.com/phil65/agentpool/watchers)
 [![Github Stars](https://img.shields.io/github/stars/phil65/agentpool)](https://github.com/phil65/agentpool/stars)
-[![Github last commit](https://img.shields.io/github/last-commit/phil65/agentpool)](https://github.com/phil65/agentpool/commits)
-[![Github release date](https://img.shields.io/github/release-date/phil65/agentpool)](https://github.com/phil65/agentpool/releases)
-[![Github language count](https://img.shields.io/github/languages/count/phil65/agentpool)](https://github.com/phil65/agentpool)
-[![Github commits this year](https://img.shields.io/github/commit-activity/y/phil65/agentpool)](https://github.com/phil65/agentpool)
-[![Package status](https://codecov.io/gh/phil65/agentpool/branch/main/graph/badge.svg)](https://codecov.io/gh/phil65/agentpool/)
-[![PyUp](https://pyup.io/repos/github/phil65/agentpool/shield.svg)](https://pyup.io/repos/github/phil65/agentpool/)
 
-### [Read the documentation!](https://phil65.github.io/agentpool/)
+**A unified agent orchestration hub that lets you configure and manage heterogeneous AI agents via YAML and expose them through standardized protocols.**
 
-# 🚀 Getting Started
+[Documentation](https://phil65.github.io/agentpool/)
 
-AgentPool is a framework for creating and managing LLM-powered agents with structured interactions and a powerful resource system.
+## The Problem
 
-## ✨ Features
+You want to use multiple AI agents together - Claude Code for refactoring, a custom analysis agent, maybe Goose for specific tasks. But each has different APIs, protocols, and integration patterns. Coordinating them means writing glue code for each combination.
 
-- 🔄 Modern python written from ground up with Python 3.13
-- 🤝 Integrate multiple external ACP agents (Claude Code, Codex, Goose, etc.), AGUI Agents as well as native Pydantic-AI based agents into a single pool where they can cooperate, interact and delegate.
-- 🛡️ Complete (multi-)agent pool setup via YAML files including extensive JSON schema to help with creating configurations.
-- 🔌 Extensive MCP support including elicitation, sampling, progress reporting, multi-modality, including bridging to ACP / AG-UI protocols.
-- 🛜 Comletely UPath backed. All file operations (& Code execution) by agents are abstrated in a way that agents can operate directly on remote sources without having to install anything on the remote.
-- 🎤 Streaming TTS- support for all Agents
-- 📚 Improved aider-based RepoMap implementation for code exploration
-- 📂 Composable virtual filesystems for agents
-- 📝 CodeMode support
+## The Solution
+
+AgentPool acts as a protocol bridge. Define all your agents in one YAML file - whether they're native (PydanticAI-based), external ACP agents (Claude Code, Codex, Goose), or AG-UI agents. Then expose them all through ACP or AG-UI protocols, letting them cooperate, delegate, and communicate through a unified interface.
+
+```mermaid
+flowchart TB
+    subgraph AgentPool
+        subgraph config[YAML Configuration]
+            native[Native Agents<br/>PydanticAI]
+            acp_agents[ACP Agents<br/>Claude Code, Goose, Codex]
+            agui_agents[AG-UI Agents]
+            workflows[Teams & Workflows]
+        end
+        
+        subgraph interface[Unified Agent Interface]
+            delegation[Inter-agent delegation]
+            routing[Message routing]
+            context[Shared context]
+        end
+        
+        config --> interface
+    end
+    
+    interface --> acp_server[ACP Server]
+    interface --> agui_server[AG-UI Server]
+    
+    acp_server --> clients1[Zed, Toad, ACP Clients]
+    agui_server --> clients2[AG-UI Clients]
+```
 
 ## Quick Start
 
-### Agent Client Protocol (ACP)
-
-The fastest way to start chatting with an AI:
-
-agentpool supports the Agent Client Protocol for seamless integration with desktop applications and IDEs. Run your agents as ACP servers to enable bidirectional communication, session management, and file operations through JSON-RPC 2.0 over stdio.
-
-*The recommended client is Zed IDE (& soon Toad, a python client based on Textual)*
-
 ```bash
-# Start ACP server
-agentpool[default,coding] serve-acp [path/to/config.yml]
+pip install agentpool[default]
 ```
 
-Compatible with ACP-enabled Clients like Zed. See the [ACP Integration documentation](https://phil65.github.io/agentpool/advanced/acp_integration/) for setup instructions.
-
-Run `/help` in the chat to see what commands are at your disposal.
-
-### YAML configuration
-
-While you can define agents with 3 lines of YAML (or competely programmatic or via CLI),
-you can also create agents as well as their connections, agent tasks, storage providers and much more via YAML.
-This is the extended version
+### Minimal Configuration
 
 ```yaml
 # agents.yml
 agents:
-  analyzer:
+  assistant:
     type: native
-    name: "Code Analyzer"  # Display name
-    inherits: "base_agent"  # Optional parent config to inherit from
-    description: "Code analysis specialist"
-    debug: false
-    retries: 1  # Number of retries for failed operations
-    model:  # Model configuration
-      type: "fallback"  # Lot of special "meta-models" included out of the box!
-      models:  # Try models in sequence
-        - "openai:gpt-5"
-        - "openai:gpt-5-nano"
-        - "anthropic:claude-sonnet-4-0"
-    # Structured output
-    output_type:
-      type: "inline"  # or "import" for Python types
-      fields:
-        severity:
-          type: "str"
-          description: "Issue severity"
-        issues:
-          type: "list[str]"
-          description: "Found issues"
-
-    # Core behavior
+    model: openai:gpt-4o
     system_prompts:
-      - "You analyze code for potential issues and improvements."
-
-    # Session & History
-    session:
-      name: "analysis_session"
-      since: "1h"  # Only load messages from last hour
-      roles: ["user", "assistant"]  # Only specific message types
-
-    # Toolsets (available tool groups)
-    toolsets:
-      - type: agent_management  # Enables delegation
-      - type: resource_access   # Enables resource loading
-
-
-    # Knowledge sources
-    knowledge:
-      paths: ["docs/**/*.md"]  # Glob patterns for files
-      resources:
-        - type: "repository"
-          url: "https://github.com/user/repo"
-      prompts:
-        - type: "file"
-          path: "prompts/analysis.txt"
-
-    # MCP Server integration
-    mcp_servers:
-      - type: "stdio"
-        command: "python"
-        args: ["-m", "mcp_server"]
-        env:
-          DEBUG: "1"
-      - "python -m other_server"  # shorthand syntax
-
-    # Worker agents (specialists)
-    workers:
-      - type: agent
-        name: "formatter"
-        reset_history_on_run: true
-        pass_message_history: false
-      - "linter"  # shorthand syntax
-
-    # Message forwarding
-    connections:
-      - type: node
-        name: "reporter"
-        connection_type: "run"  # "run" | "context" | "forward"
-        priority: 1
-        queued: true
-        queue_strategy: "latest"
-        transform: "my_module.transform_func"
-        wait_for_completion: true
-        filter_condition:  # When to forward messages
-          type: "word_match"
-          words: ["error", "warning"]
-          case_sensitive: false
-        stop_condition:  # When to disconnect
-          type: "message_count"
-          max_messages: 100
-          count_mode: "total"  # or "per_agent"
-        exit_condition:  # When to exit application
-          type: "cost_limit"
-          max_cost: 10.0
-    # Event triggers
-    triggers:
-      - type: "file"
-        name: "code_change"
-        paths: ["src/**/*.py"]
-        extensions: [".py"]
-        debounce: 1000  # ms
-teams:
-  # Complex workflows via YAML
-  full_pipeline:
-    mode: sequential
-    members:
-      - analyzer
-      - planner
-    connections:
-      - type: node
-        name: final_reviewer
-        wait_for_completion: true
-      - type: file
-        path: "reports/{date}_workflow.txt"
-# Response type definitions
-responses:
-  AnalysisResult:
-    response_schema:
-      type: "inline"
-      description: "Code analysis result format"
-      fields:
-        severity: {type: "str"}
-        issues: {type: "list[str]"}
-
-  ComplexResult:
-    type: "import"
-    import_path: "myapp.types.ComplexResult"
-
-# Storage configuration
-storage:
-  providers:
-    - type: "sql"
-      url: "sqlite:///history.db"
-      pool_size: 5
-    - type: "text_file"
-      path: "logs/chat.log"
-      format: "chronological"
-  log_messages: true
-  log_conversations: true
-  log_commands: true
-
-# Pre-defined jobs
-jobs:
-  analyze_code:
-    name: "Code Analysis"
-    description: "Analyze code quality"
-    prompt: "Analyze this code: {code}"
-    required_return_type: "AnalysisResult"
-    knowledge:
-      paths: ["src/**/*.py"]
-    tools: ["analyze_complexity", "run_linter"]
+      - "You are a helpful assistant."
 ```
-
-You can use an Agents manifest in multiple ways:
-
-
-
-- Run it using the CLI
 
 ```bash
-agentpool run --config agents.yml my_agent "Some prompt"
+# Run via CLI
+agentpool run assistant "Hello!"
+
+# Or start as ACP server (for Zed, Toad, etc.)
+agentpool serve-acp agents.yml
 ```
 
-- Start *watch mode* and only react to triggers
+### Integrating External Agents
 
-```bash
-agentpool watch --config agents.yml
-```
-
-
-### Agent Pool: Multi-Agent Coordination
-
-The `AgentPool` allows multiple agents to work together on tasks, including external ACP-enabled agents like Claude Code, Codex, or Goose. Here's a practical example of parallel file downloading:
+The real power comes from mixing agent types:
 
 ```yaml
-# agents.yml
 agents:
-  file_getter:
-    type: native
-    model: openai:gpt-5-mini
-    toolsets:
-      - type: file_access  # includes download_file, read_file, list_directory
-    system_prompts:
-      - |
-        You are a download specialist. Just use the download_file tool
-        and report its results. No explanations needed.
-
-  overseer:
-    type: native
-    toolsets:
-      - type: agent_management  # Enables delegation and agent discovery tools
-    model: openai:gpt-5-mini
-    system_prompts:
-      - |
-        You coordinate downloads using available agents.
-        1. Check out the available agents and assign each of them the download task
-        2. Report the results.
-
-```
-
-Programmatic Usage:
-
-```python
-from agentpool.delegation import AgentPool
-
-async def main():
-    async with AgentPool("agents.yml") as pool:
-        # first we create two agents based on the file_getter template
-        file_getter_1 = pool.get_agent("file_getter")
-        file_getter_2 = pool.get_agent("file_getter")
-        # then we form a team and execute the task
-        team = file_getter_1 & file_getter_2
-        responses = await team.run_parallel("Download https://example.com/file.zip")
-
-        # Or let a coordinator orchestrate using his capabilities.
-        coordinator = pool.get_agent("coordinator")
-        result = await overseer.run(
-            "Download https://example.com/file.zip by delegating to all workers available!"
-        )
-```
-
-#### External ACP Agents
-
-You can also integrate external ACP-enabled agents into your pool via YAML configuration:
-
-```yaml
-# agents.yml
-agents:
+  # External ACP agents
   claude:
     type: acp
     provider: claude
-    display_name: "Claude Code"
-    description: "Claude Code through ACP"
+    description: "Claude Code for complex refactoring"
+
   goose:
     type: acp
     provider: goose
-    display_name: "Goose"
-    description: "Block's Goose agent through ACP"
+    description: "Goose for file operations"
+
+  # Native agent that coordinates them
   coordinator:
     type: native
-    model: openai:gpt-5-mini
+    model: openai:gpt-4o
     toolsets:
-      - type: agent_management  # Enables delegation to ACP agents
+      - type: subagent  # Can delegate to claude, goose
+    system_prompts:
+      - "Coordinate tasks between available agents."
+```
+
+Now `coordinator` can delegate work to Claude Code or Goose as needed, and all three are accessible through the same ACP interface.
+
+## Key Features
+
+### Multi-Agent Coordination
+
+Agents can form teams (parallel) or chains (sequential):
+
+```yaml
+teams:
+  review_pipeline:
+    mode: sequential
+    members: [analyzer, reviewer, formatter]
+
+  parallel_coders:
+    mode: parallel
+    members: [claude, goose]
 ```
 
 ```python
 async with AgentPool("agents.yml") as pool:
-    # Access external ACP agents just like regular agents
-    claude = pool.get_agent("claude")
-    result = await claude.run("Refactor this code")
+    # Parallel execution
+    team = pool.get_agent("analyzer") & pool.get_agent("reviewer")
+    results = await team.run("Review this code")
+
+    # Sequential pipeline
+    chain = analyzer | reviewer | formatter
+    result = await chain.run("Process this")
 ```
 
-See the [ACP Integration documentation](https://phil65.github.io/agentpool/advanced/acp_integration/#external-acp-agents) for supported agents and configuration options.
+### Rich YAML Configuration
 
+Everything is configurable - models, tools, connections, triggers, storage:
 
-The framework provides three types of message nodes:
-
-1. **Agents**: Individual LLM-powered actors
-```python
-# Single agent processing
-analyzer = pool.get_agent("analyzer")
-result = await analyzer.run("analyze this")
+```yaml
+agents:
+  analyzer:
+    type: native
+    model:
+      type: fallback
+      models: [openai:gpt-4o, anthropic:claude-sonnet-4-0]
+    toolsets:
+      - type: subagent
+      - type: resource_access
+    mcp_servers:
+      - "uvx mcp-server-filesystem"
+    knowledge:
+      paths: ["docs/**/*.md"]
+    connections:
+      - type: node
+        name: reporter
+        filter_condition:
+          type: word_match
+          words: [error, warning]
 ```
 
-2. **Teams**: Groups for parallel execution
-```python
-# Create team using & operator
-team = analyzer & planner & executor
-results = await team.run("handle this task")
-```
+### Protocol Support
 
-3. **TeamRuns**: Sequential execution chains
-```python
-# Create chain using | operator
-chain = analyzer | planner | executor
-results = await chain.run("process in sequence")
-```
+- **MCP**: Full support including elicitation, sampling, progress reporting
+- **ACP**: Serve agents to Zed, Toad, and other ACP clients
+- **AG-UI**: Expose agents through AG-UI protocol
 
-The beauty of this system is that these nodes are completely composable:
+### Additional Capabilities
 
-```python
+- **Structured Output**: Define response schemas inline or import Python types
+- **Storage & Analytics**: Track all interactions with configurable providers
+- **File Abstraction**: UPath-backed operations work on local and remote sources
+- **Triggers**: React to file changes, webhooks, or custom events
+- **Streaming TTS**: Voice output support for all agents
 
-def process_text(text: str) -> str:
-    return text.upper()
+## Usage Patterns
 
-# Nested structures work naturally
-team_1 = analyzer & planner  # Team
-team_2 = validator & reporter  # Another team
-chain = team_1 | process_text | team_2  # Teams and Callables in a chain
-
-# Complex workflows become intuitive
-(analyzer & planner) | validator  # Team followed by validator
-team_1 | (team_2 & agent_3)  # Chain with parallel components
-
-# Every node has the same core interface
-async for message in node.run_iter("prompt"):
-    print(message.content)
-
-# Monitoring works the same for all types
-print(f"Messages: {node.stats.message_count}")
-print(f"Cost: ${node.stats.total_cost:.2f}")
-```
-(note: the operator overloading is just syntactic sugar. In general, teams should be created
-using `pool.create_team()` / `pool.create_team_run()` or `agent/team.connect_to()`)
-)
-
-All message nodes support the same execution patterns:
-```python
-# Single execution
-result = await node.run("prompt")
-
-# Streaming
-async for event in node.run_stream("prompt"):
-    print(event)
-
-
-# Nested teams work naturally
-team_1 = analyzer & planner  # First team
-team_2 = validator & reporter  # Second team
-parallel_team = Team([team_1, agent_3, team_2])  # Team containing teams!
-
-# This means you can create sophisticated structures:
-result = await parallel_team.run("analyze this")  # Will execute:
-# - team_1 (analyzer & planner) in parallel
-# - agent_3 in parallel
-# - team_2 (validator & reporter) in parallel
-
-# And still use all the standard patterns:
-async for msg in parallel_team.run_iter("prompt"):
-    print(msg.content)
-
-# With full monitoring functionality:
-print(f"Total cost: ${parallel_team.stats.total_cost:.2f}")
-
-```
-
-This unified system makes it easy to:
-- Build complex workflows
-- Monitor message flow
-- Compose nodes in any combination
-- Use consistent patterns across all node types
-
-Each message in the system carries content, metadata, and execution information, providing a consistent interface across all types of interactions. See [Message System](docs/core-concepts/messages.md) for details.
-
-
-### Advanced Connection Features
-
-Connections between agents are highly configurable and support various patterns:
-
-```python
-# Basic connection in shorthand form.
-connection = agent_a >> agent_b  # Forward all messages
-
-# Extended setup: Queued connection (manual processing)
-connection = agent_a.connect_to(
-    agent_b,
-    queued=True,
-    queue_strategy="latest",  # or "concat", "buffer"
-)
-# messages can queue up now
-await connection.trigger(optional_additional_prompt)  # Process queued messages sequentially
-
-# Filtered connection (example: filter by keyword):
-connection = agent_a.connect_to(
-    agent_b,
-    filter_condition=lambda ctx: "keyword" in ctx.message.content,
-)
-
-# Conditional disconnection (example: disconnect after cost limit):
-connection = agent_a.connect_to(
-    agent_b,
-    filter_condition=lambda ctx: ctx.stats.total_cost > 1.0,
-)
-
-# Message transformations
-async def transform_message(message: str) -> str:
-    return f"Transformed: {message}"
-
-connection = agent_a.connect_to(agent_b, transform=transform_message)
-
-# Connection statistics
-print(f"Messages processed: {connection.stats.message_count}")
-print(f"Total tokens: {connection.stats.token_count}")
-print(f"Total cost: ${connection.stats.total_cost:.2f}")
-```
-
-The two basic programmatic patterns of this librry are:
-
-1. Tree-like workflows (hierarchical):
-```python
-# Can be modeled purely with teams/chains using & and |
-team_a = agent1 & agent2  # Parallel branch 1
-team_b = agent3 & agent4  # Parallel branch 2
-chain = preprocessor | team_a | postprocessor  # Sequential with team
-nested = Team([chain, team_b])  # Hierarchical nesting
-```
-
-2. DAG (Directed Acyclic Graph) workflows:
-```python
-# Needs explicit signal connections for non-tree patterns
-analyzer = Agent("analyzer")
-planner = Agent("planner")
-executor = Agent("executor")
-validator = Agent("validator")
-
-# Can't model this with just teams - need explicit connections
-analyzer.connect_to(planner)
-analyzer.connect_to(executor)  # Same source to multiple targets
-planner.connect_to(validator)
-executor.connect_to(validator) # Multiple sources to same target
-validator.connect_to(executor) # Cyclic connections
-```
-
-BOTH connection types can be set up for BOTH teams and agents intiuiviely in the YAML file.
-
-You can also use LLMling-models for more sophisticated human-in-the-loop integration:
-- Remote human operators via network
-- Hybrid human-AI workflows
-- Input streaming support
-- Custom UI integration
-
-
-### Multi-Modal Support
-
-Handle images and PDFs alongside text (depends on provider / model support)
-
-```python
-from agentpool import Agent
-
-async with Agent(...) as agent:
-    result = await agent.run("What's in this image?", pathlib.Path("image.jpg"))
-    result = await agent.run("What's in this PDF?", pathlib.Path("document.pdf"))
-```
-
-### Command System
-
-Extensive slash commands available when used via ACP:
+### CLI
 
 ```bash
-/list-tools              # Show available tools
-/enable-tool tool_name   # Enable specific tool
-/connect other_agent     # Forward results
-/model gpt-5            # Switch models
-/history search "query"  # Search conversation
-/stats                   # Show usage statistics
+agentpool run agent_name "prompt"           # Single run
+agentpool serve-acp config.yml              # Start ACP server
+agentpool watch --config agents.yml         # React to triggers
+agentpool history stats --group-by model    # View analytics
 ```
 
-### Storage & Analytics
+### Programmatic
 
-All interaction is tracked using (multiple) configurable storage providers.
-Information can get fetched  via CLI.
+```python
+from agentpool import AgentPool
 
+async with AgentPool("agents.yml") as pool:
+    agent = pool.get_agent("assistant")
 
-```bash
-# View recent conversations
-agentpool history show
-agentpool history show --period 24h  # Last 24 hours
-agentpool history show --query "database"  # Search content
+    # Simple run
+    result = await agent.run("Hello")
 
-# View usage statistics
-agentpool history stats  # Basic stats
-agentpool history stats --group-by model  # Model usage
-agentpool history stats --group-by day    # Daily breakdown
+    # Streaming
+    async for event in agent.run_stream("Tell me a story"):
+        print(event)
+
+    # Multi-modal
+    result = await agent.run("Describe this", Path("image.jpg"))
 ```
+
+## Documentation
+
+For complete documentation including advanced configuration, connection patterns, and API reference, visit [phil65.github.io/agentpool](https://phil65.github.io/agentpool/).
