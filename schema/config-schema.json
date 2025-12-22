@@ -476,6 +476,62 @@
           "title": "Tool confirmation mode",
           "type": "string"
         },
+        "system_prompt": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "discriminator": {
+                      "mapping": {
+                        "file": "#/$defs/FilePromptConfig",
+                        "function": "#/$defs/FunctionPromptConfig",
+                        "library": "#/$defs/LibraryPromptConfig",
+                        "static": "#/$defs/StaticPromptConfig"
+                      },
+                      "propertyName": "type"
+                    },
+                    "oneOf": [
+                      {
+                        "$ref": "#/$defs/StaticPromptConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/FilePromptConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/LibraryPromptConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/FunctionPromptConfig"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "System prompt for the agent. Can be a string or list of strings/prompt configs.\n\nSupport varies by agent:\n- Claude: passed via --system-prompt\n- Auggie: passed via --instruction-file\n- Stakpak: passed via --system-prompt-file\n- Others: may not support system prompts\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
+          "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
+          "examples": [
+            "You are a helpful coding assistant.",
+            [
+              "Always write tests.",
+              "Focus on Python."
+            ]
+          ],
+          "title": "System Prompt"
+        },
         "provider": {
           "const": "custom",
           "default": "custom",
@@ -1697,6 +1753,62 @@
           "title": "Tool confirmation mode",
           "type": "string"
         },
+        "system_prompt": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "discriminator": {
+                      "mapping": {
+                        "file": "#/$defs/FilePromptConfig",
+                        "function": "#/$defs/FunctionPromptConfig",
+                        "library": "#/$defs/LibraryPromptConfig",
+                        "static": "#/$defs/StaticPromptConfig"
+                      },
+                      "propertyName": "type"
+                    },
+                    "oneOf": [
+                      {
+                        "$ref": "#/$defs/StaticPromptConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/FilePromptConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/LibraryPromptConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/FunctionPromptConfig"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "System prompt for the agent. Can be a string or list of strings/prompt configs.\n\nSupport varies by agent:\n- Claude: passed via --system-prompt\n- Auggie: passed via --instruction-file\n- Stakpak: passed via --system-prompt-file\n- Others: may not support system prompts\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
+          "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
+          "examples": [
+            "You are a helpful coding assistant.",
+            [
+              "Always write tests.",
+              "Focus on Python."
+            ]
+          ],
+          "title": "System Prompt"
+        },
         "provider": {
           "const": "amp",
           "default": "amp",
@@ -2840,6 +2952,62 @@
           ],
           "title": "Tool confirmation mode",
           "type": "string"
+        },
+        "system_prompt": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "discriminator": {
+                      "mapping": {
+                        "file": "#/$defs/FilePromptConfig",
+                        "function": "#/$defs/FunctionPromptConfig",
+                        "library": "#/$defs/LibraryPromptConfig",
+                        "static": "#/$defs/StaticPromptConfig"
+                      },
+                      "propertyName": "type"
+                    },
+                    "oneOf": [
+                      {
+                        "$ref": "#/$defs/StaticPromptConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/FilePromptConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/LibraryPromptConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/FunctionPromptConfig"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "System prompt for the agent. Can be a string or list of strings/prompt configs.\n\nSupport varies by agent:\n- Claude: passed via --system-prompt\n- Auggie: passed via --instruction-file\n- Stakpak: passed via --system-prompt-file\n- Others: may not support system prompts\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
+          "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
+          "examples": [
+            "You are a helpful coding assistant.",
+            [
+              "Always write tests.",
+              "Focus on Python."
+            ]
+          ],
+          "title": "System Prompt"
         },
         "toolsets": {
           "description": "Toolsets to expose to this ACP agent via MCP bridge.\n\nThese toolsets will be started as an in-process MCP server and made\navailable to the external ACP agent. This allows ACP agents to use\ninternal agentpool toolsets like subagent delegation.",
@@ -5763,6 +5931,62 @@
           "title": "Tool confirmation mode",
           "type": "string"
         },
+        "system_prompt": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "discriminator": {
+                      "mapping": {
+                        "file": "#/$defs/FilePromptConfig",
+                        "function": "#/$defs/FunctionPromptConfig",
+                        "library": "#/$defs/LibraryPromptConfig",
+                        "static": "#/$defs/StaticPromptConfig"
+                      },
+                      "propertyName": "type"
+                    },
+                    "oneOf": [
+                      {
+                        "$ref": "#/$defs/StaticPromptConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/FilePromptConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/LibraryPromptConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/FunctionPromptConfig"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "System prompt for the agent. Can be a string or list of strings/prompt configs.\n\nSupport varies by agent:\n- Claude: passed via --system-prompt\n- Auggie: passed via --instruction-file\n- Stakpak: passed via --system-prompt-file\n- Others: may not support system prompts\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
+          "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
+          "examples": [
+            "You are a helpful coding assistant.",
+            [
+              "Always write tests.",
+              "Focus on Python."
+            ]
+          ],
+          "title": "System Prompt"
+        },
         "provider": {
           "const": "cagent",
           "default": "cagent",
@@ -6839,6 +7063,62 @@
           "title": "Tool confirmation mode",
           "type": "string"
         },
+        "system_prompt": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "discriminator": {
+                      "mapping": {
+                        "file": "#/$defs/FilePromptConfig",
+                        "function": "#/$defs/FunctionPromptConfig",
+                        "library": "#/$defs/LibraryPromptConfig",
+                        "static": "#/$defs/StaticPromptConfig"
+                      },
+                      "propertyName": "type"
+                    },
+                    "oneOf": [
+                      {
+                        "$ref": "#/$defs/StaticPromptConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/FilePromptConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/LibraryPromptConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/FunctionPromptConfig"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "System prompt for the agent. Can be a string or list of strings/prompt configs.\n\nSupport varies by agent:\n- Claude: passed via --system-prompt\n- Auggie: passed via --instruction-file\n- Stakpak: passed via --system-prompt-file\n- Others: may not support system prompts\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
+          "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
+          "examples": [
+            "You are a helpful coding assistant.",
+            [
+              "Always write tests.",
+              "Focus on Python."
+            ]
+          ],
+          "title": "System Prompt"
+        },
         "toolsets": {
           "description": "Toolsets to expose to this ACP agent via MCP bridge.\n\nThese toolsets will be started as an in-process MCP server and made\navailable to the external ACP agent. This allows ACP agents to use\ninternal agentpool toolsets like subagent delegation.",
           "examples": [
@@ -6966,31 +7246,11 @@
           "title": "Provider",
           "type": "string"
         },
-        "system_prompt": {
-          "default": null,
-          "description": "Custom system prompt (replaces default Claude Code prompt).",
-          "examples": [
-            "You are a helpful coding assistant.",
-            "Follow best practices for Python."
-          ],
-          "title": "System Prompt",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "append_system_prompt": {
-          "default": null,
-          "description": "Text to append to the default system prompt.",
-          "examples": [
-            "Always write tests.",
-            "Prefer functional programming."
-          ],
-          "title": "Append System Prompt",
-          "type": [
-            "string",
-            "null"
-          ]
+        "include_builtin_system_prompt": {
+          "default": true,
+          "description": "If True, system_prompt is appended to Claude's builtin prompt.\nIf False, system_prompt replaces the builtin prompt entirely.",
+          "title": "Include Builtin System Prompt",
+          "type": "boolean"
         },
         "model": {
           "anyOf": [
@@ -8926,6 +9186,62 @@
           "title": "Tool confirmation mode",
           "type": "string"
         },
+        "system_prompt": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "discriminator": {
+                      "mapping": {
+                        "file": "#/$defs/FilePromptConfig",
+                        "function": "#/$defs/FunctionPromptConfig",
+                        "library": "#/$defs/LibraryPromptConfig",
+                        "static": "#/$defs/StaticPromptConfig"
+                      },
+                      "propertyName": "type"
+                    },
+                    "oneOf": [
+                      {
+                        "$ref": "#/$defs/StaticPromptConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/FilePromptConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/LibraryPromptConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/FunctionPromptConfig"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "System prompt for the agent. Can be a string or list of strings/prompt configs.\n\nSupport varies by agent:\n- Claude: passed via --system-prompt\n- Auggie: passed via --instruction-file\n- Stakpak: passed via --system-prompt-file\n- Others: may not support system prompts\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
+          "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
+          "examples": [
+            "You are a helpful coding assistant.",
+            [
+              "Always write tests.",
+              "Focus on Python."
+            ]
+          ],
+          "title": "System Prompt"
+        },
         "provider": {
           "const": "codex",
           "default": "codex",
@@ -9886,6 +10202,62 @@
           ],
           "title": "Tool confirmation mode",
           "type": "string"
+        },
+        "system_prompt": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "discriminator": {
+                      "mapping": {
+                        "file": "#/$defs/FilePromptConfig",
+                        "function": "#/$defs/FunctionPromptConfig",
+                        "library": "#/$defs/LibraryPromptConfig",
+                        "static": "#/$defs/StaticPromptConfig"
+                      },
+                      "propertyName": "type"
+                    },
+                    "oneOf": [
+                      {
+                        "$ref": "#/$defs/StaticPromptConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/FilePromptConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/LibraryPromptConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/FunctionPromptConfig"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "System prompt for the agent. Can be a string or list of strings/prompt configs.\n\nSupport varies by agent:\n- Claude: passed via --system-prompt\n- Auggie: passed via --instruction-file\n- Stakpak: passed via --system-prompt-file\n- Others: may not support system prompts\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
+          "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
+          "examples": [
+            "You are a helpful coding assistant.",
+            [
+              "Always write tests.",
+              "Focus on Python."
+            ]
+          ],
+          "title": "System Prompt"
         },
         "provider": {
           "const": "cursor",
@@ -18214,6 +18586,62 @@
           "title": "Tool confirmation mode",
           "type": "string"
         },
+        "system_prompt": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "discriminator": {
+                      "mapping": {
+                        "file": "#/$defs/FilePromptConfig",
+                        "function": "#/$defs/FunctionPromptConfig",
+                        "library": "#/$defs/LibraryPromptConfig",
+                        "static": "#/$defs/StaticPromptConfig"
+                      },
+                      "propertyName": "type"
+                    },
+                    "oneOf": [
+                      {
+                        "$ref": "#/$defs/StaticPromptConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/FilePromptConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/LibraryPromptConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/FunctionPromptConfig"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "System prompt for the agent. Can be a string or list of strings/prompt configs.\n\nSupport varies by agent:\n- Claude: passed via --system-prompt\n- Auggie: passed via --instruction-file\n- Stakpak: passed via --system-prompt-file\n- Others: may not support system prompts\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
+          "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
+          "examples": [
+            "You are a helpful coding assistant.",
+            [
+              "Always write tests.",
+              "Focus on Python."
+            ]
+          ],
+          "title": "System Prompt"
+        },
         "toolsets": {
           "description": "Toolsets to expose to this ACP agent via MCP bridge.\n\nThese toolsets will be started as an in-process MCP server and made\navailable to the external ACP agent. This allows ACP agents to use\ninternal agentpool toolsets like subagent delegation.",
           "examples": [
@@ -19928,6 +20356,62 @@
           "title": "Tool confirmation mode",
           "type": "string"
         },
+        "system_prompt": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "discriminator": {
+                      "mapping": {
+                        "file": "#/$defs/FilePromptConfig",
+                        "function": "#/$defs/FunctionPromptConfig",
+                        "library": "#/$defs/LibraryPromptConfig",
+                        "static": "#/$defs/StaticPromptConfig"
+                      },
+                      "propertyName": "type"
+                    },
+                    "oneOf": [
+                      {
+                        "$ref": "#/$defs/StaticPromptConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/FilePromptConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/LibraryPromptConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/FunctionPromptConfig"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "System prompt for the agent. Can be a string or list of strings/prompt configs.\n\nSupport varies by agent:\n- Claude: passed via --system-prompt\n- Auggie: passed via --instruction-file\n- Stakpak: passed via --system-prompt-file\n- Others: may not support system prompts\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
+          "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
+          "examples": [
+            "You are a helpful coding assistant.",
+            [
+              "Always write tests.",
+              "Focus on Python."
+            ]
+          ],
+          "title": "System Prompt"
+        },
         "toolsets": {
           "description": "Toolsets to expose to this ACP agent via MCP bridge.\n\nThese toolsets will be started as an in-process MCP server and made\navailable to the external ACP agent. This allows ACP agents to use\ninternal agentpool toolsets like subagent delegation.",
           "examples": [
@@ -21523,6 +22007,62 @@
           ],
           "title": "Tool confirmation mode",
           "type": "string"
+        },
+        "system_prompt": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "discriminator": {
+                      "mapping": {
+                        "file": "#/$defs/FilePromptConfig",
+                        "function": "#/$defs/FunctionPromptConfig",
+                        "library": "#/$defs/LibraryPromptConfig",
+                        "static": "#/$defs/StaticPromptConfig"
+                      },
+                      "propertyName": "type"
+                    },
+                    "oneOf": [
+                      {
+                        "$ref": "#/$defs/StaticPromptConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/FilePromptConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/LibraryPromptConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/FunctionPromptConfig"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "System prompt for the agent. Can be a string or list of strings/prompt configs.\n\nSupport varies by agent:\n- Claude: passed via --system-prompt\n- Auggie: passed via --instruction-file\n- Stakpak: passed via --system-prompt-file\n- Others: may not support system prompts\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
+          "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
+          "examples": [
+            "You are a helpful coding assistant.",
+            [
+              "Always write tests.",
+              "Focus on Python."
+            ]
+          ],
+          "title": "System Prompt"
         },
         "provider": {
           "const": "goose",
@@ -23429,6 +23969,62 @@
           ],
           "title": "Tool confirmation mode",
           "type": "string"
+        },
+        "system_prompt": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "discriminator": {
+                      "mapping": {
+                        "file": "#/$defs/FilePromptConfig",
+                        "function": "#/$defs/FunctionPromptConfig",
+                        "library": "#/$defs/LibraryPromptConfig",
+                        "static": "#/$defs/StaticPromptConfig"
+                      },
+                      "propertyName": "type"
+                    },
+                    "oneOf": [
+                      {
+                        "$ref": "#/$defs/StaticPromptConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/FilePromptConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/LibraryPromptConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/FunctionPromptConfig"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "System prompt for the agent. Can be a string or list of strings/prompt configs.\n\nSupport varies by agent:\n- Claude: passed via --system-prompt\n- Auggie: passed via --instruction-file\n- Stakpak: passed via --system-prompt-file\n- Others: may not support system prompts\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
+          "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
+          "examples": [
+            "You are a helpful coding assistant.",
+            [
+              "Always write tests.",
+              "Focus on Python."
+            ]
+          ],
+          "title": "System Prompt"
         },
         "toolsets": {
           "description": "Toolsets to expose to this ACP agent via MCP bridge.\n\nThese toolsets will be started as an in-process MCP server and made\navailable to the external ACP agent. This allows ACP agents to use\ninternal agentpool toolsets like subagent delegation.",
@@ -26091,6 +26687,62 @@
           ],
           "title": "Tool confirmation mode",
           "type": "string"
+        },
+        "system_prompt": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "discriminator": {
+                      "mapping": {
+                        "file": "#/$defs/FilePromptConfig",
+                        "function": "#/$defs/FunctionPromptConfig",
+                        "library": "#/$defs/LibraryPromptConfig",
+                        "static": "#/$defs/StaticPromptConfig"
+                      },
+                      "propertyName": "type"
+                    },
+                    "oneOf": [
+                      {
+                        "$ref": "#/$defs/StaticPromptConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/FilePromptConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/LibraryPromptConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/FunctionPromptConfig"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "System prompt for the agent. Can be a string or list of strings/prompt configs.\n\nSupport varies by agent:\n- Claude: passed via --system-prompt\n- Auggie: passed via --instruction-file\n- Stakpak: passed via --system-prompt-file\n- Others: may not support system prompts\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
+          "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
+          "examples": [
+            "You are a helpful coding assistant.",
+            [
+              "Always write tests.",
+              "Focus on Python."
+            ]
+          ],
+          "title": "System Prompt"
         },
         "provider": {
           "const": "mistral",
@@ -30157,6 +30809,62 @@
           "title": "Tool confirmation mode",
           "type": "string"
         },
+        "system_prompt": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "discriminator": {
+                      "mapping": {
+                        "file": "#/$defs/FilePromptConfig",
+                        "function": "#/$defs/FunctionPromptConfig",
+                        "library": "#/$defs/LibraryPromptConfig",
+                        "static": "#/$defs/StaticPromptConfig"
+                      },
+                      "propertyName": "type"
+                    },
+                    "oneOf": [
+                      {
+                        "$ref": "#/$defs/StaticPromptConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/FilePromptConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/LibraryPromptConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/FunctionPromptConfig"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "System prompt for the agent. Can be a string or list of strings/prompt configs.\n\nSupport varies by agent:\n- Claude: passed via --system-prompt\n- Auggie: passed via --instruction-file\n- Stakpak: passed via --system-prompt-file\n- Others: may not support system prompts\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
+          "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
+          "examples": [
+            "You are a helpful coding assistant.",
+            [
+              "Always write tests.",
+              "Focus on Python."
+            ]
+          ],
+          "title": "System Prompt"
+        },
         "provider": {
           "const": "opencode",
           "default": "opencode",
@@ -30669,6 +31377,62 @@
           ],
           "title": "Tool confirmation mode",
           "type": "string"
+        },
+        "system_prompt": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "discriminator": {
+                      "mapping": {
+                        "file": "#/$defs/FilePromptConfig",
+                        "function": "#/$defs/FunctionPromptConfig",
+                        "library": "#/$defs/LibraryPromptConfig",
+                        "static": "#/$defs/StaticPromptConfig"
+                      },
+                      "propertyName": "type"
+                    },
+                    "oneOf": [
+                      {
+                        "$ref": "#/$defs/StaticPromptConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/FilePromptConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/LibraryPromptConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/FunctionPromptConfig"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "System prompt for the agent. Can be a string or list of strings/prompt configs.\n\nSupport varies by agent:\n- Claude: passed via --system-prompt\n- Auggie: passed via --instruction-file\n- Stakpak: passed via --system-prompt-file\n- Others: may not support system prompts\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
+          "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
+          "examples": [
+            "You are a helpful coding assistant.",
+            [
+              "Always write tests.",
+              "Focus on Python."
+            ]
+          ],
+          "title": "System Prompt"
         },
         "provider": {
           "const": "openhands",
@@ -36947,6 +37711,62 @@
           "title": "Tool confirmation mode",
           "type": "string"
         },
+        "system_prompt": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "discriminator": {
+                      "mapping": {
+                        "file": "#/$defs/FilePromptConfig",
+                        "function": "#/$defs/FunctionPromptConfig",
+                        "library": "#/$defs/LibraryPromptConfig",
+                        "static": "#/$defs/StaticPromptConfig"
+                      },
+                      "propertyName": "type"
+                    },
+                    "oneOf": [
+                      {
+                        "$ref": "#/$defs/StaticPromptConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/FilePromptConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/LibraryPromptConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/FunctionPromptConfig"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "System prompt for the agent. Can be a string or list of strings/prompt configs.\n\nSupport varies by agent:\n- Claude: passed via --system-prompt\n- Auggie: passed via --instruction-file\n- Stakpak: passed via --system-prompt-file\n- Others: may not support system prompts\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
+          "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
+          "examples": [
+            "You are a helpful coding assistant.",
+            [
+              "Always write tests.",
+              "Focus on Python."
+            ]
+          ],
+          "title": "System Prompt"
+        },
         "provider": {
           "const": "stakpak",
           "default": "stakpak",
@@ -37060,19 +37880,6 @@
             ]
           ],
           "title": "Allowed Tools"
-        },
-        "system_prompt_file": {
-          "default": null,
-          "description": "Read system prompt from file.",
-          "examples": [
-            "prompt.txt",
-            "/etc/stakpak/system.txt"
-          ],
-          "title": "System Prompt File",
-          "type": [
-            "string",
-            "null"
-          ]
         },
         "profile": {
           "default": null,
@@ -44140,6 +44947,62 @@
           ],
           "title": "Tool confirmation mode",
           "type": "string"
+        },
+        "system_prompt": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "discriminator": {
+                      "mapping": {
+                        "file": "#/$defs/FilePromptConfig",
+                        "function": "#/$defs/FunctionPromptConfig",
+                        "library": "#/$defs/LibraryPromptConfig",
+                        "static": "#/$defs/StaticPromptConfig"
+                      },
+                      "propertyName": "type"
+                    },
+                    "oneOf": [
+                      {
+                        "$ref": "#/$defs/StaticPromptConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/FilePromptConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/LibraryPromptConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/FunctionPromptConfig"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "System prompt for the agent. Can be a string or list of strings/prompt configs.\n\nSupport varies by agent:\n- Claude: passed via --system-prompt\n- Auggie: passed via --instruction-file\n- Stakpak: passed via --system-prompt-file\n- Others: may not support system prompts\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
+          "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
+          "examples": [
+            "You are a helpful coding assistant.",
+            [
+              "Always write tests.",
+              "Focus on Python."
+            ]
+          ],
+          "title": "System Prompt"
         },
         "provider": {
           "const": "vtcode",
