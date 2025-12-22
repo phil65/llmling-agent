@@ -47,7 +47,8 @@ class ListSessionsCommand(NodeCommand):
             stored: Show only stored sessions
         """
         session = ctx.context.data
-        assert session
+        if not session:
+            raise RuntimeError("Session not available in command context")
 
         if not session.manager:
             await ctx.output.print("❌ **Session manager not available**")
@@ -161,7 +162,8 @@ class LoadSessionCommand(NodeCommand):
             no_replay: Load session without replaying conversation
         """
         session = ctx.context.data
-        assert session
+        if not session:
+            raise RuntimeError("Session not available in command context")
 
         if not session.manager:
             await ctx.output.print("❌ **Session manager not available**")
@@ -294,7 +296,8 @@ class SaveSessionCommand(NodeCommand):
             description: Optional description for the session
         """
         session = ctx.context.data
-        assert session
+        if not session:
+            raise RuntimeError("Session not available in command context")
 
         if not session.manager:
             await ctx.output.print("❌ **Session manager not available**")
@@ -357,7 +360,8 @@ class DeleteSessionCommand(NodeCommand):
             confirm: Skip confirmation prompt
         """
         session = ctx.context.data
-        assert session
+        if not session:
+            raise RuntimeError("Session not available in command context")
 
         if not session.manager:
             await ctx.output.print("❌ **Session manager not available**")
