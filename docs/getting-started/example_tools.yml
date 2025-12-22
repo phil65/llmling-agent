@@ -1,6 +1,7 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/phil65/agentpool/refs/heads/main/schema/config-schema.json
 agents:
   file_manager:
+    type: native
     model: openai:gpt-5
     system_prompt: "You help users manage their files and directories."
     toolsets:
