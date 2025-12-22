@@ -349,7 +349,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                 return Team([self, *other.nodes])
             case Callable():
                 agent_2 = Agent.from_callback(other)
-                agent_2.context.pool = self.context.pool
+                agent_2.agent_pool = self.agent_pool
                 return Team([self, agent_2])
             case MessageNode():
                 return Team([self, other])
@@ -372,7 +372,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
 
         if callable(other):
             other = Agent.from_callback(other)
-            other.context.pool = self.context.pool
+            other.agent_pool = self.agent_pool
 
         return TeamRun([self, other])
 

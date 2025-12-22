@@ -549,7 +549,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         if not isinstance(item, MessageNode):
             msg = f"Item must be Agent or Team, got {type(item)}"
             raise self._error_class(msg)
-        item.context.pool = self
+        item.agent_pool = self
         return item
 
     def _create_teams(self) -> None:
@@ -687,7 +687,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         # Use custom deps if provided, otherwise use shared deps
         # base.context.data = deps if deps is not None else self.shared_deps
         base.deps_type = deps_type
-        base.context.pool = self
+        base.agent_pool = self
         if model_override:
             base.set_model(model_override)
         if session:
