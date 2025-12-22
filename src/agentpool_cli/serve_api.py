@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from typing import TYPE_CHECKING, Annotated, Any
 
 import typer as t
@@ -37,6 +38,8 @@ def api_command(
 
     from agentpool import AgentPool, AgentsManifest
     from agentpool_server.openai_api_server.server import OpenAIAPIServer
+
+    logger.info("Server PID", pid=os.getpid())
 
     def on_message(message: ChatMessage[Any]) -> None:
         print(message.format(style="simple"))

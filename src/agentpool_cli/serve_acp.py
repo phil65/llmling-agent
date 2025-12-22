@@ -8,6 +8,7 @@ integration with file system access, permission handling, and terminal support.
 from __future__ import annotations
 
 import asyncio
+import os
 from typing import Annotated
 
 from platformdirs import user_log_path
@@ -157,6 +158,7 @@ def acp_command(
         logger.info("Raw JSON-RPC message debugging enabled", path=debug_path)
     if debug_commands:
         logger.info("Debug slash commands enabled")
+    logger.info("Server PID", pid=os.getpid())
 
     async def run_acp_server() -> None:
         try:

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 from typing import TYPE_CHECKING, Annotated, Any
 
 import typer as t
@@ -54,6 +55,8 @@ def vercel_command(  # noqa: PLR0915
 
     from agentpool import AgentPool, AgentsManifest
     from agentpool.agents.events import StreamCompleteEvent
+
+    logger.info("Server PID", pid=os.getpid())
 
     def on_message(message: ChatMessage[Any]) -> None:
         print(message.format(style="simple"))

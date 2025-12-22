@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 from typing import TYPE_CHECKING, Annotated, Any, Literal
 
 import typer as t
@@ -42,13 +43,15 @@ def serve_command(
         print(message.format(style="simple"))
 
     async def run_server() -> None:
+
         from agentpool import AgentPool, AgentsManifest
         from agentpool_config.pool_server import MCPPoolServerConfig
+        from agentpool_server.mcp_server.server import MCPServer
 
+        logger.info("Server PID", pid=os.getpid())
         # Load manifest and create pool (without server config)
         manifest = AgentsManifest.from_file(config)
         pool = AgentPool(manifest)
-
         # Create server config and server externally
         server_config = MCPPoolServerConfig(
             enabled=True,
@@ -57,11 +60,7 @@ def serve_command(
             port=port,
             zed_mode=zed_mode,
         )
-
-        from agentpool_server.mcp_server.server import MCPServer
-
         server = MCPServer(pool, server_config)
-
         async with pool, server:
             if show_messages:
                 for agent in pool.agents.values():
