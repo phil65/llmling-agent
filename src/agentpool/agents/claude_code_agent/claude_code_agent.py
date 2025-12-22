@@ -617,6 +617,15 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         try:
             await self._client.query(prompt_text)
             async for message in self._client.receive_response():
+                # Drain event queue (events emitted by tools via EventEmitter)
+                while not self._event_queue.empty():
+                    try:
+                        queued_event = self._event_queue.get_nowait()
+                        for handler in self.event_handler._wrapped_handlers:
+                            await handler(None, queued_event)
+                        yield queued_event
+                    except asyncio.QueueEmpty:
+                        break
                 # Process assistant messages - extract parts incrementally
                 if isinstance(message, AssistantMessage):
                     # Update model name from first assistant message
@@ -820,6 +829,16 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                 await handler(None, error_event)
             yield error_event
             raise
+
+        # Final drain of event queue after stream completes
+        while not self._event_queue.empty():
+            try:
+                queued_event = self._event_queue.get_nowait()
+                for handler in self.event_handler._wrapped_handlers:
+                    await handler(None, queued_event)
+                yield queued_event
+            except asyncio.QueueEmpty:
+                break
 
         # Flush any remaining response parts
         if current_response_parts:
