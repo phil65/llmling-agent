@@ -33,12 +33,12 @@ async def agent_pool():
             "test_agent": NativeAgentConfig(
                 name="test_agent",
                 model="test",
-                system_prompts=["You are a test agent"],
+                system_prompt="You are a test agent",
             ),
             "other_agent": NativeAgentConfig(
                 name="other_agent",
                 model="test",
-                system_prompts=["You are another test agent"],
+                system_prompt="You are another test agent",
             ),
         }
     )

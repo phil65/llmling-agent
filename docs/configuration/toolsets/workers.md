@@ -110,18 +110,15 @@ toolsets:
 agents:
   code_expert:
     model: openai:gpt-4o
-    system_prompts:
-      - "You are a code review specialist."
+    system_prompt: "You are a code review specialist."
 
   research_expert:
     model: openai:gpt-4o
-    system_prompts:
-      - "You are a research specialist."
+    system_prompt: "You are a research specialist."
 
   manager:
     model: openai:gpt-4o
-    system_prompts:
-      - "You coordinate tasks between specialists."
+    system_prompt: "You coordinate tasks between specialists."
     toolsets:
       - type: workers
         workers:

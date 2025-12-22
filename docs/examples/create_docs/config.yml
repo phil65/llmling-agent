@@ -3,8 +3,7 @@ agents:
   file_scanner:
     display_name: "File Scanner"
     model: openai:gpt-5-nano
-    system_prompts:
-      - You scan directories and list source files that need documentation.
+    system_prompt: You scan directories and list source files that need documentation.
     tools:
       - type: import
         name: list_source_files
@@ -13,16 +12,14 @@ agents:
   doc_writer:
     display_name: "Documentation Writer"
     model: openai:gpt-5-nano
-    system_prompts:
-      - You are a docs writer. Write markdown documentation for the files given to you.
+    system_prompt: You are a docs writer. Write markdown documentation for the files given to you.
     toolsets:
       - type: file_access
 
   error_checker:
     display_name: "Code Validator"
     model: openai:gpt-5-nano
-    system_prompts:
-      - You validate Python source files for syntax errors.
+    system_prompt: You validate Python source files for syntax errors.
     tools:
       - type: import
         name: validate_syntax

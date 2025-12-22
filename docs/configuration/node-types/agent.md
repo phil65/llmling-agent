@@ -45,8 +45,7 @@ agents:
   specialized_agent:
     inherits: "base_agent"
     description: "Specialized version"
-    system_prompts:
-      - "You are a specialized agent..."
+    system_prompt: "You are a specialized agent..."
 ```
 
 
@@ -63,7 +62,7 @@ agents:
       open_browser:
         import_path: webbrowser.open
         description: "Opens URLs in browser"
-    system_prompts:
+    system_prompt:
       - "You are a web assistant."
       - "Use open_browser to open URLs."
     retries: 2                   # Number of retries for failed

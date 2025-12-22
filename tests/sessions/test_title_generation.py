@@ -47,7 +47,7 @@ async def pool_with_storage(storage_config: StorageConfig):
             "test_agent": NativeAgentConfig(
                 name="test_agent",
                 model="test",
-                system_prompts=["You are a test agent"],
+                system_prompt="You are a test agent",
             ),
         },
         storage=storage_config,

@@ -32,8 +32,7 @@ Native LLM-powered agents defined in your configuration:
 agents:
   assistant:
     model: openai:gpt-4
-    system_prompts:
-      - You are a helpful assistant.
+    system_prompt: You are a helpful assistant.
 ```
 
 Agents are the most flexible nodes - they support tools, structured output, conversation history, and all framework features.
@@ -84,7 +83,7 @@ agents:
   analyzer:    # NativeAgentConfig
     analyzer:
         model: "openai:gpt-5"
-        system_prompts: [...]
+        system_prompt: ...
         toolsets: [...]
   planner:
     model: "anthropic:claude-sonnet-4-0"
@@ -126,8 +125,7 @@ agents:
       - type: import
         name: open_url
         import_path: webbrowser.open
-    system_prompts:
-      - "You are a helpful web assistant."
+    system_prompt: "You are a helpful web assistant."
 ```
 
 ### Agent Pools

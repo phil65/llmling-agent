@@ -15,8 +15,7 @@ AGENT_CONFIG = """
 agents:
     summarizer:
         model: {default_model}
-        system_prompts:
-            - Summarize text in a structured way.
+        system_prompt: Summarize text in a structured way.
 """
 
 

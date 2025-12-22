@@ -44,8 +44,7 @@ agents:
       type: function
       function: {__name__}.make_test_response
     output_type: _TestOutput
-    system_prompts:
-      - You are the first agent
+    system_prompt: You are the first agent
 
   agent_2:
     name: Second Agent
@@ -54,8 +53,7 @@ agents:
       type: function
       function: {__name__}.make_test_response
     output_type: _TestOutput
-    system_prompts:
-      - You are the second agent
+    system_prompt: You are the second agent
 """
 
 

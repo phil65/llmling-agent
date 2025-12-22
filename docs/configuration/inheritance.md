@@ -15,8 +15,7 @@ agents:
   # Base agent configuration
   base_assistant:
     model: openai:gpt-5
-    system_prompts:
-      - "You are a helpful assistant."
+    system_prompt: "You are a helpful assistant."
     toolsets:
       - type: resource_access
 
@@ -24,8 +23,7 @@ agents:
   code_assistant:
     inherits: base_assistant  # Inherit from base
     description: "Specializes in code review"
-    system_prompts:  # Extends base prompts
-      - "Focus on code quality and best practices."
+    system_prompt: "Focus on code quality and best practices."
     toolsets:  # Extends base toolsets
       - type: code_execution
 
@@ -33,8 +31,7 @@ agents:
   docs_assistant:
     inherits: base_assistant
     description: "Specializes in documentation"
-    system_prompts:
-      - "Focus on clear documentation."
+    system_prompt: "Focus on clear documentation."
 ```
 
 Child agents:

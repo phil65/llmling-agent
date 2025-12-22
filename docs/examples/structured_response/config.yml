@@ -27,22 +27,20 @@ agents:
   yaml_analyzer:
     display_name: "YAML-defined Analyzer"
     model: openai:gpt-5-mini
-    system_prompts:
-      - |
-        Analyze text for sentiment and mood.
-        Always respond with a structured response containing:
-        - sentiment (positive/negative/neutral)
-        - confidence (0-1)
-        - mood (descriptive word)
+    system_prompt: |
+      Analyze text for sentiment and mood.
+      Always respond with a structured response containing:
+      - sentiment (positive/negative/neutral)
+      - confidence (0-1)
+      - mood (descriptive word)
     output_type: YamlResult # Use YAML-defined type
 
   python_analyzer:
     display_name: "Python-defined Analyzer"
     model: openai:gpt-5-mini
-    system_prompts:
-      - |
-        Analyze text and extract key points.
-        Always structure your response with:
-        - main_point (clear summary)
-        - support_points (list of evidence)
-        - confidence_level (0-100)
+    system_prompt: |
+      Analyze text and extract key points.
+      Always structure your response with:
+      - main_point (clear summary)
+      - support_points (list of evidence)
+      - confidence_level (0-100)

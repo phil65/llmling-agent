@@ -115,8 +115,7 @@ Configure how agents handle events through system prompts:
 ```yaml
 agents:
   file_monitor:
-    system_prompts:
-      - |
+    system_prompt: |
         You monitor file changes and analyze their impact.
         When receiving file change events:
         1. Check file type and content
@@ -295,8 +294,7 @@ agents:
       - type: "file"
         name: "pr_watch"
         paths: ["src/**/*.py"]
-    system_prompts:
-      - "You review Python code changes and provide feedback."
+    system_prompt: "You review Python code changes and provide feedback."
 ```
 
 ### Configuration Monitor

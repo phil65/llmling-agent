@@ -28,20 +28,17 @@ agents:
     workers:
       - worker
       - specialist
-    system_prompts:
-      - "You are the main agent. Use your workers to help with tasks."
+    system_prompt: "You are the main agent. Use your workers to help with tasks."
 
   worker:
     model: test
     name: Basic Worker
-    system_prompts:
-      - "You are a helpful worker agent."
+    system_prompt: "You are a helpful worker agent."
 
   specialist:
     model: test
     name: Domain Specialist
-    system_prompts:
-      - "You are a specialist with deep domain knowledge."
+    system_prompt: "You are a specialist with deep domain knowledge."
 """
 
 WORKERS_WITH_SHARING = """\
@@ -57,14 +54,12 @@ agents:
   worker:
     model: test
     name: History Worker
-    system_prompts:
-      - "You are a worker with conversation history."
+    system_prompt: "You are a worker with conversation history."
 
   specialist:
     model: test
     name: Context Worker
-    system_prompts:
-      - "You are a worker with context access."
+    system_prompt: "You are a worker with context access."
 """
 
 INVALID_WORKERS = """\
@@ -87,8 +82,7 @@ agents:
   structured_worker:
     model: test
     name: Structured Worker
-    system_prompts:
-      - "You are a worker that returns structured data."
+    system_prompt: "You are a worker that returns structured data."
 """
 
 

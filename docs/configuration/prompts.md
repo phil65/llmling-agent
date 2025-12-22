@@ -44,7 +44,7 @@ System prompts can be categorized by their purpose:
 
 ```yaml
 prompts:
-  system_prompts:
+  system_prompt:
     # Role definitions
     technical_expert:
       category: role
@@ -76,7 +76,7 @@ prompts:
 agents:
   senior_dev:
     model: gpt-4
-    system_prompts:
+    system_prompt:
       - "Specialize in Python and TypeScript development."
       - type: library
         reference: technical_expert
@@ -97,14 +97,14 @@ Keep prompts organized in separate files:
 ```yaml
 # prompts/roles.yml
 prompts:
-  system_prompts:
+  system_prompt:
     technical_expert:
       category: role
       content: ...
 
 # prompts/styles.yml
 prompts:
-  system_prompts:
+  system_prompt:
     professional:
       category: tone
       content: ...
@@ -116,7 +116,7 @@ INHERIT:
 
 agents:
   my_agent:
-    system_prompts:
+    system_prompt:
       - type: library
         reference: technical_expert
       - type: library

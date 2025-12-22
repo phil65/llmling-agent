@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/phil65/agentpool/refs/heads/main/schema/config-schema.json
 prompts:
   # Define reusable system prompts
-  system_prompts:
+  system_prompt:
     expert_analyst:
       content: |
         You are an expert data analyst.
@@ -17,7 +17,7 @@ prompts:
 # Using prompts in agents
 agents:
   analyst:
-    system_prompts:
+    system_prompt:
       # Direct string prompts
       - "You help with analysis."
 

@@ -4,10 +4,9 @@ agents:
     model: openai:gpt-5-nano
     toolsets:
       - type: agent_management
-    system_prompts:
-      - |
-        You are a helpful assistant. When you're not sure about something,
-        don't hesitate to ask the human agent for guidance.
+    system_prompt: |
+      You are a helpful assistant. When you're not sure about something,
+      don't hesitate to ask the human agent for guidance.
 
   human:
     model:

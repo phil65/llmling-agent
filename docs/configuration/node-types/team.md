@@ -18,15 +18,15 @@ Teams and sequential chains in AgentPool allow you to create sophisticated messa
 agents:
   analyzer:
     model: openai:gpt-5
-    system_prompts: ["You analyze code for issues."]
+    system_prompt: "You analyze code for issues."
 
   planner:
     model: openai:gpt-5
-    system_prompts: ["You create fix plans."]
+    system_prompt: "You create fix plans."
 
   executor:
     model: openai:gpt-5
-    system_prompts: ["You implement fixes."]
+    system_prompt: "You implement fixes."
 
 teams:
   analysis_team:

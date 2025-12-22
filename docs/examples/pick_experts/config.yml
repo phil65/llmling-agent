@@ -3,8 +3,7 @@ agents:
   coordinator:
     type: native
     model: openrouter:openai/gpt-5-nano
-    system_prompts:
-      - You select the most suitable expert(s) for each task.
+    system_prompt: You select the most suitable expert(s) for each task.
 
   database_expert:
     type: native

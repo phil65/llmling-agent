@@ -31,12 +31,10 @@ The function receives fully configured agents matching the parameter names from 
 agents:
   analyzer:
     model: gpt-5
-    system_prompts:
-      - "You are an expert code analyzer..."
+    system_prompt: "You are an expert code analyzer..."
   reviewer:
     model: gpt-5
-    system_prompts:
-      - "You are an expert code reviewer..."
+    system_prompt: "You are an expert code reviewer..."
 ```
 
 ## Function Execution Patterns
@@ -239,10 +237,10 @@ manifest = """
 agents:
   researcher:
     model: gpt-5
-    system_prompts: ["You are an expert researcher..."]
+    system_prompt: "You are an expert researcher..."
   writer:
     model: gpt-5
-    system_prompts: ["You are an expert writer..."]
+    system_prompt: "You are an expert writer..."
 """
 
 # 2. Create pool from manifest

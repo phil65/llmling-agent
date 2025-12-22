@@ -16,7 +16,7 @@ agents:
   tts_sync_sentence:
     description: "TTS with sync_sentence mode - blocks per sentence, most synchronized"
     model: openai:gpt-4.1-nano
-    system_prompts:
+    system_prompt:
       - |
         You are a storyteller. Tell engaging short stories in 3-4 sentences.
         Speak naturally with clear sentence breaks.
@@ -31,7 +31,7 @@ agents:
   tts_sync_run:
     description: "TTS with sync_run mode - fast streaming, waits at run end"
     model: openai:gpt-4.1-nano
-    system_prompts:
+    system_prompt:
       - |
         You are a storyteller. Tell engaging short stories in 3-4 sentences.
         Speak naturally with clear sentence breaks.
@@ -46,7 +46,7 @@ agents:
   tts_async_queue:
     description: "TTS with async_queue mode - fully async, runs queue up"
     model: openai:gpt-4.1-nano
-    system_prompts:
+    system_prompt:
       - |
         You are a storyteller. Tell engaging short stories in 3-4 sentences.
         Speak naturally with clear sentence breaks.
@@ -61,7 +61,7 @@ agents:
   tts_async_cancel:
     description: "TTS with async_cancel mode - fully async, new run cancels previous"
     model: openai:gpt-4.1-nano
-    system_prompts:
+    system_prompt:
       - |
         You are a storyteller. Tell engaging short stories in 3-4 sentences.
         Speak naturally with clear sentence breaks.

@@ -26,14 +26,12 @@ agents:
   analyzer:
     model: openai:gpt-5
     description: "Analyzes input and extracts key information"
-    system_prompts:
-      - "You analyze and summarize information precisely."
+    system_prompt: "You analyze and summarize information precisely."
 
   planner:
     model: openai:gpt-5
     description: "Creates execution plans based on analysis"
-    system_prompts:
-      - "You create detailed execution plans."
+    system_prompt: "You create detailed execution plans."
 ```
 
 ```python

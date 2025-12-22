@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence  # noqa: TC003
 from typing import TYPE_CHECKING, Literal
 
 from pydantic import ConfigDict, Field
 
 from agentpool_config.nodes import BaseAgentConfig
 from agentpool_config.output_types import StructuredResponseConfig  # noqa: TC001
+from agentpool_config.system_prompts import PromptConfig  # noqa: TC001
 from agentpool_config.toolsets import ToolsetConfig  # noqa: TC001
 
 
@@ -41,6 +43,10 @@ class ClaudeCodeAgentConfig(BaseAgentConfig):
             cwd: /path/to/project
             permission_mode: plan
             max_thinking_tokens: 10000
+            include_builtin_system_prompt: false
+            system_prompt:
+              - "You are a planning-only assistant."
+              - "Focus on architecture decisions."
         ```
     """
 
@@ -89,18 +95,23 @@ class ClaudeCodeAgentConfig(BaseAgentConfig):
     Takes precedence over allowed_tools if both are specified.
     """
 
-    system_prompt: str | None = Field(
+    system_prompt: str | Sequence[str | PromptConfig] | None = Field(
         default=None,
         title="System Prompt",
         examples=[
-            "Always write tests.",
-            "You are a helpful coding assistant focused on Python.",
+            "You are a helpful coding assistant.",
+            ["Always write tests.", "Focus on Python."],
         ],
+        json_schema_extra={
+            "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/"
+        },
     )
-    """Custom system prompt text.
+    """System prompt for the agent. Can be a string or list of strings/prompt configs.
 
-    By default, this text is appended to Claude Code's default system prompt.
+    By default, this is appended to Claude Code's builtin system prompt.
     Set `include_builtin_system_prompt: false` to use only your custom prompt.
+
+    Docs: https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/
     """
 
     include_builtin_system_prompt: bool = Field(

@@ -61,8 +61,7 @@ agents:
   assistant:
     name: "Technical Assistant"
     model: openai:gpt-4
-    system_prompts:
-      - You are a helpful technical assistant.
+    system_prompt: You are a helpful technical assistant.
     toolsets:
       - type: file_access
 ```

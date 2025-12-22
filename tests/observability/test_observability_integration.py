@@ -33,8 +33,7 @@ agents:
     model:
       type: test
       custom_output_text: "Test response"
-    system_prompts:
-      - You are a helpful assistant.
+    system_prompt: You are a helpful assistant.
 """
 
 LANGSMITH_MANIFEST = """
@@ -53,8 +52,7 @@ agents:
     model:
       type: test
       custom_output_text: "Test response"
-    system_prompts:
-      - You are a helpful assistant.
+    system_prompt: You are a helpful assistant.
 """
 
 CUSTOM_MANIFEST = """
@@ -74,8 +72,7 @@ agents:
     model:
       type: test
       custom_output_text: "Test response"
-    system_prompts:
-      - You are a helpful assistant.
+    system_prompt: You are a helpful assistant.
 """
 
 
@@ -146,8 +143,7 @@ agents:
     model:
       type: test
       custom_output_text: "Test response"
-    system_prompts:
-      - You are a helpful assistant.
+    system_prompt: You are a helpful assistant.
 """
 
     manifest = AgentsManifest.from_yaml(manifest_str)

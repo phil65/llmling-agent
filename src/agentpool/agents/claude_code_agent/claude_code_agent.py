@@ -71,6 +71,7 @@ if TYPE_CHECKING:
     )
     from evented.configs import EventConfig
     from exxec import ExecutionEnvironment
+    from toprompt import AnyPromptType
 
     from agentpool.agents.context import AgentContext
     from agentpool.agents.events import RichAgentStreamEvent
@@ -115,7 +116,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         cwd: str | None = None,
         allowed_tools: list[str] | None = None,
         disallowed_tools: list[str] | None = None,
-        system_prompt: str | None = None,
+        system_prompt: str | Sequence[str] | None = None,
         include_builtin_system_prompt: bool = True,
         model: str | None = None,
         max_turns: int | None = None,
@@ -146,8 +147,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             cwd: Working directory for Claude Code
             allowed_tools: List of allowed tool names
             disallowed_tools: List of disallowed tool names
-            system_prompt: Custom system prompt (appended to builtin by default)
-            include_builtin_system_prompt: If True (default), system_prompt is appended to builtin; if False, only system_prompt is used
+            system_prompt: System prompt - string or list (appended to builtin by default)
+            include_builtin_system_prompt: If True, the builtin system prompt is included.
             model: Model to use (e.g., "claude-sonnet-4-5")
             max_turns: Maximum conversation turns
             max_thinking_tokens: Max tokens for extended thinking
@@ -208,13 +209,26 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         self._config = config
 
         # Extract runtime state from config
+        from agentpool.agents.sys_prompts import SystemPrompts
+
         self._cwd = cwd or config.cwd
         self._allowed_tools = allowed_tools or config.allowed_tools
         self._disallowed_tools = disallowed_tools or config.disallowed_tools
-        self._system_prompt = system_prompt or config.system_prompt
         self._include_builtin_system_prompt = (
             include_builtin_system_prompt and config.include_builtin_system_prompt
         )
+
+        # Initialize SystemPrompts manager
+        # Normalize system_prompt to a list
+        all_prompts: list[AnyPromptType] = []
+        prompt_source = system_prompt if system_prompt is not None else config.system_prompt
+        if prompt_source is not None:
+            if isinstance(prompt_source, str):
+                all_prompts.append(prompt_source)
+            else:
+                all_prompts.extend(prompt_source)
+        prompt_manager = agent_pool.manifest.prompt_manager if agent_pool else None
+        self.sys_prompts = SystemPrompts(all_prompts, prompt_manager=prompt_manager)
         self._model = model or config.model
         self._max_turns = max_turns or config.max_turns
         self._max_thinking_tokens = max_thinking_tokens or config.max_thinking_tokens
@@ -370,8 +384,12 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         """Get the model name."""
         return self._current_model
 
-    def _build_options(self) -> ClaudeAgentOptions:
-        """Build ClaudeAgentOptions from runtime state."""
+    def _build_options(self, *, formatted_system_prompt: str | None = None) -> ClaudeAgentOptions:
+        """Build ClaudeAgentOptions from runtime state.
+
+        Args:
+            formatted_system_prompt: Pre-formatted system prompt from SystemPrompts manager
+        """
         from claude_agent_sdk import ClaudeAgentOptions
 
         options_kwargs: dict[str, Any] = {}
@@ -382,11 +400,11 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             options_kwargs["allowed_tools"] = self._allowed_tools
         if self._disallowed_tools:
             options_kwargs["disallowed_tools"] = self._disallowed_tools
-        if self._system_prompt:
+        if formatted_system_prompt:
             if self._include_builtin_system_prompt:
-                options_kwargs["append_system_prompt"] = self._system_prompt
+                options_kwargs["append_system_prompt"] = formatted_system_prompt
             else:
-                options_kwargs["system_prompt"] = self._system_prompt
+                options_kwargs["system_prompt"] = formatted_system_prompt
         if self._model:
             options_kwargs["model"] = self._model
         if self._max_turns:
@@ -494,9 +512,12 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         # Setup toolsets before building options (they add MCP servers)
         await self._setup_toolsets()
 
+        # Format system prompts asynchronously
+        formatted_prompt = await self.sys_prompts.format_system_prompt(self)
+
         from claude_agent_sdk import ClaudeSDKClient
 
-        options = self._build_options()
+        options = self._build_options(formatted_system_prompt=formatted_prompt)
         self._client = ClaudeSDKClient(options=options)
         await self._client.connect()
         self.log.info("Claude Code client connected")

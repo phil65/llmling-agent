@@ -121,8 +121,7 @@ class AgentsManifest(Schema):
           assistant:
             type: native
             model: openai:gpt-4
-            system_prompts:
-              - "You are a helpful assistant."
+            system_prompt: "You are a helpful assistant."
 
           coder:
             type: claude_code

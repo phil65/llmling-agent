@@ -16,14 +16,12 @@ agents:
     base:
         model: {default_model}
         display_name: Base Agent
-        system_prompts:
-            - "Base prompt"
+        system_prompt: "Base prompt"
 
     child:
         inherits: base
         display_name: Child Agent
-        system_prompts:
-            - "Child prompt"
+        system_prompt: "Child prompt"
 """
 
 
@@ -35,8 +33,7 @@ agents:
 
     middle:
         inherits: base
-        system_prompts:
-            - "Middle prompt"
+        system_prompt: "Middle prompt"
 
     child:
         inherits: middle
@@ -104,7 +101,7 @@ def test_basic_inheritance(basic_config: Path, default_model: str):
     child = manifest.agents["child"]
     assert child.display_name == "Child Agent"
     assert child.model.identifier == default_model  # type: ignore
-    assert child.system_prompts == ["Child prompt"]
+    assert child.system_prompt == "Child prompt"
 
 
 def test_multi_level_inheritance(multi_level_config: Path, default_model: str):
@@ -114,7 +111,7 @@ def test_multi_level_inheritance(multi_level_config: Path, default_model: str):
     child = manifest.agents["child"]
     assert child.display_name == "Child"
     assert child.model.identifier == default_model  # type: ignore
-    assert child.system_prompts == ["Middle prompt"]  # Inherited from middle
+    assert child.system_prompt == "Middle prompt"  # Inherited from middle
 
 
 def test_circular_inheritance(circular_config: Path, default_model: str):

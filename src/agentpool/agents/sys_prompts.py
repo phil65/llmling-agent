@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
     from toprompt import AnyPromptType
 
-    from agentpool.agents import BaseAgent
+    from agentpool.agents.base_agent import BaseAgent
     from agentpool.prompts.manager import PromptManager
 
 

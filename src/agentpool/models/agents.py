@@ -175,15 +175,18 @@ class NativeAgentConfig(BaseAgentConfig):
     )
     """URL or path to agent's avatar image"""
 
-    system_prompts: Sequence[str | PromptConfig] = Field(
-        default_factory=list,
-        title="System prompts",
-        examples=[["You are an AI assistant."]],
+    system_prompt: str | Sequence[str | PromptConfig] | None = Field(
+        default=None,
+        title="System Prompt",
+        examples=[
+            "You are a helpful assistant.",
+            ["You are an AI assistant.", "Always be concise."],
+        ],
         json_schema_extra={
             "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/"
         },
     )
-    """System prompts for the agent. Can be strings or structured prompt configs.
+    """System prompt for the agent. Can be a string or list of strings/prompt configs.
 
     Docs: https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/
     """
@@ -354,7 +357,13 @@ class NativeAgentConfig(BaseAgentConfig):
         )
 
         prompts: list[BasePrompt] = []
-        for prompt in self.system_prompts:
+        # Normalize system_prompt to a list
+        if self.system_prompt is None:
+            return prompts
+        prompt_list = (
+            [self.system_prompt] if isinstance(self.system_prompt, str) else self.system_prompt
+        )
+        for prompt in prompt_list:
             match prompt:
                 case (str() as content) | StaticPromptConfig(content=content):
                     # Convert string to StaticPrompt
@@ -403,7 +412,13 @@ class NativeAgentConfig(BaseAgentConfig):
 
         context = context or {"name": self.name, "id": 1, "model": self.model}
         rendered_prompts: list[str] = []
-        for prompt in self.system_prompts:
+        # Normalize system_prompt to a list
+        if self.system_prompt is None:
+            return rendered_prompts
+        prompt_list = (
+            [self.system_prompt] if isinstance(self.system_prompt, str) else self.system_prompt
+        )
+        for prompt in prompt_list:
             match prompt:
                 case (str() as content) | StaticPromptConfig(content=content):
                     rendered_prompts.append(render_prompt(content, {"agent": context}))

@@ -53,15 +53,13 @@ agents:
       type: function
       function: {__name__}.make_response
     output_type: ConversationOutput
-    system_prompts:
-      - You are a test agent
+    system_prompt: You are a test agent
 
   error_agent:
     name: Error Agent
     description: Agent that always raises errors
     model: test
-    system_prompts:
-      - You are an error agent
+    system_prompt: You are an error agent
 """
 
 

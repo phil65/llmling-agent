@@ -2,11 +2,10 @@
 agents:
   url_opener:
     model: openai:gpt-5-mini
-    system_prompts:
-      - |
-        You help users open websites. Use the open_url tool to open URLs.
-        When given a website name, find its URL in the bookmarks resource.
-        Always confirm what you're about to open.
+    system_prompt: |
+      You help users open websites. Use the open_url tool to open URLs.
+      When given a website name, find its URL in the bookmarks resource.
+      Always confirm what you're about to open.
     toolsets:
       - type: import_tools
         tools:

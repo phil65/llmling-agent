@@ -59,8 +59,7 @@ class SyncConfig(BaseModel):
         agents:
           doc_sync_agent:
             model: openai:gpt-4o
-            system_prompts:
-              - "You maintain documentation..."
+            system_prompt: "You maintain documentation..."
 
         sync:
           default_agent: doc_sync_agent

@@ -2,15 +2,7 @@
 agents:
   file_manager:
     model: openai:gpt-5
-    system_prompts:
-      - "You help users manage their files and directories."
-      - |
-        Available tools:
-        - list_files: Show directory contents
-        - read_file: Read file contents
-        - file_info: Get file metadata
-
-        Always confirm before modifying files.
+    system_prompt: "You help users manage their files and directories."
     toolsets:
       - type: import_tools
         tools:

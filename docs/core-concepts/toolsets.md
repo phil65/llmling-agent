@@ -194,8 +194,7 @@ agents:
     toolsets:
       - type: agent_management
       - type: history
-    system_prompts:
-      - You coordinate tasks across multiple agents
+    system_prompt: You coordinate tasks across multiple agents
 ```
 
 ### Developer Agent
@@ -209,8 +208,7 @@ agents:
       - type: code_execution
       - type: process_management
       - type: tool_management
-    system_prompts:
-      - You are a software developer with full system access
+    system_prompt: You are a software developer with full system access
 ```
 
 ### Restricted Agent

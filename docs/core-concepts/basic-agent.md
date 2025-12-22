@@ -103,8 +103,7 @@ agents:
        type: pydantic_ai
        model: openai:gpt-5
     output_type: AnalysisResult  # Reference shared definition
-    system_prompts:
-      - You analyze text and provide structured results.
+    system_prompt: You analyze text and provide structured results.
 
   validator:
     provider:

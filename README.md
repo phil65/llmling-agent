@@ -58,8 +58,7 @@ agents:
   assistant:
     type: native
     model: openai:gpt-4o
-    system_prompts:
-      - "You are a helpful assistant."
+    system_prompt: "You are a helpful assistant."
 ```
 
 ```bash
@@ -82,8 +81,7 @@ agents:
     model: openai:gpt-4o
     toolsets:
       - type: subagent  # Can delegate to all other agents
-    system_prompts:
-      - "Coordinate tasks between available agents."
+    system_prompt: "Coordinate tasks between available agents."
 
   # Claude Code agent (direct integration)
   claude:

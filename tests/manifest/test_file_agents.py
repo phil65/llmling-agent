@@ -143,9 +143,9 @@ def test_parse_valid_claude_agent():
         assert config.description == "Expert code reviewer for quality and security"
         assert get_model_identifier(config.model) == CLAUDE_MODEL_ALIASES["sonnet"]
         assert config.requires_tool_confirmation == PERMISSION_MODE_MAP["default"]
-        assert len(config.system_prompts) == 1
-        assert "senior code reviewer" in str(config.system_prompts[0])
-        assert "Code readability" in str(config.system_prompts[0])
+        assert config.system_prompt is not None
+        assert "senior code reviewer" in str(config.system_prompt)
+        assert "Code readability" in str(config.system_prompt)
 
 
 def test_parse_minimal_agent():
@@ -158,8 +158,8 @@ def test_parse_minimal_agent():
 
         assert config.description == "A minimal agent"
         assert config.model is None
-        assert len(config.system_prompts) == 1
-        assert "simple system prompt" in str(config.system_prompts[0])
+        assert config.system_prompt is not None
+        assert "simple system prompt" in str(config.system_prompt)
 
 
 def test_parse_agent_with_agentpool_extensions():
@@ -280,7 +280,7 @@ def test_manifest_file_agents_mixed(tmp_path: Path):
         agents={
             "inline_agent": NativeAgentConfig(
                 description="Inline agent",
-                system_prompts=["You are inline"],
+                system_prompt="You are inline",
             ),
         },
         file_agents={"file_agent": str(agent_file)},
@@ -319,7 +319,7 @@ model: haiku
 
         assert config.description == "Agent with no body"
         # Empty body means no system prompts
-        assert len(config.system_prompts) == 0
+        assert config.system_prompt is None
 
 
 def test_direct_model_name():
@@ -351,9 +351,9 @@ def test_parse_opencode_agent():
 
         assert config.description == "Reviews code for quality and best practices"
         assert get_model_identifier(config.model) == "anthropic/claude-sonnet-4-20250514"
-        assert len(config.system_prompts) == 1
-        assert "code review mode" in str(config.system_prompts[0])
-        assert "Code quality" in str(config.system_prompts[0])
+        assert config.system_prompt is not None
+        assert "code review mode" in str(config.system_prompt)
+        assert "Code quality" in str(config.system_prompt)
 
 
 def test_parse_opencode_with_maxsteps():
@@ -365,7 +365,7 @@ def test_parse_opencode_with_maxsteps():
         config = parse_agent_file(f.name)
 
         assert config.description == "Fast reasoning with limited iterations"
-        assert "Quick thinker" in str(config.system_prompts[0])
+        assert "Quick thinker" in str(config.system_prompt)
 
 
 def test_format_auto_detection():

@@ -2,7 +2,7 @@
 agents:
   city_picker:
     model: gpt-5-nano
-    system_prompts: ["You generate random city names."]
+    system_prompt: "You generate random city names."
   fact_finder:
     model: gpt-5-nano
-    system_prompts: ["You provide interesting facts about cities."]
+    system_prompt: "You provide interesting facts about cities."

@@ -36,12 +36,17 @@ System prompts support four different configuration types:
 
 ### String Prompts (Shortcut)
 
-Simple strings are automatically converted to static prompt configs:
+Simple strings work directly - use a single string for simple cases or a list for multiple prompts:
 
 ```yaml
 agents:
+  # Simple single prompt
   helper:
-    system_prompts:
+    system_prompt: "You are a helpful assistant."
+
+  # Multiple prompts (combined into one)
+  detailed_helper:
+    system_prompt:
       - "You are a helpful assistant."
       - "You provide concise answers."
 ```
@@ -53,7 +58,7 @@ Explicit static prompt definitions:
 ```yaml
 agents:
   helper:
-    system_prompts:
+    system_prompt:
       - type: static
         content: "You are a professional assistant."
       - type: static
@@ -67,7 +72,7 @@ Load prompts from Jinja2 template files:
 ```yaml
 agents:
   expert:
-    system_prompts:
+    system_prompt:
       - type: file
         path: "prompts/role.j2"
         variables:
@@ -82,7 +87,7 @@ Reference prompts from the configured prompt library:
 
 ```yaml
 prompts:
-  system_prompts:
+  system_prompt:
     expert_analyst:
       content: |
         You are an expert data analyst.
@@ -92,7 +97,7 @@ prompts:
 
 agents:
   analyst:
-    system_prompts:
+    system_prompt:
       - type: library
         reference: "expert_analyst"
 ```
@@ -104,7 +109,7 @@ Generate prompts dynamically using callable functions:
 ```yaml
 agents:
   dynamic_agent:
-    system_prompts:
+    system_prompt:
       - type: function
         function: "my_module:generate_context_prompt"
         arguments:
@@ -158,7 +163,7 @@ You can combine different prompt types in a single agent:
 ```yaml
 agents:
   advanced_assistant:
-    system_prompts:
+    system_prompt:
       # String shortcut
       - "You are an advanced AI assistant."
 
@@ -350,19 +355,24 @@ agent.sys_prompts.add("step_by_step")
 agents:
   my_agent:
     model: gpt-5
-    system_prompts:
+    system_prompt:
       - "You are a helpful assistant"
       - type: library
         reference: step_by_step
       - type: library
         reference: professional
+
+  # Or for a simple single prompt
+  simple_agent:
+    model: gpt-5
+    system_prompt: "You are a helpful assistant."
 ```
 
 ### Defining Library Prompts
 
 ```yaml
 prompts:
-  system_prompts:
+  system_prompt:
     expert_analyst:
       content: |
         You are an expert data analyst.
@@ -387,7 +397,7 @@ prompts:
     ```yaml
     # prompts.yml
     prompts:
-      system_prompts:
+      system_prompt:
         my_prompt:
           content: ...
           category: role
@@ -396,7 +406,7 @@ prompts:
     INHERIT: prompts.yml
     agents:
       my_agent:
-        system_prompts:
+        system_prompt:
           - type: library
             reference: my_prompt
     ```

@@ -182,7 +182,7 @@ def parse_claude_format(
 
     # System prompt from markdown body
     if system_prompt:
-        config_kwargs["system_prompts"] = [system_prompt]
+        config_kwargs["system_prompt"] = system_prompt
 
     # Pass through agentpool specific fields
     for field in PASSTHROUGH_FIELDS:
@@ -255,7 +255,7 @@ def parse_opencode_format(
 
     # System prompt from markdown body
     if system_prompt:
-        config_kwargs["system_prompts"] = [system_prompt]
+        config_kwargs["system_prompt"] = system_prompt
 
     # Pass through agentpool specific fields
     for field in PASSTHROUGH_FIELDS:
@@ -285,8 +285,8 @@ def parse_native_format(
     config_kwargs = dict(metadata)
 
     # Add system prompt from body if present and not already defined
-    if system_prompt and "system_prompts" not in config_kwargs:
-        config_kwargs["system_prompts"] = [system_prompt]
+    if system_prompt and "system_prompt" not in config_kwargs:
+        config_kwargs["system_prompt"] = system_prompt
 
     return config_kwargs
 

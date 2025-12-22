@@ -124,8 +124,7 @@ async def test_a2a_server_from_config(tmp_path):
         name: test_agent
         environment: test
         model: test
-        system_prompts:
-          - You are a test agent
+        system_prompt: You are a test agent
     """
 
     config_path = tmp_path / "test_config.yml"

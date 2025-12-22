@@ -31,8 +31,7 @@ agents:
     description: A test agent
     model: test
     output_type: TestResponse
-    system_prompts:
-      - You are a test agent
+    system_prompt: You are a test agent
 """
 
 INVALID_RESPONSE_CONFIG = """\
@@ -41,7 +40,6 @@ agent:
   name: Test Agent
   model: test
   output_type: NonExistentResponse
-  system_prompts: []
 """
 
 

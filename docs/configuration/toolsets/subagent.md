@@ -38,18 +38,15 @@ agents:
   coordinator:
     toolsets:
       - type: subagent
-    system_prompts:
-      - You coordinate work between specialized agents.
+    system_prompt: You coordinate work between specialized agents.
   
   researcher:
     model: openai:gpt-4o
-    system_prompts:
-      - You research topics thoroughly.
+    system_prompt: You research topics thoroughly.
   
   writer:
     model: openai:gpt-4o
-    system_prompts:
-      - You write clear documentation.
+    system_prompt: You write clear documentation.
 ```
 
 The coordinator can then delegate research to the researcher and writing to the writer.

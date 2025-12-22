@@ -917,36 +917,42 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         else:
             msg = f"Agent {name!r} not found in agents or file_agents"
             raise KeyError(msg)
+        # Normalize system_prompt to a list for iteration
         sys_prompts: list[str] = []
-        for prompt in config.system_prompts:
-            match prompt:
-                case (str() as sys_prompt) | StaticPromptConfig(content=sys_prompt):
-                    sys_prompts.append(sys_prompt)
-                case FilePromptConfig(path=path, variables=variables):
-                    template_path = Path(path)  # Load template from file
-                    if not template_path.is_absolute() and config.config_file_path:
-                        template_path = Path(config.config_file_path).parent / path
+        prompt_source = config.system_prompt
+        if prompt_source is not None:
+            prompts_to_process = (
+                [prompt_source] if isinstance(prompt_source, str) else prompt_source
+            )
+            for prompt in prompts_to_process:
+                match prompt:
+                    case (str() as sys_prompt) | StaticPromptConfig(content=sys_prompt):
+                        sys_prompts.append(sys_prompt)
+                    case FilePromptConfig(path=path, variables=variables):
+                        template_path = Path(path)  # Load template from file
+                        if not template_path.is_absolute() and config.config_file_path:
+                            template_path = Path(config.config_file_path).parent / path
 
-                    template_content = template_path.read_text("utf-8")
-                    if variables:  # Apply variables if any
-                        from jinja2 import Template
+                        template_content = template_path.read_text("utf-8")
+                        if variables:  # Apply variables if any
+                            from jinja2 import Template
 
-                        template = Template(template_content)
-                        content = template.render(**variables)
-                    else:
-                        content = template_content
-                    sys_prompts.append(content)
-                case LibraryPromptConfig(reference=reference):
-                    try:  # Load from library
-                        content = self.manifest.prompt_manager.get.sync(reference)
+                            template = Template(template_content)
+                            content = template.render(**variables)
+                        else:
+                            content = template_content
                         sys_prompts.append(content)
-                    except Exception as e:
-                        msg = f"Failed to load library prompt {reference!r} for agent {name}"
-                        logger.exception(msg)
-                        raise ValueError(msg) from e
-                case FunctionPromptConfig(function=function, arguments=arguments):
-                    content = function(**arguments)  # Call function to get prompt content
-                    sys_prompts.append(content)
+                    case LibraryPromptConfig(reference=reference):
+                        try:  # Load from library
+                            content = self.manifest.prompt_manager.get.sync(reference)
+                            sys_prompts.append(content)
+                        except Exception as e:
+                            msg = f"Failed to load library prompt {reference!r} for agent {name}"
+                            logger.exception(msg)
+                            raise ValueError(msg) from e
+                    case FunctionPromptConfig(function=function, arguments=arguments):
+                        content = function(**arguments)  # Call function to get prompt content
+                        sys_prompts.append(content)
         # Prepare toolsets list with config's tool provider
         toolsets_list = config.get_toolsets()
         if config_tool_provider := config.get_tool_provider():
