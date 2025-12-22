@@ -6,8 +6,6 @@ from dataclasses import KW_ONLY, dataclass, field
 from importlib.metadata import version as _version
 from typing import TYPE_CHECKING, Any, ClassVar
 
-from tokonomics.model_discovery.model_info import ModelInfo as TokoModelInfo
-
 from acp import Agent as ACPAgent
 from acp.schema import (
     ForkSessionResponse,
@@ -63,27 +61,47 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-def to_tokonomics_model_info(model_info: ACPModelInfo) -> TokoModelInfo:
-    if len(model_info.model_id.split(":")) > 1:
-        provider, model_id = model_info.model_id.split(":")
-    else:
-        provider = ""
-        model_id = model_info.model_id
-    return TokoModelInfo(
-        id=model_id,
-        provider=provider,
-        name=model_info.name,
-        description=model_info.description,
-    )
+# Claude Code model definitions - simple IDs that the SDK understands
+CLAUDE_CODE_MODELS: list[ACPModelInfo] = [
+    ACPModelInfo(
+        model_id="sonnet",
+        name="Claude Sonnet",
+        description="Claude Sonnet - balanced performance and speed",
+    ),
+    ACPModelInfo(
+        model_id="opus",
+        name="Claude Opus",
+        description="Claude Opus - most capable model",
+    ),
+    ACPModelInfo(
+        model_id="haiku",
+        name="Claude Haiku",
+        description="Claude Haiku - fast and cost-effective",
+    ),
+]
+
+
+def create_claude_code_model_state(current_model: str | None = None) -> SessionModelState:
+    """Create SessionModelState for Claude Code agents.
+
+    Args:
+        current_model: Currently active model ID (e.g., "sonnet")
+
+    Returns:
+        SessionModelState with Claude Code models
+    """
+    model_ids = [m.model_id for m in CLAUDE_CODE_MODELS]
+    current = current_model if current_model in model_ids else "sonnet"
+    return SessionModelState(available_models=CLAUDE_CODE_MODELS, current_model_id=current)
 
 
 def create_session_model_state(
-    available_models: Sequence[TokoModelInfo], current_model: str | None = None
+    available_models: Sequence[ACPModelInfo], current_model: str | None = None
 ) -> SessionModelState | None:
-    """Create a SessionModelState from available models.
+    """Create a SessionModelState from available ACP models.
 
     Args:
-        available_models: List of all models the agent can switch between
+        available_models: List of ACP ModelInfo objects (already converted from tokonomics)
         current_model: The currently active model (defaults to first available)
 
     Returns:
@@ -91,19 +109,12 @@ def create_session_model_state(
     """
     if not available_models:
         return None
-    # Create ModelInfo objects for each available model
-    models = [
-        ACPModelInfo(
-            model_id=model.pydantic_ai_id,
-            name=f"{model.provider}: {model.name}" if model.provider else model.name,
-            description=model.format(),
-        )
-        for model in available_models
-    ]
-    # Use first model as current if not specified
-    all_ids = [model.pydantic_ai_id for model in available_models]
+    # Use first model as current if not specified or not found
+    all_ids = [model.model_id for model in available_models]
     current_model_id = current_model if current_model in all_ids else all_ids[0]
-    return SessionModelState(available_models=models, current_model_id=current_model_id)
+    return SessionModelState(
+        available_models=list(available_models), current_model_id=current_model_id
+    )
 
 
 @dataclass
@@ -124,8 +135,8 @@ class AgentPoolACPAgent(ACPAgent):
 
     _: KW_ONLY
 
-    available_models: Sequence[TokoModelInfo] = field(default_factory=list)
-    """List of available tokonomics TokoModelInfo objects."""
+    available_models: Sequence[ACPModelInfo] = field(default_factory=list)
+    """List of available ACP ModelInfo objects (converted from tokonomics at startup)."""
 
     file_access: bool = True
     """Whether agent can access filesystem."""
@@ -233,17 +244,17 @@ class AgentPoolACPAgent(ACPAgent):
 
             # Get model information from the default agent
             if session := self.session_manager.get_session(session_id):
-                if isinstance(session.agent, ACPAgentClient):
-                    current_model = (
-                        session.agent._state.current_model_id if session.agent._state else None
-                    )
-                    all_models = (
-                        session.agent._state.models.available_models
-                        if session.agent._state and session.agent._state.models
-                        else []
-                    )
-                    converted = [to_tokonomics_model_info(i) for i in all_models]
-                    models = create_session_model_state(converted, current_model)
+                from agentpool.agents.claude_code_agent import ClaudeCodeAgent
+
+                if isinstance(session.agent, ClaudeCodeAgent):
+                    # Claude Code uses simple model IDs (sonnet, opus, haiku)
+                    models = create_claude_code_model_state(session.agent.model_name)
+                elif isinstance(session.agent, ACPAgentClient):
+                    # Nested ACP agent - pass through its model state directly
+                    if session.agent._state and session.agent._state.models:
+                        models = session.agent._state.models
+                    else:
+                        models = None
                 else:
                     current_model = session.agent.model_name
                     models = create_session_model_state(self.available_models, current_model)
@@ -330,8 +341,16 @@ class AgentPoolACPAgent(ACPAgent):
             #     available_modes=modes,
             # )
 
-            current_model = session.agent.model_name if session.agent else None
-            models = create_session_model_state(self.available_models, current_model)
+            # Get model information based on agent type
+            from agentpool.agents.claude_code_agent import ClaudeCodeAgent
+
+            models: SessionModelState | None
+            if session.agent and isinstance(session.agent, ClaudeCodeAgent):
+                # Claude Code uses simple model IDs (sonnet, opus, haiku)
+                models = create_claude_code_model_state(session.agent.model_name)
+            else:
+                current_model = session.agent.model_name if session.agent else None
+                models = create_session_model_state(self.available_models, current_model)
             # Schedule post-load initialization tasks
             self.tasks.create_task(session.send_available_commands_update())
             self.tasks.create_task(session.init_project_context())
@@ -596,17 +615,19 @@ class AgentPoolACPAgent(ACPAgent):
             logger.exception("Failed to set session mode", session_id=params.session_id)
             return None
 
-    async def set_session_model(
+    async def set_session_model(  # noqa: PLR0911
         self, params: SetSessionModelRequest
     ) -> SetSessionModelResponse | None:
         """Set the session model.
 
         Changes the model for the active agent in the session.
         Validates that the requested model is in the available models list:
+        - For ClaudeCodeAgent: validates against Claude Code models (sonnet, opus, haiku)
         - For native Agent: validates against server's available_models
         - For ACPAgent: validates against the nested agent's model list
         """
         from agentpool.agents.acp_agent import ACPAgent as ACPAgentClient
+        from agentpool.agents.claude_code_agent import ClaudeCodeAgent
 
         try:
             session = self.session_manager.get_session(params.session_id)
@@ -616,6 +637,20 @@ class AgentPoolACPAgent(ACPAgent):
                 return None
 
             # Validate model based on agent type
+            if isinstance(session.agent, ClaudeCodeAgent):
+                # For ClaudeCodeAgent, validate against our hardcoded models
+                available_ids = [m.model_id for m in CLAUDE_CODE_MODELS]
+                if params.model_id not in available_ids:
+                    logger.warning(
+                        "Model not in Claude Code available models",
+                        model_id=params.model_id,
+                        available=available_ids,
+                    )
+                    return None
+                await session.agent.set_model(params.model_id)
+                logger.info("Set model", model_id=params.model_id, session_id=params.session_id)
+                return SetSessionModelResponse()
+
             if isinstance(session.agent, ACPAgentClient):
                 # For ACPAgent, validate against nested agent's model list
                 if session.agent._state and session.agent._state.models:
@@ -639,7 +674,7 @@ class AgentPoolACPAgent(ACPAgent):
 
             if isinstance(session.agent, Agent):
                 # For native Agent, validate against server's available models
-                available_ids = [m.pydantic_ai_id for m in self.available_models]
+                available_ids = [m.model_id for m in self.available_models]
                 if params.model_id not in available_ids:
                     logger.warning(
                         "Model not in available models",

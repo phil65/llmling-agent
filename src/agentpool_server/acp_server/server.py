@@ -23,12 +23,39 @@ from agentpool_server.acp_server.acp_agent import AgentPoolACPAgent
 
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from tokonomics.model_discovery import ProviderType
     from tokonomics.model_discovery.model_info import ModelInfo
     from upathtools import JoinablePathLike
 
+    from acp.schema import ModelInfo as ACPModelInfo
+
 
 logger = get_logger(__name__)
+
+
+def _convert_to_acp_model_info(
+    toko_models: Sequence[ModelInfo],
+) -> list[ACPModelInfo]:
+    """Convert tokonomics ModelInfo list to ACP ModelInfo list.
+
+    Args:
+        toko_models: List of tokonomics ModelInfo objects
+
+    Returns:
+        List of ACP ModelInfo objects with pydantic_ai_id as model_id
+    """
+    from acp.schema import ModelInfo as ACPModelInfo
+
+    return [
+        ACPModelInfo(
+            model_id=model.pydantic_ai_id,
+            name=f"{model.provider}: {model.name}" if model.provider else model.name,
+            description=model.format(),
+        )
+        for model in toko_models
+    ]
 
 
 class ACPServer(BaseServer):
@@ -79,7 +106,7 @@ class ACPServer(BaseServer):
         self.agent = agent
         self.load_skills = load_skills
 
-        self._available_models: list[ModelInfo] = []
+        self._available_models: list[ACPModelInfo] = []
         self._models_initialized = False
 
     @classmethod
@@ -170,7 +197,11 @@ class ACPServer(BaseServer):
 
     @logfire.instrument("ACP: Initializing models.")
     async def _initialize_models(self) -> None:
-        """Initialize available models using tokonomics model discovery."""
+        """Initialize available models using tokonomics model discovery.
+
+        Converts tokonomics ModelInfo to ACP ModelInfo format at startup
+        so all downstream code works with ACP types consistently.
+        """
         from tokonomics.model_discovery import get_all_models
 
         if self._models_initialized:
@@ -178,7 +209,9 @@ class ACPServer(BaseServer):
         try:
             self.log.info("Discovering available models...")
             delta = timedelta(days=200)
-            self._available_models = await get_all_models(providers=self.providers, max_age=delta)
+            toko_models = await get_all_models(providers=self.providers, max_age=delta)
+            # Convert to ACP format once at startup
+            self._available_models = _convert_to_acp_model_info(toko_models)
             self._models_initialized = True
             self.log.info("Discovered models", count=len(self._available_models))
         except Exception:
