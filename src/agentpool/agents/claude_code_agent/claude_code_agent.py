@@ -40,7 +40,12 @@ from pydantic_ai.usage import RunUsage
 
 from agentpool.agents.base_agent import BaseAgent
 from agentpool.agents.claude_code_agent.converters import claude_message_to_events
-from agentpool.agents.events import RunErrorEvent, RunStartedEvent, StreamCompleteEvent
+from agentpool.agents.events import (
+    RunErrorEvent,
+    RunStartedEvent,
+    StreamCompleteEvent,
+    ToolCallCompleteEvent,
+)
 from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage
 from agentpool.messaging.messages import TokenCost
@@ -405,7 +410,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
 
         return ClaudeAgentOptions(**options_kwargs)
 
-    async def _can_use_tool(
+    async def _can_use_tool(  # noqa: PLR0911
         self,
         tool_name: str,
         input_data: dict[str, Any],
@@ -426,6 +431,13 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         # Auto-grant if confirmation mode is "never"
         if self.tool_confirmation_mode == "never":
             return PermissionResultAllow()
+
+        # Auto-grant tools from our own bridge - they already show ToolCallStartEvent in UI
+        # Bridge tools are named like: mcp__agentpool-{agent_name}-tools__{tool}
+        if self._tool_bridge:
+            bridge_prefix = f"mcp__{self._tool_bridge.config.server_name}__"
+            if tool_name.startswith(bridge_prefix):
+                return PermissionResultAllow()
 
         # Use input provider if available
         if self._input_provider:
@@ -552,6 +564,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             ThinkingBlock,
             ToolResultBlock,
             ToolUseBlock as ToolUseBlockType,
+            UserMessage,
         )
 
         # Update input provider if provided
@@ -618,11 +631,66 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                 # Get tool name from pending calls
                                 tool_use = pending_tool_calls.pop(tc_id, None)
                                 tool_name = tool_use.name if tool_use else "unknown"
+                                tool_input = tool_use.input if tool_use else {}
+
+                                # Emit ToolCallCompleteEvent
+                                complete_event = ToolCallCompleteEvent(
+                                    tool_name=tool_name,
+                                    tool_call_id=tc_id,
+                                    tool_input=tool_input,
+                                    tool_result=content,
+                                    agent_name=self.name,
+                                    message_id="",
+                                )
+                                for handler in self.event_handler._wrapped_handlers:
+                                    await handler(None, complete_event)
+                                yield complete_event
+
                                 # Add tool return as ModelRequest
                                 part = ToolReturnPart(
                                     tool_name=tool_name, content=content, tool_call_id=tc_id
                                 )
                                 model_messages.append(ModelRequest(parts=[part]))
+
+                # Process user messages - may contain tool results
+                elif isinstance(message, UserMessage):
+                    content = message.content
+                    blocks = [content] if isinstance(content, str) else content
+                    for block in blocks:
+                        if isinstance(block, ToolResultBlock):
+                            tc_id = block.tool_use_id
+                            result_content = block.content
+
+                            # Flush response parts
+                            if current_response_parts:
+                                model_messages.append(ModelResponse(parts=current_response_parts))
+                                current_response_parts = []
+
+                            # Get tool name from pending calls
+                            tool_use = pending_tool_calls.pop(tc_id, None)
+                            tool_name = tool_use.name if tool_use else "unknown"
+                            tool_input = tool_use.input if tool_use else {}
+
+                            # Emit ToolCallCompleteEvent
+                            complete_event = ToolCallCompleteEvent(
+                                tool_name=tool_name,
+                                tool_call_id=tc_id,
+                                tool_input=tool_input,
+                                tool_result=result_content,
+                                agent_name=self.name,
+                                message_id="",
+                            )
+                            for handler in self.event_handler._wrapped_handlers:
+                                await handler(None, complete_event)
+                            yield complete_event
+
+                            # Add tool return as ModelRequest
+                            part = ToolReturnPart(
+                                tool_name=tool_name,
+                                content=result_content,
+                                tool_call_id=tc_id,
+                            )
+                            model_messages.append(ModelRequest(parts=[part]))
 
                 # Convert to events and yield
                 events = claude_message_to_events(
