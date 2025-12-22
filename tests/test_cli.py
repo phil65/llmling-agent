@@ -28,6 +28,7 @@ responses:
 
 agents:
   test_agent:
+    type: native
     name: test_agent
     model: test
     output_type: BasicResult

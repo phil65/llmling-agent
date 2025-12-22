@@ -38,6 +38,7 @@ responses:
 
 agents:
   agent_1:
+    type: native
     name: First Agent
     description: First test agent
     model:

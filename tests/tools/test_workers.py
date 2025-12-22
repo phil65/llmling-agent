@@ -23,6 +23,7 @@ class StructuredResponse(BaseModel):
 BASIC_WORKERS = """\
 agents:
   main:
+    type: native
     model: test
     name: Main Agent
     workers:
@@ -31,11 +32,13 @@ agents:
     system_prompt: "You are the main agent. Use your workers to help with tasks."
 
   worker:
+    type: native
     model: test
     name: Basic Worker
     system_prompt: "You are a helpful worker agent."
 
   specialist:
+    type: native
     model: test
     name: Domain Specialist
     system_prompt: "You are a specialist with deep domain knowledge."
@@ -44,6 +47,7 @@ agents:
 WORKERS_WITH_SHARING = """\
 agents:
   main:
+    type: native
     model: test
     name: Main Agent
     workers:
@@ -52,11 +56,13 @@ agents:
       - name: specialist
 
   worker:
+    type: native
     model: test
     name: History Worker
     system_prompt: "You are a worker with conversation history."
 
   specialist:
+    type: native
     model: test
     name: Context Worker
     system_prompt: "You are a worker with context access."
@@ -65,6 +71,7 @@ agents:
 INVALID_WORKERS = """\
 agents:
   main:
+    type: native
     model: test
     name: Main Agent
     workers:
@@ -74,6 +81,7 @@ agents:
 STRUCTURED_WORKER = """\
 agents:
   main:
+    type: native
     model: test
     name: Main Agent
     workers:

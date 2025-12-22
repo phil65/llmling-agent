@@ -35,6 +35,7 @@ def test_agent_config_yaml() -> str:
     return """
 agents:
   test_agent:
+    type: native
     model: test
 """
 

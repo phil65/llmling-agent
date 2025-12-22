@@ -119,12 +119,7 @@ async def test_agui_server_from_config(tmp_path):
     config_path.write_text(config_content)
 
     port = TEST_PORT_BASE + 6
-    server = AGUIServer.from_config(
-        config_path,
-        host="localhost",
-        port=port,
-    )
-
+    server = AGUIServer.from_config(config_path, host="localhost", port=port)
     assert server.host == "localhost"
     assert server.port == port
     assert len(server.pool.agents) >= 1

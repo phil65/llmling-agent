@@ -237,6 +237,7 @@ agents:
 
 agents:
   coordinator:
+    type: native
     model: openai:gpt-5-mini
     toolsets:
       - type: agent_management  # Enables delegation to ACP agents
