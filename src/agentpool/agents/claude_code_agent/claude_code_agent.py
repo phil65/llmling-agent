@@ -27,11 +27,14 @@ from decimal import Decimal
 from typing import TYPE_CHECKING, Any, Self
 import uuid
 
+from pydantic_ai import PartDeltaEvent
 from pydantic_ai.messages import (
     ModelRequest,
     ModelResponse,
     TextPart,
+    TextPartDelta,
     ThinkingPart,
+    ThinkingPartDelta,
     ToolCallPart,
     ToolReturnPart,
     UserPromptPart,
@@ -416,6 +419,9 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         if self._mcp_servers:
             options_kwargs["mcp_servers"] = self._mcp_servers
 
+        # Enable partial message streaming for real-time text deltas
+        options_kwargs["include_partial_messages"] = True
+
         return ClaudeAgentOptions(**options_kwargs)
 
     async def _can_use_tool(  # noqa: PLR0911
@@ -574,6 +580,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             ToolUseBlock as ToolUseBlockType,
             UserMessage,
         )
+        from claude_agent_sdk.types import StreamEvent
 
         # Update input provider if provided
         if input_provider is not None:
@@ -699,6 +706,42 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                 tool_call_id=tc_id,
                             )
                             model_messages.append(ModelRequest(parts=[part]))
+
+                # Handle StreamEvent for real-time text deltas
+                elif isinstance(message, StreamEvent):
+                    event_data = message.event
+                    event_type = event_data.get("type")
+
+                    # Handle content_block_delta events (text streaming)
+                    if event_type == "content_block_delta":
+                        delta = event_data.get("delta", {})
+                        delta_type = delta.get("type")
+
+                        if delta_type == "text_delta":
+                            text_delta = delta.get("text", "")
+                            if text_delta:
+                                # Yield text delta event immediately
+                                delta_event = PartDeltaEvent(
+                                    index=event_data.get("index", 0),
+                                    delta=TextPartDelta(content_delta=text_delta),
+                                )
+                                for handler in self.event_handler._wrapped_handlers:
+                                    await handler(None, delta_event)
+                                yield delta_event
+
+                        elif delta_type == "thinking_delta":
+                            thinking_delta = delta.get("thinking", "")
+                            if thinking_delta:
+                                delta_event = PartDeltaEvent(
+                                    index=event_data.get("index", 0),
+                                    delta=ThinkingPartDelta(content_delta=thinking_delta),
+                                )
+                                for handler in self.event_handler._wrapped_handlers:
+                                    await handler(None, delta_event)
+                                yield delta_event
+
+                    # Skip further processing for StreamEvent - don't duplicate
+                    continue
 
                 # Convert to events and yield
                 events = claude_message_to_events(
