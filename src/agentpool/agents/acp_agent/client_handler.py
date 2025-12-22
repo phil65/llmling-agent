@@ -80,8 +80,12 @@ class ACPClientHandler(Client):
 
     @property
     def env(self) -> ExecutionEnvironment:
-        """Get execution environment from parent agent."""
-        return self._agent.env
+        """Get execution environment for subprocess requests.
+
+        Uses the agent's client_env which handles subprocess file/terminal
+        operations. Falls back to agent's main env if not explicitly configured.
+        """
+        return self._agent.client_env
 
     @property
     def allow_file_operations(self) -> bool:

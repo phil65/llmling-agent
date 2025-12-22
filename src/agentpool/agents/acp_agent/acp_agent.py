@@ -267,6 +267,21 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         self._extra_mcp_servers: list[McpServer] = []
         self._tool_bridge: ToolManagerBridge | None = None
         self._owns_bridge = False  # Track if we created the bridge (for cleanup)
+        # Client execution environment (for subprocess requests) - falls back to env
+        self._client_env: ExecutionEnvironment | None = config.get_client_execution_environment()
+
+    @property
+    def client_env(self) -> ExecutionEnvironment:
+        """Execution environment for handling subprocess requests.
+
+        This is used by ACPClientHandler for file/terminal operations requested
+        by the subprocess. Falls back to the agent's main env if not explicitly set.
+
+        Use cases:
+        - Default (None): Subprocess requests use same env as toolsets
+        - Explicit: Subprocess operates in a different environment than toolsets
+        """
+        return self._client_env if self._client_env is not None else self.env
 
     def get_context(self, data: Any = None) -> AgentContext:
         """Create a new context for this agent.

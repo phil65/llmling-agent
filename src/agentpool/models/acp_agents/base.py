@@ -60,7 +60,31 @@ class BaseACPAgentConfig(NodeConfig):
             ],
         ),
     ] = "local"
-    """Execution environment config for ACP client operations (filesystem, terminals)."""
+    """Execution environment config for the agent's own toolsets."""
+
+    client_execution_environment: Annotated[
+        ExecutionEnvironmentStr | ExecutionEnvironmentConfig | None,
+        Field(
+            default=None,
+            title="Client Execution Environment",
+            examples=[
+                "local",
+                "docker",
+                E2bExecutionEnvironmentConfig(template="python-sandbox"),
+            ],
+        ),
+    ] = None
+    """Execution environment for handling subprocess requests (filesystem, terminals).
+
+    When the ACP subprocess requests file/terminal operations, this environment
+    determines where those operations execute. Falls back to execution_environment
+    if not set.
+
+    Use cases:
+    - None (default): Use same env as toolsets (execution_environment)
+    - "local": Subprocess operates on its own local filesystem
+    - Remote config: Subprocess operates in a specific remote environment
+    """
 
     allow_file_operations: bool = Field(default=True, title="Allow File Operations")
     """Whether to allow file read/write operations."""
@@ -86,6 +110,17 @@ class BaseACPAgentConfig(NodeConfig):
         if isinstance(self.execution_environment, str):
             return get_environment(self.execution_environment)
         return self.execution_environment.get_provider()
+
+    def get_client_execution_environment(self) -> ExecutionEnvironment | None:
+        """Create client execution environment from config.
+
+        Returns None if not configured (caller should fall back to main env).
+        """
+        if self.client_execution_environment is None:
+            return None
+        if isinstance(self.client_execution_environment, str):
+            return get_environment(self.client_execution_environment)
+        return self.client_execution_environment.get_provider()
 
     @property
     def model_providers(self) -> list[ProviderType]:

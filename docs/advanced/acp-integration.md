@@ -388,6 +388,71 @@ The execution environment handles:
 - Network access controls
 - Resource limits and isolation
 
+### Remote Agent Operations with Client Execution Environment
+
+ACP agents support a **dual environment** model, allowing the agent process to run locally while operating on remote filesystems. This is useful when you want an agent to work on files in a Docker container, remote server, or cloud sandbox without installing the agent there.
+
+```mermaid
+flowchart LR
+    subgraph Local["Your Machine"]
+        UI[IDE / UI]
+        Agent[ACP Agent Process]
+    end
+    
+    subgraph Remote["Remote Environment"]
+        FS[Remote Filesystem]
+        Term[Remote Terminals]
+    end
+    
+    UI <-->|ACP Protocol| Agent
+    Agent -->|client_env| FS
+    Agent -->|client_env| Term
+```
+
+**Configuration:**
+
+```yaml
+agents:
+  remote_coder:
+    type: acp
+    provider: claude
+    # Agent's toolsets use this environment
+    execution_environment: local
+    # Subprocess file/terminal requests go here instead
+    client_execution_environment:
+      type: docker
+      image: python:3.12
+      mount: /home/user/project:/workspace
+```
+
+**How it works:**
+
+| Property | Purpose | Example |
+|----------|---------|---------|
+| `execution_environment` | Where the agent's internal toolsets operate | Local filesystem (or forwarded to UI via ACP) |
+| `client_execution_environment` | Where subprocess file/terminal requests go | Docker, SSH, E2B sandbox |
+
+!!! note "Environment Override When Using ACP Server"
+    When agents run through the ACP server (e.g., via IDE integration), the `execution_environment` 
+    setting is **overridden** by the ACP session. The session injects an `ACPExecutionEnvironment` 
+    that routes all toolset operations back to the IDE/client filesystem.
+    
+    This means:
+    
+    - **Standalone usage**: `execution_environment` controls where toolsets operate
+    - **Via ACP server**: Toolsets always operate on the client's filesystem (the IDE's workspace)
+    
+    The `client_execution_environment` is **not** overridden - it always controls where the 
+    subprocess's file/terminal requests go, regardless of how the agent is used.
+
+**Use cases:**
+
+- **Development in containers**: Agent runs locally but edits files inside a Docker container
+- **Remote server development**: Agent operates on a remote server via SSH without being installed there
+- **Sandboxed execution**: Agent runs commands in an isolated E2B sandbox for security
+
+If `client_execution_environment` is not set, it falls back to `execution_environment` (the default behavior).
+
 ### Permission Model
 
 ACP agents have fine-grained permission controls:
