@@ -38,6 +38,7 @@ from agentpool_config.workers import (
 if TYPE_CHECKING:
     from upathtools import JoinablePathLike
 
+    from agentpool.models.acp_agents import BaseACPAgentConfig
     from agentpool.prompts.manager import PromptManager
     from agentpool.vfs_registry import VFSRegistry
 
@@ -515,26 +516,24 @@ class AgentsManifest(Schema):
     @property
     def nodes(self) -> dict[str, Any]:
         """Get all agent and team configurations."""
-        return {
-            **self.agents,
-            **self._loaded_file_agents,
-            **self.teams,
-        }
+        return {**self.agents, **self._loaded_file_agents, **self.teams}
 
     @property
-    def acp_agents(self) -> dict[str, Any]:
+    def acp_agents(self) -> dict[str, BaseACPAgentConfig]:
         """Get ACP agents filtered from unified agents dict."""
-        return {k: v for k, v in self.agents.items() if getattr(v, "type", None) == "acp"}
+        from agentpool.models.acp_agents import BaseACPAgentConfig
+
+        return {k: v for k, v in self.agents.items() if isinstance(v, BaseACPAgentConfig)}
 
     @property
-    def agui_agents(self) -> dict[str, Any]:
+    def agui_agents(self) -> dict[str, AGUIAgentConfig]:
         """Get AG-UI agents filtered from unified agents dict."""
-        return {k: v for k, v in self.agents.items() if getattr(v, "type", None) == "agui"}
+        return {k: v for k, v in self.agents.items() if isinstance(v, AGUIAgentConfig)}
 
     @property
-    def claude_code_agents(self) -> dict[str, Any]:
+    def claude_code_agents(self) -> dict[str, ClaudeCodeAgentConfig]:
         """Get Claude Code agents filtered from unified agents dict."""
-        return {k: v for k, v in self.agents.items() if getattr(v, "type", None) == "claude_code"}
+        return {k: v for k, v in self.agents.items() if isinstance(v, ClaudeCodeAgentConfig)}
 
     @property
     def native_agents(self) -> dict[str, NativeAgentConfig]:
