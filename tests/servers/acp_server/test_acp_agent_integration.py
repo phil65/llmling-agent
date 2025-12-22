@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from exxec import LocalExecutionEnvironment
+from exxec.configs import LocalExecutionEnvironmentConfig
 import pytest
 
 from agentpool.agents.acp_agent import ACPAgent
@@ -186,7 +187,7 @@ async def test_acp_agent_with_custom_execution_environment(test_config_file: Pat
         ],
         name="test_acp_env_agent",
         cwd=str(tmp_path),
-        execution_environment={"type": "local", "timeout": 120.0},
+        execution_environment=LocalExecutionEnvironmentConfig(timeout=120.0),
     )
 
     async with ACPAgent(config=config) as agent:
