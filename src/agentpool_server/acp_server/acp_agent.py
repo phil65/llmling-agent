@@ -526,6 +526,55 @@ class AgentPoolACPAgent(ACPAgent):
 
         logger.info("Processing prompt", session_id=params.session_id)
         session = self.session_manager.get_session(params.session_id)
+
+        # Auto-recreate session if not found (e.g., after pool swap)
+        if not session:
+            logger.info(
+                "Session not found, recreating",
+                session_id=params.session_id,
+            )
+            try:
+                # Get default agent name
+                names = list(self.agent_pool.all_agents.keys())
+                if not names:
+                    logger.error("No agents available for session recreation")
+                    return PromptResponse(stop_reason="end_turn")
+
+                default_name = (
+                    self.default_agent
+                    if self.default_agent and self.default_agent in names
+                    else names[0]
+                )
+
+                # Try to get cwd from stored session data
+                cwd = "."
+                try:
+                    stored = await self.session_manager.session_manager.store.load(
+                        params.session_id
+                    )
+                    if stored and stored.cwd:
+                        cwd = stored.cwd
+                except Exception:
+                    pass  # Use default cwd
+
+                # Recreate session with same ID
+                await self.session_manager.create_session(
+                    default_agent_name=default_name,
+                    cwd=cwd,
+                    client=self.client,
+                    acp_agent=self,
+                    session_id=params.session_id,
+                    client_capabilities=self.client_capabilities,
+                )
+                session = self.session_manager.get_session(params.session_id)
+                if session:
+                    # Initialize session extras
+                    self.tasks.create_task(session.send_available_commands_update())
+                    self.tasks.create_task(session.init_project_context())
+            except Exception:
+                logger.exception("Failed to recreate session", session_id=params.session_id)
+                return PromptResponse(stop_reason="end_turn")
+
         try:
             if not session:
                 raise ValueError(f"Session {params.session_id} not found")  # noqa: TRY301
