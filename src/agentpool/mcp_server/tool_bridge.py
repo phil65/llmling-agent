@@ -15,7 +15,7 @@ import asyncio
 from contextlib import asynccontextmanager, suppress
 from dataclasses import dataclass, field
 import inspect
-from typing import TYPE_CHECKING, Any, Self
+from typing import TYPE_CHECKING, Any, Literal, Self
 from uuid import uuid4
 
 from fastmcp import FastMCP
@@ -342,7 +342,7 @@ async def create_tool_bridge(
     *,
     host: str = "127.0.0.1",
     port: int = 0,
-    transport: str = "sse",
+    transport: Literal["sse", "streamable-http"] = "sse",
 ) -> AsyncIterator[ToolManagerBridge]:
     """Create and start a ToolManagerBridge as a context manager.
 

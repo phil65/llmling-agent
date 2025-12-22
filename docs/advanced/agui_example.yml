@@ -80,6 +80,7 @@ agents:
       - import_path: local_tools.calculator
 
   coordinator:
+    type: native
     model: anthropic:claude-sonnet-4
     system_prompt: You coordinate between local and remote agents
     toolsets:
@@ -91,60 +92,12 @@ teams:
     members:
       - local_assistant
       - remote_assistant
-    strategy: parallel
+    mode: parallel
     description: Team with both local and remote agents
 
   sequential_team:
     members:
       - coordinator
       - tool_enabled_agent
-    strategy: sequential
+    mode: sequential
     description: Coordinator delegates to AG-UI agent
-
-# Example workflows
-connections:
-  # Forward from local to remote
-  local_to_remote:
-    from: local_assistant
-    to: remote_assistant
-    condition: "message contains 'specialized task'"
-
-  # Bidirectional communication
-  bidirectional:
-    from: coordinator
-    to: enhanced_agent
-    bidirectional: true
-
-# Event handlers for monitoring
-event_handlers:
-  - type: detailed
-    include_events:
-      - tool_call_start
-      - tool_call_end
-      - text_delta
-
-# Example: Production setup
-# agents:
-#   production_agent:
-#     type: agui
-#     endpoint: https://prod-api.company.com/agent/run
-#     headers:
-#       Authorization: Bearer ${PROD_API_KEY}
-#       X-Request-ID: ${REQUEST_ID}
-#     timeout: 180.0
-#     tools:
-#       - import_path: company.tools.approval_workflow
-#       - import_path: company.tools.audit_log
-#       - import_path: company.tools.notification
-#     description: Production AG-UI agent with audit tools
-
-# Example: Testing setup
-# agents:
-#   test_agent:
-#     type: agui
-#     endpoint: http://localhost:8888/agent/run
-#     startup_command: "uv run pytest --ag-ui-server"
-#     startup_delay: 5.0
-#     tools:
-#       - import_path: tests.mocks.mock_tool
-#     description: Test AG-UI agent for integration tests
