@@ -16,7 +16,7 @@ You want to use multiple AI agents together - Claude Code for refactoring, a cus
 
 ## The Solution
 
-AgentPool acts as a protocol bridge. Define all your agents in one YAML file - whether they're native (PydanticAI-based), external ACP agents (Claude Code, Codex, Goose), or AG-UI agents. Then expose them all through ACP or AG-UI protocols, letting them cooperate, delegate, and communicate through a unified interface.
+AgentPool acts as a protocol bridge. Define all your agents in one YAML file - whether they're native (PydanticAI-based), external ACP agents (Claude Code, Codex, Goose), or AG-UI agents. Then expose them all through ACP or AG-UI protocols, letting them cooperate, delegate, and communicate through a unified interface. 
 
 ```mermaid
 flowchart TB
@@ -47,7 +47,7 @@ flowchart TB
 ## Quick Start
 
 ```bash
-pip install agentpool[default]
+uv tool install agentpool[default]
 ```
 
 ### Minimal Configuration
@@ -76,28 +76,39 @@ The real power comes from mixing agent types:
 
 ```yaml
 agents:
-  # External ACP agents
+  # Native PydanticAI-based agent
+  coordinator:
+    type: native
+    model: openai:gpt-4o
+    toolsets:
+      - type: subagent  # Can delegate to all other agents
+    system_prompts:
+      - "Coordinate tasks between available agents."
+
+  # Claude Code agent (direct integration)
   claude:
-    type: acp
-    provider: claude
+    type: claude
     description: "Claude Code for complex refactoring"
 
+  # ACP protocol agents
   goose:
     type: acp
     provider: goose
     description: "Goose for file operations"
 
-  # Native agent that coordinates them
-  coordinator:
-    type: native
-    model: openai:gpt-4o
-    toolsets:
-      - type: subagent  # Can delegate to claude, goose
-    system_prompts:
-      - "Coordinate tasks between available agents."
+  codex:
+    type: acp
+    provider: codex
+    description: "OpenAI Codex agent"
+
+  # AG-UI protocol agent
+  agui_agent:
+    type: agui
+    url: "http://localhost:8000"
+    description: "Custom AG-UI agent"
 ```
 
-Now `coordinator` can delegate work to Claude Code or Goose as needed, and all three are accessible through the same ACP interface.
+Now `coordinator` can delegate work to any of these agents, and all are accessible through the same interface.
 
 ## Key Features
 
