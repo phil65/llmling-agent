@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence  # noqa: TC003
 import os
 import tempfile
 from typing import TYPE_CHECKING, Annotated, Any, Literal
@@ -19,8 +20,6 @@ from agentpool_config.system_prompts import PromptConfig  # noqa: TC001
 
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
-
     from exxec import ExecutionEnvironment
 
     from agentpool.prompts.manager import PromptManager
