@@ -89,6 +89,9 @@ def set_active_file(
 
 def list_configs() -> None:
     """List stored agent configurations."""
+    from rich.console import Console
+    from rich.table import Table
+
     configs = agent_store.list_configs()
     active = agent_store.get_active()
     active_name = active.name if active else None
@@ -97,12 +100,16 @@ def list_configs() -> None:
         t.echo("No configurations stored. Use 'agentpool add' to add one.")
         return
 
-    # Format as markdown table
-    t.echo("| Name | Path | Active |")
-    t.echo("|------|------|--------|")
+    table = Table(title="Stored Configurations")
+    table.add_column("Name", style="cyan")
+    table.add_column("Path")
+    table.add_column("Active", justify="center")
+
     for name, path in configs:
         marker = "✓" if name == active_name else ""
-        t.echo(f"| {name} | {path} | {marker} |")
+        table.add_row(name, path, marker)
+
+    Console().print(table)
 
 
 def list_agents(
@@ -137,9 +144,15 @@ def list_agents(
             t.echo("No agents found in configuration.")
             return
 
-        # Format as markdown table
-        t.echo("| Name | Type | Display Name | Description |")
-        t.echo("|------|------|--------------|-------------|")
+        from rich.console import Console
+        from rich.table import Table
+
+        table = Table(title="Agents")
+        table.add_column("Name", style="cyan")
+        table.add_column("Type", style="magenta")
+        table.add_column("Display Name")
+        table.add_column("Description")
+
         for name, config in agents.items():
             agent_type = config.get("type", "native")
             display = config.get("display_name", name)
@@ -147,7 +160,9 @@ def list_agents(
             # Truncate long descriptions
             if len(desc) > 50:  # noqa: PLR2004
                 desc = desc[:47] + "..."
-            t.echo(f"| {name} | {agent_type} | {display} | {desc} |")
+            table.add_row(name, agent_type, display, desc)
+
+        Console().print(table)
 
     except t.Exit:
         raise
