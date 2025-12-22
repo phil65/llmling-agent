@@ -884,6 +884,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
             input_provider=self._input_provider,
             tool_confirmation_mode=config.requires_tool_confirmation,
             output_type=output_type,
+            agent_pool=self,
         )
 
     def create_agent[TAgentDeps](  # noqa: PLR0915
@@ -1094,6 +1095,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
             event_handlers=merged_handlers or None,
             input_provider=self._input_provider,
             tool_confirmation_mode=config.requires_tool_confirmation,
+            agent_pool=self,
         )
 
 
