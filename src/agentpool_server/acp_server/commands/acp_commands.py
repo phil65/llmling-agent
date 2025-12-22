@@ -462,6 +462,9 @@ class ListPoolsCommand(NodeCommand):
                 output_lines.append("")
                 output_lines.append("Use `agentpool add <name> <path>` to add configurations.")
             else:
+                # Build markdown table
+                output_lines.append("| Name | Path |")
+                output_lines.append("|------|------|")
                 for name, path in stored_configs:
                     is_active = active_config and active_config.name == name
                     is_current = current_config and path == current_config
@@ -470,9 +473,8 @@ class ListPoolsCommand(NodeCommand):
                         markers.append("default")
                     if is_current:
                         markers.append("current")
-                    marker_text = f" *({', '.join(markers)})*" if markers else ""
-                    output_lines.append(f"- **{name}**{marker_text}")
-                    output_lines.append(f"  `{path}`")
+                    name_col = f"{name} ({', '.join(markers)})" if markers else name
+                    output_lines.append(f"| {name_col} | `{path}` |")
 
             output_lines.append("")
             output_lines.append("*Use `/set-pool <name>` or `/set-pool <path>` to switch pools.*")
