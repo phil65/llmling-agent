@@ -34,11 +34,19 @@ def is_context_type(annotation: Any) -> bool:
 
     Handles:
     - Direct AgentContext/NodeContext/RunContext references
+    - String annotations (forward references from `from __future__ import annotations`)
     - Generic forms like AgentContext[SomeDeps], RunContext[SomeDeps]
     - Union types containing context types
     """
     if annotation is None or annotation is inspect.Parameter.empty:
         return False
+
+    # Handle string annotations (forward references from `from __future__ import annotations`)
+    # Check if the string matches or starts with a known context type name
+    if isinstance(annotation, str):
+        # Handle plain names like "AgentContext" and generics like "AgentContext[Deps]"
+        base_name = annotation.split("[")[0].strip()
+        return base_name in _CONTEXT_TYPE_NAMES
 
     # Check direct class match by name
     if isinstance(annotation, type) and annotation.__name__ in _CONTEXT_TYPE_NAMES:
