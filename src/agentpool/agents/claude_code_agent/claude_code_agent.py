@@ -116,7 +116,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         allowed_tools: list[str] | None = None,
         disallowed_tools: list[str] | None = None,
         system_prompt: str | None = None,
-        append_system_prompt: str | None = None,
+        include_builtin_system_prompt: bool = True,
         model: str | None = None,
         max_turns: int | None = None,
         max_thinking_tokens: int | None = None,
@@ -146,8 +146,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             cwd: Working directory for Claude Code
             allowed_tools: List of allowed tool names
             disallowed_tools: List of disallowed tool names
-            system_prompt: Custom system prompt
-            append_system_prompt: Text to append to the default system prompt
+            system_prompt: Custom system prompt (appended to builtin by default)
+            include_builtin_system_prompt: If True (default), system_prompt is appended to builtin; if False, only system_prompt is used
             model: Model to use (e.g., "claude-sonnet-4-5")
             max_turns: Maximum conversation turns
             max_thinking_tokens: Max tokens for extended thinking
@@ -178,7 +178,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                 allowed_tools=allowed_tools,
                 disallowed_tools=disallowed_tools,
                 system_prompt=system_prompt,
-                append_system_prompt=append_system_prompt,
+                include_builtin_system_prompt=include_builtin_system_prompt,
                 max_turns=max_turns,
                 max_thinking_tokens=max_thinking_tokens,
                 permission_mode=permission_mode,
@@ -212,7 +212,9 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         self._allowed_tools = allowed_tools or config.allowed_tools
         self._disallowed_tools = disallowed_tools or config.disallowed_tools
         self._system_prompt = system_prompt or config.system_prompt
-        self._append_system_prompt = append_system_prompt or config.append_system_prompt
+        self._include_builtin_system_prompt = (
+            include_builtin_system_prompt and config.include_builtin_system_prompt
+        )
         self._model = model or config.model
         self._max_turns = max_turns or config.max_turns
         self._max_thinking_tokens = max_thinking_tokens or config.max_thinking_tokens
@@ -381,9 +383,10 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         if self._disallowed_tools:
             options_kwargs["disallowed_tools"] = self._disallowed_tools
         if self._system_prompt:
-            options_kwargs["system_prompt"] = self._system_prompt
-        if self._append_system_prompt:
-            options_kwargs["append_system_prompt"] = self._append_system_prompt
+            if self._include_builtin_system_prompt:
+                options_kwargs["append_system_prompt"] = self._system_prompt
+            else:
+                options_kwargs["system_prompt"] = self._system_prompt
         if self._model:
             options_kwargs["model"] = self._model
         if self._max_turns:

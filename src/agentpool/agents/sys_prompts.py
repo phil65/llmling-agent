@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
     from toprompt import AnyPromptType
 
-    from agentpool.agents import Agent
+    from agentpool.agents import BaseAgent
     from agentpool.prompts.manager import PromptManager
 
 
@@ -162,7 +162,7 @@ class SystemPrompts:
         finally:
             self.prompts = original_prompts
 
-    async def format_system_prompt(self, agent: Agent[Any, Any]) -> str:
+    async def format_system_prompt(self, agent: BaseAgent[Any, Any]) -> str:
         """Format complete system prompt."""
         if not self.dynamic and not self._cached:
             await self.refresh_cache()

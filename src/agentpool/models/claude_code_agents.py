@@ -92,9 +92,26 @@ class ClaudeCodeAgentConfig(BaseAgentConfig):
     system_prompt: str | None = Field(
         default=None,
         title="System Prompt",
-        examples=["You are a helpful coding assistant focused on Python."],
+        examples=[
+            "Always write tests.",
+            "You are a helpful coding assistant focused on Python.",
+        ],
     )
-    """Custom system prompt to use instead of the default."""
+    """Custom system prompt text.
+
+    By default, this text is appended to Claude Code's default system prompt.
+    Set `include_builtin_system_prompt: false` to use only your custom prompt.
+    """
+
+    include_builtin_system_prompt: bool = Field(
+        default=True,
+        title="Include Builtin System Prompt",
+    )
+    """Whether to include Claude Code's builtin system prompt.
+
+    - true (default): `system_prompt` is appended to the builtin
+    - false: Only use `system_prompt`, discard the builtin
+    """
 
     max_turns: int | None = Field(
         default=None,
@@ -138,17 +155,6 @@ class ClaudeCodeAgentConfig(BaseAgentConfig):
 
     Can be either a reference to a response defined in manifest.responses,
     or an inline StructuredResponseConfig.
-    """
-
-    append_system_prompt: str | None = Field(
-        default=None,
-        title="Append System Prompt",
-        examples=["Always write tests.", "Prefer functional programming."],
-    )
-    """Text to append to the default system prompt.
-
-    Note: External MCP servers can be configured via the inherited `mcp_servers` field
-    from BaseAgentConfig. They will be converted to Claude SDK format at runtime.
     """
 
     env: dict[str, str] | None = Field(
