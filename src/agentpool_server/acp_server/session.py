@@ -178,8 +178,7 @@ class ACPSession:
         self.input_provider = ACPInputProvider(self)
         self.acp_env = ACPExecutionEnvironment(fs=self.fs, requests=self.requests, cwd=self.cwd)
         for agent in self.agent_pool.all_agents.values():
-            if isinstance(agent, Agent | ACPAgent):
-                agent.env = self.acp_env
+            agent.env = self.acp_env
             if isinstance(agent, Agent):
                 # TODO: need to inject this info for ACP agents, too.
                 agent.sys_prompts.prompts.append(self.get_cwd_context)  # pyright: ignore[reportArgumentType]
