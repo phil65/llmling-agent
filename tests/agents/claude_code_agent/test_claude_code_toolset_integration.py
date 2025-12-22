@@ -1,0 +1,198 @@
+"""Integration test for ClaudeCodeAgent with toolsets exposed via MCP bridge.
+
+This test creates an AgentPool with a ClaudeCodeAgent configured with
+toolsets, which get exposed via an internal MCP server bridge (SDK transport).
+The Claude agent can then use our internal tools through MCP.
+
+Run with: pytest tests/agents/claude_code_agent/test_claude_code_toolset_integration.py -v
+"""
+
+from __future__ import annotations
+
+import asyncio
+from pathlib import Path
+import shutil
+
+import pytest
+
+from agentpool import AgentPool
+from agentpool.agents.claude_code_agent import ClaudeCodeAgent
+from agentpool.models.claude_code_agents import ClaudeCodeAgentConfig
+from agentpool.models.manifest import AgentsManifest
+from agentpool_config.toolsets import SubagentToolsetConfig
+
+
+if not shutil.which("claude"):
+    pytest.skip("claude CLI not available", allow_module_level=True)
+
+pytestmark = [pytest.mark.asyncio, pytest.mark.integration]
+
+
+@pytest.fixture
+def claude_code_config_with_subagent() -> ClaudeCodeAgentConfig:
+    """Create ClaudeCodeAgent config with Subagent toolset."""
+    return ClaudeCodeAgentConfig(
+        name="claude_code_orchestrator",
+        description="Claude Code agent with subagent delegation capabilities",
+        cwd=str(Path.cwd()),
+        model="haiku",
+        permission_mode="acceptEdits",
+        toolsets=[SubagentToolsetConfig()],
+        builtin_tools=[],  # Disable builtin tools for focused testing
+        env={"ANTHROPIC_API_KEY": ""},  # Use subscription, not direct API key
+    )
+
+
+@pytest.fixture
+def manifest_with_claude_code(
+    claude_code_config_with_subagent: ClaudeCodeAgentConfig,
+) -> AgentsManifest:
+    """Create manifest with ClaudeCodeAgent."""
+    return AgentsManifest(
+        agents={"claude_code_orchestrator": claude_code_config_with_subagent},
+    )
+
+
+async def test_claude_code_with_subagent_toolset_setup(
+    manifest_with_claude_code: AgentsManifest,
+):
+    """Test that ClaudeCodeAgent with Subagent toolset initializes correctly."""
+    async with AgentPool(manifest=manifest_with_claude_code) as pool:
+        # Verify ClaudeCodeAgent was created (in claude_code_agents, not agents)
+        assert "claude_code_orchestrator" in pool.claude_code_agents
+        agent = pool.claude_code_agents["claude_code_orchestrator"]
+        # Verify it's a ClaudeCodeAgent
+        assert isinstance(agent, ClaudeCodeAgent)
+
+        # Pool already enters agent context, so bridge should be set up
+        # Verify toolset bridge was set up
+        assert agent._tool_bridge is not None
+        assert agent._owns_bridge is True
+        # Verify tools are registered (SubagentToolset always has tools)
+        tools = await agent.tools.get_tools()
+        assert len(tools) > 0
+        tool_names = {t.name for t in tools}
+        # SubagentTools provides: list_available_nodes, delegate_to, ask_agent
+        assert "list_available_nodes" in tool_names or "delegate_to" in tool_names
+
+
+async def test_claude_code_subagent_tool_invocation(
+    manifest_with_claude_code: AgentsManifest,
+):
+    """Test invoking subagent tools through ClaudeCodeAgent.
+
+    Note: This test requires:
+    - claude CLI to be installed and accessible
+    - Valid API credentials for Claude
+    """
+    async with AgentPool(manifest=manifest_with_claude_code) as pool:
+        agent = pool.claude_code_agents["claude_code_orchestrator"]
+        assert isinstance(agent, ClaudeCodeAgent)
+
+        # Pool already enters agent context
+        # Ask the agent to list available nodes - it should have access via MCP
+        prompt = "Use the list_available_nodes tool to show me available agents"
+        result = await asyncio.wait_for(agent.run(prompt), timeout=60.0)
+        assert result is not None
+        # Result should contain information about available nodes
+        result_text = str(result)
+        # Should at least contain this agent's own name or some indication of nodes
+        assert len(result_text) > 0
+
+
+async def test_claude_code_tool_bridge_sdk_transport(
+    claude_code_config_with_subagent: ClaudeCodeAgentConfig,
+):
+    """Test that tool bridge uses SDK transport (not HTTP) for ClaudeCodeAgent."""
+    async with AgentPool() as pool:
+        # Manually create and configure agent, then enter its context
+        agent = ClaudeCodeAgent(config=claude_code_config_with_subagent, agent_pool=pool)
+        agent = await pool.exit_stack.enter_async_context(agent)
+
+        # Verify bridge is set up with SDK transport config
+        assert agent._tool_bridge is not None
+        mcp_config = agent._tool_bridge.get_claude_mcp_server_config()
+        # Should have exactly one server config
+        assert len(mcp_config) == 1
+        server_name = next(iter(mcp_config.keys()))
+        server_config = mcp_config[server_name]
+        # Should be SDK type (not HTTP)
+        assert server_config["type"] == "sdk"
+        # Should have the FastMCP server instance
+        assert "instance" in server_config
+
+
+async def test_claude_code_multiple_toolsets():
+    """Test ClaudeCodeAgent with multiple toolsets."""
+    from agentpool_config.toolsets import AgentManagementToolsetConfig
+
+    config = ClaudeCodeAgentConfig(
+        name="claude_code_multi",
+        cwd=str(Path.cwd()),
+        permission_mode="acceptEdits",
+        toolsets=[SubagentToolsetConfig(), AgentManagementToolsetConfig()],
+        builtin_tools=[],
+    )
+
+    async with AgentPool() as pool:
+        agent = ClaudeCodeAgent(config=config, agent_pool=pool)
+        agent = await pool.exit_stack.enter_async_context(agent)
+
+        # All toolsets should be exposed via single bridge
+        assert agent._tool_bridge is not None
+        tools = await agent.tools.get_tools()
+        tool_names = {t.name for t in tools}
+        # Should have tools from both toolsets
+        # SubagentToolset provides: list_available_nodes, delegate_to, ask_agent
+        assert "list_available_nodes" in tool_names or "delegate_to" in tool_names
+        # AgentManagementToolset provides: create_worker_agent, add_agent, etc.
+        assert "add_agent" in tool_names or "create_worker_agent" in tool_names
+
+
+async def test_pool_cleanup_stops_tool_bridges(manifest_with_claude_code: AgentsManifest):
+    """Test that pool cleanup properly stops tool bridges."""
+    pool = AgentPool(manifest=manifest_with_claude_code)
+    async with pool:
+        agent = pool.claude_code_agents["claude_code_orchestrator"]
+        assert isinstance(agent, ClaudeCodeAgent)
+        # Pool already entered agent context, bridge should be initialized
+        assert agent._tool_bridge is not None
+
+    # After pool exit, bridge should be stopped
+    assert agent._tool_bridge is None
+
+
+async def test_claude_code_mcp_servers_config():
+    """Test that MCP servers config includes both external and bridge servers."""
+    from agentpool_config.mcp_server import StdioMCPServerConfig
+
+    # Create config with both external MCP server and toolset
+    config = ClaudeCodeAgentConfig(
+        name="claude_code_mixed",
+        cwd=str(Path.cwd()),
+        permission_mode="acceptEdits",
+        toolsets=[SubagentToolsetConfig()],
+        mcp_servers=[
+            StdioMCPServerConfig(
+                name="external_test",
+                command="echo",
+                args=["test"],
+            )
+        ],
+        builtin_tools=[],
+    )
+
+    async with AgentPool() as pool:
+        agent = ClaudeCodeAgent(config=config, agent_pool=pool)
+        agent = await pool.exit_stack.enter_async_context(agent)
+
+        # Should have both external and bridge MCP servers
+        assert len(agent._mcp_servers) >= 2  # noqa: PLR2004
+        # Should have the external server
+        assert any("external" in name for name in agent._mcp_servers)
+        # Should have the bridge server
+        assert any("tools" in name for name in agent._mcp_servers)
+
+
+if __name__ == "__main__":
+    pytest.main(["-v", __file__])
