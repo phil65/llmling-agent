@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 from pydantic import ConfigDict, Field
 from tokonomics.model_discovery import ProviderType  # noqa: TC002
 
 from agentpool.models.acp_agents.base import BaseACPAgentConfig
+
+
+if TYPE_CHECKING:
+    from agentpool.prompts.manager import PromptManager
 
 
 ClaudeCodeModelName = Literal["default", "sonnet", "opus", "haiku", "sonnet[1m]", "opusplan"]
@@ -86,8 +90,9 @@ class CodexACPAgentConfig(BaseACPAgentConfig):
         """Codex uses OpenAI models."""
         return ["openai"]
 
-    def get_args(self) -> list[str]:
+    async def get_args(self, prompt_manager: PromptManager | None = None) -> list[str]:
         """Build command arguments from settings."""
+        _ = prompt_manager  # Codex doesn't support custom system prompts via CLI
         args: list[str] = ["@zed-industries/codex-acp"]
 
         if self.model:
@@ -130,8 +135,9 @@ class OpenCodeACPAgentConfig(BaseACPAgentConfig):
         """Get the command to spawn the ACP server."""
         return "opencode"
 
-    def get_args(self) -> list[str]:
+    async def get_args(self, prompt_manager: PromptManager | None = None) -> list[str]:
         """Build command arguments from settings."""
+        _ = prompt_manager  # OpenCode doesn't support custom system prompts via CLI
         args: list[str] = ["acp"]
 
         if self.cwd:
@@ -168,8 +174,9 @@ class GooseACPAgentConfig(BaseACPAgentConfig):
         """Get the command to spawn the ACP server."""
         return "goose"
 
-    def get_args(self) -> list[str]:
+    async def get_args(self, prompt_manager: PromptManager | None = None) -> list[str]:
         """Build command arguments from settings."""
+        _ = prompt_manager  # Goose doesn't support custom system prompts via CLI
         return ["acp"]
 
     @property
@@ -200,8 +207,9 @@ class MistralACPAgentConfig(BaseACPAgentConfig):
         """Get the command to spawn the ACP server."""
         return "vibe-acp"
 
-    def get_args(self) -> list[str]:
+    async def get_args(self, prompt_manager: PromptManager | None = None) -> list[str]:
         """Build command arguments from settings."""
+        _ = prompt_manager  # Mistral doesn't support custom system prompts via CLI
         return []
 
     @property
@@ -234,8 +242,9 @@ class OpenHandsACPAgentConfig(BaseACPAgentConfig):
         """Get the command to spawn the ACP server."""
         return "openhands"
 
-    def get_args(self) -> list[str]:
+    async def get_args(self, prompt_manager: PromptManager | None = None) -> list[str]:
         """Build command arguments from settings."""
+        _ = prompt_manager  # OpenHands doesn't support custom system prompts via CLI
         return ["acp"]
 
     @property
@@ -284,8 +293,9 @@ class AmpACPAgentConfig(BaseACPAgentConfig):
         """Get the command to spawn the ACP bridge server."""
         return "npx"
 
-    def get_args(self) -> list[str]:
+    async def get_args(self, prompt_manager: PromptManager | None = None) -> list[str]:
         """Build command arguments for amp-acp bridge."""
+        _ = prompt_manager  # Amp doesn't support custom system prompts via CLI
         return ["-y", "amp-acp"]
 
     @property
@@ -365,8 +375,9 @@ class CagentACPAgentConfig(BaseACPAgentConfig):
         """Get the command to spawn the ACP server."""
         return "cagent"
 
-    def get_args(self) -> list[str]:
+    async def get_args(self, prompt_manager: PromptManager | None = None) -> list[str]:
         """Build command arguments from settings."""
+        _ = prompt_manager  # Cagent doesn't support custom system prompts via CLI
         args = ["acp"]
 
         if self.agent_file:
@@ -466,13 +477,6 @@ class StakpakACPAgentConfig(BaseACPAgentConfig):
     )
     """Allow only the specified tools in the agent's context."""
 
-    system_prompt_file: str | None = Field(
-        default=None,
-        title="System Prompt File",
-        examples=["prompt.txt", "/etc/stakpak/system.txt"],
-    )
-    """Read system prompt from file."""
-
     profile: str | None = Field(
         default=None,
         title="Profile",
@@ -498,9 +502,14 @@ class StakpakACPAgentConfig(BaseACPAgentConfig):
         """Get the command to spawn the ACP server."""
         return "stakpak"
 
-    def get_args(self) -> list[str]:
+    async def get_args(self, prompt_manager: PromptManager | None = None) -> list[str]:
         """Build command arguments from settings."""
         args = ["acp"]
+
+        # Handle system prompt from base class - Stakpak uses file
+        prompt_file = await self.write_system_prompt_file(prompt_manager)
+        if prompt_file:
+            args.extend(["--system-prompt-file", prompt_file])
 
         if self.workdir:
             args.extend(["--workdir", self.workdir])
@@ -527,8 +536,6 @@ class StakpakACPAgentConfig(BaseACPAgentConfig):
         if self.allowed_tools:
             for tool in self.allowed_tools:
                 args.extend(["--tool", tool])
-        if self.system_prompt_file:
-            args.extend(["--system-prompt-file", self.system_prompt_file])
         if self.profile:
             args.extend(["--profile", self.profile])
         if self.model:
@@ -654,8 +661,9 @@ class VTCodeACPAgentConfig(BaseACPAgentConfig):
         """Get the command to spawn the ACP server."""
         return "vtcode"
 
-    def get_args(self) -> list[str]:
+    async def get_args(self, prompt_manager: PromptManager | None = None) -> list[str]:
         """Build command arguments from settings."""
+        _ = prompt_manager  # VTCode doesn't support custom system prompts via CLI
         args = ["acp"]
 
         if self.model:
@@ -793,8 +801,9 @@ class CursorACPAgentConfig(BaseACPAgentConfig):
         """Get the command to spawn the ACP server."""
         return "cursor-agent-acp"
 
-    def get_args(self) -> list[str]:
+    async def get_args(self, prompt_manager: PromptManager | None = None) -> list[str]:
         """Build command arguments from settings."""
+        _ = prompt_manager  # Cursor doesn't support custom system prompts via CLI
         args: list[str] = []
 
         if self.config:

@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Annotated, Literal
+from collections.abc import Sequence
+import os
+import tempfile
+from typing import TYPE_CHECKING, Annotated, Any, Literal
 
 from exxec import ExecutionEnvironmentStr, get_environment  # noqa: TC002
 from exxec.configs import (
@@ -13,10 +16,13 @@ from pydantic import ConfigDict, Field
 from tokonomics.model_discovery import ProviderType  # noqa: TC002
 
 from agentpool_config.nodes import NodeConfig
+from agentpool_config.system_prompts import PromptConfig  # noqa: TC001
 
 
 if TYPE_CHECKING:
     from exxec import ExecutionEnvironment
+
+    from agentpool.prompts.manager import PromptManager
 
 
 class BaseACPAgentConfig(NodeConfig):
@@ -97,13 +103,124 @@ class BaseACPAgentConfig(NodeConfig):
     )
     """Whether to automatically grant all permission requests."""
 
+    system_prompt: str | Sequence[str | PromptConfig] | None = Field(
+        default=None,
+        title="System Prompt",
+        examples=[
+            "You are a helpful coding assistant.",
+            ["Always write tests.", "Focus on Python."],
+        ],
+        json_schema_extra={
+            "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/"
+        },
+    )
+    """System prompt for the agent. Can be a string or list of strings/prompt configs.
+
+    Support varies by agent:
+    - Claude: passed via --system-prompt
+    - Auggie: passed via --instruction-file
+    - Stakpak: passed via --system-prompt-file
+    - Others: may not support system prompts
+
+    Docs: https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/
+    """
+
     def get_command(self) -> str:
         """Get the command to spawn the ACP server."""
         raise NotImplementedError
 
-    def get_args(self) -> list[str]:
+    async def get_args(self, prompt_manager: PromptManager | None = None) -> list[str]:
         """Get command arguments."""
         raise NotImplementedError
+
+    async def render_system_prompt(
+        self,
+        prompt_manager: PromptManager | None = None,
+        context: dict[str, Any] | None = None,
+    ) -> str | None:
+        """Render system prompt to a single string.
+
+        Resolves library references and renders templates.
+
+        Args:
+            prompt_manager: Optional prompt manager for resolving library references
+            context: Optional context for template rendering
+
+        Returns:
+            Rendered system prompt string, or None if no prompt configured
+        """
+        from toprompt import render_prompt
+
+        from agentpool_config.system_prompts import (
+            FilePromptConfig,
+            FunctionPromptConfig,
+            LibraryPromptConfig,
+            StaticPromptConfig,
+        )
+
+        if self.system_prompt is None:
+            return None
+
+        context = context or {"name": self.name}
+        prompt_list = (
+            [self.system_prompt] if isinstance(self.system_prompt, str) else self.system_prompt
+        )
+
+        rendered_parts: list[str] = []
+        for prompt in prompt_list:
+            match prompt:
+                case str() as content:
+                    rendered_parts.append(render_prompt(content, {"agent": context}))
+                case StaticPromptConfig(content=content):
+                    rendered_parts.append(render_prompt(content, {"agent": context}))
+                case FilePromptConfig(path=path, variables=variables):
+                    from pathlib import Path
+
+                    template_path = Path(path)
+                    if not template_path.is_absolute() and self.config_file_path:
+                        base_path = Path(self.config_file_path).parent
+                        template_path = base_path / path
+                    template_content = template_path.read_text("utf-8")
+                    template_ctx = {"agent": context, **variables}
+                    rendered_parts.append(render_prompt(template_content, template_ctx))
+                case LibraryPromptConfig(reference=reference):
+                    if prompt_manager:
+                        resolved = await prompt_manager.get_from(reference)
+                        rendered_parts.append(render_prompt(resolved, {"agent": context}))
+                    else:
+                        # Fallback: include reference marker
+                        rendered_parts.append(f"[LIBRARY:{reference}]")
+                case FunctionPromptConfig(function=function, arguments=arguments):
+                    content = function(**arguments)
+                    rendered_parts.append(render_prompt(content, {"agent": context}))
+
+        return "\n\n".join(rendered_parts) if rendered_parts else None
+
+    async def write_system_prompt_file(
+        self,
+        prompt_manager: PromptManager | None = None,
+        context: dict[str, Any] | None = None,
+    ) -> str | None:
+        """Write system prompt to a temporary file.
+
+        Creates a temp file in the system temp directory that will be
+        cleaned up on system restart.
+
+        Args:
+            prompt_manager: Optional prompt manager for resolving library references
+            context: Optional context for template rendering
+
+        Returns:
+            Path to the temp file, or None if no prompt configured
+        """
+        content = await self.render_system_prompt(prompt_manager, context)
+        if not content:
+            return None
+
+        fd, path = tempfile.mkstemp(prefix="agentpool_prompt_", suffix=".txt")
+        with os.fdopen(fd, "w") as f:
+            f.write(content)
+        return path
 
     def get_execution_environment(self) -> ExecutionEnvironment:
         """Create execution environment from config."""
@@ -185,6 +302,7 @@ class ACPAgentConfig(BaseACPAgentConfig):
         """Get the command to spawn the ACP server."""
         return self.command
 
-    def get_args(self) -> list[str]:
+    async def get_args(self, prompt_manager: PromptManager | None = None) -> list[str]:
         """Get command arguments."""
+        _ = prompt_manager  # Custom agents use explicit args
         return self.args

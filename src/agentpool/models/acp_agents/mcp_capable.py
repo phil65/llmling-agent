@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from typing import Any, Literal, assert_never, cast
+from typing import TYPE_CHECKING, Any, Literal, assert_never, cast
 
 from pydantic import BaseModel, ConfigDict, Field
 from tokonomics.model_discovery import ProviderType  # noqa: TC002
@@ -11,6 +11,10 @@ from tokonomics.model_discovery import ProviderType  # noqa: TC002
 from agentpool.models.acp_agents.base import BaseACPAgentConfig
 from agentpool_config.output_types import StructuredResponseConfig  # noqa: TC001
 from agentpool_config.toolsets import ToolsetConfig  # noqa: TC001
+
+
+if TYPE_CHECKING:
+    from agentpool.prompts.manager import PromptManager
 
 
 ClaudeCodeModelName = Literal["default", "sonnet", "opus", "haiku", "sonnet[1m]", "opusplan"]
@@ -148,19 +152,12 @@ class ClaudeACPAgentConfig(MCPCapableACPAgentConfig):
     provider: Literal["claude"] = Field("claude", init=False)
     """Discriminator for Claude ACP agent."""
 
-    system_prompt: str | None = Field(
-        default=None,
-        title="System Prompt",
-        examples=["You are a helpful coding assistant.", "Follow best practices for Python."],
+    include_builtin_system_prompt: bool = Field(
+        default=True,
+        title="Include Builtin System Prompt",
     )
-    """Custom system prompt (replaces default Claude Code prompt)."""
-
-    append_system_prompt: str | None = Field(
-        default=None,
-        title="Append System Prompt",
-        examples=["Always write tests.", "Prefer functional programming."],
-    )
-    """Text to append to the default system prompt."""
+    """If True, system_prompt is appended to Claude's builtin prompt.
+    If False, system_prompt replaces the builtin prompt entirely."""
 
     model: ClaudeCodeModelName | None = Field(
         default=None,
@@ -234,14 +231,17 @@ class ClaudeACPAgentConfig(MCPCapableACPAgentConfig):
         """Get the command to spawn the ACP server."""
         return "claude-code-acp"
 
-    def get_args(self) -> list[str]:
+    async def get_args(self, prompt_manager: PromptManager | None = None) -> list[str]:
         """Build command arguments from settings."""
         args: list[str] = []
 
-        if self.system_prompt:
-            args.extend(["--system-prompt", self.system_prompt])
-        if self.append_system_prompt:
-            args.extend(["--append-system-prompt", self.append_system_prompt])
+        # Handle system prompt from base class
+        rendered_prompt = await self.render_system_prompt(prompt_manager)
+        if rendered_prompt:
+            if self.include_builtin_system_prompt:
+                args.extend(["--append-system-prompt", rendered_prompt])
+            else:
+                args.extend(["--system-prompt", rendered_prompt])
         if self.model:
             args.extend(["--model", self.model])
         if self.permission_mode:
@@ -384,8 +384,9 @@ class GeminiACPAgentConfig(MCPCapableACPAgentConfig):
         """Gemini CLI uses Google Gemini models."""
         return ["gemini"]
 
-    def get_args(self) -> list[str]:
+    async def get_args(self, prompt_manager: PromptManager | None = None) -> list[str]:
         """Build command arguments from settings."""
+        _ = prompt_manager  # Gemini doesn't support custom system prompts via CLI
         args: list[str] = ["--experimental-acp"]
 
         if self.model:
@@ -479,8 +480,9 @@ class FastAgentACPAgentConfig(MCPCapableACPAgentConfig):
         """Get the command to spawn the ACP server."""
         return "fast-agent-acp"
 
-    def get_args(self) -> list[str]:
+    async def get_args(self, prompt_manager: PromptManager | None = None) -> list[str]:
         """Build command arguments from settings."""
+        _ = prompt_manager  # fast-agent doesn't support custom system prompts via CLI
         args: list[str] = []
 
         if self.model:
@@ -634,9 +636,14 @@ class AuggieACPAgentConfig(MCPCapableACPAgentConfig):
         """Get the command to spawn the ACP server."""
         return "auggie"
 
-    def get_args(self) -> list[str]:
+    async def get_args(self, prompt_manager: PromptManager | None = None) -> list[str]:
         """Build command arguments from settings."""
         args = ["--acp"]
+
+        # Handle system prompt from base class - Auggie uses instruction-file
+        prompt_file = await self.write_system_prompt_file(prompt_manager)
+        if prompt_file:
+            args.extend(["--instruction-file", prompt_file])
 
         if self.model:
             args.extend(["--model", self.model])
@@ -742,8 +749,9 @@ class KimiACPAgentConfig(MCPCapableACPAgentConfig):
         """Get the command to spawn the ACP server."""
         return "kimi"
 
-    def get_args(self) -> list[str]:
+    async def get_args(self, prompt_manager: PromptManager | None = None) -> list[str]:
         """Build command arguments from settings."""
+        _ = prompt_manager  # Kimi doesn't support custom system prompts via CLI
         args = ["--acp"]
 
         if self.verbose:
